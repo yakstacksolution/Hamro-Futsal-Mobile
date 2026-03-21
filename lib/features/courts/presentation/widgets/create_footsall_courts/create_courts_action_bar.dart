@@ -1,0 +1,79 @@
+import 'package:flutter/material.dart';
+import 'package:hamro_footsall/core/theme/light_color.dart';
+import 'package:hamro_footsall/core/widgets/custom_button.dart';
+
+class CreateCourtsActionBar extends StatelessWidget {
+  const CreateCourtsActionBar({
+    super.key,
+    required this.currentStep,
+    required this.isLastStep,
+    required this.isSubmitting,
+    required this.onSecondaryPressed,
+    required this.onPrimaryPressed,
+  });
+
+  final int currentStep;
+  final bool isLastStep;
+  final bool isSubmitting;
+  final VoidCallback onSecondaryPressed;
+  final VoidCallback onPrimaryPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: Container(
+        height: 66,
+        padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: <BoxShadow>[
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 16,
+              offset: const Offset(0, -4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: <Widget>[
+            Expanded(
+              flex: 2,
+              child: CustomButton(
+                text: currentStep > 0 ? 'Back' : 'Reset',
+                icon: currentStep > 0
+                    ? Icons.arrow_back_ios
+                    : Icons.refresh_rounded,
+                onPressed: isSubmitting ? null : onSecondaryPressed,
+                isOutlined: true,
+                backgroundColor: Colors.white,
+                foregroundColor: LightColor.skyBlue,
+                borderColor: LightColor.skyBlue,
+                minHeight: 50,
+                verticalPadding: 2,
+              ),
+            ),
+            const SizedBox(width: 50),
+            Expanded(
+              flex: 2,
+              child: CustomButton(
+                text: isLastStep ? 'Create Shop' : 'Continue',
+                icon: isLastStep
+                    ? Icons.add_business_rounded
+                    : Icons.arrow_forward_ios,
+                onPressed: isSubmitting ? null : onPrimaryPressed,
+                isLoading: isSubmitting,
+                backgroundColor: isLastStep
+                    ? LightColor.orange
+                    : LightColor.skyBlue,
+                foregroundColor: Colors.white,
+                minHeight: 50,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
