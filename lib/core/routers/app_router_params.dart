@@ -39,6 +39,16 @@ class AppRouterParams {
     name: 'courtDetails',
     path: '/dashboard/court-details',
   );
+
+  static const RouteConfig vendorOnboarding = RouteConfig(
+    name: 'vendorOnboarding',
+    path: '/dashboard/vendor-onboarding',
+  );
+
+  static const RouteConfig vendorStepper = RouteConfig(
+    name: 'vendorStepper',
+    path: '/dashboard/vendor-stepper',
+  );
 }
 
 class RouteConfig {

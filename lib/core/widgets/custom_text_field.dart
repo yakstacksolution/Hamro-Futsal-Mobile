@@ -5,10 +5,11 @@ class CustomTextField extends StatelessWidget {
   const CustomTextField({
     super.key,
     required this.labelText,
-    required this.icon,
+    this.icon,
     this.hintText,
     this.suffixIcon,
     this.controller,
+    this.focusNode,
     this.keyboardType,
     this.textCapitalization = TextCapitalization.none,
     this.obscureText = false,
@@ -21,13 +22,15 @@ class CustomTextField extends StatelessWidget {
     this.style,
     this.validator,
     this.minLines,
+    this.initialValue,
   });
 
   final String labelText;
-  final IconData icon;
+  final IconData? icon;
   final String? hintText;
   final Widget? suffixIcon;
   final TextEditingController? controller;
+  final FocusNode? focusNode;
   final TextInputType? keyboardType;
   final TextCapitalization textCapitalization;
   final bool obscureText;
@@ -40,6 +43,7 @@ class CustomTextField extends StatelessWidget {
   final TextStyle? style;
   final FormFieldValidator<String>? validator;
   final int? minLines;
+  final String? initialValue;
 
   @override
   Widget build(BuildContext context) {
@@ -47,6 +51,8 @@ class CustomTextField extends StatelessWidget {
 
     return TextFormField(
       controller: controller,
+      focusNode: focusNode,
+      initialValue: controller == null ? initialValue : null,
       keyboardType: keyboardType,
       textCapitalization: textCapitalization,
       obscureText: obscureText,
@@ -63,7 +69,7 @@ class CustomTextField extends StatelessWidget {
           style ??
           theme.textTheme.bodyLarge?.copyWith(
             color: LightColor.titleTextColor,
-            fontSize: 14.5,
+            fontSize: 12.5,
             fontWeight: FontWeight.w600,
           ),
       decoration: customTextFieldDecoration(
@@ -80,7 +86,7 @@ class CustomTextField extends StatelessWidget {
 InputDecoration customTextFieldDecoration({
   required BuildContext context,
   required String labelText,
-  required IconData icon,
+  IconData? icon,
   String? hintText,
   Widget? suffixIcon,
 }) {
@@ -97,7 +103,9 @@ InputDecoration customTextFieldDecoration({
   return InputDecoration(
     labelText: labelText,
     hintText: hintText,
-    prefixIcon: Icon(icon, color: LightColor.darkgrey, size: 20),
+    prefixIcon: icon != null
+        ? Icon(icon, color: LightColor.darkgrey, size: 20)
+        : null,
     suffixIcon: suffixIcon != null
         ? Padding(
             padding: const EdgeInsets.only(right: 14),

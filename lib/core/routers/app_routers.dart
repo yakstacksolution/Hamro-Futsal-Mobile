@@ -1,3 +1,4 @@
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hamro_footsall/core/routers/app_router_params.dart';
 import 'package:hamro_footsall/features/auth/presentation/forgot_password_screen.dart';
@@ -6,10 +7,13 @@ import 'package:hamro_footsall/features/auth/presentation/otp_verification_scree
 import 'package:hamro_footsall/features/auth/presentation/register_screen.dart';
 import 'package:hamro_footsall/features/courts_details/presentation/page/court_details.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/page/dashboard_screen.dart';
-import 'package:hamro_footsall/features/dashboard/presentation/widgets/footsall_court_details_page.dart';
 import 'package:hamro_footsall/features/profile/presentation/pages/profile_page.dart';
 import 'package:hamro_footsall/features/courts/presentation/pages/create_courts_page.dart';
 import 'package:hamro_footsall/features/splash/presentation/splash_screen.dart';
+import 'package:hamro_footsall/features/vendor/data/vendor_draft_repository.dart';
+import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit.dart';
+import 'package:hamro_footsall/features/vendor/presentation/pages/stepper_logic_screen.dart';
+import 'package:hamro_footsall/features/vendor/presentation/pages/vendor_onboarding_page.dart';
 
 class AppRouters {
   AppRouters._();
@@ -61,6 +65,21 @@ class AppRouters {
       GoRoute(
         path: AppRouterParams.courtDetails.path,
         builder: (context, state) => const CourtDetailPage(),
+      ),
+      GoRoute(
+        name: AppRouterParams.vendorOnboarding.name,
+        path: AppRouterParams.vendorOnboarding.path,
+        builder: (context, state) => const VendorOnboardingPage(),
+      ),
+      GoRoute(
+        name: AppRouterParams.vendorStepper.name,
+        path: AppRouterParams.vendorStepper.path,
+        builder: (context, state) => BlocProvider<VendorOnboardingCubit>(
+          create: (_) => VendorOnboardingCubit(
+            const SharedPreferencesVendorDraftRepository(),
+          ),
+          child: const StepperLogicScreen(),
+        ),
       ),
     ],
   );

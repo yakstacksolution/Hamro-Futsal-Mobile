@@ -1,0 +1,352 @@
+// ignore_for_file: deprecated_member_use
+
+import 'package:flutter/material.dart';
+import 'package:flutter_quill/flutter_quill.dart';
+import 'package:hamro_footsall/core/theme/light_color.dart';
+
+class KeyboardAttachedToolbar extends StatelessWidget {
+  final QuillController controller;
+
+  const KeyboardAttachedToolbar({super.key, required this.controller});
+
+  QuillIconTheme get _iconTheme => QuillIconTheme(
+    iconButtonSelectedData: IconButtonData(
+      color: LightColor.secondary,
+      style: ButtonStyle(
+        backgroundColor: WidgetStateProperty.all(LightColor.secondaryLight),
+        shape: WidgetStateProperty.all(
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        ),
+      ),
+    ),
+    iconButtonUnselectedData: IconButtonData(
+      color: Colors.black,
+      style: ButtonStyle(
+        shape: WidgetStateProperty.all(
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        ),
+      ),
+    ),
+  );
+
+  QuillToolbarToggleStyleButtonOptions get _toggleButtonOptions =>
+      QuillToolbarToggleStyleButtonOptions(iconSize: 12, iconTheme: _iconTheme);
+
+  QuillToolbarHistoryButtonOptions get _historyButtonOptions =>
+      QuillToolbarHistoryButtonOptions(iconSize: 12, iconTheme: _iconTheme);
+
+  QuillToolbarClearFormatButtonOptions get _clearFormatButtonOptions =>
+      QuillToolbarClearFormatButtonOptions(iconSize: 12, iconTheme: _iconTheme);
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final toolbarColor = isDark
+        ? theme.colorScheme.surfaceContainerHighest
+        : theme.colorScheme.surface;
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    return AnimatedPadding(
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOut,
+      padding: EdgeInsets.only(bottom: bottomInset),
+      child: Material(
+        elevation: 8,
+        color: toolbarColor,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _buildQuillButton(
+                      child: QuillToolbarHistoryButton(
+                        options: _historyButtonOptions,
+                        controller: controller,
+                        isUndo: true,
+                      ),
+                      tooltip: 'Undo',
+                    ),
+                    _buildQuillButton(
+                      child: QuillToolbarHistoryButton(
+                        options: _historyButtonOptions,
+                        controller: controller,
+                        isUndo: false,
+                      ),
+                      tooltip: 'Redo',
+                    ),
+                    _buildQuillButton(
+                      child: QuillToolbarToggleStyleButton(
+                        options: _toggleButtonOptions,
+                        attribute: Attribute.bold,
+                        controller: controller,
+                      ),
+                      tooltip: 'Bold',
+                    ),
+                    _buildQuillButton(
+                      child: QuillToolbarToggleStyleButton(
+                        options: _toggleButtonOptions,
+                        attribute: Attribute.italic,
+                        controller: controller,
+                      ),
+                      tooltip: 'Italic',
+                    ),
+                    _buildQuillButton(
+                      child: QuillToolbarToggleStyleButton(
+                        options: _toggleButtonOptions,
+                        attribute: Attribute.underline,
+                        controller: controller,
+                      ),
+                      tooltip: 'Underline',
+                    ),
+                    _buildQuillButton(
+                      child: QuillToolbarToggleStyleButton(
+                        options: _toggleButtonOptions,
+                        attribute: Attribute.strikeThrough,
+                        controller: controller,
+                      ),
+                      tooltip: 'Strikethrough',
+                    ),
+                    _buildIconButton(
+                      icon: Icons.link,
+                      tooltip: 'Link',
+                      onTap: () => _showLinkDialog(context),
+                      context: context,
+                    ),
+                  ],
+                ),
+              ),
+
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _buildQuillButton(
+                      child: QuillToolbarToggleStyleButton(
+                        options: _toggleButtonOptions,
+                        attribute: Attribute.ul,
+                        controller: controller,
+                      ),
+                      tooltip: 'Bullet List',
+                    ),
+                    _buildQuillButton(
+                      child: QuillToolbarToggleStyleButton(
+                        options: _toggleButtonOptions,
+                        attribute: Attribute.ol,
+                        controller: controller,
+                      ),
+                      tooltip: 'Numbered List',
+                    ),
+                    _buildQuillButton(
+                      child: QuillToolbarToggleStyleButton(
+                        options: _toggleButtonOptions,
+                        attribute: Attribute.blockQuote,
+                        controller: controller,
+                      ),
+                      tooltip: 'Quote',
+                    ),
+                    _buildIconButton(
+                      icon: Icons.code,
+                      tooltip: 'Code',
+                      onTap: () =>
+                          controller.formatSelection(Attribute.codeBlock),
+                      context: context,
+                    ),
+                    _buildIconButton(
+                      icon: Icons.format_color_text,
+                      tooltip: 'Text Color',
+                      onTap: () => _showColorPicker(context, false),
+                      context: context,
+                    ),
+                    _buildIconButton(
+                      icon: Icons.format_color_fill,
+                      tooltip: 'Background Color',
+                      onTap: () => _showColorPicker(context, true),
+                      context: context,
+                    ),
+                    _buildQuillButton(
+                      child: QuillToolbarClearFormatButton(
+                        options: _clearFormatButtonOptions,
+                        controller: controller,
+                      ),
+                      tooltip: 'Clear Format',
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuillButton({required Widget child, required String tooltip}) {
+    return Tooltip(
+      message: tooltip,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: child,
+      ),
+    );
+  }
+
+  Widget _buildIconButton({
+    required IconData icon,
+    required String tooltip,
+    required VoidCallback onTap,
+    required BuildContext context,
+  }) {
+    final theme = Theme.of(context);
+    final iconColor = theme.colorScheme.onSurface;
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(20),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(6),
+          child: Container(
+            width: 40,
+            height: 40,
+            alignment: Alignment.center,
+            child: Icon(icon, size: 20, color: iconColor),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showLinkDialog(BuildContext context) {
+    final urlController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Insert Link'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: urlController,
+              decoration: const InputDecoration(
+                hintText: 'https://example.com',
+                labelText: 'URL',
+              ),
+              keyboardType: TextInputType.url,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (urlController.text.isNotEmpty) {
+                final selection = controller.selection;
+                if (selection.isCollapsed) {
+                  controller.replaceText(
+                    selection.start,
+                    selection.end,
+                    urlController.text,
+                    null,
+                  );
+                  controller.formatText(
+                    selection.start,
+                    urlController.text.length,
+                    LinkAttribute(urlController.text),
+                  );
+                } else {
+                  controller.formatSelection(LinkAttribute(urlController.text));
+                }
+                Navigator.pop(context);
+              }
+            },
+            child: const Text('Insert'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showColorPicker(BuildContext context, bool isBackground) {
+    final colors = [
+      {'name': 'Black', 'color': Colors.black},
+      {'name': 'Red', 'color': Colors.red},
+      {'name': 'Green', 'color': Colors.green},
+      {'name': 'Blue', 'color': Colors.green},
+      {'name': 'Yellow', 'color': Colors.yellow},
+      {'name': 'Orange', 'color': Colors.orange},
+      {'name': 'Purple', 'color': Colors.purple},
+      {'name': 'Grey', 'color': Colors.grey},
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Theme.of(context).brightness == Brightness.dark
+          ? Theme.of(context).colorScheme.surfaceContainerHighest
+          : Theme.of(context).colorScheme.surface,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              isBackground ? 'Select Background Color' : 'Select Text Color',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: colors.map((colorData) {
+                return InkWell(
+                  onTap: () {
+                    final color = (colorData['color'] as Color);
+                    final hex =
+                        '#${color.value.toRadixString(16).substring(2)}';
+
+                    if (isBackground) {
+                      controller.formatSelection(
+                        Attribute('background', AttributeScope.inline, hex),
+                      );
+                    } else {
+                      controller.formatSelection(
+                        Attribute('color', AttributeScope.inline, hex),
+                      );
+                    }
+
+                    Navigator.pop(context);
+                  },
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: colorData['color'] as Color,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: Theme.of(context).colorScheme.outline,
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

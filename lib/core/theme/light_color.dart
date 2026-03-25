@@ -3,13 +3,7 @@ import 'package:flutter/material.dart';
 /// ─────────────────────────────────────────────────────────────────────────────
 /// Footsall App — Light Color Palette
 /// ─────────────────────────────────────────────────────────────────────────────
-///
-///  PRIMARY   → Sky Blue   #2D86E5  (buttons, price, active nav, links)
-///  SECONDARY → Teal       #26B58A  (open badge, success states)
-///  DANGER    → Red        #E05252  (closed badge, errors)
-///  RATING    → Amber      #F59E0B  (star icon)
-///  SURFACE   → White / soft grey backgrounds
-///
+
 class LightColor {
   LightColor._();
 
@@ -39,6 +33,9 @@ class LightColor {
 
   /// Soft tint for "Open" badge background
   static const Color secondaryLight = Color(0xFFE6F7F3);
+
+  /// Deeper shade for secondary emphasis / pressed states
+  static const Color secondaryDark = Color(0xFF1E9C76);
 
   // ── Accent — Deep Navy ────────────────────────────────────────────────────
   /// Header gradient end, dark overlays
@@ -92,9 +89,41 @@ class LightColor {
   /// Placeholder / disabled text
   static const Color hintText = Color(0xFF9AA8B8);
 
+  /// Muted text used in disabled states
+  static const Color mutedText = Color(0xFFC0CDDC);
+
   // ── Borders & Dividers ────────────────────────────────────────────────────
   static const Color border = Color(0xFFD9E2EC);
   static const Color divider = Color(0xFFEDF1F7);
+  static const Color borderLight = Color(0xFFF3F4F6);
+
+  // ── Design System Extended Tokens ────────────────────────────────────────
+  /// Slightly warmer background used for layered sections
+  static const Color backgroundWarm = Color(0xFFF8FAFD);
+
+  /// Subtle filled surface for chips/cards/inputs
+  static const Color surfaceSubtle = Color(0xFFEEF4FB);
+
+  /// Soft primary fill (used for active tints)
+  static const Color primarySoft = Color(0x1A2D86E5);
+
+  /// Primary glow tint for tracks/focus
+  static const Color primaryGlow = Color(0x332D86E5);
+
+  /// Soft secondary fill
+  static const Color secondarySoft = Color(0x1A26B58A);
+
+  /// Light accent background for info banners
+  static const Color accentLight = Color(0xFFEAF3FF);
+
+  /// Success border tint
+  static const Color successBorder = Color(0xFFBFE9DC);
+
+  /// Error border tint
+  static const Color errorBorder = Color(0xFFF6CCCC);
+
+  /// Warning background tint
+  static const Color warningLight = Color(0xFFFFF5E5);
 
   // ── Shadows ───────────────────────────────────────────────────────────────
   /// Soft card shadow colour
@@ -178,8 +207,6 @@ class LightColor {
 
   /// Transparent color
   static const Color transparent = Colors.transparent;
-
-  static const Color borderLight = Color(0xFFF3F4F6);
 }
 
 // import 'package:flutter/material.dart';

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:hamro_footsall/core/theme/light_color.dart';
+import 'package:hamro_footsall/core/widgets/custom_bottom_sheet.dart';
 import 'package:hamro_footsall/features/courts/presentation/bloc/create_footsall_courts_bloc.dart';
 import 'package:hamro_footsall/features/courts/presentation/models/create_courts_action_result.dart';
 import 'package:hamro_footsall/features/courts/presentation/models/picked_location.dart';
@@ -111,23 +112,40 @@ class _CreateCourtsPageState extends State<CreateCourtsPage> {
     }
   }
 
+  // Future<void> _handlePickExactLocation() async {
+  //   final PickedLocation? picked = await showModalBottomSheet<PickedLocation>(
+  //     context: context,
+  //     isScrollControlled: true,
+  //     backgroundColor: Colors.transparent,
+  //     builder: (BuildContext context) {
+  //       return ExactLocationPickerSheet(
+  //         initialLabel: _bloc.exactLocationController.text.trim().isEmpty
+  //             ? null
+  //             : _bloc.exactLocationController.text.trim(),
+  //         initialLatitude: _bloc.state.selectedLatitude,
+  //         initialLongitude: _bloc.state.selectedLongitude,
+  //       );
+  //     },
+  //   );
+
+  //   if (picked == null) return;
+  //   _bloc.applyPickedLocation(picked);
+  // }
   Future<void> _handlePickExactLocation() async {
-    final PickedLocation? picked = await showModalBottomSheet<PickedLocation>(
+    final PickedLocation? picked = await showAppBottomSheet<PickedLocation>(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (BuildContext context) {
-        return ExactLocationPickerSheet(
-          initialLabel: _bloc.exactLocationController.text.trim().isEmpty
-              ? null
-              : _bloc.exactLocationController.text.trim(),
-          initialLatitude: _bloc.state.selectedLatitude,
-          initialLongitude: _bloc.state.selectedLongitude,
-        );
-      },
+      wrapWithCustomSheet: false,
+      builder: (BuildContext sheetContext) => ExactLocationPickerSheet(
+        initialLabel: _bloc.exactLocationController.text.trim().isEmpty
+            ? null
+            : _bloc.exactLocationController.text.trim(),
+        initialLatitude: _bloc.state.selectedLatitude,
+        initialLongitude: _bloc.state.selectedLongitude,
+      ),
     );
 
     if (picked == null) return;
+
     _bloc.applyPickedLocation(picked);
   }
 

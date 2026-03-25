@@ -1,6 +1,8 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
+import 'package:hamro_footsall/core/routers/app_router_params.dart';
 import 'package:hamro_footsall/features/courts_details/presentation/model/time_slot_model.dart';
 import 'package:hamro_footsall/features/courts_details/presentation/widget/court_amenities.dart';
 import 'package:hamro_footsall/features/courts_details/presentation/widget/court_booking_policies_section.dart';
@@ -10,6 +12,7 @@ import 'package:hamro_footsall/features/courts_details/presentation/widget/court
 import 'package:hamro_footsall/features/courts_details/presentation/widget/court_rules_section.dart';
 import 'package:hamro_footsall/features/courts_details/presentation/widget/court_time_slot.dart';
 import 'package:hamro_footsall/features/courts_details/presentation/widget/details_image_gallery.dart';
+import 'package:hamro_footsall/features/vendor/presentation/pages/vendor_onboarding_page.dart';
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // COURT DETAIL MODEL
@@ -563,6 +566,16 @@ class _CourtDetailPageState extends State<CourtDetailPage>
                     onTap: hasSelection
                         ? () {
                             HapticFeedback.mediumImpact();
+                            // context.goNamed(
+                            //   AppRouterParams.vendorOnboarding.name,
+                            // );
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => VendorOnboardingPage(),
+                              ),
+                            );
+
                             // Handle booking
                           }
                         : null,

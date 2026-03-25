@@ -1791,6 +1791,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     context.pushNamed(AppRouterParams.createCourts.name);
   }
 
+  void _openVendorStepper() {
+    context.pushNamed(AppRouterParams.vendorStepper.name);
+  }
+
   Widget _tapable({
     required Widget child,
     required VoidCallback onTap,
@@ -2054,6 +2058,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ExpandableFocusSearchBar(),
                           const SizedBox(height: 14),
                           _buildFilterRow(),
+                          const SizedBox(height: 14),
+                          _buildOnboardingTestEntry(),
                         ],
                       ),
                     ),
@@ -2129,46 +2135,72 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildSearchBar() {
-    return Container(
-      height: 50,
-      decoration: BoxDecoration(
-        color: LightColor.white,
-        borderRadius: BorderRadius.circular(10),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: TextField(
-        // style: const TextStyle(color: LightColor.black, fontSize: 14),
-        decoration: InputDecoration(
-          hintText: 'Search courts, areas',
-          hintStyle: TextStyle(color: LightColor.grey, fontSize: 14),
-          prefixIcon: const Icon(
-            Icons.search_rounded,
-            color: _textSecondary,
-            size: 22,
-          ),
-          suffixIcon: Container(
-            margin: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF0D9E5C), Color(0xFF0B7A47)],
+  Widget _buildOnboardingTestEntry() {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: _openVendorStepper,
+        borderRadius: BorderRadius.circular(16),
+        child: Ink(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: <Color>[Color(0xFF173A5E), Color(0xFF2D86E5)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: <BoxShadow>[
+              BoxShadow(
+                color: const Color(0xFF173A5E).withValues(alpha: 0.14),
+                blurRadius: 16,
+                offset: const Offset(0, 8),
               ),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: const Icon(
-              size: 22,
-              Icons.tune_rounded,
-              color: Colors.white,
-            ),
+            ],
           ),
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 18),
+          child: Row(
+            children: <Widget>[
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.16),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(
+                  Icons.rocket_launch_rounded,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(width: 14),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      'Test Onboarding',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      'Open the latest vendor onboarding flow for futsal and court setup.',
+                      style: TextStyle(
+                        color: Color(0xE8FFFFFF),
+                        fontSize: 12.5,
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.arrow_forward_rounded, color: Colors.white),
+            ],
+          ),
         ),
       ),
     );

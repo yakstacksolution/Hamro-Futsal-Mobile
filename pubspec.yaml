@@ -40,6 +40,14 @@ dependencies:
   flutter_map: ^8.2.2
   latlong2: ^0.9.1
   http: ^1.6.0
+  flutter_bloc: ^9.1.1
+  shared_preferences: ^2.5.4
+  flutter_quill: ^11.5.0
+  flutter_quill_extensions: ^11.0.0
+  vsc_quill_delta_to_html: ^1.0.5
+  flutter_localizations:
+    sdk: flutter
+  flutter_quill_delta_from_html: ^1.5.3
 
 
 dev_dependencies:
