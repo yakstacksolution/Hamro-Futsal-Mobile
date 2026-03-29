@@ -20,6 +20,7 @@ class AuthScreenFrame extends StatelessWidget {
     this.headerIcon = Icons.storefront_rounded,
     this.footer,
     this.isRotate = false,
+    this.isLoading = false,
   });
 
   final String title;
@@ -35,7 +36,7 @@ class AuthScreenFrame extends StatelessWidget {
   final List<Widget> formFields;
   final Widget? footer;
   final bool isRotate;
-
+  final bool isLoading;
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
@@ -88,6 +89,7 @@ class AuthScreenFrame extends StatelessWidget {
                               minHeight: 45,
                               borderRadius: 10,
                               fontSize: 14,
+                              isLoading: isLoading,
                               backgroundColor: theme.colorScheme.secondary,
                               onPressed: primaryButtonEnabled
                                   ? onPrimaryTap

@@ -1750,11 +1750,13 @@
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/page/footsall_home_page.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/widgets/app_drawer.dart';
 import 'package:hamro_footsall/core/routers/app_router_params.dart';
 import 'package:hamro_footsall/core/theme/light_color.dart';
 import 'package:hamro_footsall/core/theme/theme.dart';
+import 'package:hamro_footsall/features/auth/data/repositories/authentication_repository_impl.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/widgets/bottom_navigation_bar.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/widgets/overall_performance_widget.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/widgets/recent_bookings_widget.dart';
@@ -1793,6 +1795,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   void _openVendorStepper() {
     context.pushNamed(AppRouterParams.vendorStepper.name);
+  }
+
+  Future<void> _handleSignOut() async {
+    final response = await AuthenticationRepositoryImpl().logout();
+    if (!mounted) return;
+
+    response?.fold(
+      (failure) =>
+          AppUtils().showSnackBar(context, MsgType.error, failure.errorMessage),
+      (_) => context.goNamed(AppRouterParams.login.name),
+    );
   }
 
   Widget _tapable({
@@ -2029,7 +2042,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         user: _user,
         currentIndex: _selectedNavIndex,
         onNavTap: _onBottomIconPressed,
-        onSignOut: () => context.goNamed(AppRouterParams.login.name),
+        onSignOut: _handleSignOut,
       ),
       body: SafeArea(
         child: Stack(

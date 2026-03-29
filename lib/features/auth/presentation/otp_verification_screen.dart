@@ -2,9 +2,12 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hamro_footsall/core/routers/app_router_params.dart';
 import 'package:hamro_footsall/core/theme/light_color.dart';
+import 'package:hamro_footsall/core/utils/app_utils.dart';
+import 'package:hamro_footsall/features/auth/presentation/authentication_bloc/authentication_bloc.dart';
 import 'package:hamro_footsall/features/auth/presentation/widgets/auth_screen_frame.dart';
 
 class OtpVerificationScreen extends StatefulWidget {
@@ -97,7 +100,13 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
 
   void _submit() {
     if (!_canVerify) return;
-    context.goNamed(AppRouterParams.login.name);
+    context.read<AuthenticationBloc>().add(
+      OtpVerificationEvent(
+        email: widget.email ?? '',
+        otp: _controllers.map((TextEditingController c) => c.text).join(),
+      ),
+    );
+    // context.goNamed(AppRouterParams.login.name);
   }
 
   void _resendOtp() {
@@ -112,41 +121,88 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return AuthScreenFrame(
-      title: 'OTP Verification',
-      subtitle: 'Enter the 4-digit code sent to $_maskedEmail',
-      headerIcon: Icons.mark_email_read_rounded,
-      primaryButtonLabel: 'Verify OTP',
-      primaryButtonEnabled: _canVerify,
-      onPrimaryTap: _submit,
-      secondaryPrefixText: _secondsLeft > 0
-          ? 'Resend code in ${_secondsLeft}s'
-          : 'Didn\'t receive code',
-      secondaryActionText: _secondsLeft > 0 ? 'Wait' : 'Resend OTP',
-      onSecondaryTap: _resendOtp,
-      formFields: <Widget>[
-        const SizedBox(height: 12),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: List<Widget>.generate(_otpLength, (int index) {
-            return _OtpDigitField(
-              controller: _controllers[index],
-              focusNode: _focusNodes[index],
-              onChanged: (String value) => _onOtpChanged(index, value),
-            );
-          }),
-        ),
-        const SizedBox(height: 14),
-        Text(
-          'Check your inbox and spam folder.',
-          textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: LightColor.darkgrey,
-            fontWeight: FontWeight.w600,
-            fontSize: 11.8,
-          ),
-        ),
-      ],
+    return BlocConsumer<AuthenticationBloc, AuthenticationState>(
+      listenWhen: (AuthenticationState previous, AuthenticationState current) =>
+          previous.otpVerificationStatus != current.otpVerificationStatus,
+      listener: (BuildContext context, AuthenticationState state) {
+        if (state.otpVerificationStatus == AuthStatus.failure &&
+            state.errorMessage != null) {
+          AppUtils().showSnackBar(context, MsgType.error, state.errorMessage!);
+        }
+
+        if (state.otpVerificationStatus == AuthStatus.success) {
+          final Map<String, dynamic> responseData =
+              state.otpVerificationData is Map<String, dynamic>
+              ? state.otpVerificationData as Map<String, dynamic>
+              : <String, dynamic>{};
+          final String? nextStep = responseData['next_step'] as String?;
+          final bool hasSessionToken =
+              (responseData['access_token'] ?? responseData['token']) != null;
+
+          AppUtils().showSnackBar(
+            context,
+            MsgType.success,
+            hasSessionToken
+                ? 'OTP verified successfully.'
+                : 'OTP verified successfully. Please sign in to continue.',
+          );
+
+          if (nextStep == 'vendor_onboarding') {
+            context.goNamed(AppRouterParams.vendorOnboarding.name);
+            return;
+          }
+
+          context.goNamed(
+            hasSessionToken
+                ? AppRouterParams.dashboard.name
+                : AppRouterParams.login.name,
+          );
+        }
+      },
+      builder: (BuildContext context, AuthenticationState state) {
+        return AuthScreenFrame(
+          isLoading: state.otpVerificationStatus == AuthStatus.loading,
+          title: 'OTP Verification',
+          subtitle: 'Enter the 6-digit code sent to $_maskedEmail',
+          headerIcon: Icons.mark_email_read_rounded,
+          primaryButtonLabel: 'Verify OTP',
+          primaryButtonEnabled:
+              _canVerify && state.otpVerificationStatus != AuthStatus.loading,
+          onPrimaryTap: _submit,
+          secondaryPrefixText: _secondsLeft > 0
+              ? 'Resend code in ${_secondsLeft}s'
+              : 'Didn\'t receive code',
+          secondaryActionText: _secondsLeft > 0 ? 'Wait' : 'Resend OTP',
+          onSecondaryTap: _resendOtp,
+          formFields: <Widget>[
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: List<Widget>.generate(_otpLength, (int index) {
+                return _OtpDigitField(
+                  controller: _controllers[index],
+                  focusNode: _focusNodes[index],
+                  onChanged: (String value) => _onOtpChanged(index, value),
+                );
+              }),
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Text(
+                  'Check your inbox and spam folder.',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: LightColor.darkgrey,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        );
+      },
     );
   }
 }

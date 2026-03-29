@@ -23,6 +23,7 @@ class CustomTextField extends StatelessWidget {
     this.validator,
     this.minLines,
     this.initialValue,
+    this.onSubmitted,
   });
 
   final String labelText;
@@ -44,6 +45,7 @@ class CustomTextField extends StatelessWidget {
   final FormFieldValidator<String>? validator;
   final int? minLines;
   final String? initialValue;
+  final ValueChanged<String>? onSubmitted;
 
   @override
   Widget build(BuildContext context) {
@@ -63,6 +65,7 @@ class CustomTextField extends StatelessWidget {
       textInputAction: textInputAction,
       readOnly: readOnly,
       onTap: onTap,
+      onFieldSubmitted: onSubmitted,
       validator: validator,
       cursorColor: theme.colorScheme.primary,
       style:
@@ -108,7 +111,7 @@ InputDecoration customTextFieldDecoration({
         : null,
     suffixIcon: suffixIcon != null
         ? Padding(
-            padding: const EdgeInsets.only(right: 14),
+            padding: const EdgeInsets.only(right: 4),
             child: Align(
               alignment: Alignment.centerRight,
               widthFactor: 1,

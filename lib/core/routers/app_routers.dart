@@ -1,10 +1,13 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hamro_footsall/core/routers/app_router_params.dart';
+import 'package:hamro_footsall/features/auth/data/repositories/authentication_repository_impl.dart';
 import 'package:hamro_footsall/features/auth/presentation/forgot_password_screen.dart';
+import 'package:hamro_footsall/features/auth/presentation/authentication_bloc/authentication_bloc.dart';
 import 'package:hamro_footsall/features/auth/presentation/login_screen.dart';
 import 'package:hamro_footsall/features/auth/presentation/otp_verification_screen.dart';
 import 'package:hamro_footsall/features/auth/presentation/register_screen.dart';
+import 'package:hamro_footsall/features/auth/domain/usecase/authentication_usecase.dart';
 import 'package:hamro_footsall/features/courts_details/presentation/page/court_details.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/page/dashboard_screen.dart';
 import 'package:hamro_footsall/features/profile/presentation/pages/profile_page.dart';
@@ -29,12 +32,20 @@ class AppRouters {
       GoRoute(
         name: AppRouterParams.login.name,
         path: AppRouterParams.login.path,
-        builder: (context, state) => const LoginScreen(),
+        builder: (context, state) => BlocProvider<AuthenticationBloc>(
+          create: (_) =>
+              AuthenticationBloc(AuthUseCase(AuthenticationRepositoryImpl())),
+          child: const LoginScreen(),
+        ),
       ),
       GoRoute(
         name: AppRouterParams.register.name,
         path: AppRouterParams.register.path,
-        builder: (context, state) => const RegisterScreen(),
+        builder: (context, state) => BlocProvider<AuthenticationBloc>(
+          create: (_) =>
+              AuthenticationBloc(AuthUseCase(AuthenticationRepositoryImpl())),
+          child: const RegisterScreen(),
+        ),
       ),
       GoRoute(
         name: AppRouterParams.forgotPassword.name,
@@ -44,8 +55,13 @@ class AppRouters {
       GoRoute(
         name: AppRouterParams.otpVerification.name,
         path: AppRouterParams.otpVerification.path,
-        builder: (context, state) =>
-            OtpVerificationScreen(email: state.extra as String?),
+        builder: (context, state) => BlocProvider<AuthenticationBloc>(
+          create: (_) =>
+              AuthenticationBloc(AuthUseCase(AuthenticationRepositoryImpl())),
+          child: OtpVerificationScreen(
+            email: (state.extra as String?) ?? state.queryParameters['email'],
+          ),
+        ),
       ),
       GoRoute(
         name: AppRouterParams.dashboard.name,
