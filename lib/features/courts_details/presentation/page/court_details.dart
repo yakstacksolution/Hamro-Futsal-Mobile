@@ -1,8 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:go_router/go_router.dart';
-import 'package:hamro_footsall/core/routers/app_router_params.dart';
 import 'package:hamro_footsall/features/courts_details/presentation/model/time_slot_model.dart';
 import 'package:hamro_footsall/features/courts_details/presentation/widget/court_amenities.dart';
 import 'package:hamro_footsall/features/courts_details/presentation/widget/court_booking_policies_section.dart';
@@ -14,9 +12,6 @@ import 'package:hamro_footsall/features/courts_details/presentation/widget/court
 import 'package:hamro_footsall/features/courts_details/presentation/widget/details_image_gallery.dart';
 import 'package:hamro_footsall/features/vendor/presentation/pages/vendor_onboarding_page.dart';
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// COURT DETAIL MODEL
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 class CourtDetailModel {
   final String name;
   final String location;
@@ -87,10 +82,6 @@ class ReviewModel {
   });
 }
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// COURT DETAIL PAGE
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
 class CourtDetailPage extends StatefulWidget {
   final CourtDetailModel? court;
 
@@ -106,8 +97,7 @@ class _CourtDetailPageState extends State<CourtDetailPage>
   late final AnimationController _bottomBarController;
   late final Animation<Offset> _bottomBarSlide;
 
-  int _currentImageIndex = 0;
-  bool _isSaved = false;
+ 
   int _selectedDateIndex = 0;
   int _selectedSlotIndex = -1;
   bool _showAllDescription = false;
@@ -301,78 +291,7 @@ class _CourtDetailPageState extends State<CourtDetailPage>
       ),
     );
   }
-
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // HEADER INFO
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // FEATURES
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // Widget _buildFeatures() {
-  //   final featureIcons = <String, IconData>{
-  //     'Indoor': Icons.house_rounded,
-  //     'Outdoor': Icons.park_rounded,
-  //     'Floodlight': Icons.lightbulb_rounded,
-  //     'Parking': Icons.local_parking_rounded,
-  //     'Changing Room': Icons.checkroom_rounded,
-  //     'Cafeteria': Icons.local_cafe_rounded,
-  //     'First Aid': Icons.medical_services_rounded,
-  //     'WiFi': Icons.wifi_rounded,
-  //     'AC': Icons.ac_unit_rounded,
-  //   };
-
-  //   final featureColors = <String, Color>{
-  //     'Indoor': DS.blue,
-  //     'Outdoor': DS.primary,
-  //     'Floodlight': DS.orange,
-  //     'Parking': DS.purple,
-  //     'Changing Room': const Color(0xFF06B6D4),
-  //     'Cafeteria': const Color(0xFFEC4899),
-  //     'First Aid': DS.red,
-  //     'WiFi': DS.blue,
-  //     'AC': const Color(0xFF06B6D4),
-  //   };
-
-  //   return _sectionWrapper(
-  //     title: 'Amenities & Features',
-  //     child: Wrap(
-  //       spacing: 10,
-  //       runSpacing: 10,
-  //       children: _court.features.map((f) {
-  //         final icon = featureIcons[f] ?? Icons.check_circle_outline_rounded;
-  //         final color = featureColors[f] ?? DS.primary;
-  //         return Container(
-  //           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-  //           decoration: BoxDecoration(
-  //             color: color.withOpacity(0.08),
-  //             borderRadius: BorderRadius.circular(12),
-  //             border: Border.all(color: color.withOpacity(0.15)),
-  //           ),
-  //           child: Row(
-  //             mainAxisSize: MainAxisSize.min,
-  //             children: [
-  //               Icon(icon, size: 16, color: color),
-  //               const SizedBox(width: 8),
-  //               Text(
-  //                 f,
-  //                 style: TextStyle(
-  //                   color: color,
-  //                   fontSize: 13,
-  //                   fontWeight: FontWeight.w700,
-  //                 ),
-  //               ),
-  //             ],
-  //           ),
-  //         );
-  //       }).toList(),
-  //     ),
-  //   );
-  // }
-
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // DESCRIPTION
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ 
   Widget _buildDescription() {
     const maxChars = 180;
     final isLong = _court.description.length > maxChars;
@@ -442,9 +361,7 @@ class _CourtDetailPageState extends State<CourtDetailPage>
     );
   }
 
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // BOTTOM BOOKING BAR
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ 
   Widget _buildBottomBar() {
     final hasSelection = _selectedSlotIndex >= 0;
     final selectedTime = hasSelection

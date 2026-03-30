@@ -26,6 +26,10 @@ class ApiClient {
     return _post(url: '$_baseUrl/auth/logout');
   }
 
+  Future<Result> getProfile() {
+    return _get(url: '$_baseUrl/auth/me');
+  }
+
   Future<Result> forgotPassword({required Map<String, dynamic> data}) {
     return _post(url: '$_baseUrl/auth/forgot-password', data: data);
   }

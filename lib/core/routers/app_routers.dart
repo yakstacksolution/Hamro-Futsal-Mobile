@@ -10,8 +10,13 @@ import 'package:hamro_footsall/features/auth/presentation/register_screen.dart';
 import 'package:hamro_footsall/features/auth/domain/usecase/authentication_usecase.dart';
 import 'package:hamro_footsall/features/courts_details/presentation/page/court_details.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/page/dashboard_screen.dart';
+import 'package:hamro_footsall/features/profile/data/repositories/profile_repository_impl.dart';
+import 'package:hamro_footsall/features/profile/data/model/profile_model.dart';
+import 'package:hamro_footsall/features/profile/domain/usecase/profile_usecase.dart';
 import 'package:hamro_footsall/features/profile/presentation/pages/profile_page.dart';
 import 'package:hamro_footsall/features/courts/presentation/pages/create_courts_page.dart';
+import 'package:hamro_footsall/features/profile/presentation/profile_bloc/profile_bloc.dart';
+import 'package:hamro_footsall/features/profile/presentation/widgets/profile_details_page.dart';
 import 'package:hamro_footsall/features/splash/presentation/splash_screen.dart';
 import 'package:hamro_footsall/features/vendor/data/vendor_draft_repository.dart';
 import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit.dart';
@@ -66,8 +71,15 @@ class AppRouters {
       GoRoute(
         name: AppRouterParams.dashboard.name,
         path: AppRouterParams.dashboard.path,
-        builder: (context, state) => const DashboardScreen(),
+        builder: (context, state) => BlocProvider(
+          lazy: false,
+          create: (context) =>
+              ProfileBloc(ProfileUseCase(ProfileRepositoryImpl()))
+                ..add(const FetchProfileEvent()),
+          child: const DashboardScreen(),
+        ),
       ),
+
       GoRoute(
         name: AppRouterParams.createCourts.name,
         path: AppRouterParams.createCourts.path,
@@ -76,9 +88,25 @@ class AppRouters {
       GoRoute(
         name: AppRouterParams.profile.name,
         path: AppRouterParams.profile.path,
-        builder: (context, state) => const ProfilePage(),
+        builder: (context, state) => BlocProvider(
+          lazy: false,
+          create: (context) =>
+              ProfileBloc(ProfileUseCase(ProfileRepositoryImpl()))
+                ..add(const FetchProfileEvent()),
+          child: const ProfilePage(),
+        ),
+        routes: <RouteBase>[
+          GoRoute(
+            name: AppRouterParams.profileDetails.name,
+            path: 'details',
+            builder: (context, state) =>
+                ProfileDetailsPage(user: state.extra as UserData?),
+          ),
+        ],
       ),
+
       GoRoute(
+        name: AppRouterParams.courtDetails.name,
         path: AppRouterParams.courtDetails.path,
         builder: (context, state) => const CourtDetailPage(),
       ),

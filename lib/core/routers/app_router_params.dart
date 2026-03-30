@@ -34,6 +34,10 @@ class AppRouterParams {
     name: 'profile',
     path: '/dashboard/profile',
   );
+  static const RouteConfig profileDetails = RouteConfig(
+    name: 'profileDetails',
+    path: '/dashboard/profile/details',
+  );
 
   static const RouteConfig courtDetails = RouteConfig(
     name: 'courtDetails',

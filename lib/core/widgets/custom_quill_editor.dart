@@ -293,12 +293,12 @@ class _EditorCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(_EditorTokens.radiusLg),
         border: Border.all(
           color: focusBorderColor,
-          width: lerpDouble(1.0, 1.5, focusProgress)!,
+          width: lerpDouble(1.0, 1.5, focusProgress),
         ),
         boxShadow: [
           BoxShadow(
             color: cs.shadow.withValues(alpha: shadowAlpha),
-            blurRadius: lerpDouble(6, 20, focusProgress)!,
+            blurRadius: lerpDouble(6, 20, focusProgress),
             offset: const Offset(0, 4),
           ),
           if (focusProgress > 0)

@@ -56,6 +56,7 @@ dependencies:
   jwt_decode: ^0.3.1
   bloc: ^9.2.0
   dartz: ^0.10.1
+  package_info_plus: ^9.0.0
 
 dev_dependencies:
   flutter_test:

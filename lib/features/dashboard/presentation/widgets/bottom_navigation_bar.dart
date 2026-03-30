@@ -37,6 +37,11 @@ class CustomBottomNavigationBar extends StatelessWidget {
       activeIcon: Icons.bar_chart,
       label: 'Analytics',
     ),
+    _NavItem(
+      icon: Icons.person_outline_rounded,
+      activeIcon: Icons.person_rounded,
+      label: 'Profile',
+    ),
   ];
 
   @override
@@ -59,13 +64,13 @@ class CustomBottomNavigationBar extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: glowColor.withOpacity(0.06),
+            color: glowColor.withValues(alpha: 0.06),
             blurRadius: 16,
             spreadRadius: 1,
             offset: const Offset(0, -3),
           ),
           BoxShadow(
-            color: glowColor.withOpacity(0.03),
+            color: glowColor.withValues(alpha: 0.03),
             blurRadius: 6,
             offset: const Offset(0, -1),
           ),

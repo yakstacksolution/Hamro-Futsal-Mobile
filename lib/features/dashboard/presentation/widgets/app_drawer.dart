@@ -88,6 +88,7 @@ class AppDrawer extends StatelessWidget {
                     child: _DrawerHeader(
                       displayName: _displayName,
                       email: user.email,
+                      onProfileTap: () => onNavTap(5),
                     ),
                   ),
                 ),
@@ -146,10 +147,15 @@ class AppDrawer extends StatelessWidget {
 }
 
 class _DrawerHeader extends StatelessWidget {
-  const _DrawerHeader({required this.displayName, required this.email});
+  const _DrawerHeader({
+    required this.displayName,
+    required this.email,
+    required this.onProfileTap,
+  });
 
   final String displayName;
   final String email;
+  final VoidCallback onProfileTap;
 
   @override
   Widget build(BuildContext context) {
@@ -159,7 +165,8 @@ class _DrawerHeader extends StatelessWidget {
       children: <Widget>[
         InkWell(
           onTap: () {
-            context.pushNamed(AppRouterParams.profile.name);
+            Navigator.of(context).pop();
+            onProfileTap();
           },
           child: Container(
             width: 52,

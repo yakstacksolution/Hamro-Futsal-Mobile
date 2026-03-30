@@ -45,6 +45,10 @@ class AuthManager extends ServiceManager {
     return await _apiClient.logout();
   }
 
+  Future<Result> getProfile() async {
+    return await _apiClient.getProfile();
+  }
+
   Future<Result> getUserDetails() async {
     return await _apiClient.getUserDetails();
   }
