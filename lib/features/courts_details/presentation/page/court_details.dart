@@ -97,7 +97,6 @@ class _CourtDetailPageState extends State<CourtDetailPage>
   late final AnimationController _bottomBarController;
   late final Animation<Offset> _bottomBarSlide;
 
- 
   int _selectedDateIndex = 0;
   int _selectedSlotIndex = -1;
   bool _showAllDescription = false;
@@ -291,7 +290,7 @@ class _CourtDetailPageState extends State<CourtDetailPage>
       ),
     );
   }
- 
+
   Widget _buildDescription() {
     const maxChars = 180;
     final isLong = _court.description.length > maxChars;
@@ -361,7 +360,6 @@ class _CourtDetailPageState extends State<CourtDetailPage>
     );
   }
 
- 
   Widget _buildBottomBar() {
     final hasSelection = _selectedSlotIndex >= 0;
     final selectedTime = hasSelection
@@ -486,12 +484,12 @@ class _CourtDetailPageState extends State<CourtDetailPage>
                             // context.goNamed(
                             //   AppRouterParams.vendorOnboarding.name,
                             // );
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => VendorOnboardingPage(),
-                              ),
-                            );
+                            // Navigator.push(
+                            //   context,
+                            //   MaterialPageRoute(
+                            //     builder: (context) => VendorOnboardingPage(),
+                            //   ),
+                            // );
 
                             // Handle booking
                           }
@@ -611,6 +609,7 @@ class _CourtDetailPageState extends State<CourtDetailPage>
       child: Scaffold(
         backgroundColor: DS.background,
         body: SafeArea(
+          top: false,
           bottom: true,
           child: Stack(
             children: [

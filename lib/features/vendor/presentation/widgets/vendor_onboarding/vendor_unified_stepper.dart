@@ -35,7 +35,6 @@ class VendorUnifiedStepper extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          // Header with title and current step info
           Row(
             children: <Widget>[
               Expanded(
@@ -52,20 +51,20 @@ class VendorUnifiedStepper extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
                   color: LightColor.secondaryLight,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
                   '${activeSectionIndex + 1}.${activeSubstepIndex + 1}',
                   style: const TextStyle(
                     color: LightColor.secondary,
-                    fontSize: 11,
+                    fontSize: 10,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
 
           // Main Steps Row
           SizedBox(
@@ -74,14 +73,14 @@ class VendorUnifiedStepper extends StatelessWidget {
               scrollDirection: Axis.horizontal,
               physics: const BouncingScrollPhysics(),
               itemCount: sections.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 6),
+              separatorBuilder: (_, __) => const SizedBox(width: 8),
               itemBuilder: (BuildContext context, int index) {
                 final VendorSectionDefinition section = sections[index];
                 final StepStatus status = statusForSection(index);
 
                 return _CompactStepChip(
                   index: index,
-                  title: _shortTitle(section.title),
+                  title: section.title,
                   icon: section.icon,
                   status: status,
                   isSelected: activeSectionIndex == index,
@@ -135,7 +134,7 @@ class VendorUnifiedStepper extends StatelessWidget {
 
                 return _CompactSubstepChip(
                   index: index,
-                  title: _compactTitle(substep.title),
+                  title: substep.title, //_compactTitle(substep.title),
                   status: status,
                   isSelected: index == activeSubstepIndex,
                   onTap: () => onSubstepSelected(index),
@@ -146,33 +145,6 @@ class VendorUnifiedStepper extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  String _shortTitle(String title) {
-    final String value = title.trim();
-    if (value.length <= 10) return value;
-
-    final List<String> words = value.split(' ');
-    if (words.length >= 2) {
-      return words.take(2).join(' ');
-    }
-    return value.substring(0, 10);
-  }
-
-  String _compactTitle(String value) {
-    final String title = value.trim();
-    final List<String> words = title.split(' ');
-
-    // Single word - return full word
-    if (words.length == 1) return title;
-
-    // Multiple words - return first two words if total <= 15 chars
-    if (words.length >= 2) {
-      final String twoWords = '${words[0]} ${words[1]}';
-      if (twoWords.length <= 15) return twoWords;
-      return words[0];
-    }
-    return title;
   }
 }
 
@@ -216,7 +188,7 @@ class _CompactStepChip extends StatelessWidget {
                   )
                 : null,
             color: isSelected ? null : LightColor.surfaceSubtle,
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(8),
             border: Border.all(
               color: isSelected ? Colors.transparent : LightColor.border,
             ),
@@ -309,8 +281,8 @@ class _CompactSubstepChip extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
               Container(
-                width: 18,
-                height: 18,
+                width: 16,
+                height: 16,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: isSelected
@@ -323,7 +295,7 @@ class _CompactSubstepChip extends StatelessWidget {
                 child: status == StepStatus.complete
                     ? Icon(
                         Icons.check_rounded,
-                        size: 10,
+                        size: 8,
                         color: isSelected
                             ? LightColor.white
                             : LightColor.secondary,
@@ -334,7 +306,7 @@ class _CompactSubstepChip extends StatelessWidget {
                           color: isSelected
                               ? LightColor.white
                               : LightColor.titleText,
-                          fontSize: 9,
+                          fontSize: 8,
                           fontWeight: FontWeight.w700,
                         ),
                       ),

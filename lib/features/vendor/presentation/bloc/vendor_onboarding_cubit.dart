@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -369,6 +370,7 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
   Future<String?> next() async {
     if (state.isInCourtCategory && state.activeCourt == null) {
       addCourt();
+      await _saveDraft(showSavingState: false);
       return null;
     }
 
@@ -377,6 +379,8 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
       _registerValidationFailure(validation);
       return validation.message;
     }
+
+    await _saveDraft(showSavingState: false);
 
     final bool isLastSubstep = currentSubstepIndex == activeSubsteps.length - 1;
     final bool isLastSection = currentSectionIndex == activeSections.length - 1;
@@ -490,6 +494,63 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
 
   void updateFutsal(FutsalDraft nextDraft) {
     _emitUpdated(state.copyWith(futsal: nextDraft));
+  }
+
+  void addFilesToMediaLibrary(List<UploadRef> files) {
+    if (files.isEmpty) return;
+    _emitUpdated(
+      state.copyWith(
+        mediaLibrary: _mergeUniqueUploads(state.mediaLibrary, files),
+      ),
+    );
+  }
+
+  void syncMediaLibrary(List<UploadRef> files) {
+    if (files.isEmpty) return;
+
+    final List<UploadRef> merged = _mergeUniqueUploads(
+      state.mediaLibrary,
+      files,
+    );
+    if (_haveSameUploadPaths(state.mediaLibrary, merged)) return;
+
+    emit(_normalizeState(state.copyWith(mediaLibrary: merged)));
+  }
+
+  void removeMediaLibraryItem(UploadRef file) {
+    _emitUpdated(
+      state.copyWith(
+        mediaLibrary: state.mediaLibrary
+            .where((UploadRef item) => item.localPath != file.localPath)
+            .toList(),
+      ),
+    );
+  }
+
+  Future<List<UploadRef>> pickFilesForMediaLibrary({
+    required List<String> allowedExtensions,
+    required bool allowMultiple,
+  }) async {
+    final List<UploadRef> files = allowMultiple
+        ? await _pickMultipleFiles(allowedExtensions: allowedExtensions)
+        : <UploadRef>[
+            if (await _pickSingleFile(allowedExtensions: allowedExtensions)
+                case final UploadRef file)
+              file,
+          ];
+    return files.isEmpty ? const <UploadRef>[] : files;
+  }
+
+  void updateFutsalBasicIdentity(String title) {
+    final String nextSlug = _buildFutsalSlug(
+      title: title,
+      currentSlug: state.futsal.slug,
+    );
+    updateFutsal(state.futsal.copyWith(title: title, slug: nextSlug));
+  }
+
+  void updateFutsalWebsiteOrSocialLink(String value) {
+    updateFutsal(state.futsal.copyWith(websiteOrSocialLink: value.trim()));
   }
 
   void updateActiveCourt(CourtDraft nextDraft) {
@@ -726,7 +787,8 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
       allowedExtensions: <String>['png', 'jpg', 'jpeg', 'webp'],
     );
     if (file == null) return null;
-    updateFutsal(state.futsal.copyWith(coverImage: file));
+    addFilesToMediaLibrary(<UploadRef>[file]);
+    setFutsalCoverImage(file);
     return null;
   }
 
@@ -735,11 +797,8 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
       allowedExtensions: <String>['png', 'jpg', 'jpeg', 'webp'],
     );
     if (files.isEmpty) return null;
-    updateFutsal(
-      state.futsal.copyWith(
-        gallery: <UploadRef>[...state.futsal.gallery, ...files],
-      ),
-    );
+    addFilesToMediaLibrary(files);
+    addFutsalGalleryImages(files);
     return null;
   }
 
@@ -748,14 +807,8 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
       allowedExtensions: <String>['pdf', 'jpg', 'jpeg', 'png'],
     );
     if (files.isEmpty) return null;
-    updateFutsal(
-      state.futsal.copyWith(
-        companyDocuments: <UploadRef>[
-          ...state.futsal.companyDocuments,
-          ...files,
-        ],
-      ),
-    );
+    addFilesToMediaLibrary(files);
+    addCompanyDocuments(files);
     return null;
   }
 
@@ -766,7 +819,8 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
       allowedExtensions: <String>['png', 'jpg', 'jpeg', 'webp'],
     );
     if (file == null) return null;
-    updateActiveCourt(court.copyWith(paymentQr: file));
+    addFilesToMediaLibrary(<UploadRef>[file]);
+    setCourtPaymentQr(file);
     return null;
   }
 
@@ -777,9 +831,8 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
       allowedExtensions: <String>['png', 'jpg', 'jpeg', 'webp'],
     );
     if (files.isEmpty) return null;
-    updateActiveCourt(
-      court.copyWith(photos: <UploadRef>[...court.photos, ...files]),
-    );
+    addFilesToMediaLibrary(files);
+    addCourtPhotos(files);
     return null;
   }
 
@@ -790,10 +843,56 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
       allowedExtensions: <String>['png', 'jpg', 'jpeg', 'webp'],
     );
     if (files.isEmpty) return null;
-    updateActiveCourt(
-      court.copyWith(memories: <UploadRef>[...court.memories, ...files]),
-    );
+    addFilesToMediaLibrary(files);
+    addCourtMemories(files);
     return null;
+  }
+
+  void setFutsalCoverImage(UploadRef file) {
+    updateFutsal(state.futsal.copyWith(coverImage: file));
+  }
+
+  void addFutsalGalleryImages(List<UploadRef> files) {
+    if (files.isEmpty) return;
+    updateFutsal(
+      state.futsal.copyWith(
+        gallery: _mergeUniqueUploads(state.futsal.gallery, files),
+      ),
+    );
+  }
+
+  void addCompanyDocuments(List<UploadRef> files) {
+    if (files.isEmpty) return;
+    updateFutsal(
+      state.futsal.copyWith(
+        companyDocuments: _mergeUniqueUploads(
+          state.futsal.companyDocuments,
+          files,
+        ),
+      ),
+    );
+  }
+
+  void setCourtPaymentQr(UploadRef file) {
+    final CourtDraft? court = state.activeCourt;
+    if (court == null) return;
+    updateActiveCourt(court.copyWith(paymentQr: file));
+  }
+
+  void addCourtPhotos(List<UploadRef> files) {
+    final CourtDraft? court = state.activeCourt;
+    if (court == null || files.isEmpty) return;
+    updateActiveCourt(
+      court.copyWith(photos: _mergeUniqueUploads(court.photos, files)),
+    );
+  }
+
+  void addCourtMemories(List<UploadRef> files) {
+    final CourtDraft? court = state.activeCourt;
+    if (court == null || files.isEmpty) return;
+    updateActiveCourt(
+      court.copyWith(memories: _mergeUniqueUploads(court.memories, files)),
+    );
   }
 
   void removeFutsalCoverImage() {
@@ -1225,6 +1324,15 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
   }
 
   VendorOnboardingState _normalizeState(VendorOnboardingState input) {
+    final FutsalDraft normalizedFutsal = input.futsal.copyWith(
+      slug: input.futsal.slug.trim().isEmpty
+          ? _buildFutsalSlug(
+              title: input.futsal.title,
+              currentSlug: input.futsal.slug,
+            )
+          : input.futsal.slug.trim(),
+      websiteOrSocialLink: input.futsal.websiteOrSocialLink.trim(),
+    );
     final List<CourtDraft> courts = List<CourtDraft>.unmodifiable(input.courts);
     final Map<String, SectionPointer> pointers = <String, SectionPointer>{};
     for (final CourtDraft court in courts) {
@@ -1307,6 +1415,7 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     }
 
     return input.copyWith(
+      futsal: normalizedFutsal,
       courts: courts,
       futsalPointer: futsalPointer,
       courtPointersById: pointers,
@@ -1404,5 +1513,77 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     if (value < min) return min;
     if (value > max) return max;
     return value;
+  }
+
+  List<UploadRef> _mergeUniqueUploads(
+    List<UploadRef> current,
+    List<UploadRef> additions,
+  ) {
+    final Map<String, UploadRef> byPath = <String, UploadRef>{
+      for (final UploadRef item in current) item.localPath: item,
+    };
+    for (final UploadRef item in additions) {
+      byPath[item.localPath] = item;
+    }
+    return byPath.values.toList();
+  }
+
+  bool _haveSameUploadPaths(List<UploadRef> left, List<UploadRef> right) {
+    if (identical(left, right)) return true;
+    if (left.length != right.length) return false;
+
+    final Set<String> leftPaths = left
+        .map((UploadRef item) => item.localPath)
+        .toSet();
+    final Set<String> rightPaths = right
+        .map((UploadRef item) => item.localPath)
+        .toSet();
+    if (leftPaths.length != rightPaths.length) return false;
+
+    for (final String path in leftPaths) {
+      if (!rightPaths.contains(path)) return false;
+    }
+    return true;
+  }
+
+  String _buildFutsalSlug({
+    required String title,
+    required String currentSlug,
+  }) {
+    final String base = _slugify(title);
+    if (base.isEmpty) return currentSlug;
+
+    final String existingSuffix = _extractSlugSuffix(currentSlug, base);
+    final String suffix = existingSuffix.isNotEmpty
+        ? existingSuffix
+        : _generateSlugSuffix();
+    return '$base-$suffix';
+  }
+
+  String _slugify(String value) {
+    return value
+        .trim()
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^a-z0-9\s-]'), '')
+        .replaceAll(RegExp(r'\s+'), '-')
+        .replaceAll(RegExp(r'-+'), '-')
+        .replaceAll(RegExp(r'^-+|-+$'), '');
+  }
+
+  String _extractSlugSuffix(String currentSlug, String base) {
+    final String normalized = currentSlug.trim().toLowerCase();
+    if (normalized.isEmpty) return '';
+    final String prefix = '$base-';
+    if (!normalized.startsWith(prefix)) return '';
+    return normalized.substring(prefix.length);
+  }
+
+  String _generateSlugSuffix() {
+    const String alphabet = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    final Random random = Random();
+    return List<String>.generate(
+      4,
+      (_) => alphabet[random.nextInt(alphabet.length)],
+    ).join();
   }
 }

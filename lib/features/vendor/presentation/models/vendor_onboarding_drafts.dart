@@ -198,10 +198,12 @@ class SlotPricingDraft {
 class FutsalDraft {
   const FutsalDraft({
     this.title = '',
+    this.slug = '',
     this.description = '',
     this.registrationNumber = '',
     this.phone = '',
     this.email = '',
+    this.websiteOrSocialLink = '',
     this.location = const LocationDraft(),
     this.amenities = const <String>{},
     this.features = const <String>{},
@@ -214,10 +216,12 @@ class FutsalDraft {
   });
 
   final String title;
+  final String slug;
   final String description;
   final String registrationNumber;
   final String phone;
   final String email;
+  final String websiteOrSocialLink;
   final LocationDraft location;
   final Set<String> amenities;
   final Set<String> features;
@@ -230,10 +234,12 @@ class FutsalDraft {
 
   FutsalDraft copyWith({
     String? title,
+    String? slug,
     String? description,
     String? registrationNumber,
     String? phone,
     String? email,
+    String? websiteOrSocialLink,
     LocationDraft? location,
     Set<String>? amenities,
     Set<String>? features,
@@ -248,10 +254,13 @@ class FutsalDraft {
   }) {
     return FutsalDraft(
       title: title ?? this.title,
+      slug: slug ?? this.slug,
       description: description ?? this.description,
       registrationNumber: registrationNumber ?? this.registrationNumber,
       phone: phone ?? this.phone,
       email: email ?? this.email,
+      websiteOrSocialLink:
+          websiteOrSocialLink ?? this.websiteOrSocialLink,
       location: location ?? this.location,
       amenities: amenities ?? this.amenities,
       features: features ?? this.features,
@@ -269,10 +278,12 @@ class FutsalDraft {
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
       'title': title,
+      'slug': slug,
       'description': description,
       'registrationNumber': registrationNumber,
       'phone': phone,
       'email': email,
+      'websiteOrSocialLink': websiteOrSocialLink,
       'location': location.toJson(),
       'amenities': amenities.toList(),
       'features': features.toList(),
@@ -290,10 +301,12 @@ class FutsalDraft {
   factory FutsalDraft.fromJson(Map<String, dynamic> json) {
     return FutsalDraft(
       title: json['title'] as String? ?? '',
+      slug: json['slug'] as String? ?? '',
       description: json['description'] as String? ?? '',
       registrationNumber: json['registrationNumber'] as String? ?? '',
       phone: json['phone'] as String? ?? '',
       email: json['email'] as String? ?? '',
+      websiteOrSocialLink: json['websiteOrSocialLink'] as String? ?? '',
       location: LocationDraft.fromJson(
         json['location'] is Map
             ? Map<String, dynamic>.from(json['location'] as Map)

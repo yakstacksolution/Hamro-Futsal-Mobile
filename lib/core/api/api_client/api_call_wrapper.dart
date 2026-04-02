@@ -34,7 +34,7 @@ class ApiCallWrapper {
     String? url,
     String? token,
     HttpVerb method = HttpVerb.get,
-    Map? data,
+    dynamic data,
     Map? query,
   }) async {
     printTokenDetails(token);
@@ -105,7 +105,7 @@ class ApiCallWrapper {
   Future<Result> retryApiCallWithDelay(
     String? url,
     HttpVerb method,
-    Map<dynamic, dynamic>? data,
+    dynamic data,
     Map<dynamic, dynamic>? query,
   ) async {
     return Future.delayed(const Duration(seconds: 2), () async {
@@ -136,7 +136,7 @@ class ApiCallWrapper {
     String? url,
     String? token,
     HttpVerb method = HttpVerb.get,
-    Map? data,
+    dynamic data,
     Map? query,
   }) async {
     dynamic response;

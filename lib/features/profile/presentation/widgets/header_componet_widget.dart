@@ -236,7 +236,7 @@ class HeaderComponetWidget extends StatelessWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(10),
           border: Border.all(
             color: Colors.white.withValues(alpha: 0.25),
             width: 1,

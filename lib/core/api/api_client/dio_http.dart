@@ -35,15 +35,15 @@ class DioHttp implements IHttp {
   }
 
   @override
-  patch({String? url, Map? data, String? token}) async {
-    _applyHeaders(url: url, token: token);
+  patch({String? url, dynamic data, String? token}) async {
+    _applyHeaders(url: url, token: token, data: data);
     await addUserAgent();
     return dio.patch(url!, data: data);
   }
 
   @override
-  post({String? url, Map? data, Map? query, String? token}) async {
-    _applyHeaders(url: url, token: token);
+  post({String? url, dynamic data, Map? query, String? token}) async {
+    _applyHeaders(url: url, token: token, data: data);
     await addUserAgent();
     if (data != null && query != null) {
       return dio.post(
@@ -61,14 +61,16 @@ class DioHttp implements IHttp {
   }
 
   @override
-  put({String? url, Map? data, String? token}) async {
-    _applyHeaders(url: url, token: token);
+  put({String? url, dynamic data, String? token}) async {
+    _applyHeaders(url: url, token: token, data: data);
     await addUserAgent();
     return dio.put(url!, data: data);
   }
 
-  void _applyHeaders({String? url, String? token}) {
-    dio.options.headers['content-Type'] = 'application/json';
+  void _applyHeaders({String? url, String? token, dynamic data}) {
+    dio.options.headers['content-Type'] = data is FormData
+        ? 'multipart/form-data'
+        : 'application/json';
     dio.options.headers['Accept'] = 'application/json';
 
     if (_isApiRequest(url)) {

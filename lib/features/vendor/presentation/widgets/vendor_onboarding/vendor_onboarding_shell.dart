@@ -5,14 +5,12 @@ class VendorOnboardingShell extends StatelessWidget {
   const VendorOnboardingShell({
     super.key,
     required this.isSubmitting,
-    required this.onSaveDraft,
     required this.onReset,
     required this.body,
     required this.bottomBar,
   });
 
   final bool isSubmitting;
-  final VoidCallback onSaveDraft;
   final VoidCallback onReset;
   final Widget body;
   final Widget bottomBar;
@@ -28,9 +26,14 @@ class VendorOnboardingShell extends StatelessWidget {
           'Vendor Onboarding',
           style: TextStyle(fontWeight: FontWeight.w500, fontSize: 20),
         ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_rounded),
-          onPressed: isSubmitting ? null : () => Navigator.of(context).pop(),
+
+        leading: InkWell(
+          onTap: isSubmitting ? null : () => Navigator.of(context).pop(),
+          child: Icon(
+            size: 18,
+            Icons.arrow_back_ios_rounded,
+            color: LightColor.black,
+          ),
         ),
         actions: <Widget>[
           PopupMenuButton<String>(

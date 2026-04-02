@@ -32,11 +32,11 @@ class CustomBottomNavigationBar extends StatelessWidget {
       activeIcon: Icons.chat_bubble,
       label: 'Chat',
     ),
-    _NavItem(
-      icon: Icons.bar_chart_outlined,
-      activeIcon: Icons.bar_chart,
-      label: 'Analytics',
-    ),
+    // _NavItem(
+    //   icon: Icons.bar_chart_outlined,
+    //   activeIcon: Icons.bar_chart,
+    //   label: 'Analytics',
+    // ),
     _NavItem(
       icon: Icons.person_outline_rounded,
       activeIcon: Icons.person_rounded,

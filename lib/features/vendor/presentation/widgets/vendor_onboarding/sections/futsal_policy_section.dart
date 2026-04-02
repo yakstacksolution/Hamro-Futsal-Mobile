@@ -52,6 +52,19 @@ class _FutsalPolicySectionState extends State<FutsalPolicySection> {
     });
   }
 
+  @override
+  void didUpdateWidget(covariant FutsalPolicySection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.draft.cancellationPolicy != widget.draft.cancellationPolicy &&
+        _policyInitialized) {
+      _replacePolicyContent(widget.draft.cancellationPolicy);
+    }
+    if (oldWidget.draft.futsalRules != widget.draft.futsalRules &&
+        _rulesInitialized) {
+      _replaceRulesContent(widget.draft.futsalRules);
+    }
+  }
+
   void _initializeEditors() {
     // Initialize cancellation policy editor
     _policyQuillController = _initializeQuillController(
@@ -66,6 +79,26 @@ class _FutsalPolicySectionState extends State<FutsalPolicySection> {
     );
     _rulesQuillController.addListener(_onRulesChanged);
     setState(() => _rulesInitialized = true);
+  }
+
+  void _replacePolicyContent(String html) {
+    _lastPolicyHtml = html;
+    final Document document = _buildDocumentFromHtml(html);
+    _policyQuillController.document = document;
+    _policyQuillController.updateSelection(
+      const TextSelection.collapsed(offset: 0),
+      ChangeSource.local,
+    );
+  }
+
+  void _replaceRulesContent(String html) {
+    _lastRulesHtml = html;
+    final Document document = _buildDocumentFromHtml(html);
+    _rulesQuillController.document = document;
+    _rulesQuillController.updateSelection(
+      const TextSelection.collapsed(offset: 0),
+      ChangeSource.local,
+    );
   }
 
   void _onPolicyChanged() {
@@ -103,19 +136,20 @@ class _FutsalPolicySectionState extends State<FutsalPolicySection> {
   }
 
   QuillController _initializeQuillController({String? html}) {
-    late final Document document;
-
-    if (html != null && html.trim().isNotEmpty) {
-      final delta = HtmlToDelta().convert(html);
-      document = Document.fromDelta(delta);
-    } else {
-      document = Document();
-    }
+    final Document document = _buildDocumentFromHtml(html);
 
     return QuillController(
       document: document,
       selection: const TextSelection.collapsed(offset: 0),
     );
+  }
+
+  Document _buildDocumentFromHtml(String? html) {
+    if (html != null && html.trim().isNotEmpty) {
+      final delta = HtmlToDelta().convert(html);
+      return Document.fromDelta(delta);
+    }
+    return Document();
   }
 
   @override
@@ -142,11 +176,12 @@ class _FutsalPolicySectionState extends State<FutsalPolicySection> {
     final meta = _sectionMeta(widget.subsectionIndex);
 
     return VendorPanel(
+      padding: const EdgeInsets.all(12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          VendorPanelHeading(title: meta.title, subtitle: meta.subtitle),
-          const SizedBox(height: 18),
+          _CompactPolicySectionHeader(meta: meta),
+          const SizedBox(height: 12),
           if (widget.subsectionIndex == 0) _buildCancellationPolicy(),
           if (widget.subsectionIndex == 1) _buildFutsalRules(),
           if (widget.subsectionIndex == 2) _buildCommissionPackages(),
@@ -207,12 +242,12 @@ class _FutsalPolicySectionState extends State<FutsalPolicySection> {
   Widget _buildCancellationPolicy() {
     if (!_policyInitialized) {
       return const SizedBox(
-        height: 350,
+        height: 450,
         child: Center(child: CircularProgressIndicator()),
       );
     }
     return SizedBox(
-      height: 350,
+      height: 450,
       child: CustomQuillEditor(
         isReadOnly: false,
         controller: _policyQuillController,
@@ -225,12 +260,12 @@ class _FutsalPolicySectionState extends State<FutsalPolicySection> {
   Widget _buildFutsalRules() {
     if (!_rulesInitialized) {
       return const SizedBox(
-        height: 350,
+        height: 450,
         child: Center(child: CircularProgressIndicator()),
       );
     }
     return SizedBox(
-      height: 350,
+      height: 450,
       child: CustomQuillEditor(
         isReadOnly: false,
         controller: _rulesQuillController,
@@ -240,32 +275,115 @@ class _FutsalPolicySectionState extends State<FutsalPolicySection> {
     );
   }
 
-  ({String title, String subtitle}) _sectionMeta(int index) {
+  _PolicySectionMeta _sectionMeta(int index) {
     switch (index) {
       case 0:
-        return (
+        return const _PolicySectionMeta(
           title: 'Cancellation Policy',
           subtitle:
               'Define how refunds and booking cancellations are handled for your customers.',
+          icon: Icons.policy_rounded,
         );
       case 1:
-        return (
+        return const _PolicySectionMeta(
           title: 'Futsal Rules',
           subtitle: 'Set house rules for players, bookings, and venue conduct.',
+          icon: Icons.rule_rounded,
         );
       case 2:
-        return (
+        return const _PolicySectionMeta(
           title: 'Choose Your Plan',
           subtitle:
               'Select a commission package that fits your business needs.',
+          icon: Icons.workspace_premium_rounded,
         );
       default:
-        return (
+        return const _PolicySectionMeta(
           title: 'Policy & Rules',
           subtitle: 'Complete the required details.',
+          icon: Icons.info_rounded,
         );
     }
   }
+}
+
+class _CompactPolicySectionHeader extends StatelessWidget {
+  const _CompactPolicySectionHeader({required this.meta});
+
+  final _PolicySectionMeta meta;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: <Color>[
+            LightColor.secondaryLight.withValues(alpha: 0.5),
+            LightColor.secondaryLight.withValues(alpha: 0.3),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: LightColor.secondary.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        children: <Widget>[
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: LightColor.secondaryLight,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(meta.icon, size: 18, color: LightColor.secondary),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  meta.title,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    color: LightColor.titleText,
+                    height: 1.1,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  meta.subtitle,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w400,
+                    color: LightColor.subtitleText,
+                    height: 1.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PolicySectionMeta {
+  const _PolicySectionMeta({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
 }
 
 class _CommissionPackageCard extends StatelessWidget {
@@ -297,7 +415,7 @@ class _CommissionPackageCard extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         curve: Curves.easeInOut,
         decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(0.08) : Colors.white,
+          color: isSelected ? color.withValues(alpha: 0.08) : Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isSelected ? color : Colors.grey.shade200,
@@ -306,7 +424,7 @@ class _CommissionPackageCard extends StatelessWidget {
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: color.withOpacity(0.15),
+                    color: color.withValues(alpha: 0.15),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                   ),
@@ -325,7 +443,7 @@ class _CommissionPackageCard extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: color.withOpacity(0.12),
+                          color: color.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Icon(icon, color: color, size: 22),

@@ -19,7 +19,7 @@ class LightColor {
 
   // ── Primary Brand — Sky Blue ──────────────────────────────────────────────
   /// Main action colour: CTA buttons, price text, active states
-  static const Color primary = Color(0xFF2D86E5);
+  static const Color primary = Color(0xFF26B58A); //Color(0xFF2D86E5);
 
   /// Lighter tint: icon backgrounds, selected chip fill
   static const Color primaryLight = Color(0xFFE8F3FD);

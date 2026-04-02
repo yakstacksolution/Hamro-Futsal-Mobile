@@ -16,7 +16,7 @@ class VendorOnboardingValidator {
 
   static bool canUnlockCourts(FutsalDraft draft) {
     return validateFutsalSubstep(draft, 0, 0).isValid &&
-        validateFutsalSubstep(draft, 0, 1).isValid;
+        validateFutsalSubstep(draft, 0, 2).isValid;
   }
 
   static VendorValidationResult validateFutsalSubstep(
@@ -35,10 +35,16 @@ class VendorOnboardingValidator {
                 'Enter the futsal name.',
               );
             }
-            if (draft.description.trim().isEmpty) {
+            if (draft.slug.trim().isEmpty) {
               return VendorValidationResult.invalid(
                 key,
-                'Enter the futsal description.',
+                'Slug is required for the futsal profile.',
+              );
+            }
+            if (!_isSlugValid(draft.slug)) {
+              return VendorValidationResult.invalid(
+                key,
+                'Slug can only use lowercase letters, numbers, and hyphens.',
               );
             }
             if (draft.phone.trim().isEmpty) {
@@ -53,8 +59,22 @@ class VendorOnboardingValidator {
                 'Enter the contact email.',
               );
             }
+            if (!_isOptionalUrlValid(draft.websiteOrSocialLink)) {
+              return VendorValidationResult.invalid(
+                key,
+                'Enter a valid website or social media link.',
+              );
+            }
             return VendorValidationResult.valid(key);
           case 1:
+            if (draft.description.trim().isEmpty) {
+              return VendorValidationResult.invalid(
+                key,
+                'Enter the futsal description.',
+              );
+            }
+            return VendorValidationResult.valid(key);
+          case 2:
             if (draft.location.fullAddress.trim().isEmpty) {
               return VendorValidationResult.invalid(
                 key,
@@ -75,7 +95,7 @@ class VendorOnboardingValidator {
               );
             }
             return VendorValidationResult.valid(key);
-          case 2:
+          case 3:
             if (draft.amenities.isEmpty && draft.features.isEmpty) {
               return VendorValidationResult.invalid(
                 key,
@@ -151,39 +171,52 @@ class VendorOnboardingValidator {
     final String key = courtSubstepKey(draft.id, sectionIndex, subsectionIndex);
     switch (sectionIndex) {
       case 0:
-        if (draft.name.trim().isEmpty) {
-          return VendorValidationResult.invalid(key, 'Enter the court name.');
+        switch (subsectionIndex) {
+          case 0:
+            if (draft.name.trim().isEmpty) {
+              return VendorValidationResult.invalid(
+                key,
+                'Enter the court name.',
+              );
+            }
+            if (draft.basePrice == null) {
+              return VendorValidationResult.invalid(
+                key,
+                'Enter the court base price.',
+              );
+            }
+            if ((draft.courtType ?? '').trim().isEmpty) {
+              return VendorValidationResult.invalid(
+                key,
+                'Select the court type.',
+              );
+            }
+            return VendorValidationResult.valid(key);
+          case 1:
+            if (draft.description.trim().isEmpty) {
+              return VendorValidationResult.invalid(
+                key,
+                'Enter the court description.',
+              );
+            }
+            return VendorValidationResult.valid(key);
+          case 2:
+            if (draft.availability.days.isEmpty) {
+              return VendorValidationResult.invalid(
+                key,
+                'Select the court availability days.',
+              );
+            }
+            if (!draft.availability.isOpen24Hours &&
+                (draft.availability.openTime.trim().isEmpty ||
+                    draft.availability.closeTime.trim().isEmpty)) {
+              return VendorValidationResult.invalid(
+                key,
+                'Enter opening and closing time for the court.',
+              );
+            }
+            return VendorValidationResult.valid(key);
         }
-        if (draft.basePrice == null) {
-          return VendorValidationResult.invalid(
-            key,
-            'Enter the court base price.',
-          );
-        }
-        if (draft.description.trim().isEmpty) {
-          return VendorValidationResult.invalid(
-            key,
-            'Enter the court description.',
-          );
-        }
-        if ((draft.courtType ?? '').trim().isEmpty) {
-          return VendorValidationResult.invalid(key, 'Select the court type.');
-        }
-        if (draft.availability.days.isEmpty) {
-          return VendorValidationResult.invalid(
-            key,
-            'Select the court availability days.',
-          );
-        }
-        if (!draft.availability.isOpen24Hours &&
-            (draft.availability.openTime.trim().isEmpty ||
-                draft.availability.closeTime.trim().isEmpty)) {
-          return VendorValidationResult.invalid(
-            key,
-            'Enter opening and closing time for the court.',
-          );
-        }
-        return VendorValidationResult.valid(key);
       case 1:
         switch (subsectionIndex) {
           case 0:
@@ -279,15 +312,19 @@ class VendorOnboardingValidator {
         switch (subsectionIndex) {
           case 0:
             return draft.title.trim().isNotEmpty ||
-                draft.description.trim().isNotEmpty ||
+                draft.slug.trim().isNotEmpty ||
+                draft.registrationNumber.trim().isNotEmpty ||
                 draft.phone.trim().isNotEmpty ||
-                draft.email.trim().isNotEmpty;
+                draft.email.trim().isNotEmpty ||
+                draft.websiteOrSocialLink.trim().isNotEmpty;
           case 1:
+            return draft.description.trim().isNotEmpty;
+          case 2:
             return draft.location.fullAddress.trim().isNotEmpty ||
                 draft.location.exactLocation.trim().isNotEmpty ||
                 draft.location.longitude != null ||
                 draft.location.latitude != null;
-          case 2:
+          case 3:
             return draft.amenities.isNotEmpty || draft.features.isNotEmpty;
         }
       case 1:
@@ -319,13 +356,19 @@ class VendorOnboardingValidator {
   ) {
     switch (sectionIndex) {
       case 0:
-        return draft.name.trim().isNotEmpty ||
-            draft.basePrice != null ||
-            draft.description.trim().isNotEmpty ||
-            (draft.courtType ?? '').trim().isNotEmpty ||
-            draft.availability.days.isNotEmpty ||
-            draft.availability.openTime.trim().isNotEmpty ||
-            draft.availability.closeTime.trim().isNotEmpty;
+        switch (subsectionIndex) {
+          case 0:
+            return draft.name.trim().isNotEmpty ||
+                draft.basePrice != null ||
+                (draft.courtType ?? '').trim().isNotEmpty;
+          case 1:
+            return draft.description.trim().isNotEmpty;
+          case 2:
+            return draft.availability.days.isNotEmpty ||
+                draft.availability.openTime.trim().isNotEmpty ||
+                draft.availability.closeTime.trim().isNotEmpty ||
+                draft.availability.isOpen24Hours;
+        }
       case 1:
         switch (subsectionIndex) {
           case 0:
@@ -380,6 +423,18 @@ class VendorOnboardingValidator {
     return slot.price != null &&
         (slot.paymentPercent == null ||
             (slot.paymentPercent! >= 0 && slot.paymentPercent! <= 100));
+  }
+
+  static bool _isSlugValid(String value) {
+    return RegExp(r'^[a-z0-9]+(?:-[a-z0-9]+)*$').hasMatch(value.trim());
+  }
+
+  static bool _isOptionalUrlValid(String value) {
+    final String trimmed = value.trim();
+    if (trimmed.isEmpty) return true;
+
+    final Uri? uri = Uri.tryParse(trimmed);
+    return uri != null && uri.hasScheme && uri.host.isNotEmpty;
   }
 
   static bool _hasSlotOverlap(List<SlotPricingDraft> slots) {

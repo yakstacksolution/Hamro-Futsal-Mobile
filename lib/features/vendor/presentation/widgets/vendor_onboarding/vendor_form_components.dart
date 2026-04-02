@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:hamro_footsall/core/theme/light_color.dart';
+import 'package:hamro_footsall/core/widgets/custom_confirm_dialog.dart';
 import 'package:hamro_footsall/core/widgets/custom_text_field.dart';
 import 'package:hamro_footsall/features/courts/presentation/models/picked_location.dart';
 import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_models.dart';
@@ -12,7 +14,7 @@ class VendorPanel extends StatelessWidget {
   const VendorPanel({
     super.key,
     required this.child,
-    this.padding = const EdgeInsets.all(18),
+    this.padding = const EdgeInsets.all(12),
   });
 
   final Widget child;
@@ -25,7 +27,7 @@ class VendorPanel extends StatelessWidget {
       padding: padding,
       decoration: BoxDecoration(
         color: LightColor.surface,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(color: LightColor.borderLight),
         boxShadow: <BoxShadow>[
           BoxShadow(
@@ -121,7 +123,7 @@ class VendorErrorBanner extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: LightColor.redLight,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(color: LightColor.errorBorder),
       ),
       child: Row(
@@ -170,6 +172,7 @@ class VendorInputField extends StatelessWidget {
   const VendorInputField({
     super.key,
     this.label,
+    this.controller,
     required this.initialValue,
     required this.onChanged,
     this.hintText,
@@ -181,6 +184,7 @@ class VendorInputField extends StatelessWidget {
   });
 
   final String? label;
+  final TextEditingController? controller;
   final String initialValue;
   final ValueChanged<String> onChanged;
   final String? hintText;
@@ -193,6 +197,7 @@ class VendorInputField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return CustomTextField(
+      controller: controller,
       labelText: label ?? '',
       icon: enableIcon == true
           ? _vendorFieldIcon(label ?? '', keyboardType)
@@ -319,6 +324,8 @@ class VendorUploadSection extends StatelessWidget {
     required this.onPick,
     required this.files,
     required this.onRemove,
+    this.actionLabel = 'Upload',
+    this.actionIcon = Icons.upload_rounded,
   });
 
   final String title;
@@ -326,6 +333,8 @@ class VendorUploadSection extends StatelessWidget {
   final VoidCallback onPick;
   final List<UploadRef> files;
   final ValueChanged<UploadRef>? onRemove;
+  final String actionLabel;
+  final IconData actionIcon;
 
   @override
   Widget build(BuildContext context) {
@@ -368,17 +377,17 @@ class VendorUploadSection extends StatelessWidget {
               const SizedBox(width: 2),
               FilledButton.icon(
                 onPressed: onPick,
-                icon: const Icon(Icons.upload_rounded),
-                label: const Text('Upload'),
+                icon: Icon(actionIcon),
+                label: Text(actionLabel),
                 style: ButtonStyle(
-                  backgroundColor: MaterialStateProperty.all(
+                  backgroundColor: WidgetStateProperty.all(
                     LightColor.secondary,
                   ),
-                  foregroundColor: MaterialStateProperty.all(Colors.white),
-                  padding: MaterialStateProperty.all(
+                  foregroundColor: WidgetStateProperty.all(Colors.white),
+                  padding: WidgetStateProperty.all(
                     const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
                   ),
-                  shape: MaterialStateProperty.all(
+                  shape: WidgetStateProperty.all(
                     RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(4),
                     ),
@@ -412,8 +421,101 @@ class VendorUploadItem extends StatelessWidget {
   final UploadRef file;
   final VoidCallback? onRemove;
 
+  bool get _isImageFile {
+    final String path = _imageSource.toLowerCase();
+    return path.endsWith('.png') ||
+        path.endsWith('.jpg') ||
+        path.endsWith('.jpeg') ||
+        path.endsWith('.webp') ||
+        path.endsWith('.gif');
+  }
+
+  String get _imageSource {
+    final String remotePath = (file.remoteUrl ?? '').trim();
+    return remotePath.isNotEmpty ? remotePath : file.localPath;
+  }
+
+  bool get _isNetworkImage {
+    final String source = _imageSource.toLowerCase();
+    return source.startsWith('http://') || source.startsWith('https://');
+  }
+
+  Future<void> _confirmRemove(BuildContext context) async {
+    if (onRemove == null) return;
+
+    final bool confirmed = await showConfirmDialog(
+      context: context,
+      title: 'Remove file?',
+      message: 'Do you want to remove "${file.name}" from this selection?',
+      confirmText: 'Remove',
+      confirmColor: LightColor.secondary,
+      icon: Icons.delete_outline_rounded,
+    );
+
+    if (confirmed) {
+      onRemove!();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (_isImageFile) {
+      return Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        decoration: BoxDecoration(
+          color: LightColor.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: LightColor.borderLight),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            AspectRatio(
+              aspectRatio: 16 / 9,
+              child: _isNetworkImage
+                  ? Image.network(
+                      _imageSource,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => _buildBrokenImageState(),
+                    )
+                  : Image.file(
+                      File(file.localPath),
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => _buildBrokenImageState(),
+                    ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
+              child: Row(
+                children: <Widget>[
+                  Expanded(
+                    child: Text(
+                      file.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: LightColor.titleText,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  if (onRemove != null)
+                    IconButton(
+                      onPressed: () => _confirmRemove(context),
+                      icon: const Icon(
+                        Icons.delete_outline_rounded,
+                        color: LightColor.secondary,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),
@@ -465,10 +567,25 @@ class VendorUploadItem extends StatelessWidget {
           ),
           if (onRemove != null)
             IconButton(
-              onPressed: onRemove,
-              icon: const Icon(Icons.delete_outline_rounded),
+              onPressed: () => _confirmRemove(context),
+              icon: const Icon(
+                Icons.delete_outline_rounded,
+                color: LightColor.secondary,
+              ),
             ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildBrokenImageState() {
+    return Container(
+      color: LightColor.surfaceSubtle,
+      alignment: Alignment.center,
+      child: const Icon(
+        Icons.broken_image_outlined,
+        color: LightColor.iconMuted,
+        size: 28,
       ),
     );
   }

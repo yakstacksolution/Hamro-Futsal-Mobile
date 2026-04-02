@@ -8,7 +8,7 @@ Future<bool> showConfirmDialog({
   required String message,
   String confirmText = 'Confirm',
   String cancelText = 'Cancel',
-  Color confirmColor = LightColor.red,
+  Color confirmColor = LightColor.secondary,
   IconData? icon,
 }) async {
   final bool? result = await showDialog<bool>(

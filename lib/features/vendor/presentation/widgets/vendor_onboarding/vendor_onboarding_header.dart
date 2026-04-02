@@ -32,7 +32,7 @@ class VendorOnboardingHeader extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(12),
         boxShadow: <BoxShadow>[
           BoxShadow(
             color: LightColor.secondary.withValues(alpha: 0.16),
@@ -48,17 +48,17 @@ class VendorOnboardingHeader extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               Container(
-                width: 42,
-                height: 42,
+                width: 40,
+                height: 40,
                 decoration: BoxDecoration(
                   color: LightColor.white.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: LightColor.white.withValues(alpha: 0.10),
                   ),
                 ),
                 child: Icon(
-                  isCourt ? Icons.stadium_rounded : Icons.storefront_rounded,
+                  isCourt ? Icons.stadium_rounded : Icons.sports_soccer_rounded,
                   color: LightColor.white,
                   size: 20,
                 ),
@@ -74,7 +74,7 @@ class VendorOnboardingHeader extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: LightColor.white,
-                        fontSize: 17,
+                        fontSize: 16,
                         fontWeight: FontWeight.w800,
                         height: 1.15,
                       ),
@@ -87,7 +87,7 @@ class VendorOnboardingHeader extends StatelessWidget {
                       style: TextStyle(
                         color: LightColor.white.withValues(alpha: 0.88),
                         fontSize: 12,
-                        height: 1.35,
+                        height: 1,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -96,13 +96,10 @@ class VendorOnboardingHeader extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 8,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                 decoration: BoxDecoration(
                   color: LightColor.white.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(6),
                 ),
                 child: Column(
                   children: <Widget>[
@@ -140,7 +137,7 @@ class VendorOnboardingHeader extends StatelessWidget {
               valueColor: const AlwaysStoppedAnimation<Color>(LightColor.white),
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
@@ -186,14 +183,15 @@ class _CompactInfoChip extends StatelessWidget {
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: <Widget>[
-          Icon(icon, size: 14, color: LightColor.white.withValues(alpha: 0.95)),
+          Icon(icon, size: 13, color: LightColor.white.withValues(alpha: 0.95)),
           const SizedBox(width: 6),
           Text(
             label,
             style: TextStyle(
               color: LightColor.white.withValues(alpha: 0.95),
-              fontSize: 11,
+              fontSize: 10,
               fontWeight: FontWeight.w600,
               height: 1,
             ),

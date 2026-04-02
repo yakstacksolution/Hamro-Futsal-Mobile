@@ -17,10 +17,10 @@ class VendorCategorySwitcher extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(6),
+      padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
         color: LightColor.white,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(color: LightColor.border),
         boxShadow: [
           BoxShadow(
@@ -95,14 +95,14 @@ class _Tab extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(8),
         onTap: onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
           decoration: BoxDecoration(
             color: bg,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(8),
             border: Border.all(
               color: isSelected
                   ? LightColor.secondary
@@ -112,17 +112,17 @@ class _Tab extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                width: 34,
-                height: 34,
+                width: 30,
+                height: 30,
                 decoration: BoxDecoration(
                   color: isSelected
                       ? LightColor.white.withValues(alpha: 0.16)
                       : LightColor.secondaryLight,
-                  borderRadius: BorderRadius.circular(11),
+                  borderRadius: BorderRadius.circular(6),
                 ),
                 child: Icon(
                   isLocked ? Icons.lock_rounded : icon,
-                  size: 18,
+                  size: 16,
                   color: iconColor,
                 ),
               ),
@@ -152,131 +152,3 @@ class _Tab extends StatelessWidget {
     );
   }
 }
-// import 'package:flutter/material.dart';
-// import 'package:hamro_footsall/core/theme/light_color.dart';
-// import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_models.dart';
-
-// class VendorCategorySwitcher extends StatelessWidget {
-//   const VendorCategorySwitcher({
-//     super.key,
-//     required this.activeCategory,
-//     required this.canAccessCourtCategory,
-//     required this.onCategorySelected,
-//   });
-
-//   final VendorCategory activeCategory;
-//   final bool canAccessCourtCategory;
-//   final ValueChanged<VendorCategory> onCategorySelected;
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Row(
-//       children: <Widget>[
-//         Expanded(
-//           child: _CategoryTile(
-//             title: 'Category 0',
-//             subtitle: 'Futsal',
-//             isSelected: activeCategory == VendorCategory.futsal,
-//             isLocked: false,
-//             icon: Icons.storefront_rounded,
-//             onTap: () => onCategorySelected(VendorCategory.futsal),
-//           ),
-//         ),
-//         const SizedBox(width: 12),
-//         Expanded(
-//           child: _CategoryTile(
-//             title: 'Category 1',
-//             subtitle: 'Court',
-//             isSelected: activeCategory == VendorCategory.court,
-//             isLocked: !canAccessCourtCategory,
-//             icon: Icons.stadium_rounded,
-//             onTap: () => onCategorySelected(VendorCategory.court),
-//           ),
-//         ),
-//       ],
-//     );
-//   }
-// }
-
-// class _CategoryTile extends StatelessWidget {
-//   const _CategoryTile({
-//     required this.title,
-//     required this.subtitle,
-//     required this.isSelected,
-//     required this.isLocked,
-//     required this.icon,
-//     required this.onTap,
-//   });
-
-//   final String title;
-//   final String subtitle;
-//   final bool isSelected;
-//   final bool isLocked;
-//   final IconData icon;
-//   final VoidCallback onTap;
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Material(
-//       color: Colors.transparent,
-//       child: InkWell(
-//         borderRadius: BorderRadius.circular(20),
-//         onTap: onTap,
-//         child: Ink(
-//           padding: const EdgeInsets.all(16),
-//           decoration: BoxDecoration(
-//             color: isSelected ? LightColor.primaryLight : LightColor.surface,
-//             borderRadius: BorderRadius.circular(20),
-//             border: Border.all(
-//               color: isSelected ? LightColor.primary : LightColor.border,
-//               width: isSelected ? 1.4 : 1,
-//             ),
-//           ),
-//           child: Row(
-//             children: <Widget>[
-//               Container(
-//                 width: 42,
-//                 height: 42,
-//                 decoration: BoxDecoration(
-//                   color: isSelected
-//                       ? LightColor.primary
-//                       : LightColor.backgroundWarm,
-//                   borderRadius: BorderRadius.circular(14),
-//                 ),
-//                 child: Icon(
-//                   isLocked ? Icons.lock_outline_rounded : icon,
-//                   color: isSelected ? Colors.white : LightColor.primary,
-//                 ),
-//               ),
-//               const SizedBox(width: 12),
-//               Expanded(
-//                 child: Column(
-//                   crossAxisAlignment: CrossAxisAlignment.start,
-//                   children: <Widget>[
-//                     Text(
-//                       title,
-//                       style: const TextStyle(
-//                         color: LightColor.subtitleText,
-//                         fontSize: 12,
-//                         fontWeight: FontWeight.w600,
-//                       ),
-//                     ),
-//                     const SizedBox(height: 2),
-//                     Text(
-//                       subtitle,
-//                       style: const TextStyle(
-//                         color: LightColor.titleText,
-//                         fontSize: 15,
-//                         fontWeight: FontWeight.w800,
-//                       ),
-//                     ),
-//                   ],
-//                 ),
-//               ),
-//             ],
-//           ),
-//         ),
-//       ),
-//     );
-//   }
-// }

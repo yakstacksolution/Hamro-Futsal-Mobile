@@ -68,4 +68,24 @@ class AuthManager extends ServiceManager {
   Future<Result> updateProfile(data) async {
     return await _apiClient.updateProfile(data: data);
   }
+
+  Future<Result> getMedia() async {
+    return await _apiClient.getMedia();
+  }
+
+  Future<Result> createMedia(data) async {
+    return await _apiClient.createMedia(data: data);
+  }
+
+  Future<Result> getPublicServices() async {
+    return await _apiClient.getPublicServices();
+  }
+
+  Future<Result> getPublicPackages() async {
+    return await _apiClient.getPublicPackages();
+  }
+
+  Future<Result> getPublicTemplates() async {
+    return await _apiClient.getPublicTemplates();
+  }
 }

@@ -6,6 +6,7 @@ class VendorOnboardingState {
     required this.futsalPointer,
     required this.courtPointersById,
     required this.futsal,
+    required this.mediaLibrary,
     required this.courts,
     required this.errorKeys,
     required this.saveStatus,
@@ -28,6 +29,7 @@ class VendorOnboardingState {
       futsalPointer: SectionPointer(sectionIndex: 0, subsectionIndex: 0),
       courtPointersById: <String, SectionPointer>{},
       futsal: FutsalDraft(),
+      mediaLibrary: <UploadRef>[],
       courts: <CourtDraft>[],
       errorKeys: <String>{},
       saveStatus: DraftSaveStatus.idle,
@@ -42,6 +44,7 @@ class VendorOnboardingState {
   final SectionPointer futsalPointer;
   final Map<String, SectionPointer> courtPointersById;
   final FutsalDraft futsal;
+  final List<UploadRef> mediaLibrary;
   final List<CourtDraft> courts;
   final String? activeCourtId;
   final Set<String> errorKeys;
@@ -73,6 +76,7 @@ class VendorOnboardingState {
     SectionPointer? futsalPointer,
     Map<String, SectionPointer>? courtPointersById,
     FutsalDraft? futsal,
+    List<UploadRef>? mediaLibrary,
     List<CourtDraft>? courts,
     String? activeCourtId,
     Set<String>? errorKeys,
@@ -92,6 +96,7 @@ class VendorOnboardingState {
       futsalPointer: futsalPointer ?? this.futsalPointer,
       courtPointersById: courtPointersById ?? this.courtPointersById,
       futsal: futsal ?? this.futsal,
+      mediaLibrary: mediaLibrary ?? this.mediaLibrary,
       courts: courts ?? this.courts,
       activeCourtId: clearActiveCourtId
           ? null
@@ -118,6 +123,9 @@ class VendorOnboardingState {
             MapEntry<String, dynamic>(key, value.toJson()),
       ),
       'futsal': futsal.toJson(),
+      'mediaLibrary': mediaLibrary
+          .map((UploadRef item) => item.toJson())
+          .toList(),
       'courts': courts.map((CourtDraft item) => item.toJson()).toList(),
       'activeCourtId': activeCourtId,
       'lastSavedAt': lastSavedAt?.toIso8601String(),
@@ -163,6 +171,11 @@ class VendorOnboardingState {
             ? Map<String, dynamic>.from(json['futsal'] as Map)
             : const <String, dynamic>{},
       ),
+      mediaLibrary:
+          ((json['mediaLibrary'] as List?) ?? const <dynamic>[])
+              .whereType<Map>()
+              .map((Map item) => UploadRef.fromJson(Map<String, dynamic>.from(item)))
+              .toList(),
       courts: courts,
       activeCourtId: json['activeCourtId'] as String?,
       errorKeys: const <String>{},

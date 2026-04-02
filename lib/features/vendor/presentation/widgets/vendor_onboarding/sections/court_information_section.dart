@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_quill/flutter_quill.dart';
+import 'package:flutter_quill_delta_from_html/flutter_quill_delta_from_html.dart';
+import 'package:vsc_quill_delta_to_html/vsc_quill_delta_to_html.dart';
 import 'package:hamro_footsall/core/theme/light_color.dart';
+import 'package:hamro_footsall/core/widgets/custom_quill_editor.dart';
 import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit.dart';
 import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_models.dart';
 import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/vendor_form_components.dart';
+import 'dart:async';
 
 class CourtInformationSection extends StatelessWidget {
   const CourtInformationSection({
@@ -86,30 +91,190 @@ class _CourtBasicInfoSubsection extends StatelessWidget {
   }
 }
 
-class _CourtDescriptionSubsection extends StatelessWidget {
+class _CourtDescriptionSubsection extends StatefulWidget {
   const _CourtDescriptionSubsection({required this.cubit, required this.court});
 
   final VendorOnboardingCubit cubit;
   final CourtDraft court;
 
   @override
+  State<_CourtDescriptionSubsection> createState() =>
+      _CourtDescriptionSubsectionState();
+}
+
+class _CourtDescriptionSubsectionState extends State<_CourtDescriptionSubsection> {
+  final ScrollController _scrollController = ScrollController();
+  late final QuillController _quillController;
+  Timer? _debounceTimer;
+  String _lastHtmlContent = '';
+  bool _initialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _lastHtmlContent = widget.court.description;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeEditor();
+    });
+  }
+
+  void _initializeEditor() {
+    if (_initialized) return;
+
+    _quillController = _initializeQuillController(
+      html: widget.court.description,
+    );
+    _quillController.addListener(_onEditorChanged);
+
+    setState(() => _initialized = true);
+  }
+
+  QuillController _initializeQuillController({String? html}) {
+    late final Document document;
+
+    if (html != null && html.trim().isNotEmpty) {
+      final delta = HtmlToDelta().convert(html);
+      document = Document.fromDelta(delta);
+    } else {
+      document = Document();
+    }
+
+    return QuillController(
+      document: document,
+      selection: const TextSelection.collapsed(offset: 0),
+    );
+  }
+
+  void _onEditorChanged() {
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 300), () {
+      if (!mounted) return;
+
+      final delta = _quillController.document.toDelta();
+      final htmlConverter = QuillDeltaToHtmlConverter(delta.toJson()).convert();
+
+      if (htmlConverter != _lastHtmlContent) {
+        _lastHtmlContent = htmlConverter;
+        widget.cubit.updateActiveCourt(
+          widget.court.copyWith(description: htmlConverter),
+        );
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _debounceTimer?.cancel();
+    if (_initialized) {
+      _quillController.removeListener(_onEditorChanged);
+      _quillController.dispose();
+    }
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return VendorPanel(
+      padding: const EdgeInsets.all(12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          const VendorPanelHeading(
+          const _CompactCourtDescriptionHeader(
             title: 'Description',
             subtitle:
                 'Tell customers about this court. Describe the surface, size, and any unique features.',
+            icon: Icons.description_rounded,
           ),
-          const SizedBox(height: 18),
-          VendorInputField(
-            label: 'Court description',
-            initialValue: court.description,
-            maxLines: 6,
-            onChanged: (String value) =>
-                cubit.updateActiveCourt(court.copyWith(description: value)),
+          const SizedBox(height: 12),
+          if (!_initialized)
+            const SizedBox(
+              height: 450,
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else
+            SizedBox(
+              height: 450,
+              child: CustomQuillEditor(
+                isReadOnly: false,
+                controller: _quillController,
+                scrollController: _scrollController,
+                hintText: 'Description about your court...',
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CompactCourtDescriptionHeader extends StatelessWidget {
+  const _CompactCourtDescriptionHeader({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: <Color>[
+            LightColor.secondaryLight.withValues(alpha: 0.5),
+            LightColor.secondaryLight.withValues(alpha: 0.3),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: LightColor.secondary.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        children: <Widget>[
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: LightColor.secondaryLight,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, size: 18, color: LightColor.secondary),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    color: LightColor.titleText,
+                    height: 1.1,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  subtitle,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w400,
+                    color: LightColor.subtitleText,
+                    height: 1.3,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),

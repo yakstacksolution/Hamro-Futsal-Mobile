@@ -30,6 +30,13 @@ class FutsalInformationSection extends StatefulWidget {
 
 class _FutsalInformationSectionState extends State<FutsalInformationSection> {
   final ScrollController _scrollController = ScrollController();
+  final TextEditingController _exactLocationController =
+      TextEditingController();
+  final TextEditingController _longitudeController = TextEditingController();
+  final TextEditingController _latitudeController = TextEditingController();
+  final TextEditingController _slugController = TextEditingController();
+  final TextEditingController _websiteOrSocialLinkController =
+      TextEditingController();
   late final QuillController _quillController;
   Timer? _debounceTimer;
   String _lastHtmlContent = '';
@@ -39,10 +46,38 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
   void initState() {
     super.initState();
     _lastHtmlContent = widget.draft.description;
+    _syncLocationControllers();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializeEditor();
     });
+  }
+
+  @override
+  void didUpdateWidget(covariant FutsalInformationSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.draft.location != widget.draft.location) {
+      _syncLocationControllers();
+    }
+    if (oldWidget.draft.slug != widget.draft.slug) {
+      _slugController.text = widget.draft.slug;
+    }
+    if (oldWidget.draft.websiteOrSocialLink !=
+        widget.draft.websiteOrSocialLink) {
+      _websiteOrSocialLinkController.text = widget.draft.websiteOrSocialLink;
+    }
+    if (oldWidget.draft.description != widget.draft.description &&
+        _initialized) {
+      _replaceEditorContent(widget.draft.description);
+    }
+  }
+
+  void _syncLocationControllers() {
+    _exactLocationController.text = widget.draft.location.exactLocation;
+    _longitudeController.text = formatDouble(widget.draft.location.longitude);
+    _latitudeController.text = formatDouble(widget.draft.location.latitude);
+    _slugController.text = widget.draft.slug;
+    _websiteOrSocialLinkController.text = widget.draft.websiteOrSocialLink;
   }
 
   void _initializeEditor() {
@@ -54,6 +89,16 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
     _quillController.addListener(_onEditorChanged);
 
     setState(() => _initialized = true);
+  }
+
+  void _replaceEditorContent(String html) {
+    _lastHtmlContent = html;
+    final Document document = _buildDocumentFromHtml(html);
+    _quillController.document = document;
+    _quillController.updateSelection(
+      const TextSelection.collapsed(offset: 0),
+      ChangeSource.local,
+    );
   }
 
   void _onEditorChanged() {
@@ -80,6 +125,11 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
       _quillController.removeListener(_onEditorChanged);
       _quillController.dispose();
     }
+    _exactLocationController.dispose();
+    _longitudeController.dispose();
+    _latitudeController.dispose();
+    _slugController.dispose();
+    _websiteOrSocialLinkController.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -110,14 +160,7 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
   }
 
   QuillController _initializeQuillController({String? html}) {
-    late final Document document;
-
-    if (html != null && html.trim().isNotEmpty) {
-      final delta = HtmlToDelta().convert(html);
-      document = Document.fromDelta(delta);
-    } else {
-      document = Document();
-    }
+    final Document document = _buildDocumentFromHtml(html);
 
     return QuillController(
       document: document,
@@ -125,17 +168,37 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
     );
   }
 
+  Document _buildDocumentFromHtml(String? html) {
+    if (html != null && html.trim().isNotEmpty) {
+      try {
+        final delta = HtmlToDelta().convert(html);
+        return Document.fromDelta(delta);
+      } catch (_) {
+        final String fallbackText = _stripHtml(html);
+        final Document doc = Document();
+        if (fallbackText.isNotEmpty) {
+          doc.insert(0, '$fallbackText\n');
+        }
+        return doc;
+      }
+    }
+    return Document();
+  }
+
+  String _stripHtml(String html) =>
+      html.replaceAll(RegExp(r'<[^>]+>'), '').trim();
+
   @override
   Widget build(BuildContext context) {
     final _SectionMeta meta = _sectionMeta(widget.subsectionIndex);
 
     return VendorPanel(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           _CompactSectionHeader(meta: meta),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           if (widget.subsectionIndex == 0) _buildBasicInfo(),
           if (widget.subsectionIndex == 1) _buildDescription(),
           if (widget.subsectionIndex == 2) _buildLocationInfo(),
@@ -149,14 +212,22 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
     return Column(
       children: <Widget>[
         const SizedBox(height: 10),
-
         VendorInputField(
           label: 'Futsal Club Name',
           hintText: 'Enter futsal name',
           enableIcon: true,
           initialValue: widget.draft.title,
-          onChanged: (String value) =>
-              widget.cubit.updateFutsal(widget.draft.copyWith(title: value)),
+          onChanged: widget.cubit.updateFutsalBasicIdentity,
+        ),
+        const SizedBox(height: 20),
+        VendorInputField(
+          label: 'Slug',
+          hintText: 'auto-generated unique slug',
+          controller: _slugController,
+          initialValue: widget.draft.slug,
+          enableIcon: true,
+          readOnly: true,
+          onChanged: (_) {},
         ),
         const SizedBox(height: 20),
         VendorInputField(
@@ -188,6 +259,16 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
           keyboardType: TextInputType.emailAddress,
           onChanged: (String value) =>
               widget.cubit.updateFutsal(widget.draft.copyWith(email: value)),
+        ),
+        const SizedBox(height: 20),
+        VendorInputField(
+          label: 'Website or Social Media Link (optional)',
+          hintText: 'https://instagram.com/hamrofutsal',
+          controller: _websiteOrSocialLinkController,
+          initialValue: widget.draft.websiteOrSocialLink,
+          enableIcon: true,
+          keyboardType: TextInputType.url,
+          onChanged: widget.cubit.updateFutsalWebsiteOrSocialLink,
         ),
         const SizedBox(height: 20),
       ],
@@ -236,7 +317,8 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
         VendorInputField(
           label: 'Exact location',
           hintText: 'Tap to pick location on map',
-          initialValue: widget.draft.location.exactLocation,
+          controller: _exactLocationController,
+          initialValue: '',
           enableIcon: true,
           readOnly: true,
           onTap: _openLocationPicker,
@@ -249,7 +331,8 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
               child: VendorInputField(
                 label: 'Longitude',
                 hintText: 'Auto-filled',
-                initialValue: formatDouble(widget.draft.location.longitude),
+                controller: _longitudeController,
+                initialValue: '',
                 readOnly: true,
                 onChanged: (_) {},
               ),
@@ -259,7 +342,8 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
               child: VendorInputField(
                 label: 'Latitude',
                 hintText: 'Auto-filled',
-                initialValue: formatDouble(widget.draft.location.latitude),
+                controller: _latitudeController,
+                initialValue: '',
                 readOnly: true,
                 onChanged: (_) {},
               ),
@@ -371,7 +455,7 @@ class _CompactSectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: <Color>[
@@ -381,7 +465,7 @@ class _CompactSectionHeader extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(color: LightColor.secondary.withValues(alpha: 0.2)),
       ),
       child: Row(
@@ -391,11 +475,11 @@ class _CompactSectionHeader extends StatelessWidget {
             height: 38,
             decoration: BoxDecoration(
               color: LightColor.secondaryLight,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(meta.icon, size: 19, color: LightColor.secondary),
+            child: Icon(meta.icon, size: 18, color: LightColor.secondary),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -406,7 +490,7 @@ class _CompactSectionHeader extends StatelessWidget {
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
                     color: LightColor.titleText,
-                    height: 1.15,
+                    height: 1.1,
                   ),
                 ),
                 const SizedBox(height: 3),
@@ -415,8 +499,8 @@ class _CompactSectionHeader extends StatelessWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w500,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w400,
                     color: LightColor.subtitleText,
                     height: 1.3,
                   ),
@@ -448,7 +532,7 @@ class _CompactGroupCard extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: LightColor.backgroundWarm,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(color: LightColor.border),
       ),
       child: Column(
@@ -461,7 +545,7 @@ class _CompactGroupCard extends StatelessWidget {
                 height: 30,
                 decoration: BoxDecoration(
                   color: LightColor.white,
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(icon, size: 16, color: LightColor.secondary),
               ),

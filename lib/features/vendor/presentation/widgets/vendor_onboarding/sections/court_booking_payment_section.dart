@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:hamro_footsall/core/theme/light_color.dart';
+import 'package:hamro_footsall/features/media/presentation/widgets/media_library_sheet.dart';
 import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit.dart';
 import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_models.dart';
 import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/vendor_form_components.dart';
@@ -17,6 +18,20 @@ class CourtBookingPaymentSection extends StatelessWidget {
   final VendorOnboardingCubit cubit;
   final CourtDraft court;
   final int subsectionIndex;
+
+  Future<void> _openPaymentQrLibrary(BuildContext context) async {
+    final List<UploadRef>? picked = await showVendorMediaLibrarySheet(
+      context: context,
+      cubit: cubit,
+      allowedExtensions: const <String>['png', 'jpg', 'jpeg', 'webp'],
+      allowMultiple: false,
+      initiallySelected: court.paymentQr == null
+          ? const <UploadRef>[]
+          : <UploadRef>[court.paymentQr!],
+    );
+    if (picked == null || picked.isEmpty) return;
+    cubit.setCourtPaymentQr(picked.first);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -78,7 +93,9 @@ class CourtBookingPaymentSection extends StatelessWidget {
             VendorUploadSection(
               title: 'Payment QR',
               subtitle: 'Upload the QR used to collect advance payment.',
-              onPick: () => unawaited(cubit.pickCourtPaymentQr()),
+              onPick: () => unawaited(_openPaymentQrLibrary(context)),
+              actionLabel: 'Gallery',
+              actionIcon: Icons.qr_code_2_rounded,
               files: court.paymentQr == null
                   ? const <UploadRef>[]
                   : <UploadRef>[court.paymentQr!],

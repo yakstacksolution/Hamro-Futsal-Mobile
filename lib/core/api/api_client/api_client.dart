@@ -50,6 +50,26 @@ class ApiClient {
     return _put(url: '$_baseUrl/account/2/user/update-profile/', data: data);
   }
 
+  Future<Result> getMedia() {
+    return _get(url: '$_baseUrl/media');
+  }
+
+  Future<Result> createMedia({required dynamic data}) {
+    return _post(url: '$_baseUrl/media', data: data);
+  }
+
+  Future<Result> getPublicServices() {
+    return _get(url: '$_baseUrl/auth/services');
+  }
+
+  Future<Result> getPublicPackages() {
+    return _get(url: '$_baseUrl/auth/packages');
+  }
+
+  Future<Result> getPublicTemplates() {
+    return _get(url: '$_baseUrl/auth/templates');
+  }
+
   Future<Result> _get({required String url}) {
     return _apiCallWrapper.makeRequest(
       url: url,
@@ -58,7 +78,7 @@ class ApiClient {
     );
   }
 
-  Future<Result> _post({required String url, Map<String, dynamic>? data}) {
+  Future<Result> _post({required String url, dynamic data}) {
     return _apiCallWrapper.makeRequest(
       url: url,
       data: data,
@@ -67,7 +87,7 @@ class ApiClient {
     );
   }
 
-  Future<Result> _put({required String url, Map<String, dynamic>? data}) {
+  Future<Result> _put({required String url, dynamic data}) {
     return _apiCallWrapper.makeRequest(
       url: url,
       data: data,

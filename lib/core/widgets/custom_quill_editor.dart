@@ -7,13 +7,13 @@ import 'package:hamro_footsall/core/widgets/keyboard_attached_toolbar.dart';
 
 typedef FutureStringCallback = Future<String> Function(String htmlText);
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Design tokens
-// ─────────────────────────────────────────────────────────────────────────────
 class _EditorTokens {
-  static const double radiusLg = 16;
-  static const double radiusMd = 12;
   static const double radiusSm = 8;
+  static const double toolbarDividerWidth = 1;
+  static const double fieldRadius = 8;
+  static const Color fieldFill = Color(0xFFFBFCFE);
+  static const Color toolbarFill = Color(0xFFFDFEFF);
 
   static const EdgeInsets editorPadding = EdgeInsets.symmetric(
     horizontal: 20,
@@ -28,9 +28,6 @@ class _EditorTokens {
   static const Curve animCurve = Curves.easeInOut;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Widget
-// ─────────────────────────────────────────────────────────────────────────────
 class CustomQuillEditor extends StatefulWidget {
   final String? initialContent;
   final FutureStringCallback? onContentChanged;
@@ -118,9 +115,7 @@ class _CustomQuillEditorState extends State<CustomQuillEditor>
     super.dispose();
   }
 
-  // ───────────────────────────────────────────────────────────────────────────
   // Build
-  // ───────────────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -128,11 +123,6 @@ class _CustomQuillEditorState extends State<CustomQuillEditor>
       resizeToAvoidBottomInset: true,
       body: Column(
         children: [
-          // ── Floating toolbar pill ──────────────────────────────────────────
-          _AnimatedToolbar(controller: widget.controller),
-          const SizedBox(height: 6),
-
-          // ── Editor card ────────────────────────────────────────────────────
           Expanded(
             child: AnimatedBuilder(
               animation: _borderOpacity,
@@ -140,20 +130,24 @@ class _CustomQuillEditorState extends State<CustomQuillEditor>
                 focusProgress: _borderOpacity.value,
                 child: child!,
               ),
-              child: Stack(
+              child: Column(
                 children: [
-                  // Hint text
-                  if (_showHint && widget.hintText != null)
-                    _HintOverlay(text: widget.hintText!),
-
-                  // Quill editor
-                  CupertinoScrollbar(
-                    controller: widget.scrollController,
-                    child: QuillEditor(
-                      controller: widget.controller,
-                      scrollController: widget.scrollController,
-                      focusNode: _focusNode,
-                      config: _buildEditorConfig(context),
+                  _EmbeddedToolbar(controller: widget.controller),
+                  Expanded(
+                    child: Stack(
+                      children: [
+                        if (_showHint && widget.hintText != null)
+                          _HintOverlay(text: widget.hintText!),
+                        CupertinoScrollbar(
+                          controller: widget.scrollController,
+                          child: QuillEditor(
+                            controller: widget.controller,
+                            scrollController: widget.scrollController,
+                            focusNode: _focusNode,
+                            config: _buildEditorConfig(context),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -165,9 +159,6 @@ class _CustomQuillEditorState extends State<CustomQuillEditor>
     );
   }
 
-  // ───────────────────────────────────────────────────────────────────────────
-  // Editor config
-  // ───────────────────────────────────────────────────────────────────────────
   QuillEditorConfig _buildEditorConfig(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
@@ -238,37 +229,27 @@ class _CustomQuillEditorState extends State<CustomQuillEditor>
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Animated toolbar (slides in from top, pill-shaped)
-// ─────────────────────────────────────────────────────────────────────────────
-class _AnimatedToolbar extends StatelessWidget {
+class _EmbeddedToolbar extends StatelessWidget {
   final QuillController controller;
-  const _AnimatedToolbar({required this.controller});
+  const _EmbeddedToolbar({required this.controller});
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     return Container(
       decoration: BoxDecoration(
-        color: cs.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(_EditorTokens.radiusMd),
-        boxShadow: [
-          BoxShadow(
-            color: cs.shadow.withValues(alpha: 0.06),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+        color: _EditorTokens.toolbarFill,
+        border: Border(
+          bottom: BorderSide(
+            color: LightColor.borderLight,
+            width: _EditorTokens.toolbarDividerWidth,
           ),
-        ],
+        ),
       ),
-      clipBehavior: Clip.antiAlias,
       child: KeyboardAttachedToolbar(controller: controller),
     );
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Editor card with animated focus ring
-// ─────────────────────────────────────────────────────────────────────────────
 class _EditorCard extends StatelessWidget {
   final double focusProgress;
   final Widget child;
@@ -279,37 +260,32 @@ class _EditorCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final focusBorderColor = Color.lerp(
-      cs.outlineVariant,
-      LightColor.transparent,
+      LightColor.lightGrey.withValues(alpha: 0.95),
+      cs.primary.withValues(alpha: 0.92),
       focusProgress,
     )!;
-    final shadowAlpha = lerpDouble(0.04, 0.12, focusProgress);
 
     return AnimatedContainer(
       duration: _EditorTokens.animDuration,
       curve: _EditorTokens.animCurve,
       decoration: BoxDecoration(
-        color: cs.surface,
-        borderRadius: BorderRadius.circular(_EditorTokens.radiusLg),
+        color: _EditorTokens.fieldFill,
+        borderRadius: BorderRadius.circular(_EditorTokens.fieldRadius),
         border: Border.all(
           color: focusBorderColor,
           width: lerpDouble(1.0, 1.5, focusProgress),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: cs.shadow.withValues(alpha: shadowAlpha),
-            blurRadius: lerpDouble(6, 20, focusProgress),
-            offset: const Offset(0, 4),
-          ),
-          if (focusProgress > 0)
-            BoxShadow(
-              color: LightColor.secondaryLight.withValues(
-                alpha: 0.06 * focusProgress,
-              ),
-              blurRadius: 24,
-              spreadRadius: -4,
-            ),
-        ],
+        boxShadow: focusProgress > 0
+            ? [
+                BoxShadow(
+                  color: LightColor.secondaryLight.withValues(
+                    alpha: 0.08 * focusProgress,
+                  ),
+                  blurRadius: 18,
+                  spreadRadius: -4,
+                ),
+              ]
+            : null,
       ),
       clipBehavior: Clip.antiAlias,
       child: child,

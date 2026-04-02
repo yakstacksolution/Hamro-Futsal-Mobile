@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
+import 'package:hamro_footsall/features/courts/presentation/pages/courts_list_page_widget.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/page/footsall_home_page.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/page/messages_page.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/widgets/app_drawer.dart';
@@ -27,8 +28,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   static const DashboardUser _user = DashboardUser(
     id: 'USR-1024',
-    name: 'Hamro Footsall',
-    email: 'merchant@hamrofootsall.com',
+    name: 'Hamro Futsal',
+    email: 'merchant@hamrofutsal.com',
   );
 
   int _selectedNavIndex = 0;
@@ -50,17 +51,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   void _openVendorStepper() {
     context.pushNamed(AppRouterParams.vendorStepper.name);
-  }
-
-  Future<void> _handleSignOut() async {
-    final response = await AuthenticationRepositoryImpl().logout();
-    if (!mounted) return;
-
-    response?.fold(
-      (failure) =>
-          AppUtils().showSnackBar(context, MsgType.error, failure.errorMessage),
-      (_) => context.goNamed(AppRouterParams.login.name),
-    );
   }
 
   Widget _tapable({
@@ -137,143 +127,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _shopsSection() {
-    return ListView(
-      key: const ValueKey<String>('shops'),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      children: <Widget>[
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: <Color>[
-                LightColor.primaryGreen,
-                LightColor.secondaryGreen,
-                LightColor.accentGreen,
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: <BoxShadow>[
-              BoxShadow(
-                color: LightColor.primaryGreen.withAlpha(60),
-                blurRadius: 16,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              const Text(
-                'Ready to launch a new shop?',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 17,
-                ),
-              ),
-              const SizedBox(height: 6),
-              const Text(
-                'Create a verified shop profile with registration and branding details.',
-                style: TextStyle(color: Color(0xE8FFFFFF), fontSize: 12.5),
-              ),
-              const SizedBox(height: 12),
-              ElevatedButton.icon(
-                onPressed: _openCourtsPage,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: LightColor.primaryGreen,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                icon: const Icon(Icons.add_business_rounded),
-                label: const Text('Create Shop'),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-        const _DashboardTile(
-          title: 'Bhatbhateni Outlet',
-          subtitle: 'Active · Kathmandu, Nepal',
-          icon: Icons.storefront_outlined,
-        ),
-        const SizedBox(height: 12),
-        const _DashboardTile(
-          title: 'Hamro Mart',
-          subtitle: 'Pending verification · Lalitpur, Nepal',
-          icon: Icons.domain_verification_outlined,
-        ),
-      ],
-    );
-  }
-
-  Widget _productsSection() {
-    return ListView(
-      key: const ValueKey<String>('products'),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      children: const <Widget>[
-        _DashboardTile(
-          title: 'Tomato x2',
-          subtitle: 'NPR 120',
-          icon: Icons.shopping_bag_outlined,
-        ),
-        SizedBox(height: 12),
-        _DashboardTile(
-          title: 'Milk x1',
-          subtitle: 'NPR 90',
-          icon: Icons.shopping_bag_outlined,
-        ),
-        SizedBox(height: 12),
-        _DashboardTile(
-          title: 'Rice x1',
-          subtitle: 'NPR 850',
-          icon: Icons.shopping_bag_outlined,
-        ),
-      ],
-    );
-  }
-
-  Widget _customersSection() {
-    return const MessagesPage();
-  }
-
-  Widget _analyticsSection() {
-    return ListView(
-      key: const ValueKey<String>('analytics'),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      children: const <Widget>[
-        _DashboardTile(
-          title: 'Revenue Trend',
-          subtitle: 'NPR 1,20,000 this month',
-          icon: Icons.trending_up_rounded,
-        ),
-        SizedBox(height: 12),
-        _DashboardTile(
-          title: 'Conversion Rate',
-          subtitle: '3.8% from shop visits',
-          icon: Icons.insights_outlined,
-        ),
-      ],
-    );
-  }
-
   Widget _buildCurrentTabSection() {
     switch (_selectedNavIndex) {
       case 0:
         // return _overviewSection();
         return FootsallHomePage();
       case 1:
-        return _shopsSection();
+        return CourtsListPageWidget();
       case 2:
-        return _productsSection();
+        return CourtsListPageWidget();
       case 3:
-        return _customersSection();
-      case 4:
-        return _analyticsSection();
+        return MessagesPage();
+      // case 4:
+      //   return CourtsListPageWidget();
       case 5:
         return ProfilePage();
       default:
@@ -285,12 +151,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       key: _scaffoldKey,
-      drawer: AppDrawer(
-        user: _user,
-        currentIndex: _selectedNavIndex,
-        onNavTap: _onBottomIconPressed,
-        onSignOut: _handleSignOut,
-      ),
+      // drawer: AppDrawer(
+      //   user: _user,
+      //   currentIndex: _selectedNavIndex,
+      //   onNavTap: _onBottomIconPressed,
+      //   onSignOut: _handleSignOut,
+      // ),
       body: BlocListener<ProfileBloc, ProfileState>(
         listener: (BuildContext context, ProfileState state) {
           final bool requiresVendorOnboarding =
@@ -510,57 +376,4 @@ class _DashboardScreenState extends State<DashboardScreen> {
     '🟢 Open Now',
     '⭐ Top Rated',
   ];
-}
-
-class _DashboardTile extends StatelessWidget {
-  const _DashboardTile({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-  });
-
-  final String title;
-  final String subtitle;
-  final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: <BoxShadow>[
-          BoxShadow(
-            color: LightColor.secondary.withValues(alpha: 0.08),
-            blurRadius: 12,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        leading: Container(
-          width: 42,
-          height: 42,
-          decoration: BoxDecoration(
-            color: LightColor.orange.withAlpha(30), //Color(0xfffeece2),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(icon, color: LightColor.orange),
-        ),
-        title: Text(
-          title,
-          style: AppTheme.titleStyle.copyWith(
-            fontWeight: FontWeight.w700,
-            color: LightColor.titleTextColor,
-          ),
-        ),
-        subtitle: Text(subtitle, style: AppTheme.subTitleStyle),
-        trailing: const Icon(
-          Icons.chevron_right_rounded,
-          color: LightColor.darkgrey,
-        ),
-      ),
-    );
-  }
 }
