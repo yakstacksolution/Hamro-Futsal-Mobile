@@ -47,7 +47,7 @@ class CustomHeaderWidget extends StatelessWidget {
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
-            color: LightColor.primaryGreen.withValues(alpha: 0.28),
+            color: LightColor.primary.withValues(alpha: 0.28),
             blurRadius: 32,
             spreadRadius: 2,
             offset: const Offset(0, 10),
@@ -88,9 +88,9 @@ class CustomHeaderWidget extends StatelessWidget {
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              Color(0xFF173A5E),
-              Color(0xFF245FCC),
-              Color(0xFF2D86E5),
+              LightColor.accent,
+              LightColor.primaryDark,
+              LightColor.primary,
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -120,7 +120,7 @@ class CustomHeaderWidget extends StatelessWidget {
           child: _blob(
             170 * _scale,
             170 * _scale,
-            LightColor.lightBlue.withValues(alpha: 0.28),
+            LightColor.primarySoft.withValues(alpha: 0.45),
           ),
         ),
         Positioned(
@@ -129,7 +129,7 @@ class CustomHeaderWidget extends StatelessWidget {
           child: _blob(
             190 * _scale,
             150 * _scale,
-            LightColor.skyBlue.withValues(alpha: 0.22),
+            LightColor.secondarySoft.withValues(alpha: 0.4),
           ),
         ),
         Positioned(
@@ -138,7 +138,7 @@ class CustomHeaderWidget extends StatelessWidget {
           child: _blob(
             200 * _scale,
             200 * _scale,
-            LightColor.primaryGreen.withValues(alpha: 0.20),
+            LightColor.primary.withValues(alpha: 0.2),
           ),
         ),
       ]);
@@ -151,7 +151,7 @@ class CustomHeaderWidget extends StatelessWidget {
           height: 110 * _scale,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: LightColor.secondaryGreen.withValues(alpha: 0.18),
+            color: LightColor.secondary.withValues(alpha: 0.18),
           ),
         ),
       );
@@ -220,7 +220,7 @@ class CustomHeaderWidget extends StatelessWidget {
               shape: BoxShape.circle,
               gradient: RadialGradient(
                 colors: [
-                  LightColor.lightBlue.withValues(alpha: 0.45),
+                  LightColor.primarySoft.withValues(alpha: 0.7),
                   Colors.transparent,
                 ],
               ),
@@ -238,7 +238,7 @@ class CustomHeaderWidget extends StatelessWidget {
               ),
               boxShadow: [
                 BoxShadow(
-                  color: LightColor.skyBlue.withValues(alpha: 0.38),
+                  color: LightColor.primary.withValues(alpha: 0.32),
                   blurRadius: 16,
                   offset: const Offset(0, 4),
                 ),
@@ -268,7 +268,7 @@ class CustomHeaderWidget extends StatelessWidget {
               height: _onlineDotSize,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: LightColor.secondaryGreen,
+                color: LightColor.secondary,
                 border: Border.all(color: Colors.white, width: 2),
               ),
             ),

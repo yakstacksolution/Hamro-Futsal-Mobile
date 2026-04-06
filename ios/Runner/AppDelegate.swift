@@ -88,11 +88,11 @@ private final class NativeSplashViewController: UIViewController {
   }
 
   private func setupBackground() {
-    view.backgroundColor = UIColor(red: 0.09, green: 0.23, blue: 0.37, alpha: 1.0)
+    view.backgroundColor = UIColor(red: 0.15, green: 0.71, blue: 0.54, alpha: 1.0)
 
     let gradient = CAGradientLayer()
     gradient.colors = [
-      UIColor(red: 0.09, green: 0.23, blue: 0.37, alpha: 1.0).cgColor,
+      UIColor(red: 0.11, green: 0.56, blue: 0.42, alpha: 1.0).cgColor,
       UIColor(red: 0.12, green: 0.61, blue: 0.46, alpha: 1.0).cgColor,
       UIColor(red: 0.15, green: 0.71, blue: 0.54, alpha: 1.0).cgColor,
     ]

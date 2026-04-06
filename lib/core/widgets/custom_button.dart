@@ -37,8 +37,9 @@ class CustomButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
     final resolvedBackground = isOutlined
-        ? Colors.transparent
+        ? LightColor.transparent
         : backgroundColor;
     final resolvedBorderColor =
         borderColor ?? (isOutlined ? foregroundColor : null);
@@ -62,7 +63,7 @@ class CustomButton extends StatelessWidget {
               ],
               Text(
                 text,
-                style: TextStyle(
+                style: theme.textTheme.labelLarge?.copyWith(
                   color: foregroundColor,
                   fontWeight: fontWeight,
                   fontSize: fontSize,
@@ -76,6 +77,9 @@ class CustomButton extends StatelessWidget {
       style: ButtonStyle(
         padding: WidgetStateProperty.all<EdgeInsets>(EdgeInsets.zero),
         minimumSize: WidgetStateProperty.all<Size>(Size(0, minHeight)),
+        overlayColor: WidgetStateProperty.all(
+          foregroundColor.withValues(alpha: isOutlined ? 0.08 : 0.12),
+        ),
         shape: WidgetStateProperty.all<RoundedRectangleBorder>(
           RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(borderRadius),

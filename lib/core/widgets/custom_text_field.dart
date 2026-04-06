@@ -71,7 +71,7 @@ class CustomTextField extends StatelessWidget {
       style:
           style ??
           theme.textTheme.bodyLarge?.copyWith(
-            color: LightColor.titleTextColor,
+            color: LightColor.titleText,
             fontSize: 12.5,
             fontWeight: FontWeight.w600,
           ),
@@ -94,7 +94,7 @@ InputDecoration customTextFieldDecoration({
   Widget? suffixIcon,
 }) {
   final ThemeData theme = Theme.of(context);
-  final Color fillColor = LightColor.background.withValues(alpha: 0.9);
+  final Color fillColor = LightColor.surface;
 
   OutlineInputBorder border(Color color) {
     return OutlineInputBorder(
@@ -107,7 +107,7 @@ InputDecoration customTextFieldDecoration({
     labelText: labelText,
     hintText: hintText,
     prefixIcon: icon != null
-        ? Icon(icon, color: LightColor.darkgrey, size: 20)
+        ? Icon(icon, color: LightColor.subtitleText, size: 20)
         : null,
     suffixIcon: suffixIcon != null
         ? Padding(
@@ -125,18 +125,18 @@ InputDecoration customTextFieldDecoration({
     filled: true,
     fillColor: fillColor,
     labelStyle: theme.textTheme.bodyMedium?.copyWith(
-      color: LightColor.darkgrey,
+      color: LightColor.subtitleText,
       fontSize: 13,
       fontWeight: FontWeight.w700,
     ),
     hintStyle: theme.textTheme.bodyMedium?.copyWith(
-      color: LightColor.grey,
+      color: LightColor.hintText,
       fontSize: 13,
-      fontWeight: FontWeight.w600,
+      fontWeight: FontWeight.w500,
     ),
-    enabledBorder: border(LightColor.lightGrey),
+    enabledBorder: border(LightColor.border),
     focusedBorder: border(theme.colorScheme.primary),
-    border: border(LightColor.lightGrey),
+    border: border(LightColor.border),
     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
   );
 }

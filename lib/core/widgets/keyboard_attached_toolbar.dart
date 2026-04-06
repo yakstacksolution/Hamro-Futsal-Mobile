@@ -20,7 +20,7 @@ class KeyboardAttachedToolbar extends StatelessWidget {
       ),
     ),
     iconButtonUnselectedData: IconButtonData(
-      color: Colors.black,
+      color: LightColor.titleText,
       style: ButtonStyle(
         shape: WidgetStateProperty.all(
           RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -52,7 +52,7 @@ class KeyboardAttachedToolbar extends StatelessWidget {
       padding: EdgeInsets.only(bottom: bottomInset),
       child: Material(
         elevation: 0,
-        color: Colors.white,
+        color: LightColor.surface,
         child: SizedBox(
           width: double.infinity,
           child: ColoredBox(

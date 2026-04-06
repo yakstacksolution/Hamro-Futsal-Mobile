@@ -133,9 +133,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
         // return _overviewSection();
         return FootsallHomePage();
       case 1:
-        return CourtsListPageWidget();
+        return CourtsListPage();
       case 2:
-        return CourtsListPageWidget();
+        return CourtsListPage();
       case 3:
         return MessagesPage();
       // case 4:

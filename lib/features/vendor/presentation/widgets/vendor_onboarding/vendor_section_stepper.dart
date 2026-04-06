@@ -100,11 +100,11 @@ class _SmallHorizontalStep extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           decoration: BoxDecoration(
             color: isSelected
-                ? LightColor.primaryLight
-                : const Color(0xFFF8FAFC),
+                ? LightColor.secondarySoft
+                : LightColor.surfaceSubtle,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: isSelected ? LightColor.primary : const Color(0xFFE2E8F0),
+              color: isSelected ? LightColor.primary : LightColor.border,
               width: isSelected ? 1.2 : 1,
             ),
           ),
@@ -117,12 +117,12 @@ class _SmallHorizontalStep extends StatelessWidget {
                     width: 24,
                     height: 24,
                     decoration: BoxDecoration(
-                      color: isSelected ? LightColor.primary : Colors.white,
+                      color: isSelected ? LightColor.primary : LightColor.white,
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
                         color: isSelected
                             ? Colors.transparent
-                            : const Color(0xFFE2E8F0),
+                            : LightColor.border,
                       ),
                     ),
                     child: Icon(
@@ -170,7 +170,7 @@ class _SmallHorizontalStep extends StatelessWidget {
                       ? LightColor.primary
                       : status == StepStatus.complete
                       ? LightColor.secondary.withValues(alpha: 0.25)
-                      : const Color(0xFFE2E8F0),
+                      : LightColor.border,
                   borderRadius: BorderRadius.circular(999),
                 ),
               ),
@@ -190,9 +190,9 @@ class _SmallHorizontalStep extends StatelessWidget {
       case StepStatus.locked:
         return LightColor.hintText;
       case StepStatus.pending:
-        return const Color(0xFFCBD5E1);
+        return LightColor.border;
       case StepStatus.notStarted:
-        return const Color(0xFFCBD5E1);
+        return LightColor.border;
       case StepStatus.error:
         return LightColor.red;
     }

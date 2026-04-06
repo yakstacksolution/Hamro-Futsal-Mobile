@@ -248,10 +248,14 @@ class CustomSnackBar extends StatefulWidget {
     super.key,
     required this.message,
     this.messagePadding = const EdgeInsets.symmetric(horizontal: 24),
-    this.textStyle = const TextStyle(color: Color(0xFF33A261), fontSize: 12),
-    this.color = const Color(0xFF33A261),
+    this.textStyle = const TextStyle(
+      color: LightColor.secondaryDark,
+      fontSize: 12,
+      fontWeight: FontWeight.w700,
+    ),
+    this.color = LightColor.secondaryDark,
     this.maxLines = 2,
-    this.backgroundColor = const Color.fromRGBO(51, 162, 97, 0.1),
+    this.backgroundColor = LightColor.secondarySoft,
     this.boxShadow = kDefaultBoxShadow,
     this.borderRadius = kDefaultBorderRadius,
     this.textScaleFactor = 1.0,
@@ -262,10 +266,14 @@ class CustomSnackBar extends StatefulWidget {
   const CustomSnackBar.error({
     super.key,
     this.messagePadding = const EdgeInsets.symmetric(horizontal: 24),
-    this.textStyle = const TextStyle(color: Color(0xFFD31948), fontSize: 12),
-    this.color = const Color(0xFFD31948),
+    this.textStyle = const TextStyle(
+      color: LightColor.red,
+      fontSize: 12,
+      fontWeight: FontWeight.w700,
+    ),
+    this.color = LightColor.red,
     this.maxLines = 2,
-    this.backgroundColor = const Color.fromRGBO(211, 25, 72, 0.1),
+    this.backgroundColor = LightColor.redLight,
     this.boxShadow = kDefaultBoxShadow,
     this.borderRadius = kDefaultBorderRadius,
     this.textScaleFactor = 1.0,
@@ -277,10 +285,14 @@ class CustomSnackBar extends StatefulWidget {
   const CustomSnackBar.info({
     super.key,
     this.messagePadding = const EdgeInsets.symmetric(horizontal: 24),
-    this.textStyle = const TextStyle(color: Color(0xFF1D6FD8), fontSize: 12),
-    this.color = const Color(0xFF1D6FD8),
+    this.textStyle = const TextStyle(
+      color: LightColor.primaryDark,
+      fontSize: 12,
+      fontWeight: FontWeight.w700,
+    ),
+    this.color = LightColor.primaryDark,
     this.maxLines = 2,
-    this.backgroundColor = const Color.fromRGBO(29, 111, 216, 0.1),
+    this.backgroundColor = LightColor.primarySoft,
     this.boxShadow = kDefaultBoxShadow,
     this.borderRadius = kDefaultBorderRadius,
     this.textScaleFactor = 1.0,
@@ -335,7 +347,7 @@ class CustomSnackBarState extends State<CustomSnackBar> {
 
 const kDefaultBoxShadow = [
   BoxShadow(
-    color: Colors.black26,
+    color: Color(0x14000000),
     offset: Offset(0, 8),
     spreadRadius: 1,
     blurRadius: 30,

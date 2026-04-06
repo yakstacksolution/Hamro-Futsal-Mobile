@@ -46,6 +46,7 @@ class CustomConfirmDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       backgroundColor: LightColor.surface,
@@ -69,20 +70,16 @@ class CustomConfirmDialog extends StatelessWidget {
             Text(
               title,
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: theme.textTheme.titleLarge?.copyWith(
                 color: LightColor.titleText,
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
               ),
             ),
             const SizedBox(height: 10),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: theme.textTheme.bodyMedium?.copyWith(
                 color: LightColor.subtitleText,
-                fontSize: 13,
-                height: 1.45,
               ),
             ),
             const SizedBox(height: 22),
@@ -92,7 +89,7 @@ class CustomConfirmDialog extends StatelessWidget {
                   child: CustomButton(
                     text: cancelText,
                     isOutlined: true,
-                    backgroundColor: Colors.white,
+                    backgroundColor: LightColor.white,
                     foregroundColor: LightColor.subtitleText,
                     borderColor: LightColor.border,
                     minHeight: 44,
@@ -104,7 +101,7 @@ class CustomConfirmDialog extends StatelessWidget {
                   child: CustomButton(
                     text: confirmText,
                     backgroundColor: confirmColor,
-                    foregroundColor: Colors.white,
+                    foregroundColor: LightColor.white,
                     minHeight: 44,
                     onPressed: () => Navigator.of(context).pop(true),
                   ),
