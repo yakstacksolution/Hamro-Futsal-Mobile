@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hamro_footsall/core/theme/light_color.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
+import 'package:hamro_footsall/core/utils/custom_image_view.dart';
 import 'package:hamro_footsall/core/widgets/custom_bottom_sheet.dart';
 import 'package:hamro_footsall/core/widgets/custom_button.dart';
 import 'package:hamro_footsall/core/widgets/custom_confirm_dialog.dart';
@@ -642,11 +643,11 @@ class _UploadMediaPreviewDialog extends StatelessWidget {
               child: isImage
                   ? AspectRatio(
                       aspectRatio: 1.3,
-                      child: Image.file(
-                        File(previewFile.localPath),
+                      child: CustomImageView(
+                        file: File(previewFile.localPath),
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) =>
-                            _UploadPreviewFallback(file: previewFile),
+                        width: double.infinity,
+                        height: double.infinity,
                       ),
                     )
                   : _UploadPreviewFallback(file: previewFile),
@@ -1229,23 +1230,19 @@ class _MediaPreview extends StatelessWidget {
 
     if (isImage) {
       if (remoteUrl != null) {
-        return Image.network(
-          remoteUrl,
+        return CustomImageView(
+          url: remoteUrl,
           fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => const _MiniFilePlaceholder(
-            icon: Icons.broken_image_outlined,
-            label: 'Error',
-          ),
+          width: double.infinity,
+          height: double.infinity,
         );
       }
 
-      return Image.file(
-        File(item.localPath),
+      return CustomImageView(
+        file: File(item.localPath),
         fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => const _MiniFilePlaceholder(
-          icon: Icons.broken_image_outlined,
-          label: 'Error',
-        ),
+        width: double.infinity,
+        height: double.infinity,
       );
     }
 

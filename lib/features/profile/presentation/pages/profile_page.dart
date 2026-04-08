@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hamro_footsall/core/routers/app_router_params.dart';
 import 'package:hamro_footsall/core/theme/light_color.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
+import 'package:hamro_footsall/core/utils/custom_image_view.dart';
 import 'package:hamro_footsall/features/auth/data/repositories/authentication_repository_impl.dart';
 import 'package:hamro_footsall/features/profile/data/model/profile_model.dart';
 import 'package:hamro_footsall/features/profile/presentation/profile_bloc/profile_bloc.dart';
@@ -190,19 +191,24 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
               ],
             ),
-            child: CircleAvatar(
-              backgroundColor: LightColor.secondaryLight,
-              backgroundImage:
-                  profilePhoto != null && profilePhoto.trim().isNotEmpty
-                  ? NetworkImage(profilePhoto)
-                  : null,
-              child: profilePhoto == null || profilePhoto.trim().isEmpty
-                  ? const Icon(
-                      Icons.person_rounded,
-                      color: LightColor.secondaryDark,
-                      size: 30,
+            child: ClipOval(
+              child: profilePhoto != null && profilePhoto.trim().isNotEmpty
+                  ? CustomImageView(
+                      url: profilePhoto,
+                      width: 78,
+                      height: 78,
+                      fit: BoxFit.cover,
                     )
-                  : null,
+                  : Container(
+                      width: 78,
+                      height: 78,
+                      color: LightColor.secondaryLight,
+                      child: const Icon(
+                        Icons.person_rounded,
+                        color: LightColor.secondaryDark,
+                        size: 30,
+                      ),
+                    ),
             ),
           ),
           const SizedBox(width: 16),

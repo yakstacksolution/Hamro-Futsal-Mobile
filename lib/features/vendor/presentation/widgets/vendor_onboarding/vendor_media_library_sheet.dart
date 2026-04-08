@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hamro_footsall/core/theme/light_color.dart';
+import 'package:hamro_footsall/core/utils/custom_image_view.dart';
 import 'package:hamro_footsall/core/widgets/custom_bottom_sheet.dart';
 import 'package:hamro_footsall/core/widgets/custom_button.dart';
 import 'package:hamro_footsall/core/widgets/custom_confirm_dialog.dart';
@@ -676,14 +677,11 @@ class _CompactMediaCard extends StatelessWidget {
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(4),
                         child: isImage
-                            ? Image.file(
-                                File(item.localPath),
+                            ? CustomImageView(
+                                file: File(item.localPath),
                                 fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) =>
-                                    _MiniFilePlaceholder(
-                                      icon: Icons.broken_image_outlined,
-                                      label: 'Error',
-                                    ),
+                                width: double.infinity,
+                                height: double.infinity,
                               )
                             : _MiniFilePlaceholder(
                                 icon: _fileIcon(item),

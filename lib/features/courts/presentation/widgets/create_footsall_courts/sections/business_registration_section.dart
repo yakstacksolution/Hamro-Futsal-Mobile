@@ -83,8 +83,9 @@ class BusinessRegistrationSection extends StatelessWidget {
         CustomTextField(
           controller: bloc.registrationController,
           textInputAction: TextInputAction.next,
-          labelText: 'Registration Number *',
+          labelText: 'Registration Number',
           hintText: 'REG-2026-00123',
+
           icon: Icons.assignment_rounded,
           validator: (String? value) =>
               bloc.requiredValidator(value, fieldName: 'Registration number'),

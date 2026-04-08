@@ -4,6 +4,7 @@
 // ─────────────────────────────────────────────────────────────
 import 'package:flutter/material.dart';
 import 'package:hamro_footsall/core/theme/light_color.dart';
+import 'package:hamro_footsall/core/utils/custom_image_view.dart';
 
 class CustomHeaderWidget extends StatelessWidget {
    final double height;
@@ -245,17 +246,11 @@ class CustomHeaderWidget extends StatelessWidget {
               ],
             ),
             child: ClipOval(
-              child: Image.network(
-                avatarUrl,
+              child: CustomImageView(
+                url: avatarUrl,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => CircleAvatar(
-                  backgroundColor: Colors.white.withValues(alpha: 0.3),
-                  child: Icon(
-                    Icons.person_rounded,
-                    color: Colors.white,
-                    size: _avatarInner * 0.5,
-                  ),
-                ),
+                width: double.infinity,
+                height: double.infinity,
               ),
             ),
           ),

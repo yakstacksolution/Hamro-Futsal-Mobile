@@ -24,6 +24,7 @@ class CustomTextField extends StatelessWidget {
     this.minLines,
     this.initialValue,
     this.onSubmitted,
+    this.isRequired = true,
   });
 
   final String labelText;
@@ -46,11 +47,11 @@ class CustomTextField extends StatelessWidget {
   final int? minLines;
   final String? initialValue;
   final ValueChanged<String>? onSubmitted;
+  final bool? isRequired;
 
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
-
     return TextFormField(
       controller: controller,
       focusNode: focusNode,
@@ -72,12 +73,13 @@ class CustomTextField extends StatelessWidget {
           style ??
           theme.textTheme.bodyLarge?.copyWith(
             color: LightColor.titleText,
-            fontSize: 12.5,
+            fontSize: 12,
             fontWeight: FontWeight.w600,
           ),
       decoration: customTextFieldDecoration(
         context: context,
         labelText: labelText,
+        isRequired: isRequired ?? true,
         hintText: hintText,
         icon: icon,
         suffixIcon: suffixIcon,
@@ -89,6 +91,7 @@ class CustomTextField extends StatelessWidget {
 InputDecoration customTextFieldDecoration({
   required BuildContext context,
   required String labelText,
+  bool isRequired = false,
   IconData? icon,
   String? hintText,
   Widget? suffixIcon,
@@ -98,13 +101,27 @@ InputDecoration customTextFieldDecoration({
 
   OutlineInputBorder border(Color color) {
     return OutlineInputBorder(
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(8),
       borderSide: BorderSide(color: color, width: 1.15),
     );
   }
 
   return InputDecoration(
-    labelText: labelText,
+    label: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Flexible(child: Text(labelText, overflow: TextOverflow.ellipsis)),
+        if (isRequired)
+          Text(
+            ' *',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: LightColor.red,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+      ],
+    ),
     hintText: hintText,
     prefixIcon: icon != null
         ? Icon(icon, color: LightColor.subtitleText, size: 20)
@@ -125,14 +142,14 @@ InputDecoration customTextFieldDecoration({
     filled: true,
     fillColor: fillColor,
     labelStyle: theme.textTheme.bodyMedium?.copyWith(
-      color: LightColor.subtitleText,
-      fontSize: 13,
+      color: LightColor.black,
+      fontSize: 12,
       fontWeight: FontWeight.w700,
     ),
     hintStyle: theme.textTheme.bodyMedium?.copyWith(
       color: LightColor.hintText,
-      fontSize: 13,
-      fontWeight: FontWeight.w500,
+      fontSize: 12,
+      fontWeight: FontWeight.w400,
     ),
     enabledBorder: border(LightColor.border),
     focusedBorder: border(theme.colorScheme.primary),

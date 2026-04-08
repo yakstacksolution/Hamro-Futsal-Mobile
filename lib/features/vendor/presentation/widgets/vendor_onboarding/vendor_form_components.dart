@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:hamro_footsall/core/theme/light_color.dart';
+import 'package:hamro_footsall/core/utils/custom_image_view.dart';
 import 'package:hamro_footsall/core/widgets/custom_confirm_dialog.dart';
 import 'package:hamro_footsall/core/widgets/custom_text_field.dart';
 import 'package:hamro_footsall/features/courts/presentation/models/picked_location.dart';
@@ -474,15 +475,17 @@ class VendorUploadItem extends StatelessWidget {
             AspectRatio(
               aspectRatio: 16 / 9,
               child: _isNetworkImage
-                  ? Image.network(
-                      _imageSource,
+                  ? CustomImageView(
+                      url: _imageSource,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _buildBrokenImageState(),
+                      width: double.infinity,
+                      height: double.infinity,
                     )
-                  : Image.file(
-                      File(file.localPath),
+                  : CustomImageView(
+                      file: File(file.localPath),
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _buildBrokenImageState(),
+                      width: double.infinity,
+                      height: double.infinity,
                     ),
             ),
             Padding(

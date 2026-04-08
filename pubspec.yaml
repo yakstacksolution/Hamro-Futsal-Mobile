@@ -58,6 +58,9 @@ dependencies:
   dartz: ^0.10.1
   package_info_plus: ^9.0.0
   flutter_native_splash: ^2.4.1
+  flutter_cache_manager: ^3.4.1
+  cached_network_image: ^3.4.1
+  shimmer: ^3.0.0
 
 dev_dependencies:
   flutter_test:
@@ -86,6 +89,7 @@ flutter:
     - assets/icons/
     - assets/logo/
     - .env
+    - assets/images/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
@@ -116,13 +120,13 @@ flutter:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: assets/icon/futsal_logo.png
+  image_path: assets/icon/logotwo.png
   min_sdk_android: 21
 
 flutter_native_splash:
   color: "#26B58A"
-  image: assets/icon/futsal_logo.png
+  image: assets/icon/logotwo.png
   android_gravity: center
   android_12:
-    image: assets/icon/futsal_logo.png
+    image: assets/icon/logotwo.png
     icon_background_color: "#26B58A"

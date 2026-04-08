@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:hamro_footsall/core/theme/light_color.dart';
+import 'package:hamro_footsall/core/utils/custom_image_view.dart';
 
 class LogoPickerCard extends StatelessWidget {
   const LogoPickerCard({
@@ -58,8 +59,8 @@ class LogoPickerCard extends StatelessWidget {
               child: hasLogo
                   ? ClipRRect(
                       borderRadius: BorderRadius.circular(11),
-                      child: Image.memory(
-                        logoBytes!,
+                      child: CustomImageView(
+                        imageBytes: logoBytes!,
                         fit: BoxFit.cover,
                         width: double.infinity,
                         height: double.infinity,

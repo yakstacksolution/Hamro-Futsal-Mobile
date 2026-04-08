@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hamro_footsall/core/theme/light_color.dart';
+import 'package:hamro_footsall/core/utils/custom_image_view.dart';
 
 class DetailsImageGallery extends StatefulWidget {
   const DetailsImageGallery({super.key});
@@ -46,33 +47,11 @@ class _DetailsImageGalleryState extends State<DetailsImageGallery> {
               return Stack(
                 fit: StackFit.expand,
                 children: [
-                  Image.network(
-                    imageList[index],
+                  CustomImageView(
+                    url: imageList[index],
                     fit: BoxFit.cover,
-                    loadingBuilder: (_, child, progress) {
-                      if (progress == null) return child;
-                      return Container(
-                        color: LightColor.borderLight,
-                        child: Center(
-                          child: CircularProgressIndicator(
-                            value: progress.expectedTotalBytes != null
-                                ? progress.cumulativeBytesLoaded /
-                                      progress.expectedTotalBytes!
-                                : null,
-                            strokeWidth: 2,
-                            color: LightColor.secondary,
-                          ),
-                        ),
-                      );
-                    },
-                    errorBuilder: (_, __, ___) => Container(
-                      color: LightColor.borderLight,
-                      child: const Icon(
-                        Icons.sports_soccer_rounded,
-                        size: 60,
-                        color: LightColor.secondary,
-                      ),
-                    ),
+                    width: double.infinity,
+                    height: double.infinity,
                   ),
                   Positioned(
                     bottom: 0,

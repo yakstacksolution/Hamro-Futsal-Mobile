@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hamro_footsall/core/theme/light_color.dart';
+import 'package:hamro_footsall/core/utils/custom_image_view.dart';
 
 class HeaderComponetWidget extends StatelessWidget {
   const HeaderComponetWidget({
@@ -78,17 +79,11 @@ class HeaderComponetWidget extends StatelessWidget {
                       ],
                     ),
                     child: ClipOval(
-                      child: Image.network(
-                        avatarUrl,
+                      child: CustomImageView(
+                        url: avatarUrl,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => CircleAvatar(
-                          backgroundColor: Colors.white.withValues(alpha: 0.3),
-                          child: const Icon(
-                            Icons.person_rounded,
-                            color: Colors.white,
-                            size: 38,
-                          ),
-                        ),
+                        width: double.infinity,
+                        height: double.infinity,
                       ),
                     ),
                   ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hamro_footsall/core/theme/light_color.dart';
+import 'package:hamro_footsall/core/utils/custom_image_view.dart';
 
 class MessagesPage extends StatelessWidget {
   const MessagesPage({super.key});
@@ -356,10 +357,13 @@ class _MessageTile extends StatelessWidget {
                     ),
                   ],
                 ),
-                child: CircleAvatar(
-                  radius: 30,
-                  backgroundColor: const Color(0xFFF1F5F9),
-                  backgroundImage: NetworkImage(item.avatarUrl),
+                child: ClipOval(
+                  child: CustomImageView(
+                    url: item.avatarUrl,
+                    width: 60,
+                    height: 60,
+                    fit: BoxFit.cover,
+                  ),
                 ),
               ),
               if (item.isActive)

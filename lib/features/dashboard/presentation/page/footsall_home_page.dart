@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:ui';
+import 'package:hamro_footsall/core/utils/custom_image_view.dart';
 import 'package:hamro_footsall/features/courts_details/presentation/page/court_details.dart';
 
 class FootsallHomePage extends StatelessWidget {
@@ -118,34 +119,7 @@ class _CourtsListScreenState extends State<CourtsListScreen>
       child: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
-          // SliverToBoxAdapter(
-          //   child: Padding(
-          //     padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
-          //     child: Row(
-          //       children: [
-          //         const Text(
-          //           'Available Courts',
-          //           style: TextStyle(
-          //             color: _textPrimary,
-          //             fontSize: 20,
-          //             fontWeight: FontWeight.w800,
-          //             letterSpacing: -0.3,
-          //           ),
-          //         ),
-          //         const Spacer(),
-          //         Text(
-          //           '${courts.length} found',
-          //           style: const TextStyle(
-          //             color: _textSecondary,
-          //             fontSize: 13,
-          //             fontWeight: FontWeight.w500,
-          //           ),
-          //         ),
-          //       ],
-          //     ),
-          //   ),
-          // ),
-          SliverToBoxAdapter(child: SizedBox(height: 6)),
+          SliverToBoxAdapter(child: SizedBox(height: 8)),
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 120),
             sliver: SliverList.builder(
@@ -170,220 +144,6 @@ class _CourtsListScreenState extends State<CourtsListScreen>
         ],
       ),
     );
-    // bottomNavigationBar: _buildBottomNav(),
-  }
-
-  Widget _buildHeader() {
-    return Container(
-      height: 230,
-      child: Stack(
-        children: [
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF0D9E5C), Color(0xFF0B7A47)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-          ),
-          Positioned(
-            right: -50,
-            top: -30,
-            child: Container(
-              height: 200,
-              width: 200,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.08),
-              ),
-            ),
-          ),
-          Positioned(
-            left: -30,
-            bottom: -40,
-            child: Container(
-              height: 160,
-              width: 160,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.06),
-              ),
-            ),
-          ),
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        height: 44,
-                        width: 44,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(
-                            color: Colors.white.withOpacity(0.3),
-                          ),
-                        ),
-                        child: const Center(
-                          child: Text(
-                            'R',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 18,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Good evening 👋',
-                            style: TextStyle(
-                              color: Colors.white.withOpacity(0.7),
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          const Text(
-                            'Rahul Shrestha',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const Spacer(),
-                      Container(
-                        height: 44,
-                        width: 44,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.18),
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(
-                            color: Colors.white.withOpacity(0.25),
-                          ),
-                        ),
-                        child: const Icon(
-                          Icons.notifications_outlined,
-                          color: Colors.white,
-                          size: 22,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                  const Text(
-                    'Find Your\nPerfect Court',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 32,
-                      fontWeight: FontWeight.w900,
-                      height: 1.1,
-                      letterSpacing: -0.8,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.location_on_rounded,
-                        color: Colors.white70,
-                        size: 15,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Kathmandu Valley',
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.75),
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      Icon(
-                        Icons.keyboard_arrow_down_rounded,
-                        color: Colors.white.withOpacity(0.6),
-                        size: 18,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBottomNav() {
-    final items = [
-      Icons.home_rounded,
-      Icons.explore_rounded,
-      Icons.calendar_today_rounded,
-      Icons.person_outline_rounded,
-    ];
-    final labels = ['Home', 'Explore', 'Bookings', 'Profile'];
-
-    return Container(
-      padding: const EdgeInsets.only(bottom: 12, top: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: _border, width: 1)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 20,
-            offset: const Offset(0, -6),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: List.generate(
-          items.length,
-          (i) => GestureDetector(
-            onTap: () => setState(() => _selectedNav = i),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 220),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: _selectedNav == i ? _greenLight : Colors.transparent,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    items[i],
-                    color: _selectedNav == i ? _green : _textSecondary,
-                    size: 24,
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    labels[i],
-                    style: TextStyle(
-                      color: _selectedNav == i ? _green : _textSecondary,
-                      fontSize: 10.5,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
   }
 }
 
@@ -399,11 +159,8 @@ class _CourtCardState extends State<CourtCard> {
   bool _saved = false;
 
   static const _green = Color(0xFF0D9E5C);
-  static const _greenLight = Color(0xFFE8F7EF);
   static const _textPrimary = Color(0xFF0F1923);
   static const _textSecondary = Color(0xFF6B7280);
-  static const _border = Color(0xFFE8ECF0);
-  static const _chipBg = Color(0xFFF3F5F7);
 
   @override
   Widget build(BuildContext context) {
@@ -418,8 +175,8 @@ class _CourtCardState extends State<CourtCard> {
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(28),
-          border: Border.all(color: _border, width: 1.5),
+          borderRadius: BorderRadius.circular(18),
+          // border: Border.all(color: _border, width: 1.5),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.06),
@@ -431,17 +188,21 @@ class _CourtCardState extends State<CourtCard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Image ────────────────────────────────────────────────
             ClipRRect(
               borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(26),
+                top: Radius.circular(18),
               ),
               child: SizedBox(
                 height: 200,
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    Image.network(widget.court.image, fit: BoxFit.cover),
+                    CustomImageView(
+                      url: widget.court.image,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      height: double.infinity,
+                    ),
 
                     // Bookmark — top right
                     Positioned(
@@ -458,7 +219,7 @@ class _CourtCardState extends State<CourtCard> {
                               width: 36,
                               decoration: BoxDecoration(
                                 color: Colors.white.withOpacity(0.85),
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
                                   color: Colors.white.withOpacity(0.6),
                                 ),

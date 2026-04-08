@@ -142,6 +142,12 @@ class _ExpandableFocusSearchBarState extends State<ExpandableFocusSearchBar>
                     fontWeight: FontWeight.w500,
                   ),
                   decoration: const InputDecoration(
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.transparent),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.transparent),
+                    ),
                     hintText: 'Where do you want to play?',
                     hintStyle: TextStyle(
                       color: LightColor.grey,
@@ -164,6 +170,7 @@ class _ExpandableFocusSearchBarState extends State<ExpandableFocusSearchBar>
                   color: _C.textSecondary,
                   bg: _C.borderLight,
                 ),
+              SizedBox(width: 2),
               _buildIconButton(
                 Icons.tune_rounded,
                 onTap: widget.onFilterTap,
@@ -283,7 +290,7 @@ class _ExpandableFocusSearchBarState extends State<ExpandableFocusSearchBar>
         decoration: BoxDecoration(
           gradient: isGradient ? _C.primaryGradient : null,
           color: isGradient ? null : bg,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(8),
           boxShadow: isGradient
               ? [
                   BoxShadow(

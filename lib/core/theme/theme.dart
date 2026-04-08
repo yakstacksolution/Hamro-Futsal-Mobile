@@ -132,8 +132,12 @@ class AppTheme {
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: LightColor.surface,
-      hintStyle: _buildTextTheme().bodyMedium?.copyWith(color: LightColor.hintText),
-      labelStyle: _buildTextTheme().labelMedium?.copyWith(color: LightColor.subtitleText),
+      hintStyle: _buildTextTheme().bodyMedium?.copyWith(
+        color: LightColor.hintText,
+      ),
+      labelStyle: _buildTextTheme().labelMedium?.copyWith(
+        color: LightColor.subtitleText,
+      ),
       floatingLabelStyle: _buildTextTheme().labelMedium?.copyWith(
         color: LightColor.primary,
       ),

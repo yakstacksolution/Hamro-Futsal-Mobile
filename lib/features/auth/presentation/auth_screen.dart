@@ -193,10 +193,10 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
       listener: (BuildContext context, AuthenticationState state) {
         final Map<String, dynamic>? errorData =
             state.loginErrorData is Map<String, dynamic>
-                ? state.loginErrorData as Map<String, dynamic>
-                : state.registrationErrorData is Map<String, dynamic>
-                ? state.registrationErrorData as Map<String, dynamic>
-                : null;
+            ? state.loginErrorData as Map<String, dynamic>
+            : state.registrationErrorData is Map<String, dynamic>
+            ? state.registrationErrorData as Map<String, dynamic>
+            : null;
         final bool requiresVerification =
             errorData?['verification_required'] == true &&
             errorData?['next_step'] == 'verify_otp';
@@ -209,7 +209,8 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
             requiresVerification ? MsgType.info : MsgType.error,
             state.errorMessage ?? '',
           );
-          if (requiresVerification && (errorData?['email'] as String?) != null) {
+          if (requiresVerification &&
+              (errorData?['email'] as String?) != null) {
             context.pushNamed(
               AppRouterParams.otpVerification.name,
               extra: (errorData!['email'] as String).trim(),
@@ -466,6 +467,7 @@ class _LoginForm extends StatelessWidget {
             icon: Icons.alternate_email_rounded,
             textInputAction: TextInputAction.next,
             validator: emailValidator,
+            isRequired: true,
             onSubmitted: (_) {
               FocusScope.of(context).requestFocus(passwordFocus);
             },

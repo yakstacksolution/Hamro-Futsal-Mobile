@@ -74,14 +74,14 @@ class _CourtsListPageState extends State<CourtsListPage> {
                 },
               ),
               Expanded(
-                child: filtered.isNotEmpty
+                child: filtered.isEmpty
                     ? ListView(
                         physics: const BouncingScrollPhysics(),
                         padding: const EdgeInsets.fromLTRB(16, 6, 16, 24),
                         children: <Widget>[
                           _EmptyStateV2(
                             isSearching:
-                                query.isNotEmpty ||
+                                query.isNotEmpty || 
                                 _selectedFilter != _VenueFilter.all,
                             onManageVenue: () {
                               context.pushNamed(
