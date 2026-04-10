@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hamro_footsall/core/theme/light_color.dart';
+import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/features/public/data/model/public_template_model.dart';
 import 'package:hamro_footsall/features/public/presentation/bloc/public_packages/public_packages_bloc.dart';
 import 'package:hamro_footsall/features/public/presentation/bloc/public_templates/public_templates_bloc.dart';
@@ -81,13 +82,31 @@ class _StepperLogicScreenState extends State<StepperLogicScreen> {
             }
           },
         ),
+        BlocListener<VendorOnboardingCubit, VendorOnboardingState>(
+          listenWhen:
+              (VendorOnboardingState previous, VendorOnboardingState current) {
+                return previous.isSubmitting == true &&
+                    current.isSubmitting == false &&
+                    current.errorOrigin == VendorErrorOrigin.api &&
+                    previous.errorMessage != current.errorMessage &&
+                    current.errorMessage?.trim().isNotEmpty == true;
+              },
+          listener: (BuildContext context, VendorOnboardingState state) {
+            AppUtils().showSnackBar(
+              context,
+              MsgType.error,
+              state.errorMessage!.trim(),
+            );
+          },
+        ),
       ],
       child: BlocBuilder<VendorOnboardingCubit, VendorOnboardingState>(
         builder: (BuildContext context, VendorOnboardingState state) {
           // If templates are already loaded, apply defaults once on first build.
           if (!_hasAppliedTemplateDefaults) {
-            final PublicTemplatesState templatesState =
-                context.read<PublicTemplatesBloc>().state;
+            final PublicTemplatesState templatesState = context
+                .read<PublicTemplatesBloc>()
+                .state;
             if (templatesState.status == PublicTemplatesStatus.success &&
                 templatesState.templates.isNotEmpty) {
               _applyTemplateDefaults(context, templatesState.templates);
@@ -172,7 +191,9 @@ class _StepperLogicScreenState extends State<StepperLogicScreen> {
                         onSubstepSelected: cubit.selectSubstep,
                       ),
                     ],
-                    if (state.errorMessage != null) ...<Widget>[
+                    if (state.errorMessage != null &&
+                        state.errorMessage!.isNotEmpty &&
+                        state.errorOrigin != VendorErrorOrigin.api) ...<Widget>[
                       const SizedBox(height: 14),
                       VendorErrorBanner(message: state.errorMessage!),
                     ],
@@ -203,7 +224,9 @@ class _StepperLogicScreenState extends State<StepperLogicScreen> {
     BuildContext context,
     List<PublicTemplateModel> templates,
   ) {
-    if (_hasAppliedTemplateDefaults || widget.futsalId != null || templates.isEmpty) {
+    if (_hasAppliedTemplateDefaults ||
+        widget.futsalId != null ||
+        templates.isEmpty) {
       return;
     }
 
@@ -260,8 +283,9 @@ class _StepperLogicScreenState extends State<StepperLogicScreen> {
   }) {
     // Prefer exact title matches when provided.
     if (preferredTitles.isNotEmpty) {
-      final List<String> normalizedTitles =
-          preferredTitles.map((String t) => t.trim().toLowerCase()).toList();
+      final List<String> normalizedTitles = preferredTitles
+          .map((String t) => t.trim().toLowerCase())
+          .toList();
       final PublicTemplateModel exactMatch = templates.firstWhere(
         (PublicTemplateModel t) =>
             normalizedTitles.contains(t.title.trim().toLowerCase()),

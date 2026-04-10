@@ -1,22 +1,46 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:dartz/dartz.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:hamro_footsall/core/helper/exception_helper.dart';
 import 'package:hamro_footsall/features/vendor/data/vendor_draft_repository.dart';
+import 'package:hamro_footsall/features/vendor/data/repositories/vendor_onboarding_repository_impl.dart';
+import 'package:hamro_footsall/features/vendor/domain/usecase/vendor_onboarding_usecase.dart';
 import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_state.dart';
+import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_api_payload.dart';
 import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_models.dart';
 import 'package:hamro_footsall/features/vendor/presentation/validation/vendor_onboarding_validator.dart';
 
 class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
-  VendorOnboardingCubit(this._repository)
-    : super(VendorOnboardingState.initial()) {
+  VendorOnboardingCubit(
+    this._draftRepository, {
+    VendorOnboardingUseCase? onboardingUseCase,
+  }) : super(VendorOnboardingState.initial()) {
     unawaited(restoreDraft());
+    _onboardingUseCase =
+        onboardingUseCase ??
+        VendorOnboardingUseCase(VendorOnboardingRepositoryImpl());
   }
 
-  final VendorDraftRepository _repository;
+  final VendorDraftRepository _draftRepository;
+  late final VendorOnboardingUseCase _onboardingUseCase;
   Timer? _saveDebounce;
   int _revision = 0;
+  Object? _editorFlushOwner;
+  void Function()? _editorFlushCallback;
+
+  void registerActiveEditorFlush(Object owner, void Function() callback) {
+    _editorFlushOwner = owner;
+    _editorFlushCallback = callback;
+  }
+
+  void unregisterActiveEditorFlush(Object owner) {
+    if (!identical(_editorFlushOwner, owner)) return;
+    _editorFlushOwner = null;
+    _editorFlushCallback = null;
+  }
 
   List<VendorSectionDefinition> get activeSections =>
       sectionsForCategory(state.cursor.category);
@@ -136,6 +160,10 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     return completedSubstepCount / totalSubstepCount;
   }
 
+  Map<String, dynamic> buildCreateFutsalBody({int? mainStep, int? subStep}) {
+    return state.toCreateFutsalBody(mainStep: mainStep, subStep: subStep);
+  }
+
   StepStatus futsalSectionStatus(int sectionIndex) {
     final List<StepStatus> substeps = List<StepStatus>.generate(
       futsalSectionDefinitions[sectionIndex].substeps.length,
@@ -221,7 +249,7 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
 
   Future<void> restoreDraft() async {
     try {
-      final VendorOnboardingState? restored = await _repository.load();
+      final VendorOnboardingState? restored = await _draftRepository.load();
       if (restored == null) {
         emit(
           state.copyWith(
@@ -254,6 +282,7 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
           isRestoringDraft: false,
           saveStatus: DraftSaveStatus.failure,
           errorMessage: 'Could not restore the saved onboarding draft.',
+          errorOrigin: VendorErrorOrigin.local,
         ),
       );
     }
@@ -272,6 +301,7 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
           clearErrorMessage: true,
         ),
       );
+      _scheduleDraftSave();
       return;
     }
 
@@ -294,6 +324,7 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
           clearErrorMessage: true,
         ),
       );
+      _scheduleDraftSave();
       return;
     }
 
@@ -313,6 +344,7 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
         clearErrorMessage: true,
       ),
     );
+    _scheduleDraftSave();
   }
 
   void selectSection(int sectionIndex) {
@@ -368,6 +400,9 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
   }
 
   Future<String?> next() async {
+    if (state.isSubmitting) return null;
+    _flushActiveEditors();
+
     if (state.isInCourtCategory && state.activeCourt == null) {
       addCourt();
       await _saveDraft(showSavingState: false);
@@ -380,6 +415,14 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
       return validation.message;
     }
 
+    final String? registrationFailure = await _submitFutsalRegistrationIfNeeded(
+      mainStep: 0,
+      subStep: 2,
+    );
+    if (registrationFailure != null) {
+      return registrationFailure;
+    }
+
     await _saveDraft(showSavingState: false);
 
     final bool isLastSubstep = currentSubstepIndex == activeSubsteps.length - 1;
@@ -387,16 +430,19 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
 
     if (!isLastSubstep) {
       selectSubstep(currentSubstepIndex + 1);
+      await _saveDraft(showSavingState: false);
       return null;
     }
 
     if (!isLastSection) {
       selectSection(currentSectionIndex + 1);
+      await _saveDraft(showSavingState: false);
       return null;
     }
 
     if (!state.isInCourtCategory) {
       selectCategory(VendorCategory.court);
+      await _saveDraft(showSavingState: false);
       return null;
     }
 
@@ -410,6 +456,7 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     if (nextCourtId != null) {
       selectCourt(nextCourtId);
       _moveToCourt(nextCourtId, 0, 0);
+      await _saveDraft(showSavingState: false);
       return null;
     }
 
@@ -681,6 +728,7 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
         clearErrorMessage: true,
       ),
     );
+    _scheduleDraftSave();
   }
 
   void removeCourt(String courtId) {
@@ -954,6 +1002,9 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
   }
 
   Future<String?> submit() async {
+    if (state.isSubmitting) return null;
+    _flushActiveEditors();
+
     for (
       int sectionIndex = 0;
       sectionIndex < futsalSectionDefinitions.length;
@@ -1041,7 +1092,7 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
   Future<void> resetOnboarding() async {
     _saveDebounce?.cancel();
     _revision = 0;
-    await _repository.clear();
+    await _draftRepository.clear();
     emit(VendorOnboardingState.initial().copyWith(isRestoringDraft: false));
   }
 
@@ -1077,6 +1128,7 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
         clearErrorMessage: true,
       ),
     );
+    _scheduleDraftSave();
   }
 
   void _moveToCourt(String courtId, int sectionIndex, int subsectionIndex) {
@@ -1109,6 +1161,7 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
         clearErrorMessage: true,
       ),
     );
+    _scheduleDraftSave();
   }
 
   void _emitUpdated(VendorOnboardingState nextState) {
@@ -1127,6 +1180,76 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     _scheduleDraftSave();
   }
 
+  void _flushActiveEditors() {
+    try {
+      _editorFlushCallback?.call();
+    } catch (_) {
+      // Best-effort flush; never block navigation.
+    }
+  }
+
+  Future<String?> _submitFutsalRegistrationIfNeeded({
+    required int mainStep,
+    required int subStep,
+  }) async {
+    if (state.isInCourtCategory) return null;
+    if (state.remoteFutsalId != null) return null;
+    if (currentSectionIndex != mainStep || currentSubstepIndex != subStep) {
+      return null;
+    }
+
+    emit(state.copyWith(isSubmitting: true, clearErrorMessage: true));
+
+    try {
+      final Map<String, dynamic> body = state.toCreateFutsalBody(
+        mainStep: mainStep,
+        subStep: subStep,
+      );
+      final Either<AppException, Map<String, dynamic>> response =
+          await _onboardingUseCase.submitFutsal(body);
+
+      return response.fold(
+        (AppException failure) {
+          emit(
+            state.copyWith(
+              isSubmitting: false,
+              errorMessage: failure.errorMessage,
+              errorOrigin: VendorErrorOrigin.api,
+            ),
+          );
+          return failure.errorMessage;
+        },
+        (Map<String, dynamic> data) {
+          emit(
+            state.copyWith(
+              isSubmitting: false,
+              remoteFutsalId: _extractRemoteFutsalId(data),
+              clearErrorMessage: true,
+            ),
+          );
+          return null;
+        },
+      );
+    } catch (error) {
+      emit(
+        state.copyWith(
+          isSubmitting: false,
+          errorMessage: error.toString(),
+          errorOrigin: VendorErrorOrigin.api,
+        ),
+      );
+      return error.toString();
+    }
+  }
+
+  int? _extractRemoteFutsalId(Map<String, dynamic> data) {
+    final Object? raw =
+        data['id'] ?? data['futsal_id'] ?? data['futsalId'] ?? data['futsalID'];
+    if (raw == null) return null;
+    if (raw is int) return raw;
+    return int.tryParse(raw.toString());
+  }
+
   void _registerValidationFailure(VendorValidationResult result) {
     final Set<String> errorKeys = Set<String>.from(state.errorKeys)
       ..add(result.key);
@@ -1143,7 +1266,13 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
       );
     }
 
-    emit(state.copyWith(errorMessage: result.message, errorKeys: errorKeys));
+    emit(
+      state.copyWith(
+        errorMessage: result.message,
+        errorOrigin: VendorErrorOrigin.validation,
+        errorKeys: errorKeys,
+      ),
+    );
   }
 
   Set<String> _pruneActiveErrorKeys(Set<String> existing) {
@@ -1177,7 +1306,12 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
   }
 
   void _emitError(String message) {
-    emit(state.copyWith(errorMessage: message));
+    emit(
+      state.copyWith(
+        errorMessage: message,
+        errorOrigin: VendorErrorOrigin.local,
+      ),
+    );
   }
 
   bool _canJumpToFutsalSection(int targetSectionIndex) {
@@ -1295,7 +1429,7 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     }
 
     try {
-      await _repository.save(snapshot);
+      await _draftRepository.save(snapshot);
       if (_revision == snapshotRevision) {
         emit(
           state.copyWith(
@@ -1310,6 +1444,7 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
         state.copyWith(
           saveStatus: DraftSaveStatus.failure,
           errorMessage: 'Draft save failed. Try again.',
+          errorOrigin: VendorErrorOrigin.local,
         ),
       );
     }

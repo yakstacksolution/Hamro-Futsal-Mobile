@@ -14,9 +14,11 @@ class VendorOnboardingState {
     required this.isSubmitting,
     required this.isRestoringDraft,
     required this.isCompleted,
+    this.remoteFutsalId,
     this.activeCourtId,
     this.lastSavedAt,
     this.errorMessage,
+    this.errorOrigin,
   });
 
   factory VendorOnboardingState.initial() {
@@ -46,6 +48,7 @@ class VendorOnboardingState {
   final FutsalDraft futsal;
   final List<UploadRef> mediaLibrary;
   final List<CourtDraft> courts;
+  final int? remoteFutsalId;
   final String? activeCourtId;
   final Set<String> errorKeys;
   final DraftSaveStatus saveStatus;
@@ -55,6 +58,7 @@ class VendorOnboardingState {
   final bool isRestoringDraft;
   final bool isCompleted;
   final String? errorMessage;
+  final VendorErrorOrigin? errorOrigin;
 
   bool get isInCourtCategory => cursor.category == VendorCategory.court;
 
@@ -86,10 +90,13 @@ class VendorOnboardingState {
     bool? isSubmitting,
     bool? isRestoringDraft,
     bool? isCompleted,
+    int? remoteFutsalId,
     String? errorMessage,
+    VendorErrorOrigin? errorOrigin,
     bool clearActiveCourtId = false,
     bool clearLastSavedAt = false,
     bool clearErrorMessage = false,
+    bool clearRemoteFutsalId = false,
   }) {
     return VendorOnboardingState(
       cursor: cursor ?? this.cursor,
@@ -98,6 +105,9 @@ class VendorOnboardingState {
       futsal: futsal ?? this.futsal,
       mediaLibrary: mediaLibrary ?? this.mediaLibrary,
       courts: courts ?? this.courts,
+      remoteFutsalId: clearRemoteFutsalId
+          ? null
+          : remoteFutsalId ?? this.remoteFutsalId,
       activeCourtId: clearActiveCourtId
           ? null
           : activeCourtId ?? this.activeCourtId,
@@ -111,6 +121,7 @@ class VendorOnboardingState {
       errorMessage: clearErrorMessage
           ? null
           : errorMessage ?? this.errorMessage,
+      errorOrigin: clearErrorMessage ? null : errorOrigin ?? this.errorOrigin,
     );
   }
 
@@ -127,6 +138,7 @@ class VendorOnboardingState {
           .map((UploadRef item) => item.toJson())
           .toList(),
       'courts': courts.map((CourtDraft item) => item.toJson()).toList(),
+      'remoteFutsalId': remoteFutsalId,
       'activeCourtId': activeCourtId,
       'lastSavedAt': lastSavedAt?.toIso8601String(),
     };
@@ -177,6 +189,7 @@ class VendorOnboardingState {
               .map((Map item) => UploadRef.fromJson(Map<String, dynamic>.from(item)))
               .toList(),
       courts: courts,
+      remoteFutsalId: _asInt(json['remoteFutsalId']),
       activeCourtId: json['activeCourtId'] as String?,
       errorKeys: const <String>{},
       saveStatus: DraftSaveStatus.idle,
@@ -192,4 +205,10 @@ class VendorOnboardingState {
 DateTime? _dateFromString(String? value) {
   if (value == null || value.isEmpty) return null;
   return DateTime.tryParse(value);
+}
+
+int? _asInt(Object? value) {
+  if (value == null) return null;
+  if (value is int) return value;
+  return int.tryParse(value.toString());
 }

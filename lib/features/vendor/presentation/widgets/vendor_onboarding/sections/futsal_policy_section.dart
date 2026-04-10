@@ -40,12 +40,15 @@ class _FutsalPolicySectionState extends State<FutsalPolicySection> {
 
   bool _policyInitialized = false;
   bool _rulesInitialized = false;
+  final Object _flushOwner = Object();
 
   @override
   void initState() {
     super.initState();
     _lastPolicyHtml = widget.draft.cancellationPolicy;
     _lastRulesHtml = widget.draft.futsalRules;
+
+    widget.cubit.registerActiveEditorFlush(_flushOwner, _flushPendingChanges);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializeEditors();
@@ -57,11 +60,15 @@ class _FutsalPolicySectionState extends State<FutsalPolicySection> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.draft.cancellationPolicy != widget.draft.cancellationPolicy &&
         _policyInitialized) {
-      _replacePolicyContent(widget.draft.cancellationPolicy);
+      if (widget.draft.cancellationPolicy != _lastPolicyHtml) {
+        _replacePolicyContent(widget.draft.cancellationPolicy);
+      }
     }
     if (oldWidget.draft.futsalRules != widget.draft.futsalRules &&
         _rulesInitialized) {
-      _replaceRulesContent(widget.draft.futsalRules);
+      if (widget.draft.futsalRules != _lastRulesHtml) {
+        _replaceRulesContent(widget.draft.futsalRules);
+      }
     }
   }
 
@@ -107,7 +114,8 @@ class _FutsalPolicySectionState extends State<FutsalPolicySection> {
       if (!mounted) return;
 
       final delta = _policyQuillController.document.toDelta();
-      final htmlConverter = QuillDeltaToHtmlConverter(delta.toJson()).convert();
+      final String htmlConverter =
+          QuillDeltaToHtmlConverter(delta.toJson()).convert();
 
       if (htmlConverter != _lastPolicyHtml) {
         _lastPolicyHtml = htmlConverter;
@@ -124,7 +132,8 @@ class _FutsalPolicySectionState extends State<FutsalPolicySection> {
       if (!mounted) return;
 
       final delta = _rulesQuillController.document.toDelta();
-      final htmlConverter = QuillDeltaToHtmlConverter(delta.toJson()).convert();
+      final String htmlConverter =
+          QuillDeltaToHtmlConverter(delta.toJson()).convert();
 
       if (htmlConverter != _lastRulesHtml) {
         _lastRulesHtml = htmlConverter;
@@ -152,8 +161,34 @@ class _FutsalPolicySectionState extends State<FutsalPolicySection> {
     return Document();
   }
 
+  void _flushPendingChanges() {
+    final FutsalDraft current = widget.cubit.state.futsal;
+
+    if (_policyInitialized) {
+      final delta = _policyQuillController.document.toDelta();
+      final String html =
+          QuillDeltaToHtmlConverter(delta.toJson()).convert();
+      if (html != _lastPolicyHtml) {
+        _lastPolicyHtml = html;
+        widget.cubit.updateFutsal(current.copyWith(cancellationPolicy: html));
+      }
+    }
+
+    if (_rulesInitialized) {
+      final delta = _rulesQuillController.document.toDelta();
+      final String html =
+          QuillDeltaToHtmlConverter(delta.toJson()).convert();
+      if (html != _lastRulesHtml) {
+        _lastRulesHtml = html;
+        widget.cubit.updateFutsal(current.copyWith(futsalRules: html));
+      }
+    }
+  }
+
   @override
   void dispose() {
+    _flushPendingChanges();
+    widget.cubit.unregisterActiveEditorFlush(_flushOwner);
     _policyDebounceTimer?.cancel();
     _rulesDebounceTimer?.cancel();
 

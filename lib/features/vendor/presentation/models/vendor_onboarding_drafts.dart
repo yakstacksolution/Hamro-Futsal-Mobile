@@ -2,17 +2,26 @@ class UploadRef {
   const UploadRef({
     required this.name,
     required this.localPath,
+    this.id,
     this.remoteUrl,
   });
 
   final String name;
   final String localPath;
+  final int? id;
   final String? remoteUrl;
 
-  UploadRef copyWith({String? name, String? localPath, String? remoteUrl}) {
+  UploadRef copyWith({
+    String? name,
+    String? localPath,
+    int? id,
+    String? remoteUrl,
+    bool clearId = false,
+  }) {
     return UploadRef(
       name: name ?? this.name,
       localPath: localPath ?? this.localPath,
+      id: clearId ? null : id ?? this.id,
       remoteUrl: remoteUrl ?? this.remoteUrl,
     );
   }
@@ -21,6 +30,7 @@ class UploadRef {
     return <String, dynamic>{
       'name': name,
       'localPath': localPath,
+      'id': id,
       'remoteUrl': remoteUrl,
     };
   }
@@ -29,6 +39,7 @@ class UploadRef {
     return UploadRef(
       name: json['name'] as String? ?? '',
       localPath: json['localPath'] as String? ?? '',
+      id: json['id'] as int?,
       remoteUrl: json['remoteUrl'] as String?,
     );
   }

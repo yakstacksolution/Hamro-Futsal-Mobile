@@ -32,37 +32,37 @@ class VendorOnboardingValidator {
             if (draft.title.trim().isEmpty) {
               return VendorValidationResult.invalid(
                 key,
-                'Enter the futsal name.',
+                'Please provide the name of your futsal.',
               );
             }
             if (draft.slug.trim().isEmpty) {
               return VendorValidationResult.invalid(
                 key,
-                'Slug is required for the futsal profile.',
+                'A unique slug is required for your futsal profile.',
               );
             }
             if (!_isSlugValid(draft.slug)) {
               return VendorValidationResult.invalid(
                 key,
-                'Slug can only use lowercase letters, numbers, and hyphens.',
+                'The slug may only contain lowercase letters, numbers, and hyphens.',
               );
             }
             if (draft.phone.trim().isEmpty) {
               return VendorValidationResult.invalid(
                 key,
-                'Enter the contact phone number.',
+                'Please enter a valid contact phone number.',
               );
             }
             if (draft.email.trim().isEmpty) {
               return VendorValidationResult.invalid(
                 key,
-                'Enter the contact email.',
+                'Please enter a valid contact email address.',
               );
             }
             if (!_isOptionalUrlValid(draft.websiteOrSocialLink)) {
               return VendorValidationResult.invalid(
                 key,
-                'Enter a valid website or social media link.',
+                'Please provide a valid website or social media link (including http/https).',
               );
             }
             return VendorValidationResult.valid(key);
@@ -70,7 +70,7 @@ class VendorOnboardingValidator {
             if (draft.description.trim().isEmpty) {
               return VendorValidationResult.invalid(
                 key,
-                'Enter the futsal description.',
+                'Please provide a description for your futsal.',
               );
             }
             return VendorValidationResult.valid(key);
@@ -78,20 +78,20 @@ class VendorOnboardingValidator {
             if (draft.location.fullAddress.trim().isEmpty) {
               return VendorValidationResult.invalid(
                 key,
-                'Enter the full address.',
+                'Please enter the complete address of your futsal.',
               );
             }
             if (draft.location.exactLocation.trim().isEmpty) {
               return VendorValidationResult.invalid(
                 key,
-                'Enter the exact location.',
+                'Please specify the exact location of your futsal.',
               );
             }
             if (draft.location.longitude == null ||
                 draft.location.latitude == null) {
               return VendorValidationResult.invalid(
                 key,
-                'Provide both longitude and latitude.',
+                'Please provide both longitude and latitude coordinates.',
               );
             }
             return VendorValidationResult.valid(key);
@@ -99,7 +99,7 @@ class VendorOnboardingValidator {
             if (draft.amenities.isEmpty && draft.features.isEmpty) {
               return VendorValidationResult.invalid(
                 key,
-                'Select at least one amenity or feature.',
+                'Please select at least one amenity or feature for your futsal.',
               );
             }
             return VendorValidationResult.valid(key);
@@ -110,7 +110,7 @@ class VendorOnboardingValidator {
             if (draft.cancellationPolicy.trim().isEmpty) {
               return VendorValidationResult.invalid(
                 key,
-                'Enter the cancellation policy.',
+                'Please specify your cancellation policy.',
               );
             }
             return VendorValidationResult.valid(key);
@@ -118,7 +118,7 @@ class VendorOnboardingValidator {
             if (draft.futsalRules.trim().isEmpty) {
               return VendorValidationResult.invalid(
                 key,
-                'Enter the futsal rules.',
+                'Please provide the rules for your futsal.',
               );
             }
             return VendorValidationResult.valid(key);
@@ -126,7 +126,7 @@ class VendorOnboardingValidator {
             if (draft.commissionPercent == null) {
               return VendorValidationResult.invalid(
                 key,
-                'Enter the commission percentage.',
+                'Please specify the commission percentage.',
               );
             }
             return VendorValidationResult.valid(key);
@@ -137,7 +137,7 @@ class VendorOnboardingValidator {
             if (draft.coverImage == null) {
               return VendorValidationResult.invalid(
                 key,
-                'Upload the futsal cover image.',
+                'Please upload a cover image for your futsal.',
               );
             }
             return VendorValidationResult.valid(key);
@@ -145,7 +145,7 @@ class VendorOnboardingValidator {
             if (draft.gallery.isEmpty) {
               return VendorValidationResult.invalid(
                 key,
-                'Upload at least one futsal gallery image.',
+                'Please upload at least one image to the futsal gallery.',
               );
             }
             return VendorValidationResult.valid(key);
@@ -153,7 +153,7 @@ class VendorOnboardingValidator {
             if (draft.companyDocuments.isEmpty) {
               return VendorValidationResult.invalid(
                 key,
-                'Upload company documents before continuing.',
+                'Please upload the required company documents before proceeding.',
               );
             }
             return VendorValidationResult.valid(key);

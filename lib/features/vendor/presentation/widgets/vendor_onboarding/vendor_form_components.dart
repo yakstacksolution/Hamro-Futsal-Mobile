@@ -121,10 +121,10 @@ class VendorErrorBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         color: LightColor.redLight,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: LightColor.errorBorder),
       ),
       child: Row(
@@ -134,14 +134,13 @@ class VendorErrorBanner extends StatelessWidget {
             padding: EdgeInsets.only(top: 2),
             child: Icon(Icons.error_outline_rounded, color: LightColor.red),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 8),
           Expanded(
             child: Text(
               message,
               style: const TextStyle(
                 color: LightColor.titleText,
-                fontWeight: FontWeight.w600,
-                height: 1.4,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),
@@ -182,6 +181,7 @@ class VendorInputField extends StatelessWidget {
     this.enableIcon,
     this.readOnly = false,
     this.onTap,
+    this.isRequired = false,
   });
 
   final String? label;
@@ -194,11 +194,13 @@ class VendorInputField extends StatelessWidget {
   final bool? enableIcon;
   final bool readOnly;
   final VoidCallback? onTap;
+  final bool isRequired;
 
   @override
   Widget build(BuildContext context) {
     return CustomTextField(
       controller: controller,
+      isRequired: isRequired,
       labelText: label ?? '',
       icon: enableIcon == true
           ? _vendorFieldIcon(label ?? '', keyboardType)

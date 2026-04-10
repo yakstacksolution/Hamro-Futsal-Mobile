@@ -6,6 +6,8 @@ enum StepStatus { locked, notStarted, inProgress, complete, error, pending }
 
 enum DraftSaveStatus { idle, saving, saved, failure, error, unsaved }
 
+enum VendorErrorOrigin { validation, api, local }
+
 enum FutsalSection { information, policyRules, business }
 
 enum FutsalInformationSubstep { basicInfo, location, amenitiesFeatures }
@@ -169,11 +171,11 @@ const List<VendorSectionDefinition> futsalSectionDefinitions =
             title: 'Location',
             subtitle: 'Address, exact location, longitude, and latitude.',
           ),
-          VendorSubstepDefinition(
-            id: 'amenities_features',
-            title: 'Amenities',
-            subtitle: 'Venue amenities and key features.',
-          ),
+          // VendorSubstepDefinition(
+          //   id: 'amenities_features',
+          //   title: 'Amenities',
+          //   subtitle: 'Venue amenities and key features.',
+          // ),
         ],
       ),
       VendorSectionDefinition(

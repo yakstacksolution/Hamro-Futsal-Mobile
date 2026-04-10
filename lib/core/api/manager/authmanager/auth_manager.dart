@@ -88,4 +88,10 @@ class AuthManager extends ServiceManager {
   Future<Result> getPublicTemplates() async {
     return await _apiClient.getPublicTemplates();
   }
+
+  Future<Result> submitVendorOnboardingFutsal(data) async {
+    return await _apiClient.submitVendorOnboardingFutsal(
+      data: Map<String, dynamic>.from(data as Map),
+    );
+  }
 }

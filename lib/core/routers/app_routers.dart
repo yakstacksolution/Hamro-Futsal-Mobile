@@ -23,6 +23,8 @@ import 'package:hamro_footsall/features/courts/presentation/pages/create_courts_
 import 'package:hamro_footsall/features/profile/presentation/profile_bloc/profile_bloc.dart';
 import 'package:hamro_footsall/features/profile/presentation/widgets/profile_details_page.dart';
 import 'package:hamro_footsall/features/vendor/data/vendor_draft_repository.dart';
+import 'package:hamro_footsall/features/vendor/data/repositories/vendor_onboarding_repository_impl.dart';
+import 'package:hamro_footsall/features/vendor/domain/usecase/vendor_onboarding_usecase.dart';
 import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit.dart';
 import 'package:hamro_footsall/features/vendor/presentation/pages/stepper_logic_screen.dart';
 
@@ -124,6 +126,10 @@ class AppRouters {
           path: AppRouterParams.vendorStepper.path,
           builder: (context, state) {
             final publicRepository = PublicRepositoryImpl();
+            final vendorOnboardingRepository = VendorOnboardingRepositoryImpl();
+            final vendorOnboardingUseCase = VendorOnboardingUseCase(
+              vendorOnboardingRepository,
+            );
             return MultiBlocProvider(
               providers: <BlocProvider<dynamic>>[
                 BlocProvider<PublicTemplatesBloc>(
@@ -142,6 +148,7 @@ class AppRouters {
                   lazy: false,
                   create: (_) => VendorOnboardingCubit(
                     const SharedPreferencesVendorDraftRepository(),
+                    onboardingUseCase: vendorOnboardingUseCase,
                   ),
                 ),
               ],

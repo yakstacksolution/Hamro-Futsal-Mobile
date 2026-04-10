@@ -1,6 +1,7 @@
 import 'package:hamro_footsall/core/api/api_client/result.dart';
 import 'package:hamro_footsall/core/helper/share_preferences.dart';
 import 'package:hamro_footsall/core/api/api_client/api_call_wrapper.dart';
+import 'package:hamro_footsall/core/utils/app_utils.dart';
 
 class ApiClient {
   final ApiCallWrapper _apiCallWrapper;
@@ -70,6 +71,12 @@ class ApiClient {
     return _get(url: '$_baseUrl/auth/templates');
   }
 
+  Future<Result> submitVendorOnboardingFutsal({
+    required Map<String, dynamic> data,
+  }) {
+    return _post(url: '$_baseUrl/auth/vendor/onboarding/submit', data: data);
+  }
+
   Future<Result> _get({required String url}) {
     return _apiCallWrapper.makeRequest(
       url: url,
@@ -79,18 +86,40 @@ class ApiClient {
   }
 
   Future<Result> _post({required String url, dynamic data}) {
+    final dynamic requestData;
+    if (data is Map<String, dynamic>) {
+      requestData = AppUtils().cleanUnwantedMapValue(data);
+    } else if (data is Map) {
+      requestData = AppUtils().cleanUnwantedMapValue(
+        Map<String, dynamic>.from(data),
+      );
+    } else {
+      requestData = data;
+    }
+
     return _apiCallWrapper.makeRequest(
       url: url,
-      data: data,
+      data: requestData,
       token: AppSettings().tokenModel.accessToken,
       method: HttpVerb.post,
     );
   }
 
   Future<Result> _put({required String url, dynamic data}) {
+    final dynamic requestData;
+    if (data is Map<String, dynamic>) {
+      requestData = AppUtils().cleanUnwantedMapValue(data);
+    } else if (data is Map) {
+      requestData = AppUtils().cleanUnwantedMapValue(
+        Map<String, dynamic>.from(data),
+      );
+    } else {
+      requestData = data;
+    }
+
     return _apiCallWrapper.makeRequest(
       url: url,
-      data: data,
+      data: requestData,
       token: AppSettings().tokenModel.accessToken,
       method: HttpVerb.put,
     );

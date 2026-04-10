@@ -16,12 +16,12 @@ class _EditorTokens {
   static const Color toolbarFill = Color(0xFFFDFEFF);
 
   static const EdgeInsets editorPadding = EdgeInsets.symmetric(
-    horizontal: 20,
-    vertical: 16,
+    horizontal: 14,
+    vertical: 12,
   );
   static const EdgeInsets hintPadding = EdgeInsets.symmetric(
-    horizontal: 20,
-    vertical: 18,
+    horizontal: 14,
+    vertical: 14,
   );
 
   static const Duration animDuration = Duration(milliseconds: 220);
@@ -118,6 +118,12 @@ class _CustomQuillEditorState extends State<CustomQuillEditor>
   // Build
   @override
   Widget build(BuildContext context) {
+    final TextSelectionThemeData selectionTheme = TextSelectionThemeData(
+      cursorColor: LightColor.titleText,
+      selectionColor: LightColor.titleText.withValues(alpha: 0.18),
+      selectionHandleColor: LightColor.titleText,
+    );
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       resizeToAvoidBottomInset: true,
@@ -140,11 +146,14 @@ class _CustomQuillEditorState extends State<CustomQuillEditor>
                           _HintOverlay(text: widget.hintText!),
                         CupertinoScrollbar(
                           controller: widget.scrollController,
-                          child: QuillEditor(
-                            controller: widget.controller,
-                            scrollController: widget.scrollController,
-                            focusNode: _focusNode,
-                            config: _buildEditorConfig(context),
+                          child: TextSelectionTheme(
+                            data: selectionTheme,
+                            child: QuillEditor(
+                              controller: widget.controller,
+                              scrollController: widget.scrollController,
+                              focusNode: _focusNode,
+                              config: _buildEditorConfig(context),
+                            ),
                           ),
                         ),
                       ],
@@ -258,12 +267,7 @@ class _EditorCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final focusBorderColor = Color.lerp(
-      LightColor.lightGrey.withValues(alpha: 0.95),
-      cs.primary.withValues(alpha: 0.92),
-      focusProgress,
-    )!;
+    final Color focusBorderColor = LightColor.border;
 
     return AnimatedContainer(
       duration: _EditorTokens.animDuration,
@@ -273,19 +277,8 @@ class _EditorCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(_EditorTokens.fieldRadius),
         border: Border.all(
           color: focusBorderColor,
-          width: lerpDouble(1.0, 1.5, focusProgress),
+          width: 1.15,
         ),
-        boxShadow: focusProgress > 0
-            ? [
-                BoxShadow(
-                  color: LightColor.secondaryLight.withValues(
-                    alpha: 0.08 * focusProgress,
-                  ),
-                  blurRadius: 18,
-                  spreadRadius: -4,
-                ),
-              ]
-            : null,
       ),
       clipBehavior: Clip.antiAlias,
       child: child,

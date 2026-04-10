@@ -81,7 +81,7 @@ class _CourtsListPageState extends State<CourtsListPage> {
                         children: <Widget>[
                           _EmptyStateV2(
                             isSearching:
-                                query.isNotEmpty || 
+                                query.isNotEmpty ||
                                 _selectedFilter != _VenueFilter.all,
                             onManageVenue: () {
                               context.pushNamed(

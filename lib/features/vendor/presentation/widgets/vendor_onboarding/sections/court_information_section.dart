@@ -102,17 +102,21 @@ class _CourtDescriptionSubsection extends StatefulWidget {
       _CourtDescriptionSubsectionState();
 }
 
-class _CourtDescriptionSubsectionState extends State<_CourtDescriptionSubsection> {
+class _CourtDescriptionSubsectionState
+    extends State<_CourtDescriptionSubsection> {
   final ScrollController _scrollController = ScrollController();
   late final QuillController _quillController;
   Timer? _debounceTimer;
   String _lastHtmlContent = '';
   bool _initialized = false;
+  final Object _flushOwner = Object();
 
   @override
   void initState() {
     super.initState();
     _lastHtmlContent = widget.court.description;
+
+    widget.cubit.registerActiveEditorFlush(_flushOwner, _flushPendingChanges);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializeEditor();
@@ -152,7 +156,8 @@ class _CourtDescriptionSubsectionState extends State<_CourtDescriptionSubsection
       if (!mounted) return;
 
       final delta = _quillController.document.toDelta();
-      final htmlConverter = QuillDeltaToHtmlConverter(delta.toJson()).convert();
+      final String htmlConverter =
+          QuillDeltaToHtmlConverter(delta.toJson()).convert();
 
       if (htmlConverter != _lastHtmlContent) {
         _lastHtmlContent = htmlConverter;
@@ -163,8 +168,25 @@ class _CourtDescriptionSubsectionState extends State<_CourtDescriptionSubsection
     });
   }
 
+  void _flushPendingChanges() {
+    if (!_initialized) return;
+
+    final delta = _quillController.document.toDelta();
+    final String htmlConverter =
+        QuillDeltaToHtmlConverter(delta.toJson()).convert();
+
+    if (htmlConverter == _lastHtmlContent) return;
+    _lastHtmlContent = htmlConverter;
+    widget.cubit.updateActiveCourt(
+      widget.cubit.state.activeCourt?.copyWith(description: htmlConverter) ??
+          widget.court.copyWith(description: htmlConverter),
+    );
+  }
+
   @override
   void dispose() {
+    _flushPendingChanges();
+    widget.cubit.unregisterActiveEditorFlush(_flushOwner);
     _debounceTimer?.cancel();
     if (_initialized) {
       _quillController.removeListener(_onEditorChanged);
