@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:hamro_footsall/core/theme/light_color.dart';
+import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/features/courts/presentation/models/create_courts_step_definition.dart';
 
 class WizardStepBar extends StatelessWidget {

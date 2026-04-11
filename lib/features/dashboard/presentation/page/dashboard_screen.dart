@@ -6,7 +6,7 @@ import 'package:hamro_footsall/features/dashboard/presentation/page/footsall_hom
 import 'package:hamro_footsall/features/dashboard/presentation/page/messages_page.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/widgets/app_drawer.dart';
 import 'package:hamro_footsall/core/routers/app_router_params.dart';
-import 'package:hamro_footsall/core/theme/light_color.dart';
+import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/theme.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/widgets/bottom_navigation_bar.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/widgets/overall_performance_widget.dart';

@@ -7,6 +7,7 @@ import 'package:hamro_footsall/core/api/client.dart';
 import 'package:hamro_footsall/core/helper/share_preferences.dart';
 import 'package:hamro_footsall/core/routers/app_router_params.dart';
 import 'package:hamro_footsall/core/routers/app_routers.dart';
+import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/theme/theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -19,9 +20,9 @@ void main() async {
   final SharedPreferences preferences = await SharedPreferences.getInstance();
   await AppSettings().init(SharedPreferencesWrapper(preferences));
 
-  final bool hasToken =
+  final bool hasLoggedIn =
       AppSettings().tokenModel.accessToken?.trim().isNotEmpty ?? false;
-  final String initialLocation = hasToken
+  final String initialLocation = hasLoggedIn
       ? AppRouterParams.dashboard.path
       : AppRouterParams.login.path;
 
@@ -59,7 +60,9 @@ class _MyAppState extends State<MyApp> {
     return MaterialApp.router(
       title: 'Hamro Futsal',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
+      // theme: AppTheme.lightTheme,
+      theme: FutsalTheme.setTheme(context),
+      themeMode: ThemeMode.light,
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,

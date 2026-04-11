@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:hamro_footsall/core/theme/light_color.dart';
+import 'package:hamro_footsall/core/theme/app_colors.dart';
 
 class CourtBookingPoliciesSection extends StatelessWidget {
   const CourtBookingPoliciesSection({super.key, required this.policies});

@@ -239,8 +239,8 @@ class CustomImageView extends StatelessWidget {
   Widget _buildPlaceholder(BuildContext context) {
     return CustomPlaceHolder(
       isHidePlaceholderImage: isHidePlaceholderImage,
-      height: height ?? sizeX30,
-      width: width ?? sizeX30,
+      height: height ?? AppDimens.sizeX30,
+      width: width ?? AppDimens.sizeX30,
       fit: fit ?? BoxFit.cover,
     );
   }

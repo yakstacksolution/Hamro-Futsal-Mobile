@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:hamro_footsall/core/theme/light_color.dart';
+import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 
 typedef ControllerCallback = void Function(AnimationController);
@@ -326,11 +326,11 @@ class CustomSnackBarState extends State<CustomSnackBar> {
             children: <Widget>[
               SvgPicture.asset(
                 "assets/icons/${widget.svgIcon}.svg",
-                width: sizeX18,
-                height: sizeX18,
+                width: AppDimens.sizeX18,
+                height: AppDimens.sizeX18,
                 colorFilter: ColorFilter.mode(widget.color, BlendMode.srcIn),
               ),
-              SizedBox(width: sizeX8),
+              SizedBox(width: AppDimens.sizeX8),
               Text(
                 widget.message,
                 style: widget.textStyle,

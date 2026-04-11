@@ -2,11 +2,40 @@ import 'package:flutter/material.dart';
 
 class LightColor {
   LightColor._();
+  static const Color yellowColor = Color(0xfff27819);
+  static const Color secondaryColor = Color(0xff2c7969);
+  static const Color secondaryLight = Color(0xff6FB3A5);
+  static const Color secondaryLightMedium = Color(0xff9CCFC5);
+  static const Color whiteColor = Color(0xffFAFAFA);
+  static const Color shadowColor = Color.fromRGBO(0, 0, 0, 0.04);
+
+  static Map<int, Color> color = const {
+    50: Color.fromRGBO(0, 0, 0, .1),
+    100: Color.fromRGBO(0, 0, 0, .2),
+    200: Color.fromRGBO(0, 0, 0, .3),
+    300: Color.fromRGBO(0, 0, 0, .4),
+    400: Color.fromRGBO(0, 0, 0, .5),
+    500: Color.fromRGBO(0, 0, 0, .6),
+    600: Color.fromRGBO(0, 0, 0, .7),
+    700: Color.fromRGBO(0, 0, 0, .8),
+    800: Color.fromRGBO(0, 0, 0, .9),
+    900: Color.fromRGBO(0, 0, 0, 1),
+  };
+  static MaterialColor primarySwatch = MaterialColor(0xFF000000, color);
+
+  static const Color primaryTextColor = Color(0xff252534);
+  static const Color secondaryTextColor = Color(0xff6B6B7A);
+
+  
+  static const tertiary = Color(0xFFA0A0B2);
+  static const accent = Color(0xFF2F7D6D);
+  static const accentLight = Color(0xFF6FAF9F);
+
+  static const white = Color(0xFFFFFFFF);
 
   // ── Neutral Surfaces ──────────────────────────────────────────────────────
   static const Color background = Color(0xFFF9FAFB);
   static const Color surface = Color(0xFFFFFFFF);
-  static const Color white = Color(0xFFFFFFFF);
 
   // ── Primary Brand — Green (Sports Optimized) ───────────────────────────────
   static const Color primary = Color(0xFF16A34A); // Main CTA
@@ -15,11 +44,9 @@ class LightColor {
 
   // ── Secondary ─────────────────────────────────────────────────────────────
   static const Color secondary = Color(0xFF10B981);
-  static const Color secondaryLight = Color(0xFFD1FAE5);
   static const Color secondaryDark = Color(0xFF059669);
 
   // ── Accent ────────────────────────────────────────────────────────────────
-  static const Color accent = Color(0xFF14532D); // deep green (premium feel)
 
   // ── Status / Semantic ─────────────────────────────────────────────────────
   static const Color amber = Color(0xFFFACC15); // energy (book now)
@@ -74,8 +101,6 @@ class LightColor {
 
   static const Color secondarySoft = Color(0x3310B981);
 
-  static const Color accentLight = Color(0xFFECFDF5);
-
   static const Color successBorder = Color(0xFFBBF7D0);
   static const Color errorBorder = Color(0xFFFECACA);
 
@@ -108,7 +133,6 @@ class LightColor {
   static const Color secondaryGreen = secondary;
   static const Color accentGreen = accent;
   static const Color orange = amber;
-  static const Color yellowColor = amber;
   static const Color titleTextColor = titleText;
   static const Color subTitleTextColor = subtitleText;
   static const Color lightGrey = border;

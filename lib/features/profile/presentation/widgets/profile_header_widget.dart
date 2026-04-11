@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:hamro_footsall/core/theme/light_color.dart';
+import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/features/profile/presentation/widgets/header_componet_widget.dart';
 import 'package:hamro_footsall/features/profile/presentation/widgets/profile_header_background.dart';
 
