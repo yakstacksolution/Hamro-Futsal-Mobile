@@ -89,6 +89,10 @@ class AuthManager extends ServiceManager {
     return await _apiClient.getPublicTemplates();
   }
 
+  Future<Result> fetchVendorOnboardingFutsal(int futsalId) async {
+    return await _apiClient.fetchVendorOnboardingFutsal(futsalId: futsalId);
+  }
+
   Future<Result> submitVendorOnboardingFutsal(data) async {
     return await _apiClient.submitVendorOnboardingFutsal(
       data: Map<String, dynamic>.from(data as Map),

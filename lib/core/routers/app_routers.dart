@@ -25,7 +25,7 @@ import 'package:hamro_footsall/features/profile/presentation/widgets/profile_det
 import 'package:hamro_footsall/features/vendor/data/vendor_draft_repository.dart';
 import 'package:hamro_footsall/features/vendor/data/repositories/vendor_onboarding_repository_impl.dart';
 import 'package:hamro_footsall/features/vendor/domain/usecase/vendor_onboarding_usecase.dart';
-import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit.dart';
+import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_cubit.dart';
 import 'package:hamro_footsall/features/vendor/presentation/pages/stepper_logic_screen.dart';
 
 class AppRouters {
@@ -116,15 +116,19 @@ class AppRouters {
           path: AppRouterParams.courtDetails.path,
           builder: (context, state) => const CourtDetailPage(),
         ),
-        // GoRoute(
-        //   name: AppRouterParams.vendorOnboarding.name,
-        //   path: AppRouterParams.vendorOnboarding.path,
-        //   builder: (context, state) => const VendorOnboardingPage(),
-        // ),
         GoRoute(
           name: AppRouterParams.vendorStepper.name,
           path: AppRouterParams.vendorStepper.path,
           builder: (context, state) {
+            final int? futsalId = state.queryParameters['futsalId'] != null
+                ? int.tryParse(state.queryParameters['futsalId']!)
+                : null;
+            final int? mainStep = state.queryParameters['mainStep'] != null
+                ? int.tryParse(state.queryParameters['mainStep']!)
+                : null;
+            final int? subStep = state.queryParameters['subStep'] != null
+                ? int.tryParse(state.queryParameters['subStep']!)
+                : null;
             final publicRepository = PublicRepositoryImpl();
             final vendorOnboardingRepository = VendorOnboardingRepositoryImpl();
             final vendorOnboardingUseCase = VendorOnboardingUseCase(
@@ -147,12 +151,16 @@ class AppRouters {
                 BlocProvider<VendorOnboardingCubit>(
                   lazy: false,
                   create: (_) => VendorOnboardingCubit(
-                    const SharedPreferencesVendorDraftRepository(),
+                    const EphemeralVendorDraftRepository(),
                     onboardingUseCase: vendorOnboardingUseCase,
                   ),
                 ),
               ],
-              child: const StepperLogicScreen(),
+              child: StepperLogicScreen(
+                futsalId: futsalId,
+                mainStep: mainStep,
+                subStep: subStep,
+              ),
             );
           },
         ),

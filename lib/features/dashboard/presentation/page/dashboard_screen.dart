@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/features/courts/presentation/pages/courts_list_page_widget.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/page/footsall_home_page.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/page/messages_page.dart';
@@ -9,7 +8,6 @@ import 'package:hamro_footsall/features/dashboard/presentation/widgets/app_drawe
 import 'package:hamro_footsall/core/routers/app_router_params.dart';
 import 'package:hamro_footsall/core/theme/light_color.dart';
 import 'package:hamro_footsall/core/theme/theme.dart';
-import 'package:hamro_footsall/features/auth/data/repositories/authentication_repository_impl.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/widgets/bottom_navigation_bar.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/widgets/overall_performance_widget.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/widgets/recent_bookings_widget.dart';
@@ -167,7 +165,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
             _hasHandledVendorOnboarding = true;
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (!mounted) return;
-              context.pushNamed(AppRouterParams.vendorStepper.name);
+              context.pushNamed(
+                AppRouterParams.vendorStepper.name,
+                queryParameters: {
+                  'futsalId': state.profile!.data.futsalId.toString(),
+                  'mainStep': state.profile!.data.mainStep.toString(),
+                  'subStep': state.profile!.data.subStep.toString(),
+                },
+              );
             });
           }
 

@@ -95,55 +95,38 @@ class ResponseHelper {
   }
 
   static String _extractValidationMessage(DataError error) {
-    final dynamic payload = error.data;
+    final dynamic payload = _extractPreferredPayload(error);
 
     if (payload is Map) {
-      final dynamic message = payload['message'];
+      final String? nestedError = _extractNestedErrorMessage(payload['errors']);
+      if (nestedError != null) return nestedError;
 
-      if (message is Map) {
-        for (final dynamic value in message.values) {
-          if (value is List && value.isNotEmpty) {
-            return value.first.toString();
-          }
-          if (value != null) {
-            return value.toString();
-          }
-        }
-      }
+      final String? message = _readMessageValue(payload['message']);
+      if (message != null) return message;
 
-      if (message is List && message.isNotEmpty) {
-        return message.first.toString();
-      }
-
-      if (message is String && message.trim().isNotEmpty) {
-        return message;
-      }
-
-      final dynamic errorText = payload['error'] ?? payload['detail'];
-      if (errorText is String && errorText.trim().isNotEmpty) {
-        return errorText;
-      }
+      final String? errorText = _readMessageValue(
+        payload['error'] ?? payload['detail'],
+      );
+      if (errorText != null) return errorText;
     }
 
     return _extractMessage(error);
   }
 
   static String _extractMessage(DataError error) {
-    final dynamic payload = error.data;
+    final dynamic payload = _extractPreferredPayload(error);
 
     if (payload is Map) {
-      final dynamic message = payload['message'];
-      if (message is String && message.trim().isNotEmpty) {
-        return message;
-      }
-      if (message is List && message.isNotEmpty) {
-        return message.first.toString();
-      }
+      final String? nestedError = _extractNestedErrorMessage(payload['errors']);
+      if (nestedError != null) return nestedError;
 
-      final dynamic errorText = payload['error'] ?? payload['detail'];
-      if (errorText is String && errorText.trim().isNotEmpty) {
-        return errorText;
-      }
+      final String? message = _readMessageValue(payload['message']);
+      if (message != null) return message;
+
+      final String? errorText = _readMessageValue(
+        payload['error'] ?? payload['detail'],
+      );
+      if (errorText != null) return errorText;
     }
 
     if (error.message.trim().isNotEmpty) {
@@ -164,5 +147,46 @@ class ResponseHelper {
     }
 
     return payload;
+  }
+
+  static dynamic _extractPreferredPayload(DataError error) {
+    final dynamic payload = error.data;
+    if (payload is Map && payload['data'] != null) {
+      return payload['data'];
+    }
+    return payload;
+  }
+
+  static String? _readMessageValue(dynamic value) {
+    if (value is String && value.trim().isNotEmpty) {
+      return value.trim();
+    }
+
+    if (value is List) {
+      for (final dynamic item in value) {
+        final String? message = _readMessageValue(item);
+        if (message != null) return message;
+      }
+    }
+
+    if (value is Map) {
+      for (final dynamic item in value.values) {
+        final String? message = _readMessageValue(item);
+        if (message != null) return message;
+      }
+    }
+
+    return null;
+  }
+
+  static String? _extractNestedErrorMessage(dynamic value) {
+    if (value is Map) {
+      for (final dynamic item in value.values) {
+        final String? message = _readMessageValue(item);
+        if (message != null) return message;
+      }
+    }
+
+    return _readMessageValue(value);
   }
 }

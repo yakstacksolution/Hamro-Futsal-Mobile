@@ -655,8 +655,8 @@ Color stepStatusColor(StepStatus status) {
 String saveStatusLabel(DraftSaveStatus status, DateTime? lastSavedAt) {
   switch (status) {
     case DraftSaveStatus.idle:
-      if (lastSavedAt == null) return 'Draft not saved yet';
-      return 'Draft ready';
+      if (lastSavedAt == null) return 'Session state';
+      return 'Ready in session';
     case DraftSaveStatus.saving:
       return 'Saving draft...';
     case DraftSaveStatus.saved:
@@ -668,8 +668,7 @@ String saveStatusLabel(DraftSaveStatus status, DateTime? lastSavedAt) {
       // TODO: Handle this case.
       throw UnimplementedError();
     case DraftSaveStatus.unsaved:
-      // TODO: Handle this case.
-      throw UnimplementedError();
+      return 'Session only';
   }
 }
 

@@ -68,7 +68,7 @@ class ApiCallWrapper {
           var payload = {'refresh_token': tokenModel.refreshToken};
           isTokenFreshApiCalling = true;
           try {
-            var refreshResponse = await _iHttp.patch(
+            var refreshResponse = await _iHttp.post(
               url: "${APIEndpoint.baseUrl}/auth/refresh-token",
               data: payload,
             );

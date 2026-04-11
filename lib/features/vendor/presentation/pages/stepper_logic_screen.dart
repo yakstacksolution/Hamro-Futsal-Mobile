@@ -6,8 +6,8 @@ import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/features/public/data/model/public_template_model.dart';
 import 'package:hamro_footsall/features/public/presentation/bloc/public_packages/public_packages_bloc.dart';
 import 'package:hamro_footsall/features/public/presentation/bloc/public_templates/public_templates_bloc.dart';
-import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit.dart';
-import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_state.dart';
+import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_cubit.dart';
+import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_state.dart';
 import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_models.dart';
 import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/sections/court_amenities_section.dart';
 import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/sections/court_booking_payment_section.dart';
@@ -26,8 +26,15 @@ import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboa
 import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/vendor_unified_stepper.dart';
 
 class StepperLogicScreen extends StatefulWidget {
-  final String? futsalId;
-  const StepperLogicScreen({super.key, this.futsalId});
+  final int? futsalId;
+  final int? mainStep;
+  final int? subStep;
+  const StepperLogicScreen({
+    super.key,
+    this.futsalId,
+    this.mainStep,
+    this.subStep,
+  });
 
   @override
   State<StepperLogicScreen> createState() => _StepperLogicScreenState();
@@ -35,15 +42,25 @@ class StepperLogicScreen extends StatefulWidget {
 
 class _StepperLogicScreenState extends State<StepperLogicScreen> {
   bool _hasAppliedTemplateDefaults = false;
+  late final VendorOnboardingCubit _cubit;
 
   @override
   void initState() {
-    if (widget.futsalId == null) {
+    _cubit = context.read<VendorOnboardingCubit>();
+    if (widget.futsalId != null && widget.futsalId! > 0) {
+      unawaited(_cubit.fetchVendorOnboarding(widget.futsalId!));
+    } else {
       context.read<PublicTemplatesBloc>().add(FetchPublicTemplatesEvent());
     }
     context.read<PublicPackagesBloc>().add(FetchPublicPackagesEvent());
 
     super.initState();
+  }
+
+  @override
+  void dispose() {
+    _cubit.clearOnboardingState();
+    super.dispose();
   }
 
   @override
@@ -69,11 +86,7 @@ class _StepperLogicScreenState extends State<StepperLogicScreen> {
           listener: (BuildContext context, VendorOnboardingState state) {
             if (state.isCompleted) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text(
-                    'Vendor onboarding is complete and saved locally.',
-                  ),
-                ),
+                const SnackBar(content: Text('Vendor onboarding is complete.')),
               );
             } else if (state.saveStatus == DraftSaveStatus.failure) {
               ScaffoldMessenger.of(context).showSnackBar(
@@ -113,8 +126,7 @@ class _StepperLogicScreenState extends State<StepperLogicScreen> {
             }
           }
 
-          final VendorOnboardingCubit cubit = context
-              .read<VendorOnboardingCubit>();
+          final VendorOnboardingCubit cubit = _cubit;
 
           if (state.isRestoringDraft) {
             return const Scaffold(

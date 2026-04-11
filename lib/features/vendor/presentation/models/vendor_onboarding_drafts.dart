@@ -270,8 +270,7 @@ class FutsalDraft {
       registrationNumber: registrationNumber ?? this.registrationNumber,
       phone: phone ?? this.phone,
       email: email ?? this.email,
-      websiteOrSocialLink:
-          websiteOrSocialLink ?? this.websiteOrSocialLink,
+      websiteOrSocialLink: websiteOrSocialLink ?? this.websiteOrSocialLink,
       location: location ?? this.location,
       amenities: amenities ?? this.amenities,
       features: features ?? this.features,

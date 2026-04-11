@@ -1,5 +1,6 @@
 import 'package:dartz/dartz.dart';
 import 'package:hamro_footsall/core/helper/exception_helper.dart';
+import 'package:hamro_footsall/features/vendor/data/model/vendor_onboarding_response_model.dart';
 import 'package:hamro_footsall/features/vendor/domain/repository/vendor_onboarding_repository.dart';
 
 final class VendorOnboardingUseCase {
@@ -7,8 +8,11 @@ final class VendorOnboardingUseCase {
 
   final VendorOnboardingRepository _repository;
 
+  Future<Either<AppException, VendorOnboardingResponseModel>>
+  fetchVendorOnboardingFutsal(int futsalId) async =>
+      await _repository.fetchVendorOnboardingFutsal(futsalId);
+
   Future<Either<AppException, Map<String, dynamic>>> submitFutsal(
     Map<String, dynamic> body,
   ) async => await _repository.submitFutsal(body);
 }
-

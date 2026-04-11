@@ -52,6 +52,9 @@ class UserData extends Equatable {
   final String? profilePhoto;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+  final int? futsalId;
+  final int? mainStep;
+  final int? subStep;
 
   const UserData({
     required this.id,
@@ -70,6 +73,9 @@ class UserData extends Equatable {
     this.profilePhoto,
     this.createdAt,
     this.updatedAt,
+    this.futsalId,
+    this.mainStep,
+    this.subStep,
   });
 
   factory UserData.fromJson(Map<String, dynamic> json) {
@@ -103,6 +109,15 @@ class UserData extends Equatable {
       updatedAt: json['updated_at'] != null
           ? DateTime.tryParse(json['updated_at'])
           : null,
+      futsalId: json['futsal_id'] != null
+          ? int.tryParse(json['futsal_id'].toString())
+          : null,
+      mainStep: json['main_step'] != null
+          ? int.tryParse(json['main_step'].toString())
+          : null,
+      subStep: json['sub_step'] != null
+          ? int.tryParse(json['sub_step'].toString())
+          : null,
     );
   }
 
@@ -125,6 +140,9 @@ class UserData extends Equatable {
       'profile_photo': profilePhoto,
       'created_at': createdAt?.toIso8601String(),
       'updated_at': updatedAt?.toIso8601String(),
+      'futsal_id': futsalId,
+      'main_step': mainStep,
+      'sub_step': subStep,
     };
   }
 
@@ -146,6 +164,9 @@ class UserData extends Equatable {
     profilePhoto,
     createdAt,
     updatedAt,
+    futsalId,
+    mainStep,
+    subStep,
   ];
 
   UserData copyWith({
@@ -165,6 +186,9 @@ class UserData extends Equatable {
     String? profilePhoto,
     DateTime? createdAt,
     DateTime? updatedAt,
+    int? futsalId,
+    int? mainStep,
+    int? subStep,
   }) {
     return UserData(
       id: id ?? this.id,
@@ -185,33 +209,9 @@ class UserData extends Equatable {
       profilePhoto: profilePhoto ?? this.profilePhoto,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      futsalId: futsalId ?? this.futsalId,
+      mainStep: mainStep ?? this.mainStep,
+      subStep: subStep ?? this.subStep,
     );
   }
 }
-
-// import 'package:hamro_footsall/features/profile/domain/entities/profile_entity.dart';
-
-// class ProfileModel extends ProfileEntity {
-//   const ProfileModel({
-//     super.id,
-//     required super.fullName,
-//     required super.email,
-//     super.role,
-//     super.phone,
-//     super.profilePhoto,
-//   });
-
-//   factory ProfileModel.fromJson(Map<String, dynamic> json) {
-//     return ProfileModel(
-//       id: json['id'] as int?,
-//       fullName:
-//           (json['full_name'] ?? json['name'] ?? '').toString().trim().isEmpty
-//           ? 'Guest User'
-//           : (json['full_name'] ?? json['name']).toString(),
-//       email: (json['email'] ?? '').toString(),
-//       role: json['role']?.toString(),
-//       phone: json['phone']?.toString(),
-//       profilePhoto: json['profile_photo']?.toString(),
-//     );
-//   }
-// }

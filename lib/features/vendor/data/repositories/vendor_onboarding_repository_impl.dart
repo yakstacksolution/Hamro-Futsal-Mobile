@@ -2,6 +2,7 @@ import 'package:dartz/dartz.dart';
 import 'package:hamro_footsall/core/helper/exception_helper.dart';
 import 'package:hamro_footsall/core/helper/response_helper.dart';
 import 'package:hamro_footsall/features/vendor/data/data_source/vendor_onboarding_data_source.dart';
+import 'package:hamro_footsall/features/vendor/data/model/vendor_onboarding_response_model.dart';
 import 'package:hamro_footsall/features/vendor/domain/repository/vendor_onboarding_repository.dart';
 
 final class VendorOnboardingRepositoryImpl
@@ -14,12 +15,27 @@ final class VendorOnboardingRepositoryImpl
   final VendorOnboardingRemoteDataSource _remoteDataSource;
 
   @override
+  Future<Either<AppException, VendorOnboardingResponseModel>>
+  fetchVendorOnboardingFutsal(int futsalId) async {
+    final response = await _remoteDataSource.fetchVendorOnboardingFutsal(
+      futsalId,
+    );
+    if (response.isError()) {
+      return left(ResponseHelper.error(response));
+    }
+
+    final dynamic value = response.getValue();
+    final Map<String, dynamic> data = _extractResponseData(value);
+    return right(VendorOnboardingResponseModel.fromJson(data));
+  }
+
+  @override
   Future<Either<AppException, Map<String, dynamic>>> submitFutsal(
     Map<String, dynamic> body,
   ) async {
     final response = await _remoteDataSource.submitFutsal(body);
     if (response.isError()) {
-      return left(ResponseHelper.error(response));
+      return left(ResponseHelper.error(response.getErrorMsg()));
     }
 
     final dynamic value = response.getValue();

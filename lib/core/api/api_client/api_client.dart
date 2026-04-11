@@ -71,17 +71,22 @@ class ApiClient {
     return _get(url: '$_baseUrl/auth/templates');
   }
 
+  Future<Result> fetchVendorOnboardingFutsal({required int futsalId}) {
+    return _get(url: '$_baseUrl/auth/get-futsal/$futsalId');
+  }
+
   Future<Result> submitVendorOnboardingFutsal({
     required Map<String, dynamic> data,
   }) {
-    return _post(url: '$_baseUrl/auth/vendor/onboarding/submit', data: data);
+    return _post(url: '$_baseUrl/auth/vendor/onboarding/store', data: data);
   }
 
-  Future<Result> _get({required String url}) {
+  Future<Result> _get({required String url, Map<String, dynamic>? query}) {
     return _apiCallWrapper.makeRequest(
       url: url,
       token: AppSettings().tokenModel.accessToken,
       method: HttpVerb.get,
+      query: query,
     );
   }
 

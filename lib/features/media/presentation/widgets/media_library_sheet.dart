@@ -12,8 +12,8 @@ import 'package:hamro_footsall/features/media/data/model/media_model.dart';
 import 'package:hamro_footsall/features/media/data/repositories/media_repository_impl.dart';
 import 'package:hamro_footsall/features/media/domain/usecase/media_use_case.dart';
 import 'package:hamro_footsall/features/media/presentation/bloc/media_bloc.dart';
-import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit.dart';
-import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_state.dart';
+import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_cubit.dart';
+import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_state.dart';
 import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_models.dart';
 
 Future<List<UploadRef>?> showVendorMediaLibrarySheet({

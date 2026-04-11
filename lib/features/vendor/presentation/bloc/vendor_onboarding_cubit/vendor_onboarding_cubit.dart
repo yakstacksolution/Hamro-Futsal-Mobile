@@ -1,14 +1,14 @@
 import 'dart:async';
 import 'dart:math';
-
 import 'package:dartz/dartz.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hamro_footsall/core/helper/exception_helper.dart';
+import 'package:hamro_footsall/features/vendor/data/model/vendor_onboarding_response_model.dart';
 import 'package:hamro_footsall/features/vendor/data/vendor_draft_repository.dart';
 import 'package:hamro_footsall/features/vendor/data/repositories/vendor_onboarding_repository_impl.dart';
 import 'package:hamro_footsall/features/vendor/domain/usecase/vendor_onboarding_usecase.dart';
-import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_state.dart';
+import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_state.dart';
 import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_api_payload.dart';
 import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_models.dart';
 import 'package:hamro_footsall/features/vendor/presentation/validation/vendor_onboarding_validator.dart';
@@ -18,7 +18,16 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     this._draftRepository, {
     VendorOnboardingUseCase? onboardingUseCase,
   }) : super(VendorOnboardingState.initial()) {
-    unawaited(restoreDraft());
+    if (_draftRepository.persistsLocally) {
+      unawaited(restoreDraft());
+    } else {
+      emit(
+        state.copyWith(
+          isRestoringDraft: false,
+          saveStatus: DraftSaveStatus.unsaved,
+        ),
+      );
+    }
     _onboardingUseCase =
         onboardingUseCase ??
         VendorOnboardingUseCase(VendorOnboardingRepositoryImpl());
@@ -288,6 +297,60 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     }
   }
 
+  Future<void> fetchVendorOnboarding(int futsalId) async {
+    emit(
+      state.copyWith(
+        isRestoringDraft: true,
+        clearErrorMessage: true,
+        errorKeys: const <String>{},
+      ),
+    );
+
+    final Either<AppException, VendorOnboardingResponseModel> response =
+        await _onboardingUseCase.fetchVendorOnboardingFutsal(futsalId);
+
+    response.fold(
+      (AppException failure) {
+        emit(
+          _clearedState().copyWith(
+            errorMessage: failure.errorMessage,
+            errorOrigin: VendorErrorOrigin.api,
+          ),
+        );
+      },
+      (VendorOnboardingResponseModel data) {
+        final int sectionIndex = _clamp(
+          data.mainStep,
+          0,
+          futsalSectionDefinitions.length - 1,
+        );
+        final int subsectionIndex = _clamp(
+          data.subStep,
+          0,
+          futsalSectionDefinitions[sectionIndex].substeps.length - 1,
+        );
+
+        emit(
+          _normalizeState(
+            _clearedState().copyWith(
+              futsal: data.toDraft(),
+              remoteFutsalId: data.id ?? futsalId,
+              futsalPointer: SectionPointer(
+                sectionIndex: sectionIndex,
+                subsectionIndex: subsectionIndex,
+              ),
+              cursor: StepCursor(
+                category: VendorCategory.futsal,
+                sectionIndex: sectionIndex,
+                subsectionIndex: subsectionIndex,
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   void selectCategory(VendorCategory category) {
     if (category == VendorCategory.futsal) {
       final SectionPointer pointer = state.futsalPointer;
@@ -417,7 +480,7 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
 
     final String? registrationFailure = await _submitFutsalRegistrationIfNeeded(
       mainStep: 0,
-      subStep: 2,
+      subStep: 0,
     );
     if (registrationFailure != null) {
       return registrationFailure;
@@ -1093,7 +1156,13 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     _saveDebounce?.cancel();
     _revision = 0;
     await _draftRepository.clear();
-    emit(VendorOnboardingState.initial().copyWith(isRestoringDraft: false));
+    emit(_clearedState());
+  }
+
+  void clearOnboardingState() {
+    _saveDebounce?.cancel();
+    _revision = 0;
+    emit(_clearedState());
   }
 
   @override
@@ -1171,7 +1240,9 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
         nextState.copyWith(
           isDirty: true,
           isCompleted: false,
-          saveStatus: DraftSaveStatus.idle,
+          saveStatus: _draftRepository.persistsLocally
+              ? DraftSaveStatus.idle
+              : DraftSaveStatus.unsaved,
           clearErrorMessage: true,
           errorKeys: _pruneActiveErrorKeys(nextState.errorKeys),
         ),
@@ -1419,6 +1490,7 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
   }
 
   Future<void> _saveDraft({required bool showSavingState}) async {
+    if (!_draftRepository.persistsLocally) return;
     if (state.isRestoringDraft) return;
 
     final int snapshotRevision = _revision;
@@ -1451,6 +1523,7 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
   }
 
   void _scheduleDraftSave() {
+    if (!_draftRepository.persistsLocally) return;
     _saveDebounce?.cancel();
     _saveDebounce = Timer(
       const Duration(milliseconds: 700),
@@ -1556,6 +1629,15 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
       courtPointersById: pointers,
       activeCourtId: activeCourtId,
       cursor: cursor,
+    );
+  }
+
+  VendorOnboardingState _clearedState() {
+    return VendorOnboardingState.initial().copyWith(
+      isRestoringDraft: false,
+      saveStatus: _draftRepository.persistsLocally
+          ? DraftSaveStatus.idle
+          : DraftSaveStatus.unsaved,
     );
   }
 
