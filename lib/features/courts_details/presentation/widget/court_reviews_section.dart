@@ -40,7 +40,7 @@ class CourtReviewsSection extends StatelessWidget {
                 child: Text(
                   'Reviews',
                   style: TextStyle(
-                    color: LightColor.titleText,
+                    color: LightColor.primaryTextColor,
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
                   ),
@@ -52,13 +52,13 @@ class CourtReviewsSection extends StatelessWidget {
                   vertical: 5,
                 ),
                 decoration: BoxDecoration(
-                  color: LightColor.primaryLight,
+                  color: LightColor.secondaryLight,
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
                   'See All ($reviewCount)',
                   style: const TextStyle(
-                    color: LightColor.secondary,
+                    color: LightColor.secondaryColor,
                     fontSize: 11.5,
                     fontWeight: FontWeight.w700,
                   ),
@@ -79,11 +79,15 @@ class CourtReviewsSection extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: LightColor.primaryGradient,
+        gradient: const LinearGradient(
+          colors: <Color>[LightColor.secondaryColor, LightColor.secondaryLight],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: LightColor.secondary.withValues(alpha: 0.35),
+            color: LightColor.secondaryColor.withValues(alpha: 0.35),
             blurRadius: 18,
             offset: const Offset(0, 7),
           ),
@@ -149,12 +153,14 @@ class CourtReviewsSection extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: LightColor.surface,
+        color: LightColor.cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: LightColor.border.withValues(alpha: 0.65)),
+        border: Border.all(
+          color: LightColor.borderColor.withValues(alpha: 0.65),
+        ),
         boxShadow: [
           BoxShadow(
-            color: LightColor.shadow.withValues(alpha: 0.04),
+            color: LightColor.shadowColor.withValues(alpha: 0.04),
             blurRadius: 8,
             offset: const Offset(0, 3),
           ),
@@ -176,7 +182,7 @@ class CourtReviewsSection extends StatelessWidget {
                   child: Text(
                     _safeInitial(review.name),
                     style: const TextStyle(
-                      color: LightColor.secondary,
+                      color: LightColor.secondaryColor,
                       fontSize: 16,
                       fontWeight: FontWeight.w800,
                     ),
@@ -191,7 +197,7 @@ class CourtReviewsSection extends StatelessWidget {
                     Text(
                       review.name,
                       style: const TextStyle(
-                        color: LightColor.titleText,
+                        color: LightColor.primaryTextColor,
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
                       ),
@@ -199,7 +205,7 @@ class CourtReviewsSection extends StatelessWidget {
                     Text(
                       review.date,
                       style: const TextStyle(
-                        color: LightColor.subtitleText,
+                        color: LightColor.secondaryTextColor,
                         fontSize: 11.5,
                         fontWeight: FontWeight.w400,
                       ),
@@ -218,14 +224,14 @@ class CourtReviewsSection extends StatelessWidget {
                   children: [
                     const Icon(
                       Icons.star_rounded,
-                      color: LightColor.secondary,
+                      color: LightColor.secondaryColor,
                       size: 14,
                     ),
                     const SizedBox(width: 3),
                     Text(
                       review.rating.toStringAsFixed(1),
                       style: const TextStyle(
-                        color: LightColor.secondary,
+                        color: LightColor.secondaryColor,
                         fontSize: 12.5,
                         fontWeight: FontWeight.w800,
                       ),
@@ -239,7 +245,7 @@ class CourtReviewsSection extends StatelessWidget {
           Text(
             review.comment,
             style: const TextStyle(
-              color: LightColor.subtitleText,
+              color: LightColor.secondaryTextColor,
               fontSize: 13.5,
               fontWeight: FontWeight.w400,
               height: 1.55,

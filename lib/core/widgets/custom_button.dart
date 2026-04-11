@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
+import 'package:hamro_footsall/core/theme/futsal_theme.dart' hide LightColor;
+import 'package:hamro_footsall/core/utils/app_utils.dart';
+import 'package:hamro_footsall/core/utils/dimens.dart';
 
 class CustomButton extends StatelessWidget {
   const CustomButton({
@@ -8,15 +11,15 @@ class CustomButton extends StatelessWidget {
     required this.onPressed,
     this.icon,
     this.isLoading = false,
-    this.backgroundColor = LightColor.secondary,
-    this.foregroundColor = Colors.white,
+    this.backgroundColor = LightColor.secondaryColor,
+    this.foregroundColor = LightColor.inverseTextColor,
     this.borderColor,
     this.isOutlined = false,
     this.widthFactor,
-    this.minHeight = 50,
-    this.verticalPadding = 4,
-    this.borderRadius = 10,
-    this.fontSize = 15,
+    this.minHeight = AppDimens.sizeX46,
+    this.verticalPadding = AppDimens.paddingX4,
+    this.borderRadius = AppDimens.radiusX8,
+    this.fontSize = AppDimens.fontBodyTextSmall,
     this.fontWeight = FontWeight.w600,
   });
 
@@ -37,9 +40,9 @@ class CustomButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
+    final AppUtils appUtils = AppUtils();
     final resolvedBackground = isOutlined
-        ? LightColor.transparent
+        ? LightColor.transparentColor
         : backgroundColor;
     final resolvedBorderColor =
         borderColor ?? (isOutlined ? foregroundColor : null);
@@ -59,15 +62,16 @@ class CustomButton extends StatelessWidget {
             children: <Widget>[
               if (icon != null) ...<Widget>[
                 Icon(icon, size: 18, color: foregroundColor),
-                const SizedBox(width: 6),
+                SizedBox(width: AppDimens.sizeX6),
               ],
               Text(
                 text,
-                style: theme.textTheme.labelLarge?.copyWith(
-                  color: foregroundColor,
-                  fontWeight: fontWeight,
-                  fontSize: fontSize,
-                ),
+                style: FutsalTheme.getTextTheme(context).bodyTextSmall
+                    ?.copyWith(
+                      color: foregroundColor,
+                      fontWeight: fontWeight,
+                      fontSize: fontSize,
+                    ),
               ),
             ],
           );
@@ -79,6 +83,13 @@ class CustomButton extends StatelessWidget {
         minimumSize: WidgetStateProperty.all<Size>(Size(0, minHeight)),
         overlayColor: WidgetStateProperty.all(
           foregroundColor.withValues(alpha: isOutlined ? 0.08 : 0.12),
+        ),
+        textStyle: WidgetStateProperty.all<TextStyle>(
+          FutsalTheme.getTextTheme(context).bodyTextLarge!.copyWith(
+            color: foregroundColor,
+            fontWeight: fontWeight,
+            fontSize: fontSize,
+          ),
         ),
         shape: WidgetStateProperty.all<RoundedRectangleBorder>(
           RoundedRectangleBorder(
@@ -98,7 +109,10 @@ class CustomButton extends StatelessWidget {
         width: widthFactor != null
             ? MediaQuery.sizeOf(context).width * widthFactor!
             : double.infinity,
-        padding: EdgeInsets.symmetric(vertical: verticalPadding),
+        padding: appUtils.getPadding(
+          symmetricVertical: verticalPadding,
+          symmetricHorizontal: AppDimens.paddingX12,
+        ),
         child: content,
       ),
     );

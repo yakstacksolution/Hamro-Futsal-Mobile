@@ -18,9 +18,9 @@ class VendorOnboardingShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: LightColor.white,
+      backgroundColor: LightColor.whiteColor,
       appBar: AppBar(
-        backgroundColor: LightColor.white,
+        backgroundColor: LightColor.whiteColor,
         surfaceTintColor: Colors.transparent,
         title: const Text(
           'Vendor Onboarding',
@@ -32,7 +32,7 @@ class VendorOnboardingShell extends StatelessWidget {
           child: Icon(
             size: 18,
             Icons.arrow_back_ios_rounded,
-            color: LightColor.black,
+            color: LightColor.primaryTextColor,
           ),
         ),
         actions: <Widget>[

@@ -64,8 +64,8 @@ class _DetailsImageGalleryState extends State<DetailsImageGallery> {
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                           colors: [
-                            LightColor.transparent,
-                            LightColor.black.withOpacity(0.5),
+                            LightColor.transparentColor,
+                            LightColor.primaryTextColor.withOpacity(0.5),
                           ],
                         ),
                       ),
@@ -96,8 +96,8 @@ class _DetailsImageGalleryState extends State<DetailsImageGallery> {
                           ? Icons.favorite_rounded
                           : Icons.favorite_border_rounded,
                       iconColor: _isSaved
-                          ? LightColor.secondary
-                          : LightColor.white,
+                          ? LightColor.secondaryColor
+                          : LightColor.whiteColor,
                       onTap: () {
                         HapticFeedback.lightImpact();
                         setState(() => _isSaved = !_isSaved);
@@ -126,8 +126,8 @@ class _DetailsImageGalleryState extends State<DetailsImageGallery> {
                       height: 6,
                       decoration: BoxDecoration(
                         color: active
-                            ? LightColor.white
-                            : LightColor.white.withOpacity(0.4),
+                            ? LightColor.whiteColor
+                            : LightColor.whiteColor.withOpacity(0.4),
                         borderRadius: BorderRadius.circular(100),
                       ),
                     );
@@ -143,10 +143,10 @@ class _DetailsImageGalleryState extends State<DetailsImageGallery> {
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: LightColor.black.withOpacity(0.35),
+                        color: LightColor.primaryTextColor.withOpacity(0.35),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: LightColor.white.withOpacity(0.15),
+                          color: LightColor.whiteColor.withOpacity(0.15),
                         ),
                       ),
                       child: Row(
@@ -154,14 +154,14 @@ class _DetailsImageGalleryState extends State<DetailsImageGallery> {
                         children: [
                           const Icon(
                             Icons.photo,
-                            color: LightColor.white,
+                            color: LightColor.whiteColor,
                             size: 14,
                           ),
                           const SizedBox(width: 5),
                           Text(
                             '${_currentImageIndex + 1}/${imageList.length}',
                             style: const TextStyle(
-                              color: LightColor.white,
+                              color: LightColor.whiteColor,
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
                             ),
@@ -182,7 +182,7 @@ class _DetailsImageGalleryState extends State<DetailsImageGallery> {
   Widget _glassButton({
     required IconData icon,
     required VoidCallback onTap,
-    Color iconColor = LightColor.white,
+    Color iconColor = LightColor.whiteColor,
   }) {
     return GestureDetector(
       onTap: onTap,
@@ -194,9 +194,9 @@ class _DetailsImageGalleryState extends State<DetailsImageGallery> {
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: LightColor.black.withOpacity(0.25),
+              color: LightColor.primaryTextColor.withOpacity(0.25),
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: LightColor.white.withOpacity(0.15)),
+              border: Border.all(color: LightColor.whiteColor.withOpacity(0.15)),
             ),
             child: Icon(icon, color: iconColor, size: 22),
           ),

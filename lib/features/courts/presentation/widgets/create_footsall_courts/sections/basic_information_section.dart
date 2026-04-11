@@ -34,7 +34,7 @@ class BasicInformationSection extends StatelessWidget {
               bloc.state.isSlugAuto
                   ? Icons.auto_awesome_rounded
                   : Icons.edit_rounded,
-              color: LightColor.skyBlue,
+              color: LightColor.secondaryColor,
               size: 20,
             ),
             onPressed: bloc.toggleSlugAutomation,

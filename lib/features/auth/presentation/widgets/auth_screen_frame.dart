@@ -1,7 +1,10 @@
 import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
+import 'package:hamro_footsall/core/theme/futsal_text.dart';
+import 'package:hamro_footsall/core/theme/futsal_theme.dart' hide LightColor;
+import 'package:hamro_footsall/core/utils/app_utils.dart';
+import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/widgets/custom_button.dart';
 
 class AuthScreenFrame extends StatelessWidget {
@@ -39,8 +42,7 @@ class AuthScreenFrame extends StatelessWidget {
   final bool isLoading;
   @override
   Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-
+    final FutsalTextTheme theme = FutsalTheme.getTextTheme(context);
     return Scaffold(
       body: Stack(
         children: <Widget>[
@@ -48,9 +50,18 @@ class AuthScreenFrame extends StatelessWidget {
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+                padding: AppUtils().getPadding(
+                  left: AppDimens.paddingX20,
+                  top: AppDimens.paddingX24,
+                  right: AppDimens.paddingX20,
+                  bottom: AppDimens.paddingX20,
+                ),
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 460),
+                  constraints: BoxConstraints(
+                    maxWidth:
+                        (AppDimens.sizeX130 + AppDimens.sizeX130) *
+                        AppDimens.sizeX2,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: <Widget>[
@@ -60,42 +71,35 @@ class AuthScreenFrame extends StatelessWidget {
                         headerIcon: headerIcon,
                         isRotate: isRotate,
                       ),
-                      const SizedBox(height: 18),
+                      SizedBox(height: AppDimens.sizeX18),
                       Container(
-                        padding: const EdgeInsets.fromLTRB(20, 20, 20, 14),
+                        padding: AppUtils().getPadding(
+                          left: AppDimens.paddingX20,
+                          top: AppDimens.paddingX20,
+                          right: AppDimens.paddingX20,
+                          bottom: AppDimens.paddingX14,
+                        ),
                         decoration: BoxDecoration(
-                          color: LightColor.white.withValues(alpha: 0.96),
-                          borderRadius: BorderRadius.circular(26),
-                          border: Border.all(
-                            color: LightColor.border.withValues(alpha: 0.7),
+                          color: LightColor.whiteColor.withValues(alpha: 0.96),
+                          borderRadius: BorderRadius.circular(
+                            AppDimens.radiusX20,
                           ),
-                          boxShadow: <BoxShadow>[
-                            BoxShadow(
-                              color: LightColor.secondary.withValues(
-                                alpha: 0.14,
-                              ),
-                              blurRadius: 32,
-                              offset: const Offset(0, 14),
-                            ),
-                          ],
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: <Widget>[
                             ...formFields,
-                            const SizedBox(height: 18),
+                            SizedBox(height: AppDimens.sizeX18),
                             CustomButton(
                               text: primaryButtonLabel,
-                              minHeight: 45,
-                              borderRadius: 10,
-                              fontSize: 14,
+                              minHeight: AppDimens.sizeX44,
                               isLoading: isLoading,
-                              backgroundColor: theme.colorScheme.secondary,
+                              backgroundColor: LightColor.buttonColor,
                               onPressed: primaryButtonEnabled
                                   ? onPrimaryTap
                                   : null,
                             ),
-                            const SizedBox(height: 20),
+                            SizedBox(height: AppDimens.sizeX20),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: <Widget>[
@@ -103,10 +107,8 @@ class AuthScreenFrame extends StatelessWidget {
                                   child: Text(
                                     secondaryPrefixText,
                                     overflow: TextOverflow.ellipsis,
-                                    style: theme.textTheme.bodyMedium?.copyWith(
-                                      color: LightColor.subtitleText,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
+                                    style: theme.bodyTextSmall?.copyWith(
+                                      color: LightColor.secondaryTextColor,
                                     ),
                                   ),
                                 ),
@@ -114,19 +116,14 @@ class AuthScreenFrame extends StatelessWidget {
                                   onTap: onSecondaryTap,
                                   child: Text(
                                     '$secondaryActionText ?',
-                                    style: theme.textTheme.bodyMedium?.copyWith(
-                                      color: LightColor.secondary,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w800,
+                                    style: theme.bodyTextSmall?.copyWith(
+                                      color: LightColor.secondaryColor,
                                     ),
                                   ),
                                 ),
                               ],
                             ),
-                            // if (footer != null) ...<Widget>[
-                            const SizedBox(height: 8),
-                            //   footer!,
-                            // ],
+                            const SizedBox(height: AppDimens.sizeX10),
                           ],
                         ),
                       ),
@@ -150,7 +147,7 @@ InputDecoration authInputDecoration({
   Widget? suffixIcon,
 }) {
   final ThemeData theme = Theme.of(context);
-  final Color fillColor = LightColor.surface;
+  final Color fillColor = LightColor.cardColor;
 
   OutlineInputBorder border(Color color) {
     return OutlineInputBorder(
@@ -162,24 +159,24 @@ InputDecoration authInputDecoration({
   return InputDecoration(
     labelText: labelText,
     hintText: hintText,
-    prefixIcon: Icon(icon, color: LightColor.subtitleText),
+    prefixIcon: Icon(icon, color: LightColor.secondaryTextColor),
     suffixIcon: suffixIcon,
     floatingLabelBehavior: FloatingLabelBehavior.always,
     filled: true,
     fillColor: fillColor,
     labelStyle: theme.textTheme.bodyMedium?.copyWith(
-      color: LightColor.subtitleText,
+      color: LightColor.secondaryTextColor,
       fontSize: 13,
       fontWeight: FontWeight.w700,
     ),
     hintStyle: theme.textTheme.bodyMedium?.copyWith(
-      color: LightColor.hintText,
+      color: LightColor.hintTextColor,
       fontSize: 13,
       fontWeight: FontWeight.w500,
     ),
-    enabledBorder: border(LightColor.border),
+    enabledBorder: border(LightColor.borderColor),
     focusedBorder: border(theme.colorScheme.secondary),
-    border: border(LightColor.border),
+    border: border(LightColor.borderColor),
     contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 18),
   );
 }
@@ -199,57 +196,53 @@ class _AuthHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-
     return Row(
       children: <Widget>[
         Container(
-          width: 58,
-          height: 58,
+          width: AppDimens.sizeX58,
+          height: AppDimens.sizeX58,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             gradient: const LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: <Color>[
-                LightColor.primary,
-                LightColor.secondary,
+                LightColor.secondaryColor,
+                LightColor.secondaryColor,
                 LightColor.secondaryDark,
               ],
             ),
             boxShadow: <BoxShadow>[
               BoxShadow(
-                color: LightColor.primary.withValues(alpha: 0.25),
-                blurRadius: 18,
-                offset: const Offset(0, 8),
+                color: LightColor.secondaryColor.withValues(alpha: 0.25),
+                blurRadius: AppDimens.radiusX18,
+                offset: const Offset(0, AppDimens.sizeX8),
               ),
             ],
           ),
           child: isRotate
               ? _RotatingIcon(headerIcon)
-              : Icon(headerIcon, color: Colors.white, size: 28),
+              : Icon(headerIcon, color: Colors.white, size: AppDimens.sizeX28),
         ),
-        const SizedBox(width: 14),
+        const SizedBox(width: AppDimens.sizeX14),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               Text(
                 title,
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  color: LightColor.titleText,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 20,
-                ),
+                style: FutsalTheme.getTextTheme(
+                  context,
+                ).headingSubTitle?.copyWith(color: LightColor.primaryTextColor),
               ),
-              const SizedBox(height: 2),
+              const SizedBox(height: AppDimens.sizeX2),
               Text(
                 subtitle,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: LightColor.subtitleText,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: FutsalTheme.getTextTheme(context).bodyTextSmall
+                    ?.copyWith(
+                      color: LightColor.secondaryTextColor,
+                      fontWeight: FontWeight.w600,
+                    ),
               ),
             ],
           ),
@@ -271,7 +264,7 @@ class _AuthBackground extends StatelessWidget {
           end: Alignment.bottomCenter,
           colors: <Color>[
             LightColor.secondarySoft,
-            LightColor.primarySoft,
+            LightColor.primarySoft.withAlpha(12),
             LightColor.background,
           ],
           stops: const <double>[0, 0.35, 1],
@@ -283,7 +276,7 @@ class _AuthBackground extends StatelessWidget {
             top: -84,
             left: -52,
             child: _BackgroundBubble(
-              size: 190,
+              size: AppDimens.sizeX190,
               colors: const <Color>[LightColor.primarySoft, Color(0x1416A34A)],
             ),
           ),
@@ -291,15 +284,18 @@ class _AuthBackground extends StatelessWidget {
             top: 130,
             right: -70,
             child: _BackgroundBubble(
-              size: 230,
-              colors: const <Color>[LightColor.secondarySoft, Color(0x1410B981)],
+              size: AppDimens.sizeX230,
+              colors: const <Color>[
+                LightColor.secondarySoft,
+                Color(0x1410B981),
+              ],
             ),
           ),
           Positioned(
             bottom: -65,
             left: -40,
             child: _BackgroundBubble(
-              size: 170,
+              size: AppDimens.sizeX170,
               colors: const <Color>[Color(0x1A14532D), Color(0x0F14532D)],
             ),
           ),
@@ -368,7 +364,11 @@ class _RotatingIconState extends State<_RotatingIcon>
       builder: (context, child) {
         return Transform.rotate(
           angle: _controller.value * 2 * pi,
-          child: Icon(widget.icon, color: Colors.white, size: 34),
+          child: Icon(
+            widget.icon,
+            color: Colors.white,
+            size: AppDimens.sizeX34,
+          ),
         );
       },
     );

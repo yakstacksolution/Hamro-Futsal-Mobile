@@ -62,7 +62,7 @@ class AmenitiesFacilitiesSection extends StatelessWidget {
           Text(
             bloc.amenitiesSelectionError()!,
             style: const TextStyle(
-              color: LightColor.darkgrey,
+              color: LightColor.secondaryTextColor,
               fontSize: 12.5,
               fontWeight: FontWeight.w600,
             ),
@@ -99,7 +99,7 @@ class _SectionTitle extends StatelessWidget {
         Text(
           title,
           style: const TextStyle(
-            color: LightColor.titleTextColor,
+            color: LightColor.primaryTextColor,
             fontSize: 15,
             fontWeight: FontWeight.w800,
           ),
@@ -108,7 +108,7 @@ class _SectionTitle extends StatelessWidget {
         Text(
           subtitle,
           style: const TextStyle(
-            color: LightColor.darkgrey,
+            color: LightColor.secondaryTextColor,
             fontSize: 12.5,
             height: 1.4,
           ),

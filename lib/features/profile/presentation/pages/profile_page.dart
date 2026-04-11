@@ -38,13 +38,13 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: LightColor.backgroundWarm,
+      backgroundColor: LightColor.background,
       appBar: AppBar(
         toolbarHeight: 20,
-        backgroundColor: LightColor.transparent,
+        backgroundColor: LightColor.transparentColor,
         elevation: 0,
         centerTitle: true,
-        surfaceTintColor: LightColor.transparent,
+        surfaceTintColor: LightColor.transparentColor,
       ),
       body: BlocConsumer<ProfileBloc, ProfileState>(
         listenWhen: (ProfileState previous, ProfileState current) =>
@@ -172,7 +172,7 @@ class _ProfilePageState extends State<ProfilePage> {
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: LightColor.successBorder),
+        border: Border.all(color: LightColor.secondaryLightMedium),
       ),
       child: Row(
         children: <Widget>[
@@ -182,10 +182,10 @@ class _ProfilePageState extends State<ProfilePage> {
             padding: const EdgeInsets.all(2),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: LightColor.white,
+              color: LightColor.whiteColor,
               boxShadow: <BoxShadow>[
                 BoxShadow(
-                  color: LightColor.secondary.withValues(alpha: 0.16),
+                  color: LightColor.secondaryColor.withValues(alpha: 0.16),
                   blurRadius: 18,
                   offset: const Offset(0, 8),
                 ),
@@ -219,7 +219,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 Text(
                   isLoading ? 'Loading profile...' : fullName,
                   style: const TextStyle(
-                    color: LightColor.titleTextColor,
+                    color: LightColor.primaryTextColor,
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
                     letterSpacing: -0.2,
@@ -229,7 +229,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 Text(
                   email,
                   style: TextStyle(
-                    color: LightColor.subtitleText.withValues(alpha: 0.92),
+                    color: LightColor.secondaryTextColor.withValues(alpha: 0.92),
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                   ),
@@ -241,7 +241,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     vertical: 2,
                   ),
                   decoration: BoxDecoration(
-                    color: LightColor.white,
+                    color: LightColor.whiteColor,
                     borderRadius: BorderRadius.circular(2),
                   ),
                   child: Text(
@@ -265,7 +265,7 @@ class _ProfilePageState extends State<ProfilePage> {
     return Text(
       label,
       style: TextStyle(
-        color: LightColor.subtitleText.withValues(alpha: 0.86),
+        color: LightColor.secondaryTextColor.withValues(alpha: 0.86),
         fontSize: 12,
         fontWeight: FontWeight.w700,
       ),
@@ -274,12 +274,12 @@ class _ProfilePageState extends State<ProfilePage> {
 
   BoxDecoration _cardDecoration() {
     return BoxDecoration(
-      color: LightColor.surface,
+      color: LightColor.cardColor,
       borderRadius: BorderRadius.circular(10),
-      border: Border.all(color: LightColor.lightGrey.withValues(alpha: 0.15)),
+      border: Border.all(color: LightColor.borderColor.withValues(alpha: 0.15)),
       boxShadow: <BoxShadow>[
         BoxShadow(
-          color: LightColor.shadow.withValues(alpha: 0.04),
+          color: LightColor.shadowColor.withValues(alpha: 0.04),
           blurRadius: 10,
           offset: const Offset(0, 10),
         ),
@@ -339,19 +339,19 @@ class _ProfileTile extends StatelessWidget {
               color: LightColor.secondaryLight,
               borderRadius: BorderRadius.circular(6),
             ),
-            child: Icon(item.icon, color: LightColor.secondary, size: 18),
+            child: Icon(item.icon, color: LightColor.secondaryColor, size: 18),
           ),
           title: Text(
             item.title,
             style: const TextStyle(
-              color: LightColor.titleTextColor,
+              color: LightColor.primaryTextColor,
               fontSize: 13,
               fontWeight: FontWeight.w600,
             ),
           ),
           trailing: Icon(
             Icons.chevron_right_rounded,
-            color: LightColor.lightGrey.withValues(alpha: 0.9),
+            color: LightColor.borderColor.withValues(alpha: 0.9),
           ),
         ),
         if (!isLast)
@@ -359,7 +359,7 @@ class _ProfileTile extends StatelessWidget {
             height: 0.5,
             indent: 40,
             endIndent: 10,
-            color: LightColor.divider,
+            color: LightColor.dividerColor,
           ),
       ],
     );
@@ -382,7 +382,7 @@ class _LogoutTile extends StatelessWidget {
         width: 38,
         height: 38,
         decoration: BoxDecoration(
-          color: LightColor.redLight,
+          color: LightColor.redLightColor,
           borderRadius: BorderRadius.circular(10),
         ),
         child: isLoading
@@ -390,22 +390,22 @@ class _LogoutTile extends StatelessWidget {
                 padding: EdgeInsets.all(10),
                 child: CircularProgressIndicator(
                   strokeWidth: 1,
-                  valueColor: AlwaysStoppedAnimation<Color>(LightColor.red),
+                  valueColor: AlwaysStoppedAnimation<Color>(LightColor.redColor),
                 ),
               )
-            : const Icon(Icons.logout_rounded, color: LightColor.red, size: 20),
+            : const Icon(Icons.logout_rounded, color: LightColor.redColor, size: 20),
       ),
       title: Text(
         isLoading ? 'Logging out...' : 'Logout',
         style: const TextStyle(
-          color: LightColor.red,
+          color: LightColor.redColor,
           fontSize: 14.5,
           fontWeight: FontWeight.w700,
         ),
       ),
       trailing: Icon(
         Icons.chevron_right_rounded,
-        color: LightColor.hintText.withValues(alpha: 0.9),
+        color: LightColor.hintTextColor.withValues(alpha: 0.9),
       ),
     );
   }

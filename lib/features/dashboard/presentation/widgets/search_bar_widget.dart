@@ -98,19 +98,19 @@ class _ExpandableFocusSearchBarState extends State<ExpandableFocusSearchBar>
           curve: Curves.easeOutCubic,
           height: 50,
           decoration: BoxDecoration(
-            color: LightColor.surface,
+            color: LightColor.cardColor,
             borderRadius: BorderRadius.circular(_isFocused ? 10 : 10),
             border: Border.all(
               color: _isFocused
-                  ? LightColor.secondary.withOpacity(0.4)
-                  : LightColor.border.withOpacity(0.6),
+                  ? LightColor.secondaryColor.withOpacity(0.4)
+                  : LightColor.borderColor.withOpacity(0.6),
               width: _isFocused ? 2 : 1,
             ),
             boxShadow: [
               BoxShadow(
                 color: _isFocused
-                    ? LightColor.secondary.withOpacity(0.1)
-                    : LightColor.shadow.withOpacity(0.03),
+                    ? LightColor.secondaryColor.withOpacity(0.1)
+                    : LightColor.shadowColor.withOpacity(0.03),
                 blurRadius: _isFocused ? 20 : 10,
                 offset: const Offset(0, 4),
               ),
@@ -127,7 +127,7 @@ class _ExpandableFocusSearchBarState extends State<ExpandableFocusSearchBar>
                 child: Icon(
                   _isFocused ? Icons.search_rounded : Icons.search_rounded,
                   key: ValueKey(_isFocused),
-                  color: _isFocused ? LightColor.secondary : LightColor.grey,
+                  color: _isFocused ? LightColor.secondaryColor : LightColor.hintTextColor,
                   size: 22,
                 ),
               ),
@@ -137,7 +137,7 @@ class _ExpandableFocusSearchBarState extends State<ExpandableFocusSearchBar>
                   controller: _controller,
                   focusNode: _focusNode,
                   style: const TextStyle(
-                    color: LightColor.black,
+                    color: LightColor.primaryTextColor,
                     fontSize: 15,
                     fontWeight: FontWeight.w500,
                   ),
@@ -150,7 +150,7 @@ class _ExpandableFocusSearchBarState extends State<ExpandableFocusSearchBar>
                     ),
                     hintText: 'Where do you want to play?',
                     hintStyle: TextStyle(
-                      color: LightColor.grey,
+                      color: LightColor.hintTextColor,
                       fontSize: 14.5,
                       fontWeight: FontWeight.w400,
                     ),
@@ -193,9 +193,9 @@ class _ExpandableFocusSearchBarState extends State<ExpandableFocusSearchBar>
                     margin: const EdgeInsets.only(top: 8),
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: LightColor.surface,
+                      color: LightColor.cardColor,
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: LightColor.lightGrey),
+                      border: Border.all(color: LightColor.borderColor),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withOpacity(0.04),

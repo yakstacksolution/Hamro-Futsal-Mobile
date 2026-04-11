@@ -41,7 +41,7 @@ class VendorUnifiedStepper extends StatelessWidget {
                 child: Text(
                   title,
                   style: const TextStyle(
-                    color: LightColor.titleText,
+                    color: LightColor.primaryTextColor,
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
                   ),
@@ -56,7 +56,7 @@ class VendorUnifiedStepper extends StatelessWidget {
                 child: Text(
                   '${activeSectionIndex + 1}.${activeSubstepIndex + 1}',
                   style: const TextStyle(
-                    color: LightColor.secondary,
+                    color: LightColor.secondaryColor,
                     fontSize: 10,
                     fontWeight: FontWeight.w700,
                   ),
@@ -99,20 +99,20 @@ class VendorUnifiedStepper extends StatelessWidget {
                   width: 2,
                   height: 2,
                   decoration: const BoxDecoration(
-                    color: LightColor.border,
+                    color: LightColor.borderColor,
                     shape: BoxShape.circle,
                   ),
                 ),
                 const SizedBox(width: 6),
                 Expanded(
-                  child: Container(height: 1, color: LightColor.borderLight),
+                  child: Container(height: 1, color: LightColor.dividerColor),
                 ),
                 const SizedBox(width: 6),
                 Container(
                   width: 2,
                   height: 2,
                   decoration: const BoxDecoration(
-                    color: LightColor.border,
+                    color: LightColor.borderColor,
                     shape: BoxShape.circle,
                   ),
                 ),
@@ -180,22 +180,22 @@ class _CompactStepChip extends StatelessWidget {
             gradient: isSelected
                 ? const LinearGradient(
                     colors: <Color>[
-                      LightColor.secondary,
+                      LightColor.secondaryColor,
                       LightColor.secondaryDark,
                     ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   )
                 : null,
-            color: isSelected ? null : LightColor.surfaceSubtle,
+            color: isSelected ? null : LightColor.inputFillColor,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: isSelected ? Colors.transparent : LightColor.border,
+              color: isSelected ? Colors.transparent : LightColor.borderColor,
             ),
             boxShadow: isSelected
                 ? <BoxShadow>[
                     BoxShadow(
-                      color: LightColor.secondary.withValues(alpha: 0.2),
+                      color: LightColor.secondaryColor.withValues(alpha: 0.2),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
@@ -209,16 +209,16 @@ class _CompactStepChip extends StatelessWidget {
                 status == StepStatus.complete ? Icons.check_rounded : icon,
                 size: 14,
                 color: isSelected
-                    ? LightColor.white
+                    ? LightColor.whiteColor
                     : status == StepStatus.complete
-                    ? LightColor.secondary
-                    : LightColor.secondary,
+                    ? LightColor.secondaryColor
+                    : LightColor.secondaryColor,
               ),
               const SizedBox(width: 6),
               Text(
                 title,
                 style: TextStyle(
-                  color: isSelected ? LightColor.white : LightColor.titleText,
+                  color: isSelected ? LightColor.whiteColor : LightColor.primaryTextColor,
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
                 ),
@@ -229,7 +229,7 @@ class _CompactStepChip extends StatelessWidget {
                   width: 6,
                   height: 6,
                   decoration: const BoxDecoration(
-                    color: LightColor.secondary,
+                    color: LightColor.secondaryColor,
                     shape: BoxShape.circle,
                   ),
                 ),
@@ -271,10 +271,10 @@ class _CompactSubstepChip extends StatelessWidget {
           curve: Curves.easeOut,
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(
-            color: isSelected ? LightColor.secondaryLight : LightColor.surface,
+            color: isSelected ? LightColor.secondaryLight : LightColor.cardColor,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: isSelected ? LightColor.secondary : LightColor.borderLight,
+              color: isSelected ? LightColor.secondaryColor : LightColor.dividerColor,
             ),
           ),
           child: Row(
@@ -286,10 +286,10 @@ class _CompactSubstepChip extends StatelessWidget {
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? LightColor.secondary
+                      ? LightColor.secondaryColor
                       : status == StepStatus.complete
                       ? LightColor.secondaryLight
-                      : LightColor.surfaceSubtle,
+                      : LightColor.inputFillColor,
                   shape: BoxShape.circle,
                 ),
                 child: status == StepStatus.complete
@@ -297,15 +297,15 @@ class _CompactSubstepChip extends StatelessWidget {
                         Icons.check_rounded,
                         size: 8,
                         color: isSelected
-                            ? LightColor.white
-                            : LightColor.secondary,
+                            ? LightColor.whiteColor
+                            : LightColor.secondaryColor,
                       )
                     : Text(
                         '${index + 1}',
                         style: TextStyle(
                           color: isSelected
-                              ? LightColor.white
-                              : LightColor.titleText,
+                              ? LightColor.whiteColor
+                              : LightColor.primaryTextColor,
                           fontSize: 8,
                           fontWeight: FontWeight.w700,
                         ),
@@ -317,7 +317,7 @@ class _CompactSubstepChip extends StatelessWidget {
                 style: TextStyle(
                   color: isSelected
                       ? LightColor.secondaryDark
-                      : LightColor.subtitleText,
+                      : LightColor.secondaryTextColor,
                   fontSize: 8,
                   fontWeight: FontWeight.w600,
                 ),
@@ -327,7 +327,7 @@ class _CompactSubstepChip extends StatelessWidget {
                 width: 5,
                 height: 5,
                 decoration: BoxDecoration(
-                  color: isSelected ? LightColor.secondary : statusColor,
+                  color: isSelected ? LightColor.secondaryColor : statusColor,
                   shape: BoxShape.circle,
                 ),
               ),
@@ -341,17 +341,17 @@ class _CompactSubstepChip extends StatelessWidget {
   Color _statusColor(StepStatus status) {
     switch (status) {
       case StepStatus.complete:
-        return LightColor.secondary;
+        return LightColor.secondaryColor;
       case StepStatus.inProgress:
-        return LightColor.amber;
+        return LightColor.warningColor;
       case StepStatus.error:
-        return LightColor.red;
+        return LightColor.redColor;
       case StepStatus.locked:
-        return LightColor.hintText;
+        return LightColor.hintTextColor;
       case StepStatus.notStarted:
-        return LightColor.mutedText;
+        return LightColor.disabledTextColor;
       case StepStatus.pending:
-        return LightColor.mutedText;
+        return LightColor.disabledTextColor;
     }
   }
 }

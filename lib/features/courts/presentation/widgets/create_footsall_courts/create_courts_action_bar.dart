@@ -47,8 +47,8 @@ class CreateCourtsActionBar extends StatelessWidget {
                 onPressed: isSubmitting ? null : onSecondaryPressed,
                 isOutlined: true,
                 backgroundColor: Colors.white,
-                foregroundColor: LightColor.skyBlue,
-                borderColor: LightColor.skyBlue,
+                foregroundColor: LightColor.secondaryColor,
+                borderColor: LightColor.secondaryColor,
                 minHeight: 50,
                 verticalPadding: 2,
               ),
@@ -64,8 +64,8 @@ class CreateCourtsActionBar extends StatelessWidget {
                 onPressed: isSubmitting ? null : onPrimaryPressed,
                 isLoading: isSubmitting,
                 backgroundColor: isLastStep
-                    ? LightColor.orange
-                    : LightColor.skyBlue,
+                    ? LightColor.warningColor
+                    : LightColor.secondaryColor,
                 foregroundColor: Colors.white,
                 minHeight: 50,
                 fontWeight: FontWeight.w700,

@@ -30,7 +30,7 @@ class VendorSubstepStepper extends StatelessWidget {
           const Text(
             'Step Breakdown',
             style: TextStyle(
-              color: LightColor.titleText,
+              color: LightColor.primaryTextColor,
               fontSize: 15,
               fontWeight: FontWeight.w800,
             ),
@@ -41,7 +41,7 @@ class VendorSubstepStepper extends StatelessWidget {
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
-              color: LightColor.subtitleText,
+              color: LightColor.secondaryTextColor,
               fontSize: 12,
               height: 1.35,
             ),
@@ -132,7 +132,7 @@ class _PremiumSubstepPill extends StatelessWidget {
                 : null,
             color: isSelected ? null : Colors.white,
             border: Border.all(
-              color: isSelected ? Colors.transparent : LightColor.border,
+              color: isSelected ? Colors.transparent : LightColor.borderColor,
             ),
             boxShadow: isSelected
                 ? <BoxShadow>[
@@ -171,14 +171,14 @@ class _PremiumSubstepPill extends StatelessWidget {
                             size: 13,
                             color: isSelected
                                 ? Colors.white
-                                : LightColor.secondary,
+                                : LightColor.secondaryColor,
                           )
                         : Text(
                             '${index + 1}',
                             style: TextStyle(
                               color: isSelected
                                   ? Colors.white
-                                  : LightColor.primary,
+                                  : LightColor.secondaryColor,
                               fontSize: 11,
                               fontWeight: FontWeight.w800,
                             ),
@@ -191,7 +191,7 @@ class _PremiumSubstepPill extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: isSelected ? Colors.white : LightColor.titleText,
+                        color: isSelected ? Colors.white : LightColor.primaryTextColor,
                         fontSize: 11.5,
                         fontWeight: FontWeight.w800,
                         height: 1.1,
@@ -250,13 +250,13 @@ class _PremiumSubstepPill extends StatelessWidget {
   Color _statusColor(StepStatus status) {
     switch (status) {
       case StepStatus.complete:
-        return LightColor.secondary;
+        return LightColor.secondaryColor;
       case StepStatus.inProgress:
-        return LightColor.amber;
+        return LightColor.warningColor;
       case StepStatus.error:
-        return LightColor.red;
+        return LightColor.redColor;
       case StepStatus.locked:
-        return LightColor.hintText;
+        return LightColor.hintTextColor;
       case StepStatus.notStarted:
         return const Color(0xFF94A3B8);
       case StepStatus.pending:
@@ -285,7 +285,7 @@ class _ActiveStepFooter extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFF8FAFC),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: LightColor.border),
+        border: Border.all(color: LightColor.borderColor),
       ),
       child: Row(
         children: <Widget>[
@@ -313,7 +313,7 @@ class _ActiveStepFooter extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
-                color: LightColor.titleText,
+                color: LightColor.primaryTextColor,
                 fontSize: 12.5,
                 fontWeight: FontWeight.w700,
               ),
@@ -329,15 +329,15 @@ class _ActiveStepFooter extends StatelessWidget {
   Color _statusColor(StepStatus status) {
     switch (status) {
       case StepStatus.locked:
-        return LightColor.hintText;
+        return LightColor.hintTextColor;
       case StepStatus.notStarted:
         return const Color(0xFF94A3B8);
       case StepStatus.inProgress:
-        return LightColor.amber;
+        return LightColor.warningColor;
       case StepStatus.complete:
-        return LightColor.secondary;
+        return LightColor.secondaryColor;
       case StepStatus.error:
-        return LightColor.red;
+        return LightColor.redColor;
       case StepStatus.pending:
         return const Color(0xFFCBD5E1);
     }

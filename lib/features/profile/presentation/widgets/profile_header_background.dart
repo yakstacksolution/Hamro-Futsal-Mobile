@@ -209,9 +209,9 @@ class _ProfileHeaderBackgroundState extends State<ProfileHeaderBackground>
         from ??
         to ??
         const <Color>[
-          LightColor.accent,
+          LightColor.secondaryColor,
           LightColor.primaryDark,
-          LightColor.primary,
+          LightColor.secondaryColor,
         ];
     final int length = math.max(from?.length ?? 0, to?.length ?? 0);
 
@@ -268,9 +268,9 @@ class _HeaderSurface extends StatelessWidget {
   List<Color> get _resolvedBackgroundColors =>
       backgroundColors ??
       const <Color>[
-        LightColor.accent,
+        LightColor.secondaryColor,
         LightColor.primaryDark,
-        LightColor.primary,
+        LightColor.secondaryColor,
       ];
 
   @override

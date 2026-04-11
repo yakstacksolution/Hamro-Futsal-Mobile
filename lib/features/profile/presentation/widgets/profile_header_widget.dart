@@ -38,8 +38,8 @@ class ProfileHeader extends StatelessWidget {
             backgroundColors ??
             const <Color>[
               LightColor.secondaryDark,
-              LightColor.secondary,
-              LightColor.primary,
+              LightColor.secondaryColor,
+              LightColor.secondaryColor,
             ],
         child: HeaderComponetWidget(
           name: name,

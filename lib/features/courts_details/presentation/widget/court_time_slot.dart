@@ -30,6 +30,12 @@ class CourtTimeSlotSection extends StatefulWidget {
 }
 
 class _CourtTimeSlotSectionState extends State<CourtTimeSlotSection> {
+  static const LinearGradient _selectedSlotGradient = LinearGradient(
+    colors: <Color>[LightColor.secondaryColor, LightColor.secondaryLight],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
   late int _selectedDateIndex;
   late int _selectedSlotIndex;
 
@@ -69,12 +75,14 @@ class _CourtTimeSlotSectionState extends State<CourtTimeSlotSection> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: LightColor.surface,
+          color: LightColor.cardColor,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: LightColor.border.withValues(alpha: 0.6)),
+          border: Border.all(
+            color: LightColor.borderColor.withValues(alpha: 0.6),
+          ),
           boxShadow: [
             BoxShadow(
-              color: LightColor.shadow.withValues(alpha: 0.05),
+              color: LightColor.shadowColor.withValues(alpha: 0.05),
               blurRadius: 14,
               offset: const Offset(0, 4),
             ),
@@ -88,7 +96,7 @@ class _CourtTimeSlotSectionState extends State<CourtTimeSlotSection> {
                 const Text(
                   'Select Date & Time',
                   style: TextStyle(
-                    color: LightColor.titleText,
+                    color: LightColor.primaryTextColor,
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
                   ),
@@ -100,7 +108,7 @@ class _CourtTimeSlotSectionState extends State<CourtTimeSlotSection> {
                     vertical: 5,
                   ),
                   decoration: BoxDecoration(
-                    color: LightColor.primaryLight,
+                    color: LightColor.secondaryLight,
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Row(
@@ -109,13 +117,13 @@ class _CourtTimeSlotSectionState extends State<CourtTimeSlotSection> {
                       const Icon(
                         Icons.schedule_rounded,
                         size: 14,
-                        color: LightColor.secondary,
+                        color: LightColor.secondaryColor,
                       ),
                       const SizedBox(width: 4),
                       Text(
                         '${widget.openTime} - ${widget.closeTime}',
                         style: const TextStyle(
-                          color: LightColor.secondary,
+                          color: LightColor.secondaryColor,
                           fontSize: 10,
                           fontWeight: FontWeight.w700,
                         ),
@@ -132,11 +140,11 @@ class _CourtTimeSlotSectionState extends State<CourtTimeSlotSection> {
               crossAxisAlignment: CrossAxisAlignment.end,
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
-                _SlotLegend(bg: LightColor.primaryLight, label: 'Available'),
+                _SlotLegend(bg: LightColor.secondaryLight, label: 'Available'),
                 SizedBox(width: 14),
-                _SlotLegend(bg: LightColor.secondaryGreen, label: 'Selected'),
+                _SlotLegend(bg: LightColor.secondaryColor, label: 'Selected'),
                 SizedBox(width: 14),
-                _SlotLegend(bg: LightColor.borderLight, label: 'Booked'),
+                _SlotLegend(bg: LightColor.dividerColor, label: 'Booked'),
               ],
             ),
             const SizedBox(height: 16),
@@ -171,19 +179,19 @@ class _CourtTimeSlotSectionState extends State<CourtTimeSlotSection> {
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
                     decoration: BoxDecoration(
-                      gradient: selected ? LightColor.primaryGradient : null,
+                      gradient: selected ? _selectedSlotGradient : null,
                       color: selected
                           ? null
                           : slot.isAvailable
-                          ? LightColor.primaryLight
-                          : LightColor.borderLight,
+                          ? LightColor.secondaryLight
+                          : LightColor.dividerColor,
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
                         color: selected
                             ? Colors.transparent
                             : slot.isAvailable
-                            ? LightColor.secondary.withValues(alpha: 0.25)
-                            : LightColor.border.withValues(alpha: 0.8),
+                            ? LightColor.secondaryColor.withValues(alpha: 0.25)
+                            : LightColor.borderColor.withValues(alpha: 0.8),
                       ),
                     ),
                     child: Center(
@@ -194,10 +202,10 @@ class _CourtTimeSlotSectionState extends State<CourtTimeSlotSection> {
                             slot.time,
                             style: TextStyle(
                               color: selected
-                                  ? LightColor.white
+                                  ? LightColor.whiteColor
                                   : slot.isAvailable
-                                  ? LightColor.titleText
-                                  : LightColor.hintText,
+                                  ? LightColor.primaryTextColor
+                                  : LightColor.hintTextColor,
                               fontSize: 10,
                               fontWeight: selected
                                   ? FontWeight.w800
@@ -211,10 +219,10 @@ class _CourtTimeSlotSectionState extends State<CourtTimeSlotSection> {
                             "Rs. 1200",
                             style: TextStyle(
                               color: selected
-                                  ? LightColor.white
+                                  ? LightColor.whiteColor
                                   : slot.isAvailable
-                                  ? LightColor.titleText
-                                  : LightColor.hintText,
+                                  ? LightColor.primaryTextColor
+                                  : LightColor.hintTextColor,
                               fontSize: 8,
                               fontWeight: selected
                                   ? FontWeight.w800
@@ -260,15 +268,15 @@ class _CourtTimeSlotSectionState extends State<CourtTimeSlotSection> {
               width: 60,
               margin: const EdgeInsets.only(right: 10),
               decoration: BoxDecoration(
-                gradient: selected ? LightColor.primaryGradient : null,
-                color: selected ? null : LightColor.surface,
+                gradient: selected ? _selectedSlotGradient : null,
+                color: selected ? null : LightColor.cardColor,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
                   color: selected
                       ? Colors.transparent
                       : today
-                      ? LightColor.secondary.withValues(alpha: 0.35)
-                      : LightColor.border.withValues(alpha: 0.6),
+                      ? LightColor.secondaryColor.withValues(alpha: 0.35)
+                      : LightColor.borderColor.withValues(alpha: 0.6),
                   width: 1.5,
                 ),
               ),
@@ -278,7 +286,9 @@ class _CourtTimeSlotSectionState extends State<CourtTimeSlotSection> {
                   Text(
                     _dayName(date),
                     style: TextStyle(
-                      color: selected ? Colors.white70 : LightColor.hintText,
+                      color: selected
+                          ? Colors.white70
+                          : LightColor.hintTextColor,
                       fontSize: 10,
                       fontWeight: FontWeight.w600,
                     ),
@@ -287,7 +297,9 @@ class _CourtTimeSlotSectionState extends State<CourtTimeSlotSection> {
                   Text(
                     '${date.day}',
                     style: TextStyle(
-                      color: selected ? Colors.white : LightColor.titleText,
+                      color: selected
+                          ? Colors.white
+                          : LightColor.primaryTextColor,
                       fontSize: 16,
                       fontWeight: FontWeight.w800,
                     ),
@@ -299,8 +311,8 @@ class _CourtTimeSlotSectionState extends State<CourtTimeSlotSection> {
                       color: selected
                           ? Colors.white70
                           : today
-                          ? LightColor.primary
-                          : LightColor.hintText,
+                          ? LightColor.secondaryColor
+                          : LightColor.hintTextColor,
                       fontSize: 10,
                       fontWeight: today ? FontWeight.w700 : FontWeight.w500,
                     ),
@@ -370,14 +382,16 @@ class _SlotLegend extends StatelessWidget {
           decoration: BoxDecoration(
             color: bg,
             borderRadius: BorderRadius.circular(4),
-            border: Border.all(color: LightColor.border.withValues(alpha: 0.7)),
+            border: Border.all(
+              color: LightColor.borderColor.withValues(alpha: 0.7),
+            ),
           ),
         ),
         const SizedBox(width: 6),
         Text(
           label,
           style: const TextStyle(
-            color: LightColor.hintText,
+            color: LightColor.hintTextColor,
             fontSize: 11,
             fontWeight: FontWeight.w500,
           ),

@@ -28,14 +28,14 @@ class VendorOnboardingHeader extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: <Color>[LightColor.secondary, LightColor.secondaryDark],
+          colors: <Color>[LightColor.secondaryColor, LightColor.secondaryDark],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(12),
         boxShadow: <BoxShadow>[
           BoxShadow(
-            color: LightColor.secondary.withValues(alpha: 0.16),
+            color: LightColor.secondaryColor.withValues(alpha: 0.16),
             blurRadius: 18,
             offset: const Offset(0, 8),
           ),
@@ -51,15 +51,15 @@ class VendorOnboardingHeader extends StatelessWidget {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: LightColor.white.withValues(alpha: 0.14),
+                  color: LightColor.whiteColor.withValues(alpha: 0.14),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: LightColor.white.withValues(alpha: 0.10),
+                    color: LightColor.whiteColor.withValues(alpha: 0.10),
                   ),
                 ),
                 child: Icon(
                   isCourt ? Icons.stadium_rounded : Icons.sports_soccer_rounded,
-                  color: LightColor.white,
+                  color: LightColor.whiteColor,
                   size: 20,
                 ),
               ),
@@ -73,7 +73,7 @@ class VendorOnboardingHeader extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        color: LightColor.white,
+                        color: LightColor.whiteColor,
                         fontSize: 16,
                         fontWeight: FontWeight.w800,
                         height: 1.15,
@@ -85,7 +85,7 @@ class VendorOnboardingHeader extends StatelessWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: LightColor.white.withValues(alpha: 0.88),
+                        color: LightColor.whiteColor.withValues(alpha: 0.88),
                         fontSize: 12,
                         height: 1,
                         fontWeight: FontWeight.w500,
@@ -98,7 +98,7 @@ class VendorOnboardingHeader extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                 decoration: BoxDecoration(
-                  color: LightColor.white.withValues(alpha: 0.14),
+                  color: LightColor.whiteColor.withValues(alpha: 0.14),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Column(
@@ -106,7 +106,7 @@ class VendorOnboardingHeader extends StatelessWidget {
                     Text(
                       '$progressPercent%',
                       style: const TextStyle(
-                        color: LightColor.white,
+                        color: LightColor.whiteColor,
                         fontSize: 12,
                         fontWeight: FontWeight.w800,
                         height: 1,
@@ -116,7 +116,7 @@ class VendorOnboardingHeader extends StatelessWidget {
                     Text(
                       'Done',
                       style: TextStyle(
-                        color: LightColor.white.withValues(alpha: 0.82),
+                        color: LightColor.whiteColor.withValues(alpha: 0.82),
                         fontSize: 8,
                         fontWeight: FontWeight.w600,
                         height: 1,
@@ -133,8 +133,8 @@ class VendorOnboardingHeader extends StatelessWidget {
             child: LinearProgressIndicator(
               minHeight: 7,
               value: cubit.overallCompletion,
-              backgroundColor: LightColor.white.withValues(alpha: 0.16),
-              valueColor: const AlwaysStoppedAnimation<Color>(LightColor.white),
+              backgroundColor: LightColor.whiteColor.withValues(alpha: 0.16),
+              valueColor: const AlwaysStoppedAnimation<Color>(LightColor.whiteColor),
             ),
           ),
           const SizedBox(height: 12),
@@ -177,20 +177,20 @@ class _CompactInfoChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
-        color: LightColor.white.withValues(alpha: 0.10),
+        color: LightColor.whiteColor.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(99),
-        border: Border.all(color: LightColor.white.withValues(alpha: 0.08)),
+        border: Border.all(color: LightColor.whiteColor.withValues(alpha: 0.08)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: <Widget>[
-          Icon(icon, size: 13, color: LightColor.white.withValues(alpha: 0.95)),
+          Icon(icon, size: 13, color: LightColor.whiteColor.withValues(alpha: 0.95)),
           const SizedBox(width: 6),
           Text(
             label,
             style: TextStyle(
-              color: LightColor.white.withValues(alpha: 0.95),
+              color: LightColor.whiteColor.withValues(alpha: 0.95),
               fontSize: 10,
               fontWeight: FontWeight.w600,
               height: 1,

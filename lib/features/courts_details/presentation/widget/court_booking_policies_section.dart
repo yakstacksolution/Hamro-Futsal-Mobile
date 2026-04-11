@@ -14,12 +14,12 @@ class CourtBookingPoliciesSection extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: LightColor.surface,
+          color: LightColor.cardColor,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: LightColor.border.withValues(alpha: 0.7)),
+          border: Border.all(color: LightColor.borderColor.withValues(alpha: 0.7)),
           boxShadow: [
             BoxShadow(
-              color: LightColor.shadow.withValues(alpha: 0.04),
+              color: LightColor.shadowColor.withValues(alpha: 0.04),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -33,13 +33,13 @@ class CourtBookingPoliciesSection extends StatelessWidget {
                 Icon(
                   Icons.policy_outlined,
                   size: 18,
-                  color: LightColor.secondary,
+                  color: LightColor.secondaryColor,
                 ),
                 SizedBox(width: 8),
                 Text(
                   'Booking Policies',
                   style: TextStyle(
-                    color: LightColor.titleText,
+                    color: LightColor.primaryTextColor,
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
                   ),
@@ -51,7 +51,7 @@ class CourtBookingPoliciesSection extends StatelessWidget {
               const Text(
                 'No booking policy added yet.',
                 style: TextStyle(
-                  color: LightColor.subtitleText,
+                  color: LightColor.secondaryTextColor,
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
                 ),
@@ -69,14 +69,14 @@ class CourtBookingPoliciesSection extends StatelessWidget {
                           width: 24,
                           height: 24,
                           decoration: BoxDecoration(
-                            color: LightColor.primaryLight,
+                            color: LightColor.secondaryLight,
                             borderRadius: BorderRadius.circular(7),
                           ),
                           child: Center(
                             child: Text(
                               '${entry.key + 1}',
                               style: const TextStyle(
-                                color: LightColor.secondary,
+                                color: LightColor.secondaryColor,
                                 fontSize: 11,
                                 fontWeight: FontWeight.w800,
                               ),
@@ -88,7 +88,7 @@ class CourtBookingPoliciesSection extends StatelessWidget {
                           child: Text(
                             entry.value,
                             style: const TextStyle(
-                              color: LightColor.subtitleText,
+                              color: LightColor.secondaryTextColor,
                               fontSize: 13.5,
                               fontWeight: FontWeight.w400,
                               height: 1.4,

@@ -269,9 +269,9 @@ class _CompactHeader extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: LightColor.white,
+        color: LightColor.whiteColor,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: LightColor.border),
+        border: Border.all(color: LightColor.borderColor),
       ),
       child: Row(
         children: <Widget>[
@@ -279,12 +279,12 @@ class _CompactHeader extends StatelessWidget {
             width: 46,
             height: 46,
             decoration: BoxDecoration(
-              color: LightColor.primaryLight,
+              color: LightColor.secondaryLight,
               borderRadius: BorderRadius.circular(10),
             ),
             child: const Icon(
               Icons.photo_library_rounded,
-              color: LightColor.secondary,
+              color: LightColor.secondaryColor,
               size: 22,
             ),
           ),
@@ -300,7 +300,7 @@ class _CompactHeader extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w800,
-                    color: LightColor.titleText,
+                    color: LightColor.primaryTextColor,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -310,7 +310,7 @@ class _CompactHeader extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     fontSize: 10,
-                    color: LightColor.subtitleText,
+                    color: LightColor.secondaryTextColor,
                   ),
                 ),
               ],
@@ -325,7 +325,7 @@ class _CompactHeader extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
-                  color: LightColor.titleText,
+                  color: LightColor.primaryTextColor,
                 ),
               ),
               const SizedBox(height: 2),
@@ -333,7 +333,7 @@ class _CompactHeader extends StatelessWidget {
                 '$selectedCount selected',
                 style: const TextStyle(
                   fontSize: 10,
-                  color: LightColor.secondary,
+                  color: LightColor.secondaryColor,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -370,8 +370,8 @@ class _CompactActionRow extends StatelessWidget {
             icon: Icons.image_outlined,
             isLoading: isAddingImages,
             onTap: onAddImages,
-            accentColor: LightColor.primary,
-            softColor: LightColor.primaryLight,
+            accentColor: LightColor.secondaryColor,
+            softColor: LightColor.secondaryLight,
           ),
         ),
         const SizedBox(width: 10),
@@ -381,7 +381,7 @@ class _CompactActionRow extends StatelessWidget {
             icon: Icons.insert_drive_file_outlined,
             isLoading: false,
             onTap: onAddFiles,
-            accentColor: LightColor.secondary,
+            accentColor: LightColor.secondaryColor,
             softColor: LightColor.secondaryLight,
           ),
         ),
@@ -409,7 +409,7 @@ class _FilterMenuButton extends StatelessWidget {
     return PopupMenuButton<_LibraryFilter>(
       tooltip: 'Filter library',
       onSelected: onSelected,
-      color: LightColor.white,
+      color: LightColor.whiteColor,
       elevation: 10,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       itemBuilder: (BuildContext context) {
@@ -425,8 +425,8 @@ class _FilterMenuButton extends StatelessWidget {
                       : Icons.radio_button_off_rounded,
                   size: 18,
                   color: isActive
-                      ? LightColor.primary
-                      : LightColor.subtitleText,
+                      ? LightColor.secondaryColor
+                      : LightColor.secondaryTextColor,
                 ),
                 const SizedBox(width: 10),
                 Text(
@@ -434,7 +434,7 @@ class _FilterMenuButton extends StatelessWidget {
                   style: TextStyle(
                     color: isActive
                         ? LightColor.primaryDark
-                        : LightColor.titleText,
+                        : LightColor.primaryTextColor,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -447,9 +447,9 @@ class _FilterMenuButton extends StatelessWidget {
         height: 42,
         padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
-          color: LightColor.white,
+          color: LightColor.whiteColor,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: LightColor.border),
+          border: Border.all(color: LightColor.borderColor),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -457,7 +457,7 @@ class _FilterMenuButton extends StatelessWidget {
             const Icon(
               Icons.filter_list_rounded,
               size: 18,
-              color: LightColor.primary,
+              color: LightColor.secondaryColor,
             ),
             const SizedBox(width: 6),
             Text(
@@ -465,7 +465,7 @@ class _FilterMenuButton extends StatelessWidget {
               style: const TextStyle(
                 fontSize: 12.5,
                 fontWeight: FontWeight.w700,
-                color: LightColor.titleText,
+                color: LightColor.primaryTextColor,
               ),
             ),
           ],
@@ -502,7 +502,7 @@ class _SmallActionButton extends StatelessWidget {
         color: LightColor.secondaryLight,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: isDisabled ? LightColor.borderLight : LightColor.border,
+          color: isDisabled ? LightColor.dividerColor : LightColor.borderColor,
         ),
       ),
       child: InkWell(
@@ -510,10 +510,10 @@ class _SmallActionButton extends StatelessWidget {
         child: Ink(
           height: 36,
           decoration: BoxDecoration(
-            color: LightColor.grey,
+            color: LightColor.hintTextColor,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: isDisabled ? LightColor.borderLight : LightColor.border,
+              color: isDisabled ? LightColor.dividerColor : LightColor.borderColor,
             ),
           ),
           child: Padding(
@@ -527,7 +527,7 @@ class _SmallActionButton extends StatelessWidget {
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
                       valueColor: AlwaysStoppedAnimation<Color>(
-                        isDisabled ? LightColor.hintText : accentColor,
+                        isDisabled ? LightColor.hintTextColor : accentColor,
                       ),
                     ),
                   )
@@ -536,8 +536,8 @@ class _SmallActionButton extends StatelessWidget {
                     icon,
                     size: 16,
                     color: isDisabled
-                        ? LightColor.hintText
-                        : LightColor.titleText,
+                        ? LightColor.hintTextColor
+                        : LightColor.primaryTextColor,
                   ),
                 const SizedBox(width: 6),
                 Expanded(
@@ -548,8 +548,8 @@ class _SmallActionButton extends StatelessWidget {
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
                       color: isDisabled
-                          ? LightColor.hintText
-                          : LightColor.titleText,
+                          ? LightColor.hintTextColor
+                          : LightColor.primaryTextColor,
                     ),
                   ),
                 ),
@@ -575,9 +575,9 @@ class _CompactEmptyState extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: LightColor.white,
+          color: LightColor.whiteColor,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: LightColor.border),
+          border: Border.all(color: LightColor.borderColor),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -601,14 +601,14 @@ class _CompactEmptyState extends StatelessWidget {
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w800,
-                color: LightColor.titleText,
+                color: LightColor.primaryTextColor,
               ),
             ),
             const SizedBox(height: 6),
             const Text(
               'Add images or files to your library.',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 12, color: LightColor.subtitleText),
+              style: TextStyle(fontSize: 12, color: LightColor.secondaryTextColor),
             ),
             const SizedBox(height: 16),
 
@@ -651,16 +651,16 @@ class _CompactMediaCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(4),
         child: Ink(
           decoration: BoxDecoration(
-            color: LightColor.white,
+            color: LightColor.whiteColor,
             borderRadius: BorderRadius.circular(4),
             border: Border.all(
-              color: isSelected ? LightColor.primary : LightColor.border,
+              color: isSelected ? LightColor.secondaryColor : LightColor.borderColor,
               width: isSelected ? 1.4 : 1,
             ),
             boxShadow: isSelected
                 ? <BoxShadow>[
                     BoxShadow(
-                      color: LightColor.primary.withValues(alpha: 0.12),
+                      color: LightColor.secondaryColor.withValues(alpha: 0.12),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -701,7 +701,7 @@ class _CompactMediaCard extends StatelessWidget {
                               height: 20,
                               decoration: BoxDecoration(
                                 color: isSelected
-                                    ? LightColor.primary
+                                    ? LightColor.secondaryColor
                                     : Colors.white.withValues(alpha: 0.96),
                                 borderRadius: BorderRadius.circular(999),
                                 border: Border.all(
@@ -723,7 +723,7 @@ class _CompactMediaCard extends StatelessWidget {
                                 size: 12,
                                 color: isSelected
                                     ? Colors.white
-                                    : LightColor.subtitleText,
+                                    : LightColor.secondaryTextColor,
                               ),
                             ),
                           ),
@@ -751,7 +751,7 @@ class _CompactMediaCard extends StatelessWidget {
                               child: const Icon(
                                 Icons.delete_outline_rounded,
                                 size: 12,
-                                color: LightColor.red,
+                                color: LightColor.redColor,
                               ),
                             ),
                           ),
@@ -765,7 +765,7 @@ class _CompactMediaCard extends StatelessWidget {
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(4),
                               border: Border.all(
-                                color: LightColor.primary.withValues(
+                                color: LightColor.secondaryColor.withValues(
                                   alpha: 0.45,
                                 ),
                                 width: 1.4,
@@ -794,19 +794,19 @@ class _MiniFilePlaceholder extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: LightColor.backgroundWarm,
+      color: LightColor.background,
       child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            Icon(icon, size: 24, color: LightColor.primary),
+            Icon(icon, size: 24, color: LightColor.secondaryColor),
             const SizedBox(height: 6),
             Text(
               label,
               style: const TextStyle(
                 fontSize: 10.5,
                 fontWeight: FontWeight.w700,
-                color: LightColor.titleText,
+                color: LightColor.primaryTextColor,
               ),
             ),
           ],
@@ -840,9 +840,9 @@ class _BottomSelectionBar extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: LightColor.white,
+        color: LightColor.whiteColor,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: LightColor.border),
+        border: Border.all(color: LightColor.borderColor),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -852,7 +852,7 @@ class _BottomSelectionBar extends StatelessWidget {
             style: const TextStyle(
               fontSize: 10,
               fontWeight: FontWeight.w700,
-              color: LightColor.titleText,
+              color: LightColor.primaryTextColor,
             ),
           ),
           const Spacer(),

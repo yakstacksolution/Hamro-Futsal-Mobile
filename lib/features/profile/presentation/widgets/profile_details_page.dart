@@ -54,7 +54,7 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
     final UserData? user = widget.user;
 
     return Scaffold(
-      backgroundColor: LightColor.backgroundWarm,
+      backgroundColor: LightColor.background,
       body: SafeArea(
         child: SingleChildScrollView(
           child: Column(
@@ -65,8 +65,8 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
                 avatarUrl: _resolvedAvatar(user) ?? '',
                 backgroundColors: const <Color>[
                   LightColor.secondaryDark,
-                  LightColor.secondary,
-                  LightColor.primary,
+                  LightColor.secondaryColor,
+                  LightColor.secondaryColor,
                 ],
               ),
 
@@ -157,7 +157,7 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
       minHeight: 45,
       borderRadius: 10,
       fontSize: 14,
-      backgroundColor: LightColor.secondary,
+      backgroundColor: LightColor.secondaryColor,
       onPressed: () {},
     );
   }

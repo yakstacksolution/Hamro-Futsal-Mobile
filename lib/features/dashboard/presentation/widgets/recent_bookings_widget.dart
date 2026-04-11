@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
-import 'package:hamro_footsall/core/theme/theme.dart';
+import 'package:hamro_footsall/core/theme/futsal_theme.dart' hide LightColor;
+import 'package:hamro_footsall/core/utils/app_utils.dart';
+import 'package:hamro_footsall/core/utils/dimens.dart';
 
 enum BookingStatus { confirmed, pending, paid, cancelled }
 
@@ -49,13 +51,13 @@ class _Booking {
   Color get statusColor {
     switch (status) {
       case BookingStatus.confirmed:
-        return LightColor.skyBlue;
+        return LightColor.secondaryColor;
       case BookingStatus.pending:
-        return LightColor.orange;
+        return LightColor.warningColor;
       case BookingStatus.paid:
-        return LightColor.secondaryGreen;
+        return LightColor.secondaryColor;
       case BookingStatus.cancelled:
-        return LightColor.red;
+        return LightColor.redColor;
     }
   }
 
@@ -90,6 +92,15 @@ class _Summary {
 class RecentBookingsWidget extends StatelessWidget {
   const RecentBookingsWidget({super.key});
 
+  static const List<BoxShadow> _cardShadow = <BoxShadow>[
+    BoxShadow(
+      color: LightColor.shadowColor,
+      blurRadius: AppDimens.radiusX18,
+      offset: Offset(0, 8),
+      spreadRadius: 1,
+    ),
+  ];
+
   static const List<_Booking> _bookings = [
     _Booking(
       teamName: 'Rabin FC',
@@ -122,24 +133,25 @@ class RecentBookingsWidget extends StatelessWidget {
       label: 'New Today',
       value: '08',
       icon: Icons.add_task_rounded,
-      color: LightColor.skyBlue,
+      color: LightColor.secondaryColor,
     ),
     _Summary(
       label: 'Revenue',
       value: 'NPR 17.8k',
       icon: Icons.payments_rounded,
-      color: LightColor.secondaryGreen,
+      color: LightColor.secondaryColor,
     ),
     _Summary(
       label: 'Pending',
       value: '02',
       icon: Icons.timelapse_rounded,
-      color: LightColor.orange,
+      color: LightColor.warningColor,
     ),
   ];
 
   @override
   Widget build(BuildContext context) {
+    final AppUtils appUtils = AppUtils();
     final surface = Theme.of(context).colorScheme.surface;
 
     return Column(
@@ -153,7 +165,7 @@ class RecentBookingsWidget extends StatelessWidget {
             final item = _summaries[index];
             return Expanded(
               child: Padding(
-                padding: EdgeInsets.only(
+                padding: appUtils.getPadding(
                   right: index == _summaries.length - 1 ? 0 : 10,
                 ),
                 child: _SummaryCard(summary: item, surface: surface),
@@ -181,13 +193,15 @@ class RecentBookingsWidget extends StatelessWidget {
 class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    final AppUtils appUtils = AppUtils();
     return Row(
       children: [
         Container(
           width: 4,
           height: 22,
           decoration: BoxDecoration(
-            color: LightColor.skyBlue,
+            color: LightColor.secondaryColor,
             borderRadius: BorderRadius.circular(20),
           ),
         ),
@@ -195,9 +209,9 @@ class _SectionHeader extends StatelessWidget {
         Expanded(
           child: Text(
             'Recent Bookings',
-            style: AppTheme.h6Style.copyWith(
+            style: textTheme.headingSmall?.copyWith(
               fontWeight: FontWeight.w800,
-              color: LightColor.titleTextColor,
+              color: LightColor.primaryTextColor,
               letterSpacing: -0.2,
             ),
           ),
@@ -206,9 +220,12 @@ class _SectionHeader extends StatelessWidget {
           borderRadius: BorderRadius.circular(999),
           onTap: () {},
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: appUtils.getPadding(
+              symmetricHorizontal: AppDimens.paddingX12,
+              symmetricVertical: AppDimens.paddingX8,
+            ),
             decoration: BoxDecoration(
-              color: LightColor.skyBlue.withOpacity(0.08),
+              color: LightColor.secondaryColor.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(999),
             ),
             child: Row(
@@ -216,8 +233,8 @@ class _SectionHeader extends StatelessWidget {
               children: [
                 Text(
                   'View all',
-                  style: AppTheme.subTitleStyle.copyWith(
-                    color: LightColor.skyBlue,
+                  style: textTheme.bodyTextSmall?.copyWith(
+                    color: LightColor.secondaryColor,
                     fontWeight: FontWeight.w700,
                     fontSize: 11.5,
                   ),
@@ -226,7 +243,7 @@ class _SectionHeader extends StatelessWidget {
                 const Icon(
                   Icons.arrow_forward_rounded,
                   size: 14,
-                  color: LightColor.skyBlue,
+                  color: LightColor.secondaryColor,
                 ),
               ],
             ),
@@ -245,12 +262,17 @@ class _SummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    final AppUtils appUtils = AppUtils();
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+      padding: appUtils.getPadding(
+        symmetricHorizontal: AppDimens.paddingX12,
+        symmetricVertical: AppDimens.paddingX14,
+      ),
       decoration: BoxDecoration(
         color: surface,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: AppTheme.shadow,
+        boxShadow: RecentBookingsWidget._cardShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -261,19 +283,19 @@ class _SummaryCard extends StatelessWidget {
             summary.value,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: AppTheme.titleStyle.copyWith(
+            style: textTheme.bodyTextLarge?.copyWith(
               fontWeight: FontWeight.w600,
               fontSize: 14,
-              color: LightColor.titleTextColor,
+              color: LightColor.primaryTextColor,
               letterSpacing: -0.4,
             ),
           ),
           const SizedBox(height: 2),
           Text(
             summary.label,
-            style: AppTheme.subTitleStyle.copyWith(
+            style: textTheme.bodyTextSmall?.copyWith(
               fontSize: 10,
-              color: LightColor.darkgrey,
+              color: LightColor.secondaryTextColor,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -290,16 +312,18 @@ class _BookingTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    final AppUtils appUtils = AppUtils();
     final surface = Theme.of(context).colorScheme.surface;
 
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: appUtils.getPadding(all: AppDimens.paddingX14),
       decoration: BoxDecoration(
         color: surface,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: AppTheme.shadow,
+        boxShadow: RecentBookingsWidget._cardShadow,
         border: Border.all(
-          color: booking.statusColor.withOpacity(0.08),
+          color: booking.statusColor.withValues(alpha: 0.08),
           width: 1,
         ),
       ),
@@ -317,18 +341,18 @@ class _BookingTile extends StatelessWidget {
                       booking.teamName,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: AppTheme.titleStyle.copyWith(
+                      style: textTheme.bodyTextLarge?.copyWith(
                         fontWeight: FontWeight.w800,
                         fontSize: 14.5,
-                        color: LightColor.titleTextColor,
+                        color: LightColor.primaryTextColor,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       booking.bookedAt,
-                      style: AppTheme.subTitleStyle.copyWith(
+                      style: textTheme.bodyTextSmall?.copyWith(
                         fontSize: 11,
-                        color: LightColor.subTitleTextColor,
+                        color: LightColor.secondaryTextColor,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -343,7 +367,7 @@ class _BookingTile extends StatelessWidget {
           const SizedBox(height: 14),
 
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: appUtils.getPadding(all: AppDimens.paddingX12),
             decoration: BoxDecoration(
               color: LightColor.background,
               borderRadius: BorderRadius.circular(16),
@@ -355,14 +379,14 @@ class _BookingTile extends StatelessWidget {
                     const Icon(
                       Icons.stadium_outlined,
                       size: 16,
-                      color: LightColor.darkgrey,
+                      color: LightColor.secondaryTextColor,
                     ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         booking.courtName,
-                        style: AppTheme.subTitleStyle.copyWith(
-                          color: LightColor.titleTextColor,
+                        style: textTheme.bodyTextSmall?.copyWith(
+                          color: LightColor.primaryTextColor,
                           fontWeight: FontWeight.w600,
                           fontSize: 12,
                         ),
@@ -376,14 +400,14 @@ class _BookingTile extends StatelessWidget {
                     const Icon(
                       Icons.schedule_rounded,
                       size: 16,
-                      color: LightColor.darkgrey,
+                      color: LightColor.secondaryTextColor,
                     ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         booking.schedule,
-                        style: AppTheme.subTitleStyle.copyWith(
-                          color: LightColor.darkgrey,
+                        style: textTheme.bodyTextSmall?.copyWith(
+                          color: LightColor.secondaryTextColor,
                           fontWeight: FontWeight.w600,
                           fontSize: 11.5,
                         ),
@@ -400,12 +424,12 @@ class _BookingTile extends StatelessWidget {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 7,
+                padding: appUtils.getPadding(
+                  symmetricHorizontal: AppDimens.paddingX10,
+                  symmetricVertical: AppDimens.paddingX6,
                 ),
                 decoration: BoxDecoration(
-                  color: LightColor.skyBlue.withOpacity(0.08),
+                  color: LightColor.secondaryColor.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Row(
@@ -414,14 +438,14 @@ class _BookingTile extends StatelessWidget {
                     const Icon(
                       Icons.receipt_long_rounded,
                       size: 14,
-                      color: LightColor.skyBlue,
+                      color: LightColor.secondaryColor,
                     ),
                     const SizedBox(width: 6),
                     Text(
                       'Booking Fee',
-                      style: AppTheme.subTitleStyle.copyWith(
+                      style: textTheme.bodyTextSmall?.copyWith(
                         fontSize: 10.5,
-                        color: LightColor.skyBlue,
+                        color: LightColor.secondaryColor,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -431,10 +455,10 @@ class _BookingTile extends StatelessWidget {
               const Spacer(),
               Text(
                 booking.amount,
-                style: AppTheme.titleStyle.copyWith(
+                style: textTheme.bodyTextLarge?.copyWith(
                   fontWeight: FontWeight.w800,
                   fontSize: 15,
-                  color: LightColor.titleTextColor,
+                  color: LightColor.primaryTextColor,
                 ),
               ),
             ],
@@ -452,14 +476,15 @@ class _BookingAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
     return Container(
       width: 54,
       height: 54,
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            booking.statusColor.withOpacity(0.18),
-            booking.statusColor.withOpacity(0.08),
+            booking.statusColor.withValues(alpha: 0.18),
+            booking.statusColor.withValues(alpha: 0.08),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -469,7 +494,7 @@ class _BookingAvatar extends StatelessWidget {
       child: Center(
         child: Text(
           booking.initials,
-          style: TextStyle(
+          style: textTheme.bodyTextMedium?.copyWith(
             fontSize: 14,
             fontWeight: FontWeight.w800,
             color: booking.statusColor,
@@ -488,10 +513,15 @@ class _StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    final AppUtils appUtils = AppUtils();
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      padding: appUtils.getPadding(
+        symmetricHorizontal: AppDimens.paddingX8,
+        symmetricVertical: AppDimens.paddingX6,
+      ),
       decoration: BoxDecoration(
-        color: booking.statusColor.withOpacity(0.10),
+        color: booking.statusColor.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(999),
       ),
       child: Row(
@@ -501,7 +531,7 @@ class _StatusBadge extends StatelessWidget {
           const SizedBox(width: 5),
           Text(
             booking.statusLabel,
-            style: TextStyle(
+            style: textTheme.bodyTextSmall?.copyWith(
               fontSize: 10.5,
               fontWeight: FontWeight.w700,
               color: booking.statusColor,
@@ -563,13 +593,13 @@ class _StatusBadge extends StatelessWidget {
 //   Color get statusColor {
 //     switch (status) {
 //       case BookingStatus.confirmed:
-//         return LightColor.skyBlue;
+//         return LightColor.secondaryColor;
 //       case BookingStatus.pending:
-//         return LightColor.orange;
+//         return LightColor.warningColor;
 //       case BookingStatus.paid:
-//         return LightColor.secondaryGreen;
+//         return LightColor.secondaryColor;
 //       case BookingStatus.cancelled:
-//         return LightColor.red;
+//         return LightColor.redColor;
 //     }
 //   }
 // }
@@ -623,19 +653,19 @@ class _StatusBadge extends StatelessWidget {
 //       label: 'New Today',
 //       value: '08',
 //       icon: Icons.add_task_rounded,
-//       color: LightColor.skyBlue,
+//       color: LightColor.secondaryColor,
 //     ),
 //     _Summary(
 //       label: 'Revenue',
 //       value: 'NPR 17.8k',
 //       icon: Icons.payments_rounded,
-//       color: LightColor.secondaryGreen,
+//       color: LightColor.secondaryColor,
 //     ),
 //     _Summary(
 //       label: 'Pending',
 //       value: '02',
 //       icon: Icons.timelapse_rounded,
-//       color: LightColor.orange,
+//       color: LightColor.warningColor,
 //     ),
 //   ];
 
@@ -651,13 +681,13 @@ class _StatusBadge extends StatelessWidget {
 //               'Recent Bookings',
 //               style: AppTheme.h6Style.copyWith(
 //                 fontWeight: FontWeight.w700,
-//                 color: LightColor.titleTextColor,
+//                 color: LightColor.primaryTextColor,
 //               ),
 //             ),
 //             Text(
 //               'View all',
 //               style: AppTheme.subTitleStyle.copyWith(
-//                 color: LightColor.skyBlue,
+//                 color: LightColor.secondaryColor,
 //                 fontWeight: FontWeight.w500,
 //               ),
 //             ),
@@ -693,7 +723,7 @@ class _StatusBadge extends StatelessWidget {
 //                         s.value,
 //                         style: AppTheme.h6Style.copyWith(
 //                           fontWeight: FontWeight.w500,
-//                           color: LightColor.titleTextColor,
+//                           color: LightColor.primaryTextColor,
 //                           letterSpacing: -0.3,
 //                         ),
 //                         maxLines: 1,
@@ -704,7 +734,7 @@ class _StatusBadge extends StatelessWidget {
 //                         s.label,
 //                         style: AppTheme.subTitleStyle.copyWith(
 //                           fontSize: 11,
-//                           color: LightColor.darkgrey,
+//                           color: LightColor.secondaryTextColor,
 //                         ),
 //                       ),
 //                     ],
@@ -774,14 +804,14 @@ class _StatusBadge extends StatelessWidget {
 // //                   booking.teamName,
 // //                   style: AppTheme.titleStyle.copyWith(
 // //                     fontWeight: FontWeight.w700,
-// //                     color: LightColor.titleTextColor,
+// //                     color: LightColor.primaryTextColor,
 // //                   ),
 // //                 ),
 // //                 const SizedBox(height: 3),
 // //                 Text(
 // //                   '${booking.courtName}  •  ${booking.schedule}',
 // //                   style: AppTheme.subTitleStyle.copyWith(
-// //                     color: LightColor.darkgrey,
+// //                     color: LightColor.secondaryTextColor,
 // //                     fontSize: 11.5,
 // //                   ),
 // //                 ),
@@ -789,7 +819,7 @@ class _StatusBadge extends StatelessWidget {
 // //                 Text(
 // //                   booking.bookedAt,
 // //                   style: AppTheme.subTitleStyle.copyWith(
-// //                     color: LightColor.subTitleTextColor,
+// //                     color: LightColor.secondaryTextColor,
 // //                     fontSize: 11,
 // //                   ),
 // //                 ),
@@ -806,7 +836,7 @@ class _StatusBadge extends StatelessWidget {
 // //                 booking.amount,
 // //                 style: AppTheme.titleStyle.copyWith(
 // //                   fontWeight: FontWeight.w800,
-// //                   color: LightColor.titleTextColor,
+// //                   color: LightColor.primaryTextColor,
 // //                 ),
 // //               ),
 // //               const SizedBox(height: 6),
@@ -879,7 +909,7 @@ class _StatusBadge extends StatelessWidget {
 //                   style: AppTheme.titleStyle.copyWith(
 //                     fontWeight: FontWeight.w600,
 //                     fontSize: 14,
-//                     color: LightColor.titleTextColor,
+//                     color: LightColor.primaryTextColor,
 //                   ),
 //                 ),
 //                 const SizedBox(height: 6),
@@ -902,7 +932,7 @@ class _StatusBadge extends StatelessWidget {
 //                 //   booking.bookedAt,
 //                 //   style: AppTheme.subTitleStyle.copyWith(
 //                 //     fontSize: 10,
-//                 //     color: LightColor.subTitleTextColor,
+//                 //     color: LightColor.secondaryTextColor,
 //                 //   ),
 //                 // ),
 //               ],
@@ -922,7 +952,7 @@ class _StatusBadge extends StatelessWidget {
 //                   style: AppTheme.titleStyle.copyWith(
 //                     fontWeight: FontWeight.w600,
 //                     fontSize: 13,
-//                     color: LightColor.titleTextColor,
+//                     color: LightColor.primaryTextColor,
 //                   ),
 //                   textAlign: TextAlign.right,
 //                 ),
@@ -951,7 +981,7 @@ class _StatusBadge extends StatelessWidget {
 //                   booking.bookedAt,
 //                   style: AppTheme.subTitleStyle.copyWith(
 //                     fontSize: 10,
-//                     color: LightColor.subTitleTextColor,
+//                     color: LightColor.secondaryTextColor,
 //                   ),
 //                 ),
 //               ],
@@ -980,13 +1010,13 @@ class _StatusBadge extends StatelessWidget {
 //       child: Row(
 //         mainAxisSize: MainAxisSize.min,
 //         children: [
-//           Icon(icon, size: 12, color: LightColor.darkgrey),
+//           Icon(icon, size: 12, color: LightColor.secondaryTextColor),
 //           const SizedBox(width: 4),
 //           Text(
 //             label,
 //             style: AppTheme.subTitleStyle.copyWith(
 //               fontSize: 10,
-//               color: LightColor.darkgrey,
+//               color: LightColor.secondaryTextColor,
 //               fontWeight: FontWeight.w600,
 //             ),
 //           ),

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
+import 'package:hamro_footsall/core/theme/futsal_theme.dart' hide LightColor;
+import 'package:hamro_footsall/core/utils/app_utils.dart';
+import 'package:hamro_footsall/core/utils/dimens.dart';
 
 Future<T?> showAppBottomSheet<T>({
   required BuildContext context,
@@ -40,8 +43,8 @@ class CustomBottomSheet extends StatelessWidget {
     this.padding,
     this.useSafeArea = true,
     this.showDragHandle = true,
-    this.radius = 30,
-    this.backgroundColor = LightColor.surface,
+    this.radius = AppDimens.radiusX30,
+    this.backgroundColor = LightColor.cardColor,
   });
 
   final Widget child;
@@ -54,6 +57,8 @@ class CustomBottomSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
+    final AppUtils appUtils = AppUtils();
+    final textTheme = FutsalTheme.getTextTheme(context);
 
     Widget content = Container(
       decoration: BoxDecoration(
@@ -61,34 +66,54 @@ class CustomBottomSheet extends StatelessWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(radius)),
         boxShadow: <BoxShadow>[
           BoxShadow(
-            color: LightColor.accent.withValues(alpha: 0.12),
-            blurRadius: 28,
+            color: LightColor.shadowColor.withValues(alpha: 0.14),
+            blurRadius: AppDimens.radiusX28,
             offset: const Offset(0, -10),
           ),
         ],
       ),
       padding:
           padding ??
-          EdgeInsets.fromLTRB(18, 12, 18, 18 + mediaQuery.viewInsets.bottom),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          if (showDragHandle)
-            Center(
-              child: Container(
-                width: 44,
-                height: 4,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: <Color>[LightColor.border, LightColor.secondary],
+          appUtils.getPadding(
+            left: AppDimens.paddingX18,
+            top: AppDimens.paddingX12,
+            right: AppDimens.paddingX18,
+            bottom:
+                AppDimens.paddingX18 +
+                mediaQuery.viewInsets.bottom +
+                mediaQuery.padding.bottom,
+          ),
+      child: DefaultTextStyle(
+        style:
+            textTheme.bodyTextMedium?.copyWith(
+              color: LightColor.primaryTextColor,
+            ) ??
+            Theme.of(context).textTheme.bodyMedium ??
+            const TextStyle(),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            if (showDragHandle)
+              Container(
+                margin: appUtils.getMargin(bottom: AppDimens.marginX12),
+                alignment: Alignment.center,
+                child: Container(
+                  width: AppDimens.sizeX44,
+                  height: AppDimens.sizeX4,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: <Color>[
+                        LightColor.dividerColor,
+                        LightColor.secondaryLight,
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(999),
                   ),
-                  borderRadius: BorderRadius.circular(999),
                 ),
               ),
-            ),
-          if (showDragHandle) const SizedBox(height: 12),
-          Flexible(child: child),
-        ],
+            Flexible(child: child),
+          ],
+        ),
       ),
     );
 

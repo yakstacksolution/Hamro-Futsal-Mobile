@@ -23,26 +23,26 @@ class PolicyToggleTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: value
-              ? LightColor.skyBlue.withValues(alpha: 0.35)
-              : LightColor.lightGrey,
+              ? LightColor.secondaryColor.withValues(alpha: 0.35)
+              : LightColor.borderColor,
         ),
       ),
       child: SwitchListTile.adaptive(
         value: value,
         onChanged: onChanged,
         activeThumbColor: Colors.white,
-        activeTrackColor: LightColor.skyBlue,
+        activeTrackColor: LightColor.secondaryColor,
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
         title: Text(
           title,
           style: const TextStyle(
-            color: LightColor.titleTextColor,
+            color: LightColor.primaryTextColor,
             fontWeight: FontWeight.w700,
           ),
         ),
         subtitle: Text(
           subtitle,
-          style: const TextStyle(color: LightColor.darkgrey, fontSize: 12.5),
+          style: const TextStyle(color: LightColor.secondaryTextColor, fontSize: 12.5),
         ),
       ),
     );

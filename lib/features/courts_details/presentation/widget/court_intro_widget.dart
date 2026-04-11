@@ -191,7 +191,7 @@ class CourtIntroWidget extends StatelessWidget {
                 ),
                 child: const Icon(
                   Icons.description_rounded,
-                  color: LightColor.secondary,
+                  color: LightColor.secondaryColor,
                   size: 20,
                 ),
               ),

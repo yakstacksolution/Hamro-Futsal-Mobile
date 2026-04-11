@@ -142,7 +142,7 @@
 //             height: 220,
 //             decoration: BoxDecoration(
 //               shape: BoxShape.circle,
-//               color: LightColor.secondary.withValues(alpha: 0.09),
+//               color: LightColor.secondaryColor.withValues(alpha: 0.09),
 //             ),
 //           ),
 //         ),
@@ -154,7 +154,7 @@
 //             height: 160,
 //             decoration: BoxDecoration(
 //               shape: BoxShape.circle,
-//               color: LightColor.primary.withValues(alpha: 0.08),
+//               color: LightColor.secondaryColor.withValues(alpha: 0.08),
 //             ),
 //           ),
 //         ),
@@ -166,7 +166,7 @@
 //             height: 180,
 //             decoration: BoxDecoration(
 //               shape: BoxShape.circle,
-//               color: LightColor.amber.withValues(alpha: 0.08),
+//               color: LightColor.warningColor.withValues(alpha: 0.08),
 //             ),
 //           ),
 //         ),
@@ -187,14 +187,14 @@
 //           height: 46,
 //           decoration: BoxDecoration(
 //             gradient: LinearGradient(
-//               colors: [LightColor.secondary, LightColor.secondaryDark],
+//               colors: [LightColor.secondaryColor, LightColor.secondaryDark],
 //               begin: Alignment.topLeft,
 //               end: Alignment.bottomRight,
 //             ),
 //             borderRadius: BorderRadius.circular(16),
 //             boxShadow: [
 //               BoxShadow(
-//                 color: LightColor.secondary.withValues(alpha: 0.28),
+//                 color: LightColor.secondaryColor.withValues(alpha: 0.28),
 //                 blurRadius: 18,
 //                 offset: const Offset(0, 8),
 //               ),
@@ -202,7 +202,7 @@
 //           ),
 //           child: const Icon(
 //             Icons.storefront_rounded,
-//             color: LightColor.white,
+//             color: LightColor.whiteColor,
 //             size: 24,
 //           ),
 //         ),
@@ -214,7 +214,7 @@
 //               Text(
 //                 'Vendor Onboarding',
 //                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-//                   color: LightColor.titleText,
+//                   color: LightColor.primaryTextColor,
 //                   fontWeight: FontWeight.w800,
 //                 ),
 //               ),
@@ -222,7 +222,7 @@
 //               Text(
 //                 'Grow your futsal business with us',
 //                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-//                   color: LightColor.subtitleText,
+//                   color: LightColor.secondaryTextColor,
 //                   fontWeight: FontWeight.w500,
 //                 ),
 //               ),
@@ -234,7 +234,7 @@
 //           decoration: BoxDecoration(
 //             color: LightColor.secondaryLight,
 //             borderRadius: BorderRadius.circular(14),
-//             border: Border.all(color: LightColor.successBorder),
+//             border: Border.all(color: LightColor.secondaryLightMedium),
 //           ),
 //           child: Row(
 //             mainAxisSize: MainAxisSize.min,
@@ -242,7 +242,7 @@
 //               Icon(
 //                 Icons.verified_rounded,
 //                 size: 16,
-//                 color: LightColor.secondary,
+//                 color: LightColor.secondaryColor,
 //               ),
 //               SizedBox(width: 6),
 //               Text(
@@ -272,16 +272,16 @@
 //         borderRadius: BorderRadius.circular(30),
 //         gradient: LinearGradient(
 //           colors: [
-//             LightColor.secondary,
+//             LightColor.secondaryColor,
 //             LightColor.secondaryDark,
-//             LightColor.accent,
+//             LightColor.secondaryColor,
 //           ],
 //           begin: Alignment.topLeft,
 //           end: Alignment.bottomRight,
 //         ),
 //         boxShadow: [
 //           BoxShadow(
-//             color: LightColor.secondary.withValues(alpha: 0.28),
+//             color: LightColor.secondaryColor.withValues(alpha: 0.28),
 //             blurRadius: 28,
 //             offset: const Offset(0, 18),
 //           ),
@@ -297,7 +297,7 @@
 //               height: 110,
 //               decoration: BoxDecoration(
 //                 shape: BoxShape.circle,
-//                 color: LightColor.white.withValues(alpha: 0.08),
+//                 color: LightColor.whiteColor.withValues(alpha: 0.08),
 //               ),
 //             ),
 //           ),
@@ -309,7 +309,7 @@
 //               height: 95,
 //               decoration: BoxDecoration(
 //                 shape: BoxShape.circle,
-//                 color: LightColor.white.withValues(alpha: 0.06),
+//                 color: LightColor.whiteColor.withValues(alpha: 0.06),
 //               ),
 //             ),
 //           ),
@@ -335,7 +335,7 @@
 //               Text(
 //                 'Turn your futsal venue into a booking powerhouse',
 //                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-//                   color: LightColor.white,
+//                   color: LightColor.whiteColor,
 //                   fontWeight: FontWeight.w800,
 //                   height: 1.15,
 //                   letterSpacing: -0.4,
@@ -345,7 +345,7 @@
 //               Text(
 //                 'Create your venue, add courts, manage schedules, and accept online bookings — all from one beautiful dashboard.',
 //                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-//                   color: LightColor.white.withValues(alpha: 0.90),
+//                   color: LightColor.whiteColor.withValues(alpha: 0.90),
 //                   height: 1.55,
 //                 ),
 //               ),
@@ -385,11 +385,11 @@
 //       width: isLarge ? 62 : 50,
 //       height: isLarge ? 62 : 50,
 //       decoration: BoxDecoration(
-//         color: LightColor.white.withValues(alpha: isLarge ? 0.18 : 0.12),
+//         color: LightColor.whiteColor.withValues(alpha: isLarge ? 0.18 : 0.12),
 //         borderRadius: BorderRadius.circular(isLarge ? 20 : 16),
-//         border: Border.all(color: LightColor.white.withValues(alpha: 0.12)),
+//         border: Border.all(color: LightColor.whiteColor.withValues(alpha: 0.12)),
 //       ),
-//       child: Icon(icon, color: LightColor.white, size: isLarge ? 30 : 24),
+//       child: Icon(icon, color: LightColor.whiteColor, size: isLarge ? 30 : 24),
 //     );
 //   }
 // }
@@ -409,19 +409,19 @@
 //         child: Container(
 //           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
 //           decoration: BoxDecoration(
-//             color: LightColor.white.withValues(alpha: 0.10),
+//             color: LightColor.whiteColor.withValues(alpha: 0.10),
 //             borderRadius: BorderRadius.circular(100),
-//             border: Border.all(color: LightColor.white.withValues(alpha: 0.14)),
+//             border: Border.all(color: LightColor.whiteColor.withValues(alpha: 0.14)),
 //           ),
 //           child: Row(
 //             mainAxisSize: MainAxisSize.min,
 //             children: [
-//               Icon(icon, color: LightColor.white, size: 16),
+//               Icon(icon, color: LightColor.whiteColor, size: 16),
 //               const SizedBox(width: 8),
 //               Text(
 //                 label,
 //                 style: const TextStyle(
-//                   color: LightColor.white,
+//                   color: LightColor.whiteColor,
 //                   fontSize: 12.5,
 //                   fontWeight: FontWeight.w700,
 //                 ),
@@ -485,12 +485,12 @@
 //     return Container(
 //       padding: const EdgeInsets.all(14),
 //       decoration: BoxDecoration(
-//         color: LightColor.surface.withValues(alpha: 0.86),
+//         color: LightColor.cardColor.withValues(alpha: 0.86),
 //         borderRadius: BorderRadius.circular(20),
-//         border: Border.all(color: LightColor.border),
+//         border: Border.all(color: LightColor.borderColor),
 //         boxShadow: [
 //           BoxShadow(
-//             color: LightColor.shadow.withValues(alpha: 0.04),
+//             color: LightColor.shadowColor.withValues(alpha: 0.04),
 //             blurRadius: 18,
 //             offset: const Offset(0, 10),
 //           ),
@@ -505,7 +505,7 @@
 //               color: LightColor.secondaryLight,
 //               borderRadius: BorderRadius.circular(14),
 //             ),
-//             child: Icon(icon, color: LightColor.secondary, size: 22),
+//             child: Icon(icon, color: LightColor.secondaryColor, size: 22),
 //           ),
 //           const SizedBox(height: 10),
 //           Text(
@@ -513,7 +513,7 @@
 //             maxLines: 1,
 //             overflow: TextOverflow.ellipsis,
 //             style: Theme.of(context).textTheme.titleSmall?.copyWith(
-//               color: LightColor.titleText,
+//               color: LightColor.primaryTextColor,
 //               fontWeight: FontWeight.w800,
 //             ),
 //           ),
@@ -522,7 +522,7 @@
 //             label,
 //             textAlign: TextAlign.center,
 //             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-//               color: LightColor.subtitleText,
+//               color: LightColor.secondaryTextColor,
 //               fontWeight: FontWeight.w600,
 //               height: 1.3,
 //             ),
@@ -547,7 +547,7 @@
 //         Text(
 //           title,
 //           style: Theme.of(context).textTheme.titleLarge?.copyWith(
-//             color: LightColor.titleText,
+//             color: LightColor.primaryTextColor,
 //             fontWeight: FontWeight.w800,
 //             letterSpacing: -0.2,
 //           ),
@@ -556,7 +556,7 @@
 //         Text(
 //           subtitle,
 //           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-//             color: LightColor.subtitleText,
+//             color: LightColor.secondaryTextColor,
 //             height: 1.5,
 //             fontWeight: FontWeight.w500,
 //           ),
@@ -580,7 +580,7 @@
 //               'Enter your futsal name, contact details, location, amenities, and business information.',
 //           icon: Icons.apartment_rounded,
 //           gradient: LinearGradient(
-//             colors: [LightColor.secondary, LightColor.secondaryDark],
+//             colors: [LightColor.secondaryColor, LightColor.secondaryDark],
 //           ),
 //         ),
 //         const SizedBox(height: 14),
@@ -591,7 +591,7 @@
 //               'Add multiple courts, set pricing, court type, availability, and booking settings.',
 //           icon: Icons.grid_on_rounded,
 //           gradient: LinearGradient(
-//             colors: [LightColor.primary, LightColor.primaryDark],
+//             colors: [LightColor.secondaryColor, LightColor.primaryDark],
 //           ),
 //         ),
 //         const SizedBox(height: 14),
@@ -602,7 +602,7 @@
 //               'Check everything, publish your venue, and start receiving online bookings from players.',
 //           icon: Icons.rocket_launch_rounded,
 //           gradient: LinearGradient(
-//             colors: [LightColor.amber, const Color(0xFFD97706)],
+//             colors: [LightColor.warningColor, const Color(0xFFD97706)],
 //           ),
 //         ),
 //       ],
@@ -630,12 +630,12 @@
 //     return Container(
 //       padding: const EdgeInsets.all(18),
 //       decoration: BoxDecoration(
-//         color: LightColor.surface.withValues(alpha: 0.92),
+//         color: LightColor.cardColor.withValues(alpha: 0.92),
 //         borderRadius: BorderRadius.circular(24),
-//         border: Border.all(color: LightColor.border),
+//         border: Border.all(color: LightColor.borderColor),
 //         boxShadow: [
 //           BoxShadow(
-//             color: LightColor.shadow.withValues(alpha: 0.05),
+//             color: LightColor.shadowColor.withValues(alpha: 0.05),
 //             blurRadius: 20,
 //             offset: const Offset(0, 10),
 //           ),
@@ -658,7 +658,7 @@
 //                 ),
 //               ],
 //             ),
-//             child: Icon(icon, color: LightColor.white, size: 28),
+//             child: Icon(icon, color: LightColor.whiteColor, size: 28),
 //           ),
 //           const SizedBox(width: 14),
 //           Expanded(
@@ -671,7 +671,7 @@
 //                     vertical: 5,
 //                   ),
 //                   decoration: BoxDecoration(
-//                     color: LightColor.surfaceSubtle,
+//                     color: LightColor.inputFillColor,
 //                     borderRadius: BorderRadius.circular(100),
 //                   ),
 //                   child: Text(
@@ -679,7 +679,7 @@
 //                     style: const TextStyle(
 //                       fontSize: 11.5,
 //                       fontWeight: FontWeight.w800,
-//                       color: LightColor.subtitleText,
+//                       color: LightColor.secondaryTextColor,
 //                     ),
 //                   ),
 //                 ),
@@ -687,7 +687,7 @@
 //                 Text(
 //                   title,
 //                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-//                     color: LightColor.titleText,
+//                     color: LightColor.primaryTextColor,
 //                     fontWeight: FontWeight.w800,
 //                   ),
 //                 ),
@@ -695,7 +695,7 @@
 //                 Text(
 //                   description,
 //                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-//                     color: LightColor.subtitleText,
+//                     color: LightColor.secondaryTextColor,
 //                     height: 1.5,
 //                     fontWeight: FontWeight.w500,
 //                   ),
@@ -724,7 +724,7 @@
 //                 title: 'More visibility',
 //                 description: 'Reach players searching nearby courts instantly.',
 //                 topColor: LightColor.secondaryLight,
-//                 iconColor: LightColor.secondary,
+//                 iconColor: LightColor.secondaryColor,
 //               ),
 //             ),
 //             const SizedBox(width: 12),
@@ -734,8 +734,8 @@
 //                 title: 'Easy scheduling',
 //                 description:
 //                     'Manage slots, pricing, and court timing effortlessly.',
-//                 topColor: LightColor.primaryLight,
-//                 iconColor: LightColor.primary,
+//                 topColor: LightColor.secondaryLight,
+//                 iconColor: LightColor.secondaryColor,
 //               ),
 //             ),
 //           ],
@@ -759,8 +759,8 @@
 //                 title: 'Better control',
 //                 description:
 //                     'Keep venue details and business settings updated.',
-//                 topColor: LightColor.warningLight,
-//                 iconColor: LightColor.amber,
+//                 topColor: LightColor.warningLightColor,
+//                 iconColor: LightColor.warningColor,
 //               ),
 //             ),
 //           ],
@@ -790,12 +790,12 @@
 //     return Container(
 //       padding: const EdgeInsets.all(16),
 //       decoration: BoxDecoration(
-//         color: LightColor.surface.withValues(alpha: 0.94),
+//         color: LightColor.cardColor.withValues(alpha: 0.94),
 //         borderRadius: BorderRadius.circular(22),
-//         border: Border.all(color: LightColor.border),
+//         border: Border.all(color: LightColor.borderColor),
 //         boxShadow: [
 //           BoxShadow(
-//             color: LightColor.shadow.withValues(alpha: 0.045),
+//             color: LightColor.shadowColor.withValues(alpha: 0.045),
 //             blurRadius: 18,
 //             offset: const Offset(0, 10),
 //           ),
@@ -818,14 +818,14 @@
 //             title,
 //             style: Theme.of(context).textTheme.titleSmall?.copyWith(
 //               fontWeight: FontWeight.w800,
-//               color: LightColor.titleText,
+//               color: LightColor.primaryTextColor,
 //             ),
 //           ),
 //           const SizedBox(height: 6),
 //           Text(
 //             description,
 //             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-//               color: LightColor.subtitleText,
+//               color: LightColor.secondaryTextColor,
 //               height: 1.45,
 //               fontWeight: FontWeight.w500,
 //             ),
@@ -844,11 +844,11 @@
 //     return Container(
 //       padding: const EdgeInsets.all(18),
 //       decoration: BoxDecoration(
-//         color: LightColor.accent,
+//         color: LightColor.secondaryColor,
 //         borderRadius: BorderRadius.circular(26),
 //         boxShadow: [
 //           BoxShadow(
-//             color: LightColor.accent.withValues(alpha: 0.18),
+//             color: LightColor.secondaryColor.withValues(alpha: 0.18),
 //             blurRadius: 24,
 //             offset: const Offset(0, 14),
 //           ),
@@ -895,17 +895,17 @@
 //           width: 42,
 //           height: 42,
 //           decoration: BoxDecoration(
-//             color: LightColor.white.withValues(alpha: 0.08),
+//             color: LightColor.whiteColor.withValues(alpha: 0.08),
 //             borderRadius: BorderRadius.circular(14),
 //           ),
-//           child: Icon(icon, color: LightColor.white, size: 21),
+//           child: Icon(icon, color: LightColor.whiteColor, size: 21),
 //         ),
 //         const SizedBox(width: 12),
 //         Expanded(
 //           child: Text(
 //             text,
 //             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-//               color: LightColor.white.withValues(alpha: 0.92),
+//               color: LightColor.whiteColor.withValues(alpha: 0.92),
 //               fontWeight: FontWeight.w500,
 //               height: 1.45,
 //             ),
@@ -933,7 +933,7 @@
 //           end: Alignment.bottomRight,
 //         ),
 //         borderRadius: BorderRadius.circular(24),
-//         border: Border.all(color: LightColor.successBorder),
+//         border: Border.all(color: LightColor.secondaryLightMedium),
 //       ),
 //       child: Row(
 //         crossAxisAlignment: CrossAxisAlignment.start,
@@ -947,7 +947,7 @@
 //             ),
 //             child: const Icon(
 //               Icons.emoji_events_rounded,
-//               color: LightColor.secondary,
+//               color: LightColor.secondaryColor,
 //               size: 28,
 //             ),
 //           ),
@@ -967,7 +967,7 @@
 //                 Text(
 //                   'A professional onboarding flow helps vendors understand the process faster and improves completion rate.',
 //                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-//                     color: LightColor.secondary,
+//                     color: LightColor.secondaryColor,
 //                     height: 1.5,
 //                     fontWeight: FontWeight.w500,
 //                   ),
@@ -995,14 +995,14 @@
 //         child: Container(
 //           padding: const EdgeInsets.all(10),
 //           decoration: BoxDecoration(
-//             color: LightColor.surface.withValues(alpha: 0.82),
+//             color: LightColor.cardColor.withValues(alpha: 0.82),
 //             borderRadius: BorderRadius.circular(24),
 //             border: Border.all(
-//               color: LightColor.surface.withValues(alpha: 0.8),
+//               color: LightColor.cardColor.withValues(alpha: 0.8),
 //             ),
 //             boxShadow: [
 //               BoxShadow(
-//                 color: LightColor.shadow.withValues(alpha: 0.08),
+//                 color: LightColor.shadowColor.withValues(alpha: 0.08),
 //                 blurRadius: 24,
 //                 offset: const Offset(0, 12),
 //               ),
@@ -1012,21 +1012,21 @@
 //             height: 60,
 //             decoration: BoxDecoration(
 //               gradient: LinearGradient(
-//                 colors: [LightColor.secondary, LightColor.secondaryDark],
+//                 colors: [LightColor.secondaryColor, LightColor.secondaryDark],
 //                 begin: Alignment.centerLeft,
 //                 end: Alignment.centerRight,
 //               ),
 //               borderRadius: BorderRadius.circular(20),
 //               boxShadow: [
 //                 BoxShadow(
-//                   color: LightColor.secondary.withValues(alpha: 0.30),
+//                   color: LightColor.secondaryColor.withValues(alpha: 0.30),
 //                   blurRadius: 18,
 //                   offset: const Offset(0, 8),
 //                 ),
 //               ],
 //             ),
 //             child: Material(
-//               color: LightColor.transparent,
+//               color: LightColor.transparentColor,
 //               child: InkWell(
 //                 onTap: onPressed,
 //                 borderRadius: BorderRadius.circular(20),
@@ -1035,14 +1035,14 @@
 //                   children: [
 //                     const Icon(
 //                       Icons.rocket_launch_rounded,
-//                       color: LightColor.white,
+//                       color: LightColor.whiteColor,
 //                       size: 20,
 //                     ),
 //                     const SizedBox(width: 10),
 //                     Text(
 //                       'Start Vendor Onboarding',
 //                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
-//                         color: LightColor.white,
+//                         color: LightColor.whiteColor,
 //                         fontWeight: FontWeight.w800,
 //                         letterSpacing: 0.2,
 //                       ),
@@ -1052,12 +1052,12 @@
 //                       width: 30,
 //                       height: 30,
 //                       decoration: BoxDecoration(
-//                         color: LightColor.white.withValues(alpha: 0.18),
+//                         color: LightColor.whiteColor.withValues(alpha: 0.18),
 //                         borderRadius: BorderRadius.circular(10),
 //                       ),
 //                       child: const Icon(
 //                         Icons.arrow_forward_rounded,
-//                         color: LightColor.white,
+//                         color: LightColor.whiteColor,
 //                         size: 18,
 //                       ),
 //                     ),

@@ -34,8 +34,8 @@ class LogoPickerCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: hasLogo
-              ? LightColor.skyBlue.withValues(alpha: 0.48)
-              : LightColor.lightGrey,
+              ? LightColor.secondaryColor.withValues(alpha: 0.48)
+              : LightColor.borderColor,
           width: 1.2,
         ),
       ),
@@ -52,8 +52,8 @@ class LogoPickerCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: hasLogo
-                      ? LightColor.skyBlue.withValues(alpha: 0.4)
-                      : LightColor.lightGrey,
+                      ? LightColor.secondaryColor.withValues(alpha: 0.4)
+                      : LightColor.borderColor,
                 ),
               ),
               child: hasLogo
@@ -72,13 +72,13 @@ class LogoPickerCard extends StatelessWidget {
                         Icon(
                           Icons.cloud_upload_rounded,
                           size: 34,
-                          color: LightColor.skyBlue,
+                          color: LightColor.secondaryColor,
                         ),
                         SizedBox(height: 8),
                         Text(
                           'Tap to upload shop logo',
                           style: TextStyle(
-                            color: LightColor.titleTextColor,
+                            color: LightColor.primaryTextColor,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
@@ -86,7 +86,7 @@ class LogoPickerCard extends StatelessWidget {
                         Text(
                           'PNG, JPG, JPEG, WEBP',
                           style: TextStyle(
-                            color: LightColor.darkgrey,
+                            color: LightColor.secondaryTextColor,
                             fontSize: 12,
                           ),
                         ),
@@ -101,7 +101,7 @@ class LogoPickerCard extends StatelessWidget {
                 const Icon(
                   Icons.image_rounded,
                   size: 16,
-                  color: LightColor.skyBlue,
+                  color: LightColor.secondaryColor,
                 ),
                 const SizedBox(width: 8),
                 Expanded(
@@ -110,7 +110,7 @@ class LogoPickerCard extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      color: LightColor.titleTextColor,
+                      color: LightColor.primaryTextColor,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -127,9 +127,9 @@ class LogoPickerCard extends StatelessWidget {
                   icon: const Icon(Icons.file_open_rounded, size: 18),
                   label: const Text('Choose File'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: LightColor.skyBlue,
+                    foregroundColor: LightColor.secondaryColor,
                     side: BorderSide(
-                      color: LightColor.skyBlue.withValues(alpha: 0.5),
+                      color: LightColor.secondaryColor.withValues(alpha: 0.5),
                     ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
@@ -145,9 +145,9 @@ class LogoPickerCard extends StatelessWidget {
                     icon: const Icon(Icons.delete_outline_rounded, size: 18),
                     label: const Text('Remove'),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: LightColor.red,
+                      foregroundColor: LightColor.redColor,
                       side: BorderSide(
-                        color: LightColor.red.withValues(alpha: 0.4),
+                        color: LightColor.redColor.withValues(alpha: 0.4),
                       ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),

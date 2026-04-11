@@ -23,6 +23,8 @@ class AppDimens {
   static const double paddingX36 = 36;
   static const double paddingX38 = 38;
   static const double paddingX40 = 40;
+  static const double paddingX44 = 44;
+  static const double paddingX46 = 46;
   static const double paddingX48 = 48;
   static const double paddingX50 = 50;
   static const double paddingX125 = 125;
@@ -80,6 +82,7 @@ class AppDimens {
   static const double radiusX20 = 20;
   static const double radiusX22 = 22;
   static const double radiusX24 = 24;
+  static const double radiusX26 = 26;
   static const double radiusX28 = 28;
   static const double radiusX30 = 30;
   static const double radiusX32 = 32;
@@ -107,10 +110,12 @@ class AppDimens {
   static const double sizeX28 = 28;
   static const double sizeX30 = 30;
   static const double sizeX32 = 32;
+  static const double sizeX34 = 34;
   static const double sizeX36 = 36;
   static const double sizeX38 = 38;
   static const double sizeX40 = 40;
   static const double sizeX44 = 44;
+  static const double sizeX46 = 46;
   static const double sizeX48 = 48;
 
   static const double sizeX50 = 50;

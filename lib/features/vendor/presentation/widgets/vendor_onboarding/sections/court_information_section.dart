@@ -256,7 +256,7 @@ class _CompactCourtDescriptionHeader extends StatelessWidget {
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: LightColor.secondary.withValues(alpha: 0.2)),
+        border: Border.all(color: LightColor.secondaryColor.withValues(alpha: 0.2)),
       ),
       child: Row(
         children: <Widget>[
@@ -267,7 +267,7 @@ class _CompactCourtDescriptionHeader extends StatelessWidget {
               color: LightColor.secondaryLight,
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(icon, size: 18, color: LightColor.secondary),
+            child: Icon(icon, size: 18, color: LightColor.secondaryColor),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -279,7 +279,7 @@ class _CompactCourtDescriptionHeader extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
-                    color: LightColor.titleText,
+                    color: LightColor.primaryTextColor,
                     height: 1.1,
                   ),
                 ),
@@ -291,7 +291,7 @@ class _CompactCourtDescriptionHeader extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w400,
-                    color: LightColor.subtitleText,
+                    color: LightColor.secondaryTextColor,
                     height: 1.3,
                   ),
                 ),
@@ -328,7 +328,7 @@ class _CourtTimeSchedulesSubsection extends StatelessWidget {
           SwitchListTile.adaptive(
             contentPadding: EdgeInsets.zero,
             value: court.availability.isOpen24Hours,
-            activeThumbColor: LightColor.secondary,
+            activeThumbColor: LightColor.secondaryColor,
             title: const Text(
               'Open 24 hours',
               style: TextStyle(fontWeight: FontWeight.w700),

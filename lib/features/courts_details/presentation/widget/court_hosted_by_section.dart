@@ -32,10 +32,12 @@ class CourtHostedBySection extends StatelessWidget {
             colors: [Color(0xFFFFFFFF), Color(0xFFF7FBFF)],
           ),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: LightColor.border.withValues(alpha: 0.8)),
+          border: Border.all(
+            color: LightColor.borderColor.withValues(alpha: 0.8),
+          ),
           boxShadow: [
             BoxShadow(
-              color: LightColor.shadow.withValues(alpha: 0.06),
+              color: LightColor.shadowColor.withValues(alpha: 0.06),
               blurRadius: 18,
               offset: const Offset(0, 8),
             ),
@@ -47,7 +49,7 @@ class CourtHostedBySection extends StatelessWidget {
             const Text(
               'Hosted By',
               style: TextStyle(
-                color: LightColor.titleText,
+                color: LightColor.primaryTextColor,
                 fontSize: 16,
                 fontWeight: FontWeight.w800,
               ),
@@ -59,7 +61,14 @@ class CourtHostedBySection extends StatelessWidget {
                   width: 56,
                   height: 56,
                   decoration: BoxDecoration(
-                    gradient: LightColor.headerGradient,
+                    gradient: const LinearGradient(
+                      colors: <Color>[
+                        LightColor.secondaryColor,
+                        LightColor.secondaryDark,
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
                     borderRadius: BorderRadius.circular(18),
                   ),
                   child: Center(
@@ -86,7 +95,7 @@ class CourtHostedBySection extends StatelessWidget {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
-                                color: LightColor.titleText,
+                                color: LightColor.primaryTextColor,
                                 fontSize: 16,
                                 fontWeight: FontWeight.w800,
                               ),
@@ -96,7 +105,7 @@ class CourtHostedBySection extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.all(3),
                             decoration: const BoxDecoration(
-                              color: LightColor.secondary,
+                              color: LightColor.secondaryColor,
                               shape: BoxShape.circle,
                             ),
                             child: const Icon(
@@ -111,7 +120,7 @@ class CourtHostedBySection extends StatelessWidget {
                       Text(
                         'Hosting since $hostSince',
                         style: const TextStyle(
-                          color: LightColor.subtitleText,
+                          color: LightColor.secondaryTextColor,
                           fontSize: 12.5,
                           fontWeight: FontWeight.w500,
                         ),
@@ -123,12 +132,12 @@ class CourtHostedBySection extends StatelessWidget {
                   width: 42,
                   height: 42,
                   decoration: BoxDecoration(
-                    color: LightColor.secondaryGreen.withValues(alpha: 0.1),
+                    color: LightColor.secondaryColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Icon(
                     Icons.chat_bubble_outline_rounded,
-                    color: LightColor.secondaryGreen,
+                    color: LightColor.secondaryColor,
                     size: 19,
                   ),
                 ),
@@ -186,18 +195,20 @@ class _HostMetricTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
         decoration: BoxDecoration(
-          color: LightColor.secondaryGreen.withValues(alpha: 0.05),
+          color: LightColor.secondaryColor.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: LightColor.border.withValues(alpha: 0.8)),
+          border: Border.all(
+            color: LightColor.borderColor.withValues(alpha: 0.8),
+          ),
         ),
         child: Column(
           children: [
-            Icon(icon, size: 18, color: LightColor.secondaryGreen),
+            Icon(icon, size: 18, color: LightColor.secondaryColor),
             const SizedBox(height: 5),
             Text(
               value,
               style: const TextStyle(
-                color: LightColor.titleText,
+                color: LightColor.primaryTextColor,
                 fontSize: 14,
                 fontWeight: FontWeight.w800,
               ),
@@ -206,7 +217,7 @@ class _HostMetricTile extends StatelessWidget {
             Text(
               label,
               style: const TextStyle(
-                color: LightColor.subtitleText,
+                color: LightColor.secondaryTextColor,
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
               ),

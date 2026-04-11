@@ -48,7 +48,7 @@ class CustomHeaderWidget extends StatelessWidget {
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
-            color: LightColor.primary.withValues(alpha: 0.28),
+            color: LightColor.secondaryColor.withValues(alpha: 0.28),
             blurRadius: 32,
             spreadRadius: 2,
             offset: const Offset(0, 10),
@@ -89,9 +89,9 @@ class CustomHeaderWidget extends StatelessWidget {
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              LightColor.accent,
+              LightColor.secondaryColor,
               LightColor.primaryDark,
-              LightColor.primary,
+              LightColor.secondaryColor,
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -139,7 +139,7 @@ class CustomHeaderWidget extends StatelessWidget {
           child: _blob(
             200 * _scale,
             200 * _scale,
-            LightColor.primary.withValues(alpha: 0.2),
+            LightColor.secondaryColor.withValues(alpha: 0.2),
           ),
         ),
       ]);
@@ -152,7 +152,7 @@ class CustomHeaderWidget extends StatelessWidget {
           height: 110 * _scale,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: LightColor.secondary.withValues(alpha: 0.18),
+            color: LightColor.secondaryColor.withValues(alpha: 0.18),
           ),
         ),
       );
@@ -239,7 +239,7 @@ class CustomHeaderWidget extends StatelessWidget {
               ),
               boxShadow: [
                 BoxShadow(
-                  color: LightColor.primary.withValues(alpha: 0.32),
+                  color: LightColor.secondaryColor.withValues(alpha: 0.32),
                   blurRadius: 16,
                   offset: const Offset(0, 4),
                 ),
@@ -263,7 +263,7 @@ class CustomHeaderWidget extends StatelessWidget {
               height: _onlineDotSize,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: LightColor.secondary,
+                color: LightColor.secondaryColor,
                 border: Border.all(color: Colors.white, width: 2),
               ),
             ),

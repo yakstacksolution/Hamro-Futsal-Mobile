@@ -14,12 +14,12 @@ class CourtRulesSection extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: LightColor.surface,
+          color: LightColor.cardColor,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: LightColor.border.withValues(alpha: 0.7)),
+          border: Border.all(color: LightColor.borderColor.withValues(alpha: 0.7)),
           boxShadow: [
             BoxShadow(
-              color: LightColor.shadow.withValues(alpha: 0.04),
+              color: LightColor.shadowColor.withValues(alpha: 0.04),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -30,12 +30,12 @@ class CourtRulesSection extends StatelessWidget {
           children: [
             const Row(
               children: [
-                Icon(Icons.gavel_rounded, size: 18, color: LightColor.amber),
+                Icon(Icons.gavel_rounded, size: 18, color: LightColor.warningColor),
                 SizedBox(width: 8),
                 Text(
                   'Court Rules',
                   style: TextStyle(
-                    color: LightColor.titleText,
+                    color: LightColor.primaryTextColor,
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
                   ),
@@ -47,7 +47,7 @@ class CourtRulesSection extends StatelessWidget {
               const Text(
                 'No rules listed yet.',
                 style: TextStyle(
-                  color: LightColor.subtitleText,
+                  color: LightColor.secondaryTextColor,
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
                 ),
@@ -71,7 +71,7 @@ class CourtRulesSection extends StatelessWidget {
                           child: const Icon(
                             Icons.warning_amber_rounded,
                             size: 13,
-                            color: LightColor.amber,
+                            color: LightColor.warningColor,
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -79,7 +79,7 @@ class CourtRulesSection extends StatelessWidget {
                           child: Text(
                             entry.value,
                             style: const TextStyle(
-                              color: LightColor.subtitleText,
+                              color: LightColor.secondaryTextColor,
                               fontSize: 13.5,
                               fontWeight: FontWeight.w400,
                               height: 1.4,

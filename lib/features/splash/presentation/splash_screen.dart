@@ -103,9 +103,9 @@
 //             decoration: const BoxDecoration(
 //               gradient: LinearGradient(
 //                 colors: <Color>[
-//                   LightColor.accent,
+//                   LightColor.secondaryColor,
 //                   LightColor.secondaryDark,
-//                   LightColor.secondary,
+//                   LightColor.secondaryColor,
 //                 ],
 //                 begin: Alignment.topLeft,
 //                 end: Alignment.bottomRight,
@@ -198,7 +198,7 @@
 //                                               color: Colors.white,
 //                                               boxShadow: <BoxShadow>[
 //                                                 BoxShadow(
-//                                                   color: LightColor.secondary
+//                                                   color: LightColor.secondaryColor
 //                                                       .withValues(alpha: 0.28),
 //                                                   blurRadius: 28,
 //                                                   spreadRadius: 1,
@@ -325,7 +325,7 @@
 //                                 ),
 //                                 boxShadow: <BoxShadow>[
 //                                   BoxShadow(
-//                                     color: LightColor.shadow.withValues(
+//                                     color: LightColor.shadowColor.withValues(
 //                                       alpha: 0.12,
 //                                     ),
 //                                     blurRadius: 28,

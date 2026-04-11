@@ -42,7 +42,7 @@ class VendorCourtManager extends StatelessWidget {
           'Are you sure you want to remove "$courtName"? This action cannot be undone and will delete permanently.',
       confirmText: 'Remove',
       cancelText: 'Cancel',
-      confirmColor: LightColor.red,
+      confirmColor: LightColor.redColor,
       icon: Icons.delete_outline_rounded,
     );
 
@@ -67,7 +67,7 @@ class VendorCourtManager extends StatelessWidget {
                     Text(
                       'Courts',
                       style: TextStyle(
-                        color: LightColor.titleText,
+                        color: LightColor.primaryTextColor,
                         fontSize: 16,
                         fontWeight: FontWeight.w800,
                       ),
@@ -76,7 +76,7 @@ class VendorCourtManager extends StatelessWidget {
                     Text(
                       'Manage courts in compact view',
                       style: TextStyle(
-                        color: LightColor.subtitleText,
+                        color: LightColor.secondaryTextColor,
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
                       ),
@@ -147,7 +147,7 @@ class _AddCourtButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: LightColor.secondary,
+      color: LightColor.secondaryColor,
       borderRadius: BorderRadius.circular(8),
       child: InkWell(
         onTap: onTap,
@@ -157,12 +157,12 @@ class _AddCourtButton extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              Icon(Icons.add_rounded, size: 12, color: LightColor.white),
+              Icon(Icons.add_rounded, size: 12, color: LightColor.whiteColor),
               SizedBox(width: 4),
               Text(
                 'Add New Court',
                 style: TextStyle(
-                  color: LightColor.white,
+                  color: LightColor.whiteColor,
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
                 ),
@@ -188,7 +188,7 @@ class _CourtEmptyStateCompact extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFF8FAFC),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: LightColor.border),
+        border: Border.all(color: LightColor.borderColor),
       ),
       child: Row(
         children: <Widget>[
@@ -201,7 +201,7 @@ class _CourtEmptyStateCompact extends StatelessWidget {
             ),
             child: const Icon(
               Icons.stadium_rounded,
-              color: LightColor.secondary,
+              color: LightColor.secondaryColor,
               size: 20,
             ),
           ),
@@ -213,7 +213,7 @@ class _CourtEmptyStateCompact extends StatelessWidget {
                 Text(
                   'No courts yet',
                   style: TextStyle(
-                    color: LightColor.titleText,
+                    color: LightColor.primaryTextColor,
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
                   ),
@@ -222,7 +222,7 @@ class _CourtEmptyStateCompact extends StatelessWidget {
                 Text(
                   'Add your first court to continue setup.',
                   style: TextStyle(
-                    color: LightColor.subtitleText,
+                    color: LightColor.secondaryTextColor,
                     fontSize: 10,
                     height: 1.35,
                   ),
@@ -268,16 +268,16 @@ class _CourtCompactTile extends StatelessWidget {
         child: Ink(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: isSelected ? LightColor.secondaryLight : LightColor.white,
+            color: isSelected ? LightColor.secondaryLight : LightColor.whiteColor,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: isSelected ? LightColor.secondary : LightColor.border,
+              color: isSelected ? LightColor.secondaryColor : LightColor.borderColor,
               width: isSelected ? 1.5 : 1,
             ),
             boxShadow: isSelected
                 ? <BoxShadow>[
                     BoxShadow(
-                      color: LightColor.secondary.withValues(alpha: 0.12),
+                      color: LightColor.secondaryColor.withValues(alpha: 0.12),
                       blurRadius: 8,
                       offset: const Offset(0, 3),
                     ),
@@ -297,7 +297,7 @@ class _CourtCompactTile extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: LightColor.titleText,
+                        color: LightColor.primaryTextColor,
                         fontSize: 10,
                         fontWeight: isSelected
                             ? FontWeight.w800
@@ -312,15 +312,15 @@ class _CourtCompactTile extends StatelessWidget {
                           const Icon(
                             Icons.check_circle_rounded,
                             size: 11,
-                            color: LightColor.accentGreen,
+                            color: LightColor.secondaryColor,
                           )
                         else
                           Icon(
                             Icons.pie_chart_rounded,
                             size: 11,
                             color: isSelected
-                                ? LightColor.secondary
-                                : LightColor.subtitleText,
+                                ? LightColor.secondaryColor
+                                : LightColor.secondaryTextColor,
                           ),
                         const SizedBox(width: 3),
                         Text(
@@ -329,10 +329,10 @@ class _CourtCompactTile extends StatelessWidget {
                               : '$completedSections/$totalSections',
                           style: TextStyle(
                             color: isComplete
-                                ? LightColor.accentGreen
+                                ? LightColor.secondaryColor
                                 : (isSelected
-                                      ? LightColor.secondary
-                                      : LightColor.subtitleText),
+                                      ? LightColor.secondaryColor
+                                      : LightColor.secondaryTextColor),
                             fontSize: 10,
                             fontWeight: FontWeight.w600,
                           ),
@@ -349,13 +349,13 @@ class _CourtCompactTile extends StatelessWidget {
                   width: 16,
                   height: 16,
                   decoration: BoxDecoration(
-                    color: LightColor.black.withValues(alpha: 0.05),
+                    color: LightColor.primaryTextColor.withValues(alpha: 0.05),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
                     Icons.close_rounded,
                     size: 12,
-                    color: LightColor.subtitleText,
+                    color: LightColor.secondaryTextColor,
                   ),
                 ),
               ),
@@ -407,7 +407,7 @@ class _AddCourtSheetState extends State<_AddCourtSheet> {
         const Text(
           'Add New Court',
           style: TextStyle(
-            color: LightColor.titleText,
+            color: LightColor.primaryTextColor,
             fontSize: 16,
             fontWeight: FontWeight.w800,
           ),
@@ -416,7 +416,7 @@ class _AddCourtSheetState extends State<_AddCourtSheet> {
         const Text(
           'Enter a name for the court. You can change it later. \nMake sure to use a proper standard name for the court.',
           style: TextStyle(
-            color: LightColor.subtitleText,
+            color: LightColor.secondaryTextColor,
             fontSize: 12,
             height: 1.5,
           ),
@@ -438,8 +438,8 @@ class _AddCourtSheetState extends State<_AddCourtSheet> {
                 text: 'Cancel',
                 isOutlined: true,
                 backgroundColor: Colors.white,
-                foregroundColor: LightColor.skyBlue,
-                borderColor: LightColor.skyBlue,
+                foregroundColor: LightColor.secondaryColor,
+                borderColor: LightColor.secondaryColor,
                 minHeight: 46,
                 onPressed: () => Navigator.of(context).pop(),
               ),

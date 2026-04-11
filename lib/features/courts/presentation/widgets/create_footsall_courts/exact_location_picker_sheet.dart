@@ -232,11 +232,11 @@ class _ExactLocationPickerSheetState extends State<ExactLocationPickerSheet> {
     return Container(
       height: mediaQuery.size.height * (isKeyboardOpen ? 0.88 : 0.82),
       decoration: BoxDecoration(
-        color: LightColor.surface,
+        color: LightColor.cardColor,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
         boxShadow: <BoxShadow>[
           BoxShadow(
-            color: LightColor.accentGreen.withValues(alpha: 0.12),
+            color: LightColor.secondaryColor.withValues(alpha: 0.12),
             blurRadius: 28,
             offset: const Offset(0, -10),
           ),
@@ -259,7 +259,7 @@ class _ExactLocationPickerSheetState extends State<ExactLocationPickerSheet> {
                 height: 4,
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: <Color>[LightColor.lightGrey, LightColor.secondary],
+                    colors: <Color>[LightColor.borderColor, LightColor.secondaryColor],
                   ),
                   borderRadius: BorderRadius.circular(999),
                 ),
@@ -282,7 +282,7 @@ class _ExactLocationPickerSheetState extends State<ExactLocationPickerSheet> {
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: LightColor.lightGrey.withValues(alpha: 0.85),
+                          color: LightColor.borderColor.withValues(alpha: 0.85),
                         ),
                       ),
                       child: Column(
@@ -291,7 +291,7 @@ class _ExactLocationPickerSheetState extends State<ExactLocationPickerSheet> {
                           Text(
                             'Pick Exact Location',
                             style: textTheme.headlineSmall?.copyWith(
-                              color: LightColor.titleTextColor,
+                              color: LightColor.primaryTextColor,
                               fontWeight: FontWeight.w800,
                               fontSize: 18,
                             ),
@@ -300,7 +300,7 @@ class _ExactLocationPickerSheetState extends State<ExactLocationPickerSheet> {
                           Text(
                             'Search an address or tap directly on the map to pin the futsal location.',
                             style: textTheme.bodyMedium?.copyWith(
-                              color: LightColor.darkgrey,
+                              color: LightColor.secondaryTextColor,
                               fontSize: 12.5,
                               height: 1.45,
                             ),
@@ -330,7 +330,7 @@ class _ExactLocationPickerSheetState extends State<ExactLocationPickerSheet> {
                                 hasSearchText
                                     ? Icons.close_rounded
                                     : Icons.search_rounded,
-                                color: LightColor.skyBlue,
+                                color: LightColor.secondaryColor,
                                 size: 20,
                               ),
                             ),
@@ -342,17 +342,17 @@ class _ExactLocationPickerSheetState extends State<ExactLocationPickerSheet> {
                       Container(
                         constraints: BoxConstraints(maxHeight: resultsHeight),
                         decoration: BoxDecoration(
-                          color: LightColor.surface,
+                          color: LightColor.cardColor,
                           borderRadius: BorderRadius.circular(18),
                           border: Border.all(
-                            color: LightColor.lightGrey.withValues(alpha: 0.9),
+                            color: LightColor.borderColor.withValues(alpha: 0.9),
                           ),
                         ),
                         child: ListView.separated(
                           shrinkWrap: true,
                           itemCount: _results.length,
                           separatorBuilder: (_, __) =>
-                              Divider(height: 1, color: LightColor.lightGrey),
+                              Divider(height: 1, color: LightColor.borderColor),
                           itemBuilder: (context, index) {
                             final result = _results[index];
                             return InkWell(
@@ -369,14 +369,14 @@ class _ExactLocationPickerSheetState extends State<ExactLocationPickerSheet> {
                                       width: 34,
                                       height: 34,
                                       decoration: BoxDecoration(
-                                        color: LightColor.skyBlue.withValues(
+                                        color: LightColor.secondaryColor.withValues(
                                           alpha: 0.10,
                                         ),
                                         borderRadius: BorderRadius.circular(11),
                                       ),
                                       child: const Icon(
                                         Icons.place_outlined,
-                                        color: LightColor.skyBlue,
+                                        color: LightColor.secondaryColor,
                                         size: 18,
                                       ),
                                     ),
@@ -450,7 +450,7 @@ class _ExactLocationPickerSheetState extends State<ExactLocationPickerSheet> {
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(18),
-                        border: Border.all(color: LightColor.lightGrey),
+                        border: Border.all(color: LightColor.borderColor),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -460,7 +460,7 @@ class _ExactLocationPickerSheetState extends State<ExactLocationPickerSheet> {
                               const Icon(
                                 Icons.place_rounded,
                                 size: 16,
-                                color: LightColor.skyBlue,
+                                color: LightColor.secondaryColor,
                               ),
                               const SizedBox(width: 6),
                               Text(
@@ -475,7 +475,7 @@ class _ExactLocationPickerSheetState extends State<ExactLocationPickerSheet> {
                                 Text(
                                   'Resolving...',
                                   style: textTheme.bodySmall?.copyWith(
-                                    color: LightColor.skyBlue,
+                                    color: LightColor.secondaryColor,
                                     fontWeight: FontWeight.w700,
                                   ),
                                 ),
@@ -501,8 +501,8 @@ class _ExactLocationPickerSheetState extends State<ExactLocationPickerSheet> {
                     text: 'Cancel',
                     isOutlined: true,
                     backgroundColor: Colors.white,
-                    foregroundColor: LightColor.skyBlue,
-                    borderColor: LightColor.skyBlue,
+                    foregroundColor: LightColor.secondaryColor,
+                    borderColor: LightColor.secondaryColor,
                     minHeight: 46,
                     onPressed: () => Navigator.of(context).pop(),
                   ),
@@ -782,11 +782,11 @@ class _LocationSearchResult {
 //       child: Container(
 //         height: sheetHeight,
 //         decoration: BoxDecoration(
-//           color: LightColor.surface,
+//           color: LightColor.cardColor,
 //           borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
 //           boxShadow: <BoxShadow>[
 //             BoxShadow(
-//               color: LightColor.accentGreen.withValues(alpha: 0.12),
+//               color: LightColor.secondaryColor.withValues(alpha: 0.12),
 //               blurRadius: 28,
 //               offset: const Offset(0, -10),
 //             ),
@@ -815,8 +815,8 @@ class _LocationSearchResult {
 //                         decoration: BoxDecoration(
 //                           gradient: const LinearGradient(
 //                             colors: <Color>[
-//                               LightColor.lightGrey,
-//                               LightColor.secondary,
+//                               LightColor.borderColor,
+//                               LightColor.secondaryColor,
 //                             ],
 //                           ),
 //                           borderRadius: BorderRadius.circular(999),
@@ -833,7 +833,7 @@ class _LocationSearchResult {
 //                       decoration: BoxDecoration(
 //                         borderRadius: BorderRadius.circular(20),
 //                         border: Border.all(
-//                           color: LightColor.lightGrey.withValues(alpha: 0.85),
+//                           color: LightColor.borderColor.withValues(alpha: 0.85),
 //                         ),
 //                       ),
 //                       child: Column(
@@ -842,7 +842,7 @@ class _LocationSearchResult {
 //                           Text(
 //                             'Pick Exact Location',
 //                             style: textTheme.headlineSmall?.copyWith(
-//                               color: LightColor.titleTextColor,
+//                               color: LightColor.primaryTextColor,
 //                               fontWeight: FontWeight.w800,
 //                               fontSize: 18,
 //                             ),
@@ -851,7 +851,7 @@ class _LocationSearchResult {
 //                           Text(
 //                             'Search an address or tap directly on the map to pin the futsal location.',
 //                             style: textTheme.bodyMedium?.copyWith(
-//                               color: LightColor.darkgrey,
+//                               color: LightColor.secondaryTextColor,
 //                               fontSize: 12.5,
 //                               height: 1.45,
 //                             ),
@@ -880,7 +880,7 @@ class _LocationSearchResult {
 //                                 hasSearchText
 //                                     ? Icons.close_rounded
 //                                     : Icons.search_rounded,
-//                                 color: LightColor.skyBlue,
+//                                 color: LightColor.secondaryColor,
 //                                 size: 20,
 //                               ),
 //                             ),
@@ -891,14 +891,14 @@ class _LocationSearchResult {
 //                       Container(
 //                         constraints: BoxConstraints(maxHeight: resultsHeight),
 //                         decoration: BoxDecoration(
-//                           color: LightColor.surface,
+//                           color: LightColor.cardColor,
 //                           borderRadius: BorderRadius.circular(18),
 //                           border: Border.all(
-//                             color: LightColor.lightGrey.withValues(alpha: 0.9),
+//                             color: LightColor.borderColor.withValues(alpha: 0.9),
 //                           ),
 //                           boxShadow: <BoxShadow>[
 //                             BoxShadow(
-//                               color: LightColor.skyBlue.withValues(alpha: 0.08),
+//                               color: LightColor.secondaryColor.withValues(alpha: 0.08),
 //                               blurRadius: 18,
 //                               offset: const Offset(0, 8),
 //                             ),
@@ -908,7 +908,7 @@ class _LocationSearchResult {
 //                           shrinkWrap: true,
 //                           itemCount: _results.length,
 //                           separatorBuilder: (_, __) =>
-//                               Divider(height: 1, color: LightColor.lightGrey),
+//                               Divider(height: 1, color: LightColor.borderColor),
 //                           itemBuilder: (BuildContext context, int index) {
 //                             final _LocationSearchResult result =
 //                                 _results[index];
@@ -929,7 +929,7 @@ class _LocationSearchResult {
 //                                         width: 34,
 //                                         height: 34,
 //                                         decoration: BoxDecoration(
-//                                           color: LightColor.skyBlue.withValues(
+//                                           color: LightColor.secondaryColor.withValues(
 //                                             alpha: 0.10,
 //                                           ),
 //                                           borderRadius: BorderRadius.circular(
@@ -938,7 +938,7 @@ class _LocationSearchResult {
 //                                         ),
 //                                         child: const Icon(
 //                                           Icons.place_outlined,
-//                                           color: LightColor.skyBlue,
+//                                           color: LightColor.secondaryColor,
 //                                           size: 18,
 //                                         ),
 //                                       ),
@@ -950,7 +950,7 @@ class _LocationSearchResult {
 //                                           overflow: TextOverflow.ellipsis,
 //                                           style: textTheme.bodyMedium?.copyWith(
 //                                             fontSize: 12.5,
-//                                             color: LightColor.titleTextColor,
+//                                             color: LightColor.primaryTextColor,
 //                                             fontWeight: FontWeight.w700,
 //                                             height: 1.35,
 //                                           ),
@@ -971,10 +971,10 @@ class _LocationSearchResult {
 //                       child: Container(
 //                         decoration: BoxDecoration(
 //                           borderRadius: BorderRadius.circular(22),
-//                           border: Border.all(color: LightColor.lightGrey),
+//                           border: Border.all(color: LightColor.borderColor),
 //                           boxShadow: <BoxShadow>[
 //                             BoxShadow(
-//                               color: LightColor.accentGreen.withValues(
+//                               color: LightColor.secondaryColor.withValues(
 //                                 alpha: 0.08,
 //                               ),
 //                               blurRadius: 22,
@@ -1015,11 +1015,11 @@ class _LocationSearchResult {
 //                                                 width: 30,
 //                                                 height: 30,
 //                                                 decoration: BoxDecoration(
-//                                                   color: LightColor.red,
+//                                                   color: LightColor.redColor,
 //                                                   shape: BoxShape.circle,
 //                                                   boxShadow: <BoxShadow>[
 //                                                     BoxShadow(
-//                                                       color: LightColor.red
+//                                                       color: LightColor.redColor
 //                                                           .withValues(
 //                                                             alpha: 0.25,
 //                                                           ),
@@ -1041,7 +1041,7 @@ class _LocationSearchResult {
 //                                                 width: 10,
 //                                                 height: 10,
 //                                                 decoration: const BoxDecoration(
-//                                                   color: LightColor.red,
+//                                                   color: LightColor.redColor,
 //                                                   shape: BoxShape.circle,
 //                                                 ),
 //                                               ),
@@ -1072,7 +1072,7 @@ class _LocationSearchResult {
 //                                     borderRadius: BorderRadius.circular(999),
 //                                     boxShadow: <BoxShadow>[
 //                                       BoxShadow(
-//                                         color: LightColor.accentGreen
+//                                         color: LightColor.secondaryColor
 //                                             .withValues(alpha: 0.10),
 //                                         blurRadius: 12,
 //                                         offset: const Offset(0, 4),
@@ -1085,13 +1085,13 @@ class _LocationSearchResult {
 //                                       const Icon(
 //                                         Icons.touch_app_rounded,
 //                                         size: 15,
-//                                         color: LightColor.skyBlue,
+//                                         color: LightColor.secondaryColor,
 //                                       ),
 //                                       const SizedBox(width: 6),
 //                                       Text(
 //                                         'Tap map to pin',
 //                                         style: textTheme.bodySmall?.copyWith(
-//                                           color: LightColor.titleTextColor,
+//                                           color: LightColor.primaryTextColor,
 //                                           fontWeight: FontWeight.w700,
 //                                         ),
 //                                       ),
@@ -1110,7 +1110,7 @@ class _LocationSearchResult {
 //                       padding: const EdgeInsets.all(14),
 //                       decoration: BoxDecoration(
 //                         borderRadius: BorderRadius.circular(18),
-//                         border: Border.all(color: LightColor.lightGrey),
+//                         border: Border.all(color: LightColor.borderColor),
 //                       ),
 //                       child: Column(
 //                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1120,7 +1120,7 @@ class _LocationSearchResult {
 //                               const Icon(
 //                                 Icons.place_rounded,
 //                                 size: 16,
-//                                 color: LightColor.skyBlue,
+//                                 color: LightColor.secondaryColor,
 //                               ),
 //                               const SizedBox(width: 6),
 //                               Text(
@@ -1128,7 +1128,7 @@ class _LocationSearchResult {
 //                                 style: textTheme.bodyMedium?.copyWith(
 //                                   fontSize: 12,
 //                                   fontWeight: FontWeight.w800,
-//                                   color: LightColor.titleTextColor,
+//                                   color: LightColor.primaryTextColor,
 //                                 ),
 //                               ),
 //                               const Spacer(),
@@ -1136,7 +1136,7 @@ class _LocationSearchResult {
 //                                 Text(
 //                                   'Resolving...',
 //                                   style: textTheme.bodySmall?.copyWith(
-//                                     color: LightColor.skyBlue,
+//                                     color: LightColor.secondaryColor,
 //                                     fontWeight: FontWeight.w700,
 //                                   ),
 //                                 ),
@@ -1149,8 +1149,8 @@ class _LocationSearchResult {
 //                             style: textTheme.bodyMedium?.copyWith(
 //                               fontSize: 12.5,
 //                               color: _selectedLabel == null
-//                                   ? LightColor.darkgrey
-//                                   : LightColor.titleTextColor,
+//                                   ? LightColor.secondaryTextColor
+//                                   : LightColor.primaryTextColor,
 //                               height: 1.45,
 //                             ),
 //                           ),
@@ -1164,13 +1164,13 @@ class _LocationSearchResult {
 //                                   icon: Icons.north_rounded,
 //                                   label: _selectedPoint!.latitude
 //                                       .toStringAsFixed(6),
-//                                   color: LightColor.skyBlue,
+//                                   color: LightColor.secondaryColor,
 //                                 ),
 //                                 _LocationHintChip(
 //                                   icon: Icons.east_rounded,
 //                                   label: _selectedPoint!.longitude
 //                                       .toStringAsFixed(6),
-//                                   color: LightColor.secondaryGreen,
+//                                   color: LightColor.secondaryColor,
 //                                 ),
 //                               ],
 //                             ),
@@ -1191,8 +1191,8 @@ class _LocationSearchResult {
 //                     text: 'Cancel',
 //                     isOutlined: true,
 //                     backgroundColor: Colors.white,
-//                     foregroundColor: LightColor.skyBlue,
-//                     borderColor: LightColor.skyBlue,
+//                     foregroundColor: LightColor.secondaryColor,
+//                     borderColor: LightColor.secondaryColor,
 //                     minHeight: 46,
 //                     onPressed: () => Navigator.of(context).pop(),
 //                   ),
@@ -1241,7 +1241,7 @@ class _LocationSearchResult {
 //   const _LocationHintChip({
 //     required this.icon,
 //     required this.label,
-//     this.color = LightColor.skyBlue,
+//     this.color = LightColor.secondaryColor,
 //   });
 
 //   final IconData icon;

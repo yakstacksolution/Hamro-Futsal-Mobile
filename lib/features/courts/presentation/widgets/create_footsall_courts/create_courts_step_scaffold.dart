@@ -38,12 +38,12 @@ class CreateCourtsStepScaffold extends StatelessWidget {
                   gradient: const LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: <Color>[LightColor.skyBlue, Color(0xFF2F87E0)],
+                    colors: <Color>[LightColor.secondaryColor, Color(0xFF2F87E0)],
                   ),
                   borderRadius: BorderRadius.circular(8),
                   boxShadow: <BoxShadow>[
                     BoxShadow(
-                      color: LightColor.skyBlue.withValues(alpha: 0.30),
+                      color: LightColor.secondaryColor.withValues(alpha: 0.30),
                       blurRadius: 14,
                       offset: const Offset(0, 5),
                     ),
@@ -60,7 +60,7 @@ class CreateCourtsStepScaffold extends StatelessWidget {
                       'Step ${stepIndex + 1} of $totalSteps',
                       style: const TextStyle(
                         fontSize: 12,
-                        color: LightColor.skyBlue,
+                        color: LightColor.secondaryColor,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 0.6,
                       ),
@@ -71,7 +71,7 @@ class CreateCourtsStepScaffold extends StatelessWidget {
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w800,
-                        color: LightColor.titleTextColor,
+                        color: LightColor.primaryTextColor,
                         height: 1.15,
                       ),
                     ),
@@ -80,7 +80,7 @@ class CreateCourtsStepScaffold extends StatelessWidget {
                       subtitle,
                       style: const TextStyle(
                         fontSize: 10,
-                        color: LightColor.darkgrey,
+                        color: LightColor.secondaryTextColor,
                       ),
                     ),
                   ],
@@ -97,7 +97,7 @@ class CreateCourtsStepScaffold extends StatelessWidget {
                   width: 32,
                   height: 3,
                   decoration: BoxDecoration(
-                    color: LightColor.skyBlue,
+                    color: LightColor.secondaryColor,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -106,7 +106,7 @@ class CreateCourtsStepScaffold extends StatelessWidget {
                   width: 8,
                   height: 3,
                   decoration: BoxDecoration(
-                    color: LightColor.skyBlue.withValues(alpha: 0.35),
+                    color: LightColor.secondaryColor.withValues(alpha: 0.35),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -119,7 +119,7 @@ class CreateCourtsStepScaffold extends StatelessWidget {
               color: Colors.white.withValues(alpha: 0.92),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: LightColor.lightGrey.withValues(alpha: 0.75),
+                color: LightColor.borderColor.withValues(alpha: 0.75),
               ),
               boxShadow: const <BoxShadow>[
                 BoxShadow(

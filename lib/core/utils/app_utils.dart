@@ -1,9 +1,120 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:hamro_footsall/core/utils/top_snack_bar.dart';
 
 enum MsgType { error, success, info }
 
+const num _designWidth = 375;
+const num _designHeight = 812;
+const num _designStatusBarHeight = 0;
+
 final class AppUtils {
+  MediaQueryData get _mediaQueryData =>
+      MediaQueryData.fromView(ui.PlatformDispatcher.instance.views.first);
+
+  double get width => _mediaQueryData.size.width;
+
+  double get height => _mediaQueryData.size.height;
+
+  double get _availableHeight {
+    final double statusBar = _mediaQueryData.viewPadding.top;
+    final double bottomBar = _mediaQueryData.viewPadding.bottom;
+    return _mediaQueryData.size.height - statusBar - bottomBar;
+  }
+
+  double getHorizontalSize(double px) {
+    return (px * width) / _designWidth;
+  }
+
+  double getVerticalSize(double px) {
+    return (px * _availableHeight) / (_designHeight - _designStatusBarHeight);
+  }
+
+  EdgeInsets getPadding({
+    double? all,
+    double? left,
+    double? top,
+    double? right,
+    double? bottom,
+    double? horizontal,
+    double? vertical,
+    double? symmetricHorizontal,
+    double? symmetricVertical,
+  }) {
+    return _getMarginOrPadding(
+      all: all,
+      left: left,
+      top: top,
+      right: right,
+      bottom: bottom,
+      horizontal: horizontal,
+      vertical: vertical,
+      symmetricHorizontal: symmetricHorizontal,
+      symmetricVertical: symmetricVertical,
+    );
+  }
+
+  EdgeInsets getMargin({
+    double? all,
+    double? left,
+    double? top,
+    double? right,
+    double? bottom,
+    double? horizontal,
+    double? vertical,
+    double? symmetricHorizontal,
+    double? symmetricVertical,
+  }) {
+    return _getMarginOrPadding(
+      all: all,
+      left: left,
+      top: top,
+      right: right,
+      bottom: bottom,
+      horizontal: horizontal,
+      vertical: vertical,
+      symmetricHorizontal: symmetricHorizontal,
+      symmetricVertical: symmetricVertical,
+    );
+  }
+
+  EdgeInsets _getMarginOrPadding({
+    double? all,
+    double? left,
+    double? top,
+    double? right,
+    double? bottom,
+    double? horizontal,
+    double? vertical,
+    double? symmetricHorizontal,
+    double? symmetricVertical,
+  }) {
+    if (all != null) {
+      left = all;
+      top = all;
+      right = all;
+      bottom = all;
+    }
+
+    horizontal ??= symmetricHorizontal;
+    vertical ??= symmetricVertical;
+
+    if (horizontal != null || vertical != null) {
+      return EdgeInsets.symmetric(
+        horizontal: horizontal ?? 0,
+        vertical: vertical ?? 0,
+      );
+    }
+
+    return EdgeInsets.only(
+      left: getHorizontalSize(left ?? 0),
+      top: getVerticalSize(top ?? 0),
+      right: getHorizontalSize(right ?? 0),
+      bottom: getVerticalSize(bottom ?? 0),
+    );
+  }
+
   showSnackBar(BuildContext context, MsgType msgType, String message) {
     showTopSnackBar(
       Overlay.of(context),

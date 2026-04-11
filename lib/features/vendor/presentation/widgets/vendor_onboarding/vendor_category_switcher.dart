@@ -19,12 +19,12 @@ class VendorCategorySwitcher extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: LightColor.white,
+        color: LightColor.whiteColor,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: LightColor.border),
+        border: Border.all(color: LightColor.borderColor),
         boxShadow: [
           BoxShadow(
-            color: LightColor.black.withValues(alpha: 0.04),
+            color: LightColor.primaryTextColor.withValues(alpha: 0.04),
             blurRadius: 16,
             offset: const Offset(0, 8),
           ),
@@ -77,20 +77,20 @@ class _Tab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final Color bg = isSelected
-        ? LightColor.secondary
+        ? LightColor.secondaryColor
         : const Color(0xFFF8FAFC);
 
     final Color textColor = isSelected
-        ? LightColor.white
+        ? LightColor.whiteColor
         : isLocked
         ? const Color(0xFF94A3B8)
-        : LightColor.titleText;
+        : LightColor.primaryTextColor;
 
     final Color iconColor = isSelected
-        ? LightColor.white
+        ? LightColor.whiteColor
         : isLocked
         ? const Color(0xFF94A3B8)
-        : LightColor.secondary;
+        : LightColor.secondaryColor;
 
     return Material(
       color: Colors.transparent,
@@ -105,7 +105,7 @@ class _Tab extends StatelessWidget {
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
               color: isSelected
-                  ? LightColor.secondary
+                  ? LightColor.secondaryColor
                   : const Color(0xFFE2E8F0),
             ),
           ),
@@ -116,7 +116,7 @@ class _Tab extends StatelessWidget {
                 height: 30,
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? LightColor.white.withValues(alpha: 0.16)
+                      ? LightColor.whiteColor.withValues(alpha: 0.16)
                       : LightColor.secondaryLight,
                   borderRadius: BorderRadius.circular(6),
                 ),
@@ -143,7 +143,7 @@ class _Tab extends StatelessWidget {
                 const Icon(
                   Icons.check_rounded,
                   size: 16,
-                  color: LightColor.white,
+                  color: LightColor.whiteColor,
                 ),
             ],
           ),

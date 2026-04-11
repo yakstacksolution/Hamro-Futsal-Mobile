@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
+import 'package:hamro_footsall/core/theme/futsal_theme.dart' hide LightColor;
+import 'package:hamro_footsall/core/utils/app_utils.dart';
+import 'package:hamro_footsall/core/utils/dimens.dart';
 
 class CustomTextField extends StatelessWidget {
   const CustomTextField({
@@ -51,7 +54,7 @@ class CustomTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
+    final textTheme = FutsalTheme.getTextTheme(context);
     return TextFormField(
       controller: controller,
       focusNode: focusNode,
@@ -68,13 +71,15 @@ class CustomTextField extends StatelessWidget {
       onTap: onTap,
       onFieldSubmitted: onSubmitted,
       validator: validator,
-      cursorColor: theme.colorScheme.primary,
+      cursorColor: LightColor.primaryTextColor,
+      cursorHeight: AppDimens.sizeX16,
+      cursorWidth: 1.2,
       style:
           style ??
-          theme.textTheme.bodyLarge?.copyWith(
-            color: LightColor.titleText,
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
+          textTheme.bodyTextLarge?.copyWith(
+            color: LightColor.primaryTextColor,
+            fontSize: AppDimens.fontBodyTextSmall,
+            fontWeight: FontWeight.w400,
           ),
       decoration: customTextFieldDecoration(
         context: context,
@@ -96,13 +101,21 @@ InputDecoration customTextFieldDecoration({
   String? hintText,
   Widget? suffixIcon,
 }) {
-  final ThemeData theme = Theme.of(context);
-  final Color fillColor = LightColor.surface;
+  final textTheme = FutsalTheme.getTextTheme(context);
+  final AppUtils appUtils = AppUtils();
+  final Color fillColor = LightColor.cardColor;
 
   OutlineInputBorder border(Color color) {
     return OutlineInputBorder(
-      borderRadius: BorderRadius.circular(8),
-      borderSide: BorderSide(color: color, width: 1.15),
+      borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+      borderSide: BorderSide(color: color, width: 1),
+    );
+  }
+
+  OutlineInputBorder errorBorder(Color color) {
+    return OutlineInputBorder(
+      borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+      borderSide: BorderSide(color: color, width: 0.7),
     );
   }
 
@@ -110,13 +123,20 @@ InputDecoration customTextFieldDecoration({
     label: Row(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        Flexible(child: Text(labelText, overflow: TextOverflow.ellipsis)),
+        Flexible(
+          child: Text(
+            labelText,
+            overflow: TextOverflow.ellipsis,
+            style: textTheme.bodyTextMedium?.copyWith(
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
         if (isRequired)
           Text(
             ' *',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: LightColor.red,
-              fontSize: 12,
+            style: textTheme.bodyTextSmall?.copyWith(
+              color: LightColor.redColor,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -124,11 +144,15 @@ InputDecoration customTextFieldDecoration({
     ),
     hintText: hintText,
     prefixIcon: icon != null
-        ? Icon(icon, color: LightColor.subtitleText, size: 20)
+        ? Icon(
+            icon,
+            color: LightColor.secondaryTextColor,
+            size: AppDimens.sizeX20,
+          )
         : null,
     suffixIcon: suffixIcon != null
         ? Padding(
-            padding: const EdgeInsets.only(right: 4),
+            padding: appUtils.getPadding(right: AppDimens.paddingX2),
             child: Align(
               alignment: Alignment.centerRight,
               widthFactor: 1,
@@ -137,23 +161,30 @@ InputDecoration customTextFieldDecoration({
             ),
           )
         : null,
-    suffixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 48),
+    suffixIconConstraints: BoxConstraints(
+      minWidth: 0,
+      minHeight: AppDimens.sizeX48,
+    ),
     floatingLabelBehavior: FloatingLabelBehavior.always,
     filled: true,
     fillColor: fillColor,
-    labelStyle: theme.textTheme.bodyMedium?.copyWith(
-      color: LightColor.black,
-      fontSize: 12,
-      fontWeight: FontWeight.w700,
+    labelStyle: textTheme.bodyTextSmall?.copyWith(
+      color: LightColor.primaryTextColor,
+      fontWeight: FontWeight.w500,
     ),
-    hintStyle: theme.textTheme.bodyMedium?.copyWith(
-      color: LightColor.hintText,
-      fontSize: 12,
+    hintStyle: textTheme.bodyTextMedium?.copyWith(
+      color: LightColor.secondaryTextColor,
+      fontSize: AppDimens.fontBodyTextSmall,
       fontWeight: FontWeight.w400,
     ),
-    enabledBorder: border(LightColor.border),
-    focusedBorder: border(theme.colorScheme.primary),
-    border: border(LightColor.border),
-    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+    enabledBorder: border(LightColor.borderColor),
+    focusedBorder: border(LightColor.inputFocusBorderColor),
+    border: border(LightColor.borderColor),
+    errorBorder: errorBorder(LightColor.redColor),
+    focusedErrorBorder: errorBorder(LightColor.redColor),
+    contentPadding: appUtils.getPadding(
+      symmetricHorizontal: AppDimens.paddingX16,
+      symmetricVertical: AppDimens.paddingX16,
+    ),
   );
 }

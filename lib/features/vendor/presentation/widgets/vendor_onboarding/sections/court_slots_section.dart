@@ -44,13 +44,13 @@ class CourtSlotsSection extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
-                color: LightColor.backgroundWarm,
+                color: LightColor.background,
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: LightColor.border),
+                border: Border.all(color: LightColor.borderColor),
               ),
               child: const Text(
                 'No slot configuration added yet. Add a slot to define the booking schedule for this court.',
-                style: TextStyle(color: LightColor.subtitleText),
+                style: TextStyle(color: LightColor.secondaryTextColor),
               ),
             )
           else
@@ -100,16 +100,16 @@ class _SlotCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: LightColor.backgroundWarm,
+        color: LightColor.background,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: LightColor.border),
+        border: Border.all(color: LightColor.borderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Row(
             children: <Widget>[
-              const Icon(Icons.schedule_rounded, color: LightColor.secondary),
+              const Icon(Icons.schedule_rounded, color: LightColor.secondaryColor),
               const SizedBox(width: 8),
               const Expanded(
                 child: Text(
@@ -117,7 +117,7 @@ class _SlotCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w800,
-                    color: LightColor.titleText,
+                    color: LightColor.primaryTextColor,
                   ),
                 ),
               ),

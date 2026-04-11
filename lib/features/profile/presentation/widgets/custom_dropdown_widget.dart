@@ -61,37 +61,37 @@ class _CustomDropdownState extends State<CustomDropdown> {
               }
             : null,
         style: theme.textTheme.bodyLarge?.copyWith(
-          color: LightColor.titleTextColor,
+          color: LightColor.primaryTextColor,
           fontSize: 14.5,
           fontWeight: FontWeight.w600,
         ),
         dropdownColor: Colors.white,
         icon: Icon(
           Icons.keyboard_arrow_down_rounded,
-          color: widget.enabled ? LightColor.darkgrey : LightColor.grey,
+          color: widget.enabled ? LightColor.secondaryTextColor : LightColor.hintTextColor,
           size: 22,
         ),
         decoration: InputDecoration(
           labelText: widget.labelText,
           hintText: widget.hintText,
-          prefixIcon: Icon(widget.icon, color: LightColor.darkgrey, size: 20),
+          prefixIcon: Icon(widget.icon, color: LightColor.secondaryTextColor, size: 20),
           floatingLabelBehavior: FloatingLabelBehavior.always,
           filled: true,
           fillColor: fillColor,
           labelStyle: theme.textTheme.bodyMedium?.copyWith(
-            color: LightColor.darkgrey,
+            color: LightColor.secondaryTextColor,
             fontSize: 13,
             fontWeight: FontWeight.w700,
           ),
           hintStyle: theme.textTheme.bodyMedium?.copyWith(
-            color: LightColor.grey,
+            color: LightColor.hintTextColor,
             fontSize: 13,
             fontWeight: FontWeight.w600,
           ),
-          enabledBorder: border(LightColor.lightGrey),
+          enabledBorder: border(LightColor.borderColor),
           focusedBorder: border(theme.colorScheme.primary),
-          disabledBorder: border(LightColor.lightGrey),
-          border: border(LightColor.lightGrey),
+          disabledBorder: border(LightColor.borderColor),
+          border: border(LightColor.borderColor),
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 16,
             vertical: 16,
@@ -104,7 +104,7 @@ class _CustomDropdownState extends State<CustomDropdown> {
               item,
               overflow: TextOverflow.ellipsis,
               style: theme.textTheme.bodyLarge?.copyWith(
-                color: LightColor.titleTextColor,
+                color: LightColor.primaryTextColor,
                 fontSize: 14.5,
                 fontWeight: FontWeight.w600,
               ),
@@ -133,8 +133,8 @@ class _CustomDropdownState extends State<CustomDropdown> {
 //     this.initialValue,
 //     this.hintText = 'Select option',
 //     this.onChanged,
-//     this.activeColor = LightColor.primaryGreen,
-//     this.inactiveColor = LightColor.grey,
+//     this.activeColor = LightColor.secondaryColor,
+//     this.inactiveColor = LightColor.hintTextColor,
 //   });
 
 //   @override

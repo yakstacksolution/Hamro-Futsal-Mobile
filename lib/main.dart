@@ -8,7 +8,6 @@ import 'package:hamro_footsall/core/helper/share_preferences.dart';
 import 'package:hamro_footsall/core/routers/app_router_params.dart';
 import 'package:hamro_footsall/core/routers/app_routers.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
-import 'package:hamro_footsall/core/theme/theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();

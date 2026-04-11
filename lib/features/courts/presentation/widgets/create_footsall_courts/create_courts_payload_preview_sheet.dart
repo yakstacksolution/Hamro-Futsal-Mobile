@@ -32,7 +32,7 @@ Future<void> showCreateCourtsPayloadPreviewSheet(
                 width: 44,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: LightColor.lightGrey,
+                  color: LightColor.borderColor,
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
@@ -43,13 +43,13 @@ Future<void> showCreateCourtsPayloadPreviewSheet(
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
-                color: LightColor.titleTextColor,
+                color: LightColor.primaryTextColor,
               ),
             ),
             const SizedBox(height: 8),
             const Text(
               'Matches the backend schema you shared.',
-              style: TextStyle(color: LightColor.darkgrey),
+              style: TextStyle(color: LightColor.secondaryTextColor),
             ),
             const SizedBox(height: 12),
             Expanded(
@@ -59,7 +59,7 @@ Future<void> showCreateCourtsPayloadPreviewSheet(
                 decoration: BoxDecoration(
                   color: const Color(0xFFF7FAFF),
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: LightColor.lightGrey),
+                  border: Border.all(color: LightColor.borderColor),
                 ),
                 child: SingleChildScrollView(
                   child: SelectableText(
@@ -67,7 +67,7 @@ Future<void> showCreateCourtsPayloadPreviewSheet(
                     style: const TextStyle(
                       fontFamily: 'monospace',
                       fontSize: 12,
-                      color: LightColor.black,
+                      color: LightColor.primaryTextColor,
                     ),
                   ),
                 ),
@@ -79,7 +79,7 @@ Future<void> showCreateCourtsPayloadPreviewSheet(
               child: ElevatedButton(
                 onPressed: () => Navigator.of(context).pop(),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: LightColor.skyBlue,
+                  backgroundColor: LightColor.secondaryColor,
                   foregroundColor: Colors.white,
                   minimumSize: const Size.fromHeight(48),
                   shape: RoundedRectangleBorder(

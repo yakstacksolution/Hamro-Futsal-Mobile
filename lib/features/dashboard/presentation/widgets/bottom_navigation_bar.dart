@@ -167,7 +167,7 @@ class _NavBarItemState extends State<_NavBarItem>
     final colorScheme = theme.colorScheme;
     final activeColor = colorScheme.secondary;
     final activeTextColor = colorScheme.secondary;
-    final inactiveColor = LightColor.subTitleTextColor;
+    final inactiveColor = LightColor.secondaryTextColor;
     final activeBackground = Color.alphaBlend(
       colorScheme.secondary.withValues(alpha: 0.08),
       colorScheme.secondary.withValues(alpha: 0.1),

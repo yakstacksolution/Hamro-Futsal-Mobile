@@ -27,12 +27,12 @@ class VendorPanel extends StatelessWidget {
       width: double.infinity,
       padding: padding,
       decoration: BoxDecoration(
-        color: LightColor.surface,
+        color: LightColor.cardColor,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: LightColor.borderLight),
+        border: Border.all(color: LightColor.dividerColor),
         boxShadow: <BoxShadow>[
           BoxShadow(
-            color: LightColor.accent.withValues(alpha: 0.05),
+            color: LightColor.secondaryColor.withValues(alpha: 0.05),
             blurRadius: 22,
             offset: const Offset(0, 8),
           ),
@@ -61,7 +61,7 @@ class VendorPanelHeading extends StatelessWidget {
         Text(
           title,
           style: const TextStyle(
-            color: LightColor.titleText,
+            color: LightColor.primaryTextColor,
             fontSize: 16,
             fontWeight: FontWeight.w800,
           ),
@@ -70,7 +70,7 @@ class VendorPanelHeading extends StatelessWidget {
         Text(
           subtitle,
           style: const TextStyle(
-            color: LightColor.subtitleText,
+            color: LightColor.secondaryTextColor,
             fontSize: 12,
             height: 1.45,
           ),
@@ -123,23 +123,23 @@ class VendorErrorBanner extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: LightColor.redLight,
+        color: LightColor.redLightColor,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: LightColor.errorBorder),
+        border: Border.all(color: LightColor.redLightColor),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           const Padding(
             padding: EdgeInsets.only(top: 2),
-            child: Icon(Icons.error_outline_rounded, color: LightColor.red),
+            child: Icon(Icons.error_outline_rounded, color: LightColor.redColor),
           ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               message,
               style: const TextStyle(
-                color: LightColor.titleText,
+                color: LightColor.primaryTextColor,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -160,7 +160,7 @@ class VendorFieldLabel extends StatelessWidget {
     return Text(
       text,
       style: const TextStyle(
-        color: LightColor.titleText,
+        color: LightColor.primaryTextColor,
         fontSize: 13,
         fontWeight: FontWeight.w700,
       ),
@@ -243,10 +243,10 @@ class VendorSelectableChip extends StatelessWidget {
         decoration: BoxDecoration(
           color: isSelected
               ? LightColor.secondaryLight
-              : LightColor.backgroundWarm,
+              : LightColor.background,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: isSelected ? LightColor.secondary : LightColor.border,
+            color: isSelected ? LightColor.secondaryColor : LightColor.borderColor,
           ),
         ),
         child: Row(
@@ -259,8 +259,8 @@ class VendorSelectableChip extends StatelessWidget {
                 icon,
                 size: 16,
                 color: isSelected
-                    ? LightColor.secondary
-                    : LightColor.subtitleText,
+                    ? LightColor.secondaryColor
+                    : LightColor.secondaryTextColor,
               ),
               const SizedBox(width: 6),
             ],
@@ -269,7 +269,7 @@ class VendorSelectableChip extends StatelessWidget {
               style: TextStyle(
                 color: isSelected
                     ? LightColor.secondaryDark
-                    : LightColor.titleText,
+                    : LightColor.primaryTextColor,
                 fontSize: 9,
                 fontWeight: FontWeight.w700,
               ),
@@ -304,10 +304,10 @@ class VendorMiniCheckbox extends StatelessWidget {
         width: size,
         height: size,
         decoration: BoxDecoration(
-          color: isChecked ? LightColor.secondary : Colors.transparent,
+          color: isChecked ? LightColor.secondaryColor : Colors.transparent,
           borderRadius: BorderRadius.circular(2),
           border: Border.all(
-            color: isChecked ? LightColor.secondary : LightColor.border,
+            color: isChecked ? LightColor.secondaryColor : LightColor.borderColor,
             width: 1.5,
           ),
         ),
@@ -344,9 +344,9 @@ class VendorUploadSection extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: LightColor.backgroundWarm,
+        color: LightColor.background,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: LightColor.border),
+        border: Border.all(color: LightColor.borderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -360,7 +360,7 @@ class VendorUploadSection extends StatelessWidget {
                     Text(
                       title,
                       style: const TextStyle(
-                        color: LightColor.titleText,
+                        color: LightColor.primaryTextColor,
                         fontSize: 14,
                         fontWeight: FontWeight.w800,
                       ),
@@ -369,7 +369,7 @@ class VendorUploadSection extends StatelessWidget {
                     Text(
                       subtitle,
                       style: const TextStyle(
-                        color: LightColor.subtitleText,
+                        color: LightColor.secondaryTextColor,
                         fontSize: 12,
                         height: 1.35,
                       ),
@@ -384,7 +384,7 @@ class VendorUploadSection extends StatelessWidget {
                 label: Text(actionLabel),
                 style: ButtonStyle(
                   backgroundColor: WidgetStateProperty.all(
-                    LightColor.secondary,
+                    LightColor.secondaryColor,
                   ),
                   foregroundColor: WidgetStateProperty.all(Colors.white),
                   padding: WidgetStateProperty.all(
@@ -451,7 +451,7 @@ class VendorUploadItem extends StatelessWidget {
       title: 'Remove file?',
       message: 'Do you want to remove "${file.name}" from this selection?',
       confirmText: 'Remove',
-      confirmColor: LightColor.secondary,
+      confirmColor: LightColor.secondaryColor,
       icon: Icons.delete_outline_rounded,
     );
 
@@ -466,9 +466,9 @@ class VendorUploadItem extends StatelessWidget {
       return Container(
         margin: const EdgeInsets.only(bottom: 10),
         decoration: BoxDecoration(
-          color: LightColor.white,
+          color: LightColor.whiteColor,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: LightColor.borderLight),
+          border: Border.all(color: LightColor.dividerColor),
         ),
         clipBehavior: Clip.antiAlias,
         child: Column(
@@ -500,7 +500,7 @@ class VendorUploadItem extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        color: LightColor.titleText,
+                        color: LightColor.primaryTextColor,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -510,7 +510,7 @@ class VendorUploadItem extends StatelessWidget {
                       onPressed: () => _confirmRemove(context),
                       icon: const Icon(
                         Icons.delete_outline_rounded,
-                        color: LightColor.secondary,
+                        color: LightColor.secondaryColor,
                       ),
                     ),
                 ],
@@ -525,9 +525,9 @@ class VendorUploadItem extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: LightColor.white,
+        color: LightColor.whiteColor,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: LightColor.borderLight),
+        border: Border.all(color: LightColor.dividerColor),
       ),
       child: Row(
         children: <Widget>[
@@ -540,7 +540,7 @@ class VendorUploadItem extends StatelessWidget {
             ),
             child: const Icon(
               Icons.insert_drive_file_rounded,
-              color: LightColor.secondary,
+              color: LightColor.secondaryColor,
             ),
           ),
           const SizedBox(width: 12),
@@ -553,7 +553,7 @@ class VendorUploadItem extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    color: LightColor.titleText,
+                    color: LightColor.primaryTextColor,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -563,7 +563,7 @@ class VendorUploadItem extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    color: LightColor.subtitleText,
+                    color: LightColor.secondaryTextColor,
                     fontSize: 12,
                   ),
                 ),
@@ -575,7 +575,7 @@ class VendorUploadItem extends StatelessWidget {
               onPressed: () => _confirmRemove(context),
               icon: const Icon(
                 Icons.delete_outline_rounded,
-                color: LightColor.secondary,
+                color: LightColor.secondaryColor,
               ),
             ),
         ],
@@ -585,11 +585,11 @@ class VendorUploadItem extends StatelessWidget {
 
   Widget _buildBrokenImageState() {
     return Container(
-      color: LightColor.surfaceSubtle,
+      color: LightColor.inputFillColor,
       alignment: Alignment.center,
       child: const Icon(
         Icons.broken_image_outlined,
-        color: LightColor.iconMuted,
+        color: LightColor.hintTextColor,
         size: 28,
       ),
     );
@@ -600,18 +600,18 @@ InputDecoration vendorInputDecoration(String label) {
   return InputDecoration(
     labelText: label,
     filled: true,
-    fillColor: LightColor.backgroundWarm,
+    fillColor: LightColor.background,
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(18),
-      borderSide: const BorderSide(color: LightColor.border),
+      borderSide: const BorderSide(color: LightColor.borderColor),
     ),
     enabledBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(18),
-      borderSide: const BorderSide(color: LightColor.border),
+      borderSide: const BorderSide(color: LightColor.borderColor),
     ),
     focusedBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(18),
-      borderSide: const BorderSide(color: LightColor.secondary, width: 1.4),
+      borderSide: const BorderSide(color: LightColor.secondaryColor, width: 1.4),
     ),
   );
 }
@@ -637,15 +637,15 @@ String stepStatusLabel(StepStatus status) {
 Color stepStatusColor(StepStatus status) {
   switch (status) {
     case StepStatus.locked:
-      return LightColor.hintText;
+      return LightColor.hintTextColor;
     case StepStatus.notStarted:
-      return LightColor.subtitleText;
+      return LightColor.secondaryTextColor;
     case StepStatus.inProgress:
-      return LightColor.amber;
+      return LightColor.warningColor;
     case StepStatus.complete:
-      return LightColor.secondary;
+      return LightColor.secondaryColor;
     case StepStatus.error:
-      return LightColor.red;
+      return LightColor.redColor;
     case StepStatus.pending:
       // TODO: Handle this case.
       throw UnimplementedError();
@@ -888,12 +888,12 @@ class _VendorLocationSearchFieldState extends State<VendorLocationSearchField> {
           child: Material(
             elevation: 8,
             borderRadius: BorderRadius.circular(12),
-            color: LightColor.surface,
+            color: LightColor.cardColor,
             child: Container(
               constraints: const BoxConstraints(maxHeight: 220),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: LightColor.border),
+                border: Border.all(color: LightColor.borderColor),
               ),
               child: ListView.separated(
                 shrinkWrap: true,
@@ -907,7 +907,7 @@ class _VendorLocationSearchFieldState extends State<VendorLocationSearchField> {
                     leading: const Icon(
                       Icons.location_on_outlined,
                       size: 18,
-                      color: LightColor.secondary,
+                      color: LightColor.secondaryColor,
                     ),
                     title: Text(
                       result.displayName,
@@ -915,7 +915,7 @@ class _VendorLocationSearchFieldState extends State<VendorLocationSearchField> {
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontSize: 12,
-                        color: LightColor.titleText,
+                        color: LightColor.primaryTextColor,
                       ),
                     ),
                     onTap: () => _selectResult(result),

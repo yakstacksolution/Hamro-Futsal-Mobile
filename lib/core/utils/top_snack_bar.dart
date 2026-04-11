@@ -267,13 +267,13 @@ class CustomSnackBar extends StatefulWidget {
     super.key,
     this.messagePadding = const EdgeInsets.symmetric(horizontal: 24),
     this.textStyle = const TextStyle(
-      color: LightColor.red,
+      color: LightColor.redColor,
       fontSize: 12,
       fontWeight: FontWeight.w700,
     ),
-    this.color = LightColor.red,
+    this.color = LightColor.redColor,
     this.maxLines = 2,
-    this.backgroundColor = LightColor.redLight,
+    this.backgroundColor = LightColor.redLightColor,
     this.boxShadow = kDefaultBoxShadow,
     this.borderRadius = kDefaultBorderRadius,
     this.textScaleFactor = 1.0,
@@ -309,7 +309,7 @@ class CustomSnackBarState extends State<CustomSnackBar> {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: LightColor.transparent,
+      color: LightColor.transparentColor,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 16),
         clipBehavior: Clip.antiAlias,

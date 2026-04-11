@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
+import 'package:hamro_footsall/core/theme/futsal_theme.dart' hide LightColor;
+import 'package:hamro_footsall/core/utils/app_utils.dart';
+import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/widgets/custom_button.dart';
 
 Future<bool> showConfirmDialog({
@@ -8,7 +11,7 @@ Future<bool> showConfirmDialog({
   required String message,
   String confirmText = 'Confirm',
   String cancelText = 'Cancel',
-  Color confirmColor = LightColor.secondary,
+  Color confirmColor = LightColor.secondaryColor,
   IconData? icon,
 }) async {
   final bool? result = await showDialog<bool>(
@@ -33,7 +36,7 @@ class CustomConfirmDialog extends StatelessWidget {
     required this.message,
     this.confirmText = 'Confirm',
     this.cancelText = 'Cancel',
-    this.confirmColor = LightColor.red,
+    this.confirmColor = LightColor.redColor,
     this.icon,
   });
 
@@ -46,63 +49,68 @@ class CustomConfirmDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final AppUtils appUtils = AppUtils();
+    final textTheme = FutsalTheme.getTextTheme(context);
+
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      backgroundColor: LightColor.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppDimens.radiusX20),
+      ),
+      backgroundColor: LightColor.cardColor,
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: appUtils.getPadding(all: AppDimens.paddingX20),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
             if (icon != null) ...<Widget>[
               Container(
-                width: 56,
-                height: 56,
+                width: AppDimens.sizeX56,
+                height: AppDimens.sizeX56,
                 decoration: BoxDecoration(
                   color: confirmColor.withValues(alpha: 0.12),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(icon, color: confirmColor, size: 28),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: AppDimens.sizeX16),
             ],
             Text(
               title,
               textAlign: TextAlign.center,
-              style: theme.textTheme.titleLarge?.copyWith(
-                color: LightColor.titleText,
+              style: textTheme.headingXSmall?.copyWith(
+                color: LightColor.primaryTextColor,
+                fontWeight: FontWeight.w700,
               ),
             ),
-            const SizedBox(height: 10),
+            SizedBox(height: AppDimens.sizeX10),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: LightColor.subtitleText,
+              style: textTheme.bodyTextMedium?.copyWith(
+                color: LightColor.secondaryTextColor,
               ),
             ),
-            const SizedBox(height: 22),
+            SizedBox(height: AppDimens.sizeX22),
             Row(
               children: <Widget>[
                 Expanded(
                   child: CustomButton(
                     text: cancelText,
                     isOutlined: true,
-                    backgroundColor: LightColor.white,
-                    foregroundColor: LightColor.subtitleText,
-                    borderColor: LightColor.border,
-                    minHeight: 44,
+                    backgroundColor: LightColor.whiteColor,
+                    foregroundColor: LightColor.secondaryTextColor,
+                    borderColor: LightColor.borderColor,
+                    minHeight: AppDimens.sizeX44,
                     onPressed: () => Navigator.of(context).pop(false),
                   ),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: AppDimens.sizeX12),
                 Expanded(
                   child: CustomButton(
                     text: confirmText,
                     backgroundColor: confirmColor,
-                    foregroundColor: LightColor.white,
-                    minHeight: 44,
+                    foregroundColor: LightColor.inverseTextColor,
+                    minHeight: AppDimens.sizeX44,
                     onPressed: () => Navigator.of(context).pop(true),
                   ),
                 ),

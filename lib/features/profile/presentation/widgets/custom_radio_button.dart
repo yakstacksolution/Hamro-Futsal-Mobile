@@ -13,8 +13,8 @@ class CustomRadioGroup extends StatefulWidget {
     required this.options,
     this.initialValue,
     this.onChanged,
-    this.activeColor = LightColor.primaryGreen,
-    this.inactiveColor = LightColor.grey,
+    this.activeColor = LightColor.secondaryColor,
+    this.inactiveColor = LightColor.hintTextColor,
   });
 
   @override

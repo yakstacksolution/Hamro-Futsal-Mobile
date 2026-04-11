@@ -49,7 +49,7 @@ class CourtBookingPaymentSection extends StatelessWidget {
             SwitchListTile.adaptive(
               contentPadding: EdgeInsets.zero,
               value: court.enableOnlineBooking,
-              activeThumbColor: LightColor.secondary,
+              activeThumbColor: LightColor.secondaryColor,
               title: const Text(
                 'Enable online booking',
                 style: TextStyle(fontWeight: FontWeight.w700),
@@ -63,7 +63,7 @@ class CourtBookingPaymentSection extends StatelessWidget {
             SwitchListTile.adaptive(
               contentPadding: EdgeInsets.zero,
               value: court.advancePaymentRequired,
-              activeThumbColor: LightColor.secondary,
+              activeThumbColor: LightColor.secondaryColor,
               title: const Text(
                 'Advance payment required',
                 style: TextStyle(fontWeight: FontWeight.w700),

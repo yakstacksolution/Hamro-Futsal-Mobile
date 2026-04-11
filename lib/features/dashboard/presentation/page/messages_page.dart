@@ -52,10 +52,10 @@ class MessagesPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: LightColor.surface,
+      backgroundColor: LightColor.cardColor,
       body: DecoratedBox(
         decoration: const BoxDecoration(
-          color: LightColor.surface,
+          color: LightColor.cardColor,
           // gradient: LinearGradient(
           //   colors: <Color>[
           //     Color(0xFFEAF8F0),
@@ -114,7 +114,7 @@ class _MessagesHeader extends StatelessWidget {
               Text(
                 'Messages',
                 style: TextStyle(
-                  color: LightColor.titleTextColor,
+                  color: LightColor.primaryTextColor,
                   fontSize: 28,
                   fontWeight: FontWeight.w800,
                   letterSpacing: -0.6,
@@ -137,7 +137,7 @@ class _MessagesHeader extends StatelessWidget {
                   width: 10,
                   height: 10,
                   decoration: BoxDecoration(
-                    color: LightColor.red,
+                    color: LightColor.redColor,
                     shape: BoxShape.circle,
                     border: Border.all(color: Colors.white, width: 2),
                   ),
@@ -171,7 +171,7 @@ class _HeaderIconButton extends StatelessWidget {
             color: Colors.white,
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
-              color: LightColor.successBorder.withValues(alpha: 0.65),
+              color: LightColor.secondaryLightMedium.withValues(alpha: 0.65),
             ),
             boxShadow: <BoxShadow>[
               BoxShadow(
@@ -199,7 +199,7 @@ class _SearchMessageField extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: LightColor.border.withValues(alpha: 0.45)),
+        border: Border.all(color: LightColor.borderColor.withValues(alpha: 0.45)),
         boxShadow: <BoxShadow>[
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.035),
@@ -212,7 +212,7 @@ class _SearchMessageField extends StatelessWidget {
         children: <Widget>[
           Icon(
             Icons.search_rounded,
-            color: LightColor.hintText.withValues(alpha: 0.95),
+            color: LightColor.hintTextColor.withValues(alpha: 0.95),
             size: 26,
           ),
           const SizedBox(width: 12),
@@ -220,7 +220,7 @@ class _SearchMessageField extends StatelessWidget {
             child: Text(
               'Search messages.',
               style: TextStyle(
-                color: LightColor.hintText.withValues(alpha: 0.95),
+                color: LightColor.hintTextColor.withValues(alpha: 0.95),
                 fontSize: 15.5,
                 fontWeight: FontWeight.w500,
               ),
@@ -230,7 +230,7 @@ class _SearchMessageField extends StatelessWidget {
             width: 38,
             height: 38,
             decoration: BoxDecoration(
-              color: LightColor.secondary.withValues(alpha: 0.1),
+              color: LightColor.secondaryColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: const Icon(
@@ -278,17 +278,17 @@ class _FilterChipItem extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
       decoration: BoxDecoration(
-        color: isSelected ? LightColor.secondary : Colors.white,
+        color: isSelected ? LightColor.secondaryColor : Colors.white,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: isSelected
-              ? LightColor.secondary
-              : LightColor.border.withValues(alpha: 0.45),
+              ? LightColor.secondaryColor
+              : LightColor.borderColor.withValues(alpha: 0.45),
         ),
         boxShadow: isSelected
             ? <BoxShadow>[
                 BoxShadow(
-                  color: LightColor.secondary.withValues(alpha: 0.22),
+                  color: LightColor.secondaryColor.withValues(alpha: 0.22),
                   blurRadius: 16,
                   offset: const Offset(0, 8),
                 ),
@@ -304,7 +304,7 @@ class _FilterChipItem extends StatelessWidget {
       child: Text(
         title,
         style: TextStyle(
-          color: isSelected ? Colors.white : LightColor.titleTextColor,
+          color: isSelected ? Colors.white : LightColor.primaryTextColor,
           fontSize: 14,
           fontWeight: FontWeight.w500,
         ),
@@ -329,8 +329,8 @@ class _MessageTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
           color: isUnread
-              ? LightColor.secondary.withValues(alpha: 0.12)
-              : LightColor.border.withValues(alpha: 0.30),
+              ? LightColor.secondaryColor.withValues(alpha: 0.12)
+              : LightColor.borderColor.withValues(alpha: 0.30),
         ),
         boxShadow: <BoxShadow>[
           BoxShadow(
@@ -351,7 +351,7 @@ class _MessageTile extends StatelessWidget {
                   shape: BoxShape.circle,
                   boxShadow: <BoxShadow>[
                     BoxShadow(
-                      color: LightColor.secondary.withValues(alpha: 0.12),
+                      color: LightColor.secondaryColor.withValues(alpha: 0.12),
                       blurRadius: 16,
                       offset: const Offset(0, 8),
                     ),
@@ -407,7 +407,7 @@ class _MessageTile extends StatelessWidget {
                     Text(
                       item.time,
                       style: TextStyle(
-                        color: LightColor.hintText.withValues(alpha: 0.9),
+                        color: LightColor.hintTextColor.withValues(alpha: 0.9),
                         fontSize: 10,
                         fontWeight: FontWeight.w600,
                       ),
@@ -426,7 +426,7 @@ class _MessageTile extends StatelessWidget {
                         style: TextStyle(
                           color: isUnread
                               ? const Color(0xFF4C5C72)
-                              : LightColor.subtitleText.withValues(alpha: 0.70),
+                              : LightColor.secondaryTextColor.withValues(alpha: 0.70),
                           fontSize: 12,
                           fontWeight: isUnread
                               ? FontWeight.w600
@@ -446,7 +446,7 @@ class _MessageTile extends StatelessWidget {
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: LightColor.secondary,
+                              color: LightColor.secondaryColor,
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(

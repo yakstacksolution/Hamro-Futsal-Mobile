@@ -54,7 +54,7 @@ class _CourtsListPageState extends State<CourtsListPage> {
         }).toList();
 
         return DecoratedBox(
-          decoration: const BoxDecoration(color: LightColor.surface),
+          decoration: const BoxDecoration(color: LightColor.cardColor),
           child: Column(
             children: <Widget>[
               _TopDashboardHeader(
@@ -183,7 +183,7 @@ class _TopDashboardHeader extends StatelessWidget {
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w900,
-              color: LightColor.titleText,
+              color: LightColor.primaryTextColor,
             ),
           ),
           const SizedBox(height: 8),
@@ -191,7 +191,7 @@ class _TopDashboardHeader extends StatelessWidget {
             'Manage your futsal venues and court operations in one place.',
             style: TextStyle(
               fontSize: 12,
-              color: LightColor.subtitleText.withValues(alpha: 0.85),
+              color: LightColor.secondaryTextColor.withValues(alpha: 0.85),
               fontWeight: FontWeight.w400,
               height: 1.5,
             ),
@@ -204,7 +204,7 @@ class _TopDashboardHeader extends StatelessWidget {
                   icon: Icons.apartment_rounded,
                   title: 'Venues',
                   value: '${stats.futsalCount}',
-                  color: LightColor.secondary,
+                  color: LightColor.secondaryColor,
                 ),
               ),
               const SizedBox(width: 10),
@@ -222,7 +222,7 @@ class _TopDashboardHeader extends StatelessWidget {
                   icon: Icons.check_circle_rounded,
                   title: 'Live',
                   value: '${stats.liveCourtCount}',
-                  color: LightColor.secondary,
+                  color: LightColor.secondaryColor,
                 ),
               ),
             ],
@@ -285,7 +285,7 @@ class _SummaryStatCard extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w600,
-                  color: LightColor.subtitleText,
+                  color: LightColor.secondaryTextColor,
                 ),
               ),
             ],
@@ -370,13 +370,13 @@ class _FilterChip extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
             color: isActive
-                ? LightColor.secondary.withValues(alpha: 0.12)
-                : LightColor.surfaceSubtle,
+                ? LightColor.secondaryColor.withValues(alpha: 0.12)
+                : LightColor.inputFillColor,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
               color: isActive
-                  ? LightColor.secondary.withValues(alpha: 0.30)
-                  : LightColor.border.withValues(alpha: 0.45),
+                  ? LightColor.secondaryColor.withValues(alpha: 0.30)
+                  : LightColor.borderColor.withValues(alpha: 0.45),
             ),
           ),
           child: Row(
@@ -386,8 +386,8 @@ class _FilterChip extends StatelessWidget {
                 icon,
                 size: 18,
                 color: isActive
-                    ? LightColor.secondary
-                    : LightColor.subtitleText,
+                    ? LightColor.secondaryColor
+                    : LightColor.secondaryTextColor,
               ),
               const SizedBox(width: 6),
               Text(
@@ -396,8 +396,8 @@ class _FilterChip extends StatelessWidget {
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
                   color: isActive
-                      ? LightColor.secondary
-                      : LightColor.subtitleText,
+                      ? LightColor.secondaryColor
+                      : LightColor.secondaryTextColor,
                 ),
               ),
               if (badge != null) ...<Widget>[
@@ -409,8 +409,8 @@ class _FilterChip extends StatelessWidget {
                   ),
                   decoration: BoxDecoration(
                     color: isActive
-                        ? LightColor.secondary.withValues(alpha: 0.18)
-                        : LightColor.border,
+                        ? LightColor.secondaryColor.withValues(alpha: 0.18)
+                        : LightColor.borderColor,
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
@@ -419,8 +419,8 @@ class _FilterChip extends StatelessWidget {
                       fontSize: 12,
                       fontWeight: FontWeight.w800,
                       color: isActive
-                          ? LightColor.secondary
-                          : LightColor.titleText,
+                          ? LightColor.secondaryColor
+                          : LightColor.primaryTextColor,
                     ),
                   ),
                 ),
@@ -462,9 +462,9 @@ class _VenueCardV2State extends State<_VenueCardV2> {
 
     return Container(
       decoration: BoxDecoration(
-        color: LightColor.white,
+        color: LightColor.whiteColor,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: LightColor.border.withValues(alpha: 0.45)),
+        border: Border.all(color: LightColor.borderColor.withValues(alpha: 0.45)),
         boxShadow: <BoxShadow>[
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.035),
@@ -489,8 +489,8 @@ class _VenueCardV2State extends State<_VenueCardV2> {
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: <Color>[
-                            LightColor.secondary,
-                            LightColor.primary,
+                            LightColor.secondaryColor,
+                            LightColor.secondaryColor,
                           ],
                         ),
                         borderRadius: BorderRadius.circular(10),
@@ -514,7 +514,7 @@ class _VenueCardV2State extends State<_VenueCardV2> {
                                   style: const TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w900,
-                                    color: LightColor.titleText,
+                                    color: LightColor.primaryTextColor,
                                   ),
                                 ),
                               ),
@@ -530,7 +530,7 @@ class _VenueCardV2State extends State<_VenueCardV2> {
                               Icon(
                                 Icons.location_on_outlined,
                                 size: 16,
-                                color: LightColor.subtitleText.withValues(
+                                color: LightColor.secondaryTextColor.withValues(
                                   alpha: 0.75,
                                 ),
                               ),
@@ -542,7 +542,7 @@ class _VenueCardV2State extends State<_VenueCardV2> {
                                   overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(
                                     fontSize: 12,
-                                    color: LightColor.subtitleText,
+                                    color: LightColor.secondaryTextColor,
                                     fontWeight: FontWeight.w500,
                                   ),
                                 ),
@@ -568,21 +568,21 @@ class _VenueCardV2State extends State<_VenueCardV2> {
                       _InfoTag(
                         icon: Icons.check_circle_rounded,
                         label: '$liveCourts Live',
-                        color: LightColor.secondary,
+                        color: LightColor.secondaryColor,
                       ),
                       const SizedBox(width: 8),
                       if (startPrice != null)
                         _InfoTag(
                           icon: Icons.sell_outlined,
                           label: 'From Rs ${startPrice.toStringAsFixed(0)}',
-                          color: LightColor.amber,
+                          color: LightColor.warningColor,
                         ),
                       if (widget.entry.phone.isNotEmpty) ...<Widget>[
                         const SizedBox(width: 8),
                         _InfoTag(
                           icon: Icons.call_outlined,
                           label: widget.entry.phone,
-                          color: LightColor.accent,
+                          color: LightColor.secondaryColor,
                         ),
                       ],
                     ],
@@ -600,7 +600,7 @@ class _VenueCardV2State extends State<_VenueCardV2> {
                             borderRadius: BorderRadius.circular(8),
                           ),
                           side: BorderSide(
-                            color: LightColor.border.withValues(alpha: 0.8),
+                            color: LightColor.borderColor.withValues(alpha: 0.8),
                           ),
                         ),
                         icon: const Icon(Icons.edit_outlined, size: 20),
@@ -615,7 +615,7 @@ class _VenueCardV2State extends State<_VenueCardV2> {
                       child: ElevatedButton.icon(
                         onPressed: widget.onAddCourt,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: LightColor.secondary,
+                          backgroundColor: LightColor.secondaryColor,
                           foregroundColor: Colors.white,
                           elevation: 0,
                           padding: const EdgeInsets.symmetric(
@@ -643,7 +643,7 @@ class _VenueCardV2State extends State<_VenueCardV2> {
           ),
           Container(
             height: 1,
-            color: LightColor.border.withValues(alpha: 0.30),
+            color: LightColor.borderColor.withValues(alpha: 0.30),
           ),
           GestureDetector(
             onTap: () {
@@ -656,7 +656,7 @@ class _VenueCardV2State extends State<_VenueCardV2> {
                   const Icon(
                     Icons.sports_soccer_rounded,
                     size: 24,
-                    color: LightColor.subtitleText,
+                    color: LightColor.secondaryTextColor,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
@@ -665,13 +665,13 @@ class _VenueCardV2State extends State<_VenueCardV2> {
                       style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w800,
-                        color: LightColor.titleText,
+                        color: LightColor.primaryTextColor,
                       ),
                     ),
                   ),
                   Container(
                     decoration: BoxDecoration(
-                      color: LightColor.surfaceSubtle,
+                      color: LightColor.inputFillColor,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     padding: const EdgeInsets.all(4),
@@ -680,7 +680,7 @@ class _VenueCardV2State extends State<_VenueCardV2> {
                           ? Icons.expand_less_rounded
                           : Icons.expand_more_rounded,
                       size: 18,
-                      color: LightColor.subtitleText,
+                      color: LightColor.secondaryTextColor,
                     ),
                   ),
                 ],
@@ -694,7 +694,7 @@ class _VenueCardV2State extends State<_VenueCardV2> {
                 children: <Widget>[
                   Container(
                     height: 1,
-                    color: LightColor.border.withValues(alpha: 0.22),
+                    color: LightColor.borderColor.withValues(alpha: 0.22),
                     margin: const EdgeInsets.only(bottom: 12),
                   ),
                   if (widget.entry.courts.isEmpty)
@@ -737,15 +737,15 @@ class _StatusBadgeV2 extends StatelessWidget {
 
     if (total == 0) {
       text = 'No Courts';
-      bg = LightColor.divider;
-      fg = LightColor.subtitleText;
+      bg = LightColor.dividerColor;
+      fg = LightColor.secondaryTextColor;
     } else if (live == total) {
       text = 'Fully Live';
       bg = LightColor.secondarySoft;
       fg = LightColor.secondaryDark;
     } else if (live == 0) {
       text = 'Setup Pending';
-      bg = LightColor.warningLight;
+      bg = LightColor.warningLightColor;
       fg = const Color(0xFF92400E);
     } else {
       text = '$live/$total Live';
@@ -815,16 +815,16 @@ class _CourtEmptyHintV2 extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: LightColor.surfaceSubtle,
+        color: LightColor.inputFillColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: LightColor.border.withValues(alpha: 0.4)),
+        border: Border.all(color: LightColor.borderColor.withValues(alpha: 0.4)),
       ),
       child: Column(
         children: <Widget>[
           Icon(
             Icons.sports_soccer_outlined,
             size: 32,
-            color: LightColor.subtitleText.withValues(alpha: 0.4),
+            color: LightColor.secondaryTextColor.withValues(alpha: 0.4),
           ),
           const SizedBox(height: 8),
           const Text(
@@ -832,7 +832,7 @@ class _CourtEmptyHintV2 extends StatelessWidget {
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: LightColor.subtitleText,
+              color: LightColor.secondaryTextColor,
             ),
           ),
           const SizedBox(height: 4),
@@ -842,7 +842,7 @@ class _CourtEmptyHintV2 extends StatelessWidget {
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w400,
-              color: LightColor.subtitleText.withValues(alpha: 0.72),
+              color: LightColor.secondaryTextColor.withValues(alpha: 0.72),
             ),
           ),
         ],
@@ -867,18 +867,18 @@ class _CourtRowV2 extends StatelessWidget {
 
     final Color iconBg = isLive
         ? LightColor.secondarySoft
-        : LightColor.warningLight;
+        : LightColor.warningLightColor;
 
     final Color iconColor = isLive
-        ? LightColor.secondary
+        ? LightColor.secondaryColor
         : const Color(0xFFD97706);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
       decoration: BoxDecoration(
-        color: LightColor.white,
+        color: LightColor.whiteColor,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: LightColor.border.withValues(alpha: 0.18)),
+        border: Border.all(color: LightColor.borderColor.withValues(alpha: 0.18)),
         boxShadow: <BoxShadow>[
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.025),
@@ -921,7 +921,7 @@ class _CourtRowV2 extends StatelessWidget {
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
                           height: 1.2,
-                          color: LightColor.titleText,
+                          color: LightColor.primaryTextColor,
                         ),
                       ),
                     ),
@@ -959,7 +959,7 @@ class _CourtRowV2 extends StatelessWidget {
                       fontSize: 11,
                       fontWeight: FontWeight.w500,
                       height: 1.2,
-                      color: LightColor.subtitleText.withValues(alpha: 0.82),
+                      color: LightColor.secondaryTextColor.withValues(alpha: 0.82),
                     ),
                   ),
                 ],
@@ -974,13 +974,13 @@ class _CourtRowV2 extends StatelessWidget {
                           ? Icons.check_circle_rounded
                           : Icons.pending_actions_rounded,
                       label: isLive ? 'Live' : 'Inactive',
-                      color: isLive ? LightColor.secondary : LightColor.red,
+                      color: isLive ? LightColor.secondaryColor : LightColor.redColor,
                     ),
                     if (court.advancePaymentRequired)
                       const _CourtStatusChip(
                         icon: Icons.account_balance_wallet_outlined,
                         label: 'Advance',
-                        color: LightColor.accent,
+                        color: LightColor.secondaryColor,
                       ),
                   ],
                 ),
@@ -1050,9 +1050,9 @@ class _EmptyStateV2 extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: LightColor.white,
+        color: LightColor.whiteColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: LightColor.border.withValues(alpha: 0.5)),
+        border: Border.all(color: LightColor.borderColor.withValues(alpha: 0.5)),
       ),
       child: Column(
         children: <Widget>[
@@ -1060,13 +1060,13 @@ class _EmptyStateV2 extends StatelessWidget {
             width: 82,
             height: 82,
             decoration: BoxDecoration(
-              color: LightColor.secondary.withValues(alpha: 0.1),
+              color: LightColor.secondaryColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
             ),
             child: const Icon(
               Icons.dashboard_customize_outlined,
               size: 40,
-              color: LightColor.secondary,
+              color: LightColor.secondaryColor,
             ),
           ),
           const SizedBox(height: 20),
@@ -1075,7 +1075,7 @@ class _EmptyStateV2 extends StatelessWidget {
             style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w900,
-              color: LightColor.titleText,
+              color: LightColor.primaryTextColor,
             ),
           ),
           const SizedBox(height: 8),
@@ -1087,7 +1087,7 @@ class _EmptyStateV2 extends StatelessWidget {
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w500,
-              color: LightColor.subtitleText.withValues(alpha: 0.9),
+              color: LightColor.secondaryTextColor.withValues(alpha: 0.9),
               height: 1.5,
             ),
           ),
@@ -1106,7 +1106,7 @@ class _EmptyStateV2 extends StatelessWidget {
             onPressed: onManageVenue,
             style: OutlinedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 12),
-              side: const BorderSide(color: LightColor.secondary),
+              side: const BorderSide(color: LightColor.secondaryColor),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
               ),

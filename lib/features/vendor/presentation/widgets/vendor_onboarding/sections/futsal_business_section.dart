@@ -156,7 +156,7 @@ class _CompactBusinessSectionHeader extends StatelessWidget {
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: LightColor.secondary.withValues(alpha: 0.2)),
+        border: Border.all(color: LightColor.secondaryColor.withValues(alpha: 0.2)),
       ),
       child: Row(
         children: <Widget>[
@@ -167,7 +167,7 @@ class _CompactBusinessSectionHeader extends StatelessWidget {
               color: LightColor.secondaryLight,
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(meta.icon, size: 18, color: LightColor.secondary),
+            child: Icon(meta.icon, size: 18, color: LightColor.secondaryColor),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -179,7 +179,7 @@ class _CompactBusinessSectionHeader extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
-                    color: LightColor.titleText,
+                    color: LightColor.primaryTextColor,
                     height: 1.1,
                   ),
                 ),
@@ -191,7 +191,7 @@ class _CompactBusinessSectionHeader extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w400,
-                    color: LightColor.subtitleText,
+                    color: LightColor.secondaryTextColor,
                     height: 1.3,
                   ),
                 ),

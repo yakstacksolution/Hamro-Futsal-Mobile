@@ -23,18 +23,18 @@ class ReviewSummaryTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border(
-          left: const BorderSide(color: LightColor.skyBlue, width: 2.5),
-          right: BorderSide(color: LightColor.lightGrey.withValues(alpha: 0.6)),
-          top: BorderSide(color: LightColor.lightGrey.withValues(alpha: 0.6)),
+          left: const BorderSide(color: LightColor.secondaryColor, width: 2.5),
+          right: BorderSide(color: LightColor.borderColor.withValues(alpha: 0.6)),
+          top: BorderSide(color: LightColor.borderColor.withValues(alpha: 0.6)),
           bottom: isLast
-              ? BorderSide(color: LightColor.lightGrey.withValues(alpha: 0.6))
+              ? BorderSide(color: LightColor.borderColor.withValues(alpha: 0.6))
               : BorderSide.none,
         ),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       child: Row(
         children: <Widget>[
-          Icon(icon, size: 16, color: LightColor.skyBlue),
+          Icon(icon, size: 16, color: LightColor.secondaryColor),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
@@ -44,7 +44,7 @@ class ReviewSummaryTile extends StatelessWidget {
                   label,
                   style: const TextStyle(
                     fontSize: 10.5,
-                    color: LightColor.darkgrey,
+                    color: LightColor.secondaryTextColor,
                     fontWeight: FontWeight.w600,
                     letterSpacing: 0.3,
                   ),
@@ -56,8 +56,8 @@ class ReviewSummaryTile extends StatelessWidget {
                     fontSize: 13.5,
                     fontWeight: FontWeight.w600,
                     color: isEmpty
-                        ? LightColor.grey
-                        : LightColor.titleTextColor,
+                        ? LightColor.hintTextColor
+                        : LightColor.primaryTextColor,
                   ),
                 ),
               ],
@@ -67,7 +67,7 @@ class ReviewSummaryTile extends StatelessWidget {
             Icon(
               Icons.check_circle_rounded,
               size: 16,
-              color: LightColor.skyBlue.withValues(alpha: 0.6),
+              color: LightColor.secondaryColor.withValues(alpha: 0.6),
             ),
         ],
       ),

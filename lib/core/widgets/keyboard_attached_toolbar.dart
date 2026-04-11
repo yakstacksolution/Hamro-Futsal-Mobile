@@ -11,7 +11,7 @@ class KeyboardAttachedToolbar extends StatelessWidget {
 
   QuillIconTheme get _iconTheme => QuillIconTheme(
     iconButtonSelectedData: IconButtonData(
-      color: LightColor.secondary,
+      color: LightColor.secondaryColor,
       style: ButtonStyle(
         backgroundColor: WidgetStateProperty.all(LightColor.secondaryLight),
         shape: WidgetStateProperty.all(
@@ -20,7 +20,7 @@ class KeyboardAttachedToolbar extends StatelessWidget {
       ),
     ),
     iconButtonUnselectedData: IconButtonData(
-      color: LightColor.titleText,
+      color: LightColor.primaryTextColor,
       style: ButtonStyle(
         shape: WidgetStateProperty.all(
           RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -52,7 +52,7 @@ class KeyboardAttachedToolbar extends StatelessWidget {
       padding: EdgeInsets.only(bottom: bottomInset),
       child: Material(
         elevation: 0,
-        color: LightColor.surface,
+        color: LightColor.cardColor,
         child: SizedBox(
           width: double.infinity,
           child: ColoredBox(

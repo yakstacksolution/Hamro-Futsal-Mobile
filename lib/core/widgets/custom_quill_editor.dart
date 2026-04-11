@@ -119,9 +119,9 @@ class _CustomQuillEditorState extends State<CustomQuillEditor>
   @override
   Widget build(BuildContext context) {
     final TextSelectionThemeData selectionTheme = TextSelectionThemeData(
-      cursorColor: LightColor.titleText,
-      selectionColor: LightColor.titleText.withValues(alpha: 0.18),
-      selectionHandleColor: LightColor.titleText,
+      cursorColor: LightColor.primaryTextColor,
+      selectionColor: LightColor.primaryTextColor.withValues(alpha: 0.18),
+      selectionHandleColor: LightColor.primaryTextColor,
     );
 
     return Scaffold(
@@ -200,9 +200,9 @@ class _CustomQuillEditorState extends State<CustomQuillEditor>
         underline: const TextStyle(decoration: TextDecoration.underline),
         strikeThrough: const TextStyle(decoration: TextDecoration.lineThrough),
         link: TextStyle(
-          color: LightColor.primary,
+          color: LightColor.secondaryColor,
           decoration: TextDecoration.underline,
-          decorationColor: LightColor.primary.withValues(alpha: 0.5),
+          decorationColor: LightColor.secondaryColor.withValues(alpha: 0.5),
         ),
         h1: _headingStyle(cs, 26, FontWeight.w800, 20, 10),
         h2: _headingStyle(cs, 22, FontWeight.w700, 16, 8),
@@ -249,7 +249,7 @@ class _EmbeddedToolbar extends StatelessWidget {
         color: _EditorTokens.toolbarFill,
         border: Border(
           bottom: BorderSide(
-            color: LightColor.borderLight,
+            color: LightColor.dividerColor,
             width: _EditorTokens.toolbarDividerWidth,
           ),
         ),
@@ -267,7 +267,7 @@ class _EditorCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color focusBorderColor = LightColor.border;
+    final Color focusBorderColor = LightColor.borderColor;
 
     return AnimatedContainer(
       duration: _EditorTokens.animDuration,
@@ -275,22 +275,14 @@ class _EditorCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: _EditorTokens.fieldFill,
         borderRadius: BorderRadius.circular(_EditorTokens.fieldRadius),
-        border: Border.all(
-          color: focusBorderColor,
-          width: 1.15,
-        ),
+        border: Border.all(color: focusBorderColor, width: 1.15),
       ),
       clipBehavior: Clip.antiAlias,
       child: child,
     );
   }
-
-  static double lerpDouble(double a, double b, double t) => a + (b - a) * t;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Animated hint overlay
-// ─────────────────────────────────────────────────────────────────────────────
 class _HintOverlay extends StatelessWidget {
   final String text;
   const _HintOverlay({required this.text});

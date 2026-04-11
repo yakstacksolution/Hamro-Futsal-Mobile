@@ -54,7 +54,7 @@ class BusinessRegistrationSection extends StatelessWidget {
           onTap: onPickExactLocation,
           suffixIcon: const Icon(
             Icons.map_outlined,
-            color: LightColor.skyBlue,
+            color: LightColor.secondaryColor,
             size: 20,
           ),
           validator: bloc.exactLocationValidator,

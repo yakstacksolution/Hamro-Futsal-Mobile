@@ -55,7 +55,7 @@ class HeaderComponetWidget extends StatelessWidget {
                       shape: BoxShape.circle,
                       gradient: RadialGradient(
                         colors: [
-                          LightColor.lightBlue.withValues(alpha: 0.5),
+                          LightColor.secondaryLight.withValues(alpha: 0.5),
                           Colors.transparent,
                         ],
                       ),
@@ -72,7 +72,7 @@ class HeaderComponetWidget extends StatelessWidget {
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: LightColor.skyBlue.withValues(alpha: 0.4),
+                          color: LightColor.secondaryColor.withValues(alpha: 0.4),
                           blurRadius: 16,
                           offset: const Offset(0, 4),
                         ),
@@ -97,7 +97,7 @@ class HeaderComponetWidget extends StatelessWidget {
                       height: 14,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: LightColor.secondaryGreen,
+                        color: LightColor.secondaryColor,
                         border: Border.all(color: Colors.white, width: 2),
                       ),
                     ),

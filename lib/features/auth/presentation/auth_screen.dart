@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hamro_footsall/core/routers/app_router_params.dart';
-import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
-import 'package:hamro_footsall/core/widgets/custom_text_field.dart';
 import 'package:hamro_footsall/features/auth/presentation/authentication_bloc/authentication_bloc.dart';
 import 'package:hamro_footsall/features/auth/presentation/widgets/auth_screen_frame.dart';
+import 'package:hamro_footsall/features/auth/presentation/widgets/login_form.dart';
+import 'package:hamro_footsall/features/auth/presentation/widgets/register_form.dart';
 
 enum AuthMode { login, register }
 
@@ -19,7 +19,7 @@ class AuthScreen extends StatefulWidget {
   State<AuthScreen> createState() => _AuthScreenState();
 }
 
-class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
+class _AuthScreenState extends State<AuthScreen> {
   static const List<String> _accountTypes = <String>[
     'Player',
     'Footsall Vendor',
@@ -32,19 +32,16 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
   final GlobalKey<FormState> _loginFormKey = GlobalKey<FormState>();
   final GlobalKey<FormState> _registerFormKey = GlobalKey<FormState>();
 
-  late AuthMode _mode;
-  bool _isAnimating = false;
-
-  bool _obscureLoginPassword = true;
-  bool _obscureRegisterPassword = true;
-  bool _obscureConfirmPassword = true;
-  bool _rememberMe = true;
-  bool _acceptedTerms = false;
-
-  bool _loginValidationEnabled = false;
-  bool _registerValidationEnabled = false;
-
-  String? _selectedAccountType;
+  late final ValueNotifier<AuthMode> _modeNotifier;
+  late final ValueNotifier<bool> _isAnimatingNotifier;
+  late final ValueNotifier<bool> _obscureLoginPasswordNotifier;
+  late final ValueNotifier<bool> _obscureRegisterPasswordNotifier;
+  late final ValueNotifier<bool> _obscureConfirmPasswordNotifier;
+  late final ValueNotifier<bool> _rememberMeNotifier;
+  late final ValueNotifier<bool> _acceptedTermsNotifier;
+  late final ValueNotifier<bool> _loginValidationEnabledNotifier;
+  late final ValueNotifier<bool> _registerValidationEnabledNotifier;
+  late final ValueNotifier<String?> _selectedAccountTypeNotifier;
 
   // Login
   final FocusNode _loginEmailFocus = FocusNode();
@@ -71,7 +68,16 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    _mode = widget.initialMode;
+    _modeNotifier = ValueNotifier<AuthMode>(widget.initialMode);
+    _isAnimatingNotifier = ValueNotifier<bool>(false);
+    _obscureLoginPasswordNotifier = ValueNotifier<bool>(true);
+    _obscureRegisterPasswordNotifier = ValueNotifier<bool>(true);
+    _obscureConfirmPasswordNotifier = ValueNotifier<bool>(true);
+    _rememberMeNotifier = ValueNotifier<bool>(true);
+    _acceptedTermsNotifier = ValueNotifier<bool>(false);
+    _loginValidationEnabledNotifier = ValueNotifier<bool>(false);
+    _registerValidationEnabledNotifier = ValueNotifier<bool>(false);
+    _selectedAccountTypeNotifier = ValueNotifier<String?>(null);
   }
 
   @override
@@ -91,28 +97,33 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
     _registerEmailController.dispose();
     _registerPasswordController.dispose();
     _registerConfirmPasswordController.dispose();
+    _modeNotifier.dispose();
+    _isAnimatingNotifier.dispose();
+    _obscureLoginPasswordNotifier.dispose();
+    _obscureRegisterPasswordNotifier.dispose();
+    _obscureConfirmPasswordNotifier.dispose();
+    _rememberMeNotifier.dispose();
+    _acceptedTermsNotifier.dispose();
+    _loginValidationEnabledNotifier.dispose();
+    _registerValidationEnabledNotifier.dispose();
+    _selectedAccountTypeNotifier.dispose();
     super.dispose();
   }
 
-  bool get _isLogin => _mode == AuthMode.login;
+  bool get _isLogin => _modeNotifier.value == AuthMode.login;
 
   void _setMode(AuthMode mode) {
-    if (_mode == mode || _isAnimating) return;
+    if (_modeNotifier.value == mode || _isAnimatingNotifier.value) return;
 
     FocusManager.instance.primaryFocus?.unfocus();
-
-    setState(() {
-      _isAnimating = true;
-      _mode = mode;
-      _loginValidationEnabled = false;
-      _registerValidationEnabled = false;
-    });
+    _isAnimatingNotifier.value = true;
+    _modeNotifier.value = mode;
+    _loginValidationEnabledNotifier.value = false;
+    _registerValidationEnabledNotifier.value = false;
 
     Future<void>.delayed(const Duration(milliseconds: 420), () {
       if (!mounted) return;
-      setState(() {
-        _isAnimating = false;
-      });
+      _isAnimatingNotifier.value = false;
     });
   }
 
@@ -154,7 +165,7 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
     FocusScope.of(context).unfocus();
 
     if (_isLogin) {
-      setState(() => _loginValidationEnabled = true);
+      _loginValidationEnabledNotifier.value = true;
       final bool valid = _loginFormKey.currentState?.validate() ?? false;
       if (!valid) return;
 
@@ -162,13 +173,13 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
         LoginEvent(
           email: _loginEmailController.text.trim(),
           password: _loginPasswordController.text,
-          rememberMe: _rememberMe,
+          rememberMe: _rememberMeNotifier.value,
         ),
       );
       return;
     }
 
-    setState(() => _registerValidationEnabled = true);
+    _registerValidationEnabledNotifier.value = true;
     final bool valid = _registerFormKey.currentState?.validate() ?? false;
     if (!valid) return;
 
@@ -178,8 +189,8 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
         email: _registerEmailController.text.trim(),
         password: _registerPasswordController.text,
         passwordConfirmation: _registerConfirmPasswordController.text,
-        accountType: _selectedAccountType!,
-        termsAccepted: _acceptedTerms,
+        accountType: _selectedAccountTypeNotifier.value!,
+        termsAccepted: _acceptedTermsNotifier.value,
       ),
     );
   }
@@ -248,544 +259,189 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
             state.loginStatus == AuthStatus.loading ||
             state.registrationStatus == AuthStatus.loading;
 
-        return AuthScreenFrame(
-          isLoading:
-              state.loginStatus == AuthStatus.loading ||
-              state.registrationStatus == AuthStatus.loading,
-          isRotate: _isLogin,
-          title: _isLogin ? 'Welcome Back' : 'Create Your Account',
-          subtitle: _isLogin
-              ? 'Sign in to book matches or manage your footsall.'
-              : 'Join as a player or a footsall vendor.',
-          primaryButtonLabel: _isLogin ? 'Sign In' : 'Create Account',
-          primaryButtonIcon: _isLogin
-              ? Icons.login_rounded
-              : Icons.check_circle_outline_rounded,
-          headerIcon: _isLogin
-              ? Icons.sports_soccer_rounded
-              : Icons.person_add_alt_1_rounded,
-          primaryButtonEnabled: !_isAnimating && !isSubmitting,
-          onPrimaryTap: _submit,
-          secondaryPrefixText: _isLogin
-              ? 'New to Footsall App?'
-              : 'Already have an account?',
-          secondaryActionText: _isLogin ? 'Create new account' : 'Sign in',
-          onSecondaryTap: _toggleMode,
-          formFields: <Widget>[
-            AnimatedSize(
-              duration: const Duration(milliseconds: 420),
-              curve: Curves.easeInOutCubic,
-              alignment: Alignment.topCenter,
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 420),
-                reverseDuration: const Duration(milliseconds: 320),
-                switchInCurve: Curves.easeOutCubic,
-                switchOutCurve: Curves.easeInCubic,
-                layoutBuilder:
-                    (Widget? currentChild, List<Widget> previousChildren) {
-                      return Stack(
-                        alignment: Alignment.topCenter,
-                        children: <Widget>[
-                          ...previousChildren,
-                          if (currentChild != null) currentChild,
-                        ],
-                      );
-                    },
-                transitionBuilder: (Widget child, Animation<double> animation) {
-                  final bool isLoginChild =
-                      (child.key as ValueKey<String>).value == 'login-form';
+        return AnimatedBuilder(
+          animation: Listenable.merge(<Listenable>[
+            _modeNotifier,
+            _isAnimatingNotifier,
+            _obscureLoginPasswordNotifier,
+            _obscureRegisterPasswordNotifier,
+            _obscureConfirmPasswordNotifier,
+            _rememberMeNotifier,
+            _acceptedTermsNotifier,
+            _loginValidationEnabledNotifier,
+            _registerValidationEnabledNotifier,
+            _selectedAccountTypeNotifier,
+          ]),
+          builder: (BuildContext context, _) {
+            final bool isLogin = _modeNotifier.value == AuthMode.login;
+            final bool isAnimating = _isAnimatingNotifier.value;
 
-                  final Offset beginOffset = isLoginChild
-                      ? const Offset(-0.08, 0)
-                      : const Offset(0.08, 0);
+            return AuthScreenFrame(
+              isLoading:
+                  state.loginStatus == AuthStatus.loading ||
+                  state.registrationStatus == AuthStatus.loading,
+              isRotate: isLogin,
+              title: isLogin ? 'Welcome Back' : 'Create Your Account',
+              subtitle: isLogin
+                  ? 'Sign in to book matches or manage your footsall.'
+                  : 'Join as a player or a footsall vendor.',
+              primaryButtonLabel: isLogin ? 'Sign In' : 'Create Account',
+              primaryButtonIcon: isLogin
+                  ? Icons.login_rounded
+                  : Icons.check_circle_outline_rounded,
+              headerIcon: isLogin
+                  ? Icons.sports_soccer_rounded
+                  : Icons.person_add_alt_1_rounded,
+              primaryButtonEnabled: !isAnimating && !isSubmitting,
+              onPrimaryTap: _submit,
+              secondaryPrefixText: isLogin
+                  ? 'New to Footsall App?'
+                  : 'Already have an account?',
+              secondaryActionText: isLogin ? 'Create account' : 'Sign in',
+              onSecondaryTap: _toggleMode,
+              formFields: <Widget>[
+                AnimatedSize(
+                  duration: const Duration(milliseconds: 420),
+                  curve: Curves.easeInOutCubic,
+                  alignment: Alignment.topCenter,
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 420),
+                    reverseDuration: const Duration(milliseconds: 320),
+                    switchInCurve: Curves.easeOutCubic,
+                    switchOutCurve: Curves.easeInCubic,
+                    layoutBuilder:
+                        (Widget? currentChild, List<Widget> previousChildren) {
+                          return Stack(
+                            alignment: Alignment.topCenter,
+                            children: <Widget>[
+                              ...previousChildren,
+                              if (currentChild != null) currentChild,
+                            ],
+                          );
+                        },
+                    transitionBuilder:
+                        (Widget child, Animation<double> animation) {
+                          final bool isLoginChild =
+                              (child.key as ValueKey<String>).value ==
+                              'login-form';
 
-                  return FadeTransition(
-                    opacity: animation,
-                    child: SlideTransition(
-                      position:
-                          Tween<Offset>(
-                            begin: beginOffset,
-                            end: Offset.zero,
-                          ).animate(
-                            CurvedAnimation(
-                              parent: animation,
-                              curve: Curves.easeOutCubic,
+                          final Offset beginOffset = isLoginChild
+                              ? const Offset(-0.08, 0)
+                              : const Offset(0.08, 0);
+
+                          return FadeTransition(
+                            opacity: animation,
+                            child: SlideTransition(
+                              position:
+                                  Tween<Offset>(
+                                    begin: beginOffset,
+                                    end: Offset.zero,
+                                  ).animate(
+                                    CurvedAnimation(
+                                      parent: animation,
+                                      curve: Curves.easeOutCubic,
+                                    ),
+                                  ),
+                              child: ScaleTransition(
+                                scale: Tween<double>(begin: 0.985, end: 1)
+                                    .animate(
+                                      CurvedAnimation(
+                                        parent: animation,
+                                        curve: Curves.easeOutBack,
+                                      ),
+                                    ),
+                                child: child,
+                              ),
                             ),
-                          ),
-                      child: ScaleTransition(
-                        scale: Tween<double>(begin: 0.985, end: 1).animate(
-                          CurvedAnimation(
-                            parent: animation,
-                            curve: Curves.easeOutBack,
-                          ),
-                        ),
-                        child: child,
+                          );
+                        },
+                    child: IgnorePointer(
+                      key: ValueKey<String>(
+                        isLogin ? 'login-form' : 'register-form',
                       ),
+                      ignoring: isAnimating || isSubmitting,
+                      child: isLogin
+                          ? LoginForm(
+                              formKey: _loginFormKey,
+                              autovalidateMode:
+                                  _loginValidationEnabledNotifier.value
+                                  ? AutovalidateMode.always
+                                  : AutovalidateMode.disabled,
+                              obscurePassword:
+                                  _obscureLoginPasswordNotifier.value,
+                              rememberMe: _rememberMeNotifier.value,
+                              emailController: _loginEmailController,
+                              passwordController: _loginPasswordController,
+                              emailFocus: _loginEmailFocus,
+                              passwordFocus: _loginPasswordFocus,
+                              emailValidator: _validateEmail,
+                              passwordValidator: _validatePassword,
+                              onForgotPasswordTap: () {
+                                context.pushNamed(
+                                  AppRouterParams.forgotPassword.name,
+                                );
+                              },
+                              onTogglePassword: () {
+                                _obscureLoginPasswordNotifier.value =
+                                    !_obscureLoginPasswordNotifier.value;
+                              },
+                              onRememberMeChanged: (bool? value) {
+                                _rememberMeNotifier.value = value ?? false;
+                              },
+                            )
+                          : RegisterForm(
+                              formKey: _registerFormKey,
+                              autovalidateMode:
+                                  _registerValidationEnabledNotifier.value
+                                  ? AutovalidateMode.always
+                                  : AutovalidateMode.disabled,
+                              obscurePassword:
+                                  _obscureRegisterPasswordNotifier.value,
+                              obscureConfirmPassword:
+                                  _obscureConfirmPasswordNotifier.value,
+                              selectedAccountType:
+                                  _selectedAccountTypeNotifier.value,
+                              acceptedTerms: _acceptedTermsNotifier.value,
+                              accountTypes: _accountTypes,
+                              nameController: _registerNameController,
+                              emailController: _registerEmailController,
+                              passwordController: _registerPasswordController,
+                              confirmPasswordController:
+                                  _registerConfirmPasswordController,
+                              nameFocus: _registerNameFocus,
+                              accountTypeFocus: _registerAccountTypeFocus,
+                              emailFocus: _registerEmailFocus,
+                              passwordFocus: _registerPasswordFocus,
+                              confirmPasswordFocus:
+                                  _registerConfirmPasswordFocus,
+                              nameValidator: _validateName,
+                              emailValidator: _validateEmail,
+                              passwordValidator: _validatePassword,
+                              confirmPasswordValidator:
+                                  _validateConfirmPassword,
+                              onTogglePassword: () {
+                                _obscureRegisterPasswordNotifier.value =
+                                    !_obscureRegisterPasswordNotifier.value;
+                              },
+                              onToggleConfirmPassword: () {
+                                _obscureConfirmPasswordNotifier.value =
+                                    !_obscureConfirmPasswordNotifier.value;
+                              },
+                              onAccountTypeChanged: (String? value) {
+                                _selectedAccountTypeNotifier.value = value;
+                              },
+                              onTermsChanged: (bool? value) {
+                                _acceptedTermsNotifier.value = value ?? false;
+                              },
+                            ),
                     ),
-                  );
-                },
-                child: IgnorePointer(
-                  key: ValueKey<String>(
-                    _isLogin ? 'login-form' : 'register-form',
                   ),
-                  ignoring: _isAnimating || isSubmitting,
-                  child: _isLogin
-                      ? _LoginForm(
-                          formKey: _loginFormKey,
-                          autovalidateMode: _loginValidationEnabled
-                              ? AutovalidateMode.always
-                              : AutovalidateMode.disabled,
-                          obscurePassword: _obscureLoginPassword,
-                          rememberMe: _rememberMe,
-                          emailController: _loginEmailController,
-                          passwordController: _loginPasswordController,
-                          emailFocus: _loginEmailFocus,
-                          passwordFocus: _loginPasswordFocus,
-                          emailValidator: _validateEmail,
-                          passwordValidator: _validatePassword,
-                          onForgotPasswordTap: () {
-                            context.pushNamed(
-                              AppRouterParams.forgotPassword.name,
-                            );
-                          },
-                          onTogglePassword: () {
-                            setState(() {
-                              _obscureLoginPassword = !_obscureLoginPassword;
-                            });
-                          },
-                          onRememberMeChanged: (bool? value) {
-                            setState(() {
-                              _rememberMe = value ?? false;
-                            });
-                          },
-                        )
-                      : _RegisterForm(
-                          formKey: _registerFormKey,
-                          autovalidateMode: _registerValidationEnabled
-                              ? AutovalidateMode.always
-                              : AutovalidateMode.disabled,
-                          obscurePassword: _obscureRegisterPassword,
-                          obscureConfirmPassword: _obscureConfirmPassword,
-                          selectedAccountType: _selectedAccountType,
-                          acceptedTerms: _acceptedTerms,
-                          accountTypes: _accountTypes,
-                          nameController: _registerNameController,
-                          emailController: _registerEmailController,
-                          passwordController: _registerPasswordController,
-                          confirmPasswordController:
-                              _registerConfirmPasswordController,
-                          nameFocus: _registerNameFocus,
-                          accountTypeFocus: _registerAccountTypeFocus,
-                          emailFocus: _registerEmailFocus,
-                          passwordFocus: _registerPasswordFocus,
-                          confirmPasswordFocus: _registerConfirmPasswordFocus,
-                          nameValidator: _validateName,
-                          emailValidator: _validateEmail,
-                          passwordValidator: _validatePassword,
-                          confirmPasswordValidator: _validateConfirmPassword,
-                          onTogglePassword: () {
-                            setState(() {
-                              _obscureRegisterPassword =
-                                  !_obscureRegisterPassword;
-                            });
-                          },
-                          onToggleConfirmPassword: () {
-                            setState(() {
-                              _obscureConfirmPassword =
-                                  !_obscureConfirmPassword;
-                            });
-                          },
-                          onAccountTypeChanged: (String? value) {
-                            setState(() {
-                              _selectedAccountType = value;
-                            });
-                          },
-                          onTermsChanged: (bool? value) {
-                            setState(() {
-                              _acceptedTerms = value ?? false;
-                            });
-                          },
-                        ),
                 ),
-              ),
-            ),
-          ],
+              ],
+            );
+          },
         );
       },
-    );
-  }
-}
-
-class _LoginForm extends StatelessWidget {
-  const _LoginForm({
-    required this.formKey,
-    required this.autovalidateMode,
-    required this.obscurePassword,
-    required this.rememberMe,
-    required this.onForgotPasswordTap,
-    required this.onTogglePassword,
-    required this.onRememberMeChanged,
-    required this.emailController,
-    required this.passwordController,
-    required this.emailFocus,
-    required this.passwordFocus,
-    required this.emailValidator,
-    required this.passwordValidator,
-  });
-
-  final GlobalKey<FormState> formKey;
-  final AutovalidateMode autovalidateMode;
-  final bool obscurePassword;
-  final bool rememberMe;
-  final VoidCallback onForgotPasswordTap;
-  final VoidCallback onTogglePassword;
-  final ValueChanged<bool?> onRememberMeChanged;
-  final TextEditingController emailController;
-  final TextEditingController passwordController;
-  final FocusNode emailFocus;
-  final FocusNode passwordFocus;
-  final FormFieldValidator<String> emailValidator;
-  final FormFieldValidator<String> passwordValidator;
-
-  @override
-  Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-
-    return Form(
-      key: formKey,
-      autovalidateMode: autovalidateMode,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          const SizedBox(height: 12),
-          CustomTextField(
-            controller: emailController,
-            focusNode: emailFocus,
-            keyboardType: TextInputType.emailAddress,
-            labelText: 'Email Address',
-            hintText: 'you@example.com',
-            icon: Icons.alternate_email_rounded,
-            textInputAction: TextInputAction.next,
-            validator: emailValidator,
-            isRequired: true,
-            onSubmitted: (_) {
-              FocusScope.of(context).requestFocus(passwordFocus);
-            },
-          ),
-          const SizedBox(height: 18),
-          CustomTextField(
-            controller: passwordController,
-            focusNode: passwordFocus,
-            obscureText: obscurePassword,
-            labelText: 'Password',
-            hintText: 'Enter your password',
-            icon: Icons.lock_outline_rounded,
-            textInputAction: TextInputAction.done,
-            validator: passwordValidator,
-            suffixIcon: IconButton(
-              onPressed: onTogglePassword,
-              icon: Icon(
-                obscurePassword
-                    ? Icons.visibility_off_rounded
-                    : Icons.visibility_rounded,
-                color: LightColor.darkgrey,
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: <Widget>[
-              Flexible(
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    Transform.scale(
-                      scale: 0.9,
-                      child: Checkbox(
-                        value: rememberMe,
-                        activeColor: theme.colorScheme.secondary,
-                        onChanged: onRememberMeChanged,
-                      ),
-                    ),
-                    Text(
-                      'Remember me',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: LightColor.darkgrey,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Flexible(
-                child: InkWell(
-                  onTap: onForgotPasswordTap,
-                  child: Text(
-                    'Forgot password?',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: LightColor.secondaryGreen,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _RegisterForm extends StatelessWidget {
-  const _RegisterForm({
-    required this.formKey,
-    required this.autovalidateMode,
-    required this.obscurePassword,
-    required this.obscureConfirmPassword,
-    required this.selectedAccountType,
-    required this.acceptedTerms,
-    required this.accountTypes,
-    required this.onTogglePassword,
-    required this.onToggleConfirmPassword,
-    required this.onAccountTypeChanged,
-    required this.onTermsChanged,
-    required this.nameController,
-    required this.emailController,
-    required this.passwordController,
-    required this.confirmPasswordController,
-    required this.nameFocus,
-    required this.accountTypeFocus,
-    required this.emailFocus,
-    required this.passwordFocus,
-    required this.confirmPasswordFocus,
-    required this.nameValidator,
-    required this.emailValidator,
-    required this.passwordValidator,
-    required this.confirmPasswordValidator,
-  });
-
-  final GlobalKey<FormState> formKey;
-  final AutovalidateMode autovalidateMode;
-  final bool obscurePassword;
-  final bool obscureConfirmPassword;
-  final String? selectedAccountType;
-  final bool acceptedTerms;
-  final List<String> accountTypes;
-  final VoidCallback onTogglePassword;
-  final VoidCallback onToggleConfirmPassword;
-  final ValueChanged<String?> onAccountTypeChanged;
-  final ValueChanged<bool?> onTermsChanged;
-  final TextEditingController nameController;
-  final TextEditingController emailController;
-  final TextEditingController passwordController;
-  final TextEditingController confirmPasswordController;
-  final FocusNode nameFocus;
-  final FocusNode accountTypeFocus;
-  final FocusNode emailFocus;
-  final FocusNode passwordFocus;
-  final FocusNode confirmPasswordFocus;
-  final FormFieldValidator<String> nameValidator;
-  final FormFieldValidator<String> emailValidator;
-  final FormFieldValidator<String> passwordValidator;
-  final FormFieldValidator<String> confirmPasswordValidator;
-
-  @override
-  Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-
-    return Form(
-      key: formKey,
-      autovalidateMode: autovalidateMode,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          const SizedBox(height: 12),
-          CustomTextField(
-            controller: nameController,
-            focusNode: nameFocus,
-            textCapitalization: TextCapitalization.words,
-            labelText: 'Full Name',
-            hintText: 'Your name',
-            icon: Icons.person_outline_rounded,
-            textInputAction: TextInputAction.next,
-            validator: nameValidator,
-            onSubmitted: (_) {
-              FocusScope.of(context).requestFocus(accountTypeFocus);
-            },
-          ),
-          const SizedBox(height: 18),
-
-          DropdownButtonFormField<String>(
-            initialValue: selectedAccountType,
-            focusNode: accountTypeFocus,
-            autovalidateMode: autovalidateMode,
-            decoration:
-                customTextFieldDecoration(
-                  context: context,
-                  labelText: 'Account Type',
-                  icon: Icons.badge_outlined,
-                ).copyWith(
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 10,
-                  ),
-                ),
-            isExpanded: true,
-            icon: const Icon(
-              Icons.keyboard_arrow_down_rounded,
-              color: LightColor.darkgrey,
-              size: 18,
-            ),
-            hint: const Text(
-              'Select Player or Footsall Vendor',
-              style: TextStyle(color: LightColor.darkgrey, fontSize: 13),
-            ),
-            dropdownColor: LightColor.background,
-            items: accountTypes.map((String type) {
-              return DropdownMenuItem<String>(
-                value: type,
-                child: Text(
-                  type,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              );
-            }).toList(),
-            validator: (String? value) {
-              if (value == null || value.isEmpty) {
-                return 'Please select an account type';
-              }
-              return null;
-            },
-            onChanged: onAccountTypeChanged,
-          ),
-          const SizedBox(height: 18),
-
-          CustomTextField(
-            controller: emailController,
-            focusNode: emailFocus,
-            keyboardType: TextInputType.emailAddress,
-            labelText: 'Email Address',
-            hintText: 'name@footsall.com',
-            icon: Icons.alternate_email_rounded,
-            textInputAction: TextInputAction.next,
-            validator: emailValidator,
-            onSubmitted: (_) {
-              FocusScope.of(context).requestFocus(passwordFocus);
-            },
-          ),
-          const SizedBox(height: 18),
-          CustomTextField(
-            controller: passwordController,
-            focusNode: passwordFocus,
-            obscureText: obscurePassword,
-            labelText: 'Password',
-            hintText: 'Use 8+ characters',
-            icon: Icons.lock_outline_rounded,
-            textInputAction: TextInputAction.next,
-            validator: passwordValidator,
-            onSubmitted: (_) {
-              FocusScope.of(context).requestFocus(confirmPasswordFocus);
-            },
-            suffixIcon: IconButton(
-              onPressed: onTogglePassword,
-              icon: Icon(
-                obscurePassword
-                    ? Icons.visibility_off_rounded
-                    : Icons.visibility_rounded,
-                color: LightColor.darkgrey,
-              ),
-            ),
-          ),
-          const SizedBox(height: 18),
-          CustomTextField(
-            controller: confirmPasswordController,
-            focusNode: confirmPasswordFocus,
-            obscureText: obscureConfirmPassword,
-            labelText: 'Confirm Password',
-            hintText: 'Re-enter your password',
-            icon: Icons.verified_user_outlined,
-            textInputAction: TextInputAction.done,
-            validator: confirmPasswordValidator,
-            suffixIcon: IconButton(
-              onPressed: onToggleConfirmPassword,
-              icon: Icon(
-                obscureConfirmPassword
-                    ? Icons.visibility_off_rounded
-                    : Icons.visibility_rounded,
-                color: LightColor.darkgrey,
-              ),
-            ),
-          ),
-          const SizedBox(height: 18),
-          FormField<bool>(
-            initialValue: acceptedTerms,
-            autovalidateMode: autovalidateMode,
-            validator: (bool? value) {
-              if (acceptedTerms != true) {
-                return 'You must accept the terms to continue';
-              }
-              return null;
-            },
-            builder: (FormFieldState<bool> field) {
-              return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  color: theme.colorScheme.secondary.withValues(alpha: 0.08),
-                  border: field.hasError
-                      ? Border.all(color: theme.colorScheme.error)
-                      : null,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Row(
-                      children: <Widget>[
-                        Checkbox(
-                          value: acceptedTerms,
-                          activeColor: theme.colorScheme.secondary,
-                          onChanged: (bool? value) {
-                            onTermsChanged(value);
-                            field.didChange(value ?? false);
-                          },
-                        ),
-                        Expanded(
-                          child: Text(
-                            'I agree to the Terms and Privacy Policy.',
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: LightColor.darkgrey,
-                              fontSize: 12.8,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    if (field.hasError)
-                      Padding(
-                        padding: const EdgeInsets.only(left: 12, right: 12),
-                        child: Text(
-                          field.errorText!,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.error,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              );
-            },
-          ),
-        ],
-      ),
     );
   }
 }

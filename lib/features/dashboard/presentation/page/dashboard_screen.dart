@@ -7,7 +7,9 @@ import 'package:hamro_footsall/features/dashboard/presentation/page/messages_pag
 import 'package:hamro_footsall/features/dashboard/presentation/widgets/app_drawer.dart';
 import 'package:hamro_footsall/core/routers/app_router_params.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
-import 'package:hamro_footsall/core/theme/theme.dart';
+import 'package:hamro_footsall/core/theme/futsal_theme.dart' hide LightColor;
+import 'package:hamro_footsall/core/utils/app_utils.dart';
+import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/widgets/bottom_navigation_bar.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/widgets/overall_performance_widget.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/widgets/recent_bookings_widget.dart';
@@ -36,6 +38,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   static const _textSecondary = Color(0xFF6B7280);
   static const _border = Color(0xFFE8ECF0);
+  static const List<BoxShadow> _cardShadow = <BoxShadow>[
+    BoxShadow(
+      color: LightColor.shadowColor,
+      blurRadius: AppDimens.radiusX18,
+      offset: Offset(0, 8),
+      spreadRadius: 1,
+    ),
+  ];
 
   void _onBottomIconPressed(int index) {
     setState(() {
@@ -64,7 +74,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildActionIcon(
     IconData icon, {
-    Color color = LightColor.iconColor,
+    Color color = LightColor.secondaryTextColor,
     VoidCallback? onTap,
   }) {
     return _tapable(
@@ -75,7 +85,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(13),
           color: Theme.of(context).colorScheme.surface,
-          boxShadow: AppTheme.shadow,
+          boxShadow: _cardShadow,
         ),
         child: Icon(icon, color: color),
       ),
@@ -83,6 +93,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _appBar() {
+    final AppUtils appUtils = AppUtils();
+    final textTheme = FutsalTheme.getTextTheme(context);
     final ProfileState profileState = context.watch<ProfileBloc>().state;
     final String firstName =
         profileState.profile?.data.fullName.trim().isNotEmpty == true
@@ -90,13 +102,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
         : _user.name.split(' ').first;
 
     return Padding(
-      padding: AppTheme.padding,
+      padding: appUtils.getPadding(
+        symmetricHorizontal: AppDimens.paddingX20,
+        symmetricVertical: AppDimens.paddingX10,
+      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: <Widget>[
           Text(
             "Good morning, $firstName 👋",
-            style: AppTheme.titleStyle.copyWith(fontSize: 16),
+            style: textTheme.bodyTextLarge?.copyWith(
+              fontSize: AppDimens.fontBodyTextLarge,
+              fontWeight: FontWeight.w700,
+              color: LightColor.primaryTextColor,
+            ),
           ),
 
           _tapable(
@@ -104,7 +123,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             borderRadius: BorderRadius.circular(13),
             child: _buildActionIcon(
               Icons.notifications_outlined,
-              color: LightColor.darkgrey,
+              color: LightColor.secondaryTextColor,
               onTap: () {},
             ),
           ),
@@ -186,13 +205,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
             children: <Widget>[
               SingleChildScrollView(
                 child: Container(
-                  height: AppTheme.fullHeight(context) - 24,
+                  height:
+                      MediaQuery.of(context).size.height - AppDimens.sizeX24,
                   padding: const EdgeInsets.only(bottom: 110),
                   decoration: const BoxDecoration(
                     gradient: LinearGradient(
                       colors: <Color>[
                         LightColor.background,
-                        LightColor.surface,
+                        LightColor.cardColor,
                       ],
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,

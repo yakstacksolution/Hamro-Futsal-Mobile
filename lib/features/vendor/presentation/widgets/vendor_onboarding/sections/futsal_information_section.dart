@@ -483,7 +483,7 @@ class _CompactSectionHeader extends StatelessWidget {
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: LightColor.secondary.withValues(alpha: 0.2)),
+        border: Border.all(color: LightColor.secondaryColor.withValues(alpha: 0.2)),
       ),
       child: Row(
         children: <Widget>[
@@ -494,7 +494,7 @@ class _CompactSectionHeader extends StatelessWidget {
               color: LightColor.secondaryLight,
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(meta.icon, size: 18, color: LightColor.secondary),
+            child: Icon(meta.icon, size: 18, color: LightColor.secondaryColor),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -506,7 +506,7 @@ class _CompactSectionHeader extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
-                    color: LightColor.titleText,
+                    color: LightColor.primaryTextColor,
                     height: 1.1,
                   ),
                 ),
@@ -518,7 +518,7 @@ class _CompactSectionHeader extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w400,
-                    color: LightColor.subtitleText,
+                    color: LightColor.secondaryTextColor,
                     height: 1.3,
                   ),
                 ),
@@ -548,9 +548,9 @@ class _CompactGroupCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: LightColor.backgroundWarm,
+        color: LightColor.background,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: LightColor.border),
+        border: Border.all(color: LightColor.borderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -561,16 +561,16 @@ class _CompactGroupCard extends StatelessWidget {
                 width: 30,
                 height: 30,
                 decoration: BoxDecoration(
-                  color: LightColor.white,
+                  color: LightColor.whiteColor,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(icon, size: 16, color: LightColor.secondary),
+                child: Icon(icon, size: 16, color: LightColor.secondaryColor),
               ),
               const SizedBox(width: 8),
               Text(
                 title,
                 style: const TextStyle(
-                  color: LightColor.titleText,
+                  color: LightColor.primaryTextColor,
                   fontSize: 13,
                   fontWeight: FontWeight.w800,
                 ),

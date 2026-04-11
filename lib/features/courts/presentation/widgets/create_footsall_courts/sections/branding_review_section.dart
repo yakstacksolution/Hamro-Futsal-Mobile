@@ -38,7 +38,7 @@ class BrandingReviewSection extends StatelessWidget {
           child: Text(
             'OR provide a direct image URL',
             style: TextStyle(
-              color: LightColor.darkgrey,
+              color: LightColor.secondaryTextColor,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -55,9 +55,9 @@ class BrandingReviewSection extends StatelessWidget {
         const SizedBox(height: 16),
         const InfoBanner(
           icon: Icons.info_outline_rounded,
-          color: LightColor.orange,
+          color: LightColor.warningColor,
           backgroundColor: Color(0xFFFFF8F3),
-          borderColor: LightColor.orange,
+          borderColor: LightColor.warningColor,
           message:
               'You can use either uploaded file or logo URL. Owner will be assigned automatically from logged-in AdminUser.',
         ),

@@ -32,8 +32,8 @@ class WizardStepBar extends StatelessWidget {
                   margin: const EdgeInsets.only(bottom: 22),
                   decoration: BoxDecoration(
                     color: isCompleted
-                        ? LightColor.skyBlue
-                        : LightColor.lightGrey,
+                        ? LightColor.secondaryColor
+                        : LightColor.borderColor,
                     borderRadius: BorderRadius.circular(1),
                   ),
                 ),
@@ -57,18 +57,18 @@ class WizardStepBar extends StatelessWidget {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: isCompleted || isActive
-                          ? LightColor.skyBlue
+                          ? LightColor.secondaryColor
                           : Colors.white,
                       border: Border.all(
                         color: isCompleted || isActive
-                            ? LightColor.skyBlue
-                            : LightColor.lightGrey,
+                            ? LightColor.secondaryColor
+                            : LightColor.borderColor,
                         width: 2,
                       ),
                       boxShadow: isActive
                           ? <BoxShadow>[
                               BoxShadow(
-                                color: LightColor.skyBlue.withValues(
+                                color: LightColor.secondaryColor.withValues(
                                   alpha: 0.28,
                                 ),
                                 blurRadius: 10,
@@ -92,7 +92,7 @@ class WizardStepBar extends StatelessWidget {
                                 key: ValueKey<int>(stepIndex),
                                 color: isActive
                                     ? Colors.white
-                                    : LightColor.grey,
+                                    : LightColor.hintTextColor,
                                 size: 17,
                               ),
                       ),
@@ -108,10 +108,10 @@ class WizardStepBar extends StatelessWidget {
                       fontSize: 10,
                       fontWeight: isActive ? FontWeight.w700 : FontWeight.w400,
                       color: isActive
-                          ? LightColor.skyBlue
+                          ? LightColor.secondaryColor
                           : isCompleted
-                          ? LightColor.darkgrey
-                          : LightColor.grey,
+                          ? LightColor.secondaryTextColor
+                          : LightColor.hintTextColor,
                       letterSpacing: isActive ? 0.2 : 0,
                     ),
                   ),

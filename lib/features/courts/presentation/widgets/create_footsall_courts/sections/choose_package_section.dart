@@ -16,7 +16,7 @@ class ChoosePackageSection extends StatelessWidget {
         const Text(
           'Choose the package that matches your current stage and operational needs.',
           style: TextStyle(
-            color: LightColor.darkgrey,
+            color: LightColor.secondaryTextColor,
             fontSize: 12.8,
             height: 1.45,
           ),
@@ -37,7 +37,7 @@ class ChoosePackageSection extends StatelessWidget {
             child: Text(
               bloc.packageSelectionError()!,
               style: const TextStyle(
-                color: LightColor.darkgrey,
+                color: LightColor.secondaryTextColor,
                 fontSize: 12.5,
                 fontWeight: FontWeight.w600,
               ),

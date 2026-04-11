@@ -171,10 +171,10 @@ class _FeaturesGridState extends State<_FeaturesGrid> {
           width: double.infinity,
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: LightColor.secondary.withValues(alpha: 0.1),
+            color: LightColor.secondaryColor.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: LightColor.secondary.withValues(alpha: 0.3),
+              color: LightColor.secondaryColor.withValues(alpha: 0.3),
             ),
           ),
           child: Row(
@@ -183,13 +183,13 @@ class _FeaturesGridState extends State<_FeaturesGrid> {
                 width: 34,
                 height: 34,
                 decoration: BoxDecoration(
-                  color: LightColor.secondary.withValues(alpha: 0.1),
+                  color: LightColor.secondaryColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(
                   Icons.widgets_rounded,
                   size: 18,
-                  color: LightColor.secondary,
+                  color: LightColor.secondaryColor,
                 ),
               ),
               const SizedBox(width: 10),
@@ -210,7 +210,7 @@ class _FeaturesGridState extends State<_FeaturesGrid> {
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: LightColor.secondary,
+                  color: LightColor.secondaryColor,
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
@@ -243,12 +243,12 @@ class _FeaturesGridState extends State<_FeaturesGrid> {
                     ),
                     decoration: BoxDecoration(
                       color: isActive
-                          ? LightColor.secondary
+                          ? LightColor.secondaryColor
                           : const Color(0xFFFFFFFF),
                       borderRadius: BorderRadius.circular(999),
                       border: Border.all(
                         color: isActive
-                            ? LightColor.secondary
+                            ? LightColor.secondaryColor
                             : const Color(0xFFD1D5DB),
                         width: 1,
                       ),
@@ -322,7 +322,7 @@ class _FeaturesGridState extends State<_FeaturesGrid> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: LightColor.secondary.withValues(alpha: 0.18)),
+        border: Border.all(color: LightColor.secondaryColor.withValues(alpha: 0.18)),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,

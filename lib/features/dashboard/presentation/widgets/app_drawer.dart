@@ -71,7 +71,7 @@ class AppDrawer extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: <Color>[LightColor.surface, LightColor.background],
+            colors: <Color>[LightColor.cardColor, LightColor.background],
           ),
         ),
         child: SafeArea(
@@ -232,7 +232,7 @@ class _DrawerSectionLabel extends StatelessWidget {
       child: Text(
         label.toUpperCase(),
         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-          color: LightColor.darkgrey,
+          color: LightColor.secondaryTextColor,
           fontWeight: FontWeight.w800,
           fontSize: 10,
           letterSpacing: 1.2,
@@ -274,11 +274,11 @@ class _DrawerNavItem extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
             decoration: BoxDecoration(
               color: isActive
-                  ? LightColor.skyBlue.withValues(alpha: 0.1)
+                  ? LightColor.secondaryColor.withValues(alpha: 0.1)
                   : Colors.transparent,
               borderRadius: BorderRadius.circular(14),
               border: isActive
-                  ? Border.all(color: LightColor.skyBlue.withValues(alpha: 0.2))
+                  ? Border.all(color: LightColor.secondaryColor.withValues(alpha: 0.2))
                   : null,
             ),
             child: Row(
@@ -288,15 +288,15 @@ class _DrawerNavItem extends StatelessWidget {
                   height: 34,
                   decoration: BoxDecoration(
                     color: isActive
-                        ? LightColor.skyBlue.withValues(alpha: 0.15)
+                        ? LightColor.secondaryColor.withValues(alpha: 0.15)
                         : LightColor.background,
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: LightColor.lightGrey),
+                    border: Border.all(color: LightColor.borderColor),
                   ),
                   child: Icon(
                     icon,
                     size: 18,
-                    color: isActive ? LightColor.skyBlue : LightColor.darkgrey,
+                    color: isActive ? LightColor.secondaryColor : LightColor.secondaryTextColor,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -306,8 +306,8 @@ class _DrawerNavItem extends StatelessWidget {
                     style: theme.textTheme.bodyMedium?.copyWith(
                       fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
                       color: isActive
-                          ? LightColor.skyBlue
-                          : LightColor.titleTextColor,
+                          ? LightColor.secondaryColor
+                          : LightColor.primaryTextColor,
                     ),
                   ),
                 ),
@@ -318,7 +318,7 @@ class _DrawerNavItem extends StatelessWidget {
                       vertical: 3,
                     ),
                     decoration: BoxDecoration(
-                      color: LightColor.skyBlue,
+                      color: LightColor.secondaryColor,
                       borderRadius: BorderRadius.circular(99),
                     ),
                     child: Text(
@@ -336,7 +336,7 @@ class _DrawerNavItem extends StatelessWidget {
                     child: Icon(
                       Icons.arrow_forward_ios_rounded,
                       size: 12,
-                      color: LightColor.skyBlue,
+                      color: LightColor.secondaryColor,
                     ),
                   ),
               ],
@@ -364,7 +364,7 @@ class _DrawerFooter extends StatelessWidget {
       decoration: BoxDecoration(
         color: LightColor.background,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: LightColor.lightGrey),
+        border: Border.all(color: LightColor.borderColor),
       ),
       child: Column(
         children: <Widget>[
@@ -374,13 +374,13 @@ class _DrawerFooter extends StatelessWidget {
                 width: 30,
                 height: 30,
                 decoration: BoxDecoration(
-                  color: LightColor.secondaryGreen.withValues(alpha: 0.14),
+                  color: LightColor.secondaryColor.withValues(alpha: 0.14),
                   borderRadius: BorderRadius.circular(9),
                 ),
                 child: const Icon(
                   Icons.cloud_done_rounded,
                   size: 16,
-                  color: LightColor.secondaryGreen,
+                  color: LightColor.secondaryColor,
                 ),
               ),
               const SizedBox(width: 10),
@@ -392,13 +392,13 @@ class _DrawerFooter extends StatelessWidget {
                       'Connected',
                       style: theme.textTheme.bodySmall?.copyWith(
                         fontWeight: FontWeight.w700,
-                        color: LightColor.titleTextColor,
+                        color: LightColor.primaryTextColor,
                       ),
                     ),
                     Text(
                       user.id,
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: LightColor.darkgrey,
+                        color: LightColor.secondaryTextColor,
                         fontSize: 10,
                       ),
                       overflow: TextOverflow.ellipsis,
@@ -411,7 +411,7 @@ class _DrawerFooter extends StatelessWidget {
                 height: 8,
                 decoration: const BoxDecoration(
                   shape: BoxShape.circle,
-                  color: LightColor.secondaryGreen,
+                  color: LightColor.secondaryColor,
                 ),
               ),
             ],
@@ -425,10 +425,10 @@ class _DrawerFooter extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               decoration: BoxDecoration(
-                color: LightColor.red.withValues(alpha: 0.07),
+                color: LightColor.redColor.withValues(alpha: 0.07),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: LightColor.red.withValues(alpha: 0.15),
+                  color: LightColor.redColor.withValues(alpha: 0.15),
                 ),
               ),
               child: Row(
@@ -437,13 +437,13 @@ class _DrawerFooter extends StatelessWidget {
                   const Icon(
                     Icons.logout_rounded,
                     size: 16,
-                    color: LightColor.red,
+                    color: LightColor.redColor,
                   ),
                   const SizedBox(width: 8),
                   Text(
                     'Sign Out',
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      color: LightColor.red,
+                      color: LightColor.redColor,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
