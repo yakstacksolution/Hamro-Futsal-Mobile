@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
-import 'package:hamro_footsall/features/courts_details/presentation/model/time_slot_model.dart';
-
+import 'package:hamro_footsall/features/futsal_details/data/model/time_slot_model.dart';
+ 
 typedef TimeSelectionChanged = void Function(int dateIndex, int slotIndex);
 
 class CourtTimeSlotSection extends StatefulWidget {

@@ -7,4 +7,10 @@ final class ImageConstants {
 
   static const String imagePlaceholderNormal =
       'assets/images/placeholder_pic.png';
+
+  static const String locationBoundaryIcon =
+      'assets/icons/location_boundary.svg';
+
+  static const String locationIcon = 'assets/icons/location.png';
+  static const String pinIcon = 'assets/icons/pin.png';
 }

@@ -4,6 +4,8 @@ import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_quill_delta_from_html/flutter_quill_delta_from_html.dart';
 import 'package:vsc_quill_delta_to_html/vsc_quill_delta_to_html.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
+import 'package:hamro_footsall/core/utils/app_utils.dart';
+import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/widgets/custom_quill_editor.dart';
 import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_cubit.dart';
 import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_models.dart';
@@ -114,8 +116,9 @@ class _FutsalPolicySectionState extends State<FutsalPolicySection> {
       if (!mounted) return;
 
       final delta = _policyQuillController.document.toDelta();
-      final String htmlConverter =
-          QuillDeltaToHtmlConverter(delta.toJson()).convert();
+      final String htmlConverter = QuillDeltaToHtmlConverter(
+        delta.toJson(),
+      ).convert();
 
       if (htmlConverter != _lastPolicyHtml) {
         _lastPolicyHtml = htmlConverter;
@@ -132,8 +135,9 @@ class _FutsalPolicySectionState extends State<FutsalPolicySection> {
       if (!mounted) return;
 
       final delta = _rulesQuillController.document.toDelta();
-      final String htmlConverter =
-          QuillDeltaToHtmlConverter(delta.toJson()).convert();
+      final String htmlConverter = QuillDeltaToHtmlConverter(
+        delta.toJson(),
+      ).convert();
 
       if (htmlConverter != _lastRulesHtml) {
         _lastRulesHtml = htmlConverter;
@@ -166,8 +170,7 @@ class _FutsalPolicySectionState extends State<FutsalPolicySection> {
 
     if (_policyInitialized) {
       final delta = _policyQuillController.document.toDelta();
-      final String html =
-          QuillDeltaToHtmlConverter(delta.toJson()).convert();
+      final String html = QuillDeltaToHtmlConverter(delta.toJson()).convert();
       if (html != _lastPolicyHtml) {
         _lastPolicyHtml = html;
         widget.cubit.updateFutsal(current.copyWith(cancellationPolicy: html));
@@ -176,8 +179,7 @@ class _FutsalPolicySectionState extends State<FutsalPolicySection> {
 
     if (_rulesInitialized) {
       final delta = _rulesQuillController.document.toDelta();
-      final String html =
-          QuillDeltaToHtmlConverter(delta.toJson()).convert();
+      final String html = QuillDeltaToHtmlConverter(delta.toJson()).convert();
       if (html != _lastRulesHtml) {
         _lastRulesHtml = html;
         widget.cubit.updateFutsal(current.copyWith(futsalRules: html));
@@ -211,12 +213,16 @@ class _FutsalPolicySectionState extends State<FutsalPolicySection> {
     final meta = _sectionMeta(widget.subsectionIndex);
 
     return VendorPanel(
-      padding: const EdgeInsets.all(12),
+      padding: AppUtils().getPadding(all: AppDimens.paddingX12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          _CompactPolicySectionHeader(meta: meta),
-          const SizedBox(height: 12),
+          VendorOnboardingSectionHeader(
+            title: meta.title,
+            subtitle: meta.subtitle,
+            icon: meta.icon,
+          ),
+          const SizedBox(height: AppDimens.sizeX12),
           if (widget.subsectionIndex == 0) _buildCancellationPolicy(),
           if (widget.subsectionIndex == 1) _buildFutsalRules(),
           if (widget.subsectionIndex == 2) _buildCommissionPackages(),
@@ -231,7 +237,7 @@ class _FutsalPolicySectionState extends State<FutsalPolicySection> {
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
+        children: <Widget>[
           Expanded(
             child: _CommissionPackageCard(
               title: 'Basic',
@@ -239,7 +245,7 @@ class _FutsalPolicySectionState extends State<FutsalPolicySection> {
               isSelected: selectedPercent == 5,
               icon: Icons.rocket_launch_rounded,
               color: LightColor.secondaryColor,
-              features: const [
+              features: const <String>[
                 'Basic listing',
                 'Standard visibility',
                 'Email support',
@@ -258,7 +264,7 @@ class _FutsalPolicySectionState extends State<FutsalPolicySection> {
               icon: Icons.star_rounded,
               color: LightColor.secondaryColor,
               isRecommended: true,
-              features: const [
+              features: const <String>[
                 'Priority support',
                 'Featured listing',
                 'Activity logs',
@@ -314,98 +320,29 @@ class _FutsalPolicySectionState extends State<FutsalPolicySection> {
     switch (index) {
       case 0:
         return const _PolicySectionMeta(
-          title: 'Cancellation Policy',
-          subtitle:
-              'Define how refunds and booking cancellations are handled for your customers.',
+          title: 'Privacy Policy',
+          subtitle: 'Refund, cancellation, and customer booking guidelines',
           icon: Icons.policy_rounded,
         );
       case 1:
         return const _PolicySectionMeta(
           title: 'Futsal Rules',
-          subtitle: 'Set house rules for players, bookings, and venue conduct.',
+          subtitle: 'Venue rules and player conduct details',
           icon: Icons.rule_rounded,
         );
       case 2:
         return const _PolicySectionMeta(
           title: 'Choose Your Plan',
-          subtitle:
-              'Select a commission package that fits your business needs.',
+          subtitle: 'Commission package and platform support details',
           icon: Icons.workspace_premium_rounded,
         );
       default:
         return const _PolicySectionMeta(
           title: 'Policy & Rules',
-          subtitle: 'Complete the required details.',
+          subtitle: 'Complete the required details',
           icon: Icons.info_rounded,
         );
     }
-  }
-}
-
-class _CompactPolicySectionHeader extends StatelessWidget {
-  const _CompactPolicySectionHeader({required this.meta});
-
-  final _PolicySectionMeta meta;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: <Color>[
-            LightColor.secondaryLight.withValues(alpha: 0.5),
-            LightColor.secondaryLight.withValues(alpha: 0.3),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: LightColor.secondaryColor.withValues(alpha: 0.2)),
-      ),
-      child: Row(
-        children: <Widget>[
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: LightColor.secondaryLight,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(meta.icon, size: 18, color: LightColor.secondaryColor),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  meta.title,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
-                    color: LightColor.primaryTextColor,
-                    height: 1.1,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  meta.subtitle,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w400,
-                    color: LightColor.secondaryTextColor,
-                    height: 1.3,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }
 

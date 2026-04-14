@@ -22,6 +22,7 @@ class LightColor {
   static const Color ratingColor = yellowColor;
   static const Color dividerColor = Color(0xffE5E7EB);
   static const Color borderColor = secondarySoft;
+  static const Color greyBorderColor = Color(0xFFE8ECF0);
 
   static const Color inputFillColor = Color(0xffF1F2F6);
   static const Color inputBorderColor = Color(0xffDADCE0);
@@ -29,6 +30,7 @@ class LightColor {
 
   static const Color buttonColor = secondaryColor;
   static const Color buttonDisabledColor = Color(0xffC2C4D0);
+  static const Color iconGrey = Color(0xFFB0B7C3);
 
   static const Color successColor = secondaryColor;
   static const Color redColor = Color(0xffD32F2F);
@@ -54,4 +56,9 @@ class LightColor {
         800: Color(0xFF1B5A4C),
         900: Color(0xFF11473A),
       });
+
+  static const categorySelectionGredients = [
+    Color(0xFF0D9E5C),
+    Color(0xFF0B7A47),
+  ];
 }

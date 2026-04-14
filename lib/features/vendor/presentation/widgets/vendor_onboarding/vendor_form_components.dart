@@ -4,7 +4,10 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
+import 'package:hamro_footsall/core/theme/futsal_theme.dart';
+import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/custom_image_view.dart';
+import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/widgets/custom_confirm_dialog.dart';
 import 'package:hamro_footsall/core/widgets/custom_text_field.dart';
 import 'package:hamro_footsall/features/courts/presentation/models/picked_location.dart';
@@ -28,13 +31,13 @@ class VendorPanel extends StatelessWidget {
       padding: padding,
       decoration: BoxDecoration(
         color: LightColor.cardColor,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(AppDimens.radiusX10),
         border: Border.all(color: LightColor.dividerColor),
         boxShadow: <BoxShadow>[
           BoxShadow(
             color: LightColor.secondaryColor.withValues(alpha: 0.05),
-            blurRadius: 22,
-            offset: const Offset(0, 8),
+            blurRadius: AppDimens.radiusX22,
+            offset: const Offset(0, AppDimens.sizeX8),
           ),
         ],
       ),
@@ -121,24 +124,29 @@ class VendorErrorBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(8),
+      padding: AppUtils().getPadding(all: AppDimens.paddingX8),
       decoration: BoxDecoration(
         color: LightColor.redLightColor,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppDimens.radiusX8),
         border: Border.all(color: LightColor.redLightColor),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          const Padding(
-            padding: EdgeInsets.only(top: 2),
-            child: Icon(Icons.error_outline_rounded, color: LightColor.redColor),
+          Padding(
+            padding: AppUtils().getPadding(top: AppDimens.sizeX2),
+            child: Icon(
+              Icons.error_outline_rounded,
+              color: LightColor.redColor,
+              size: AppDimens.sizeX18,
+            ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppDimens.sizeX8),
           Expanded(
             child: Text(
               message,
-              style: const TextStyle(
+
+              style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
                 color: LightColor.primaryTextColor,
                 fontWeight: FontWeight.w500,
               ),
@@ -159,10 +167,79 @@ class VendorFieldLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
-      style: const TextStyle(
+      style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
         color: LightColor.primaryTextColor,
-        fontSize: 13,
         fontWeight: FontWeight.w700,
+      ),
+    );
+  }
+}
+
+class VendorOnboardingSectionHeader extends StatelessWidget {
+  const VendorOnboardingSectionHeader({
+    super.key,
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: AppUtils().getPadding(all: AppDimens.paddingX10),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+        border: Border.all(color: LightColor.greyBorderColor),
+      ),
+      child: Row(
+        children: <Widget>[
+          Container(
+            width: AppDimens.sizeX38,
+            height: AppDimens.sizeX38,
+            decoration: BoxDecoration(
+              color: LightColor.secondaryColor,
+              borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+            ),
+            child: Icon(
+              icon,
+              size: AppDimens.sizeX18,
+              color: LightColor.whiteColor,
+            ),
+          ),
+          const SizedBox(width: AppDimens.sizeX12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  title,
+                  style: FutsalTheme.getTextTheme(context).bodyTextMedium!
+                      .copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: LightColor.primaryTextColor,
+                        height: 1.3,
+                      ),
+                ),
+                const SizedBox(height: AppDimens.sizeX4),
+                Text(
+                  subtitle,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: FutsalTheme.getTextTheme(context).bodyTextSmall!
+                      .copyWith(
+                        fontWeight: FontWeight.w400,
+                        color: LightColor.secondaryTextColor,
+                        height: 1.3,
+                      ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -237,40 +314,42 @@ class VendorSelectableChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(AppDimens.radiusX10),
       child: Ink(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+        padding: AppUtils().getPadding(
+          horizontal: AppDimens.paddingX6,
+          vertical: AppDimens.paddingX10,
+        ),
         decoration: BoxDecoration(
-          color: isSelected
-              ? LightColor.secondaryLight
-              : LightColor.background,
-          borderRadius: BorderRadius.circular(10),
+          color: isSelected ? LightColor.secondaryLight : LightColor.background,
+          borderRadius: BorderRadius.circular(AppDimens.radiusX10),
           border: Border.all(
-            color: isSelected ? LightColor.secondaryColor : LightColor.borderColor,
+            color: isSelected
+                ? LightColor.secondaryColor
+                : LightColor.borderColor,
           ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
             VendorMiniCheckbox(isChecked: isSelected),
-            const SizedBox(width: 6),
+            SizedBox(width: AppDimens.sizeX6),
             if (icon != null) ...[
               Icon(
                 icon,
-                size: 16,
+                size: AppDimens.sizeX16,
                 color: isSelected
                     ? LightColor.secondaryColor
                     : LightColor.secondaryTextColor,
               ),
-              const SizedBox(width: 6),
+              SizedBox(width: AppDimens.sizeX6),
             ],
             Text(
               label,
-              style: TextStyle(
+              style: FutsalTheme.getTextTheme(context).bodySubTitle?.copyWith(
                 color: isSelected
                     ? LightColor.secondaryDark
                     : LightColor.primaryTextColor,
-                fontSize: 9,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -281,7 +360,6 @@ class VendorSelectableChip extends StatelessWidget {
   }
 }
 
-/// A small custom checkbox widget with animated check
 class VendorMiniCheckbox extends StatelessWidget {
   const VendorMiniCheckbox({
     super.key,
@@ -305,9 +383,11 @@ class VendorMiniCheckbox extends StatelessWidget {
         height: size,
         decoration: BoxDecoration(
           color: isChecked ? LightColor.secondaryColor : Colors.transparent,
-          borderRadius: BorderRadius.circular(2),
+          borderRadius: BorderRadius.circular(AppDimens.radiusX2),
           border: Border.all(
-            color: isChecked ? LightColor.secondaryColor : LightColor.borderColor,
+            color: isChecked
+                ? LightColor.secondaryColor
+                : LightColor.borderColor,
             width: 1.5,
           ),
         ),
@@ -341,12 +421,21 @@ class VendorUploadSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool hasFiles = files.isNotEmpty;
+
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: AppUtils().getPadding(all: AppDimens.sizeX12),
       decoration: BoxDecoration(
-        color: LightColor.background,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: LightColor.borderColor),
+        color: LightColor.whiteColor,
+        borderRadius: BorderRadius.circular(AppDimens.radiusX14),
+        border: Border.all(color: LightColor.greyBorderColor),
+        boxShadow: <BoxShadow>[
+          BoxShadow(
+            color: LightColor.shadowColor,
+            blurRadius: AppDimens.radiusX12,
+            offset: const Offset(0, AppDimens.sizeX4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -359,59 +448,173 @@ class VendorUploadSection extends StatelessWidget {
                   children: <Widget>[
                     Text(
                       title,
-                      style: const TextStyle(
-                        color: LightColor.primaryTextColor,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w800,
-                      ),
+                      style: FutsalTheme.getTextTheme(context).bodyTextMedium
+                          ?.copyWith(
+                            color: LightColor.primaryTextColor,
+                            fontWeight: FontWeight.w800,
+                          ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: AppDimens.sizeX4),
                     Text(
                       subtitle,
-                      style: const TextStyle(
-                        color: LightColor.secondaryTextColor,
-                        fontSize: 12,
-                        height: 1.35,
+
+                      style: FutsalTheme.getTextTheme(context).bodyTextSmall
+                          ?.copyWith(
+                            color: LightColor.secondaryTextColor,
+                            height: 1.35,
+                          ),
+                    ),
+                    const SizedBox(height: AppDimens.sizeX8),
+                    Container(
+                      padding: AppUtils().getPadding(
+                        horizontal: AppDimens.sizeX8,
+                        vertical: AppDimens.sizeX4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: hasFiles
+                            ? LightColor.secondarySoft
+                            : LightColor.inputFillColor,
+                        borderRadius: BorderRadius.circular(
+                          AppDimens.radiusX50,
+                        ),
+                      ),
+                      child: Text(
+                        hasFiles
+                            ? '${files.length} file${files.length == 1 ? '' : 's'} added'
+                            : 'No files added yet',
+                        style: FutsalTheme.getTextTheme(context).bodyTextSmall
+                            ?.copyWith(
+                              color: hasFiles
+                                  ? LightColor.secondaryDark
+                                  : LightColor.secondaryTextColor,
+                              fontWeight: FontWeight.w700,
+                            ),
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: 2),
-              FilledButton.icon(
-                onPressed: onPick,
-                icon: Icon(actionIcon),
-                label: Text(actionLabel),
-                style: ButtonStyle(
-                  backgroundColor: WidgetStateProperty.all(
-                    LightColor.secondaryColor,
+              const SizedBox(width: AppDimens.sizeX10),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: <Color>[
+                      LightColor.secondaryColor,
+                      LightColor.secondaryDark,
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
-                  foregroundColor: WidgetStateProperty.all(Colors.white),
-                  padding: WidgetStateProperty.all(
-                    const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                  ),
-                  shape: WidgetStateProperty.all(
-                    RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(4),
+                  borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+                  boxShadow: <BoxShadow>[
+                    BoxShadow(
+                      color: LightColor.secondaryColor.withValues(alpha: 0.18),
+                      blurRadius: AppDimens.radiusX10,
+                      offset: const Offset(0, AppDimens.sizeX4),
+                    ),
+                  ],
+                ),
+                child: FilledButton.icon(
+                  onPressed: onPick,
+                  icon: Icon(actionIcon, size: AppDimens.sizeX18),
+                  label: Text(actionLabel),
+                  style: ButtonStyle(
+                    backgroundColor: WidgetStateProperty.all(
+                      Colors.transparent,
+                    ),
+                    shadowColor: WidgetStateProperty.all(Colors.transparent),
+                    foregroundColor: WidgetStateProperty.all(Colors.white),
+                    padding: WidgetStateProperty.all(
+                      AppUtils().getPadding(
+                        horizontal: AppDimens.sizeX12,
+                        vertical: AppDimens.sizeX10,
+                      ),
+                    ),
+                    shape: WidgetStateProperty.all(
+                      RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(
+                          AppDimens.radiusX10,
+                        ),
+                      ),
                     ),
                   ),
                 ),
               ),
             ],
           ),
-          if (files.isNotEmpty) ...<Widget>[
-            const SizedBox(height: 14),
-            Column(
-              children: files
-                  .map(
-                    (UploadRef file) => VendorUploadItem(
-                      file: file,
-                      onRemove: onRemove == null ? null : () => onRemove!(file),
-                    ),
+          const SizedBox(height: AppDimens.sizeX14),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 220),
+            child: hasFiles
+                ? Column(
+                    key: const ValueKey<String>('upload_files'),
+                    children: files
+                        .map(
+                          (UploadRef file) => VendorUploadItem(
+                            file: file,
+                            onRemove: onRemove == null
+                                ? null
+                                : () => onRemove!(file),
+                          ),
+                        )
+                        .toList(),
                   )
-                  .toList(),
-            ),
-          ],
+                : Container(
+                    key: const ValueKey<String>('upload_empty'),
+                    width: double.infinity,
+                    padding: AppUtils().getPadding(
+                      horizontal: AppDimens.sizeX14,
+                      vertical: AppDimens.sizeX18,
+                    ),
+                    decoration: BoxDecoration(
+                      color: LightColor.background,
+                      borderRadius: BorderRadius.circular(AppDimens.radiusX12),
+                      border: Border.all(
+                        color: LightColor.greyBorderColor,
+                        style: BorderStyle.solid,
+                      ),
+                    ),
+                    child: Column(
+                      children: <Widget>[
+                        Container(
+                          width: AppDimens.sizeX48,
+                          height: AppDimens.sizeX48,
+                          decoration: BoxDecoration(
+                            color: LightColor.whiteColor,
+                            borderRadius: BorderRadius.circular(
+                              AppDimens.radiusX14,
+                            ),
+                          ),
+                          child: Icon(
+                            actionIcon,
+                            color: LightColor.secondaryColor,
+                            size: AppDimens.sizeX22,
+                          ),
+                        ),
+                        const SizedBox(height: AppDimens.sizeX10),
+                        Text(
+                          'No uploads yet',
+                          style: FutsalTheme.getTextTheme(context)
+                              .bodyTextMedium
+                              ?.copyWith(
+                                color: LightColor.primaryTextColor,
+                                fontWeight: FontWeight.w700,
+                              ),
+                        ),
+                        const SizedBox(height: AppDimens.sizeX4),
+                        Text(
+                          'Tap $actionLabel to attach files for this section.',
+                          textAlign: TextAlign.center,
+                          style: FutsalTheme.getTextTheme(context).bodyTextSmall
+                              ?.copyWith(
+                                color: LightColor.secondaryTextColor,
+                                height: 1.35,
+                              ),
+                        ),
+                      ],
+                    ),
+                  ),
+          ),
         ],
       ),
     );
@@ -464,11 +667,18 @@ class VendorUploadItem extends StatelessWidget {
   Widget build(BuildContext context) {
     if (_isImageFile) {
       return Container(
-        margin: const EdgeInsets.only(bottom: 10),
+        margin: AppUtils().getMargin(bottom: AppDimens.sizeX10),
         decoration: BoxDecoration(
           color: LightColor.whiteColor,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: LightColor.dividerColor),
+          borderRadius: BorderRadius.circular(AppDimens.radiusX14),
+          border: Border.all(color: LightColor.greyBorderColor),
+          boxShadow: <BoxShadow>[
+            BoxShadow(
+              color: LightColor.shadowColor,
+              blurRadius: AppDimens.radiusX10,
+              offset: const Offset(0, AppDimens.sizeX4),
+            ),
+          ],
         ),
         clipBehavior: Clip.antiAlias,
         child: Column(
@@ -490,8 +700,52 @@ class VendorUploadItem extends StatelessWidget {
                       height: double.infinity,
                     ),
             ),
+            Container(
+              width: double.infinity,
+              padding: AppUtils().getPadding(
+                horizontal: AppDimens.sizeX10,
+                vertical: AppDimens.sizeX8,
+              ),
+              decoration: const BoxDecoration(color: LightColor.background),
+              child: Row(
+                children: <Widget>[
+                  Container(
+                    padding: AppUtils().getPadding(
+                      horizontal: AppDimens.sizeX8,
+                      vertical: AppDimens.sizeX4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: LightColor.secondarySoft,
+                      borderRadius: BorderRadius.circular(AppDimens.radiusX50),
+                    ),
+                    child: Text(
+                      'Image',
+                      style: FutsalTheme.getTextTheme(context).bodyTextSmall
+                          ?.copyWith(
+                            color: LightColor.secondaryDark,
+                            fontWeight: FontWeight.w700,
+                          ),
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    file.name.split('.').last.toUpperCase(),
+                    style: FutsalTheme.getTextTheme(context).bodyTextSmall
+                        ?.copyWith(
+                          color: LightColor.secondaryTextColor,
+                          fontWeight: FontWeight.w700,
+                        ),
+                  ),
+                ],
+              ),
+            ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
+              padding: AppUtils().getPadding(
+                left: AppDimens.sizeX12,
+                top: AppDimens.sizeX10,
+                right: AppDimens.sizeX8,
+                bottom: AppDimens.sizeX10,
+              ),
               child: Row(
                 children: <Widget>[
                   Expanded(
@@ -499,20 +753,30 @@ class VendorUploadItem extends StatelessWidget {
                       file.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: LightColor.primaryTextColor,
-                        fontWeight: FontWeight.w700,
-                      ),
+                      style: FutsalTheme.getTextTheme(context).bodyTextMedium
+                          ?.copyWith(
+                            color: LightColor.primaryTextColor,
+                            fontWeight: FontWeight.w700,
+                          ),
                     ),
                   ),
-                  if (onRemove != null)
-                    IconButton(
+                  const SizedBox(width: AppDimens.sizeX8),
+                  Container(
+                    width: AppDimens.sizeX34,
+                    height: AppDimens.sizeX34,
+                    decoration: BoxDecoration(
+                      color: LightColor.background,
+                      borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+                    ),
+                    child: IconButton(
                       onPressed: () => _confirmRemove(context),
                       icon: const Icon(
                         Icons.delete_outline_rounded,
                         color: LightColor.secondaryColor,
+                        size: AppDimens.sizeX18,
                       ),
                     ),
+                  ),
                 ],
               ),
             ),
@@ -522,28 +786,36 @@ class VendorUploadItem extends StatelessWidget {
     }
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(12),
+      margin: AppUtils().getMargin(bottom: AppDimens.sizeX10),
+      padding: AppUtils().getPadding(all: AppDimens.sizeX12),
       decoration: BoxDecoration(
         color: LightColor.whiteColor,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: LightColor.dividerColor),
+        borderRadius: BorderRadius.circular(AppDimens.radiusX14),
+        border: Border.all(color: LightColor.greyBorderColor),
+        boxShadow: <BoxShadow>[
+          BoxShadow(
+            color: LightColor.shadowColor,
+            blurRadius: AppDimens.radiusX10,
+            offset: const Offset(0, AppDimens.sizeX4),
+          ),
+        ],
       ),
       child: Row(
         children: <Widget>[
           Container(
-            width: 38,
-            height: 38,
+            width: AppDimens.sizeX44,
+            height: AppDimens.sizeX44,
             decoration: BoxDecoration(
-              color: LightColor.secondaryLight,
-              borderRadius: BorderRadius.circular(12),
+              color: LightColor.background,
+              borderRadius: BorderRadius.circular(AppDimens.radiusX12),
             ),
             child: const Icon(
               Icons.insert_drive_file_rounded,
               color: LightColor.secondaryColor,
+              size: AppDimens.sizeX22,
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: AppDimens.sizeX12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -552,45 +824,69 @@ class VendorUploadItem extends StatelessWidget {
                   file.name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: LightColor.primaryTextColor,
-                    fontWeight: FontWeight.w700,
-                  ),
+
+                  style: FutsalTheme.getTextTheme(context).bodyTextMedium
+                      ?.copyWith(
+                        color: LightColor.primaryTextColor,
+                        fontWeight: FontWeight.w700,
+                      ),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  file.localPath,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: LightColor.secondaryTextColor,
-                    fontSize: 12,
-                  ),
+                const SizedBox(height: AppDimens.sizeX6),
+                Row(
+                  children: <Widget>[
+                    Container(
+                      padding: AppUtils().getPadding(
+                        horizontal: AppDimens.sizeX8,
+                        vertical: AppDimens.sizeX4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: LightColor.inputFillColor,
+                        borderRadius: BorderRadius.circular(
+                          AppDimens.radiusX50,
+                        ),
+                      ),
+                      child: Text(
+                        file.name.split('.').last.toUpperCase(),
+                        style: FutsalTheme.getTextTheme(context).bodyTextSmall
+                            ?.copyWith(
+                              color: LightColor.secondaryTextColor,
+                              fontWeight: FontWeight.w700,
+                            ),
+                      ),
+                    ),
+                    const SizedBox(width: AppDimens.sizeX8),
+                    Expanded(
+                      child: Text(
+                        file.localPath,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: FutsalTheme.getTextTheme(context).bodyTextSmall
+                            ?.copyWith(color: LightColor.secondaryTextColor),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
           if (onRemove != null)
-            IconButton(
-              onPressed: () => _confirmRemove(context),
-              icon: const Icon(
-                Icons.delete_outline_rounded,
-                color: LightColor.secondaryColor,
+            Container(
+              width: AppDimens.sizeX36,
+              height: AppDimens.sizeX36,
+              decoration: BoxDecoration(
+                color: LightColor.background,
+                borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+              ),
+              child: IconButton(
+                onPressed: () => _confirmRemove(context),
+                icon: const Icon(
+                  Icons.delete_outline_rounded,
+                  color: LightColor.secondaryColor,
+                  size: AppDimens.sizeX18,
+                ),
               ),
             ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildBrokenImageState() {
-    return Container(
-      color: LightColor.inputFillColor,
-      alignment: Alignment.center,
-      child: const Icon(
-        Icons.broken_image_outlined,
-        color: LightColor.hintTextColor,
-        size: 28,
       ),
     );
   }
@@ -602,16 +898,19 @@ InputDecoration vendorInputDecoration(String label) {
     filled: true,
     fillColor: LightColor.background,
     border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(18),
+      borderRadius: BorderRadius.circular(AppDimens.radiusX18),
       borderSide: const BorderSide(color: LightColor.borderColor),
     ),
     enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(18),
+      borderRadius: BorderRadius.circular(AppDimens.radiusX18),
       borderSide: const BorderSide(color: LightColor.borderColor),
     ),
     focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(18),
-      borderSide: const BorderSide(color: LightColor.secondaryColor, width: 1.4),
+      borderRadius: BorderRadius.circular(AppDimens.radiusX18),
+      borderSide: const BorderSide(
+        color: LightColor.secondaryColor,
+        width: 1.4,
+      ),
     ),
   );
 }
@@ -629,7 +928,6 @@ String stepStatusLabel(StepStatus status) {
     case StepStatus.error:
       return 'Needs Attention';
     case StepStatus.pending:
-      // TODO: Handle this case.
       throw UnimplementedError();
   }
 }
@@ -647,7 +945,6 @@ Color stepStatusColor(StepStatus status) {
     case StepStatus.error:
       return LightColor.redColor;
     case StepStatus.pending:
-      // TODO: Handle this case.
       throw UnimplementedError();
   }
 }
@@ -665,7 +962,6 @@ String saveStatusLabel(DraftSaveStatus status, DateTime? lastSavedAt) {
     case DraftSaveStatus.failure:
       return 'Draft save failed';
     case DraftSaveStatus.error:
-      // TODO: Handle this case.
       throw UnimplementedError();
     case DraftSaveStatus.unsaved:
       return 'Session only';
@@ -757,11 +1053,12 @@ class _VendorLocationSearchFieldState extends State<VendorLocationSearchField> {
   late final TextEditingController _controller;
   final LayerLink _layerLink = LayerLink();
   final FocusNode _focusNode = FocusNode();
+  final ValueNotifier<List<_LocationResult>> _resultsNotifier =
+      ValueNotifier<List<_LocationResult>>(<_LocationResult>[]);
+  final ValueNotifier<bool> _isSearchingNotifier = ValueNotifier<bool>(false);
 
   Timer? _debounce;
   OverlayEntry? _overlayEntry;
-  List<_LocationResult> _results = [];
-  bool _isSearching = false;
   int _requestId = 0;
 
   @override
@@ -786,6 +1083,8 @@ class _VendorLocationSearchFieldState extends State<VendorLocationSearchField> {
     _removeOverlay();
     _focusNode.removeListener(_onFocusChange);
     _focusNode.dispose();
+    _resultsNotifier.dispose();
+    _isSearchingNotifier.dispose();
     _controller.dispose();
     super.dispose();
   }
@@ -803,14 +1102,12 @@ class _VendorLocationSearchFieldState extends State<VendorLocationSearchField> {
 
     if (query.length < 3) {
       _removeOverlay();
-      setState(() {
-        _results = [];
-        _isSearching = false;
-      });
+      _resultsNotifier.value = <_LocationResult>[];
+      _isSearchingNotifier.value = false;
       return;
     }
 
-    setState(() => _isSearching = true);
+    _isSearchingNotifier.value = true;
     _debounce = Timer(
       const Duration(milliseconds: 450),
       () => _searchPlaces(query, requestId),
@@ -818,7 +1115,10 @@ class _VendorLocationSearchFieldState extends State<VendorLocationSearchField> {
   }
 
   Future<void> _searchPlaces(String query, int requestId) async {
-    if (query.isEmpty) return;
+    if (query.isEmpty) {
+      _isSearchingNotifier.value = false;
+      return;
+    }
 
     try {
       final Uri uri = Uri.https(
@@ -840,7 +1140,10 @@ class _VendorLocationSearchFieldState extends State<VendorLocationSearchField> {
         },
       );
 
-      if (response.statusCode != 200) return;
+      if (response.statusCode != 200) {
+        _isSearchingNotifier.value = false;
+        return;
+      }
 
       final List<dynamic> decoded = jsonDecode(response.body) as List<dynamic>;
       final List<_LocationResult> matches = decoded
@@ -857,10 +1160,8 @@ class _VendorLocationSearchFieldState extends State<VendorLocationSearchField> {
 
       if (!mounted || requestId != _requestId) return;
 
-      setState(() {
-        _results = matches;
-        _isSearching = false;
-      });
+      _resultsNotifier.value = matches;
+      _isSearchingNotifier.value = false;
 
       if (matches.isNotEmpty) {
         _showOverlay();
@@ -869,7 +1170,7 @@ class _VendorLocationSearchFieldState extends State<VendorLocationSearchField> {
       }
     } catch (_) {
       if (!mounted || requestId != _requestId) return;
-      setState(() => _isSearching = false);
+      _isSearchingNotifier.value = false;
     }
   }
 
@@ -887,7 +1188,7 @@ class _VendorLocationSearchFieldState extends State<VendorLocationSearchField> {
           offset: const Offset(0, 60),
           child: Material(
             elevation: 8,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(AppDimens.radiusX12),
             color: LightColor.cardColor,
             child: Container(
               constraints: const BoxConstraints(maxHeight: 220),
@@ -895,32 +1196,41 @@ class _VendorLocationSearchFieldState extends State<VendorLocationSearchField> {
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: LightColor.borderColor),
               ),
-              child: ListView.separated(
-                shrinkWrap: true,
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                itemCount: _results.length,
-                separatorBuilder: (_, __) => const Divider(height: 1),
-                itemBuilder: (context, index) {
-                  final result = _results[index];
-                  return ListTile(
-                    dense: true,
-                    leading: const Icon(
-                      Icons.location_on_outlined,
-                      size: 18,
-                      color: LightColor.secondaryColor,
-                    ),
-                    title: Text(
-                      result.displayName,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: LightColor.primaryTextColor,
-                      ),
-                    ),
-                    onTap: () => _selectResult(result),
-                  );
-                },
+              child: ValueListenableBuilder<List<_LocationResult>>(
+                valueListenable: _resultsNotifier,
+                builder:
+                    (BuildContext context, List<_LocationResult> results, _) {
+                      return ListView.separated(
+                        shrinkWrap: true,
+                        padding: AppUtils().getPadding(
+                          vertical: AppDimens.sizeX4,
+                        ),
+                        itemCount: results.length,
+                        separatorBuilder: (_, __) =>
+                            const Divider(height: AppDimens.sizeX1),
+                        itemBuilder: (context, index) {
+                          final result = results[index];
+                          return ListTile(
+                            dense: true,
+                            leading: const Icon(
+                              Icons.location_on_outlined,
+                              size: AppDimens.sizeX18,
+                              color: LightColor.secondaryColor,
+                            ),
+                            title: Text(
+                              result.displayName,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: AppDimens.sizeX12,
+                                color: LightColor.primaryTextColor,
+                              ),
+                            ),
+                            onTap: () => _selectResult(result),
+                          );
+                        },
+                      );
+                    },
               ),
             ),
           ),
@@ -954,32 +1264,45 @@ class _VendorLocationSearchFieldState extends State<VendorLocationSearchField> {
   Widget build(BuildContext context) {
     return CompositedTransformTarget(
       link: _layerLink,
-      child: CustomTextField(
-        controller: _controller,
-        focusNode: _focusNode,
-        labelText: widget.label,
-        hintText: widget.hintText,
-        icon: Icons.search_rounded,
-        onChanged: _onSearchChanged,
-        suffixIcon: _isSearching
-            ? const Padding(
-                padding: EdgeInsets.all(12),
-                child: SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-              )
-            : _controller.text.isNotEmpty
-            ? IconButton(
-                icon: const Icon(Icons.clear, size: 18),
-                onPressed: () {
-                  _controller.clear();
-                  _removeOverlay();
-                  setState(() => _results = []);
-                },
-              )
-            : null,
+      child: ValueListenableBuilder<bool>(
+        valueListenable: _isSearchingNotifier,
+        builder: (BuildContext context, bool isSearching, _) {
+          return ValueListenableBuilder<TextEditingValue>(
+            valueListenable: _controller,
+            builder: (BuildContext context, TextEditingValue value, __) {
+              return CustomTextField(
+                controller: _controller,
+                focusNode: _focusNode,
+                labelText: widget.label,
+                hintText: widget.hintText,
+                icon: Icons.search_rounded,
+                onChanged: _onSearchChanged,
+                suffixIcon: isSearching
+                    ? Padding(
+                        padding: AppUtils().getPadding(all: AppDimens.sizeX12),
+                        child: SizedBox(
+                          width: AppDimens.sizeX18,
+                          height: AppDimens.sizeX18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: AppDimens.sizeX2,
+                          ),
+                        ),
+                      )
+                    : value.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, size: AppDimens.sizeX18),
+                        onPressed: () {
+                          _controller.clear();
+                          _removeOverlay();
+                          _isSearchingNotifier.value = false;
+                          _resultsNotifier.value = <_LocationResult>[];
+                        },
+                      )
+                    : null,
+              );
+            },
+          );
+        },
       ),
     );
   }

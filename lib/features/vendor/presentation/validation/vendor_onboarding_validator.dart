@@ -67,7 +67,7 @@ class VendorOnboardingValidator {
             }
             return VendorValidationResult.valid(key);
           case 1:
-            if (draft.description.trim().isEmpty) {
+            if (!_hasMeaningfulRichText(draft.description)) {
               return VendorValidationResult.invalid(
                 key,
                 'Please provide a description for your futsal.',
@@ -193,7 +193,7 @@ class VendorOnboardingValidator {
             }
             return VendorValidationResult.valid(key);
           case 1:
-            if (draft.description.trim().isEmpty) {
+            if (!_hasMeaningfulRichText(draft.description)) {
               return VendorValidationResult.invalid(
                 key,
                 'Enter the court description.',
@@ -318,7 +318,7 @@ class VendorOnboardingValidator {
                 draft.email.trim().isNotEmpty ||
                 draft.websiteOrSocialLink.trim().isNotEmpty;
           case 1:
-            return draft.description.trim().isNotEmpty;
+            return _hasMeaningfulRichText(draft.description);
           case 2:
             return draft.location.fullAddress.trim().isNotEmpty ||
                 draft.location.exactLocation.trim().isNotEmpty ||
@@ -362,7 +362,7 @@ class VendorOnboardingValidator {
                 draft.basePrice != null ||
                 (draft.courtType ?? '').trim().isNotEmpty;
           case 1:
-            return draft.description.trim().isNotEmpty;
+            return _hasMeaningfulRichText(draft.description);
           case 2:
             return draft.availability.days.isNotEmpty ||
                 draft.availability.openTime.trim().isNotEmpty ||
@@ -435,6 +435,15 @@ class VendorOnboardingValidator {
 
     final Uri? uri = Uri.tryParse(trimmed);
     return uri != null && uri.hasScheme && uri.host.isNotEmpty;
+  }
+
+  static bool _hasMeaningfulRichText(String value) {
+    final String normalized = value
+        .replaceAll(RegExp(r'<[^>]+>'), ' ')
+        .replaceAll('&nbsp;', ' ')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+    return normalized.isNotEmpty;
   }
 
   static bool _hasSlotOverlap(List<SlotPricingDraft> slots) {

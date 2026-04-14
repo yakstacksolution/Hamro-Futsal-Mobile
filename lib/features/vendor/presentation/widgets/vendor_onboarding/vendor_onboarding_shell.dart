@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
+import 'package:hamro_footsall/core/theme/futsal_theme.dart';
+import 'package:hamro_footsall/core/utils/dimens.dart';
 
 class VendorOnboardingShell extends StatelessWidget {
   const VendorOnboardingShell({
@@ -22,33 +24,40 @@ class VendorOnboardingShell extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: LightColor.whiteColor,
         surfaceTintColor: Colors.transparent,
-        title: const Text(
+        centerTitle: false,
+        title: Text(
           'Vendor Onboarding',
-          style: TextStyle(fontWeight: FontWeight.w500, fontSize: 20),
+          style: FutsalTheme.getTextTheme(
+            context,
+          ).headingSmall?.copyWith(fontWeight: FontWeight.w500),
         ),
 
         leading: InkWell(
           onTap: isSubmitting ? null : () => Navigator.of(context).pop(),
           child: Icon(
-            size: 18,
+            size: AppDimens.sizeX18,
             Icons.arrow_back_ios_rounded,
             color: LightColor.primaryTextColor,
           ),
         ),
         actions: <Widget>[
           PopupMenuButton<String>(
+            color: LightColor.whiteColor,
+            borderRadius: BorderRadius.circular(AppDimens.radiusX16),
             onSelected: (String value) {
               if (value == 'reset') {
                 onReset();
               }
             },
-            itemBuilder: (BuildContext context) =>
-                const <PopupMenuEntry<String>>[
-                  PopupMenuItem<String>(
-                    value: 'reset',
-                    child: Text('Reset onboarding'),
-                  ),
-                ],
+            itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+              PopupMenuItem<String>(
+                value: 'reset',
+                child: Text(
+                  'Reset onboarding',
+                  style: FutsalTheme.getTextTheme(context).bodyTextMedium,
+                ),
+              ),
+            ],
           ),
         ],
       ),

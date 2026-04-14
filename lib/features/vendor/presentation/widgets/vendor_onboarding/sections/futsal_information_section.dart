@@ -2,6 +2,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_quill_delta_from_html/flutter_quill_delta_from_html.dart';
+import 'package:hamro_footsall/core/theme/futsal_theme.dart';
+import 'package:hamro_footsall/core/utils/app_utils.dart';
+import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:vsc_quill_delta_to_html/vsc_quill_delta_to_html.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/widgets/custom_quill_editor.dart';
@@ -9,6 +12,7 @@ import 'package:hamro_footsall/features/courts/presentation/models/picked_locati
 import 'package:hamro_footsall/features/courts/presentation/widgets/create_footsall_courts/exact_location_picker_sheet.dart';
 import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_cubit.dart';
 import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_models.dart';
+import 'package:hamro_footsall/features/vendor/presentation/validation/vendor_onboarding_validator.dart';
 import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/vendor_form_components.dart';
 
 class FutsalInformationSection extends StatefulWidget {
@@ -213,12 +217,16 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
     final _SectionMeta meta = _sectionMeta(widget.subsectionIndex);
 
     return VendorPanel(
-      padding: const EdgeInsets.all(12),
+      padding: AppUtils().getPadding(all: AppDimens.paddingX12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          _CompactSectionHeader(meta: meta),
-          const SizedBox(height: 12),
+          VendorOnboardingSectionHeader(
+            title: meta.title,
+            subtitle: meta.subtitle,
+            icon: meta.icon,
+          ),
+          const SizedBox(height: AppDimens.sizeX12),
           if (widget.subsectionIndex == 0) _buildBasicInfo(),
           if (widget.subsectionIndex == 1) _buildDescription(),
           if (widget.subsectionIndex == 2) _buildLocationInfo(),
@@ -299,6 +307,7 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
         child: Center(child: CircularProgressIndicator()),
       );
     }
+
     return Column(
       children: [
         SizedBox(
@@ -461,73 +470,6 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
           icon: Icons.info_rounded,
         );
     }
-  }
-}
-
-class _CompactSectionHeader extends StatelessWidget {
-  const _CompactSectionHeader({required this.meta});
-
-  final _SectionMeta meta;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: <Color>[
-            LightColor.secondaryLight.withValues(alpha: 0.5),
-            LightColor.secondaryLight.withValues(alpha: 0.3),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: LightColor.secondaryColor.withValues(alpha: 0.2)),
-      ),
-      child: Row(
-        children: <Widget>[
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: LightColor.secondaryLight,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(meta.icon, size: 18, color: LightColor.secondaryColor),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  meta.title,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
-                    color: LightColor.primaryTextColor,
-                    height: 1.1,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  meta.subtitle,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w400,
-                    color: LightColor.secondaryTextColor,
-                    height: 1.3,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }
 

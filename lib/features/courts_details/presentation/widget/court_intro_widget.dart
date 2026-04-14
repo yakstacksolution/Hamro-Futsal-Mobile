@@ -259,26 +259,18 @@ class CourtIntroWidget extends StatelessWidget {
       decoration: BoxDecoration(
         color: isOpen ? DS.primaryLight : DS.redLight,
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(
-          color: isOpen
-              ? DS.primary.withOpacity(0.25)
-              : DS.red.withOpacity(0.25),
-        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: 6,
-            height: 6,
-            decoration: BoxDecoration(
-              color: isOpen ? DS.primary : DS.red,
-              shape: BoxShape.circle,
-            ),
+          Icon(
+            isOpen ? Icons.check_circle_rounded : Icons.cancel_rounded,
+            size: 14,
+            color: isOpen ? DS.primary : DS.red,
           ),
           const SizedBox(width: 6),
           Text(
-            isOpen ? 'Open Now' : 'Closed',
+            isOpen ? 'Open now' : 'Closed',
             style: TextStyle(
               color: isOpen ? DS.primary : DS.red,
               fontSize: 10,
@@ -290,7 +282,7 @@ class CourtIntroWidget extends StatelessWidget {
     );
   }
 
-  Widget _chipTag(String text, IconData icon, Color color, Color bg) {
+  Widget _chipTag(String label, IconData icon, Color fg, Color bg) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       decoration: BoxDecoration(
@@ -300,12 +292,12 @@ class CourtIntroWidget extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 15, color: color),
+          Icon(icon, size: 14, color: fg),
           const SizedBox(width: 6),
           Text(
-            text,
+            label,
             style: TextStyle(
-              color: color,
+              color: fg,
               fontSize: 11,
               fontWeight: FontWeight.w700,
             ),

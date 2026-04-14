@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
+import 'package:hamro_footsall/core/theme/futsal_theme.dart';
+import 'package:hamro_footsall/core/utils/app_utils.dart';
+import 'package:hamro_footsall/core/utils/dimens.dart';
 
 class CustomBottomNavigationBar extends StatelessWidget {
   const CustomBottomNavigationBar({
@@ -46,32 +49,27 @@ class CustomBottomNavigationBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final surfaceColor = Color.alphaBlend(
-      colorScheme.secondary.withValues(alpha: 0.03),
-      colorScheme.surface,
-    );
-    final glowColor = colorScheme.secondary;
-
     return Container(
-      padding: EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+      padding: AppUtils().getPadding(
+        symmetricHorizontal: AppDimens.paddingX8,
+        vertical: AppDimens.paddingX4,
+      ),
       decoration: BoxDecoration(
-        color: surfaceColor,
+        color: LightColor.cardColor,
         borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(16),
-          topRight: Radius.circular(16),
+          topLeft: Radius.circular(AppDimens.radiusX16),
+          topRight: Radius.circular(AppDimens.radiusX16),
         ),
         boxShadow: [
           BoxShadow(
-            color: glowColor.withValues(alpha: 0.06),
-            blurRadius: 16,
+            color: LightColor.secondaryColor.withValues(alpha: 0.06),
+            blurRadius: AppDimens.radiusX16,
             spreadRadius: 1,
             offset: const Offset(0, -3),
           ),
           BoxShadow(
-            color: glowColor.withValues(alpha: 0.03),
-            blurRadius: 6,
+            color: LightColor.secondaryColor.withValues(alpha: 0.03),
+            blurRadius: AppDimens.radiusX6,
             offset: const Offset(0, -1),
           ),
         ],
@@ -79,7 +77,10 @@ class CustomBottomNavigationBar extends StatelessWidget {
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          padding: AppUtils().getPadding(
+            symmetricHorizontal: AppDimens.paddingX8,
+            vertical: AppDimens.paddingX6,
+          ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: List<Widget>.generate(_items.length, (int index) {
@@ -163,16 +164,6 @@ class _NavBarItemState extends State<_NavBarItem>
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final activeColor = colorScheme.secondary;
-    final activeTextColor = colorScheme.secondary;
-    final inactiveColor = LightColor.secondaryTextColor;
-    final activeBackground = Color.alphaBlend(
-      colorScheme.secondary.withValues(alpha: 0.08),
-      colorScheme.secondary.withValues(alpha: 0.1),
-    );
-
     return GestureDetector(
       onTap: _onTap,
       behavior: HitTestBehavior.opaque,
@@ -187,7 +178,7 @@ class _NavBarItemState extends State<_NavBarItem>
             builder: (BuildContext context, Widget? child) {
               return CustomPaint(
                 painter: _RipplePainter(
-                  color: activeColor,
+                  color: LightColor.secondaryLight,
                   radiusProgress: _rippleRadius.value,
                   opacity: _rippleOpacity.value,
                 ),
@@ -197,15 +188,24 @@ class _NavBarItemState extends State<_NavBarItem>
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 260),
               curve: Curves.easeInOut,
-              padding: EdgeInsets.symmetric(
-                horizontal: widget.isActive ? 12 : 9,
-                vertical: 7,
+
+              padding: AppUtils().getPadding(
+                symmetricHorizontal: widget.isActive
+                    ? AppDimens.paddingX12
+                    : AppDimens.paddingX8,
+                vertical: AppDimens.paddingX8,
               ),
               decoration: BoxDecoration(
-                color: widget.isActive ? activeBackground : Colors.transparent,
-                borderRadius: BorderRadius.circular(7),
+                color: widget.isActive
+                    ? LightColor.secondaryColor
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(AppDimens.radiusX6),
                 border: widget.isActive
-                    ? Border.all(color: activeColor.withValues(alpha: 0.16))
+                    ? Border.all(
+                        color: LightColor.secondaryColor.withValues(
+                          alpha: 0.16,
+                        ),
+                      )
                     : null,
               ),
               child: Row(
@@ -221,8 +221,10 @@ class _NavBarItemState extends State<_NavBarItem>
                           ? widget.item.activeIcon
                           : widget.item.icon,
                       key: ValueKey<bool>(widget.isActive),
-                      size: 20,
-                      color: widget.isActive ? activeColor : inactiveColor,
+                      size: AppDimens.sizeX20,
+                      color: widget.isActive
+                          ? LightColor.whiteColor
+                          : LightColor.secondaryTextColor,
                     ),
                   ),
                   AnimatedSize(
@@ -230,14 +232,18 @@ class _NavBarItemState extends State<_NavBarItem>
                     curve: Curves.easeInOut,
                     child: widget.isActive
                         ? Padding(
-                            padding: const EdgeInsets.only(left: 6),
+                            padding: AppUtils().getPadding(
+                              left: AppDimens.paddingX6,
+                            ),
                             child: Text(
                               widget.item.label,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: activeTextColor,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 11,
-                              ),
+
+                              style: FutsalTheme.getTextTheme(context)
+                                  .bodyTextSmall
+                                  ?.copyWith(
+                                    color: LightColor.whiteColor,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                             ),
                           )
                         : const SizedBox.shrink(),

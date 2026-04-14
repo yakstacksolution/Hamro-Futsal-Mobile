@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 class FutsalTextTheme {
+  TextStyle? bodyMiniSubTitle;
   TextStyle? bodySubTitle;
   TextStyle? bodyTextSmall;
   TextStyle? bodyTextMedium;
@@ -13,6 +14,7 @@ class FutsalTextTheme {
   TextStyle? headingLarge;
 
   FutsalTextTheme({
+    this.bodyMiniSubTitle,
     this.bodySubTitle,
     this.bodyTextSmall,
     this.bodyTextMedium,

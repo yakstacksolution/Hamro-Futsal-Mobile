@@ -78,6 +78,11 @@ class CustomImageView extends StatelessWidget {
     return Uri.encodeFull(trimmed);
   }
 
+  bool _isSvgPath(String? value) {
+    if (value == null) return false;
+    return value.trim().toLowerCase().endsWith('.svg');
+  }
+
   Widget _buildAlignedWidget(BuildContext context) {
     final imageWidget = _buildImageWidget(context);
     return alignment != null
@@ -141,6 +146,8 @@ class CustomImageView extends StatelessWidget {
                 colorFilter: color != null
                     ? ColorFilter.mode(color!, BlendMode.srcIn)
                     : null,
+                placeholderBuilder: (BuildContext context) =>
+                    _buildPlaceholder(context),
               ),
       );
     }
@@ -223,13 +230,32 @@ class CustomImageView extends StatelessWidget {
       );
     }
 
-    if (imagePath != null && imagePath!.isNotEmpty) {
+    if (imagePath != null && imagePath!.trim().isNotEmpty) {
+      if (_isSvgPath(imagePath)) {
+        return SizedBox(
+          height: height,
+          width: width,
+          child: SvgPicture.asset(
+            imagePath!.trim(),
+            height: height,
+            width: width,
+            fit: fit ?? BoxFit.contain,
+            colorFilter: color != null
+                ? ColorFilter.mode(color!, BlendMode.srcIn)
+                : null,
+            placeholderBuilder: (BuildContext context) =>
+                _buildPlaceholder(context),
+          ),
+        );
+      }
+
       return Image.asset(
-        imagePath!,
+        imagePath!.trim(),
         height: height,
         width: width,
         fit: fit ?? BoxFit.cover,
         color: color,
+        errorBuilder: (_, __, ___) => _buildPlaceholder(context),
       );
     }
 

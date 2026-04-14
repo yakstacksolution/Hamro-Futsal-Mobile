@@ -71,6 +71,7 @@ class AppDimens {
   static const double marginX70 = 70;
 
   ///radius
+  static const double radiusX2 = 2;
   static const double radiusX4 = 4;
   static const double radiusX6 = 6;
   static const double radiusX8 = 8;
@@ -114,6 +115,7 @@ class AppDimens {
   static const double sizeX36 = 36;
   static const double sizeX38 = 38;
   static const double sizeX40 = 40;
+  static const double sizeX42 = 42;
   static const double sizeX44 = 44;
   static const double sizeX46 = 46;
   static const double sizeX48 = 48;

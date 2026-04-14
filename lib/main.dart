@@ -10,8 +10,6 @@ import 'package:hamro_footsall/core/routers/app_routers.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -50,10 +48,7 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     Client(
       logout: () async {
-        await navigatorKey.currentState!.pushNamedAndRemoveUntil(
-          "login",
-          (Route<dynamic> route) => false,
-        );
+        _router.goNamed(AppRouterParams.login.name);
       },
     );
     return MaterialApp.router(

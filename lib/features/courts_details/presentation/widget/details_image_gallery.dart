@@ -196,7 +196,9 @@ class _DetailsImageGalleryState extends State<DetailsImageGallery> {
             decoration: BoxDecoration(
               color: LightColor.primaryTextColor.withOpacity(0.25),
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: LightColor.whiteColor.withOpacity(0.15)),
+              border: Border.all(
+                color: LightColor.whiteColor.withOpacity(0.15),
+              ),
             ),
             child: Icon(icon, color: iconColor, size: 22),
           ),

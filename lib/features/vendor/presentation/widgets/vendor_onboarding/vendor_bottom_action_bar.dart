@@ -1,6 +1,10 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:hamro_footsall/core/theme/app_colors.dart';
+import 'package:hamro_footsall/core/theme/futsal_theme.dart';
+import 'package:hamro_footsall/core/utils/app_utils.dart';
+import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/widgets/custom_button.dart';
 
 class VendorBottomActionBar extends StatelessWidget {
@@ -26,28 +30,34 @@ class VendorBottomActionBar extends StatelessWidget {
     return SafeArea(
       top: false,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(0, 8, 0, 0),
+        padding: AppUtils().getPadding(top: AppDimens.paddingX8),
         child: ClipRRect(
           borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(14),
-            topRight: Radius.circular(14),
+            topLeft: Radius.circular(AppDimens.radiusX14),
+            topRight: Radius.circular(AppDimens.radiusX14),
           ),
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+            filter: ImageFilter.blur(
+              sigmaX: AppDimens.sizeX18,
+              sigmaY: AppDimens.sizeX18,
+            ),
             child: Container(
-              padding: const EdgeInsets.all(8),
+              padding: AppUtils().getPadding(all: AppDimens.paddingX8),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.94),
+                // ignore: deprecated_member_use
+                color: LightColor.whiteColor.withOpacity(0.94),
                 borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(14),
-                  topRight: Radius.circular(14),
+                  topLeft: Radius.circular(AppDimens.radiusX14),
+                  topRight: Radius.circular(AppDimens.radiusX14),
                 ),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
+                border: Border.symmetric(
+                  horizontal: BorderSide(color: LightColor.greyBorderColor),
+                ),
                 boxShadow: <BoxShadow>[
                   BoxShadow(
                     color: Colors.black.withOpacity(0.06),
-                    blurRadius: 22,
-                    offset: const Offset(0, 10),
+                    blurRadius: AppDimens.radiusX22,
+                    offset: const Offset(0, AppDimens.sizeX10),
                   ),
                 ],
               ),
@@ -59,7 +69,7 @@ class VendorBottomActionBar extends StatelessWidget {
                       label: 'Back',
                       onTap: canInteract ? onPrevious : null,
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: AppDimens.sizeX12),
                   ],
                   Expanded(
                     child: _PrimaryActionButton(
@@ -92,40 +102,39 @@ class _SecondaryActionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bool isDisabled = onTap == null;
-
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(AppDimens.radiusX8),
         child: Ink(
-          height: 48,
-          padding: const EdgeInsets.symmetric(horizontal: 20),
+          height: AppDimens.sizeX46,
+          padding: AppUtils().getPadding(horizontal: AppDimens.paddingX20),
           decoration: BoxDecoration(
-            color: const Color(0xFFF8FAFC),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
+            color: LightColor.whiteColor,
+            borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+            border: Border.all(color: LightColor.greyBorderColor),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
               Icon(
                 icon,
-                size: 18,
+                size: AppDimens.sizeX16,
                 color: isDisabled
-                    ? const Color(0xFF94A3B8)
-                    : const Color(0xFF334155),
+                    ? LightColor.greyBorderColor
+                    : LightColor.primaryTextColor,
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: AppDimens.sizeX8),
               Text(
                 label,
-                style: TextStyle(
-                  color: isDisabled
-                      ? const Color(0xFF94A3B8)
-                      : const Color(0xFF334155),
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                ),
+                style: FutsalTheme.getTextTheme(context).bodyTextSmall
+                    ?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: isDisabled
+                          ? LightColor.greyBorderColor
+                          : LightColor.primaryTextColor,
+                    ),
               ),
             ],
           ),
@@ -151,7 +160,7 @@ class _PrimaryActionButton extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: SizedBox(
-        height: 48,
+        height: AppDimens.sizeX46,
         child: CustomButton(
           text: label,
           onPressed: onTap,

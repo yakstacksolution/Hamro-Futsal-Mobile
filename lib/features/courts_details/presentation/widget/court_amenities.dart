@@ -322,7 +322,9 @@ class _FeaturesGridState extends State<_FeaturesGrid> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: LightColor.secondaryColor.withValues(alpha: 0.18)),
+        border: Border.all(
+          color: LightColor.secondaryColor.withValues(alpha: 0.18),
+        ),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,

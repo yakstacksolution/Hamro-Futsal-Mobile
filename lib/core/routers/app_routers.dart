@@ -7,9 +7,9 @@ import 'package:hamro_footsall/features/auth/presentation/authentication_bloc/au
 import 'package:hamro_footsall/features/auth/presentation/login_screen.dart';
 import 'package:hamro_footsall/features/auth/presentation/otp_verification_screen.dart';
 import 'package:hamro_footsall/features/auth/presentation/register_screen.dart';
-import 'package:hamro_footsall/features/auth/domain/usecase/authentication_usecase.dart';
-import 'package:hamro_footsall/features/courts_details/presentation/page/court_details.dart';
+import 'package:hamro_footsall/features/auth/domain/usecase/authentication_usecase.dart'; 
 import 'package:hamro_footsall/features/dashboard/presentation/page/dashboard_screen.dart';
+import 'package:hamro_footsall/features/futsal_details/presentation/view/futsal_details_page_view.dart';
 import 'package:hamro_footsall/features/public/data/repositories/public_repository_impl.dart';
 import 'package:hamro_footsall/features/public/domain/usecase/get_public_packages_use_case.dart';
 import 'package:hamro_footsall/features/public/domain/usecase/get_public_templates_use_case.dart';
@@ -84,6 +84,13 @@ class AppRouters {
                   ..add(const FetchProfileEvent()),
             child: const DashboardScreen(),
           ),
+          routes: [
+            GoRoute(
+              name: AppRouterParams.courtDetails.name,
+              path: AppRouterParams.courtDetails.path,
+              builder: (context, state) => const FutsalDetailsPageView(),
+            ),
+          ],
         ),
 
         GoRoute(
@@ -111,11 +118,6 @@ class AppRouters {
           ],
         ),
 
-        GoRoute(
-          name: AppRouterParams.courtDetails.name,
-          path: AppRouterParams.courtDetails.path,
-          builder: (context, state) => const CourtDetailPage(),
-        ),
         GoRoute(
           name: AppRouterParams.vendorStepper.name,
           path: AppRouterParams.vendorStepper.path,

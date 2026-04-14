@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
+import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/features/public/data/model/public_template_model.dart';
 import 'package:hamro_footsall/features/public/presentation/bloc/public_packages/public_packages_bloc.dart';
 import 'package:hamro_footsall/features/public/presentation/bloc/public_templates/public_templates_bloc.dart';
@@ -85,12 +86,16 @@ class _StepperLogicScreenState extends State<StepperLogicScreen> {
               },
           listener: (BuildContext context, VendorOnboardingState state) {
             if (state.isCompleted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Vendor onboarding is complete.')),
+              AppUtils().showSnackBar(
+                context,
+                MsgType.success,
+                'Vendor onboarding is complete.',
               );
             } else if (state.saveStatus == DraftSaveStatus.failure) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Draft save failed. Try again.')),
+              AppUtils().showSnackBar(
+                context,
+                MsgType.error,
+                'Draft save failed. Try again.',
               );
             }
           },
@@ -148,23 +153,28 @@ class _StepperLogicScreenState extends State<StepperLogicScreen> {
             body: SafeArea(
               top: false,
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
+                padding: AppUtils().getPadding(
+                  left: AppDimens.paddingX16,
+                  top: AppDimens.paddingX16,
+                  right: AppDimens.paddingX16,
+                  bottom: AppDimens.paddingX20,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     VendorOnboardingHeader(cubit: cubit, state: state),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: AppDimens.sizeX14),
                     VendorCategorySwitcher(
                       activeCategory: state.cursor.category,
                       canAccessCourtCategory: cubit.canAccessCourtCategory,
                       onCategorySelected: cubit.selectCategory,
                     ),
                     if (state.isInCourtCategory) ...<Widget>[
-                      const SizedBox(height: 14),
+                      const SizedBox(height: AppDimens.sizeX14),
                       VendorCourtManager(cubit: cubit, state: state),
                     ],
                     if (cubit.isCourtEditorVisible) ...<Widget>[
-                      const SizedBox(height: 14),
+                      const SizedBox(height: AppDimens.sizeX14),
                       VendorUnifiedStepper(
                         title: state.isInCourtCategory
                             ? '${state.activeCourt?.name.trim().isNotEmpty == true ? state.activeCourt!.name.trim() : 'Court'} Steps'
@@ -206,11 +216,11 @@ class _StepperLogicScreenState extends State<StepperLogicScreen> {
                     if (state.errorMessage != null &&
                         state.errorMessage!.isNotEmpty &&
                         state.errorOrigin != VendorErrorOrigin.api) ...<Widget>[
-                      const SizedBox(height: 14),
+                      const SizedBox(height: AppDimens.sizeX14),
                       VendorErrorBanner(message: state.errorMessage!),
                     ],
                     if (cubit.isCourtEditorVisible) ...<Widget>[
-                      const SizedBox(height: 14),
+                      const SizedBox(height: AppDimens.sizeX14),
                       AnimatedSwitcher(
                         duration: const Duration(milliseconds: 220),
                         child: _ActiveSectionContent(

@@ -124,9 +124,9 @@ flutter_launcher_icons:
   min_sdk_android: 21
 
 flutter_native_splash:
-  color: "#26B58A"
+  color: "#2C7969"
   image: assets/icon/logotwo.png
   android_gravity: center
   android_12:
     image: assets/icon/logotwo.png
-    icon_background_color: "#26B58A"
+    icon_background_color: "#2C7969"

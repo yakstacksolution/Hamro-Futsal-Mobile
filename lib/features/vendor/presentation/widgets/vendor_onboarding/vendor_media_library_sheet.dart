@@ -96,7 +96,6 @@ class _VendorMediaLibrarySheetState extends State<VendorMediaLibrarySheet> {
                 itemCount: library.length,
                 selectedCount: _selectedPaths.length,
               ),
-
               const SizedBox(height: 10),
 
               _CompactActionRow(
@@ -513,7 +512,9 @@ class _SmallActionButton extends StatelessWidget {
             color: LightColor.hintTextColor,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: isDisabled ? LightColor.dividerColor : LightColor.borderColor,
+              color: isDisabled
+                  ? LightColor.dividerColor
+                  : LightColor.borderColor,
             ),
           ),
           child: Padding(
@@ -608,7 +609,10 @@ class _CompactEmptyState extends StatelessWidget {
             const Text(
               'Add images or files to your library.',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 12, color: LightColor.secondaryTextColor),
+              style: TextStyle(
+                fontSize: 12,
+                color: LightColor.secondaryTextColor,
+              ),
             ),
             const SizedBox(height: 16),
 
@@ -654,7 +658,9 @@ class _CompactMediaCard extends StatelessWidget {
             color: LightColor.whiteColor,
             borderRadius: BorderRadius.circular(4),
             border: Border.all(
-              color: isSelected ? LightColor.secondaryColor : LightColor.borderColor,
+              color: isSelected
+                  ? LightColor.secondaryColor
+                  : LightColor.borderColor,
               width: isSelected ? 1.4 : 1,
             ),
             boxShadow: isSelected

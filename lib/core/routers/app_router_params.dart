@@ -41,7 +41,7 @@ class AppRouterParams {
 
   static const RouteConfig courtDetails = RouteConfig(
     name: 'courtDetails',
-    path: '/dashboard/court-details',
+    path: 'court-details',
   );
 
   static const RouteConfig vendorOnboarding = RouteConfig(

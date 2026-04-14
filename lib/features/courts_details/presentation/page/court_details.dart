@@ -1,8 +1,6 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:hamro_footsall/features/courts_details/presentation/model/time_slot_model.dart';
-import 'package:hamro_footsall/features/courts_details/presentation/widget/court_amenities.dart';
+ import 'package:hamro_footsall/features/courts_details/presentation/widget/court_amenities.dart';
 import 'package:hamro_footsall/features/courts_details/presentation/widget/court_booking_policies_section.dart';
 import 'package:hamro_footsall/features/courts_details/presentation/widget/court_hosted_by_section.dart';
 import 'package:hamro_footsall/features/courts_details/presentation/widget/court_intro_widget.dart';
@@ -10,7 +8,7 @@ import 'package:hamro_footsall/features/courts_details/presentation/widget/court
 import 'package:hamro_footsall/features/courts_details/presentation/widget/court_rules_section.dart';
 import 'package:hamro_footsall/features/courts_details/presentation/widget/court_time_slot.dart';
 import 'package:hamro_footsall/features/courts_details/presentation/widget/details_image_gallery.dart';
-import 'package:hamro_footsall/features/vendor/presentation/pages/vendor_onboarding_page.dart';
+import 'package:hamro_footsall/features/futsal_details/data/model/time_slot_model.dart';
 
 class CourtDetailModel {
   final String name;
@@ -93,15 +91,12 @@ class CourtDetailPage extends StatefulWidget {
 
 class _CourtDetailPageState extends State<CourtDetailPage>
     with TickerProviderStateMixin {
-  late final PageController _imagePageController;
   late final AnimationController _bottomBarController;
   late final Animation<Offset> _bottomBarSlide;
 
   int _selectedDateIndex = 0;
   int _selectedSlotIndex = -1;
-  bool _showAllDescription = false;
 
-  // ── Sample Data ──
   late final CourtDetailModel _court;
 
   late final List<DateTime> _dates;
@@ -192,8 +187,6 @@ class _CourtDetailPageState extends State<CourtDetailPage>
           maxPlayers: 14,
         );
 
-    _imagePageController = PageController();
-
     _bottomBarController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 600),
@@ -236,12 +229,10 @@ class _CourtDetailPageState extends State<CourtDetailPage>
 
   @override
   void dispose() {
-    _imagePageController.dispose();
     _bottomBarController.dispose();
     super.dispose();
   }
 
-  // ── Helpers ──
   String _dayName(DateTime date) {
     const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     return days[date.weekday - 1];
@@ -263,101 +254,6 @@ class _CourtDetailPageState extends State<CourtDetailPage>
       'Dec',
     ];
     return months[date.month - 1];
-  }
-
-  Widget _glassButton({
-    required IconData icon,
-    required VoidCallback onTap,
-    Color iconColor = Colors.white,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(14),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-          child: Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.25),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: Colors.white.withOpacity(0.15)),
-            ),
-            child: Icon(icon, color: iconColor, size: 22),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDescription() {
-    const maxChars = 180;
-    final isLong = _court.description.length > maxChars;
-    final shortDescription = isLong
-        ? '${_court.description.substring(0, maxChars)}...'
-        : _court.description;
-
-    return _sectionWrapper(
-      title: 'About This Court',
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          AnimatedCrossFade(
-            firstChild: Text(
-              shortDescription,
-              style: const TextStyle(
-                color: DS.textSecondary,
-                fontSize: 14,
-                fontWeight: FontWeight.w400,
-                height: 1.65,
-              ),
-            ),
-            secondChild: Text(
-              _court.description,
-              style: const TextStyle(
-                color: DS.textSecondary,
-                fontSize: 14,
-                fontWeight: FontWeight.w400,
-                height: 1.65,
-              ),
-            ),
-            crossFadeState: _showAllDescription
-                ? CrossFadeState.showSecond
-                : CrossFadeState.showFirst,
-            duration: const Duration(milliseconds: 300),
-          ),
-          if (isLong) ...[
-            const SizedBox(height: 8),
-            GestureDetector(
-              onTap: () =>
-                  setState(() => _showAllDescription = !_showAllDescription),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    _showAllDescription ? 'Show less' : 'Read more',
-                    style: const TextStyle(
-                      color: DS.primary,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  Icon(
-                    _showAllDescription
-                        ? Icons.keyboard_arrow_up_rounded
-                        : Icons.keyboard_arrow_down_rounded,
-                    color: DS.primary,
-                    size: 18,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
   }
 
   Widget _buildBottomBar() {
@@ -394,7 +290,6 @@ class _CourtDetailPageState extends State<CourtDetailPage>
           children: [
             Row(
               children: [
-                // SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -481,17 +376,6 @@ class _CourtDetailPageState extends State<CourtDetailPage>
                     onTap: hasSelection
                         ? () {
                             HapticFeedback.mediumImpact();
-                            // context.goNamed(
-                            //   AppRouterParams.vendorOnboarding.name,
-                            // );
-                            // Navigator.push(
-                            //   context,
-                            //   MaterialPageRoute(
-                            //     builder: (context) => VendorOnboardingPage(),
-                            //   ),
-                            // );
-
-                            // Handle booking
                           }
                         : null,
                     child: AnimatedContainer(
@@ -529,77 +413,6 @@ class _CourtDetailPageState extends State<CourtDetailPage>
     );
   }
 
-  Widget _actionNavButton({
-    required IconData icon,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 44,
-        height: 52,
-        decoration: BoxDecoration(
-          color: DS.borderLight,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: DS.border.withOpacity(0.8)),
-        ),
-        child: Icon(icon, color: color, size: 20),
-      ),
-    );
-  }
-
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // SECTION WRAPPER
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  Widget _sectionWrapper({
-    required String title,
-    required Widget child,
-    Widget? trailing,
-    IconData? icon,
-    Color? iconColor,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 28),
-          Row(
-            children: [
-              if (icon != null) ...[
-                Container(
-                  width: 28,
-                  height: 28,
-                  decoration: BoxDecoration(
-                    color: (iconColor ?? DS.primary).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(icon, size: 15, color: iconColor ?? DS.primary),
-                ),
-                const SizedBox(width: 10),
-              ],
-              Expanded(
-                child: Text(
-                  title,
-                  style: const TextStyle(
-                    color: DS.textPrimary,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.3,
-                  ),
-                ),
-              ),
-              if (trailing != null) trailing,
-            ],
-          ),
-          const SizedBox(height: 16),
-          child,
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
@@ -617,7 +430,6 @@ class _CourtDetailPageState extends State<CourtDetailPage>
                 physics: const BouncingScrollPhysics(),
                 slivers: [
                   SliverToBoxAdapter(child: DetailsImageGallery()),
-
                   SliverToBoxAdapter(
                     child: Container(
                       decoration: const BoxDecoration(
@@ -630,7 +442,6 @@ class _CourtDetailPageState extends State<CourtDetailPage>
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Drag handle
                           Center(
                             child: Container(
                               margin: const EdgeInsets.only(top: 12, bottom: 4),
@@ -642,19 +453,8 @@ class _CourtDetailPageState extends State<CourtDetailPage>
                               ),
                             ),
                           ),
-
                           CourtIntroWidget(court: _court),
-
-                          // _buildHeaderInfo(),
                           CourtAmenitiesSection(features: _court.features),
-
-                          // _buildDescription(),
-
-                          // // Divider
-                          // Padding(
-                          //   padding: const EdgeInsets.symmetric(horizontal: 20),
-                          //   child: Divider(color: DS.divider, height: 40),
-                          // ),
                           CourtTimeSlotSection(
                             dates: _dates,
                             timeSlotsByDate: _timeSlotsByDate,
@@ -669,7 +469,6 @@ class _CourtDetailPageState extends State<CourtDetailPage>
                               });
                             },
                           ),
-
                           CourtHostedBySection(
                             hostName: _court.hostedByName,
                             hostSince: _court.hostedSince,
@@ -695,8 +494,6 @@ class _CourtDetailPageState extends State<CourtDetailPage>
                                 )
                                 .toList(),
                           ),
-
-                          // Bottom spacing for the bar
                           SizedBox(
                             height: MediaQuery.of(context).padding.bottom + 100,
                           ),
@@ -706,8 +503,6 @@ class _CourtDetailPageState extends State<CourtDetailPage>
                   ),
                 ],
               ),
-
-              // ── Bottom booking bar ──
               Positioned(
                 bottom: 0,
                 left: 0,
@@ -722,9 +517,6 @@ class _CourtDetailPageState extends State<CourtDetailPage>
   }
 }
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// DESIGN TOKENS
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 class DS {
   DS._();
 

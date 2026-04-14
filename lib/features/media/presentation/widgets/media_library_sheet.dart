@@ -3,8 +3,10 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
+import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/custom_image_view.dart';
+import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/widgets/custom_bottom_sheet.dart';
 import 'package:hamro_footsall/core/widgets/custom_button.dart';
 import 'package:hamro_footsall/core/widgets/custom_confirm_dialog.dart';
@@ -108,93 +110,107 @@ class _VendorMediaLibrarySheetState extends State<VendorMediaLibrarySheet> {
                     mediaState.fetchStatus == MediaStatus.loading &&
                     library.isEmpty;
 
-                return Column(
+                return Stack(
                   children: <Widget>[
-                    _CompactHeader(
-                      title: widget.title,
-                      subtitle: widget.subtitle,
-                      itemCount: library.length,
-                      selectedCount: _selectedPaths.length,
-                    ),
+                    Column(
+                      children: <Widget>[
+                        _CompactHeader(
+                          title: widget.title,
+                          subtitle: widget.subtitle,
+                          itemCount: library.length,
+                          selectedCount: _selectedPaths.length,
+                        ),
 
-                    const SizedBox(height: 10),
+                        const SizedBox(height: 10),
 
-                    _CompactActionRow(
-                      activeFilter: _filter,
-                      onFilterChanged: (_LibraryFilter value) {
-                        setState(() => _filter = value);
-                      },
-                      onAddImages: _visibleImageExtensions(allowed).isEmpty
-                          ? null
-                          : () => _handleAddFiles(
-                              _visibleImageExtensions(allowed).toList(),
-                              allowMultiple: true,
-                            ),
-                      onAddFiles: _visibleDocumentExtensions(allowed).isEmpty
-                          ? null
-                          : () => _handleAddFiles(
-                              _visibleDocumentExtensions(allowed).toList(),
-                              allowMultiple: true,
-                            ),
-                      isAddingImages: _isAdding,
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    Expanded(
-                      child: mediaState.fetchStatus == MediaStatus.loading
-                          ? SizedBox(
-                              child: Center(
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 0.5,
+                        _CompactActionRow(
+                          activeFilter: _filter,
+                          onFilterChanged: (_LibraryFilter value) {
+                            setState(() => _filter = value);
+                          },
+                          onAddImages: _visibleImageExtensions(allowed).isEmpty
+                              ? null
+                              : () => _handleAddFiles(
+                                  _visibleImageExtensions(allowed).toList(),
+                                  allowMultiple: true,
                                 ),
-                              ),
-                            )
-                          : isFetchingInitialMedia
-                          ? const _CompactLoadingState()
-                          : library.isEmpty
-                          ? _CompactEmptyState(
-                              onAddTap: _isAdding
-                                  ? null
-                                  : () => _handleAddFiles(
-                                      allowed.toList(),
-                                      allowMultiple: true,
+                          onAddFiles:
+                              _visibleDocumentExtensions(allowed).isEmpty
+                              ? null
+                              : () => _handleAddFiles(
+                                  _visibleDocumentExtensions(allowed).toList(),
+                                  allowMultiple: true,
+                                ),
+                          isAddingImages: _isAdding,
+                        ),
+
+                        const SizedBox(height: AppDimens.sizeX12),
+
+                        Expanded(
+                          child: mediaState.fetchStatus == MediaStatus.loading
+                              ? SizedBox(
+                                  child: Center(
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 0.5,
                                     ),
-                            )
-                          : GridView.builder(
-                              padding: const EdgeInsets.only(bottom: 10),
-                              itemCount: library.length,
-                              gridDelegate:
-                                  const SliverGridDelegateWithFixedCrossAxisCount(
-                                    crossAxisCount: 3,
-                                    mainAxisSpacing: 8,
-                                    crossAxisSpacing: 8,
                                   ),
-                              itemBuilder: (BuildContext context, int index) {
-                                final _LibraryItem entry = library[index];
-                                final bool isSelected = _selectedPaths.contains(
-                                  _itemKey(entry.file),
-                                );
+                                )
+                              : isFetchingInitialMedia
+                              ? const _CompactLoadingState()
+                              : library.isEmpty
+                              ? _CompactEmptyState(
+                                  onAddTap: _isAdding
+                                      ? null
+                                      : () => _handleAddFiles(
+                                          allowed.toList(),
+                                          allowMultiple: true,
+                                        ),
+                                )
+                              : GridView.builder(
+                                  padding: const EdgeInsets.only(
+                                    bottom: AppDimens.sizeX80,
+                                  ),
+                                  itemCount: library.length,
+                                  gridDelegate:
+                                      const SliverGridDelegateWithFixedCrossAxisCount(
+                                        crossAxisCount: 3,
+                                        mainAxisSpacing: 8,
+                                        crossAxisSpacing: 8,
+                                      ),
+                                  itemBuilder:
+                                      (BuildContext context, int index) {
+                                        final _LibraryItem entry =
+                                            library[index];
+                                        final bool isSelected = _selectedPaths
+                                            .contains(_itemKey(entry.file));
 
-                                return _CompactMediaCard(
-                                  item: entry.file,
-                                  isSelected: isSelected,
-                                  canRemove: entry.canRemove,
-                                  onTap: () => _toggleSelection(entry.file),
-                                  onRemove: () => _removeItem(entry.file),
-                                );
-                              },
-                            ),
+                                        return _CompactMediaCard(
+                                          item: entry.file,
+                                          isSelected: isSelected,
+                                          canRemove: entry.canRemove,
+                                          onTap: () =>
+                                              _toggleSelection(entry.file),
+                                          onRemove: () =>
+                                              _removeItem(entry.file),
+                                        );
+                                      },
+                                ),
+                        ),
+                      ],
                     ),
-
-                    SafeArea(
-                      top: false,
-                      child: _BottomSelectionBar(
-                        allowMultiple: widget.allowMultiple,
-                        selectionCount: _selectedPaths.length,
-                        onConfirm: _selectedPaths.isEmpty
-                            ? null
-                            : _submitSelection,
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      child: SafeArea(
+                        top: false,
+                        child: _BottomSelectionBar(
+                          allowMultiple: widget.allowMultiple,
+                          selectionCount: _selectedPaths.length,
+                          onConfirm: _selectedPaths.isEmpty
+                              ? null
+                              : _submitSelection,
+                        ),
                       ),
                     ),
                   ],
@@ -495,28 +511,28 @@ class _CompactHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: AppUtils().getPadding(all: AppDimens.paddingX12),
       decoration: BoxDecoration(
         color: LightColor.whiteColor,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: LightColor.borderColor),
+        borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+        border: Border.all(color: LightColor.greyBorderColor),
       ),
       child: Row(
         children: <Widget>[
           Container(
-            width: 46,
-            height: 46,
+            width: AppDimens.sizeX46,
+            height: AppDimens.sizeX46,
             decoration: BoxDecoration(
-              color: LightColor.secondaryLight,
-              borderRadius: BorderRadius.circular(10),
+              color: LightColor.secondaryColor,
+              borderRadius: BorderRadius.circular(AppDimens.radiusX10),
             ),
             child: const Icon(
-              Icons.photo_library_rounded,
-              color: LightColor.secondaryColor,
-              size: 22,
+              Icons.photo_outlined,
+              color: LightColor.whiteColor,
+              size: AppDimens.sizeX22,
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: AppDimens.sizeX10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -525,44 +541,41 @@ class _CompactHeader extends StatelessWidget {
                   title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
-                    color: LightColor.primaryTextColor,
-                  ),
+
+                  style: FutsalTheme.getTextTheme(context).bodyTextSmall
+                      ?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: LightColor.primaryTextColor,
+                      ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: AppDimens.sizeX2),
                 Text(
                   subtitle,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 10,
-                    color: LightColor.secondaryTextColor,
-                  ),
+                  style: FutsalTheme.getTextTheme(context).bodySubTitle
+                      ?.copyWith(color: LightColor.secondaryTextColor),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppDimens.sizeX10),
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: <Widget>[
               Text(
                 '$itemCount items',
-                style: const TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
+                style: FutsalTheme.getTextTheme(context).bodySubTitle?.copyWith(
+                  fontWeight: FontWeight.w500,
                   color: LightColor.primaryTextColor,
                 ),
               ),
-              const SizedBox(height: 2),
+              const SizedBox(height: AppDimens.sizeX2),
               Text(
                 '$selectedCount selected',
-                style: const TextStyle(
-                  fontSize: 10,
+                style: FutsalTheme.getTextTheme(context).bodySubTitle?.copyWith(
+                  fontWeight: FontWeight.w500,
                   color: LightColor.secondaryColor,
-                  fontWeight: FontWeight.w700,
                 ),
               ),
             ],
@@ -591,52 +604,55 @@ class _UploadMediaPreviewDialog extends StatelessWidget {
 
     return Dialog(
       backgroundColor: LightColor.whiteColor,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      insetPadding: AppUtils().getPadding(horizontal: AppDimens.paddingX20),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(18),
+        padding: AppUtils().getPadding(all: AppDimens.paddingX14),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
             Container(
-              width: 52,
-              height: 52,
+              width: AppDimens.sizeX52,
+              height: AppDimens.sizeX52,
               decoration: BoxDecoration(
-                color: LightColor.secondaryLight,
-                borderRadius: BorderRadius.circular(16),
+                color: LightColor.secondaryColor,
+                borderRadius: BorderRadius.circular(AppDimens.radiusX16),
               ),
               child: const Icon(
                 Icons.cloud_upload_outlined,
-                color: LightColor.secondaryColor,
-                size: 26,
+                color: LightColor.whiteColor,
+                size: AppDimens.sizeX26,
               ),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: AppDimens.sizeX14),
             Text(
               title,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: LightColor.primaryTextColor,
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-              ),
+
+              style: FutsalTheme.getTextTheme(context).headingSubTitle
+                  ?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: LightColor.primaryTextColor,
+                  ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppDimens.sizeX8),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
                 color: LightColor.secondaryTextColor,
-                fontSize: 13,
-                height: 1.45,
+                height: 1.5,
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppDimens.sizeX16),
             Container(
               width: double.infinity,
               constraints: const BoxConstraints(maxHeight: 220),
               decoration: BoxDecoration(
                 color: LightColor.background,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(AppDimens.radiusX16),
                 border: Border.all(color: LightColor.borderColor),
               ),
               clipBehavior: Clip.antiAlias,
@@ -653,7 +669,7 @@ class _UploadMediaPreviewDialog extends StatelessWidget {
                   : _UploadPreviewFallback(file: previewFile),
             ),
             if (files.length > 1) ...<Widget>[
-              const SizedBox(height: 10),
+              const SizedBox(height: AppDimens.sizeX10),
               Text(
                 '+${files.length - 1} more selected',
                 style: const TextStyle(
@@ -663,7 +679,7 @@ class _UploadMediaPreviewDialog extends StatelessWidget {
                 ),
               ),
             ],
-            const SizedBox(height: 18),
+            const SizedBox(height: AppDimens.sizeX18),
             Row(
               children: <Widget>[
                 Expanded(
@@ -673,17 +689,17 @@ class _UploadMediaPreviewDialog extends StatelessWidget {
                     backgroundColor: Colors.white,
                     foregroundColor: LightColor.secondaryTextColor,
                     borderColor: LightColor.borderColor,
-                    minHeight: 44,
+                    minHeight: AppDimens.sizeX44,
                     onPressed: () => Navigator.of(context).pop(false),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: AppDimens.sizeX12),
                 Expanded(
                   child: CustomButton(
                     text: 'Upload',
                     backgroundColor: LightColor.secondaryColor,
                     foregroundColor: Colors.white,
-                    minHeight: 44,
+                    minHeight: AppDimens.sizeX44,
                     onPressed: () => Navigator.of(context).pop(true),
                   ),
                 ),
@@ -704,31 +720,35 @@ class _UploadPreviewFallback extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: AppUtils().getPadding(all: AppDimens.sizeX18),
       alignment: Alignment.center,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: <Widget>[
-          Icon(_fileIcon(file), size: 34, color: LightColor.secondaryColor),
-          const SizedBox(height: 10),
+          Icon(
+            _fileIcon(file),
+            size: AppDimens.sizeX34,
+            color: LightColor.secondaryColor,
+          ),
+          const SizedBox(height: AppDimens.sizeX10),
           Text(
             file.name,
             textAlign: TextAlign.center,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: LightColor.primaryTextColor,
-              fontSize: 13,
+
+            style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
               fontWeight: FontWeight.w700,
+              color: LightColor.primaryTextColor,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: AppDimens.sizeX4),
           Text(
             _extensionFor(file).toUpperCase(),
-            style: const TextStyle(
-              color: LightColor.secondaryTextColor,
-              fontSize: 11,
+
+            style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
               fontWeight: FontWeight.w600,
+              color: LightColor.secondaryTextColor,
             ),
           ),
         ],
@@ -766,7 +786,7 @@ class _CompactActionRow extends StatelessWidget {
             softColor: LightColor.secondaryLight,
           ),
         ),
-        const SizedBox(width: 10),
+        const SizedBox(width: AppDimens.sizeX10),
         Expanded(
           child: _SmallActionButton(
             label: 'Add File',
@@ -777,7 +797,7 @@ class _CompactActionRow extends StatelessWidget {
             softColor: LightColor.secondaryLight,
           ),
         ),
-        const SizedBox(width: 10),
+        const SizedBox(width: AppDimens.sizeX10),
         _FilterMenuButton(
           activeFilter: activeFilter,
           onSelected: onFilterChanged,
@@ -803,7 +823,9 @@ class _FilterMenuButton extends StatelessWidget {
       onSelected: onSelected,
       color: LightColor.whiteColor,
       elevation: 10,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppDimens.radiusX16),
+      ),
       itemBuilder: (BuildContext context) {
         return _LibraryFilter.values.map((_LibraryFilter filter) {
           final bool isActive = filter == activeFilter;
@@ -815,12 +837,12 @@ class _FilterMenuButton extends StatelessWidget {
                   isActive
                       ? Icons.radio_button_checked_rounded
                       : Icons.radio_button_off_rounded,
-                  size: 18,
+                  size: AppDimens.sizeX18,
                   color: isActive
                       ? LightColor.secondaryColor
                       : LightColor.secondaryTextColor,
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: AppDimens.sizeX10),
                 Text(
                   filter.label,
                   style: TextStyle(
@@ -836,26 +858,25 @@ class _FilterMenuButton extends StatelessWidget {
         }).toList();
       },
       child: Container(
-        height: 42,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
+        height: AppDimens.sizeX42,
+        padding: AppUtils().getPadding(horizontal: AppDimens.paddingX10),
         decoration: BoxDecoration(
           color: LightColor.whiteColor,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: LightColor.borderColor),
+          borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+          border: Border.all(color: LightColor.greyBorderColor),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
             const Icon(
               Icons.filter_list_rounded,
-              size: 18,
+              size: AppDimens.sizeX18,
               color: LightColor.secondaryColor,
             ),
-            const SizedBox(width: 6),
+            const SizedBox(width: AppDimens.sizeX6),
             Text(
               activeFilter.label,
-              style: const TextStyle(
-                fontSize: 12.5,
+              style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
                 fontWeight: FontWeight.w700,
                 color: LightColor.primaryTextColor,
               ),
@@ -889,10 +910,9 @@ class _SmallActionButton extends StatelessWidget {
     final bool isDisabled = onTap == null;
 
     return Container(
-      // color: Colors.amber,
       decoration: BoxDecoration(
-        color: LightColor.secondaryLight,
-        borderRadius: BorderRadius.circular(8),
+        color: LightColor.secondaryColor,
+        borderRadius: BorderRadius.circular(AppDimens.radiusX6),
         border: Border.all(
           color: isDisabled ? LightColor.dividerColor : LightColor.borderColor,
         ),
@@ -900,22 +920,25 @@ class _SmallActionButton extends StatelessWidget {
       child: InkWell(
         onTap: isDisabled ? null : onTap,
         child: Ink(
-          height: 36,
+          height: AppDimens.sizeX36,
           decoration: BoxDecoration(
             color: LightColor.hintTextColor,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(AppDimens.radiusX8),
             border: Border.all(
-              color: isDisabled ? LightColor.dividerColor : LightColor.borderColor,
+              color: isDisabled
+                  ? LightColor.dividerColor
+                  : LightColor.borderColor,
             ),
           ),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 6),
+            padding: AppUtils().getPadding(horizontal: AppDimens.paddingX6),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: <Widget>[
                 if (isLoading)
                   SizedBox(
-                    width: 18,
-                    height: 18,
+                    width: AppDimens.sizeX18,
+                    height: AppDimens.sizeX18,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
                       valueColor: AlwaysStoppedAnimation<Color>(
@@ -926,26 +949,22 @@ class _SmallActionButton extends StatelessWidget {
                 else
                   Icon(
                     icon,
-                    size: 16,
-                    color: isDisabled
-                        ? LightColor.hintTextColor
-                        : LightColor.primaryTextColor,
+                    size: AppDimens.sizeX16,
+                    color: LightColor.whiteColor,
                   ),
-                const SizedBox(width: 6),
+                const SizedBox(width: AppDimens.sizeX6),
                 Expanded(
                   child: Text(
                     label,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: isDisabled
-                          ? LightColor.hintTextColor
-                          : LightColor.primaryTextColor,
-                    ),
+                    style: FutsalTheme.getTextTheme(context).bodyTextSmall
+                        ?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: LightColor.whiteColor,
+                        ),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: AppDimens.sizeX12),
               ],
             ),
           ),
@@ -963,10 +982,10 @@ class _CompactLoadingState extends StatelessWidget {
     return Center(
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(20),
+        padding: AppUtils().getPadding(all: AppDimens.paddingX20),
         decoration: BoxDecoration(
           color: LightColor.whiteColor,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(AppDimens.radiusX10),
           border: Border.all(color: LightColor.borderColor),
         ),
         child: const Column(
@@ -977,7 +996,9 @@ class _CompactLoadingState extends StatelessWidget {
               height: 28,
               child: CircularProgressIndicator(
                 strokeWidth: 2.5,
-                valueColor: AlwaysStoppedAnimation<Color>(LightColor.secondaryColor),
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  LightColor.secondaryColor,
+                ),
               ),
             ),
             SizedBox(height: 12),
@@ -993,7 +1014,10 @@ class _CompactLoadingState extends StatelessWidget {
             Text(
               'Fetching your saved media from the server.',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 12, color: LightColor.secondaryTextColor),
+              style: TextStyle(
+                fontSize: 12,
+                color: LightColor.secondaryTextColor,
+              ),
             ),
           ],
         ),
@@ -1012,49 +1036,52 @@ class _CompactEmptyState extends StatelessWidget {
     return Center(
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(20),
+        padding: AppUtils().getPadding(all: AppDimens.paddingX20),
         decoration: BoxDecoration(
           color: LightColor.whiteColor,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: LightColor.borderColor),
+          borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+          border: Border.all(color: LightColor.greyBorderColor),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
             Container(
-              width: 58,
-              height: 58,
+              width: AppDimens.sizeX58,
+              height: AppDimens.sizeX58,
               decoration: BoxDecoration(
-                color: LightColor.secondaryLight,
-                borderRadius: BorderRadius.circular(18),
+                color: LightColor.greyBorderColor,
+                borderRadius: BorderRadius.circular(AppDimens.radiusX8),
               ),
               child: const Icon(
                 Icons.perm_media_rounded,
                 color: LightColor.secondaryDark,
-                size: 28,
+                size: AppDimens.sizeX28,
               ),
             ),
             const SizedBox(height: 12),
-            const Text(
+            Text(
               'No media found',
-              style: TextStyle(
-                fontSize: 15,
+
+              style: FutsalTheme.getTextTheme(context).bodyTextLarge?.copyWith(
                 fontWeight: FontWeight.w800,
                 color: LightColor.primaryTextColor,
               ),
             ),
-            const SizedBox(height: 6),
-            const Text(
+            const SizedBox(height: AppDimens.sizeX6),
+            Text(
               'Add images or files to your library.',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 12, color: LightColor.secondaryTextColor),
+
+              style: FutsalTheme.getTextTheme(
+                context,
+              ).bodyTextSmall?.copyWith(color: LightColor.secondaryTextColor),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppDimens.sizeX16),
 
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 50),
+              padding: AppUtils().getPadding(horizontal: AppDimens.paddingX20),
               child: CustomButton(
-                minHeight: 40,
+                minHeight: AppDimens.sizeX40,
                 text: 'Add Media',
                 onPressed: onAddTap,
               ),
@@ -1095,7 +1122,9 @@ class _CompactMediaCard extends StatelessWidget {
             color: LightColor.whiteColor,
             borderRadius: BorderRadius.circular(4),
             border: Border.all(
-              color: isSelected ? LightColor.secondaryColor : LightColor.borderColor,
+              color: isSelected
+                  ? LightColor.secondaryColor
+                  : LightColor.borderColor,
               width: isSelected ? 1.4 : 1,
             ),
             boxShadow: isSelected
@@ -1158,12 +1187,12 @@ class _CompactMediaCard extends StatelessWidget {
                               ),
                             ),
                           ),
-                          const SizedBox(width: 3),
+                          SizedBox(width: AppDimens.sizeX3),
                           GestureDetector(
                             onTap: canRemove ? onRemove : null,
                             child: Container(
-                              width: 20,
-                              height: 20,
+                              width: AppDimens.sizeX20,
+                              height: AppDimens.sizeX20,
                               decoration: BoxDecoration(
                                 color: Colors.white.withValues(alpha: 0.96),
                                 borderRadius: BorderRadius.circular(999),
@@ -1174,14 +1203,14 @@ class _CompactMediaCard extends StatelessWidget {
                                 boxShadow: <BoxShadow>[
                                   BoxShadow(
                                     color: Colors.black.withValues(alpha: 0.08),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 2),
+                                    blurRadius: AppDimens.sizeX8,
+                                    offset: const Offset(0, AppDimens.sizeX2),
                                   ),
                                 ],
                               ),
                               child: const Icon(
                                 Icons.delete_outline_rounded,
-                                size: 12,
+                                size: AppDimens.sizeX12,
                                 color: LightColor.redColor,
                               ),
                             ),
@@ -1305,32 +1334,31 @@ class _BottomSelectionBar extends StatelessWidget {
         : '$selectionCount item${selectionCount == 1 ? '' : 's'} selected';
 
     return Container(
-      padding: const EdgeInsets.all(10),
+      padding: AppUtils().getPadding(all: AppDimens.paddingX10),
       decoration: BoxDecoration(
         color: LightColor.whiteColor,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: LightColor.borderColor),
+        borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+        border: Border.all(color: LightColor.greyBorderColor),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: <Widget>[
           Text(
             titleText,
-            style: const TextStyle(
-              fontSize: 10,
+
+            style: FutsalTheme.getTextTheme(context).bodySubTitle?.copyWith(
               fontWeight: FontWeight.w700,
               color: LightColor.primaryTextColor,
             ),
           ),
-          const Spacer(),
 
+          const Spacer(),
           SizedBox(
-            height: 40,
-            width: 160,
+            height: AppDimens.sizeX40,
+            width: AppDimens.sizeX200,
             child: CustomButton(
               isLoading: false,
               icon: Icons.arrow_forward_rounded,
-              fontSize: 12,
               text: buttonLabel,
               onPressed: onConfirm,
             ),

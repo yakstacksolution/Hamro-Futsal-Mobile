@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
+import 'package:hamro_footsall/core/theme/futsal_theme.dart' hide LightColor;
+import 'package:hamro_footsall/core/utils/app_utils.dart';
+import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_models.dart';
 
 class VendorCategorySwitcher extends StatelessWidget {
@@ -17,16 +20,16 @@ class VendorCategorySwitcher extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(4),
+      padding: AppUtils().getPadding(all: AppDimens.paddingX4),
       decoration: BoxDecoration(
         color: LightColor.whiteColor,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: LightColor.borderColor),
+        borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+        border: Border.all(color: LightColor.greyBorderColor),
         boxShadow: [
           BoxShadow(
             color: LightColor.primaryTextColor.withValues(alpha: 0.04),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
+            blurRadius: AppDimens.radiusX16,
+            offset: const Offset(0, AppDimens.sizeX8),
           ),
         ],
       ),
@@ -41,7 +44,7 @@ class VendorCategorySwitcher extends StatelessWidget {
               onTap: () => onCategorySelected(VendorCategory.futsal),
             ),
           ),
-          const SizedBox(width: 6),
+          const SizedBox(width: AppDimens.sizeX6),
           Expanded(
             child: _Tab(
               title: 'Court',
@@ -78,71 +81,71 @@ class _Tab extends StatelessWidget {
   Widget build(BuildContext context) {
     final Color bg = isSelected
         ? LightColor.secondaryColor
-        : const Color(0xFFF8FAFC);
+        : LightColor.whiteColor;
 
     final Color textColor = isSelected
         ? LightColor.whiteColor
         : isLocked
-        ? const Color(0xFF94A3B8)
+        ? LightColor.secondaryTextColor
         : LightColor.primaryTextColor;
 
     final Color iconColor = isSelected
         ? LightColor.whiteColor
         : isLocked
-        ? const Color(0xFF94A3B8)
+        ? LightColor.whiteColor
         : LightColor.secondaryColor;
 
     return Material(
-      color: Colors.transparent,
+      color: LightColor.transparentColor,
       child: InkWell(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppDimens.radiusX8),
         onTap: onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          padding: AppUtils().getPadding(
+            horizontal: AppDimens.sizeX8,
+            vertical: AppDimens.sizeX6,
+          ),
           decoration: BoxDecoration(
             color: bg,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(AppDimens.radiusX8),
             border: Border.all(
               color: isSelected
                   ? LightColor.secondaryColor
-                  : const Color(0xFFE2E8F0),
+                  : LightColor.whiteColor,
             ),
           ),
           child: Row(
             children: [
               Container(
-                width: 30,
-                height: 30,
+                width: AppDimens.sizeX26,
+                height: AppDimens.sizeX26,
                 decoration: BoxDecoration(
                   color: isSelected
                       ? LightColor.whiteColor.withValues(alpha: 0.16)
-                      : LightColor.secondaryLight,
-                  borderRadius: BorderRadius.circular(6),
+                      : LightColor.secondaryColor,
+                  borderRadius: BorderRadius.circular(AppDimens.radiusX6),
                 ),
                 child: Icon(
                   isLocked ? Icons.lock_rounded : icon,
-                  size: 16,
+                  size: AppDimens.sizeX16,
                   color: iconColor,
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: AppDimens.sizeX8),
               Expanded(
                 child: Text(
                   isLocked ? 'Court (Locked)' : title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: textColor,
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w800,
-                  ),
+                  style: FutsalTheme.getTextTheme(context).bodyTextSmall
+                      ?.copyWith(color: textColor, fontWeight: FontWeight.w800),
                 ),
               ),
               if (isSelected)
                 const Icon(
                   Icons.check_rounded,
-                  size: 16,
+                  size: AppDimens.sizeX16,
                   color: LightColor.whiteColor,
                 ),
             ],

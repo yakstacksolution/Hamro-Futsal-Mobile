@@ -54,7 +54,6 @@ class VendorCourtManager extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return VendorPanel(
-      // padding: const EdgeInsets.all(14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
@@ -268,10 +267,14 @@ class _CourtCompactTile extends StatelessWidget {
         child: Ink(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: isSelected ? LightColor.secondaryLight : LightColor.whiteColor,
+            color: isSelected
+                ? LightColor.secondaryLight
+                : LightColor.whiteColor,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: isSelected ? LightColor.secondaryColor : LightColor.borderColor,
+              color: isSelected
+                  ? LightColor.secondaryColor
+                  : LightColor.borderColor,
               width: isSelected ? 1.5 : 1,
             ),
             boxShadow: isSelected

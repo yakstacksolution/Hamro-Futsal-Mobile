@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
+import 'package:hamro_footsall/core/routers/app_router_params.dart';
+import 'package:hamro_footsall/core/theme/app_colors.dart';
+import 'package:hamro_footsall/core/theme/futsal_theme.dart';
+import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'dart:ui';
 import 'package:hamro_footsall/core/utils/custom_image_view.dart';
-import 'package:hamro_footsall/features/courts_details/presentation/page/court_details.dart';
+import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/utils/image_constants.dart';
 
 class FootsallHomePage extends StatelessWidget {
   const FootsallHomePage({super.key});
@@ -22,19 +28,8 @@ class CourtsListScreen extends StatefulWidget {
 
 class _CourtsListScreenState extends State<CourtsListScreen>
     with SingleTickerProviderStateMixin {
-  int _selectedFilter = 0;
-  int _selectedNav = 0;
   late AnimationController _animController;
   late Animation<double> _fadeIn;
-
-  final List<String> _filters = [
-    'All',
-    'Nearby',
-    'Indoor',
-    'Outdoor',
-    'Open Now',
-    'Top Rated',
-  ];
 
   final List<CourtModel> courts = [
     CourtModel(
@@ -87,13 +82,6 @@ class _CourtsListScreenState extends State<CourtsListScreen>
     ),
   ];
 
-  static const _green = Color(0xFF0D9E5C);
-  static const _greenLight = Color(0xFFE8F7EF);
-  static const _bg = Color(0xFFF5F7FA);
-  static const _textPrimary = Color(0xFF0F1923);
-  static const _textSecondary = Color(0xFF6B7280);
-  static const _border = Color(0xFFE8ECF0);
-
   @override
   void initState() {
     super.initState();
@@ -119,9 +107,13 @@ class _CourtsListScreenState extends State<CourtsListScreen>
       child: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
-          SliverToBoxAdapter(child: SizedBox(height: 8)),
+          SliverToBoxAdapter(child: SizedBox(height: AppDimens.sizeX8)),
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 120),
+            padding: AppUtils().getPadding(
+              left: AppDimens.sizeX20,
+              right: AppDimens.sizeX20,
+              bottom: AppDimens.sizeX120,
+            ),
             sliver: SliverList.builder(
               itemCount: courts.length,
               itemBuilder: (context, index) {
@@ -134,7 +126,7 @@ class _CourtsListScreenState extends State<CourtsListScreen>
                     child: Opacity(opacity: value, child: child),
                   ),
                   child: Padding(
-                    padding: const EdgeInsets.only(bottom: 20),
+                    padding: AppUtils().getPadding(bottom: AppDimens.sizeX20),
                     child: CourtCard(court: courts[index]),
                   ),
                 );
@@ -158,29 +150,20 @@ class CourtCard extends StatefulWidget {
 class _CourtCardState extends State<CourtCard> {
   bool _saved = false;
 
-  static const _green = Color(0xFF0D9E5C);
-  static const _textPrimary = Color(0xFF0F1923);
-  static const _textSecondary = Color(0xFF6B7280);
-
   @override
   Widget build(BuildContext context) {
     return InkWell(
       onTap: () {
-        // context.goNamed(AppRouterParams.courtDetails.name);
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => CourtDetailPage()),
-        );
+        context.pushNamed(AppRouterParams.courtDetails.name);
       },
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          // border: Border.all(color: _border, width: 1.5),
+          color: LightColor.whiteColor,
+          borderRadius: BorderRadius.circular(AppDimens.radiusX18),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.06),
-              blurRadius: 24,
+              blurRadius: AppDimens.radiusX24,
               offset: const Offset(0, 8),
             ),
           ],
@@ -190,10 +173,10 @@ class _CourtCardState extends State<CourtCard> {
           children: [
             ClipRRect(
               borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(18),
+                top: Radius.circular(AppDimens.radiusX18),
               ),
               child: SizedBox(
-                height: 200,
+                height: AppDimens.sizeX200,
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
@@ -203,8 +186,6 @@ class _CourtCardState extends State<CourtCard> {
                       width: double.infinity,
                       height: double.infinity,
                     ),
-
-                    // Bookmark — top right
                     Positioned(
                       top: 12,
                       right: 12,
@@ -215,8 +196,8 @@ class _CourtCardState extends State<CourtCard> {
                           child: BackdropFilter(
                             filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                             child: Container(
-                              height: 36,
-                              width: 36,
+                              height: AppDimens.sizeX36,
+                              width: AppDimens.sizeX36,
                               decoration: BoxDecoration(
                                 color: Colors.white.withOpacity(0.85),
                                 borderRadius: BorderRadius.circular(12),
@@ -228,8 +209,10 @@ class _CourtCardState extends State<CourtCard> {
                                 _saved
                                     ? Icons.favorite_rounded
                                     : Icons.favorite_border_rounded,
-                                color: _saved ? _green : _textSecondary,
-                                size: 22,
+                                color: _saved
+                                    ? LightColor.secondaryColor
+                                    : LightColor.secondaryTextColor,
+                                size: AppDimens.sizeX22,
                               ),
                             ),
                           ),
@@ -241,126 +224,90 @@ class _CourtCardState extends State<CourtCard> {
               ),
             ),
 
-            // ── Details ──────────────────────────────────────────────
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+              padding: AppUtils().getPadding(all: AppDimens.sizeX14),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Name + Open/Closed row
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Expanded(
                         child: Text(
                           widget.court.name,
-                          style: const TextStyle(
-                            color: _textPrimary,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: -0.3,
-                          ),
+                          style: FutsalTheme.getTextTheme(context).bodyTextLarge
+                              ?.copyWith(
+                                color: LightColor.primaryTextColor,
+                                fontWeight: FontWeight.w600,
+                              ),
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: AppDimens.sizeX8),
                       _ratingWidget(),
                     ],
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: AppDimens.sizeX6),
 
-                  // Location + distance
                   Row(
                     children: [
-                      Icon(
-                        Icons.location_on_rounded,
-                        size: 14,
-                        color: _textSecondary,
+                      CustomImageView(
+                        imagePath: ImageConstants.locationIcon,
+                        height: AppDimens.sizeX14,
+                        width: AppDimens.sizeX14,
+                        fit: BoxFit.contain,
+                        color: LightColor.secondaryTextColor,
                       ),
-                      const SizedBox(width: 4),
+                      const SizedBox(width: AppDimens.sizeX6),
                       Text(
                         widget.court.location,
-                        style: const TextStyle(
-                          color: _textSecondary,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                        ),
+
+                        style: FutsalTheme.getTextTheme(context).bodyTextSmall
+                            ?.copyWith(color: LightColor.secondaryTextColor),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: AppDimens.sizeX10),
                       Container(
-                        width: 3,
-                        height: 3,
+                        width: AppDimens.sizeX3,
+                        height: AppDimens.sizeX3,
                         decoration: BoxDecoration(
-                          color: _textSecondary.withOpacity(0.4),
+                          color: LightColor.secondaryTextColor.withOpacity(0.4),
                           shape: BoxShape.circle,
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: AppDimens.sizeX8),
                       Text(
                         widget.court.distance,
-                        style: TextStyle(
-                          color: _textSecondary.withOpacity(0.8),
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w500,
-                        ),
+                        style: FutsalTheme.getTextTheme(context).bodyTextSmall
+                            ?.copyWith(
+                              color: LightColor.secondaryTextColor.withOpacity(
+                                0.8,
+                              ),
+                            ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
-
-                  // Feature chips
-                  // Wrap(
-                  //   spacing: 6,
-                  //   runSpacing: 6,
-                  //   children: widget.court.features
-                  //       .map(
-                  //         (f) => Container(
-                  //           padding: const EdgeInsets.symmetric(
-                  //             horizontal: 10,
-                  //             vertical: 5,
-                  //           ),
-                  //           decoration: BoxDecoration(
-                  //             color: _chipBg,
-                  //             borderRadius: BorderRadius.circular(9),
-                  //             border: Border.all(color: _border, width: 1),
-                  //           ),
-                  //           child: Text(
-                  //             f,
-                  //             style: const TextStyle(
-                  //               color: _textSecondary,
-                  //               fontSize: 11.5,
-                  //               fontWeight: FontWeight.w600,
-                  //             ),
-                  //           ),
-                  //         ),
-                  //       )
-                  //       .toList(),
-                  // ),
-                  // const SizedBox(height: 14),
-                  // const Divider(color: _border, thickness: 1, height: 1),
-                  // const SizedBox(height: 12),
-
-                  // Price only
+                  const SizedBox(height: AppDimens.sizeX12),
                   Row(
                     children: [
                       Row(
                         children: [
                           Text(
                             widget.court.price,
-                            style: const TextStyle(
-                              color: _green,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: -0.5,
-                            ),
+                            style: FutsalTheme.getTextTheme(context)
+                                .headingSubTitle
+                                ?.copyWith(
+                                  color: LightColor.secondaryColor,
+                                  fontWeight: FontWeight.w700,
+                                ),
                           ),
-                          const SizedBox(width: 6),
-                          const Text(
+                          const SizedBox(width: AppDimens.sizeX4),
+                          Text(
                             '/ hour',
-                            style: TextStyle(
-                              color: _textSecondary,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                            ),
+                            style: FutsalTheme.getTextTheme(context)
+                                .bodyTextMedium
+                                ?.copyWith(
+                                  color: LightColor.secondaryTextColor,
+                                  fontWeight: FontWeight.w500,
+                                ),
                           ),
                         ],
                       ),
@@ -379,36 +326,43 @@ class _CourtCardState extends State<CourtCard> {
 
   Widget _ratingWidget() {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(30),
+      borderRadius: BorderRadius.circular(AppDimens.sizeX30),
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+          padding: AppUtils().getPadding(
+            horizontal: AppDimens.paddingX10,
+            vertical: AppDimens.paddingX6,
+          ),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.85),
-            borderRadius: BorderRadius.circular(30),
+            color: LightColor.whiteColor.withOpacity(0.85),
+            borderRadius: BorderRadius.circular(AppDimens.sizeX30),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.star_rounded, color: _green, size: 15),
-              const SizedBox(width: 4),
+              const Icon(
+                Icons.star_rounded,
+                color: LightColor.ratingColor,
+                size: AppDimens.sizeX14,
+              ),
+              const SizedBox(width: AppDimens.sizeX4),
               Text(
                 widget.court.rating.toString(),
-                style: const TextStyle(
-                  color: _green,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w800,
-                ),
+                style: FutsalTheme.getTextTheme(context).bodyTextSmall
+                    ?.copyWith(
+                      color: LightColor.ratingColor,
+                      fontWeight: FontWeight.w600,
+                    ),
               ),
-              const SizedBox(width: 4),
+              const SizedBox(width: AppDimens.sizeX4),
               Text(
                 '(${widget.court.reviewCount})',
-                style: const TextStyle(
-                  color: _textSecondary,
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w500,
-                ),
+                style: FutsalTheme.getTextTheme(context).bodyTextSmall
+                    ?.copyWith(
+                      color: LightColor.secondaryDark,
+                      fontWeight: FontWeight.w500,
+                    ),
               ),
             ],
           ),
@@ -418,9 +372,6 @@ class _CourtCardState extends State<CourtCard> {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Status Pill
-// ─────────────────────────────────────────────────────────────────────────────
 class _StatusPill extends StatelessWidget {
   final bool isOpen;
   const _StatusPill({required this.isOpen});
@@ -428,18 +379,21 @@ class _StatusPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(30),
+      borderRadius: BorderRadius.circular(AppDimens.sizeX30),
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+          padding: AppUtils().getPadding(
+            horizontal: AppDimens.paddingX10,
+            vertical: AppDimens.paddingX4,
+          ),
           decoration: BoxDecoration(
             color: Colors.white.withOpacity(0.85),
-            borderRadius: BorderRadius.circular(30),
+            borderRadius: BorderRadius.circular(AppDimens.sizeX30),
             border: Border.all(
               color: isOpen
-                  ? const Color(0xFF0D9E5C).withOpacity(0.3)
-                  : Colors.red.withOpacity(0.3),
+                  ? LightColor.secondaryColor.withOpacity(0.3)
+                  : LightColor.redColor.withOpacity(0.3),
               width: 1,
             ),
           ),
@@ -447,21 +401,25 @@ class _StatusPill extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                height: 7,
-                width: 7,
+                height: AppDimens.sizeX6,
+                width: AppDimens.sizeX6,
                 decoration: BoxDecoration(
-                  color: isOpen ? const Color(0xFF0D9E5C) : Colors.red,
+                  color: isOpen
+                      ? LightColor.secondaryColor
+                      : LightColor.redColor,
                   shape: BoxShape.circle,
                 ),
               ),
-              const SizedBox(width: 6),
+              const SizedBox(width: AppDimens.sizeX4),
               Text(
                 isOpen ? 'Open Now' : 'Closed',
-                style: TextStyle(
-                  color: isOpen ? const Color(0xFF0D9E5C) : Colors.red,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                ),
+                style: FutsalTheme.getTextTheme(context).bodyTextSmall
+                    ?.copyWith(
+                      fontSize: AppDimens.sizeX10,
+                      color: isOpen
+                          ? LightColor.secondaryColor
+                          : LightColor.redColor,
+                    ),
               ),
             ],
           ),

@@ -66,7 +66,11 @@ class FutsalBusinessSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          _CompactBusinessSectionHeader(meta: meta),
+          VendorOnboardingSectionHeader(
+            title: meta.title,
+            subtitle: meta.subtitle,
+            icon: meta.icon,
+          ),
           const SizedBox(height: 12),
           if (subsectionIndex == 0)
             VendorUploadSection(
@@ -134,73 +138,6 @@ class FutsalBusinessSection extends StatelessWidget {
           icon: Icons.business_center_rounded,
         );
     }
-  }
-}
-
-class _CompactBusinessSectionHeader extends StatelessWidget {
-  const _CompactBusinessSectionHeader({required this.meta});
-
-  final _BusinessSectionMeta meta;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: <Color>[
-            LightColor.secondaryLight.withValues(alpha: 0.5),
-            LightColor.secondaryLight.withValues(alpha: 0.3),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: LightColor.secondaryColor.withValues(alpha: 0.2)),
-      ),
-      child: Row(
-        children: <Widget>[
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: LightColor.secondaryLight,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(meta.icon, size: 18, color: LightColor.secondaryColor),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  meta.title,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
-                    color: LightColor.primaryTextColor,
-                    height: 1.1,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  meta.subtitle,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w400,
-                    color: LightColor.secondaryTextColor,
-                    height: 1.3,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }
 

@@ -1,28 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
-
-class _C {
-  _C._();
-  static const Color primary = Color(0xFF0D9E5C);
-  static const Color primaryDark = Color(0xFF087A45);
-  static const Color primaryLight = Color(0xFFE8F8F0);
-  // static const Color surface = Color(0xFFFFFFFF);
-  static const Color background = Color(0xFFF7F9FC);
-  static const Color textPrimary = Color(0xFF111827);
-  static const Color textSecondary = Color(0xFF6B7280);
-  static const Color textHint = Color(0xFF9CA3AF);
-  static const Color border = Color(0xFFE5E7EB);
-  static const Color borderLight = Color(0xFFF3F4F6);
-  static const Color iconGrey = Color(0xFFB0B7C3);
-  static const Color red = Color(0xFFEF4444);
-
-  static const LinearGradient primaryGradient = LinearGradient(
-    colors: [Color(0xFF0D9E5C), Color(0xFF059669)],
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-  );
-}
+import 'package:hamro_footsall/core/theme/futsal_theme.dart' hide LightColor;
+import 'package:hamro_footsall/core/utils/app_utils.dart';
+import 'package:hamro_footsall/core/utils/dimens.dart';
 
 class ExpandableFocusSearchBar extends StatefulWidget {
   final ValueChanged<String>? onChanged;
@@ -92,33 +73,36 @@ class _ExpandableFocusSearchBarState extends State<ExpandableFocusSearchBar>
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // Main search bar
         AnimatedContainer(
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeOutCubic,
-          height: 50,
+          height: AppDimens.sizeX50,
           decoration: BoxDecoration(
             color: LightColor.cardColor,
-            borderRadius: BorderRadius.circular(_isFocused ? 10 : 10),
+            borderRadius: BorderRadius.circular(
+              _isFocused ? AppDimens.radiusX10 : AppDimens.radiusX10,
+            ),
             border: Border.all(
               color: _isFocused
-                  ? LightColor.secondaryColor.withOpacity(0.4)
-                  : LightColor.borderColor.withOpacity(0.6),
-              width: _isFocused ? 2 : 1,
+                  ? LightColor.secondaryColor.withValues(alpha: 0.4)
+                  : LightColor.greyBorderColor,
+              width: _isFocused ? 1 : 0.8,
             ),
             boxShadow: [
               BoxShadow(
                 color: _isFocused
-                    ? LightColor.secondaryColor.withOpacity(0.1)
-                    : LightColor.shadowColor.withOpacity(0.03),
-                blurRadius: _isFocused ? 20 : 10,
-                offset: const Offset(0, 4),
+                    ? LightColor.secondaryColor.withValues(alpha: 0.1)
+                    : LightColor.shadowColor.withValues(alpha: 0.05),
+                blurRadius: _isFocused
+                    ? AppDimens.radiusX20
+                    : AppDimens.radiusX12,
+                offset: const Offset(0, AppDimens.sizeX4),
               ),
             ],
           ),
           child: Row(
             children: [
-              const SizedBox(width: 16),
+              const SizedBox(width: AppDimens.sizeX16),
               AnimatedSwitcher(
                 duration: const Duration(milliseconds: 200),
                 transitionBuilder: (child, animation) {
@@ -127,33 +111,46 @@ class _ExpandableFocusSearchBarState extends State<ExpandableFocusSearchBar>
                 child: Icon(
                   _isFocused ? Icons.search_rounded : Icons.search_rounded,
                   key: ValueKey(_isFocused),
-                  color: _isFocused ? LightColor.secondaryColor : LightColor.hintTextColor,
-                  size: 22,
+                  color: _isFocused
+                      ? LightColor.secondaryColor
+                      : LightColor.hintTextColor,
+                  size: AppDimens.sizeX22,
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: AppDimens.sizeX12),
               Expanded(
                 child: TextField(
                   controller: _controller,
                   focusNode: _focusNode,
-                  style: const TextStyle(
-                    color: LightColor.primaryTextColor,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  decoration: const InputDecoration(
+                  cursorColor: LightColor.primaryTextColor,
+                  cursorHeight: AppDimens.sizeX20,
+                  cursorWidth: 1.5,
+                  style: FutsalTheme.getTextTheme(context).bodyTextMedium
+                      ?.copyWith(color: LightColor.primaryTextColor),
+                  decoration: InputDecoration(
+                    filled: false,
                     enabledBorder: OutlineInputBorder(
                       borderSide: BorderSide(color: Colors.transparent),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderSide: BorderSide(color: Colors.transparent),
                     ),
-                    hintText: 'Where do you want to play?',
-                    hintStyle: TextStyle(
-                      color: LightColor.hintTextColor,
-                      fontSize: 14.5,
-                      fontWeight: FontWeight.w400,
+                    disabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.transparent),
                     ),
+                    errorBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.transparent),
+                    ),
+                    focusedErrorBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.transparent),
+                    ),
+                    hintText: 'Where do you want to play?',
+
+                    hintStyle: FutsalTheme.getTextTheme(context).bodyTextMedium
+                        ?.copyWith(
+                          color: LightColor.hintTextColor,
+                          fontWeight: FontWeight.w400,
+                        ),
                     border: InputBorder.none,
                     contentPadding: EdgeInsets.zero,
                     isDense: true,
@@ -167,17 +164,17 @@ class _ExpandableFocusSearchBarState extends State<ExpandableFocusSearchBar>
                     HapticFeedback.lightImpact();
                     _controller.clear();
                   },
-                  color: _C.textSecondary,
-                  bg: _C.borderLight,
+                  color: LightColor.whiteColor,
+                  bg: LightColor.greyBorderColor,
                 ),
-              SizedBox(width: 2),
+              SizedBox(width: AppDimens.sizeX2),
               _buildIconButton(
                 Icons.tune_rounded,
                 onTap: widget.onFilterTap,
-                color: Colors.white,
+                color: LightColor.whiteColor,
                 isGradient: true,
               ),
-              const SizedBox(width: 8),
+              SizedBox(width: AppDimens.sizeX8),
             ],
           ),
         ),
@@ -190,17 +187,16 @@ class _ExpandableFocusSearchBarState extends State<ExpandableFocusSearchBar>
                 child: FadeTransition(
                   opacity: _expandAnimation,
                   child: Container(
-                    margin: const EdgeInsets.only(top: 8),
-                    padding: const EdgeInsets.all(16),
+                    margin: AppUtils().getMargin(top: AppDimens.sizeX8),
+                    padding: AppUtils().getPadding(all: AppDimens.paddingX16),
                     decoration: BoxDecoration(
                       color: LightColor.cardColor,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: LightColor.borderColor),
+                      borderRadius: BorderRadius.circular(AppDimens.radiusX14),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.04),
-                          blurRadius: 16,
-                          offset: const Offset(0, 4),
+                          color: Colors.black.withValues(alpha: 0.04),
+                          blurRadius: AppDimens.radiusX6,
+                          offset: const Offset(0, 6),
                         ),
                       ],
                     ),
@@ -210,29 +206,26 @@ class _ExpandableFocusSearchBarState extends State<ExpandableFocusSearchBar>
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text(
+                            Text(
                               'Recent Searches',
-                              style: TextStyle(
-                                color: _C.textSecondary,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 0.3,
-                              ),
+                              style: FutsalTheme.getTextTheme(context)
+                                  .bodyTextMedium
+                                  ?.copyWith(
+                                    color: LightColor.secondaryTextColor,
+                                  ),
                             ),
                             GestureDetector(
                               onTap: () {},
-                              child: const Text(
+                              child: Text(
                                 'Clear All',
-                                style: TextStyle(
-                                  color: _C.red,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                                style: FutsalTheme.getTextTheme(context)
+                                    .bodyTextSmall
+                                    ?.copyWith(color: LightColor.redColor),
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: AppDimens.sizeX12),
                         ..._recentSearches.map((s) => _buildRecentItem(s)),
                       ],
                     ),
@@ -252,22 +245,27 @@ class _ExpandableFocusSearchBarState extends State<ExpandableFocusSearchBar>
         );
       },
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: AppUtils().getPadding(vertical: AppDimens.sizeX10),
+
         child: Row(
           children: [
-            const Icon(Icons.history_rounded, color: _C.iconGrey, size: 18),
-            const SizedBox(width: 12),
+            const Icon(
+              Icons.history_rounded,
+              color: LightColor.iconGrey,
+              size: AppDimens.sizeX18,
+            ),
+            const SizedBox(width: AppDimens.sizeX12),
             Expanded(
               child: Text(
                 text,
-                style: const TextStyle(
-                  color: _C.textPrimary,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
+                style: FutsalTheme.getTextTheme(context).bodyTextSmall,
               ),
             ),
-            const Icon(Icons.north_west_rounded, color: _C.iconGrey, size: 14),
+            const Icon(
+              Icons.north_west_rounded,
+              color: LightColor.iconGrey,
+              size: AppDimens.sizeX14,
+            ),
           ],
         ),
       ),
@@ -277,32 +275,24 @@ class _ExpandableFocusSearchBarState extends State<ExpandableFocusSearchBar>
   Widget _buildIconButton(
     IconData icon, {
     VoidCallback? onTap,
-    Color color = _C.iconGrey,
-    Color bg = Colors.transparent,
+    Color color = LightColor.iconGrey,
+    Color bg = LightColor.transparentColor,
     bool isGradient = false,
   }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 36,
-        height: 36,
-        margin: const EdgeInsets.only(left: 2),
+        width: AppDimens.sizeX36,
+        height: AppDimens.sizeX36,
+        margin: AppUtils().getMargin(left: AppDimens.sizeX2),
         decoration: BoxDecoration(
-          gradient: isGradient ? _C.primaryGradient : null,
-          color: isGradient ? null : bg,
-          borderRadius: BorderRadius.circular(8),
-          boxShadow: isGradient
-              ? [
-                  BoxShadow(
-                    color: _C.primary.withOpacity(0.25),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ]
-              : null,
+          color: LightColor.secondaryColor,
+          borderRadius: BorderRadius.circular(AppDimens.radiusX6),
         ),
-        child: Icon(icon, color: color, size: 20),
+        child: Icon(icon, color: color, size: AppDimens.sizeX20),
       ),
     );
   }
 }
+
+ 

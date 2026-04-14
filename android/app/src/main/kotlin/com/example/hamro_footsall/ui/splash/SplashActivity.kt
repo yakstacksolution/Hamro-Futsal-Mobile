@@ -131,9 +131,9 @@ class SplashActivity : ComponentActivity() {
 }
 
 object LightColor {
-        val accent = Color(0xFF26B58A)
-        val secondaryDark = Color(0xFF1E9C76)
-        val secondary = Color(0xFF26B58A)
+        val accent = Color(0xFF2C7969)
+        val secondaryDark = Color(0xFF235F53)
+        val secondary = Color(0xFF2C7969)
         val secondaryLight = Color(0xFF5EE6A8)
         val primarySoft = Color(0xFF6EE7B7)
         val shadow = Color(0xFF0D5C44)
@@ -228,19 +228,7 @@ fun SplashScreen(
         Box(
                 modifier =
                         modifier.fillMaxSize()
-                                .background(
-                                        brush =
-                                                Brush.linearGradient(
-                                                        colors =
-                                                                listOf(
-                                                                        LightColor.accent,
-                                                                        LightColor.secondaryDark,
-                                                                        LightColor.secondary
-                                                                ),
-                                                        start = Offset.Zero,
-                                                        end = Offset(1200f, 2200f),
-                                                ),
-                                )
+                                .background(LightColor.secondary)
                                 .safeDrawingPadding(),
         ) {
                 GlowCircle(

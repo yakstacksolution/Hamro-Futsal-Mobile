@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
+import 'package:hamro_footsall/core/utils/dimens.dart';
 
 class KeyboardAttachedToolbar extends StatelessWidget {
   final QuillController controller;
@@ -13,9 +14,11 @@ class KeyboardAttachedToolbar extends StatelessWidget {
     iconButtonSelectedData: IconButtonData(
       color: LightColor.secondaryColor,
       style: ButtonStyle(
-        backgroundColor: WidgetStateProperty.all(LightColor.secondaryLight),
-        shape: WidgetStateProperty.all(
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        backgroundColor: MaterialStateProperty.all(LightColor.secondaryLight),
+        shape: MaterialStateProperty.all(
+          RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+          ),
         ),
       ),
     ),
@@ -23,28 +26,34 @@ class KeyboardAttachedToolbar extends StatelessWidget {
       color: LightColor.primaryTextColor,
       style: ButtonStyle(
         shape: WidgetStateProperty.all(
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+          ),
         ),
       ),
     ),
   );
 
   QuillToolbarToggleStyleButtonOptions get _toggleButtonOptions =>
-      QuillToolbarToggleStyleButtonOptions(iconSize: 12, iconTheme: _iconTheme);
+      QuillToolbarToggleStyleButtonOptions(
+        iconSize: AppDimens.sizeX12,
+        iconTheme: _iconTheme,
+      );
 
   QuillToolbarHistoryButtonOptions get _historyButtonOptions =>
-      QuillToolbarHistoryButtonOptions(iconSize: 12, iconTheme: _iconTheme);
+      QuillToolbarHistoryButtonOptions(
+        iconSize: AppDimens.sizeX12,
+        iconTheme: _iconTheme,
+      );
 
   QuillToolbarClearFormatButtonOptions get _clearFormatButtonOptions =>
-      QuillToolbarClearFormatButtonOptions(iconSize: 12, iconTheme: _iconTheme);
+      QuillToolbarClearFormatButtonOptions(
+        iconSize: AppDimens.sizeX12,
+        iconTheme: _iconTheme,
+      );
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final toolbarColor = isDark
-        ? theme.colorScheme.surfaceContainerHighest
-        : theme.colorScheme.surface;
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     return AnimatedPadding(
       duration: const Duration(milliseconds: 250),
@@ -56,7 +65,7 @@ class KeyboardAttachedToolbar extends StatelessWidget {
         child: SizedBox(
           width: double.infinity,
           child: ColoredBox(
-            color: toolbarColor,
+            color: LightColor.whiteColor,
             child: Column(
               mainAxisSize: MainAxisSize.max,
               crossAxisAlignment: CrossAxisAlignment.stretch,
