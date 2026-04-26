@@ -7,13 +7,11 @@ import 'package:hamro_footsall/features/auth/presentation/authentication_bloc/au
 import 'package:hamro_footsall/features/auth/presentation/login_screen.dart';
 import 'package:hamro_footsall/features/auth/presentation/otp_verification_screen.dart';
 import 'package:hamro_footsall/features/auth/presentation/register_screen.dart';
-import 'package:hamro_footsall/features/auth/domain/usecase/authentication_usecase.dart'; 
+import 'package:hamro_footsall/features/auth/domain/usecase/authentication_usecase.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/page/dashboard_screen.dart';
 import 'package:hamro_footsall/features/futsal_details/presentation/view/futsal_details_page_view.dart';
 import 'package:hamro_footsall/features/public/data/repositories/public_repository_impl.dart';
-import 'package:hamro_footsall/features/public/domain/usecase/get_public_packages_use_case.dart';
 import 'package:hamro_footsall/features/public/domain/usecase/get_public_templates_use_case.dart';
-import 'package:hamro_footsall/features/public/presentation/bloc/public_packages/public_packages_bloc.dart';
 import 'package:hamro_footsall/features/public/presentation/bloc/public_templates/public_templates_bloc.dart';
 import 'package:hamro_footsall/features/profile/data/repositories/profile_repository_impl.dart';
 import 'package:hamro_footsall/features/profile/data/model/profile_model.dart';
@@ -139,19 +137,12 @@ class AppRouters {
             return MultiBlocProvider(
               providers: <BlocProvider<dynamic>>[
                 BlocProvider<PublicTemplatesBloc>(
-                  lazy: false,
                   create: (_) => PublicTemplatesBloc(
                     GetPublicTemplatesUseCase(publicRepository),
                   )..add(FetchPublicTemplatesEvent()),
                 ),
-                BlocProvider<PublicPackagesBloc>(
-                  lazy: false,
-                  create: (_) => PublicPackagesBloc(
-                    GetPublicPackagesUseCase(publicRepository),
-                  )..add(FetchPublicPackagesEvent()),
-                ),
+
                 BlocProvider<VendorOnboardingCubit>(
-                  lazy: false,
                   create: (_) => VendorOnboardingCubit(
                     const EphemeralVendorDraftRepository(),
                     onboardingUseCase: vendorOnboardingUseCase,

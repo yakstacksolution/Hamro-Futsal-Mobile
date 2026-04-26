@@ -22,6 +22,11 @@ class PublicTemplatesBloc
     FetchPublicTemplatesEvent event,
     Emitter<PublicTemplatesState> emit,
   ) async {
+    if (state.templates.isNotEmpty ||
+        state.status == PublicTemplatesStatus.loading) {
+      return;
+    }
+
     emit(
       state.copyWith(status: PublicTemplatesStatus.loading, clearError: true),
     );

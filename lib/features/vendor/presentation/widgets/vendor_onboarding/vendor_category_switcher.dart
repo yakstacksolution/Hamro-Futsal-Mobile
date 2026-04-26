@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
-import 'package:hamro_footsall/core/theme/futsal_theme.dart' hide LightColor;
+import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_models.dart';
@@ -89,11 +89,8 @@ class _Tab extends StatelessWidget {
         ? LightColor.secondaryTextColor
         : LightColor.primaryTextColor;
 
-    final Color iconColor = isSelected
-        ? LightColor.whiteColor
-        : isLocked
-        ? LightColor.whiteColor
-        : LightColor.secondaryColor;
+    // Always white icon color
+    final Color iconColor = LightColor.whiteColor;
 
     return Material(
       color: LightColor.transparentColor,

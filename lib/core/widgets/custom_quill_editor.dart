@@ -92,19 +92,6 @@ class _CustomQuillEditorState extends State<CustomQuillEditor>
 
   void _onTextChanged() {
     _checkIfEmpty();
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!widget.scrollController.hasClients || !mounted) return;
-      final offset = widget.scrollController.offset;
-      final maxScroll = widget.scrollController.position.maxScrollExtent;
-      if (maxScroll - offset < 150) {
-        widget.scrollController.animateTo(
-          maxScroll,
-          duration: const Duration(milliseconds: 250),
-          curve: Curves.easeOut,
-        );
-      }
-    });
   }
 
   @override

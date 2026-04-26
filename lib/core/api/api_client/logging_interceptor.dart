@@ -30,46 +30,46 @@ class LoggingInterceptor extends Interceptor {
     }
     if(response.statusCode == 204){
       var statusCode = response.statusCode;
-      var dioE = DioError(requestOptions: response.requestOptions, response: Response(requestOptions: response.requestOptions, statusCode: statusCode), type: DioErrorType.badResponse);
+      var dioE = DioException(requestOptions: response.requestOptions, response: Response(requestOptions: response.requestOptions, statusCode: statusCode), type: DioExceptionType.badResponse);
       return handler.reject(dioE, true);
     }
     return super.onResponse(response, handler);
   }
 
   @override
-  void onError(DioError err, ErrorInterceptorHandler handler) {
+  void onError(DioException err, ErrorInterceptorHandler handler) {
     if (err.response == null) {
       int statusCode = 1503;
-      DioError dioE;
+      DioException dioE;
       if (err.error.toString().contains("SocketException")) {
         statusCode = 1503;
       } else {
         switch(err.type) {
-          case DioErrorType.connectionTimeout:
+          case DioExceptionType.connectionTimeout:
             statusCode = 522;
             break;
-          case DioErrorType.sendTimeout:
+          case DioExceptionType.sendTimeout:
             statusCode = 552;
             break;
-          case DioErrorType.receiveTimeout:
+          case DioExceptionType.receiveTimeout:
             statusCode = 504;
             break;
-          case DioErrorType.badCertificate:
+          case DioExceptionType.badCertificate:
             statusCode = 502;
             break;
-          case DioErrorType.badResponse:
-          case DioErrorType.connectionError:
+          case DioExceptionType.badResponse:
+          case DioExceptionType.connectionError:
             statusCode = 400;
             break;
-          case DioErrorType.cancel:
+          case DioExceptionType.cancel:
             statusCode = 499;
             break;
-          case DioErrorType.unknown:
+          case DioExceptionType.unknown:
             statusCode = 1517;
             break;
         }
       }
-      dioE = DioError(requestOptions: err.requestOptions, response: Response(requestOptions: err.requestOptions, statusCode: statusCode));
+      dioE = DioException(requestOptions: err.requestOptions, response: Response(requestOptions: err.requestOptions, statusCode: statusCode));
       if (kDebugMode) {
         print("\n\n===============================================================\n\n");
         print('ERROR[${dioE.response?.statusCode}] => PATH: ${dioE.requestOptions.path}');

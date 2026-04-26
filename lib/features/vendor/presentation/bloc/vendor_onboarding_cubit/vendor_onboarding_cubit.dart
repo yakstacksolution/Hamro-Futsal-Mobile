@@ -95,6 +95,11 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
           currentSectionIndex == futsalSectionDefinitions.length - 1;
       final bool isLastFutsalSubstep =
           currentSubstepIndex == activeSubsteps.length - 1;
+      if (state.remoteFutsalId != null &&
+          currentSectionIndex == 0 &&
+          currentSubstepIndex == 0) {
+        return 'Next';
+      }
       return isLastFutsalSection && isLastFutsalSubstep
           ? 'Continue to Courts'
           : 'Next';
@@ -187,10 +192,6 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
       sectionIndex,
       subsectionIndex,
     );
-    if (!_canJumpToFutsalSubstep(sectionIndex, subsectionIndex) &&
-        !_isCurrentFutsalSubstep(sectionIndex, subsectionIndex)) {
-      return StepStatus.locked;
-    }
     if (state.errorKeys.contains(key)) return StepStatus.error;
 
     final VendorValidationResult result =
@@ -233,10 +234,6 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
       sectionIndex,
       subsectionIndex,
     );
-    if (!_canJumpToCourtSubstep(courtId, sectionIndex, subsectionIndex) &&
-        !_isCurrentCourtSubstep(courtId, sectionIndex, subsectionIndex)) {
-      return StepStatus.locked;
-    }
     if (state.errorKeys.contains(key)) return StepStatus.error;
 
     final VendorValidationResult result =
@@ -364,7 +361,6 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
           clearErrorMessage: true,
         ),
       );
-      _scheduleDraftSave();
       return;
     }
 
@@ -387,7 +383,6 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
           clearErrorMessage: true,
         ),
       );
-      _scheduleDraftSave();
       return;
     }
 
@@ -407,17 +402,12 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
         clearErrorMessage: true,
       ),
     );
-    _scheduleDraftSave();
   }
 
   void selectSection(int sectionIndex) {
     if (sectionIndex < 0 || sectionIndex >= activeSections.length) return;
 
     if (!state.isInCourtCategory) {
-      if (!_canJumpToFutsalSection(sectionIndex)) {
-        _emitError('Complete earlier futsal sections before jumping ahead.');
-        return;
-      }
       _moveToFutsal(sectionIndex, 0);
       return;
     }
@@ -427,10 +417,6 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
       return;
     }
 
-    if (!_canJumpToCourtSection(state.activeCourtId!, sectionIndex)) {
-      _emitError('Complete earlier court sections before jumping ahead.');
-      return;
-    }
     _moveToCourt(state.activeCourtId!, sectionIndex, 0);
   }
 
@@ -438,10 +424,6 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     if (subsectionIndex < 0 || subsectionIndex >= activeSubsteps.length) return;
 
     if (!state.isInCourtCategory) {
-      if (!_canJumpToFutsalSubstep(currentSectionIndex, subsectionIndex)) {
-        _emitError('Complete earlier substeps before jumping ahead.');
-        return;
-      }
       _moveToFutsal(currentSectionIndex, subsectionIndex);
       return;
     }
@@ -451,14 +433,6 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
       return;
     }
 
-    if (!_canJumpToCourtSubstep(
-      state.activeCourtId!,
-      currentSectionIndex,
-      subsectionIndex,
-    )) {
-      _emitError('Complete earlier substeps before jumping ahead.');
-      return;
-    }
     _moveToCourt(state.activeCourtId!, currentSectionIndex, subsectionIndex);
   }
 
@@ -478,10 +452,7 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
       return validation.message;
     }
 
-    final String? registrationFailure = await _submitFutsalRegistrationIfNeeded(
-      mainStep: 0,
-      subStep: 0,
-    );
+    final String? registrationFailure = await _submitFutsalProgressIfNeeded();
     if (registrationFailure != null) {
       return registrationFailure;
     }
@@ -631,7 +602,7 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     _emitUpdated(
       state.copyWith(
         mediaLibrary: state.mediaLibrary
-            .where((UploadRef item) => item.localPath != file.localPath)
+            .where((UploadRef item) => item.remoteUrl != file.remoteUrl)
             .toList(),
       ),
     );
@@ -672,6 +643,10 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
         )
         .toList();
     _emitUpdated(state.copyWith(courts: updated));
+  }
+
+  void replaceCourts(List<CourtDraft> courts) {
+    _emitUpdated(state.copyWith(courts: courts));
   }
 
   void toggleFutsalAmenity(String value) {
@@ -960,14 +935,29 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
   }
 
   void setFutsalCoverImage(UploadRef file) {
-    updateFutsal(state.futsal.copyWith(coverImage: file));
+    updateFutsal(
+      state.futsal.copyWith(
+        coverImage: file,
+        selectedCoverImage: SelectedImageRef.fromUploadRef(file),
+      ),
+    );
   }
 
   void addFutsalGalleryImages(List<UploadRef> files) {
     if (files.isEmpty) return;
+    final List<UploadRef> mergedGallery = _mergeUniqueUploads(
+      state.futsal.gallery,
+      files,
+    );
+    final List<SelectedImageRef> mergedSelectedGallery =
+        _mergeUniqueSelectedImages(
+          state.futsal.selectedGalleryImages,
+          files.map(SelectedImageRef.fromUploadRef).toList(),
+        );
     updateFutsal(
       state.futsal.copyWith(
-        gallery: _mergeUniqueUploads(state.futsal.gallery, files),
+        gallery: mergedGallery,
+        selectedGalleryImages: mergedSelectedGallery,
       ),
     );
   }
@@ -1007,14 +997,24 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
   }
 
   void removeFutsalCoverImage() {
-    updateFutsal(state.futsal.copyWith(clearCoverImage: true));
+    updateFutsal(
+      state.futsal.copyWith(
+        clearCoverImage: true,
+        clearSelectedCoverImage: true,
+      ),
+    );
   }
 
   void removeFutsalGalleryImage(UploadRef file) {
     updateFutsal(
       state.futsal.copyWith(
         gallery: state.futsal.gallery
-            .where((UploadRef item) => item.localPath != file.localPath)
+            .where((UploadRef item) => item.remoteUrl != file.remoteUrl)
+            .toList(),
+        selectedGalleryImages: state.futsal.selectedGalleryImages
+            .where(
+              (SelectedImageRef item) => item.image.remoteUrl != file.remoteUrl,
+            )
             .toList(),
       ),
     );
@@ -1024,7 +1024,7 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     updateFutsal(
       state.futsal.copyWith(
         companyDocuments: state.futsal.companyDocuments
-            .where((UploadRef item) => item.localPath != file.localPath)
+            .where((UploadRef item) => item.remoteUrl != file.remoteUrl)
             .toList(),
       ),
     );
@@ -1042,7 +1042,7 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     updateActiveCourt(
       court.copyWith(
         photos: court.photos
-            .where((UploadRef item) => item.localPath != file.localPath)
+            .where((UploadRef item) => item.remoteUrl != file.remoteUrl)
             .toList(),
       ),
     );
@@ -1054,7 +1054,7 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     updateActiveCourt(
       court.copyWith(
         memories: court.memories
-            .where((UploadRef item) => item.localPath != file.localPath)
+            .where((UploadRef item) => item.remoteUrl != file.remoteUrl)
             .toList(),
       ),
     );
@@ -1197,7 +1197,6 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
         clearErrorMessage: true,
       ),
     );
-    _scheduleDraftSave();
   }
 
   void _moveToCourt(String courtId, int sectionIndex, int subsectionIndex) {
@@ -1230,7 +1229,6 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
         clearErrorMessage: true,
       ),
     );
-    _scheduleDraftSave();
   }
 
   void _emitUpdated(VendorOnboardingState nextState) {
@@ -1259,25 +1257,21 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     }
   }
 
-  Future<String?> _submitFutsalRegistrationIfNeeded({
-    required int mainStep,
-    required int subStep,
-  }) async {
+  Future<String?> _submitFutsalProgressIfNeeded() async {
     if (state.isInCourtCategory) return null;
-    if (state.remoteFutsalId != null) return null;
-    if (currentSectionIndex != mainStep || currentSubstepIndex != subStep) {
-      return null;
-    }
 
     emit(state.copyWith(isSubmitting: true, clearErrorMessage: true));
 
     try {
-      final Map<String, dynamic> body = state.toCreateFutsalBody(
-        mainStep: mainStep,
-        subStep: subStep,
+      final Map<String, dynamic> body = state.toFutsalBody(
+        mainStep: currentSectionIndex,
+        subStep: currentSubstepIndex,
+        futsalId: state.remoteFutsalId,
       );
-      final Either<AppException, Map<String, dynamic>> response =
-          await _onboardingUseCase.submitFutsal(body);
+      final Either<AppException, VendorOnboardingResponseModel> response =
+          state.remoteFutsalId == null
+          ? await _onboardingUseCase.submitFutsal(body)
+          : await _onboardingUseCase.updateFutsal(body);
 
       return response.fold(
         (AppException failure) {
@@ -1290,11 +1284,11 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
           );
           return failure.errorMessage;
         },
-        (Map<String, dynamic> data) {
+        (VendorOnboardingResponseModel data) {
           emit(
             state.copyWith(
               isSubmitting: false,
-              remoteFutsalId: _extractRemoteFutsalId(data),
+              remoteFutsalId: data.id ?? state.remoteFutsalId,
               clearErrorMessage: true,
             ),
           );
@@ -1311,14 +1305,6 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
       );
       return error.toString();
     }
-  }
-
-  int? _extractRemoteFutsalId(Map<String, dynamic> data) {
-    final Object? raw =
-        data['id'] ?? data['futsal_id'] ?? data['futsalId'] ?? data['futsalID'];
-    if (raw == null) return null;
-    if (raw is int) return raw;
-    return int.tryParse(raw.toString());
   }
 
   void _registerValidationFailure(VendorValidationResult result) {
@@ -1385,90 +1371,6 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     );
   }
 
-  bool _canJumpToFutsalSection(int targetSectionIndex) {
-    if (targetSectionIndex <= currentSectionIndex &&
-        state.cursor.category == VendorCategory.futsal) {
-      return true;
-    }
-    for (int index = 0; index < targetSectionIndex; index++) {
-      if (futsalSectionStatus(index) != StepStatus.complete) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  bool _canJumpToFutsalSubstep(int sectionIndex, int subsectionIndex) {
-    if (!_canJumpToFutsalSection(sectionIndex)) return false;
-    if (sectionIndex < currentSectionIndex ||
-        (sectionIndex == currentSectionIndex &&
-            subsectionIndex <= currentSubstepIndex &&
-            state.cursor.category == VendorCategory.futsal)) {
-      return true;
-    }
-    for (int index = 0; index < subsectionIndex; index++) {
-      if (futsalSubstepStatus(sectionIndex, index) != StepStatus.complete) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  bool _canJumpToCourtSection(String courtId, int targetSectionIndex) {
-    if (_courtById(courtId) == null) return false;
-    final bool isCurrentCourt = state.activeCourtId == courtId;
-    if (isCurrentCourt &&
-        targetSectionIndex <= currentSectionIndex &&
-        state.isInCourtCategory) {
-      return true;
-    }
-    for (int index = 0; index < targetSectionIndex; index++) {
-      if (courtSectionStatus(courtId, index) != StepStatus.complete) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  bool _canJumpToCourtSubstep(
-    String courtId,
-    int sectionIndex,
-    int subsectionIndex,
-  ) {
-    if (!_canJumpToCourtSection(courtId, sectionIndex)) return false;
-    final bool isCurrentCourt = state.activeCourtId == courtId;
-    if (isCurrentCourt &&
-        state.isInCourtCategory &&
-        sectionIndex == currentSectionIndex &&
-        subsectionIndex <= currentSubstepIndex) {
-      return true;
-    }
-    for (int index = 0; index < subsectionIndex; index++) {
-      if (courtSubstepStatus(courtId, sectionIndex, index) !=
-          StepStatus.complete) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  bool _isCurrentFutsalSubstep(int sectionIndex, int subsectionIndex) {
-    return !state.isInCourtCategory &&
-        currentSectionIndex == sectionIndex &&
-        currentSubstepIndex == subsectionIndex;
-  }
-
-  bool _isCurrentCourtSubstep(
-    String courtId,
-    int sectionIndex,
-    int subsectionIndex,
-  ) {
-    return state.isInCourtCategory &&
-        state.activeCourtId == courtId &&
-        currentSectionIndex == sectionIndex &&
-        currentSubstepIndex == subsectionIndex;
-  }
-
   StepStatus _aggregateStatuses(List<StepStatus> statuses) {
     if (statuses.isEmpty) return StepStatus.notStarted;
     if (statuses.any((StepStatus status) => status == StepStatus.error)) {
@@ -1532,14 +1434,16 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
   }
 
   VendorOnboardingState _normalizeState(VendorOnboardingState input) {
-    final FutsalDraft normalizedFutsal = input.futsal.copyWith(
-      slug: input.futsal.slug.trim().isEmpty
-          ? _buildFutsalSlug(
-              title: input.futsal.title,
-              currentSlug: input.futsal.slug,
-            )
-          : input.futsal.slug.trim(),
-      websiteOrSocialLink: input.futsal.websiteOrSocialLink.trim(),
+    final FutsalDraft normalizedFutsal = _syncFutsalSelectedImages(
+      input.futsal.copyWith(
+        slug: input.futsal.slug.trim().isEmpty
+            ? _buildFutsalSlug(
+                title: input.futsal.title,
+                currentSlug: input.futsal.slug,
+              )
+            : input.futsal.slug.trim(),
+        websiteOrSocialLink: input.futsal.websiteOrSocialLink.trim(),
+      ),
     );
     final List<CourtDraft> courts = List<CourtDraft>.unmodifiable(input.courts);
     final Map<String, SectionPointer> pointers = <String, SectionPointer>{};
@@ -1715,7 +1619,7 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
   UploadRef? _toUploadRef(PlatformFile file) {
     final String path = file.path ?? file.name;
     if (path.trim().isEmpty) return null;
-    return UploadRef(name: file.name, localPath: path);
+    return UploadRef(name: file.name, remoteUrl: path);
   }
 
   String _newCourtId() {
@@ -1737,12 +1641,43 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     List<UploadRef> additions,
   ) {
     final Map<String, UploadRef> byPath = <String, UploadRef>{
-      for (final UploadRef item in current) item.localPath: item,
+      for (final UploadRef item in current) item.remoteUrl ?? '': item,
     };
     for (final UploadRef item in additions) {
-      byPath[item.localPath] = item;
+      byPath[item.remoteUrl ?? ''] = item;
     }
     return byPath.values.toList();
+  }
+
+  List<SelectedImageRef> _mergeUniqueSelectedImages(
+    List<SelectedImageRef> current,
+    List<SelectedImageRef> additions,
+  ) {
+    final Map<String, SelectedImageRef> byPath = <String, SelectedImageRef>{
+      for (final SelectedImageRef item in current)
+        item.image.remoteUrl ?? '': item,
+    };
+    for (final SelectedImageRef item in additions) {
+      byPath[item.image.remoteUrl ?? ''] = item;
+    }
+    return byPath.values.toList();
+  }
+
+  FutsalDraft _syncFutsalSelectedImages(FutsalDraft draft) {
+    final SelectedImageRef? coverSelection =
+        draft.selectedCoverImage ??
+        (draft.coverImage == null
+            ? null
+            : SelectedImageRef.fromUploadRef(draft.coverImage!));
+    final List<SelectedImageRef> gallerySelections = _mergeUniqueSelectedImages(
+      draft.selectedGalleryImages,
+      draft.gallery.map(SelectedImageRef.fromUploadRef).toList(),
+    );
+
+    return draft.copyWith(
+      selectedCoverImage: coverSelection,
+      selectedGalleryImages: gallerySelections,
+    );
   }
 
   bool _haveSameUploadPaths(List<UploadRef> left, List<UploadRef> right) {
@@ -1750,10 +1685,10 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     if (left.length != right.length) return false;
 
     final Set<String> leftPaths = left
-        .map((UploadRef item) => item.localPath)
+        .map((UploadRef item) => item.remoteUrl ?? '')
         .toSet();
     final Set<String> rightPaths = right
-        .map((UploadRef item) => item.localPath)
+        .map((UploadRef item) => item.remoteUrl ?? '')
         .toSet();
     if (leftPaths.length != rightPaths.length) return false;
 

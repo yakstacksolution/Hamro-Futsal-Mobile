@@ -17,6 +17,7 @@ class CustomButton extends StatelessWidget {
     this.isOutlined = false,
     this.widthFactor,
     this.minHeight = AppDimens.sizeX46,
+    
     this.verticalPadding = AppDimens.paddingX4,
     this.borderRadius = AppDimens.radiusX8,
     this.fontSize = AppDimens.fontBodyTextSmall,

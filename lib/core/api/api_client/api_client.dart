@@ -81,6 +81,12 @@ class ApiClient {
     return _post(url: '$_baseUrl/auth/vendor/onboarding/store', data: data);
   }
 
+  Future<Result> updateVendorOnboardingFutsal({
+    required Map<String, dynamic> data,
+  }) {
+    return _put(url: '$_baseUrl/auth/vendor/onboarding/update', data: data);
+  }
+
   Future<Result> _get({required String url, Map<String, dynamic>? query}) {
     return _apiCallWrapper.makeRequest(
       url: url,

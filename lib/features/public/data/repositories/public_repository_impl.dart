@@ -105,15 +105,55 @@ final class PublicRepositoryImpl extends PublicRepository {
   }
 
   List<dynamic> _extractTemplateList(dynamic payload) {
+    final List<dynamic> directTemplates = _buildTemplatesFromKnownKeys(payload);
+    if (directTemplates.isNotEmpty) {
+      return directTemplates;
+    }
+
     if (payload is Map<String, dynamic>) {
       final dynamic nestedTemplates = payload['data'];
       if (nestedTemplates is Map<String, dynamic> &&
           nestedTemplates['templates'] is List) {
         return nestedTemplates['templates'] as List<dynamic>;
       }
+
+      final List<dynamic> nestedDirectTemplates = _buildTemplatesFromKnownKeys(
+        nestedTemplates,
+      );
+      if (nestedDirectTemplates.isNotEmpty) {
+        return nestedDirectTemplates;
+      }
     }
 
     return _extractList(payload: payload, key: 'templates');
+  }
+
+  List<dynamic> _buildTemplatesFromKnownKeys(dynamic payload) {
+    if (payload is! Map) return const <dynamic>[];
+
+    final Map<String, dynamic> map = Map<String, dynamic>.from(payload);
+    const List<String> knownKeys = <String>[
+      'futsal_description',
+      'court_description',
+      'cancelation_policy',
+      'cancellation_policy',
+      'futsal_rules',
+    ];
+
+    final List<Map<String, dynamic>> templates = <Map<String, dynamic>>[];
+    for (final String key in knownKeys) {
+      if (!map.containsKey(key)) continue;
+      templates.add(<String, dynamic>{
+        'id': key,
+        'key': key,
+        'slug': key,
+        'title': key,
+        'content': map[key],
+        'description': map[key],
+      });
+    }
+
+    return templates;
   }
 
   List<dynamic> _extractList({required dynamic payload, required String key}) {

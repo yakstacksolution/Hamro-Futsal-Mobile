@@ -4,11 +4,11 @@ class Result<T, U> {
   T? _value;
 
   Result.success(T value) {
-    this._value = value;
+    _value = value;
   }
 
   Result.error(U error) {
-    this._error = error;
+    _error = error;
   }
 
   bool isError() {

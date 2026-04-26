@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_quill_delta_from_html/flutter_quill_delta_from_html.dart';
-import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:vsc_quill_delta_to_html/vsc_quill_delta_to_html.dart';
@@ -10,9 +10,10 @@ import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/widgets/custom_quill_editor.dart';
 import 'package:hamro_footsall/features/courts/presentation/models/picked_location.dart';
 import 'package:hamro_footsall/features/courts/presentation/widgets/create_footsall_courts/exact_location_picker_sheet.dart';
+import 'package:hamro_footsall/features/public/presentation/bloc/public_templates/public_templates_bloc.dart';
 import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_cubit.dart';
 import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_models.dart';
-import 'package:hamro_footsall/features/vendor/presentation/validation/vendor_onboarding_validator.dart';
+import 'package:hamro_footsall/features/vendor/presentation/utils/vendor_template_defaults.dart';
 import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/vendor_form_components.dart';
 
 class FutsalInformationSection extends StatefulWidget {
@@ -34,12 +35,9 @@ class FutsalInformationSection extends StatefulWidget {
 
 class _FutsalInformationSectionState extends State<FutsalInformationSection> {
   final ScrollController _scrollController = ScrollController();
-  final TextEditingController _exactLocationController =
-      TextEditingController();
-  final TextEditingController _longitudeController = TextEditingController();
-  final TextEditingController _latitudeController = TextEditingController();
-  final TextEditingController _websiteOrSocialLinkController =
-      TextEditingController();
+  TextEditingController? _exactLocationController;
+  TextEditingController? _longitudeController;
+  TextEditingController? _latitudeController;
   late final QuillController _quillController;
   Timer? _debounceTimer;
   String _lastHtmlContent = '';
@@ -50,14 +48,17 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
   void initState() {
     super.initState();
     _lastHtmlContent = widget.draft.description;
-    _syncLocationControllers();
 
-    widget.cubit.registerActiveEditorFlush(_flushOwner, _flushPendingChanges);
+    if (widget.subsectionIndex == 2) {
+      _exactLocationController = TextEditingController();
+      _longitudeController = TextEditingController();
+      _latitudeController = TextEditingController();
+      _syncLocationControllers();
+    }
 
     if (widget.subsectionIndex == 1) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _initializeEditor();
-      });
+      widget.cubit.registerActiveEditorFlush(_flushOwner, _flushPendingChanges);
+      _initializeEditor();
     }
   }
 
@@ -68,10 +69,6 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
       _syncLocationControllers();
     }
 
-    if (oldWidget.draft.websiteOrSocialLink !=
-        widget.draft.websiteOrSocialLink) {
-      _websiteOrSocialLinkController.text = widget.draft.websiteOrSocialLink;
-    }
     if (oldWidget.draft.description != widget.draft.description &&
         _initialized) {
       if (widget.draft.description != _lastHtmlContent) {
@@ -81,10 +78,9 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
   }
 
   void _syncLocationControllers() {
-    _exactLocationController.text = widget.draft.location.exactLocation;
-    _longitudeController.text = formatDouble(widget.draft.location.longitude);
-    _latitudeController.text = formatDouble(widget.draft.location.latitude);
-    _websiteOrSocialLinkController.text = widget.draft.websiteOrSocialLink;
+    _exactLocationController?.text = widget.draft.location.exactLocation;
+    _longitudeController?.text = formatDouble(widget.draft.location.longitude);
+    _latitudeController?.text = formatDouble(widget.draft.location.latitude);
   }
 
   void _initializeEditor() {
@@ -112,6 +108,7 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
     _debounceTimer?.cancel();
     _debounceTimer = Timer(const Duration(milliseconds: 300), () {
       if (!mounted) return;
+      _debounceTimer = null;
 
       final String htmlConverter = _currentEditorHtml();
 
@@ -130,7 +127,7 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
   }
 
   void _flushPendingChanges() {
-    if (!_initialized) return;
+    if (!_initialized || _debounceTimer == null) return;
 
     final String html = _currentEditorHtml();
     if (html == _lastHtmlContent) return;
@@ -144,16 +141,17 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
   @override
   void dispose() {
     _flushPendingChanges();
-    widget.cubit.unregisterActiveEditorFlush(_flushOwner);
+    if (widget.subsectionIndex == 1) {
+      widget.cubit.unregisterActiveEditorFlush(_flushOwner);
+    }
     _debounceTimer?.cancel();
     if (_initialized) {
       _quillController.removeListener(_onEditorChanged);
       _quillController.dispose();
     }
-    _exactLocationController.dispose();
-    _longitudeController.dispose();
-    _latitudeController.dispose();
-    _websiteOrSocialLinkController.dispose();
+    _exactLocationController?.dispose();
+    _longitudeController?.dispose();
+    _latitudeController?.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -212,9 +210,28 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
   String _stripHtml(String html) =>
       html.replaceAll(RegExp(r'<[^>]+>'), '').trim();
 
+  void _resetDescription(String html) {
+    final String normalized = html.trim();
+    if (normalized.isEmpty) return;
+
+    if (_initialized) {
+      _replaceEditorContent(normalized);
+    }
+
+    widget.cubit.updateFutsal(widget.draft.copyWith(description: normalized));
+  }
+
   @override
   Widget build(BuildContext context) {
     final _SectionMeta meta = _sectionMeta(widget.subsectionIndex);
+    final String? defaultDescription = context.select((
+      PublicTemplatesBloc bloc,
+    ) {
+      return templateDefaultFor(
+        bloc.state.templates,
+        VendorTemplateField.futsalDescription,
+      );
+    });
 
     return VendorPanel(
       padding: AppUtils().getPadding(all: AppDimens.paddingX12),
@@ -225,6 +242,14 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
             title: meta.title,
             subtitle: meta.subtitle,
             icon: meta.icon,
+            trailing:
+                widget.subsectionIndex == 1 &&
+                    defaultDescription != null &&
+                    defaultDescription.trim().isNotEmpty
+                ? _TemplateResetButton(
+                    onTap: () => _resetDescription(defaultDescription),
+                  )
+                : null,
           ),
           const SizedBox(height: AppDimens.sizeX12),
           if (widget.subsectionIndex == 0) _buildBasicInfo(),
@@ -289,7 +314,6 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
         VendorInputField(
           label: 'Website or Social Media Link',
           hintText: 'https://hamrofutsal.com/',
-          controller: _websiteOrSocialLinkController,
           initialValue: widget.draft.websiteOrSocialLink,
           enableIcon: true,
           keyboardType: TextInputType.url,
@@ -522,6 +546,36 @@ class _CompactGroupCard extends StatelessWidget {
           const SizedBox(height: 10),
           child,
         ],
+      ),
+    );
+  }
+}
+
+class _TemplateResetButton extends StatelessWidget {
+  const _TemplateResetButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: 'Reset to default template',
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(999),
+        child: Container(
+          width: 30,
+          height: 30,
+          decoration: BoxDecoration(
+            color: LightColor.secondaryLight,
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: const Icon(
+            Icons.refresh_rounded,
+            size: 16,
+            color: LightColor.secondaryColor,
+          ),
+        ),
       ),
     );
   }

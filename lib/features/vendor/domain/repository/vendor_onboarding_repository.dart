@@ -6,7 +6,11 @@ abstract class VendorOnboardingRepository {
   Future<Either<AppException, VendorOnboardingResponseModel>>
   fetchVendorOnboardingFutsal(int futsalId);
 
-  Future<Either<AppException, Map<String, dynamic>>> submitFutsal(
+  Future<Either<AppException, VendorOnboardingResponseModel>> submitFutsal(
+    Map<String, dynamic> body,
+  );
+
+  Future<Either<AppException, VendorOnboardingResponseModel>> updateFutsal(
     Map<String, dynamic> body,
   );
 }

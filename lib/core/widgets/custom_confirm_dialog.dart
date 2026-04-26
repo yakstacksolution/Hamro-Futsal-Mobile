@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
-import 'package:hamro_footsall/core/theme/futsal_theme.dart' hide LightColor;
+import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/widgets/custom_button.dart';
@@ -70,7 +70,7 @@ class CustomConfirmDialog extends StatelessWidget {
                   color: confirmColor.withValues(alpha: 0.12),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(icon, color: confirmColor, size: 28),
+                child: Icon(icon, color: confirmColor, size: AppDimens.sizeX28),
               ),
               SizedBox(height: AppDimens.sizeX16),
             ],

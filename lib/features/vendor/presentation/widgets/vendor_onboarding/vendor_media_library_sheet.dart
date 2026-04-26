@@ -1,5 +1,4 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
@@ -65,7 +64,7 @@ class _VendorMediaLibrarySheetState extends State<VendorMediaLibrarySheet> {
   void initState() {
     super.initState();
     _selectedPaths.addAll(
-      widget.initiallySelected.map((UploadRef item) => item.localPath),
+      widget.initiallySelected.map((UploadRef item) => item.remoteUrl ?? ''),
     );
   }
 
@@ -142,7 +141,7 @@ class _VendorMediaLibrarySheetState extends State<VendorMediaLibrarySheet> {
                         itemBuilder: (BuildContext context, int index) {
                           final UploadRef item = library[index];
                           final bool isSelected = _selectedPaths.contains(
-                            item.localPath,
+                            item.remoteUrl ?? '',
                           );
 
                           return _CompactMediaCard(
@@ -186,12 +185,12 @@ class _VendorMediaLibrarySheetState extends State<VendorMediaLibrarySheet> {
       if (!widget.allowMultiple) {
         _selectedPaths
           ..clear()
-          ..add(item.localPath);
+          ..add(item.remoteUrl ?? '');
         return;
       }
 
-      if (!_selectedPaths.add(item.localPath)) {
-        _selectedPaths.remove(item.localPath);
+      if (!_selectedPaths.add(item.remoteUrl ?? '')) {
+        _selectedPaths.remove(item.remoteUrl ?? '');
       }
     });
   }
@@ -214,9 +213,11 @@ class _VendorMediaLibrarySheetState extends State<VendorMediaLibrarySheet> {
         if (!widget.allowMultiple) {
           _selectedPaths
             ..clear()
-            ..add(files.first.localPath);
+            ..add(files.first.remoteUrl ?? '');
         } else {
-          _selectedPaths.addAll(files.map((UploadRef item) => item.localPath));
+          _selectedPaths.addAll(
+            files.map((UploadRef item) => item.remoteUrl ?? ''),
+          );
         }
       });
     }
@@ -237,13 +238,15 @@ class _VendorMediaLibrarySheetState extends State<VendorMediaLibrarySheet> {
     if (!confirmed) return;
 
     widget.cubit.removeMediaLibraryItem(item);
-    setState(() => _selectedPaths.remove(item.localPath));
+    setState(() => _selectedPaths.remove(item.remoteUrl ?? ''));
   }
 
   void _submitSelection() {
     final List<UploadRef> allItems = widget.cubit.state.mediaLibrary;
     final List<UploadRef> selected = allItems
-        .where((UploadRef item) => _selectedPaths.contains(item.localPath))
+        .where(
+          (UploadRef item) => _selectedPaths.contains(item.remoteUrl ?? ''),
+        )
         .toList();
 
     Navigator.of(context).pop(selected);
@@ -684,7 +687,7 @@ class _CompactMediaCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(4),
                         child: isImage
                             ? CustomImageView(
-                                file: File(item.localPath),
+                                file: File(item.remoteUrl ?? ''),
                                 fit: BoxFit.cover,
                                 width: double.infinity,
                                 height: double.infinity,
@@ -838,7 +841,6 @@ class _BottomSelectionBar extends StatelessWidget {
     final String buttonLabel = allowMultiple
         ? 'Use Selected Items'
         : 'Use Selected Item';
-    final bool isDisabled = onConfirm == null;
     final String titleText = selectionCount == 0
         ? 'No media selected'
         : '$selectionCount item${selectionCount == 1 ? '' : 's'} selected';
@@ -918,7 +920,7 @@ Set<String> _visibleDocumentExtensions(Set<String> allowed) {
 }
 
 String _extensionFor(UploadRef item) {
-  final String path = item.localPath.toLowerCase();
+  final String path = item.remoteUrl ?? ''.toLowerCase();
   final int index = path.lastIndexOf('.');
   if (index == -1 || index == path.length - 1) return '';
   return path.substring(index + 1);

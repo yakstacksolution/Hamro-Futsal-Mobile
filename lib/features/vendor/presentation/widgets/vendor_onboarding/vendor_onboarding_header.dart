@@ -1,11 +1,12 @@
+// ignore_for_file: deprecated_member_use
 import 'package:flutter/material.dart';
-import 'package:hamro_footsall/core/theme/app_colors.dart';
-import 'package:hamro_footsall/core/theme/futsal_theme.dart' hide LightColor;
-import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/theme/app_colors.dart';
+import 'package:hamro_footsall/core/theme/futsal_text.dart';
+import 'package:hamro_footsall/core/theme/futsal_theme.dart';
+import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/vendor_form_components.dart';
 import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_cubit.dart';
 import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_state.dart';
-import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/vendor_form_components.dart';
 
 class VendorOnboardingHeader extends StatelessWidget {
   const VendorOnboardingHeader({
@@ -17,9 +18,25 @@ class VendorOnboardingHeader extends StatelessWidget {
   final VendorOnboardingCubit cubit;
   final VendorOnboardingState state;
 
+  static const EdgeInsets _containerPadding = EdgeInsets.all(
+    AppDimens.paddingX14,
+  );
+  static const EdgeInsets _progressBadgePadding = EdgeInsets.symmetric(
+    horizontal: AppDimens.sizeX8,
+    vertical: AppDimens.sizeX8,
+  );
+
+  static const SizedBox _gapW8 = SizedBox(width: AppDimens.sizeX8);
+  static const SizedBox _gapW10 = SizedBox(width: AppDimens.sizeX10);
+  static const SizedBox _gapH4 = SizedBox(height: AppDimens.sizeX4);
+  static const SizedBox _gapH12 = SizedBox(height: AppDimens.sizeX12);
+
   @override
   Widget build(BuildContext context) {
-    final int progressPercent = (cubit.overallCompletion * 100).round();
+    final FutsalTextTheme textTheme = FutsalTheme.getTextTheme(context);
+
+    final double completion = cubit.overallCompletion.clamp(0.0, 1.0);
+    final int progressPercent = (completion * 100).round();
 
     final bool isCourt = state.isInCourtCategory;
     final String title = isCourt ? 'Court setup' : 'Futsal setup';
@@ -27,192 +44,234 @@ class VendorOnboardingHeader extends StatelessWidget {
         ? 'Manage court details and booking flow'
         : 'Complete business profile and location';
 
-    return Container(
-      padding: AppUtils().getPadding(all: AppDimens.paddingX14),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: <Color>[LightColor.secondaryColor, LightColor.secondaryDark],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(AppDimens.radiusX12),
-        boxShadow: <BoxShadow>[
-          BoxShadow(
-            color: LightColor.secondaryColor.withValues(alpha: 0.16),
-            blurRadius: AppDimens.radiusX18,
-            offset: const Offset(0, 8),
+    final String futsalStatus =
+        'Futsal ${stepStatusLabel(cubit.futsalSectionStatus(0))}';
+    final String courtsLabel = '${state.courts.length} courts';
+    final String saveLabel = saveStatusLabel(
+      state.saveStatus,
+      state.lastSavedAt,
+    );
+
+    final Color white14 = LightColor.whiteColor.withOpacity(0.14);
+    final Color white10 = LightColor.whiteColor.withOpacity(0.10);
+    final Color white08 = LightColor.whiteColor.withOpacity(0.08);
+    final Color white16 = LightColor.whiteColor.withOpacity(0.16);
+    final Color white82 = LightColor.whiteColor.withOpacity(0.82);
+    final Color white88 = LightColor.whiteColor.withOpacity(0.88);
+    final Color white95 = LightColor.whiteColor.withOpacity(0.95);
+
+    final BorderRadius cardRadius = BorderRadius.circular(AppDimens.radiusX12);
+    final BorderRadius badgeRadius = BorderRadius.circular(AppDimens.radiusX6);
+    final BorderRadius pillRadius = BorderRadius.circular(AppDimens.radiusX56);
+
+    return RepaintBoundary(
+      child: Container(
+        padding: _containerPadding,
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: <Color>[
+              LightColor.secondaryColor,
+              LightColor.secondaryDark,
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Container(
-                width: AppDimens.sizeX42,
-                height: AppDimens.sizeX42,
-                decoration: BoxDecoration(
-                  color: LightColor.whiteColor.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(AppDimens.radiusX12),
-                  border: Border.all(
-                    color: LightColor.whiteColor.withValues(alpha: 0.10),
+          borderRadius: cardRadius,
+          boxShadow: <BoxShadow>[
+            BoxShadow(
+              color: LightColor.secondaryColor.withOpacity(0.12),
+              blurRadius: 14,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Container(
+                  width: AppDimens.sizeX42,
+                  height: AppDimens.sizeX42,
+                  decoration: BoxDecoration(
+                    color: white14,
+                    borderRadius: cardRadius,
+                    border: Border.all(color: white10),
+                  ),
+                  child: Icon(
+                    isCourt
+                        ? Icons.stadium_rounded
+                        : Icons.sports_soccer_rounded,
+                    color: LightColor.whiteColor,
+                    size: AppDimens.sizeX20,
                   ),
                 ),
-                child: Icon(
-                  isCourt ? Icons.stadium_rounded : Icons.sports_soccer_rounded,
-                  color: LightColor.whiteColor,
-                  size: AppDimens.sizeX20,
+                _gapW10,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: textTheme.bodyTextLarge?.copyWith(
+                          color: LightColor.whiteColor,
+                          fontWeight: FontWeight.w800,
+                          height: 1,
+                        ),
+                      ),
+                      _gapH4,
+                      Text(
+                        subtitle,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: textTheme.bodyTextSmall?.copyWith(
+                          color: white88,
+                          height: 1.3,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(width: AppDimens.sizeX10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: FutsalTheme.getTextTheme(context).bodyTextLarge
-                          ?.copyWith(
-                            color: LightColor.whiteColor,
-                            fontWeight: FontWeight.w800,
-                            height: 1,
-                          ),
-                    ),
-                    const SizedBox(height: AppDimens.sizeX4),
-                    Text(
-                      subtitle,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: FutsalTheme.getTextTheme(context).bodyTextSmall
-                          ?.copyWith(
-                            color: LightColor.whiteColor.withValues(
-                              alpha: 0.88,
-                            ),
-                            height: 1.3,
-                            fontWeight: FontWeight.w500,
-                          ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: AppDimens.sizeX8),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppDimens.sizeX8,
-                  vertical: AppDimens.sizeX8,
-                ),
-                decoration: BoxDecoration(
-                  color: LightColor.whiteColor.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(AppDimens.radiusX6),
-                ),
-                child: Column(
-                  children: <Widget>[
-                    Text(
-                      '$progressPercent%',
-                      style: FutsalTheme.getTextTheme(context).bodyTextSmall
-                          ?.copyWith(
-                            color: LightColor.whiteColor,
-                            fontSize: AppDimens.sizeX12,
-                            fontWeight: FontWeight.w800,
-                            height: 1,
-                          ),
-                    ),
-                    const SizedBox(height: AppDimens.sizeX4),
-                    Text(
-                      'Done',
-                      style: FutsalTheme.getTextTheme(context).bodyMiniSubTitle
-                          ?.copyWith(
-                            color: LightColor.whiteColor.withValues(
-                              alpha: 0.82,
-                            ),
-                            fontWeight: FontWeight.w600,
-                            height: 1,
-                          ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppDimens.sizeX12),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(AppDimens.radiusX56),
-            child: LinearProgressIndicator(
-              minHeight: AppDimens.sizeX8,
-              value: cubit.overallCompletion,
-              backgroundColor: LightColor.whiteColor.withValues(alpha: 0.16),
-              valueColor: const AlwaysStoppedAnimation<Color>(
-                LightColor.whiteColor,
-              ),
-            ),
-          ),
-          const SizedBox(height: AppDimens.sizeX12),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: <Widget>[
-                _CompactInfoChip(
-                  icon: Icons.account_balance_wallet_rounded,
-                  label:
-                      'Futsal ${stepStatusLabel(cubit.futsalSectionStatus(0))}',
-                ),
-                const SizedBox(width: AppDimens.sizeX8),
-                _CompactInfoChip(
-                  icon: Icons.grid_view_rounded,
-                  label: '${state.courts.length} courts',
-                ),
-                const SizedBox(width: AppDimens.sizeX8),
-                _CompactInfoChip(
-                  icon: Icons.cloud_done_rounded,
-                  label: saveStatusLabel(state.saveStatus, state.lastSavedAt),
+                _gapW8,
+                Container(
+                  padding: _progressBadgePadding,
+                  decoration: BoxDecoration(
+                    color: white14,
+                    borderRadius: badgeRadius,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      Text(
+                        '$progressPercent%',
+                        style: textTheme.bodyTextSmall?.copyWith(
+                          color: LightColor.whiteColor,
+                          fontSize: AppDimens.sizeX12,
+                          fontWeight: FontWeight.w800,
+                          height: 1,
+                        ),
+                      ),
+                      _gapH4,
+                      Text(
+                        'Done',
+                        style: textTheme.bodyMiniSubTitle?.copyWith(
+                          color: white82,
+                          fontWeight: FontWeight.w600,
+                          height: 1,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
-          ),
-        ],
+            _gapH12,
+            ClipRRect(
+              borderRadius: pillRadius,
+              child: LinearProgressIndicator(
+                minHeight: AppDimens.sizeX8,
+                value: completion,
+                backgroundColor: white16,
+                valueColor: const AlwaysStoppedAnimation<Color>(
+                  LightColor.whiteColor,
+                ),
+              ),
+            ),
+            _gapH12,
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: <Widget>[
+                  _CompactInfoChip(
+                    icon: Icons.account_balance_wallet_rounded,
+                    label: futsalStatus,
+                    textTheme: textTheme,
+                    iconColor: white95,
+                    textColor: white95,
+                    backgroundColor: white10,
+                    borderColor: white08,
+                    radius: pillRadius,
+                  ),
+                  _gapW8,
+                  _CompactInfoChip(
+                    icon: Icons.grid_view_rounded,
+                    label: courtsLabel,
+                    textTheme: textTheme,
+                    iconColor: white95,
+                    textColor: white95,
+                    backgroundColor: white10,
+                    borderColor: white08,
+                    radius: pillRadius,
+                  ),
+                  _gapW8,
+                  _CompactInfoChip(
+                    icon: Icons.cloud_done_rounded,
+                    label: saveLabel,
+                    textTheme: textTheme,
+                    iconColor: white95,
+                    textColor: white95,
+                    backgroundColor: white10,
+                    borderColor: white08,
+                    radius: pillRadius,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
 class _CompactInfoChip extends StatelessWidget {
-  const _CompactInfoChip({required this.icon, required this.label});
+  const _CompactInfoChip({
+    required this.icon,
+    required this.label,
+    required this.textTheme,
+    required this.iconColor,
+    required this.textColor,
+    required this.backgroundColor,
+    required this.borderColor,
+    required this.radius,
+  });
 
   final IconData icon;
   final String label;
+  final FutsalTextTheme textTheme;
+  final Color iconColor;
+  final Color textColor;
+  final Color backgroundColor;
+  final Color borderColor;
+  final BorderRadius radius;
+
+  static const EdgeInsets _padding = EdgeInsets.symmetric(
+    horizontal: AppDimens.sizeX8,
+    vertical: AppDimens.sizeX6,
+  );
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: AppUtils().getPadding(
-        horizontal: AppDimens.sizeX8,
-        vertical: AppDimens.sizeX6,
-      ),
+      padding: _padding,
       decoration: BoxDecoration(
-        color: LightColor.whiteColor.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(AppDimens.radiusX56),
-        border: Border.all(
-          color: LightColor.whiteColor.withValues(alpha: 0.08),
-        ),
+        color: backgroundColor,
+        borderRadius: radius,
+        border: Border.all(color: borderColor),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: <Widget>[
-          Icon(
-            icon,
-            size: AppDimens.sizeX14,
-            color: LightColor.whiteColor.withValues(alpha: 0.95),
-          ),
+          Icon(icon, size: AppDimens.sizeX14, color: iconColor),
           const SizedBox(width: AppDimens.sizeX6),
           Text(
             label,
-            style: FutsalTheme.getTextTheme(context).bodySubTitle?.copyWith(
-              color: LightColor.whiteColor.withValues(alpha: 0.95),
+            style: textTheme.bodySubTitle?.copyWith(
+              color: textColor,
               fontWeight: FontWeight.w600,
               height: 1,
             ),

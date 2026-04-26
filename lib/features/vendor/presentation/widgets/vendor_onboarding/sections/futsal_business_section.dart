@@ -1,7 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:hamro_footsall/core/theme/app_colors.dart';
+import 'package:hamro_footsall/core/utils/app_utils.dart';
+import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/features/media/presentation/widgets/media_library_sheet.dart';
 import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_cubit.dart';
 import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_models.dart';
@@ -60,9 +61,8 @@ class FutsalBusinessSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final _BusinessSectionMeta meta = _sectionMeta(subsectionIndex);
-
     return VendorPanel(
-      padding: const EdgeInsets.all(12),
+      padding: AppUtils().getPadding(all: AppDimens.paddingX12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
@@ -71,7 +71,7 @@ class FutsalBusinessSection extends StatelessWidget {
             subtitle: meta.subtitle,
             icon: meta.icon,
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppDimens.sizeX12),
           if (subsectionIndex == 0)
             VendorUploadSection(
               title: 'Cover image',
@@ -79,6 +79,7 @@ class FutsalBusinessSection extends StatelessWidget {
               onPick: () => unawaited(_openCoverLibrary(context)),
               actionLabel: 'Gallery',
               actionIcon: Icons.photo_library_rounded,
+              previewAsImage: true,
               files: draft.coverImage == null
                   ? const <UploadRef>[]
                   : <UploadRef>[draft.coverImage!],
@@ -93,6 +94,7 @@ class FutsalBusinessSection extends StatelessWidget {
               onPick: () => unawaited(_openGalleryLibrary(context)),
               actionLabel: 'Gallery',
               actionIcon: Icons.photo_library_rounded,
+              previewAsImage: true,
               files: draft.gallery,
               onRemove: cubit.removeFutsalGalleryImage,
             ),

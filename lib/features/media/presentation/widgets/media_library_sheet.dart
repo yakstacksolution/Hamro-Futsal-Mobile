@@ -232,10 +232,10 @@ class _VendorMediaLibrarySheetState extends State<VendorMediaLibrarySheet> {
         state.items
             .map(
               (MediaModel item) => UploadRef(
+                id: _asInt(item.id),
                 name: item.name.isNotEmpty
                     ? item.name
                     : item.url.split('/').last,
-                localPath: item.url,
                 remoteUrl: item.url,
               ),
             )
@@ -273,10 +273,10 @@ class _VendorMediaLibrarySheetState extends State<VendorMediaLibrarySheet> {
         final List<UploadRef> createdRefs = created
             .map(
               (MediaModel item) => UploadRef(
+                id: _asInt(item.id),
                 name: item.name.isNotEmpty
                     ? item.name
                     : item.url.split('/').last,
-                localPath: item.url,
                 remoteUrl: item.url,
               ),
             )
@@ -392,7 +392,9 @@ class _VendorMediaLibrarySheetState extends State<VendorMediaLibrarySheet> {
 
     _pendingUploadFiles = files;
     context.read<MediaBloc>().add(
-      CreateMediaEvent(files.map((UploadRef item) => item.localPath).toList()),
+      CreateMediaEvent(
+        files.map((UploadRef item) => item.remoteUrl ?? '').toList(),
+      ),
     );
   }
 
@@ -418,8 +420,8 @@ class _VendorMediaLibrarySheetState extends State<VendorMediaLibrarySheet> {
 
   Future<void> _removeItem(UploadRef item) async {
     if ((item.remoteUrl ?? '').trim().isNotEmpty &&
-        (item.localPath.trim().isEmpty ||
-            item.localPath.trim() == item.remoteUrl!.trim())) {
+        (item.remoteUrl!.trim().isEmpty ||
+            item.remoteUrl!.trim() == item.remoteUrl!.trim())) {
       AppUtils().showSnackBar(
         context,
         MsgType.info,
@@ -473,8 +475,8 @@ class _VendorMediaLibrarySheetState extends State<VendorMediaLibrarySheet> {
 
     for (final MediaModel item in remoteItems) {
       final UploadRef upload = UploadRef(
+        id: _asInt(item.id),
         name: item.name.isNotEmpty ? item.name : item.url.split('/').last,
-        localPath: item.url,
         remoteUrl: item.url,
       );
       if (!_matchesAllowedExtensions(upload, allowedExtensions)) continue;
@@ -660,7 +662,7 @@ class _UploadMediaPreviewDialog extends StatelessWidget {
                   ? AspectRatio(
                       aspectRatio: 1.3,
                       child: CustomImageView(
-                        file: File(previewFile.localPath),
+                        url: previewFile.remoteUrl,
                         fit: BoxFit.cover,
                         width: double.infinity,
                         height: double.infinity,
@@ -1268,7 +1270,7 @@ class _MediaPreview extends StatelessWidget {
       }
 
       return CustomImageView(
-        file: File(item.localPath),
+        file: File(item.remoteUrl ?? ''),
         fit: BoxFit.cover,
         width: double.infinity,
         height: double.infinity,
@@ -1410,7 +1412,7 @@ String _extensionFor(UploadRef item) {
   final String path =
       ((item.remoteUrl ?? '').trim().isNotEmpty
               ? item.remoteUrl!
-              : item.localPath)
+              : item.remoteUrl??'')
           .toLowerCase();
   final int index = path.lastIndexOf('.');
   if (index == -1 || index == path.length - 1) return '';
@@ -1422,7 +1424,7 @@ String _itemKey(UploadRef item) {
   if (remoteUrl.isNotEmpty) {
     return remoteUrl;
   }
-  return item.localPath.trim();
+  return item.remoteUrl!.trim();
 }
 
 IconData _fileIcon(UploadRef item) {
@@ -1444,4 +1446,10 @@ IconData _fileIcon(UploadRef item) {
     default:
       return Icons.insert_drive_file_rounded;
   }
+}
+
+int? _asInt(Object? value) {
+  if (value == null) return null;
+  if (value is int) return value;
+  return int.tryParse(value.toString());
 }

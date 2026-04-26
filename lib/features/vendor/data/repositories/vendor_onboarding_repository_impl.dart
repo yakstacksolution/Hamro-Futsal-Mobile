@@ -30,7 +30,7 @@ final class VendorOnboardingRepositoryImpl
   }
 
   @override
-  Future<Either<AppException, Map<String, dynamic>>> submitFutsal(
+  Future<Either<AppException, VendorOnboardingResponseModel>> submitFutsal(
     Map<String, dynamic> body,
   ) async {
     final response = await _remoteDataSource.submitFutsal(body);
@@ -39,7 +39,26 @@ final class VendorOnboardingRepositoryImpl
     }
 
     final dynamic value = response.getValue();
-    final Map<String, dynamic> data = _extractResponseData(value);
+    final data = VendorOnboardingResponseModel.fromJson(
+      _extractResponseData(value),
+    );
+    // final Map<String, dynamic> data = _extractResponseData(value);
+    return right(data);
+  }
+
+  @override
+  Future<Either<AppException, VendorOnboardingResponseModel>> updateFutsal(
+    Map<String, dynamic> body,
+  ) async {
+    final response = await _remoteDataSource.updateFutsal(body);
+    if (response.isError()) {
+      return left(ResponseHelper.error(response.getErrorMsg()));
+    }
+
+    final dynamic value = response.getValue();
+    final data = VendorOnboardingResponseModel.fromJson(
+      _extractResponseData(value),
+    );
     return right(data);
   }
 

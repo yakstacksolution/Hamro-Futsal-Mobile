@@ -5,7 +5,6 @@ import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/features/public/data/model/public_template_model.dart';
-import 'package:hamro_footsall/features/public/presentation/bloc/public_packages/public_packages_bloc.dart';
 import 'package:hamro_footsall/features/public/presentation/bloc/public_templates/public_templates_bloc.dart';
 import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_cubit.dart';
 import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_state.dart';
@@ -25,6 +24,7 @@ import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboa
 import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/vendor_onboarding_header.dart';
 import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/vendor_onboarding_shell.dart';
 import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/vendor_unified_stepper.dart';
+import 'package:hamro_footsall/features/vendor/presentation/utils/vendor_template_defaults.dart';
 
 class StepperLogicScreen extends StatefulWidget {
   final int? futsalId;
@@ -48,14 +48,33 @@ class _StepperLogicScreenState extends State<StepperLogicScreen> {
   @override
   void initState() {
     _cubit = context.read<VendorOnboardingCubit>();
-    if (widget.futsalId != null && widget.futsalId! > 0) {
-      unawaited(_cubit.fetchVendorOnboarding(widget.futsalId!));
-    } else {
-      context.read<PublicTemplatesBloc>().add(FetchPublicTemplatesEvent());
-    }
-    context.read<PublicPackagesBloc>().add(FetchPublicPackagesEvent());
+    unawaited(_bootstrapScreen());
 
     super.initState();
+  }
+
+  Future<void> _bootstrapScreen() async {
+    final int? futsalId = widget.futsalId;
+
+    if (futsalId != null && futsalId > 0) {
+      await _cubit.fetchVendorOnboarding(futsalId);
+      if (!mounted) return;
+    }
+
+    _fetchBackgroundResources();
+  }
+
+  void _fetchBackgroundResources() {
+    final PublicTemplatesBloc templatesBloc = context
+        .read<PublicTemplatesBloc>();
+    final PublicTemplatesState templatesState = templatesBloc.state;
+    if (templatesState.templates.isNotEmpty) {
+      _applyTemplateDefaults(context, templatesState.templates);
+      return;
+    }
+    if (templatesState.status != PublicTemplatesStatus.loading) {
+      templatesBloc.add(FetchPublicTemplatesEvent());
+    }
   }
 
   @override
@@ -117,20 +136,22 @@ class _StepperLogicScreenState extends State<StepperLogicScreen> {
             );
           },
         ),
-      ],
-      child: BlocBuilder<VendorOnboardingCubit, VendorOnboardingState>(
-        builder: (BuildContext context, VendorOnboardingState state) {
-          // If templates are already loaded, apply defaults once on first build.
-          if (!_hasAppliedTemplateDefaults) {
+        BlocListener<VendorOnboardingCubit, VendorOnboardingState>(
+          listenWhen:
+              (VendorOnboardingState previous, VendorOnboardingState current) =>
+                  previous.isRestoringDraft && !current.isRestoringDraft,
+          listener: (BuildContext context, VendorOnboardingState state) {
             final PublicTemplatesState templatesState = context
                 .read<PublicTemplatesBloc>()
                 .state;
-            if (templatesState.status == PublicTemplatesStatus.success &&
-                templatesState.templates.isNotEmpty) {
+            if (templatesState.templates.isNotEmpty) {
               _applyTemplateDefaults(context, templatesState.templates);
             }
-          }
-
+          },
+        ),
+      ],
+      child: BlocBuilder<VendorOnboardingCubit, VendorOnboardingState>(
+        builder: (BuildContext context, VendorOnboardingState state) {
           final VendorOnboardingCubit cubit = _cubit;
 
           if (state.isRestoringDraft) {
@@ -221,15 +242,12 @@ class _StepperLogicScreenState extends State<StepperLogicScreen> {
                     ],
                     if (cubit.isCourtEditorVisible) ...<Widget>[
                       const SizedBox(height: AppDimens.sizeX14),
-                      AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 220),
-                        child: _ActiveSectionContent(
-                          key: ValueKey<String>(
-                            '${state.cursor.category.name}-${state.cursor.sectionIndex}-${state.cursor.subsectionIndex}-${state.activeCourtId ?? 'none'}',
-                          ),
-                          cubit: cubit,
-                          state: state,
+                      _ActiveSectionContent(
+                        key: ValueKey<String>(
+                          '${state.cursor.category.name}-${state.cursor.sectionIndex}-${state.cursor.subsectionIndex}-${state.activeCourtId ?? 'none'}',
                         ),
+                        cubit: cubit,
+                        state: state,
                       ),
                     ],
                   ],
@@ -246,184 +264,46 @@ class _StepperLogicScreenState extends State<StepperLogicScreen> {
     BuildContext context,
     List<PublicTemplateModel> templates,
   ) {
-    if (_hasAppliedTemplateDefaults ||
-        widget.futsalId != null ||
-        templates.isEmpty) {
+    if (_hasAppliedTemplateDefaults || templates.isEmpty) {
       return;
     }
 
     final VendorOnboardingCubit cubit = context.read<VendorOnboardingCubit>();
-    final FutsalDraft draft = cubit.state.futsal;
+    if (cubit.state.isRestoringDraft) return;
 
+    final FutsalDraft draft = cubit.state.futsal;
     final String? description = draft.description.trim().isEmpty
-        ? _templateContentFor(
-            templates,
-            preferredTitles: const <String>['description'],
-            primaryKeywords: const <String>['description'],
-            secondaryKeywords: const <String>['about', 'futsal'],
-          )
+        ? templateDefaultFor(templates, VendorTemplateField.futsalDescription)
         : null;
     final String? cancellationPolicy = draft.cancellationPolicy.trim().isEmpty
-        ? _templateContentFor(
-            templates,
-            preferredTitles: const <String>['cancel_policy'],
-            primaryKeywords: const <String>['cancellation'],
-            secondaryKeywords: const <String>['policy', 'refund'],
-          )
+        ? templateDefaultFor(templates, VendorTemplateField.cancellationPolicy)
         : null;
     final String? futsalRules = draft.futsalRules.trim().isEmpty
-        ? _templateContentFor(
-            templates,
-            preferredTitles: const <String>['futsalrules'],
-            primaryKeywords: const <String>['rule'],
-            secondaryKeywords: const <String>['rules', 'house', 'futsal'],
-          )
+        ? templateDefaultFor(templates, VendorTemplateField.futsalRules)
         : null;
 
-    if (description == null &&
-        cancellationPolicy == null &&
-        futsalRules == null) {
+    final bool hasFutsalUpdates =
+        description != null ||
+        cancellationPolicy != null ||
+        futsalRules != null;
+
+    if (!hasFutsalUpdates) {
+      _hasAppliedTemplateDefaults = true;
       return;
     }
 
-    cubit.updateFutsal(
-      draft.copyWith(
-        description: description ?? draft.description,
-        cancellationPolicy: cancellationPolicy ?? draft.cancellationPolicy,
-        futsalRules: futsalRules ?? draft.futsalRules,
-      ),
-    );
+    if (hasFutsalUpdates) {
+      cubit.updateFutsal(
+        draft.copyWith(
+          description: description ?? draft.description,
+          cancellationPolicy: cancellationPolicy ?? draft.cancellationPolicy,
+          futsalRules: futsalRules ?? draft.futsalRules,
+        ),
+      );
+    }
 
     _hasAppliedTemplateDefaults = true;
   }
-
-  String? _templateContentFor(
-    List<PublicTemplateModel> templates, {
-    List<String> preferredTitles = const <String>[],
-    required List<String> primaryKeywords,
-    List<String> secondaryKeywords = const <String>[],
-  }) {
-    // Prefer exact title matches when provided.
-    if (preferredTitles.isNotEmpty) {
-      final List<String> normalizedTitles = preferredTitles
-          .map((String t) => t.trim().toLowerCase())
-          .toList();
-      final PublicTemplateModel exactMatch = templates.firstWhere(
-        (PublicTemplateModel t) =>
-            normalizedTitles.contains(t.title.trim().toLowerCase()),
-        orElse: () => const PublicTemplateModel(
-          id: '',
-          title: '',
-          description: '',
-          createdAt: null,
-          updatedAt: null,
-          raw: <String, dynamic>{},
-        ),
-      );
-      if (exactMatch.id.isNotEmpty) {
-        final String content = _extractTemplateContent(exactMatch).trim();
-        if (content.isNotEmpty) return content;
-      }
-    }
-
-    final List<_MatchedTemplate> matches =
-        templates
-            .map(
-              (PublicTemplateModel template) => _MatchedTemplate(
-                template: template,
-                score: _templateScore(
-                  template,
-                  primaryKeywords: primaryKeywords,
-                  secondaryKeywords: secondaryKeywords,
-                ),
-              ),
-            )
-            .where((_MatchedTemplate match) => match.score > 0)
-            .toList()
-          ..sort(
-            (_MatchedTemplate a, _MatchedTemplate b) =>
-                b.score.compareTo(a.score),
-          );
-
-    for (final _MatchedTemplate match in matches) {
-      final String content = _extractTemplateContent(match.template).trim();
-      if (content.isNotEmpty) return content;
-    }
-    return null;
-  }
-
-  int _templateScore(
-    PublicTemplateModel template, {
-    required List<String> primaryKeywords,
-    required List<String> secondaryKeywords,
-  }) {
-    final String haystack = <String>[
-      template.id,
-      template.name,
-      template.description,
-      _stringValue(template.raw['key']),
-      _stringValue(template.raw['type']),
-      _stringValue(template.raw['category']),
-      _stringValue(template.raw['slug']),
-      _stringValue(template.raw['template_name']),
-      _stringValue(template.raw['title']),
-    ].join(' ').toLowerCase();
-
-    int score = 0;
-    for (final String keyword in primaryKeywords) {
-      if (haystack.contains(keyword.toLowerCase())) {
-        score += 3;
-      }
-    }
-    for (final String keyword in secondaryKeywords) {
-      if (haystack.contains(keyword.toLowerCase())) {
-        score += 1;
-      }
-    }
-    return score;
-  }
-
-  String _extractTemplateContent(PublicTemplateModel template) {
-    final dynamic content = template.raw['content'];
-    if (content is String && content.trim().isNotEmpty) return content;
-    if (content is Map) {
-      final String nested = _firstNonEmptyString(<dynamic>[
-        content['html'],
-        content['body'],
-        content['text'],
-        content['value'],
-      ]);
-      if (nested.isNotEmpty) return nested;
-    }
-
-    return _firstNonEmptyString(<dynamic>[
-      template.raw['html'],
-      template.raw['body'],
-      template.raw['value'],
-      template.raw['template'],
-      template.raw['text'],
-      template.raw['details'],
-      template.raw['description'],
-      template.description,
-    ]);
-  }
-
-  String _firstNonEmptyString(List<dynamic> values) {
-    for (final dynamic value in values) {
-      final String text = _stringValue(value).trim();
-      if (text.isNotEmpty) return text;
-    }
-    return '';
-  }
-
-  String _stringValue(dynamic value) => value?.toString() ?? '';
-}
-
-class _MatchedTemplate {
-  const _MatchedTemplate({required this.template, required this.score});
-
-  final PublicTemplateModel template;
-  final int score;
 }
 
 class _ActiveSectionContent extends StatelessWidget {

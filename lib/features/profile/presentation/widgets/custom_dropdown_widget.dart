@@ -52,7 +52,7 @@ class _CustomDropdownState extends State<CustomDropdown> {
         setState(() => isFocused = value);
       },
       child: DropdownButtonFormField<String>(
-        value: selectedValue,
+        initialValue: selectedValue,
         isExpanded: true,
         onChanged: widget.enabled
             ? (value) {

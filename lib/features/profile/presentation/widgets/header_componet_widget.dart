@@ -72,7 +72,9 @@ class HeaderComponetWidget extends StatelessWidget {
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: LightColor.secondaryColor.withValues(alpha: 0.4),
+                          color: LightColor.secondaryColor.withValues(
+                            alpha: 0.4,
+                          ),
                           blurRadius: 16,
                           offset: const Offset(0, 4),
                         ),

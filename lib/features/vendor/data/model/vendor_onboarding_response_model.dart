@@ -52,35 +52,73 @@ class VendorOnboardingResponseModel {
   final List<UploadRef> companyDocuments;
 
   factory VendorOnboardingResponseModel.fromJson(Map<String, dynamic> json) {
+    final Map<String, dynamic> data = (json['data'] is Map<String, dynamic>)
+        ? json['data'] as Map<String, dynamic>
+        : json;
+    final Map<String, dynamic> progress = _mapFromAny(data['progress']);
+    final Map<String, dynamic> basicInfo = _mapFromAny(data['basic_info']);
+    final Map<String, dynamic> location = _mapFromAny(data['location']);
+    final Map<String, dynamic> policies = _mapFromAny(data['policies']);
+    final Map<String, dynamic> package = _mapFromAny(data['package']);
+    final Map<String, dynamic> media = _mapFromAny(data['media']);
+
     return VendorOnboardingResponseModel(
-      id: _asInt(json['id']),
-      vendorOnboardingId: _asInt(json['vendor_onboarding_id']),
-      userId: _asInt(json['user_id']),
-      mainStep: _asInt(json['main_step']) ?? 0,
-      subStep: _asInt(json['sub_step']) ?? 0,
-      futsalName: json['futsal_name']?.toString() ?? '',
-      slug: json['slug']?.toString() ?? '',
-      registrationNumber: json['registration_number']?.toString() ?? '',
-      phone: json['phone']?.toString() ?? '',
-      email: json['email']?.toString() ?? '',
-      socialLink: _asTrimmedString(json['social_link']),
-      description: _asTrimmedString(json['description']),
-      futsalAddress: _asTrimmedString(json['futsal_address']),
-      exactAddress: _asTrimmedString(json['exact_address']),
-      latitude: _asDouble(json['latitude']),
-      longitude: _asDouble(json['longitude']),
-      cancelledPolicy: _asTrimmedString(json['cancelled_policy']),
-      futsalRules: json['futsal_rules']?.toString() ?? '',
-      packageId: _asInt(json['package_id']),
-      packagePercentage: _asDouble(json['package_percentage']),
+      id: _asInt(data['id']),
+      vendorOnboardingId: _asInt(data['vendor_onboarding_id']),
+      userId: _asInt(data['user_id']),
+      mainStep: _asInt(progress['main_step'] ?? data['main_step']) ?? 0,
+      subStep: _asInt(progress['sub_step'] ?? data['sub_step']) ?? 0,
+      futsalName: _asTrimmedString(
+        basicInfo['name'] ?? data['futsal_name'] ?? data['name'],
+      ),
+      slug: _asTrimmedString(basicInfo['slug'] ?? data['slug']),
+      registrationNumber: _asTrimmedString(
+        basicInfo['registration_number'] ?? data['registration_number'],
+      ),
+      phone: _asTrimmedString(
+        basicInfo['phone'] ?? data['phone_number'] ?? data['phone'],
+      ),
+      email: _asTrimmedString(
+        basicInfo['email'] ?? data['email_address'] ?? data['email'],
+      ),
+      socialLink: _asTrimmedString(
+        basicInfo['social_link'] ?? data['social_link'],
+      ),
+      description: _asTrimmedString(
+        basicInfo['description'] ?? data['description'],
+      ),
+      futsalAddress: _asTrimmedString(
+        location['city'] ?? data['address'] ?? data['futsal_address'],
+      ),
+      exactAddress: _asTrimmedString(
+        location['exact_address'] ?? data['exact_address'],
+      ),
+      latitude: _asDouble(location['latitude'] ?? data['latitude']),
+      longitude: _asDouble(location['longitude'] ?? data['longitude']),
+      cancelledPolicy: _asTrimmedString(
+        policies['cancellation_policy'] ??
+            data['cancellation_policy'] ??
+            data['cancelled_policy'],
+      ),
+      futsalRules: _asTrimmedString(
+        policies['rules'] ?? data['rules'] ?? data['futsal_rules'],
+      ),
+      packageId: _asInt(package['package_id'] ?? data['package_id']),
+      packagePercentage: _asDouble(
+        package['package_percentage'] ?? data['package_percentage'],
+      ),
       coverImage: _uploadFromAny(
-        json['cover_image_media'] ?? json['cover_image_id'],
+        media['cover_image'] ??
+            data['cover_image_media'] ??
+            data['cover_image_id'],
       ),
       galleryImages: _uploadsFromAny(
-        json['gallery_media'] ?? json['gallery_image_ids'],
+        media['gallery'] ?? data['gallery_media'] ?? data['gallery_image_ids'],
       ),
       companyDocuments: _uploadsFromAny(
-        json['company_document_media'] ?? json['company_document_ids'],
+        media['company_documents'] ??
+            data['company_document_media'] ??
+            data['company_document_ids'],
       ),
     );
   }
@@ -106,9 +144,21 @@ class VendorOnboardingResponseModel {
           packagePercentage ?? _commissionPercentFromPackageId(packageId),
       coverImage: coverImage,
       gallery: galleryImages,
+      selectedCoverImage: coverImage == null
+          ? null
+          : SelectedImageRef.fromUploadRef(coverImage!),
+      selectedGalleryImages: galleryImages
+          .map(SelectedImageRef.fromUploadRef)
+          .toList(growable: false),
       companyDocuments: companyDocuments,
     );
   }
+}
+
+Map<String, dynamic> _mapFromAny(dynamic value) {
+  if (value is Map<String, dynamic>) return value;
+  if (value is Map) return Map<String, dynamic>.from(value);
+  return const <String, dynamic>{};
 }
 
 double? _commissionPercentFromPackageId(int? packageId) {
@@ -126,22 +176,48 @@ UploadRef? _uploadFromAny(dynamic value) {
   if (value == null) return null;
 
   if (value is Map) {
-    final Map<String, dynamic> map = Map<String, dynamic>.from(value);
+    final map = Map<String, dynamic>.from(value);
+    final int? id = _asInt(map['id']);
+    final String remoteUrl = _asTrimmedString(
+      map['url'] ??
+          map['full_url'] ??
+          map['original_url'] ??
+          map['preview_url'] ??
+          map['media_url'] ??
+          map['file_url'] ??
+          map['fileUrl'] ??
+          map['thumbnail_url'] ??
+          map['thumbnailUrl'] ??
+          map['src'] ??
+          map['remoteUrl'] ??
+          map['remote_url'] ??
+          map['path'] ??
+          map['file_path'],
+    );
+    final String name = _asTrimmedString(
+      map['name'] ?? map['file_name'] ?? _fileNameFromUrl(remoteUrl),
+    );
+    if (id == null && remoteUrl.isEmpty && name.isEmpty) return null;
+
     return UploadRef(
-      id: _asInt(map['id']),
-      name: map['name']?.toString() ?? map['file_name']?.toString() ?? '',
-      localPath:
-          map['localPath']?.toString() ??
-          map['path']?.toString() ??
-          map['url']?.toString() ??
-          '',
-      remoteUrl: map['url']?.toString(),
+      id: id,
+      name: name,
+      remoteUrl: remoteUrl.isEmpty ? null : remoteUrl,
     );
   }
 
-  final int? id = _asInt(value);
+  final id = _asInt(value);
   if (id == null) return null;
-  return UploadRef(id: id, name: '', localPath: '');
+
+  return UploadRef(id: id, name: '', remoteUrl: '');
+}
+
+String _fileNameFromUrl(String url) {
+  if (url.trim().isEmpty) return '';
+  final Uri? uri = Uri.tryParse(url);
+  final String path = uri?.path.trim().isNotEmpty == true ? uri!.path : url;
+  final List<String> parts = path.split('/');
+  return parts.isEmpty ? '' : parts.last;
 }
 
 List<UploadRef> _uploadsFromAny(dynamic value) {
@@ -152,9 +228,9 @@ List<UploadRef> _uploadsFromAny(dynamic value) {
         .toList(growable: false);
   }
 
-  final UploadRef? single = _uploadFromAny(value);
-  if (single == null) return const <UploadRef>[];
-  return <UploadRef>[single];
+  final single = _uploadFromAny(value);
+  if (single == null) return const [];
+  return [single];
 }
 
 int? _asInt(Object? value) {

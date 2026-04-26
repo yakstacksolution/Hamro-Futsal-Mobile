@@ -8,6 +8,6 @@ final class GetPublicPackagesUseCase {
 
   final PublicRepository repository;
 
-  Future<Either<AppException, List<PublicPackageModel>>> call() async =>
+  Future<Either<AppException, List<PublicPackageModel>>> getPackages() async =>
       await repository.getPackages();
 }

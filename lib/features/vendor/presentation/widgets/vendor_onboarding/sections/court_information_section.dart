@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_quill_delta_from_html/flutter_quill_delta_from_html.dart';
+import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:vsc_quill_delta_to_html/vsc_quill_delta_to_html.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/widgets/custom_quill_editor.dart';
@@ -52,14 +53,14 @@ class _CourtBasicInfoSubsection extends StatelessWidget {
             title: 'Court Info',
             subtitle: 'Set the name, base price, and type for this court.',
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: AppDimens.sizeX18),
           VendorInputField(
             label: 'Court name',
             initialValue: court.name,
             onChanged: (String value) =>
                 cubit.updateActiveCourt(court.copyWith(name: value)),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: AppDimens.sizeX14),
           VendorInputField(
             label: 'Base price',
             initialValue: formatDouble(court.basePrice),
@@ -71,7 +72,7 @@ class _CourtBasicInfoSubsection extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: AppDimens.sizeX14),
           DropdownButtonFormField<String>(
             initialValue: court.courtType,
             items: courtTypeOptions
@@ -117,10 +118,17 @@ class _CourtDescriptionSubsectionState
     _lastHtmlContent = widget.court.description;
 
     widget.cubit.registerActiveEditorFlush(_flushOwner, _flushPendingChanges);
+    _initializeEditor();
+  }
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _initializeEditor();
-    });
+  @override
+  void didUpdateWidget(covariant _CourtDescriptionSubsection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.court.description != widget.court.description &&
+        _initialized &&
+        widget.court.description != _lastHtmlContent) {
+      _replaceEditorContent(widget.court.description);
+    }
   }
 
   void _initializeEditor() {
@@ -154,10 +162,12 @@ class _CourtDescriptionSubsectionState
     _debounceTimer?.cancel();
     _debounceTimer = Timer(const Duration(milliseconds: 300), () {
       if (!mounted) return;
+      _debounceTimer = null;
 
       final delta = _quillController.document.toDelta();
-      final String htmlConverter =
-          QuillDeltaToHtmlConverter(delta.toJson()).convert();
+      final String htmlConverter = QuillDeltaToHtmlConverter(
+        delta.toJson(),
+      ).convert();
 
       if (htmlConverter != _lastHtmlContent) {
         _lastHtmlContent = htmlConverter;
@@ -169,11 +179,12 @@ class _CourtDescriptionSubsectionState
   }
 
   void _flushPendingChanges() {
-    if (!_initialized) return;
+    if (!_initialized || _debounceTimer == null) return;
 
     final delta = _quillController.document.toDelta();
-    final String htmlConverter =
-        QuillDeltaToHtmlConverter(delta.toJson()).convert();
+    final String htmlConverter = QuillDeltaToHtmlConverter(
+      delta.toJson(),
+    ).convert();
 
     if (htmlConverter == _lastHtmlContent) return;
     _lastHtmlContent = htmlConverter;
@@ -181,6 +192,24 @@ class _CourtDescriptionSubsectionState
       widget.cubit.state.activeCourt?.copyWith(description: htmlConverter) ??
           widget.court.copyWith(description: htmlConverter),
     );
+  }
+
+  void _replaceEditorContent(String html) {
+    _lastHtmlContent = html;
+    final Document document = _buildDocumentFromHtml(html);
+    _quillController.document = document;
+    _quillController.updateSelection(
+      const TextSelection.collapsed(offset: 0),
+      ChangeSource.local,
+    );
+  }
+
+  Document _buildDocumentFromHtml(String? html) {
+    if (html != null && html.trim().isNotEmpty) {
+      final delta = HtmlToDelta().convert(html);
+      return Document.fromDelta(delta);
+    }
+    return Document();
   }
 
   @override
@@ -203,7 +232,7 @@ class _CourtDescriptionSubsectionState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          const _CompactCourtDescriptionHeader(
+          _CompactCourtDescriptionHeader(
             title: 'Description',
             subtitle:
                 'Tell customers about this court. Describe the surface, size, and any unique features.',
@@ -256,7 +285,9 @@ class _CompactCourtDescriptionHeader extends StatelessWidget {
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: LightColor.secondaryColor.withValues(alpha: 0.2)),
+        border: Border.all(
+          color: LightColor.secondaryColor.withValues(alpha: 0.2),
+        ),
       ),
       child: Row(
         children: <Widget>[

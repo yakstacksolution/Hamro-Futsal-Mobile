@@ -2,16 +2,25 @@ import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboardi
 import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_drafts.dart';
 
 extension VendorOnboardingApiPayload on VendorOnboardingState {
-  Map<String, dynamic> toCreateFutsalBody({int? mainStep, int? subStep}) {
+  Map<String, dynamic> toFutsalBody({
+    int? mainStep,
+    int? subStep,
+    int? futsalId,
+  }) {
     final int resolvedMainStep = mainStep ?? futsalPointer.sectionIndex;
     final int resolvedSubStep = subStep ?? futsalPointer.subsectionIndex;
 
     final int? packageId = _packageIdFromPercent(futsal.commissionPercent);
 
-    final UploadRef? coverImage = futsal.coverImage;
-    final int? coverImageId = coverImage?.id;
+    final int? coverImageId =
+        futsal.selectedCoverImage?.id ?? futsal.coverImage?.id;
 
-    final List<int> galleryIds = futsal.gallery
+    final List<int> galleryIds = futsal.selectedGalleryImages
+        .where((SelectedImageRef item) => item.id != null)
+        .map((SelectedImageRef item) => item.id!)
+        .toList();
+
+    final List<int> fallbackGalleryIds = futsal.gallery
         .where((UploadRef item) => item.id != null)
         .map((UploadRef item) => item.id!)
         .toList();
@@ -21,7 +30,7 @@ extension VendorOnboardingApiPayload on VendorOnboardingState {
         .map((UploadRef item) => item.id!)
         .toList();
 
-    return <String, dynamic>{
+    final Map<String, dynamic> body = <String, dynamic>{
       'main_step': resolvedMainStep,
       'sub_step': resolvedSubStep,
       'futsal_name': futsal.title.trim(),
@@ -38,10 +47,21 @@ extension VendorOnboardingApiPayload on VendorOnboardingState {
       'futsal_rules': futsal.futsalRules.trim(),
       'package_id': packageId,
       'cover_image_id': coverImageId,
-      'gallery_image_ids': galleryIds,
+      'gallery_image_ids': galleryIds.isNotEmpty
+          ? galleryIds
+          : fallbackGalleryIds,
       'company_document_ids': companyDocumentIds,
     };
+
+    if (futsalId != null) {
+      body['venue_id'] = futsalId;
+    }
+
+    return body;
   }
+
+  Map<String, dynamic> toCreateFutsalBody({int? mainStep, int? subStep}) =>
+      toFutsalBody(mainStep: mainStep, subStep: subStep);
 }
 
 String _formatCoordinate(double? value) {

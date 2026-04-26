@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:hamro_footsall/core/api/api_client/api_constants.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
@@ -181,11 +182,13 @@ class VendorOnboardingSectionHeader extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.icon,
+    this.trailing,
   });
 
   final String title;
   final String subtitle;
   final IconData icon;
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -239,6 +242,10 @@ class VendorOnboardingSectionHeader extends StatelessWidget {
               ],
             ),
           ),
+          if (trailing != null) ...<Widget>[
+            const SizedBox(width: AppDimens.sizeX8),
+            trailing!,
+          ],
         ],
       ),
     );
@@ -409,6 +416,7 @@ class VendorUploadSection extends StatelessWidget {
     required this.onRemove,
     this.actionLabel = 'Upload',
     this.actionIcon = Icons.upload_rounded,
+    this.previewAsImage = false,
   });
 
   final String title;
@@ -418,6 +426,7 @@ class VendorUploadSection extends StatelessWidget {
   final ValueChanged<UploadRef>? onRemove;
   final String actionLabel;
   final IconData actionIcon;
+  final bool previewAsImage;
 
   @override
   Widget build(BuildContext context) {
@@ -464,78 +473,46 @@ class VendorUploadSection extends StatelessWidget {
                             height: 1.35,
                           ),
                     ),
-                    const SizedBox(height: AppDimens.sizeX8),
-                    Container(
-                      padding: AppUtils().getPadding(
-                        horizontal: AppDimens.sizeX8,
-                        vertical: AppDimens.sizeX4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: hasFiles
-                            ? LightColor.secondarySoft
-                            : LightColor.inputFillColor,
-                        borderRadius: BorderRadius.circular(
-                          AppDimens.radiusX50,
-                        ),
-                      ),
-                      child: Text(
-                        hasFiles
-                            ? '${files.length} file${files.length == 1 ? '' : 's'} added'
-                            : 'No files added yet',
-                        style: FutsalTheme.getTextTheme(context).bodyTextSmall
-                            ?.copyWith(
-                              color: hasFiles
-                                  ? LightColor.secondaryDark
-                                  : LightColor.secondaryTextColor,
-                              fontWeight: FontWeight.w700,
-                            ),
-                      ),
-                    ),
                   ],
                 ),
               ),
               const SizedBox(width: AppDimens.sizeX10),
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: <Color>[
-                      LightColor.secondaryColor,
-                      LightColor.secondaryDark,
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(AppDimens.radiusX10),
-                  boxShadow: <BoxShadow>[
-                    BoxShadow(
-                      color: LightColor.secondaryColor.withValues(alpha: 0.18),
-                      blurRadius: AppDimens.radiusX10,
-                      offset: const Offset(0, AppDimens.sizeX4),
-                    ),
-                  ],
-                ),
-                child: FilledButton.icon(
-                  onPressed: onPick,
-                  icon: Icon(actionIcon, size: AppDimens.sizeX18),
-                  label: Text(actionLabel),
-                  style: ButtonStyle(
-                    backgroundColor: WidgetStateProperty.all(
-                      Colors.transparent,
-                    ),
-                    shadowColor: WidgetStateProperty.all(Colors.transparent),
-                    foregroundColor: WidgetStateProperty.all(Colors.white),
-                    padding: WidgetStateProperty.all(
-                      AppUtils().getPadding(
-                        horizontal: AppDimens.sizeX12,
-                        vertical: AppDimens.sizeX10,
-                      ),
-                    ),
-                    shape: WidgetStateProperty.all(
-                      RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(
-                          AppDimens.radiusX10,
+              InkWell(
+                onTap: onPick,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: LightColor.secondaryColor,
+                    borderRadius: BorderRadius.circular(AppDimens.radiusX6),
+                    boxShadow: <BoxShadow>[
+                      BoxShadow(
+                        color: LightColor.secondaryColor.withValues(
+                          alpha: 0.18,
                         ),
+                        blurRadius: AppDimens.radiusX10,
+                        offset: const Offset(0, AppDimens.sizeX4),
                       ),
+                    ],
+                  ),
+                  child: Padding(
+                    padding: AppUtils().getPadding(
+                      horizontal: AppDimens.sizeX10,
+                      vertical: AppDimens.sizeX6,
+                    ),
+
+                    child: Row(
+                      children: [
+                        Icon(
+                          actionIcon,
+                          size: AppDimens.sizeX18,
+                          color: LightColor.whiteColor,
+                        ),
+                        const SizedBox(width: AppDimens.sizeX6),
+                        Text(
+                          actionLabel,
+                          style: FutsalTheme.getTextTheme(context).bodyTextSmall
+                              ?.copyWith(color: LightColor.whiteColor),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -552,6 +529,7 @@ class VendorUploadSection extends StatelessWidget {
                         .map(
                           (UploadRef file) => VendorUploadItem(
                             file: file,
+                            previewAsImage: previewAsImage,
                             onRemove: onRemove == null
                                 ? null
                                 : () => onRemove!(file),
@@ -622,13 +600,20 @@ class VendorUploadSection extends StatelessWidget {
 }
 
 class VendorUploadItem extends StatelessWidget {
-  const VendorUploadItem({super.key, required this.file, this.onRemove});
+  const VendorUploadItem({
+    super.key,
+    required this.file,
+    this.previewAsImage = false,
+    this.onRemove,
+  });
 
   final UploadRef file;
+  final bool previewAsImage;
   final VoidCallback? onRemove;
 
   bool get _isImageFile {
-    final String path = _imageSource.toLowerCase();
+    if (previewAsImage && _rawImageSource.isNotEmpty) return true;
+    final String path = _pathWithoutQuery(_rawImageSource).toLowerCase();
     return path.endsWith('.png') ||
         path.endsWith('.jpg') ||
         path.endsWith('.jpeg') ||
@@ -636,10 +621,15 @@ class VendorUploadItem extends StatelessWidget {
         path.endsWith('.gif');
   }
 
-  String get _imageSource {
+  String get _rawImageSource {
     final String remotePath = (file.remoteUrl ?? '').trim();
-    return remotePath.isNotEmpty ? remotePath : file.localPath;
+    return remotePath.isNotEmpty ? remotePath : file.remoteUrl ?? '';
   }
+
+  String get _imageSource => _resolveMediaUrl(_rawImageSource);
+
+  List<String> get _mediaUrlCandidates =>
+      _resolveMediaUrlCandidates(_rawImageSource);
 
   bool get _isNetworkImage {
     final String source = _imageSource.toLowerCase();
@@ -687,58 +677,15 @@ class VendorUploadItem extends StatelessWidget {
             AspectRatio(
               aspectRatio: 16 / 9,
               child: _isNetworkImage
-                  ? CustomImageView(
-                      url: _imageSource,
-                      fit: BoxFit.cover,
-                      width: double.infinity,
-                      height: double.infinity,
-                    )
+                  ? _NetworkUploadPreview(urls: _mediaUrlCandidates)
                   : CustomImageView(
-                      file: File(file.localPath),
+                      file: File(_rawImageSource),
                       fit: BoxFit.cover,
                       width: double.infinity,
                       height: double.infinity,
                     ),
             ),
-            Container(
-              width: double.infinity,
-              padding: AppUtils().getPadding(
-                horizontal: AppDimens.sizeX10,
-                vertical: AppDimens.sizeX8,
-              ),
-              decoration: const BoxDecoration(color: LightColor.background),
-              child: Row(
-                children: <Widget>[
-                  Container(
-                    padding: AppUtils().getPadding(
-                      horizontal: AppDimens.sizeX8,
-                      vertical: AppDimens.sizeX4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: LightColor.secondarySoft,
-                      borderRadius: BorderRadius.circular(AppDimens.radiusX50),
-                    ),
-                    child: Text(
-                      'Image',
-                      style: FutsalTheme.getTextTheme(context).bodyTextSmall
-                          ?.copyWith(
-                            color: LightColor.secondaryDark,
-                            fontWeight: FontWeight.w700,
-                          ),
-                    ),
-                  ),
-                  const Spacer(),
-                  Text(
-                    file.name.split('.').last.toUpperCase(),
-                    style: FutsalTheme.getTextTheme(context).bodyTextSmall
-                        ?.copyWith(
-                          color: LightColor.secondaryTextColor,
-                          fontWeight: FontWeight.w700,
-                        ),
-                  ),
-                ],
-              ),
-            ),
+
             Padding(
               padding: AppUtils().getPadding(
                 left: AppDimens.sizeX12,
@@ -857,7 +804,7 @@ class VendorUploadItem extends StatelessWidget {
                     const SizedBox(width: AppDimens.sizeX8),
                     Expanded(
                       child: Text(
-                        file.localPath,
+                        file.remoteUrl ?? '',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: FutsalTheme.getTextTheme(context).bodyTextSmall
@@ -890,6 +837,102 @@ class VendorUploadItem extends StatelessWidget {
       ),
     );
   }
+}
+
+class _NetworkUploadPreview extends StatefulWidget {
+  const _NetworkUploadPreview({required this.urls});
+
+  final List<String> urls;
+
+  @override
+  State<_NetworkUploadPreview> createState() => _NetworkUploadPreviewState();
+}
+
+class _NetworkUploadPreviewState extends State<_NetworkUploadPreview> {
+  int _urlIndex = 0;
+
+  @override
+  void didUpdateWidget(covariant _NetworkUploadPreview oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.urls.join('|') != widget.urls.join('|')) {
+      _urlIndex = 0;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.urls.isEmpty) return const SizedBox.shrink();
+
+    final String url = widget.urls[_urlIndex];
+    return Image.network(
+      key: ValueKey<String>(url),
+      url,
+      fit: BoxFit.cover,
+      width: double.infinity,
+      height: double.infinity,
+      errorBuilder: (_, __, ___) {
+        if (_urlIndex < widget.urls.length - 1) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            setState(() => _urlIndex += 1);
+          });
+        }
+        return Container(
+          color: LightColor.inputFillColor,
+          alignment: Alignment.center,
+          child: const Icon(
+            Icons.broken_image_rounded,
+            color: LightColor.secondaryTextColor,
+            size: AppDimens.sizeX28,
+          ),
+        );
+      },
+      loadingBuilder: (context, child, loadingProgress) {
+        if (loadingProgress == null) return child;
+        return Container(
+          color: LightColor.inputFillColor,
+          alignment: Alignment.center,
+          child: const SizedBox(
+            width: AppDimens.sizeX22,
+            height: AppDimens.sizeX22,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        );
+      },
+    );
+  }
+}
+
+String _pathWithoutQuery(String value) {
+  final Uri? uri = Uri.tryParse(value);
+  if (uri != null && uri.path.isNotEmpty) return uri.path;
+  return value.split('?').first;
+}
+
+String _resolveMediaUrl(String value) {
+  final List<String> candidates = _resolveMediaUrlCandidates(value);
+  return candidates.isEmpty ? value.trim() : candidates.first;
+}
+
+List<String> _resolveMediaUrlCandidates(String value) {
+  final String source = value.trim();
+  if (source.isEmpty) return const <String>[];
+  final String lower = source.toLowerCase();
+  if (lower.startsWith('http://') || lower.startsWith('https://')) {
+    return <String>[source];
+  }
+  if (File(source).existsSync()) return <String>[source];
+
+  final Uri apiUri = Uri.parse(APIEndpoint.baseUrl);
+  final String origin =
+      '${apiUri.scheme}://${apiUri.host}'
+      '${apiUri.hasPort ? ':${apiUri.port}' : ''}';
+  final String path = source.startsWith('/') ? source : '/$source';
+  final String apiBase = APIEndpoint.baseUrl.endsWith('/')
+      ? APIEndpoint.baseUrl.substring(0, APIEndpoint.baseUrl.length - 1)
+      : APIEndpoint.baseUrl;
+
+  return <String>{'$origin$path', '$apiBase$path'}.toList(growable: false);
 }
 
 InputDecoration vendorInputDecoration(String label) {

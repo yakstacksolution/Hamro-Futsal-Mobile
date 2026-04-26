@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -168,7 +170,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       key: _scaffoldKey,
-
       body: BlocListener<ProfileBloc, ProfileState>(
         listener: (BuildContext context, ProfileState state) {
           final bool requiresVendorOnboarding =
@@ -208,9 +209,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 children: <Widget>[
                   SingleChildScrollView(
                     child: Container(
-                      height:
-                          MediaQuery.of(context).size.height -
-                          AppDimens.sizeX24,
+                      height: math.max(
+                        0,
+                        MediaQuery.of(context).size.height - AppDimens.sizeX24,
+                      ),
                       padding: AppUtils().getPadding(
                         bottom: AppDimens.paddingX10,
                       ),

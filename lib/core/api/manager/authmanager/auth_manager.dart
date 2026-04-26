@@ -98,4 +98,10 @@ class AuthManager extends ServiceManager {
       data: Map<String, dynamic>.from(data as Map),
     );
   }
+
+  Future<Result> updateVendorOnboardingFutsal(data) async {
+    return await _apiClient.updateVendorOnboardingFutsal(
+      data: Map<String, dynamic>.from(data as Map),
+    );
+  }
 }

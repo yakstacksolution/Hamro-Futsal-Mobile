@@ -28,7 +28,7 @@ class PublicPackagesBloc
     );
 
     final Either<AppException, List<PublicPackageModel>> response =
-        await _getPublicPackagesUseCase();
+        await _getPublicPackagesUseCase.getPackages();
 
     response.fold(
       (AppException failure) => emit(

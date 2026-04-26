@@ -2,8 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_text.dart';
-import 'package:hamro_footsall/core/theme/futsal_theme.dart' hide LightColor;
-import 'package:hamro_footsall/core/utils/app_utils.dart';
+import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/widgets/custom_button.dart';
 
@@ -50,11 +49,11 @@ class AuthScreenFrame extends StatelessWidget {
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
-                padding: AppUtils().getPadding(
-                  left: AppDimens.paddingX20,
-                  top: AppDimens.paddingX24,
-                  right: AppDimens.paddingX20,
-                  bottom: AppDimens.paddingX20,
+                padding: const EdgeInsets.fromLTRB(
+                  AppDimens.paddingX20,
+                  AppDimens.paddingX24,
+                  AppDimens.paddingX20,
+                  AppDimens.paddingX20,
                 ),
                 child: ConstrainedBox(
                   constraints: BoxConstraints(
@@ -73,11 +72,11 @@ class AuthScreenFrame extends StatelessWidget {
                       ),
                       SizedBox(height: AppDimens.sizeX18),
                       Container(
-                        padding: AppUtils().getPadding(
-                          left: AppDimens.paddingX20,
-                          top: AppDimens.paddingX20,
-                          right: AppDimens.paddingX20,
-                          bottom: AppDimens.paddingX14,
+                        padding: const EdgeInsets.fromLTRB(
+                          AppDimens.paddingX20,
+                          AppDimens.paddingX20,
+                          AppDimens.paddingX20,
+                          AppDimens.paddingX14,
                         ),
                         decoration: BoxDecoration(
                           color: LightColor.whiteColor.withValues(alpha: 0.96),

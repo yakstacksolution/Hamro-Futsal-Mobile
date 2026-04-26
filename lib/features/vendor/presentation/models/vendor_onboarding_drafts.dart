@@ -1,13 +1,7 @@
 class UploadRef {
-  const UploadRef({
-    required this.name,
-    required this.localPath,
-    this.id,
-    this.remoteUrl,
-  });
+  const UploadRef({required this.name, this.id, this.remoteUrl});
 
   final String name;
-  final String localPath;
   final int? id;
   final String? remoteUrl;
 
@@ -20,28 +14,54 @@ class UploadRef {
   }) {
     return UploadRef(
       name: name ?? this.name,
-      localPath: localPath ?? this.localPath,
       id: clearId ? null : id ?? this.id,
       remoteUrl: remoteUrl ?? this.remoteUrl,
     );
   }
 
   Map<String, dynamic> toJson() {
-    return <String, dynamic>{
-      'name': name,
-      'localPath': localPath,
-      'id': id,
-      'remoteUrl': remoteUrl,
-    };
+    return <String, dynamic>{'name': name, 'id': id, 'remoteUrl': remoteUrl};
   }
 
   factory UploadRef.fromJson(Map<String, dynamic> json) {
     return UploadRef(
       name: json['name'] as String? ?? '',
-      localPath: json['localPath'] as String? ?? '',
       id: json['id'] as int?,
       remoteUrl: json['remoteUrl'] as String?,
     );
+  }
+}
+
+class SelectedImageRef {
+  const SelectedImageRef({required this.image, this.id});
+
+  final UploadRef image;
+  final int? id;
+
+  factory SelectedImageRef.fromUploadRef(UploadRef upload) {
+    return SelectedImageRef(image: upload, id: upload.id);
+  }
+
+  SelectedImageRef copyWith({UploadRef? image, int? id, bool clearId = false}) {
+    return SelectedImageRef(
+      image: image ?? this.image,
+      id: clearId ? null : id ?? this.id,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return <String, dynamic>{'image': image.toJson(), 'id': id};
+  }
+
+  factory SelectedImageRef.fromJson(Map<String, dynamic> json) {
+    final UploadRef image = json['image'] is Map
+        ? UploadRef.fromJson(Map<String, dynamic>.from(json['image'] as Map))
+        : UploadRef(
+            name: json['name'] as String? ?? '',
+            id: _asInt(json['id']),
+            remoteUrl: json['remoteUrl'] as String?,
+          );
+    return SelectedImageRef(id: _asInt(json['id']) ?? image.id, image: image);
   }
 }
 
@@ -223,6 +243,8 @@ class FutsalDraft {
     this.commissionPercent,
     this.coverImage,
     this.gallery = const <UploadRef>[],
+    this.selectedCoverImage,
+    this.selectedGalleryImages = const <SelectedImageRef>[],
     this.companyDocuments = const <UploadRef>[],
   });
 
@@ -241,6 +263,8 @@ class FutsalDraft {
   final double? commissionPercent;
   final UploadRef? coverImage;
   final List<UploadRef> gallery;
+  final SelectedImageRef? selectedCoverImage;
+  final List<SelectedImageRef> selectedGalleryImages;
   final List<UploadRef> companyDocuments;
 
   FutsalDraft copyWith({
@@ -259,9 +283,12 @@ class FutsalDraft {
     double? commissionPercent,
     UploadRef? coverImage,
     List<UploadRef>? gallery,
+    SelectedImageRef? selectedCoverImage,
+    List<SelectedImageRef>? selectedGalleryImages,
     List<UploadRef>? companyDocuments,
     bool clearCommissionPercent = false,
     bool clearCoverImage = false,
+    bool clearSelectedCoverImage = false,
   }) {
     return FutsalDraft(
       title: title ?? this.title,
@@ -281,6 +308,11 @@ class FutsalDraft {
           : commissionPercent ?? this.commissionPercent,
       coverImage: clearCoverImage ? null : coverImage ?? this.coverImage,
       gallery: gallery ?? this.gallery,
+      selectedCoverImage: clearSelectedCoverImage
+          ? null
+          : selectedCoverImage ?? this.selectedCoverImage,
+      selectedGalleryImages:
+          selectedGalleryImages ?? this.selectedGalleryImages,
       companyDocuments: companyDocuments ?? this.companyDocuments,
     );
   }
@@ -302,6 +334,10 @@ class FutsalDraft {
       'commissionPercent': commissionPercent,
       'coverImage': coverImage?.toJson(),
       'gallery': gallery.map((UploadRef item) => item.toJson()).toList(),
+      'selectedCoverImage': selectedCoverImage?.toJson(),
+      'selectedGalleryImages': selectedGalleryImages
+          .map((SelectedImageRef item) => item.toJson())
+          .toList(),
       'companyDocuments': companyDocuments
           .map((UploadRef item) => item.toJson())
           .toList(),
@@ -309,6 +345,10 @@ class FutsalDraft {
   }
 
   factory FutsalDraft.fromJson(Map<String, dynamic> json) {
+    final UploadRef? parsedCoverImage = _uploadFromJson(json['coverImage']);
+    final List<UploadRef> parsedGallery = _uploadsFromJson(json['gallery']);
+    final List<SelectedImageRef> parsedSelectedGallery =
+        _selectedImagesFromJson(json['selectedGalleryImages']);
     return FutsalDraft(
       title: json['title'] as String? ?? '',
       slug: json['slug'] as String? ?? '',
@@ -327,8 +367,16 @@ class FutsalDraft {
       cancellationPolicy: json['cancellationPolicy'] as String? ?? '',
       futsalRules: json['futsalRules'] as String? ?? '',
       commissionPercent: _asDouble(json['commissionPercent']),
-      coverImage: _uploadFromJson(json['coverImage']),
-      gallery: _uploadsFromJson(json['gallery']),
+      coverImage: parsedCoverImage,
+      gallery: parsedGallery,
+      selectedCoverImage:
+          _selectedImageFromJson(json['selectedCoverImage']) ??
+          (parsedCoverImage == null
+              ? null
+              : SelectedImageRef.fromUploadRef(parsedCoverImage)),
+      selectedGalleryImages: parsedSelectedGallery.isNotEmpty
+          ? parsedSelectedGallery
+          : parsedGallery.map(SelectedImageRef.fromUploadRef).toList(),
       companyDocuments: _uploadsFromJson(json['companyDocuments']),
     );
   }
@@ -474,12 +522,34 @@ UploadRef? _uploadFromJson(Object? value) {
   return UploadRef.fromJson(Map<String, dynamic>.from(value));
 }
 
+SelectedImageRef? _selectedImageFromJson(Object? value) {
+  if (value is! Map) return null;
+  return SelectedImageRef.fromJson(Map<String, dynamic>.from(value));
+}
+
 List<UploadRef> _uploadsFromJson(Object? value) {
   if (value is! List) return const <UploadRef>[];
   return value
       .whereType<Map>()
       .map((Map item) => UploadRef.fromJson(Map<String, dynamic>.from(item)))
       .toList();
+}
+
+List<SelectedImageRef> _selectedImagesFromJson(Object? value) {
+  if (value is! List) return const <SelectedImageRef>[];
+  return value
+      .whereType<Map>()
+      .map(
+        (Map item) =>
+            SelectedImageRef.fromJson(Map<String, dynamic>.from(item)),
+      )
+      .toList();
+}
+
+int? _asInt(Object? value) {
+  if (value == null) return null;
+  if (value is int) return value;
+  return int.tryParse(value.toString());
 }
 
 List<SlotPricingDraft> _slotConfigsFromJson(Object? value) {

@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hamro_footsall/core/routers/app_router_params.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
-import 'package:hamro_footsall/core/theme/futsal_theme.dart' hide LightColor;
+import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/custom_image_view.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
@@ -205,21 +205,61 @@ class _TopDashboardHeader extends StatelessWidget {
           .getPadding(left: AppDimens.paddingX16, top: AppDimens.paddingX18)
           .copyWith(bottom: AppDimens.paddingX4, right: AppDimens.paddingX16),
       decoration: const BoxDecoration(color: LightColor.whiteColor),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text(
-            'Futsal Portfolio',
-            style: textTheme.headingSmall?.copyWith(
-              fontWeight: FontWeight.w600,
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  'Futsal Portfolio',
+                  style: textTheme.headingSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: AppDimens.sizeX6),
+                Text(
+                  'Manage your futsal venues and court operations in one place.',
+                  style: textTheme.bodyTextSmall?.copyWith(
+                    color: LightColor.secondaryTextColor.withValues(
+                      alpha: 0.85,
+                    ),
+                    height: 1.5,
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: AppDimens.sizeX6),
-          Text(
-            'Manage your futsal venues and court operations in one place.',
-            style: textTheme.bodyTextSmall?.copyWith(
-              color: LightColor.secondaryTextColor.withValues(alpha: 0.85),
-              height: 1.5,
+          SizedBox(width: AppDimens.sizeX8),
+          InkWell(
+            onTap: onAddFutsal,
+            child: Container(
+              decoration: BoxDecoration(
+                color: LightColor.buttonColor,
+                borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+              ),
+              child: Padding(
+                padding: AppUtils().getPadding(
+                  symmetricHorizontal: AppDimens.paddingX12,
+                  symmetricVertical: AppDimens.paddingX8,
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.add_rounded,
+                      size: AppDimens.sizeX18,
+                      color: LightColor.whiteColor,
+                    ),
+                    SizedBox(width: AppDimens.sizeX6),
+                    Text(
+                      "New Futsal",
+                      style: FutsalTheme.getTextTheme(
+                        context,
+                      ).bodySubTitle?.copyWith(color: LightColor.whiteColor),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         ],
