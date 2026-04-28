@@ -59,7 +59,7 @@ private final class NativeSplashViewController: UIViewController {
   private let taglineLabel = UILabel()
   private let versionLabel = UILabel()
   private let logoContainer = UIView()
-  private let logoSymbol = UIImageView(image: UIImage(systemName: "soccerball.fill"))
+  private let logoSymbol = UIImageView(image: UIImage(named: "SplashTopLogo") ?? UIImage(systemName: "soccerball.fill"))
   private let cardView = UIView()
   private let cardTitle = UILabel()
   private let cardSubtitle = UILabel()
@@ -72,6 +72,10 @@ private final class NativeSplashViewController: UIViewController {
 
   required init?(coder: NSCoder) {
     fatalError("init(coder:) has not been implemented")
+  }
+
+  override var preferredStatusBarStyle: UIStatusBarStyle {
+    .lightContent
   }
 
   override func viewDidLoad() {
@@ -133,6 +137,8 @@ private final class NativeSplashViewController: UIViewController {
     logoContainer.translatesAutoresizingMaskIntoConstraints = false
     logoContainer.backgroundColor = .white
     logoContainer.layer.cornerRadius = 48
+    logoContainer.alpha = 0
+    logoContainer.layer.transform = CATransform3DMakeScale(0.72, 0.72, 1)
     logoContainer.layer.shadowColor = UIColor(red: 0.15, green: 0.71, blue: 0.54, alpha: 0.35).cgColor
     logoContainer.layer.shadowOpacity = 1
     logoContainer.layer.shadowRadius = 18
@@ -151,8 +157,8 @@ private final class NativeSplashViewController: UIViewController {
     NSLayoutConstraint.activate([
       logoSymbol.centerXAnchor.constraint(equalTo: logoContainer.centerXAnchor),
       logoSymbol.centerYAnchor.constraint(equalTo: logoContainer.centerYAnchor),
-      logoSymbol.widthAnchor.constraint(equalToConstant: 44),
-      logoSymbol.heightAnchor.constraint(equalToConstant: 44),
+      logoSymbol.widthAnchor.constraint(equalToConstant: 62),
+      logoSymbol.heightAnchor.constraint(equalToConstant: 62),
     ])
 
     titleLabel.text = "Hamro Futsal"
@@ -266,6 +272,21 @@ private final class NativeSplashViewController: UIViewController {
   }
 
   private func startAnimations() {
+    let entrance = CABasicAnimation(keyPath: "transform.scale")
+    entrance.fromValue = 0.72
+    entrance.toValue = 0.94
+    entrance.duration = 0.7
+    entrance.timingFunction = CAMediaTimingFunction(name: .easeOut)
+    logoContainer.layer.add(entrance, forKey: "hero_settle")
+
+    UIView.animate(
+      withDuration: 0.46,
+      delay: 0.04,
+      options: [.curveEaseOut, .allowUserInteraction]
+    ) {
+      self.logoContainer.alpha = 1
+    }
+
     let float = CABasicAnimation(keyPath: "position.y")
     float.byValue = 9
     float.duration = 1.6
@@ -280,6 +301,7 @@ private final class NativeSplashViewController: UIViewController {
     pulse.duration = 1.6
     pulse.autoreverses = true
     pulse.repeatCount = .infinity
+    pulse.beginTime = CACurrentMediaTime() + 0.7
     pulse.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
     logoContainer.layer.add(pulse, forKey: "pulse")
 

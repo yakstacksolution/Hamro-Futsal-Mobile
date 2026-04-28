@@ -3,9 +3,13 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hamro_footsall/core/routers/app_router_params.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
+import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/custom_image_view.dart';
+import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/features/auth/data/repositories/authentication_repository_impl.dart';
+import 'package:hamro_footsall/features/dashboard/presentation/page/overview_screen.dart';
+import 'package:hamro_footsall/features/dashboard/presentation/widgets/opponent_request_page.dart';
 import 'package:hamro_footsall/features/profile/data/model/profile_model.dart';
 import 'package:hamro_footsall/features/profile/presentation/profile_bloc/profile_bloc.dart';
 import 'package:hamro_footsall/features/profile/presentation/widgets/profile_details_page.dart';
@@ -21,12 +25,10 @@ class _ProfilePageState extends State<ProfilePage> {
   bool _isLoggingOut = false;
 
   static const List<_ProfileItem> _items = <_ProfileItem>[
-    _ProfileItem(title: 'My Profile', icon: Icons.person_outline_rounded),
     _ProfileItem(title: 'Settings', icon: Icons.settings_outlined),
-    _ProfileItem(
-      title: 'Notifications',
-      icon: Icons.notifications_none_rounded,
-    ),
+    _ProfileItem(title: 'Opponent Request', icon: Icons.gamepad_outlined),
+    _ProfileItem(title: 'Overview', icon: Icons.bar_chart_rounded),
+
     _ProfileItem(
       title: 'Transaction History',
       icon: Icons.receipt_long_outlined,
@@ -38,108 +40,121 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: LightColor.background,
       appBar: AppBar(
-        toolbarHeight: 20,
+        toolbarHeight: AppDimens.sizeX20,
         backgroundColor: LightColor.transparentColor,
         elevation: 0,
         centerTitle: true,
         surfaceTintColor: LightColor.transparentColor,
       ),
-      body: BlocConsumer<ProfileBloc, ProfileState>(
-        listenWhen: (ProfileState previous, ProfileState current) =>
-            previous.errorMessage != current.errorMessage &&
-            current.errorMessage != null,
-        listener: (BuildContext context, ProfileState state) {
-          if (state.errorMessage != null) {
-            AppUtils().showSnackBar(
-              context,
-              MsgType.error,
-              state.errorMessage!,
-            );
-          }
-        },
-        builder: (BuildContext context, ProfileState state) {
-          final ProfileModel? profile = state.profile;
-          final bool isProfileLoading =
-              state.status == ProfileStatus.loading && profile == null;
+      body: Padding(
+        padding: AppUtils().getPadding(bottom: AppDimens.paddingX50),
+        child: BlocConsumer<ProfileBloc, ProfileState>(
+          listenWhen: (ProfileState previous, ProfileState current) =>
+              previous.errorMessage != current.errorMessage &&
+              current.errorMessage != null,
+          listener: (BuildContext context, ProfileState state) {
+            if (state.errorMessage != null) {
+              AppUtils().showSnackBar(
+                context,
+                MsgType.error,
+                state.errorMessage!,
+              );
+            }
+          },
+          builder: (BuildContext context, ProfileState state) {
+            final ProfileModel? profile = state.profile;
+            final bool isProfileLoading =
+                state.status == ProfileStatus.loading && profile == null;
 
-          return Padding(
-            padding: const EdgeInsets.fromLTRB(20, 6, 20, 0),
-            child: Column(
-              children: <Widget>[
-                _buildProfileCard(
-                  profile: profile,
-                  isLoading: isProfileLoading,
-                ),
-                const SizedBox(height: 18),
-                Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.only(bottom: 28),
-                    children: <Widget>[
-                      _buildSectionLabel('General'),
-                      const SizedBox(height: 8),
-                      Container(
-                        decoration: _cardDecoration(),
-                        child: Column(
-                          children: List<Widget>.generate(_items.length, (
-                            int index,
-                          ) {
-                            final bool isLast = index == _items.length - 1;
-                            return _ProfileTile(
-                              item: _items[index],
-                              isLast: isLast,
-                              onTap: () {
-                                switch (index) {
-                                  case 0:
-                                    Navigator.of(context).push(
-                                      MaterialPageRoute<void>(
-                                        builder: (_) => ProfileDetailsPage(
-                                          user: profile?.data,
-                                        ),
-                                      ),
-                                    );
-                                    break;
-                                  case 1:
-                                    // Handle settings tap
-                                    break;
-                                  case 2:
-                                    // Handle notifications tap
-                                    break;
-                                  case 3:
-                                    // Handle transaction history tap
-                                    break;
-                                  case 4:
-                                    // Handle FAQ tap
-                                    break;
-                                  case 5:
-                                    // Handle about app tap
-                                    break;
-                                  default:
-                                    break;
-                                }
-                              },
-                            );
-                          }),
-                        ),
-                      ),
-                      const SizedBox(height: 18),
-                      _buildSectionLabel('Account'),
-                      const SizedBox(height: 8),
-                      Container(
-                        decoration: _cardDecoration(),
-                        child: _LogoutTile(
-                          isLoading: _isLoggingOut,
-                          onTap: _isLoggingOut ? null : _handleLogout,
-                        ),
-                      ),
-                    ],
+            return Padding(
+              padding: AppUtils().getPadding(
+                top: AppDimens.paddingX6,
+                left: AppDimens.paddingX20,
+                right: AppDimens.paddingX20,
+              ),
+              child: Column(
+                children: <Widget>[
+                  _buildProfileCard(
+                    profile: profile,
+                    isLoading: isProfileLoading,
                   ),
-                ),
-              ],
-            ),
-          );
-        },
+                  const SizedBox(height: AppDimens.sizeX18),
+                  Expanded(
+                    child: ListView(
+                      padding: AppUtils().getPadding(
+                        bottom: AppDimens.paddingX28,
+                      ),
+                      children: <Widget>[
+                        _buildSectionLabel('General'),
+                        const SizedBox(height: AppDimens.sizeX8),
+                        Container(
+                          decoration: _cardDecoration(),
+                          child: Column(
+                            children: List<Widget>.generate(_items.length, (
+                              int index,
+                            ) {
+                              final bool isLast = index == _items.length - 1;
+                              return _ProfileTile(
+                                item: _items[index],
+                                isLast: isLast,
+                                onTap: () {
+                                  switch (index) {
+                                    case 0:
+                                      break;
+                                    case 1:
+                                      // Handle settings tap
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute<void>(
+                                          builder: (_) =>
+                                              OpponentRequestScreen(),
+                                        ),
+                                      );
+                                      break;
+                                    case 2:
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute<void>(
+                                          builder: (_) => OverviewScreen(),
+                                        ),
+                                      );
+                                      // OverviewScreen
+                                      // Handle notifications tap
+                                      break;
+                                    case 3:
+                                      // Handle transaction history tap
+                                      break;
+                                    case 4:
+                                      // Handle FAQ tap
+                                      break;
+                                    case 5:
+                                      // Handle about app tap
+                                      break;
+                                    default:
+                                      break;
+                                  }
+                                },
+                              );
+                            }),
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+                        _buildSectionLabel('Account'),
+                        const SizedBox(height: 8),
+                        Container(
+                          decoration: _cardDecoration(),
+                          child: _LogoutTile(
+                            isLoading: _isLoggingOut,
+                            onTap: _isLoggingOut ? null : _handleLogout,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
       ),
     );
   }
@@ -160,103 +175,100 @@ class _ProfilePageState extends State<ProfilePage> {
         : 'Active member';
     final String? profilePhoto = user?.profilePhoto;
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: <Color>[
-            LightColor.secondaryLight,
-            LightColor.secondaryLight.withValues(alpha: 0.55),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+    return InkWell(
+      onTap: () {
+        if (profile != null) {
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => ProfileDetailsPage(user: profile.data),
+            ),
+          );
+        }
+      },
+      child: Container(
+        padding: AppUtils().getPadding(all: AppDimens.paddingX16),
+        decoration: BoxDecoration(
+          color: LightColor.cardColor,
+          borderRadius: BorderRadius.circular(AppDimens.radiusX12),
+          border: Border.all(color: LightColor.secondaryLightMedium),
         ),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: LightColor.secondaryLightMedium),
-      ),
-      child: Row(
-        children: <Widget>[
-          Container(
-            width: 68,
-            height: 68,
-            padding: const EdgeInsets.all(2),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: LightColor.whiteColor,
-              boxShadow: <BoxShadow>[
-                BoxShadow(
-                  color: LightColor.secondaryColor.withValues(alpha: 0.16),
-                  blurRadius: 18,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            child: ClipOval(
-              child: profilePhoto != null && profilePhoto.trim().isNotEmpty
-                  ? CustomImageView(
-                      url: profilePhoto,
-                      width: 78,
-                      height: 78,
-                      fit: BoxFit.cover,
-                    )
-                  : Container(
-                      width: 78,
-                      height: 78,
-                      color: LightColor.secondaryLight,
-                      child: const Icon(
-                        Icons.person_rounded,
-                        color: LightColor.secondaryDark,
-                        size: 30,
+        child: Row(
+          children: <Widget>[
+            Container(
+              width: AppDimens.sizeX68,
+              height: AppDimens.sizeX68,
+              padding: AppUtils().getPadding(all: AppDimens.paddingX2),
+
+              child: ClipOval(
+                child: profilePhoto != null && profilePhoto.trim().isNotEmpty
+                    ? CustomImageView(
+                        url: profilePhoto,
+                        width: AppDimens.sizeX78,
+                        height: AppDimens.sizeX78,
+                        fit: BoxFit.cover,
+                      )
+                    : Container(
+                        width: AppDimens.sizeX78,
+                        height: AppDimens.sizeX78,
+                        color: LightColor.secondaryColor,
+                        child: const Icon(
+                          Icons.person_rounded,
+                          color: LightColor.whiteColor,
+                          size: AppDimens.sizeX30,
+                        ),
                       ),
-                    ),
+              ),
             ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  isLoading ? 'Loading profile...' : fullName,
-                  style: const TextStyle(
-                    color: LightColor.primaryTextColor,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.2,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  email,
-                  style: TextStyle(
-                    color: LightColor.secondaryTextColor.withValues(alpha: 0.92),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: LightColor.whiteColor,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                  child: Text(
-                    role,
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(
+                    isLoading ? 'Loading profile...' : fullName,
                     style: const TextStyle(
-                      color: LightColor.secondaryDark,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w500,
+                      color: LightColor.primaryTextColor,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.2,
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 4),
+                  Text(
+                    email,
+
+                    style: FutsalTheme.getTextTheme(context).bodyTextSmall
+                        ?.copyWith(
+                          color: LightColor.secondaryTextColor.withValues(
+                            alpha: 0.92,
+                          ),
+                          fontWeight: FontWeight.w500,
+                        ),
+                  ),
+                  const SizedBox(height: AppDimens.paddingX4),
+                  Container(
+                    padding: AppUtils().getPadding(
+                      horizontal: AppDimens.paddingX12,
+                      vertical: AppDimens.paddingX2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: LightColor.secondaryColor,
+                      borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+                    ),
+                    child: Text(
+                      role,
+                      style: FutsalTheme.getTextTheme(context).bodySubTitle
+                          ?.copyWith(
+                            color: LightColor.whiteColor,
+                            fontWeight: FontWeight.w500,
+                          ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -264,9 +276,8 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget _buildSectionLabel(String label) {
     return Text(
       label,
-      style: TextStyle(
+      style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
         color: LightColor.secondaryTextColor.withValues(alpha: 0.86),
-        fontSize: 12,
         fontWeight: FontWeight.w700,
       ),
     );
@@ -275,12 +286,13 @@ class _ProfilePageState extends State<ProfilePage> {
   BoxDecoration _cardDecoration() {
     return BoxDecoration(
       color: LightColor.cardColor,
-      borderRadius: BorderRadius.circular(10),
+      // borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(AppDimens.radiusX12),
       border: Border.all(color: LightColor.borderColor.withValues(alpha: 0.15)),
       boxShadow: <BoxShadow>[
         BoxShadow(
           color: LightColor.shadowColor.withValues(alpha: 0.04),
-          blurRadius: 10,
+          blurRadius: AppDimens.radiusX12,
           offset: const Offset(0, 10),
         ),
       ],
@@ -327,38 +339,42 @@ class _ProfileTile extends StatelessWidget {
       children: <Widget>[
         ListTile(
           onTap: onTap,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 12,
-            vertical: 2,
+
+          contentPadding: AppUtils().getPadding(
+            horizontal: AppDimens.paddingX12,
+            vertical: AppDimens.paddingX2,
           ),
-          minTileHeight: 62,
+          minTileHeight: AppDimens.sizeX62,
           leading: Container(
-            width: 30,
-            height: 30,
+            width: AppDimens.sizeX30,
+            height: AppDimens.sizeX30,
             decoration: BoxDecoration(
-              color: LightColor.secondaryLight,
-              borderRadius: BorderRadius.circular(6),
+              color: LightColor.secondaryColor,
+              borderRadius: BorderRadius.circular(AppDimens.radiusX6),
             ),
-            child: Icon(item.icon, color: LightColor.secondaryColor, size: 18),
+            child: Icon(
+              item.icon,
+              color: LightColor.whiteColor,
+              size: AppDimens.sizeX18,
+            ),
           ),
           title: Text(
             item.title,
-            style: const TextStyle(
+            style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
               color: LightColor.primaryTextColor,
-              fontSize: 13,
               fontWeight: FontWeight.w600,
             ),
           ),
           trailing: Icon(
             Icons.chevron_right_rounded,
-            color: LightColor.borderColor.withValues(alpha: 0.9),
+            color: LightColor.secondaryColor.withValues(alpha: 0.5),
           ),
         ),
         if (!isLast)
           Divider(
             height: 0.5,
-            indent: 40,
-            endIndent: 10,
+            indent: AppDimens.sizeX40,
+            endIndent: AppDimens.sizeX10,
             color: LightColor.dividerColor,
           ),
       ],
@@ -376,30 +392,38 @@ class _LogoutTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       onTap: onTap,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
-      minTileHeight: 62,
+      contentPadding: AppUtils().getPadding(
+        horizontal: AppDimens.paddingX12,
+        vertical: AppDimens.paddingX2,
+      ),
+      minTileHeight: AppDimens.sizeX62,
       leading: Container(
-        width: 38,
-        height: 38,
+        width: AppDimens.sizeX38,
+        height: AppDimens.sizeX38,
         decoration: BoxDecoration(
           color: LightColor.redLightColor,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(AppDimens.radiusX10),
         ),
         child: isLoading
-            ? const Padding(
-                padding: EdgeInsets.all(10),
+            ? Padding(
+                padding: AppUtils().getPadding(all: AppDimens.paddingX10),
                 child: CircularProgressIndicator(
                   strokeWidth: 1,
-                  valueColor: AlwaysStoppedAnimation<Color>(LightColor.redColor),
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    LightColor.redColor,
+                  ),
                 ),
               )
-            : const Icon(Icons.logout_rounded, color: LightColor.redColor, size: 20),
+            : const Icon(
+                Icons.logout_rounded,
+                color: LightColor.redColor,
+                size: AppDimens.sizeX20,
+              ),
       ),
       title: Text(
         isLoading ? 'Logging out...' : 'Logout',
-        style: const TextStyle(
+        style: FutsalTheme.getTextTheme(context).bodyTextMedium?.copyWith(
           color: LightColor.redColor,
-          fontSize: 14.5,
           fontWeight: FontWeight.w700,
         ),
       ),

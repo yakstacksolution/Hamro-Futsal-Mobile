@@ -5,8 +5,13 @@ import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.view.View
+import android.view.Window
+import android.view.WindowInsets
+import android.view.WindowInsetsController
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.core.view.WindowCompat
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
@@ -16,6 +21,7 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.keyframes
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -46,24 +52,23 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.hamro_footsall.MainActivity
+import com.example.hamro_footsall.R
 import kotlin.math.PI
-import kotlin.math.cos
 import kotlin.math.sin
 import kotlinx.coroutines.delay
 import org.json.JSONObject
@@ -71,12 +76,38 @@ import org.json.JSONObject
 class SplashActivity : ComponentActivity() {
         override fun onCreate(savedInstanceState: Bundle?) {
                 super.onCreate(savedInstanceState)
+                configureSplashWindow()
                 setContent {
                         SplashScreen(
                                 accessTokenProvider = { getAccessToken() },
                                 appVersionProvider = { getAppVersion() },
                                 onNavigate = { destination -> openFlutter(destination) },
                         )
+                }
+        }
+
+        private fun configureSplashWindow() {
+                window.statusBarColor = android.graphics.Color.parseColor("#2C7969")
+                window.navigationBarColor = android.graphics.Color.parseColor("#2C7969")
+                WindowCompat.setDecorFitsSystemWindows(window, false)
+                setLightSystemBars(window, false)
+        }
+
+        private fun setLightSystemBars(window: Window, isLight: Boolean) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                        val controller = window.insetsController ?: return
+                        val flags =
+                                WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS or
+                                        WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS
+                        controller.setSystemBarsAppearance(if (isLight) flags else 0, flags)
+                } else {
+                        @Suppress("DEPRECATION")
+                        window.decorView.systemUiVisibility =
+                                if (isLight) {
+                                        View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
+                                } else {
+                                        0
+                                }
                 }
         }
 
@@ -195,25 +226,21 @@ fun SplashScreen(
                                 ),
                         label = "ring_pulse",
                 )
-        val shineOffset by
-                infinite.animateFloat(
-                        initialValue = -1.4f,
-                        targetValue = 1.4f,
-                        animationSpec =
-                                infiniteRepeatable(
-                                        animation = tween(3200, easing = FastOutSlowInEasing),
-                                        repeatMode = RepeatMode.Reverse,
-                                ),
-                        label = "shine_offset",
-                )
-
         val contentAlpha = remember { Animatable(0f) }
         val cardProgress = remember { Animatable(0f) }
+        val logoEntryScale = remember { Animatable(0.72f) }
 
         LaunchedEffect(Unit) {
                 contentAlpha.animateTo(
                         targetValue = 1f,
                         animationSpec = tween(durationMillis = 820, easing = FastOutSlowInEasing),
+                )
+        }
+
+        LaunchedEffect(Unit) {
+                logoEntryScale.animateTo(
+                        targetValue = 1f,
+                        animationSpec = tween(durationMillis = 700, easing = FastOutSlowInEasing),
                 )
         }
 
@@ -228,8 +255,7 @@ fun SplashScreen(
         Box(
                 modifier =
                         modifier.fillMaxSize()
-                                .background(LightColor.secondary)
-                                .safeDrawingPadding(),
+                                .background(LightColor.secondary),
         ) {
                 GlowCircle(
                         size = screenWidth * 0.62f,
@@ -261,7 +287,10 @@ fun SplashScreen(
                 FieldLinesPainter(modifier = Modifier.fillMaxSize())
 
                 Column(
-                        modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp),
+                        modifier =
+                                Modifier.fillMaxSize()
+                                        .safeDrawingPadding()
+                                        .padding(horizontal = 24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                         Spacer(modifier = Modifier.weight(1f))
@@ -276,7 +305,7 @@ fun SplashScreen(
                                         contentAlignment = Alignment.Center,
                                         modifier =
                                                 Modifier.offset(y = logoFloat.dp)
-                                                        .scale(logoScale)
+                                                        .scale(logoEntryScale.value * logoScale)
                                                         .size(168.dp),
                                 ) {
                                         Box(
@@ -311,7 +340,7 @@ fun SplashScreen(
                                         Box(
                                                 contentAlignment = Alignment.Center,
                                                 modifier =
-                                                        Modifier.size(96.dp)
+                                                        Modifier.size(104.dp)
                                                                 .clip(CircleShape)
                                                                 .background(Color.White)
                                                                 .drawBehind {
@@ -338,9 +367,16 @@ fun SplashScreen(
                                                                         )
                                                                 },
                                         ) {
-                                                SoccerBallPainter(
-                                                        shineProgress = shineOffset,
-                                                        modifier = Modifier.fillMaxSize()
+                                                Image(
+                                                        painter =
+                                                                painterResource(
+                                                                        id = R.drawable.splash_top_logo
+                                                                ),
+                                                        contentDescription = null,
+                                                        contentScale = ContentScale.Fit,
+                                                        modifier =
+                                                                Modifier.fillMaxSize()
+                                                                        .padding(18.dp)
                                                 )
                                         }
                                 }
@@ -505,63 +541,6 @@ private fun LoadingDots() {
                                                 .size(8.dp)
                                                 .clip(CircleShape)
                                                 .background(dotColor.copy(alpha = alpha)),
-                        )
-                }
-        }
-}
-
-@Composable
-private fun SoccerBallPainter(shineProgress: Float, modifier: Modifier = Modifier) {
-        Canvas(modifier = modifier) {
-                drawRect(Color.White)
-                val darkPaint = Color(0xFF1A1A1A)
-                val cx = size.width / 2f
-                val cy = size.height / 2f
-                val r = size.width * 0.14f
-
-                fun drawHex(centerX: Float, centerY: Float, radius: Float) {
-                        val path = Path()
-                        for (i in 0 until 6) {
-                                val angle = ((PI / 3.0) * i - PI / 6.0).toFloat()
-                                val x = centerX + radius * cos(angle)
-                                val y = centerY + radius * sin(angle)
-                                if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
-                        }
-                        path.close()
-                        drawPath(path = path, color = darkPaint)
-                }
-
-                drawHex(cx, cy, r)
-
-                val positions =
-                        listOf(
-                                Offset(cx, cy - r * 2.3f),
-                                Offset(cx + r * 2f, cy - r * 1.2f),
-                                Offset(cx + r * 2f, cy + r * 1.2f),
-                                Offset(cx, cy + r * 2.3f),
-                                Offset(cx - r * 2f, cy + r * 1.2f),
-                                Offset(cx - r * 2f, cy - r * 1.2f),
-                        )
-                positions.forEach { drawHex(it.x, it.y, r) }
-
-                val ballPath = Path().apply { addOval(Rect(Offset.Zero, size)) }
-                clipPath(ballPath) {
-                        val shineWidth = 28.dp.toPx()
-                        val xCenter = ((shineProgress + 1f) / 2f) * size.width
-                        drawRect(
-                                brush =
-                                        Brush.horizontalGradient(
-                                                colors =
-                                                        listOf(
-                                                                Color.White.copy(alpha = 0f),
-                                                                Color.White.copy(alpha = 0.45f),
-                                                                Color.White.copy(alpha = 0f),
-                                                        ),
-                                                startX = xCenter - shineWidth / 2f,
-                                                endX = xCenter + shineWidth / 2f,
-                                        ),
-                                topLeft = Offset(xCenter - shineWidth / 2f, 0f),
-                                size = Size(shineWidth, size.height),
                         )
                 }
         }

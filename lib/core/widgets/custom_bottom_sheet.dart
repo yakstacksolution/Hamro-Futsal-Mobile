@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
-import 'package:hamro_footsall/core/theme/futsal_theme.dart' hide LightColor;
+import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 
@@ -43,7 +43,7 @@ class CustomBottomSheet extends StatelessWidget {
     this.padding,
     this.useSafeArea = true,
     this.showDragHandle = true,
-    this.radius = AppDimens.radiusX30,
+    this.radius = AppDimens.radiusX14,
     this.backgroundColor = LightColor.cardColor,
   });
 

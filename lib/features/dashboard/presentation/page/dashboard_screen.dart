@@ -1,5 +1,4 @@
 import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -12,9 +11,7 @@ import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
-import 'package:hamro_footsall/features/dashboard/presentation/widgets/bottom_navigation_bar.dart';
-import 'package:hamro_footsall/features/dashboard/presentation/widgets/overall_performance_widget.dart';
-import 'package:hamro_footsall/features/dashboard/presentation/widgets/recent_bookings_widget.dart';
+import 'package:hamro_footsall/features/dashboard/presentation/widgets/bottom_navigation_bar.dart'; 
 import 'package:hamro_footsall/features/dashboard/presentation/widgets/search_bar_widget.dart';
 import 'package:hamro_footsall/features/profile/presentation/profile_bloc/profile_bloc.dart';
 import 'package:hamro_footsall/features/profile/presentation/pages/profile_page.dart';
@@ -122,23 +119,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _overviewSection() {
-    return ListView(
-      key: const ValueKey<String>('overview'),
-      padding: AppUtils().getPadding(
-        left: AppDimens.paddingX20,
-        right: AppDimens.paddingX20,
-        bottom: AppDimens.paddingX24,
-        top: AppDimens.paddingX8,
-      ),
-      children: const <Widget>[
-        OverallPerformanceWidget(),
-        SizedBox(height: AppDimens.sizeX20),
-        RecentBookingsWidget(),
-      ],
-    );
-  }
-
   Widget _buildCurrentTabSection(int selectedNavIndex) {
     switch (selectedNavIndex) {
       case 0:
@@ -152,10 +132,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         return MessagesPage();
       // case 4:
       //   return CourtsListPageWidget();
-      case 5:
-        return ProfilePage();
       default:
-        return _overviewSection();
+        return ProfilePage();
     }
   }
 

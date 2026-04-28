@@ -64,18 +64,17 @@ class VendorPanelHeading extends StatelessWidget {
       children: <Widget>[
         Text(
           title,
-          style: const TextStyle(
+          style: FutsalTheme.getTextTheme(context).bodyTextLarge?.copyWith(
             color: LightColor.primaryTextColor,
-            fontSize: 16,
             fontWeight: FontWeight.w800,
           ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: AppDimens.sizeX4),
         Text(
           subtitle,
-          style: const TextStyle(
+
+          style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
             color: LightColor.secondaryTextColor,
-            fontSize: 12,
             height: 1.45,
           ),
         ),
@@ -99,16 +98,18 @@ class VendorSummaryBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: AppUtils().getPadding(
+        horizontal: AppDimens.paddingX12,
+        vertical: AppDimens.paddingX10,
+      ),
       decoration: BoxDecoration(
         color: backgroundColor,
         borderRadius: BorderRadius.circular(99),
       ),
       child: Text(
         label,
-        style: TextStyle(
+        style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
           color: foregroundColor,
-          fontSize: 12,
           fontWeight: FontWeight.w700,
         ),
       ),

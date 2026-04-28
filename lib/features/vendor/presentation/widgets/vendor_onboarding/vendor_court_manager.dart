@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
+import 'package:hamro_footsall/core/theme/futsal_theme.dart';
+import 'package:hamro_footsall/core/utils/app_utils.dart';
+import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/widgets/custom_bottom_sheet.dart';
 import 'package:hamro_footsall/core/widgets/custom_button.dart';
 import 'package:hamro_footsall/core/widgets/custom_confirm_dialog.dart';
@@ -62,31 +65,30 @@ class VendorCourtManager extends StatelessWidget {
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const <Widget>[
+                  children: <Widget>[
                     Text(
                       'Courts',
-                      style: TextStyle(
-                        color: LightColor.primaryTextColor,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                      ),
+                      style: FutsalTheme.getTextTheme(context).bodyTextMedium
+                          ?.copyWith(fontWeight: FontWeight.w800, fontSize: 16),
                     ),
-                    SizedBox(height: 2),
+                    SizedBox(height: AppDimens.sizeX2),
                     Text(
                       'Manage courts in compact view',
-                      style: TextStyle(
-                        color: LightColor.secondaryTextColor,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      ),
+                      style: FutsalTheme.getTextTheme(context).bodyTextSmall
+                          ?.copyWith(
+                            color: LightColor.secondaryTextColor,
+                            fontWeight: FontWeight.w500,
+                            height: 1.5,
+                          ),
                     ),
                   ],
                 ),
               ),
+              SizedBox(width: AppDimens.sizeX10),
               _AddCourtButton(onTap: () => _showAddCourtSheet(context)),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppDimens.sizeX12),
           if (state.courts.isEmpty)
             _CourtEmptyStateCompact(
               onAddCourt: () => _showAddCourtSheet(context),
@@ -147,22 +149,28 @@ class _AddCourtButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: LightColor.secondaryColor,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(AppDimens.radiusX6),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+        child: Padding(
+          padding: AppUtils().getPadding(
+            horizontal: AppDimens.paddingX10,
+            vertical: AppDimens.paddingX10,
+          ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              Icon(Icons.add_rounded, size: 12, color: LightColor.whiteColor),
-              SizedBox(width: 4),
+              Icon(
+                Icons.add_rounded,
+                size: AppDimens.sizeX12,
+                color: LightColor.whiteColor,
+              ),
+              SizedBox(width: AppDimens.sizeX4),
               Text(
-                'Add New Court',
-                style: TextStyle(
+                'New Court',
+                style: FutsalTheme.getTextTheme(context).bodySubTitle?.copyWith(
                   color: LightColor.whiteColor,
-                  fontSize: 11,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -183,48 +191,42 @@ class _CourtEmptyStateCompact extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(14),
+      padding: AppUtils().getPadding(all: AppDimens.paddingX14),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: LightColor.borderColor),
+        borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+        border: Border.all(color: LightColor.greyBorderColor),
       ),
       child: Row(
         children: <Widget>[
           Container(
-            width: 42,
-            height: 42,
+            width: AppDimens.sizeX42,
+            height: AppDimens.sizeX42,
             decoration: BoxDecoration(
-              color: LightColor.secondaryLight,
-              borderRadius: BorderRadius.circular(12),
+              color: LightColor.secondaryColor,
+              borderRadius: BorderRadius.circular(AppDimens.radiusX8),
             ),
             child: const Icon(
               Icons.stadium_rounded,
-              color: LightColor.secondaryColor,
-              size: 20,
+              color: LightColor.whiteColor,
+              size: AppDimens.sizeX20,
             ),
           ),
-          const SizedBox(width: 10),
-          const Expanded(
+          const SizedBox(width: AppDimens.sizeX10),
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Text(
                   'No courts yet',
-                  style: TextStyle(
-                    color: LightColor.primaryTextColor,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
-                  ),
+                  style: FutsalTheme.getTextTheme(
+                    context,
+                  ).bodyTextMedium?.copyWith(fontWeight: FontWeight.w800),
                 ),
-                SizedBox(height: 3),
+                SizedBox(height: AppDimens.sizeX4),
                 Text(
                   'Add your first court to continue setup.',
-                  style: TextStyle(
-                    color: LightColor.secondaryTextColor,
-                    fontSize: 10,
-                    height: 1.35,
-                  ),
+                  style: FutsalTheme.getTextTheme(context).bodySubTitle
+                      ?.copyWith(color: LightColor.secondaryTextColor),
                 ),
               ],
             ),
@@ -263,14 +265,17 @@ class _CourtCompactTile extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppDimens.radiusX12),
         child: Ink(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          padding: AppUtils().getPadding(
+            horizontal: AppDimens.paddingX12,
+            vertical: AppDimens.paddingX6,
+          ),
           decoration: BoxDecoration(
             color: isSelected
                 ? LightColor.secondaryLight
                 : LightColor.whiteColor,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(AppDimens.radiusX12),
             border: Border.all(
               color: isSelected
                   ? LightColor.secondaryColor
@@ -281,7 +286,7 @@ class _CourtCompactTile extends StatelessWidget {
                 ? <BoxShadow>[
                     BoxShadow(
                       color: LightColor.secondaryColor.withValues(alpha: 0.12),
-                      blurRadius: 8,
+                      blurRadius: AppDimens.sizeX8,
                       offset: const Offset(0, 3),
                     ),
                   ]
@@ -289,7 +294,7 @@ class _CourtCompactTile extends StatelessWidget {
           ),
           child: Row(
             children: <Widget>[
-              const SizedBox(width: 8),
+              const SizedBox(width: AppDimens.sizeX8),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -299,65 +304,66 @@ class _CourtCompactTile extends StatelessWidget {
                       courtName,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: LightColor.primaryTextColor,
-                        fontSize: 10,
-                        fontWeight: isSelected
-                            ? FontWeight.w800
-                            : FontWeight.w700,
-                      ),
+
+                      style: FutsalTheme.getTextTheme(context).bodySubTitle
+                          ?.copyWith(
+                            color: LightColor.primaryTextColor,
+                            fontWeight: isSelected
+                                ? FontWeight.w800
+                                : FontWeight.w700,
+                          ),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: AppDimens.sizeX2),
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: <Widget>[
                         if (isComplete)
                           const Icon(
                             Icons.check_circle_rounded,
-                            size: 11,
+                            size: AppDimens.sizeX10,
                             color: LightColor.secondaryColor,
                           )
                         else
                           Icon(
                             Icons.pie_chart_rounded,
-                            size: 11,
+                            size: AppDimens.sizeX10,
                             color: isSelected
                                 ? LightColor.secondaryColor
                                 : LightColor.secondaryTextColor,
                           ),
-                        const SizedBox(width: 3),
+                        const SizedBox(width: AppDimens.sizeX3),
                         Text(
                           isComplete
                               ? 'Complete'
                               : '$completedSections/$totalSections',
-                          style: TextStyle(
-                            color: isComplete
-                                ? LightColor.secondaryColor
-                                : (isSelected
-                                      ? LightColor.secondaryColor
-                                      : LightColor.secondaryTextColor),
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                          ),
+                          style: FutsalTheme.getTextTheme(context).bodySubTitle
+                              ?.copyWith(
+                                color: isComplete
+                                    ? LightColor.secondaryColor
+                                    : (isSelected
+                                          ? LightColor.secondaryColor
+                                          : LightColor.secondaryTextColor),
+                                fontWeight: FontWeight.w600,
+                              ),
                         ),
                       ],
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: 2),
+              const SizedBox(width: AppDimens.sizeX2),
               GestureDetector(
                 onTap: onRemove,
                 child: Container(
-                  width: 16,
-                  height: 16,
+                  width: AppDimens.sizeX16,
+                  height: AppDimens.sizeX16,
                   decoration: BoxDecoration(
                     color: LightColor.primaryTextColor.withValues(alpha: 0.05),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
                     Icons.close_rounded,
-                    size: 12,
+                    size: AppDimens.sizeX12,
                     color: LightColor.secondaryTextColor,
                   ),
                 ),
@@ -407,24 +413,23 @@ class _AddCourtSheetState extends State<_AddCourtSheet> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        const Text(
+        Text(
           'Add New Court',
-          style: TextStyle(
+          style: FutsalTheme.getTextTheme(context).bodyTextLarge?.copyWith(
             color: LightColor.primaryTextColor,
-            fontSize: 16,
             fontWeight: FontWeight.w800,
           ),
         ),
-        const SizedBox(height: 10),
-        const Text(
+        const SizedBox(height: AppDimens.sizeX10),
+        Text(
           'Enter a name for the court. You can change it later. \nMake sure to use a proper standard name for the court.',
-          style: TextStyle(
+          style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
             color: LightColor.secondaryTextColor,
-            fontSize: 12,
+            fontWeight: FontWeight.w500,
             height: 1.5,
           ),
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: AppDimens.sizeX18),
         CustomTextField(
           controller: _nameController,
           focusNode: _focusNode,
@@ -433,7 +438,7 @@ class _AddCourtSheetState extends State<_AddCourtSheet> {
           icon: Icons.sports_soccer_rounded,
           textInputAction: TextInputAction.done,
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: AppDimens.sizeX20),
         Row(
           children: <Widget>[
             Expanded(
@@ -443,20 +448,21 @@ class _AddCourtSheetState extends State<_AddCourtSheet> {
                 backgroundColor: Colors.white,
                 foregroundColor: LightColor.secondaryColor,
                 borderColor: LightColor.secondaryColor,
-                minHeight: 46,
+                minHeight: AppDimens.sizeX46,
                 onPressed: () => Navigator.of(context).pop(),
               ),
             ),
-            const SizedBox(width: 14),
+            const SizedBox(width: AppDimens.sizeX14),
             Expanded(
               child: CustomButton(
                 text: 'Add Court',
-                minHeight: 46,
+                minHeight: AppDimens.sizeX46,
                 onPressed: _submit,
               ),
             ),
           ],
         ),
+        const SizedBox(height: AppDimens.sizeX20),
       ],
     );
   }

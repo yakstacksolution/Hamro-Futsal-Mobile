@@ -122,13 +122,15 @@ flutter:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: assets/icon/logofour.png
+  image_path: assets/icon/logo_launcher_padded.png
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: assets/icon/logo_launcher_padded.png
   min_sdk_android: 21
 
 flutter_native_splash:
   color: "#2C7969"
-  image: assets/icon/logotwo.png
+  image: assets/logo.png
   android_gravity: center
   android_12:
-    image: assets/icon/logotwo.png
+    image: assets/logo.png
     icon_background_color: "#2C7969"
