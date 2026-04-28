@@ -44,6 +44,7 @@ class StepperLogicScreen extends StatefulWidget {
 class _StepperLogicScreenState extends State<StepperLogicScreen> {
   bool _hasAppliedTemplateDefaults = false;
   late final VendorOnboardingCubit _cubit;
+  final AppUtils _appUtils = AppUtils();
 
   @override
   void initState() {
@@ -151,6 +152,22 @@ class _StepperLogicScreenState extends State<StepperLogicScreen> {
         ),
       ],
       child: BlocBuilder<VendorOnboardingCubit, VendorOnboardingState>(
+        buildWhen:
+            (VendorOnboardingState previous, VendorOnboardingState current) {
+              return previous.isRestoringDraft != current.isRestoringDraft ||
+                  previous.isSubmitting != current.isSubmitting ||
+                  previous.isCompleted != current.isCompleted ||
+                  previous.cursor != current.cursor ||
+                  previous.futsalPointer != current.futsalPointer ||
+                  previous.courtPointersById != current.courtPointersById ||
+                  previous.futsal != current.futsal ||
+                  previous.courts != current.courts ||
+                  previous.activeCourtId != current.activeCourtId ||
+                  previous.errorKeys != current.errorKeys ||
+                  previous.errorMessage != current.errorMessage ||
+                  previous.errorOrigin != current.errorOrigin ||
+                  previous.remoteFutsalId != current.remoteFutsalId;
+            },
         builder: (BuildContext context, VendorOnboardingState state) {
           final VendorOnboardingCubit cubit = _cubit;
 
@@ -174,7 +191,9 @@ class _StepperLogicScreenState extends State<StepperLogicScreen> {
             body: SafeArea(
               top: false,
               child: SingleChildScrollView(
-                padding: AppUtils().getPadding(
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
+                padding: _appUtils.getPadding(
                   left: AppDimens.paddingX16,
                   top: AppDimens.paddingX16,
                   right: AppDimens.paddingX16,
@@ -242,13 +261,7 @@ class _StepperLogicScreenState extends State<StepperLogicScreen> {
                     ],
                     if (cubit.isCourtEditorVisible) ...<Widget>[
                       const SizedBox(height: AppDimens.sizeX14),
-                      _ActiveSectionContent(
-                        key: ValueKey<String>(
-                          '${state.cursor.category.name}-${state.cursor.sectionIndex}-${state.cursor.subsectionIndex}-${state.activeCourtId ?? 'none'}',
-                        ),
-                        cubit: cubit,
-                        state: state,
-                      ),
+                      _ActiveSectionContent(cubit: cubit, state: state),
                     ],
                   ],
                 ),
@@ -307,11 +320,7 @@ class _StepperLogicScreenState extends State<StepperLogicScreen> {
 }
 
 class _ActiveSectionContent extends StatelessWidget {
-  const _ActiveSectionContent({
-    super.key,
-    required this.cubit,
-    required this.state,
-  });
+  const _ActiveSectionContent({required this.cubit, required this.state});
 
   final VendorOnboardingCubit cubit;
   final VendorOnboardingState state;
@@ -319,28 +328,38 @@ class _ActiveSectionContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (!state.isInCourtCategory) {
-      switch (cubit.currentSectionIndex) {
-        case 0:
-          return FutsalInformationSection(
-            cubit: cubit,
-            draft: state.futsal,
-            subsectionIndex: cubit.currentSubstepIndex,
-          );
-        case 1:
-          return FutsalPolicySection(
-            cubit: cubit,
-            draft: state.futsal,
-            subsectionIndex: cubit.currentSubstepIndex,
-          );
-        case 2:
-          return FutsalBusinessSection(
-            cubit: cubit,
-            draft: state.futsal,
-            subsectionIndex: cubit.currentSubstepIndex,
-          );
-      }
+      return RepaintBoundary(child: _buildFutsalSection());
     }
 
+    return RepaintBoundary(child: _buildCourtSection());
+  }
+
+  Widget _buildFutsalSection() {
+    switch (cubit.currentSectionIndex) {
+      case 0:
+        return FutsalInformationSection(
+          cubit: cubit,
+          draft: state.futsal,
+          subsectionIndex: cubit.currentSubstepIndex,
+        );
+      case 1:
+        return FutsalPolicySection(
+          cubit: cubit,
+          draft: state.futsal,
+          subsectionIndex: cubit.currentSubstepIndex,
+        );
+      case 2:
+        return FutsalBusinessSection(
+          cubit: cubit,
+          draft: state.futsal,
+          subsectionIndex: cubit.currentSubstepIndex,
+        );
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+
+  Widget _buildCourtSection() {
     final CourtDraft court = state.activeCourt!;
     switch (cubit.currentSectionIndex) {
       case 0:

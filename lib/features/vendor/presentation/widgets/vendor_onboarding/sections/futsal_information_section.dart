@@ -42,6 +42,7 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
   Timer? _debounceTimer;
   String _lastHtmlContent = '';
   bool _initialized = false;
+  bool _isFlushRegistered = false;
   final Object _flushOwner = Object();
 
   @override
@@ -57,7 +58,7 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
     }
 
     if (widget.subsectionIndex == 1) {
-      widget.cubit.registerActiveEditorFlush(_flushOwner, _flushPendingChanges);
+      _registerFlush();
       _initializeEditor();
     }
   }
@@ -65,6 +66,23 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
   @override
   void didUpdateWidget(covariant FutsalInformationSection oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.subsectionIndex != widget.subsectionIndex) {
+      if (oldWidget.subsectionIndex == 1) {
+        _flushPendingChanges();
+        _unregisterFlush();
+      }
+      if (widget.subsectionIndex == 1) {
+        _registerFlush();
+        _initializeEditor();
+      }
+      if (widget.subsectionIndex == 2 && _exactLocationController == null) {
+        _exactLocationController = TextEditingController();
+        _longitudeController = TextEditingController();
+        _latitudeController = TextEditingController();
+        _syncLocationControllers();
+      }
+    }
+
     if (oldWidget.draft.location != widget.draft.location) {
       _syncLocationControllers();
     }
@@ -92,6 +110,18 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
     _quillController.addListener(_onEditorChanged);
 
     setState(() => _initialized = true);
+  }
+
+  void _registerFlush() {
+    if (_isFlushRegistered) return;
+    widget.cubit.registerActiveEditorFlush(_flushOwner, _flushPendingChanges);
+    _isFlushRegistered = true;
+  }
+
+  void _unregisterFlush() {
+    if (!_isFlushRegistered) return;
+    widget.cubit.unregisterActiveEditorFlush(_flushOwner);
+    _isFlushRegistered = false;
   }
 
   void _replaceEditorContent(String html) {
@@ -141,9 +171,7 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
   @override
   void dispose() {
     _flushPendingChanges();
-    if (widget.subsectionIndex == 1) {
-      widget.cubit.unregisterActiveEditorFlush(_flushOwner);
-    }
+    _unregisterFlush();
     _debounceTimer?.cancel();
     if (_initialized) {
       _quillController.removeListener(_onEditorChanged);

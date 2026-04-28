@@ -30,40 +30,58 @@ class VendorUnifiedStepper extends StatelessWidget {
   final StepStatus Function(int subsectionIndex) statusForSubstep;
   final ValueChanged<int> onSubstepSelected;
 
+  static final AppUtils _appUtils = AppUtils();
+  static final EdgeInsets _badgePadding = _appUtils.getPadding(
+    horizontal: AppDimens.sizeX8,
+    vertical: AppDimens.sizeX6,
+  );
+  static final EdgeInsets _dividerPadding = _appUtils.getPadding(
+    vertical: AppDimens.sizeX8,
+  );
+  static final EdgeInsets _stepChipPadding = _appUtils.getPadding(
+    horizontal: AppDimens.sizeX10,
+    vertical: AppDimens.sizeX6,
+  );
+  static const Duration _chipAnimationDuration = Duration(milliseconds: 90);
+
   @override
   Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    final TextStyle? titleStyle = textTheme.bodyTextMedium?.copyWith(
+      color: LightColor.primaryTextColor,
+      fontWeight: FontWeight.w700,
+    );
+    final TextStyle? badgeStyle = textTheme.bodySubTitle?.copyWith(
+      color: LightColor.whiteColor,
+      fontWeight: FontWeight.w700,
+    );
+    final TextStyle? stepStyle = textTheme.bodyTextSmall?.copyWith(
+      fontSize: AppDimens.fontBodySubTitle + AppDimens.sizeX1,
+      fontWeight: FontWeight.w700,
+    );
+    final TextStyle? substepStyle = textTheme.bodyMiniSubTitle?.copyWith(
+      fontWeight: FontWeight.w600,
+    );
+    final TextStyle? substepBadgeStyle = textTheme.bodyMiniSubTitle?.copyWith(
+      fontWeight: FontWeight.w700,
+    );
+
     return VendorPanel(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Row(
             children: <Widget>[
-              Expanded(
-                child: Text(
-                  title,
-                  style: FutsalTheme.getTextTheme(context).bodyTextMedium
-                      ?.copyWith(
-                        color: LightColor.primaryTextColor,
-                        fontWeight: FontWeight.w700,
-                      ),
-                ),
-              ),
+              Expanded(child: Text(title, style: titleStyle)),
               Container(
-                padding: AppUtils().getPadding(
-                  horizontal: AppDimens.sizeX8,
-                  vertical: AppDimens.sizeX6,
-                ),
+                padding: _badgePadding,
                 decoration: BoxDecoration(
                   color: LightColor.secondaryColor,
                   borderRadius: BorderRadius.circular(AppDimens.sizeX4),
                 ),
                 child: Text(
                   '${activeSectionIndex + 1}.${activeSubstepIndex + 1}',
-                  style: FutsalTheme.getTextTheme(context).bodySubTitle
-                      ?.copyWith(
-                        color: LightColor.whiteColor,
-                        fontWeight: FontWeight.w700,
-                      ),
+                  style: badgeStyle,
                 ),
               ),
             ],
@@ -86,6 +104,7 @@ class VendorUnifiedStepper extends StatelessWidget {
                   icon: section.icon,
                   status: status,
                   isSelected: activeSectionIndex == index,
+                  textStyle: stepStyle,
                   onTap: () => onSectionSelected(index),
                 );
               },
@@ -93,7 +112,7 @@ class VendorUnifiedStepper extends StatelessWidget {
           ),
 
           Padding(
-            padding: AppUtils().getPadding(vertical: AppDimens.sizeX8),
+            padding: _dividerPadding,
             child: Row(
               children: <Widget>[
                 Container(
@@ -141,6 +160,8 @@ class VendorUnifiedStepper extends StatelessWidget {
                   title: substep.title, //_compactTitle(substep.title),
                   status: status,
                   isSelected: index == activeSubstepIndex,
+                  titleStyle: substepStyle,
+                  badgeStyle: substepBadgeStyle,
                   onTap: () => onSubstepSelected(index),
                 );
               },
@@ -159,6 +180,7 @@ class _CompactStepChip extends StatelessWidget {
     required this.icon,
     required this.status,
     required this.isSelected,
+    required this.textStyle,
     required this.onTap,
   });
 
@@ -167,6 +189,7 @@ class _CompactStepChip extends StatelessWidget {
   final IconData icon;
   final StepStatus status;
   final bool isSelected;
+  final TextStyle? textStyle;
   final VoidCallback onTap;
 
   @override
@@ -177,12 +200,9 @@ class _CompactStepChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppDimens.radiusX10),
         onTap: onTap,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
+          duration: VendorUnifiedStepper._chipAnimationDuration,
           curve: Curves.easeOut,
-          padding: AppUtils().getPadding(
-            horizontal: AppDimens.sizeX10,
-            vertical: AppDimens.sizeX6,
-          ),
+          padding: VendorUnifiedStepper._stepChipPadding,
           decoration: BoxDecoration(
             color: isSelected
                 ? LightColor.secondaryColor
@@ -219,14 +239,11 @@ class _CompactStepChip extends StatelessWidget {
               Text(
                 title,
 
-                style: FutsalTheme.getTextTheme(context).bodyTextSmall
-                    ?.copyWith(
-                      fontSize: 11,
-                      color: isSelected
-                          ? LightColor.whiteColor
-                          : LightColor.primaryTextColor,
-                      fontWeight: FontWeight.w700,
-                    ),
+                style: textStyle?.copyWith(
+                  color: isSelected
+                      ? LightColor.whiteColor
+                      : LightColor.primaryTextColor,
+                ),
               ),
               if (status == StepStatus.complete && !isSelected) ...<Widget>[
                 const SizedBox(width: AppDimens.sizeX4),
@@ -253,6 +270,8 @@ class _CompactSubstepChip extends StatelessWidget {
     required this.title,
     required this.status,
     required this.isSelected,
+    required this.titleStyle,
+    required this.badgeStyle,
     required this.onTap,
   });
 
@@ -260,6 +279,8 @@ class _CompactSubstepChip extends StatelessWidget {
   final String title;
   final StepStatus status;
   final bool isSelected;
+  final TextStyle? titleStyle;
+  final TextStyle? badgeStyle;
   final VoidCallback onTap;
 
   @override
@@ -311,12 +332,9 @@ class _CompactSubstepChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppDimens.radiusX8),
         onTap: onTap,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
+          duration: VendorUnifiedStepper._chipAnimationDuration,
           curve: Curves.easeOut,
-          padding: AppUtils().getPadding(
-            horizontal: AppDimens.sizeX10,
-            vertical: AppDimens.sizeX6,
-          ),
+          padding: VendorUnifiedStepper._stepChipPadding,
           decoration: BoxDecoration(
             color: backgroundColor,
             borderRadius: BorderRadius.circular(AppDimens.radiusX6),
@@ -341,20 +359,11 @@ class _CompactSubstepChip extends StatelessWidget {
                       )
                     : Text(
                         '${index + 1}',
-                        style: FutsalTheme.getTextTheme(context)
-                            .bodyMiniSubTitle
-                            ?.copyWith(
-                              color: badgeTextColor,
-                              fontWeight: FontWeight.w700,
-                            ),
+                        style: badgeStyle?.copyWith(color: badgeTextColor),
                       ),
               ),
               const SizedBox(width: AppDimens.sizeX6),
-              Text(
-                title,
-                style: FutsalTheme.getTextTheme(context).bodyMiniSubTitle
-                    ?.copyWith(color: titleColor, fontWeight: FontWeight.w600),
-              ),
+              Text(title, style: titleStyle?.copyWith(color: titleColor)),
               const SizedBox(width: AppDimens.sizeX6),
               Container(
                 width: AppDimens.sizeX4,

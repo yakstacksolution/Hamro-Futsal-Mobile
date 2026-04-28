@@ -46,6 +46,7 @@ class _FutsalPolicySectionState extends State<FutsalPolicySection> {
 
   bool _policyInitialized = false;
   bool _rulesInitialized = false;
+  bool _isFlushRegistered = false;
   final Object _flushOwner = Object();
 
   @override
@@ -55,7 +56,7 @@ class _FutsalPolicySectionState extends State<FutsalPolicySection> {
     _lastRulesHtml = widget.draft.futsalRules;
 
     if (_usesRichTextEditors(widget.subsectionIndex)) {
-      widget.cubit.registerActiveEditorFlush(_flushOwner, _flushPendingChanges);
+      _registerFlush();
       _initializeEditorForSubsection(widget.subsectionIndex);
     }
   }
@@ -65,6 +66,18 @@ class _FutsalPolicySectionState extends State<FutsalPolicySection> {
   @override
   void didUpdateWidget(covariant FutsalPolicySection oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.subsectionIndex != widget.subsectionIndex) {
+      if (_usesRichTextEditors(oldWidget.subsectionIndex)) {
+        _flushPendingChangesFor(oldWidget.subsectionIndex);
+      }
+      if (_usesRichTextEditors(widget.subsectionIndex)) {
+        _registerFlush();
+        _initializeEditorForSubsection(widget.subsectionIndex);
+      } else {
+        _unregisterFlush();
+      }
+    }
+
     if (oldWidget.draft.cancellationPolicy != widget.draft.cancellationPolicy &&
         _policyInitialized) {
       if (widget.draft.cancellationPolicy != _lastPolicyHtml) {
@@ -77,6 +90,18 @@ class _FutsalPolicySectionState extends State<FutsalPolicySection> {
         _replaceRulesContent(widget.draft.futsalRules);
       }
     }
+  }
+
+  void _registerFlush() {
+    if (_isFlushRegistered) return;
+    widget.cubit.registerActiveEditorFlush(_flushOwner, _flushPendingChanges);
+    _isFlushRegistered = true;
+  }
+
+  void _unregisterFlush() {
+    if (!_isFlushRegistered) return;
+    widget.cubit.unregisterActiveEditorFlush(_flushOwner);
+    _isFlushRegistered = false;
   }
 
   void _initializeEditorForSubsection(int subsectionIndex) {
@@ -176,9 +201,13 @@ class _FutsalPolicySectionState extends State<FutsalPolicySection> {
   }
 
   void _flushPendingChanges() {
+    _flushPendingChangesFor(widget.subsectionIndex);
+  }
+
+  void _flushPendingChangesFor(int subsectionIndex) {
     final FutsalDraft current = widget.cubit.state.futsal;
 
-    if (widget.subsectionIndex == 0 &&
+    if (subsectionIndex == 0 &&
         _policyInitialized &&
         _policyDebounceTimer != null) {
       final delta = _policyQuillController.document.toDelta();
@@ -189,7 +218,7 @@ class _FutsalPolicySectionState extends State<FutsalPolicySection> {
       }
     }
 
-    if (widget.subsectionIndex == 1 &&
+    if (subsectionIndex == 1 &&
         _rulesInitialized &&
         _rulesDebounceTimer != null) {
       final delta = _rulesQuillController.document.toDelta();
@@ -230,7 +259,7 @@ class _FutsalPolicySectionState extends State<FutsalPolicySection> {
   @override
   void dispose() {
     _flushPendingChanges();
-    widget.cubit.unregisterActiveEditorFlush(_flushOwner);
+    _unregisterFlush();
     _policyDebounceTimer?.cancel();
     _rulesDebounceTimer?.cancel();
 
