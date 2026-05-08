@@ -9,7 +9,9 @@ import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/custom_image_view.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
-import 'package:hamro_footsall/core/widgets/custom_confirm_dialog.dart';
+import 'package:hamro_footsall/core/widgets/custom_delete_dialog.dart';
+import 'package:hamro_footsall/core/widgets/custom_checkbox.dart';
+import 'package:hamro_footsall/core/widgets/custom_dropdown_field.dart';
 import 'package:hamro_footsall/core/widgets/custom_text_field.dart';
 import 'package:hamro_footsall/features/courts/presentation/models/picked_location.dart';
 import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_models.dart';
@@ -200,21 +202,22 @@ class VendorOnboardingSectionHeader extends StatelessWidget {
         border: Border.all(color: LightColor.greyBorderColor),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Container(
-            width: AppDimens.sizeX38,
-            height: AppDimens.sizeX38,
+            width: AppDimens.sizeX40,
+            height: AppDimens.sizeX40,
             decoration: BoxDecoration(
-              color: LightColor.secondaryColor,
-              borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+              color: LightColor.secondaryLight.withValues(alpha: 0.22),
+              borderRadius: BorderRadius.circular(AppDimens.radiusX8),
             ),
             child: Icon(
               icon,
               size: AppDimens.sizeX18,
-              color: LightColor.whiteColor,
+              color: LightColor.secondaryColor,
             ),
           ),
-          const SizedBox(width: AppDimens.sizeX12),
+          const SizedBox(width: AppDimens.sizeX14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -228,7 +231,7 @@ class VendorOnboardingSectionHeader extends StatelessWidget {
                         height: 1.3,
                       ),
                 ),
-                const SizedBox(height: AppDimens.sizeX4),
+                const SizedBox(height: AppDimens.sizeX2),
                 Text(
                   subtitle,
                   maxLines: 2,
@@ -237,7 +240,7 @@ class VendorOnboardingSectionHeader extends StatelessWidget {
                       .copyWith(
                         fontWeight: FontWeight.w400,
                         color: LightColor.secondaryTextColor,
-                        height: 1.3,
+                        height: 1.5,
                       ),
                 ),
               ],
@@ -248,6 +251,98 @@ class VendorOnboardingSectionHeader extends StatelessWidget {
             trailing!,
           ],
         ],
+      ),
+    );
+  }
+}
+
+class VendorGroupedContentCard extends StatelessWidget {
+  const VendorGroupedContentCard({
+    super.key,
+    required this.title,
+    required this.icon,
+    required this.child,
+  });
+
+  final String title;
+  final IconData icon;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: AppUtils().getPadding(all: AppDimens.paddingX12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+        border: Border.all(color: LightColor.greyBorderColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Container(
+                width: AppDimens.sizeX30,
+                height: AppDimens.sizeX30,
+                decoration: BoxDecoration(
+                  color: LightColor.whiteColor,
+                  borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+                ),
+                child: Icon(
+                  icon,
+                  size: AppDimens.sizeX16,
+                  color: LightColor.secondaryColor,
+                ),
+              ),
+              const SizedBox(width: AppDimens.sizeX8),
+              Expanded(
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: LightColor.primaryTextColor,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppDimens.sizeX10),
+          child,
+        ],
+      ),
+    );
+  }
+}
+
+class VendorTemplateResetButton extends StatelessWidget {
+  const VendorTemplateResetButton({super.key, required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: 'Reset to default template',
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(999),
+        child: Container(
+          width: AppDimens.sizeX30,
+          height: AppDimens.sizeX30,
+          decoration: BoxDecoration(
+            color: LightColor.secondaryLight.withOpacity(0.22),
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: const Icon(
+            Icons.refresh_rounded,
+            size: AppDimens.sizeX16,
+            color: LightColor.secondaryColor,
+          ),
+        ),
       ),
     );
   }
@@ -304,6 +399,43 @@ class VendorInputField extends StatelessWidget {
   }
 }
 
+class VendorDropdownField<T> extends StatelessWidget {
+  const VendorDropdownField({
+    super.key,
+    required this.label,
+    required this.items,
+    required this.onChanged,
+    this.initialValue,
+    this.hintText,
+    this.enableIcon,
+    this.isRequired = false,
+    this.enabled = true,
+  });
+
+  final String label;
+  final List<DropdownMenuItem<T>> items;
+  final ValueChanged<T?> onChanged;
+  final T? initialValue;
+  final String? hintText;
+  final bool? enableIcon;
+  final bool isRequired;
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomDropdownField<T>(
+      labelText: label,
+      initialValue: initialValue,
+      hintText: hintText,
+      icon: enableIcon == true ? _vendorFieldIcon(label, null) : null,
+      isRequired: isRequired,
+      enabled: enabled,
+      items: items,
+      onChanged: onChanged,
+    );
+  }
+}
+
 class VendorSelectableChip extends StatelessWidget {
   const VendorSelectableChip({
     super.key,
@@ -340,7 +472,7 @@ class VendorSelectableChip extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            VendorMiniCheckbox(isChecked: isSelected),
+            VendorMiniCheckbox(isChecked: isSelected, size: AppDimens.sizeX16),
             SizedBox(width: AppDimens.sizeX6),
             if (icon != null) ...[
               Icon(
@@ -382,27 +514,18 @@ class VendorMiniCheckbox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onChanged != null ? () => onChanged!(!isChecked) : null,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOut,
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          color: isChecked ? LightColor.secondaryColor : Colors.transparent,
-          borderRadius: BorderRadius.circular(AppDimens.radiusX2),
-          border: Border.all(
-            color: isChecked
-                ? LightColor.secondaryColor
-                : LightColor.borderColor,
-            width: 1.5,
-          ),
-        ),
-        child: isChecked
-            ? Icon(Icons.check_rounded, size: size - 4, color: Colors.white)
-            : null,
-      ),
+    return CustomCheckbox(
+      value: isChecked,
+      onChanged: onChanged == null
+          ? null
+          : (bool? value) => onChanged!(value ?? false),
+      labelWidget: const SizedBox.shrink(),
+      size: size,
+      spacing: 0,
+      activeColor: LightColor.secondaryColor,
+      inactiveColor: Colors.transparent,
+      borderColor: LightColor.borderColor,
+      checkColor: LightColor.whiteColor,
     );
   }
 }
@@ -640,13 +763,14 @@ class VendorUploadItem extends StatelessWidget {
   Future<void> _confirmRemove(BuildContext context) async {
     if (onRemove == null) return;
 
-    final bool confirmed = await showConfirmDialog(
+    final bool confirmed = await showDeleteDialog(
       context: context,
-      title: 'Remove file?',
-      message: 'Do you want to remove "${file.name}" from this selection?',
-      confirmText: 'Remove',
-      confirmColor: LightColor.secondaryColor,
+      title: 'Delete File?',
+      message: 'Are you sure you want to remove "${file.name}"?',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
       icon: Icons.delete_outline_rounded,
+      confirmColor: LightColor.redColor,
     );
 
     if (confirmed) {
@@ -1012,6 +1136,57 @@ String saveStatusLabel(DraftSaveStatus status, DateTime? lastSavedAt) {
   }
 }
 
+class VendorSwitchButton extends StatelessWidget {
+  const VendorSwitchButton({
+    super.key,
+    required this.value,
+    required this.onChanged,
+    this.width = AppDimens.sizeX44,
+    this.height = AppDimens.sizeX26,
+    this.thumbSize = AppDimens.sizeX20,
+  });
+
+  final bool value;
+  final ValueChanged<bool> onChanged;
+  final double width;
+  final double height;
+  final double thumbSize;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      toggled: value,
+      child: InkWell(
+        onTap: () => onChanged(!value),
+        borderRadius: BorderRadius.circular(999),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          curve: Curves.easeOut,
+          width: width,
+          height: height,
+          padding: AppUtils().getPadding(all: AppDimens.paddingX4),
+          decoration: BoxDecoration(
+            color: value
+                ? LightColor.secondaryColor
+                : LightColor.secondaryTextColor.withValues(alpha: 0.22),
+            borderRadius: BorderRadius.circular(999),
+          ),
+          alignment: value ? Alignment.centerRight : Alignment.centerLeft,
+          child: Container(
+            width: thumbSize,
+            height: thumbSize,
+            decoration: const BoxDecoration(
+              color: LightColor.whiteColor,
+              shape: BoxShape.circle,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 String formatTime(DateTime value) {
   final int hour = value.hour % 12 == 0 ? 12 : value.hour % 12;
   final String minute = value.minute.toString().padLeft(2, '0');
@@ -1025,10 +1200,21 @@ double? parseDouble(String value) {
   return double.tryParse(normalized);
 }
 
+int? parseInt(String value) {
+  final String normalized = value.trim().replaceAll(',', '');
+  if (normalized.isEmpty) return null;
+  return int.tryParse(normalized);
+}
+
 String formatDouble(double? value) {
   if (value == null) return '';
   if (value == value.toInt()) return '${value.toInt()}';
   return value.toString();
+}
+
+String formatInt(int? value) {
+  if (value == null) return '';
+  return '$value';
 }
 
 IconData _vendorFieldIcon(String label, TextInputType? keyboardType) {

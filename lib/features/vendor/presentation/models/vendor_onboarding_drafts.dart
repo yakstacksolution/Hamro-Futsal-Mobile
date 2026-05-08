@@ -167,6 +167,11 @@ class SlotPricingDraft {
     this.startTime = '',
     this.endTime = '',
     this.price,
+    this.weekendPrice,
+    this.holidayPrice,
+    this.customDatePrices = const <SlotCustomDatePriceDraft>[],
+    this.discountPrice,
+    this.discountType = 'Flat',
     this.paymentPercent,
   });
 
@@ -176,6 +181,11 @@ class SlotPricingDraft {
   final String startTime;
   final String endTime;
   final double? price;
+  final double? weekendPrice;
+  final double? holidayPrice;
+  final List<SlotCustomDatePriceDraft> customDatePrices;
+  final double? discountPrice;
+  final String discountType;
   final double? paymentPercent;
 
   SlotPricingDraft copyWith({
@@ -184,8 +194,16 @@ class SlotPricingDraft {
     String? startTime,
     String? endTime,
     double? price,
+    double? weekendPrice,
+    double? holidayPrice,
+    List<SlotCustomDatePriceDraft>? customDatePrices,
+    double? discountPrice,
+    String? discountType,
     double? paymentPercent,
     bool clearPrice = false,
+    bool clearWeekendPrice = false,
+    bool clearHolidayPrice = false,
+    bool clearDiscountPrice = false,
     bool clearPaymentPercent = false,
   }) {
     return SlotPricingDraft(
@@ -195,6 +213,17 @@ class SlotPricingDraft {
       startTime: startTime ?? this.startTime,
       endTime: endTime ?? this.endTime,
       price: clearPrice ? null : price ?? this.price,
+      weekendPrice: clearWeekendPrice
+          ? null
+          : weekendPrice ?? this.weekendPrice,
+      holidayPrice: clearHolidayPrice
+          ? null
+          : holidayPrice ?? this.holidayPrice,
+      customDatePrices: customDatePrices ?? this.customDatePrices,
+      discountPrice: clearDiscountPrice
+          ? null
+          : discountPrice ?? this.discountPrice,
+      discountType: discountType ?? this.discountType,
       paymentPercent: clearPaymentPercent
           ? null
           : paymentPercent ?? this.paymentPercent,
@@ -209,6 +238,13 @@ class SlotPricingDraft {
       'startTime': startTime,
       'endTime': endTime,
       'price': price,
+      'weekendPrice': weekendPrice,
+      'holidayPrice': holidayPrice,
+      'customDatePrices': customDatePrices
+          .map((SlotCustomDatePriceDraft item) => item.toJson())
+          .toList(),
+      'discountPrice': discountPrice,
+      'discountType': discountType,
       'paymentPercent': paymentPercent,
     };
   }
@@ -221,7 +257,37 @@ class SlotPricingDraft {
       startTime: json['startTime'] as String? ?? '',
       endTime: json['endTime'] as String? ?? '',
       price: _asDouble(json['price']),
+      weekendPrice: _asDouble(json['weekendPrice']),
+      holidayPrice: _asDouble(json['holidayPrice']),
+      customDatePrices: _slotCustomDatePricesFromJson(json['customDatePrices']),
+      discountPrice: _asDouble(json['discountPrice']),
+      discountType: _normalizedDiscountType(json['discountType'] as String?),
       paymentPercent: _asDouble(json['paymentPercent']),
+    );
+  }
+}
+
+class SlotCustomDatePriceDraft {
+  const SlotCustomDatePriceDraft({required this.date, required this.price});
+
+  final String date;
+  final double price;
+
+  SlotCustomDatePriceDraft copyWith({String? date, double? price}) {
+    return SlotCustomDatePriceDraft(
+      date: date ?? this.date,
+      price: price ?? this.price,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return <String, dynamic>{'date': date, 'price': price};
+  }
+
+  factory SlotCustomDatePriceDraft.fromJson(Map<String, dynamic> json) {
+    return SlotCustomDatePriceDraft(
+      date: json['date'] as String? ?? '',
+      price: _asDouble(json['price']) ?? 0,
     );
   }
 }
@@ -388,7 +454,9 @@ class CourtDraft {
     this.name = '',
     this.basePrice,
     this.description = '',
-    this.courtType,
+    this.courtType = 'Indoor',
+    this.matchFormat = '5v5',
+    this.maxPlayers = 10,
     this.availability = const AvailabilityDraft(),
     this.enableOnlineBooking = true,
     this.advancePaymentRequired = false,
@@ -398,6 +466,9 @@ class CourtDraft {
     this.facilities = const <String>{},
     this.photos = const <UploadRef>[],
     this.memories = const <UploadRef>[],
+    this.weekendDays = const <String>{'Saturday'},
+    this.holidayDates = const <String>{},
+    this.closedDates = const <ClosedDateDraft>[],
     this.slotConfigs = const <SlotPricingDraft>[],
   });
 
@@ -406,6 +477,8 @@ class CourtDraft {
   final double? basePrice;
   final String description;
   final String? courtType;
+  final String? matchFormat;
+  final int? maxPlayers;
   final AvailabilityDraft availability;
   final bool enableOnlineBooking;
   final bool advancePaymentRequired;
@@ -415,6 +488,9 @@ class CourtDraft {
   final Set<String> facilities;
   final List<UploadRef> photos;
   final List<UploadRef> memories;
+  final Set<String> weekendDays;
+  final Set<String> holidayDates;
+  final List<ClosedDateDraft> closedDates;
   final List<SlotPricingDraft> slotConfigs;
 
   CourtDraft copyWith({
@@ -422,6 +498,8 @@ class CourtDraft {
     double? basePrice,
     String? description,
     String? courtType,
+    String? matchFormat,
+    int? maxPlayers,
     AvailabilityDraft? availability,
     bool? enableOnlineBooking,
     bool? advancePaymentRequired,
@@ -431,9 +509,14 @@ class CourtDraft {
     Set<String>? facilities,
     List<UploadRef>? photos,
     List<UploadRef>? memories,
+    Set<String>? weekendDays,
+    Set<String>? holidayDates,
+    List<ClosedDateDraft>? closedDates,
     List<SlotPricingDraft>? slotConfigs,
     bool clearBasePrice = false,
     bool clearCourtType = false,
+    bool clearMatchFormat = false,
+    bool clearMaxPlayers = false,
     bool clearPaymentPercent = false,
     bool clearPaymentQr = false,
   }) {
@@ -443,6 +526,8 @@ class CourtDraft {
       basePrice: clearBasePrice ? null : basePrice ?? this.basePrice,
       description: description ?? this.description,
       courtType: clearCourtType ? null : courtType ?? this.courtType,
+      matchFormat: clearMatchFormat ? null : matchFormat ?? this.matchFormat,
+      maxPlayers: clearMaxPlayers ? null : maxPlayers ?? this.maxPlayers,
       availability: availability ?? this.availability,
       enableOnlineBooking: enableOnlineBooking ?? this.enableOnlineBooking,
       advancePaymentRequired:
@@ -455,6 +540,9 @@ class CourtDraft {
       facilities: facilities ?? this.facilities,
       photos: photos ?? this.photos,
       memories: memories ?? this.memories,
+      weekendDays: weekendDays ?? this.weekendDays,
+      holidayDates: holidayDates ?? this.holidayDates,
+      closedDates: closedDates ?? this.closedDates,
       slotConfigs: slotConfigs ?? this.slotConfigs,
     );
   }
@@ -466,6 +554,8 @@ class CourtDraft {
       'basePrice': basePrice,
       'description': description,
       'courtType': courtType,
+      'matchFormat': matchFormat,
+      'maxPlayers': maxPlayers,
       'availability': availability.toJson(),
       'enableOnlineBooking': enableOnlineBooking,
       'advancePaymentRequired': advancePaymentRequired,
@@ -475,6 +565,11 @@ class CourtDraft {
       'facilities': facilities.toList(),
       'photos': photos.map((UploadRef item) => item.toJson()).toList(),
       'memories': memories.map((UploadRef item) => item.toJson()).toList(),
+      'weekendDays': weekendDays.toList(),
+      'holidayDates': holidayDates.toList(),
+      'closedDates': closedDates.map((ClosedDateDraft item) {
+        return item.toJson();
+      }).toList(),
       'slotConfigs': slotConfigs
           .map((SlotPricingDraft item) => item.toJson())
           .toList(),
@@ -482,12 +577,17 @@ class CourtDraft {
   }
 
   factory CourtDraft.fromJson(Map<String, dynamic> json) {
+    final Set<String> restoredWeekendDays = _stringSetFromJson(
+      json['weekendDays'],
+    );
     return CourtDraft(
       id: json['id'] as String? ?? '',
       name: json['name'] as String? ?? '',
       basePrice: _asDouble(json['basePrice']),
       description: json['description'] as String? ?? '',
-      courtType: json['courtType'] as String?,
+      courtType: _normalizedCourtType(json['courtType'] as String?),
+      matchFormat: _normalizedMatchFormat(json['matchFormat'] as String?),
+      maxPlayers: _asInt(json['maxPlayers']) ?? 10,
       availability: AvailabilityDraft.fromJson(
         json['availability'] is Map
             ? Map<String, dynamic>.from(json['availability'] as Map)
@@ -501,7 +601,60 @@ class CourtDraft {
       facilities: _stringSetFromJson(json['facilities']),
       photos: _uploadsFromJson(json['photos']),
       memories: _uploadsFromJson(json['memories']),
+      weekendDays: restoredWeekendDays.isEmpty
+          ? const <String>{'Saturday'}
+          : restoredWeekendDays,
+      holidayDates: _stringSetFromJson(json['holidayDates']),
+      closedDates: _closedDatesFromJson(json['closedDates']),
       slotConfigs: _slotConfigsFromJson(json['slotConfigs']),
+    );
+  }
+}
+
+class ClosedDateDraft {
+  const ClosedDateDraft({
+    required this.date,
+    this.isFullDay = true,
+    this.startTime = '',
+    this.endTime = '',
+  });
+
+  final String date;
+  final bool isFullDay;
+  final String startTime;
+  final String endTime;
+
+  ClosedDateDraft copyWith({
+    String? date,
+    bool? isFullDay,
+    String? startTime,
+    String? endTime,
+  }) {
+    return ClosedDateDraft(
+      date: date ?? this.date,
+      isFullDay: isFullDay ?? this.isFullDay,
+      startTime: startTime ?? this.startTime,
+      endTime: endTime ?? this.endTime,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return <String, dynamic>{
+      'date': date,
+      'isFullDay': isFullDay,
+      'startTime': startTime,
+      'endTime': endTime,
+    };
+  }
+
+  factory ClosedDateDraft.fromJson(Map<String, dynamic> json) {
+    final String date = json['date'] as String? ?? '';
+    final bool isFullDay = json['isFullDay'] as bool? ?? true;
+    return ClosedDateDraft(
+      date: date,
+      isFullDay: isFullDay,
+      startTime: isFullDay ? '' : json['startTime'] as String? ?? '',
+      endTime: isFullDay ? '' : json['endTime'] as String? ?? '',
     );
   }
 }
@@ -510,6 +663,34 @@ double? _asDouble(Object? value) {
   if (value == null) return null;
   if (value is num) return value.toDouble();
   return double.tryParse(value.toString());
+}
+
+int? _asInt(Object? value) {
+  if (value == null) return null;
+  if (value is num) return value.toInt();
+  return int.tryParse(value.toString().trim());
+}
+
+String _normalizedCourtType(String? value) {
+  return switch (value?.trim().toLowerCase()) {
+    'outdoor' || 'outdoor turf' => 'Outdoor',
+    _ => 'Indoor',
+  };
+}
+
+String _normalizedMatchFormat(String? value) {
+  return switch (value?.trim().toLowerCase()) {
+    '6v6' => '6v6',
+    '7v7' => '7v7',
+    _ => '5v5',
+  };
+}
+
+String _normalizedDiscountType(String? value) {
+  return switch (value?.trim().toLowerCase()) {
+    'percent' || 'percentage' => 'Percent',
+    _ => 'Flat',
+  };
 }
 
 Set<String> _stringSetFromJson(Object? value) {
@@ -546,12 +727,6 @@ List<SelectedImageRef> _selectedImagesFromJson(Object? value) {
       .toList();
 }
 
-int? _asInt(Object? value) {
-  if (value == null) return null;
-  if (value is int) return value;
-  return int.tryParse(value.toString());
-}
-
 List<SlotPricingDraft> _slotConfigsFromJson(Object? value) {
   if (value is! List) return const <SlotPricingDraft>[];
   return value
@@ -560,5 +735,34 @@ List<SlotPricingDraft> _slotConfigsFromJson(Object? value) {
         (Map item) =>
             SlotPricingDraft.fromJson(Map<String, dynamic>.from(item)),
       )
+      .toList();
+}
+
+List<SlotCustomDatePriceDraft> _slotCustomDatePricesFromJson(Object? value) {
+  if (value is! List) return const <SlotCustomDatePriceDraft>[];
+  return value
+      .whereType<Map>()
+      .map(
+        (Map item) =>
+            SlotCustomDatePriceDraft.fromJson(Map<String, dynamic>.from(item)),
+      )
+      .where((SlotCustomDatePriceDraft item) => item.date.trim().isNotEmpty)
+      .toList();
+}
+
+List<ClosedDateDraft> _closedDatesFromJson(Object? value) {
+  if (value is! List) return const <ClosedDateDraft>[];
+  return value
+      .map((Object? item) {
+        if (item is String) {
+          return ClosedDateDraft(date: item);
+        }
+        if (item is Map) {
+          return ClosedDateDraft.fromJson(Map<String, dynamic>.from(item));
+        }
+        return null;
+      })
+      .whereType<ClosedDateDraft>()
+      .where((ClosedDateDraft item) => item.date.trim().isNotEmpty)
       .toList();
 }

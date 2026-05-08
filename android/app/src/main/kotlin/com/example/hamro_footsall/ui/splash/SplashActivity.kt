@@ -5,13 +5,8 @@ import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
-import android.view.View
-import android.view.Window
-import android.view.WindowInsets
-import android.view.WindowInsetsController
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.core.view.WindowCompat
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
@@ -89,26 +84,6 @@ class SplashActivity : ComponentActivity() {
         private fun configureSplashWindow() {
                 window.statusBarColor = android.graphics.Color.parseColor("#2C7969")
                 window.navigationBarColor = android.graphics.Color.parseColor("#2C7969")
-                WindowCompat.setDecorFitsSystemWindows(window, false)
-                setLightSystemBars(window, false)
-        }
-
-        private fun setLightSystemBars(window: Window, isLight: Boolean) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                        val controller = window.insetsController ?: return
-                        val flags =
-                                WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS or
-                                        WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS
-                        controller.setSystemBarsAppearance(if (isLight) flags else 0, flags)
-                } else {
-                        @Suppress("DEPRECATION")
-                        window.decorView.systemUiVisibility =
-                                if (isLight) {
-                                        View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
-                                } else {
-                                        0
-                                }
-                }
         }
 
         private fun getAccessToken(): String? {

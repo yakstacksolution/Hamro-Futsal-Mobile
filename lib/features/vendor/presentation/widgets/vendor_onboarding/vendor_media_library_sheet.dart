@@ -59,6 +59,7 @@ class _VendorMediaLibrarySheetState extends State<VendorMediaLibrarySheet> {
   final Set<String> _selectedPaths = <String>{};
   _LibraryFilter _filter = _LibraryFilter.all;
   bool _isAdding = false;
+  bool _isCapturing = false;
 
   @override
   void initState() {
@@ -114,7 +115,11 @@ class _VendorMediaLibrarySheetState extends State<VendorMediaLibrarySheet> {
                         _visibleDocumentExtensions(allowed).toList(),
                         allowMultiple: true,
                       ),
+                onAddFromCamera: _visibleImageExtensions(allowed).isEmpty
+                    ? null
+                    : _handleCameraCapture,
                 isAddingImages: _isAdding,
+                isCapturing: _isCapturing,
               ),
 
               const SizedBox(height: 12),
@@ -193,6 +198,24 @@ class _VendorMediaLibrarySheetState extends State<VendorMediaLibrarySheet> {
         _selectedPaths.remove(item.remoteUrl ?? '');
       }
     });
+  }
+
+  Future<void> _handleCameraCapture() async {
+    setState(() => _isCapturing = true);
+    final UploadRef? ref = await widget.cubit.pickImageFromCamera();
+    if (!mounted) return;
+    if (ref != null) {
+      setState(() {
+        if (!widget.allowMultiple) {
+          _selectedPaths
+            ..clear()
+            ..add(ref.remoteUrl ?? '');
+        } else {
+          _selectedPaths.add(ref.remoteUrl ?? '');
+        }
+      });
+    }
+    setState(() => _isCapturing = false);
   }
 
   Future<void> _handleAddFiles(
@@ -353,14 +376,18 @@ class _CompactActionRow extends StatelessWidget {
     required this.onFilterChanged,
     required this.onAddImages,
     required this.onAddFiles,
+    required this.onAddFromCamera,
     required this.isAddingImages,
+    required this.isCapturing,
   });
 
   final _LibraryFilter activeFilter;
   final ValueChanged<_LibraryFilter> onFilterChanged;
   final VoidCallback? onAddImages;
   final VoidCallback? onAddFiles;
+  final VoidCallback? onAddFromCamera;
   final bool isAddingImages;
+  final bool isCapturing;
 
   @override
   Widget build(BuildContext context) {
@@ -368,26 +395,31 @@ class _CompactActionRow extends StatelessWidget {
       children: <Widget>[
         Expanded(
           child: _SmallActionButton(
-            label: 'Add Image',
+            label: 'Gallery',
             icon: Icons.image_outlined,
             isLoading: isAddingImages,
             onTap: onAddImages,
-            accentColor: LightColor.secondaryColor,
-            softColor: LightColor.secondaryLight,
           ),
         ),
-        const SizedBox(width: 10),
+        const SizedBox(width: 8),
         Expanded(
           child: _SmallActionButton(
-            label: 'Add File',
+            label: 'Camera',
+            icon: Icons.camera_alt_outlined,
+            isLoading: isCapturing,
+            onTap: onAddFromCamera,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _SmallActionButton(
+            label: 'File',
             icon: Icons.insert_drive_file_outlined,
             isLoading: false,
             onTap: onAddFiles,
-            accentColor: LightColor.secondaryColor,
-            softColor: LightColor.secondaryLight,
           ),
         ),
-        const SizedBox(width: 10),
+        const SizedBox(width: 8),
         _FilterMenuButton(
           activeFilter: activeFilter,
           onSelected: onFilterChanged,
@@ -483,83 +515,69 @@ class _SmallActionButton extends StatelessWidget {
     required this.icon,
     required this.onTap,
     required this.isLoading,
-    required this.accentColor,
-    required this.softColor,
   });
 
   final String label;
   final IconData icon;
   final VoidCallback? onTap;
   final bool isLoading;
-  final Color accentColor;
-  final Color softColor;
 
   @override
   Widget build(BuildContext context) {
     final bool isDisabled = onTap == null;
-
-    return Container(
-      // color: Colors.amber,
-      decoration: BoxDecoration(
-        color: LightColor.secondaryLight,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: isDisabled ? LightColor.dividerColor : LightColor.borderColor,
-        ),
-      ),
-      child: InkWell(
-        onTap: isDisabled ? null : onTap,
-        child: Ink(
-          height: 36,
-          decoration: BoxDecoration(
-            color: LightColor.hintTextColor,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: isDisabled
-                  ? LightColor.dividerColor
-                  : LightColor.borderColor,
-            ),
+    return InkWell(
+      onTap: isDisabled ? null : onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Ink(
+        height: 36,
+        decoration: BoxDecoration(
+          color: isDisabled
+              ? LightColor.background
+              : LightColor.secondaryLight.withValues(alpha: 0.3),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isDisabled
+                ? LightColor.greyBorderColor
+                : LightColor.secondaryLight,
           ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 6),
-            child: Row(
-              children: <Widget>[
-                if (isLoading)
-                  SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        isDisabled ? LightColor.hintTextColor : accentColor,
-                      ),
-                    ),
-                  )
-                else
-                  Icon(
-                    icon,
-                    size: 16,
-                    color: isDisabled
-                        ? LightColor.hintTextColor
-                        : LightColor.primaryTextColor,
-                  ),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    label,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: isDisabled
-                          ? LightColor.hintTextColor
-                          : LightColor.primaryTextColor,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              if (isLoading)
+                SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      LightColor.secondaryColor,
                     ),
                   ),
+                )
+              else
+                Icon(
+                  icon,
+                  size: 15,
+                  color: isDisabled
+                      ? LightColor.hintTextColor
+                      : LightColor.secondaryColor,
                 ),
-                const SizedBox(width: 12),
-              ],
-            ),
+              const SizedBox(width: 5),
+              Text(
+                label,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: isDisabled
+                      ? LightColor.hintTextColor
+                      : LightColor.secondaryColor,
+                ),
+              ),
+            ],
           ),
         ),
       ),

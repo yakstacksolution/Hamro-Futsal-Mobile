@@ -9,21 +9,12 @@ import 'package:hamro_footsall/features/public/presentation/bloc/public_template
 import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_cubit.dart';
 import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_state.dart';
 import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_models.dart';
-import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/sections/court_amenities_section.dart';
-import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/sections/court_booking_payment_section.dart';
-import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/sections/court_information_section.dart';
-import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/sections/court_media_section.dart';
-import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/sections/court_slots_section.dart';
-import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/sections/futsal_business_section.dart';
-import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/sections/futsal_information_section.dart';
-import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/sections/futsal_policy_section.dart';
 import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/vendor_bottom_action_bar.dart';
 import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/vendor_category_switcher.dart';
 import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/vendor_court_manager.dart';
-import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/vendor_form_components.dart';
 import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/vendor_onboarding_header.dart';
 import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/vendor_onboarding_shell.dart';
-import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/vendor_unified_stepper.dart';
+import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/vendor_onboarding_step_content.dart';
 import 'package:hamro_footsall/features/vendor/presentation/utils/vendor_template_defaults.dart';
 
 class StepperLogicScreen extends StatefulWidget {
@@ -187,6 +178,7 @@ class _StepperLogicScreenState extends State<StepperLogicScreen> {
               nextLabel: cubit.nextButtonLabel,
               onPrevious: cubit.previous,
               onNext: () => unawaited(cubit.next()),
+              cubit: cubit,
             ),
             body: SafeArea(
               top: false,
@@ -213,55 +205,14 @@ class _StepperLogicScreenState extends State<StepperLogicScreen> {
                       const SizedBox(height: AppDimens.sizeX14),
                       VendorCourtManager(cubit: cubit, state: state),
                     ],
-                    if (cubit.isCourtEditorVisible) ...<Widget>[
+                    if (!state.isInCourtCategory &&
+                        cubit.isCourtEditorVisible) ...<Widget>[
                       const SizedBox(height: AppDimens.sizeX14),
-                      VendorUnifiedStepper(
-                        title: state.isInCourtCategory
-                            ? '${state.activeCourt?.name.trim().isNotEmpty == true ? state.activeCourt!.name.trim() : 'Court'} Steps'
-                            : 'Futsal Steps',
-                        sections: cubit.activeSections,
-                        activeSectionIndex: cubit.currentSectionIndex,
-                        statusForSection: (int sectionIndex) {
-                          if (!state.isInCourtCategory) {
-                            return cubit.futsalSectionStatus(sectionIndex);
-                          }
-                          final String? activeCourtId = state.activeCourtId;
-                          if (activeCourtId == null) return StepStatus.locked;
-                          return cubit.courtSectionStatus(
-                            activeCourtId,
-                            sectionIndex,
-                          );
-                        },
-                        onSectionSelected: cubit.selectSection,
-                        substeps: cubit.activeSubsteps,
-                        activeSubstepIndex: cubit.currentSubstepIndex,
-                        statusForSubstep: (int subsectionIndex) {
-                          if (!state.isInCourtCategory) {
-                            return cubit.futsalSubstepStatus(
-                              cubit.currentSectionIndex,
-                              subsectionIndex,
-                            );
-                          }
-                          final String? activeCourtId = state.activeCourtId;
-                          if (activeCourtId == null) return StepStatus.locked;
-                          return cubit.courtSubstepStatus(
-                            activeCourtId,
-                            cubit.currentSectionIndex,
-                            subsectionIndex,
-                          );
-                        },
-                        onSubstepSelected: cubit.selectSubstep,
+                      VendorOnboardingStepContent(
+                        title: 'Futsal Steps',
+                        cubit: cubit,
+                        state: state,
                       ),
-                    ],
-                    if (state.errorMessage != null &&
-                        state.errorMessage!.isNotEmpty &&
-                        state.errorOrigin != VendorErrorOrigin.api) ...<Widget>[
-                      const SizedBox(height: AppDimens.sizeX14),
-                      VendorErrorBanner(message: state.errorMessage!),
-                    ],
-                    if (cubit.isCourtEditorVisible) ...<Widget>[
-                      const SizedBox(height: AppDimens.sizeX14),
-                      _ActiveSectionContent(cubit: cubit, state: state),
                     ],
                   ],
                 ),
@@ -288,12 +239,18 @@ class _StepperLogicScreenState extends State<StepperLogicScreen> {
     final String? description = draft.description.trim().isEmpty
         ? templateDefaultFor(templates, VendorTemplateField.futsalDescription)
         : null;
+    final String? courtDescription = templateDefaultFor(
+      templates,
+      VendorTemplateField.courtDescription,
+    );
     final String? cancellationPolicy = draft.cancellationPolicy.trim().isEmpty
         ? templateDefaultFor(templates, VendorTemplateField.cancellationPolicy)
         : null;
     final String? futsalRules = draft.futsalRules.trim().isEmpty
         ? templateDefaultFor(templates, VendorTemplateField.futsalRules)
         : null;
+
+    cubit.setDefaultCourtDescription(courtDescription);
 
     final bool hasFutsalUpdates =
         description != null ||
@@ -316,76 +273,5 @@ class _StepperLogicScreenState extends State<StepperLogicScreen> {
     }
 
     _hasAppliedTemplateDefaults = true;
-  }
-}
-
-class _ActiveSectionContent extends StatelessWidget {
-  const _ActiveSectionContent({required this.cubit, required this.state});
-
-  final VendorOnboardingCubit cubit;
-  final VendorOnboardingState state;
-
-  @override
-  Widget build(BuildContext context) {
-    if (!state.isInCourtCategory) {
-      return RepaintBoundary(child: _buildFutsalSection());
-    }
-
-    return RepaintBoundary(child: _buildCourtSection());
-  }
-
-  Widget _buildFutsalSection() {
-    switch (cubit.currentSectionIndex) {
-      case 0:
-        return FutsalInformationSection(
-          cubit: cubit,
-          draft: state.futsal,
-          subsectionIndex: cubit.currentSubstepIndex,
-        );
-      case 1:
-        return FutsalPolicySection(
-          cubit: cubit,
-          draft: state.futsal,
-          subsectionIndex: cubit.currentSubstepIndex,
-        );
-      case 2:
-        return FutsalBusinessSection(
-          cubit: cubit,
-          draft: state.futsal,
-          subsectionIndex: cubit.currentSubstepIndex,
-        );
-      default:
-        return const SizedBox.shrink();
-    }
-  }
-
-  Widget _buildCourtSection() {
-    final CourtDraft court = state.activeCourt!;
-    switch (cubit.currentSectionIndex) {
-      case 0:
-        return CourtInformationSection(
-          cubit: cubit,
-          court: court,
-          subsectionIndex: cubit.currentSubstepIndex,
-        );
-      case 1:
-        return CourtBookingPaymentSection(
-          cubit: cubit,
-          court: court,
-          subsectionIndex: cubit.currentSubstepIndex,
-        );
-      case 2:
-        return CourtAmenitiesSection(cubit: cubit, court: court);
-      case 3:
-        return CourtMediaSection(cubit: cubit, court: court);
-      case 4:
-        return CourtSlotsSection(
-          cubit: cubit,
-          court: court,
-          subsectionIndex: cubit.currentSubstepIndex,
-        );
-      default:
-        return const SizedBox.shrink();
-    }
   }
 }

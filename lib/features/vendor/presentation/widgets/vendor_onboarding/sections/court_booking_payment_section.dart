@@ -1,7 +1,9 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
+import 'package:hamro_footsall/core/theme/futsal_theme.dart';
+import 'package:hamro_footsall/core/utils/app_utils.dart';
+import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/features/media/presentation/widgets/media_library_sheet.dart';
 import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_cubit.dart';
 import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_models.dart';
@@ -35,61 +37,30 @@ class CourtBookingPaymentSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final _CourtPaymentSectionMeta meta = _sectionMeta(subsectionIndex);
     return VendorPanel(
+      padding: AppUtils().getPadding(all: AppDimens.paddingX12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          const VendorPanelHeading(
-            title: 'Booking and Payment',
-            subtitle:
-                'Keep payment requirements conditional so the flow stays simple when advance payment is not needed.',
+          VendorOnboardingSectionHeader(
+            title: meta.title,
+            subtitle: meta.subtitle,
+            icon: meta.icon,
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: AppDimens.sizeX12),
           if (subsectionIndex == 0)
-            SwitchListTile.adaptive(
-              contentPadding: EdgeInsets.zero,
-              value: court.enableOnlineBooking,
-              activeThumbColor: LightColor.secondaryColor,
-              title: const Text(
-                'Enable online booking',
-                style: TextStyle(fontWeight: FontWeight.w700),
-              ),
-              subtitle: const Text(
-                'Disable if this court is managed manually.',
-              ),
-              onChanged: cubit.toggleCourtOnlineBooking,
-            ),
-          if (subsectionIndex == 1)
-            SwitchListTile.adaptive(
-              contentPadding: EdgeInsets.zero,
-              value: court.advancePaymentRequired,
-              activeThumbColor: LightColor.secondaryColor,
-              title: const Text(
-                'Advance payment required',
-                style: TextStyle(fontWeight: FontWeight.w700),
-              ),
-              subtitle: const Text(
-                'Enable to collect a percentage before booking.',
-              ),
-              onChanged: court.enableOnlineBooking
-                  ? cubit.toggleCourtAdvancePayment
-                  : null,
-            ),
-          if (subsectionIndex == 2)
-            VendorInputField(
-              label: 'Payment %',
-              initialValue: formatDouble(court.paymentPercent),
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              onChanged: (String value) => cubit.updateActiveCourt(
+            _AdvancePaymentToggleSection(
+              court: court,
+              onChanged: cubit.toggleCourtAdvancePayment,
+              onPercentChanged: (String value) => cubit.updateActiveCourt(
                 court.copyWith(
                   paymentPercent: parseDouble(value),
                   clearPaymentPercent: value.trim().isEmpty,
                 ),
               ),
             ),
-          if (subsectionIndex == 3)
+          if (subsectionIndex == 1)
             VendorUploadSection(
               title: 'Payment QR',
               subtitle: 'Upload the QR used to collect advance payment.',
@@ -105,6 +76,93 @@ class CourtBookingPaymentSection extends StatelessWidget {
             ),
         ],
       ),
+    );
+  }
+
+  _CourtPaymentSectionMeta _sectionMeta(int index) {
+    return switch (index) {
+      0 => const _CourtPaymentSectionMeta(
+        title: 'Advance Payment',
+        subtitle: 'Requirement and collection percentage',
+        icon: Icons.payments_rounded,
+      ),
+      1 => const _CourtPaymentSectionMeta(
+        title: 'Payment QR',
+        subtitle: 'Upload the QR used to collect advance payments',
+        icon: Icons.qr_code_2_rounded,
+      ),
+      _ => const _CourtPaymentSectionMeta(
+        title: 'Booking and Payment',
+        subtitle: 'Manage booking and payment settings',
+        icon: Icons.account_balance_wallet_rounded,
+      ),
+    };
+  }
+}
+
+class _CourtPaymentSectionMeta {
+  const _CourtPaymentSectionMeta({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+}
+
+class _AdvancePaymentToggleSection extends StatelessWidget {
+  const _AdvancePaymentToggleSection({
+    required this.court,
+    required this.onChanged,
+    required this.onPercentChanged,
+  });
+
+  final CourtDraft court;
+  final ValueChanged<bool> onChanged;
+  final ValueChanged<String> onPercentChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Container(
+          padding: AppUtils().getPadding(all: AppDimens.paddingX12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+            border: Border.all(color: LightColor.borderColor, width: 0.7),
+          ),
+          child: Row(
+            children: <Widget>[
+              Expanded(
+                child: Text(
+                  'Advance payment required',
+                  style: textTheme.bodyTextMedium?.copyWith(
+                    color: LightColor.primaryTextColor,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              VendorSwitchButton(
+                value: court.advancePaymentRequired,
+                onChanged: onChanged,
+              ),
+            ],
+          ),
+        ),
+        if (court.advancePaymentRequired) ...<Widget>[
+          const SizedBox(height: AppDimens.sizeX16),
+          VendorInputField(
+            label: 'Payment %',
+            initialValue: formatDouble(court.paymentPercent),
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            onChanged: onPercentChanged,
+          ),
+        ],
+      ],
     );
   }
 }

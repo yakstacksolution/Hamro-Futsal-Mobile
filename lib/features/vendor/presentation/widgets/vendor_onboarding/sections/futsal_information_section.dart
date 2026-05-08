@@ -6,7 +6,6 @@ import 'package:flutter_quill_delta_from_html/flutter_quill_delta_from_html.dart
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:vsc_quill_delta_to_html/vsc_quill_delta_to_html.dart';
-import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/widgets/custom_quill_editor.dart';
 import 'package:hamro_footsall/features/courts/presentation/models/picked_location.dart';
 import 'package:hamro_footsall/features/courts/presentation/widgets/create_footsall_courts/exact_location_picker_sheet.dart';
@@ -274,7 +273,7 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
                 widget.subsectionIndex == 1 &&
                     defaultDescription != null &&
                     defaultDescription.trim().isNotEmpty
-                ? _TemplateResetButton(
+                ? VendorTemplateResetButton(
                     onTap: () => _resetDescription(defaultDescription),
                   )
                 : null,
@@ -436,7 +435,7 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        _CompactGroupCard(
+        VendorGroupedContentCard(
           title: 'Amenities',
           icon: Icons.chair_alt_rounded,
           child: GridView.builder(
@@ -461,7 +460,7 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
           ),
         ),
         const SizedBox(height: 12),
-        _CompactGroupCard(
+        VendorGroupedContentCard(
           title: 'Features',
           icon: Icons.auto_awesome_rounded,
           child: GridView.builder(
@@ -522,90 +521,6 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
           icon: Icons.info_rounded,
         );
     }
-  }
-}
-
-class _CompactGroupCard extends StatelessWidget {
-  const _CompactGroupCard({
-    required this.title,
-    required this.icon,
-    required this.child,
-  });
-
-  final String title;
-  final IconData icon;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: LightColor.background,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: LightColor.borderColor),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Row(
-            children: <Widget>[
-              Container(
-                width: 30,
-                height: 30,
-                decoration: BoxDecoration(
-                  color: LightColor.whiteColor,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(icon, size: 16, color: LightColor.secondaryColor),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                title,
-                style: const TextStyle(
-                  color: LightColor.primaryTextColor,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          child,
-        ],
-      ),
-    );
-  }
-}
-
-class _TemplateResetButton extends StatelessWidget {
-  const _TemplateResetButton({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: 'Reset to default template',
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(999),
-        child: Container(
-          width: 30,
-          height: 30,
-          decoration: BoxDecoration(
-            color: LightColor.secondaryLight,
-            borderRadius: BorderRadius.circular(999),
-          ),
-          child: const Icon(
-            Icons.refresh_rounded,
-            size: 16,
-            color: LightColor.secondaryColor,
-          ),
-        ),
-      ),
-    );
   }
 }
 

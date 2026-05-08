@@ -12,6 +12,7 @@ import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboardi
 import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_api_payload.dart';
 import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_models.dart';
 import 'package:hamro_footsall/features/vendor/presentation/validation/vendor_onboarding_validator.dart';
+import 'package:image_picker/image_picker.dart';
 
 class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
   VendorOnboardingCubit(
@@ -39,6 +40,7 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
   int _revision = 0;
   Object? _editorFlushOwner;
   void Function()? _editorFlushCallback;
+  String _defaultCourtDescription = '';
 
   void registerActiveEditorFlush(Object owner, void Function() callback) {
     _editorFlushOwner = owner;
@@ -622,6 +624,20 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     return files.isEmpty ? const <UploadRef>[] : files;
   }
 
+  Future<UploadRef?> pickImageFromCamera() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? photo = await picker.pickImage(
+      source: ImageSource.camera,
+      imageQuality: 90, 
+    );
+    if (photo == null) return null;
+    final UploadRef ref = UploadRef(name: photo.name, remoteUrl: photo.path);
+    _emitUpdated(
+      state.copyWith(mediaLibrary: <UploadRef>[...state.mediaLibrary, ref]),
+    );
+    return ref;
+  }
+
   void updateFutsalBasicIdentity(String title) {
     final String nextSlug = _buildFutsalSlug(
       title: title,
@@ -716,6 +732,23 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     );
   }
 
+  void setDefaultCourtDescription(String? description) {
+    final String normalized = description?.trim() ?? '';
+    _defaultCourtDescription = normalized;
+    if (normalized.isEmpty || state.courts.isEmpty) return;
+
+    bool hasUpdates = false;
+    final List<CourtDraft> updated = state.courts.map((CourtDraft court) {
+      if (court.description.trim().isNotEmpty) return court;
+      hasUpdates = true;
+      return court.copyWith(description: normalized);
+    }).toList();
+
+    if (hasUpdates) {
+      _emitUpdated(state.copyWith(courts: updated));
+    }
+  }
+
   void addCourt({String? name}) {
     final String courtId = _newCourtId();
     final CourtDraft court = CourtDraft(
@@ -723,6 +756,7 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
       name: name?.trim().isNotEmpty == true
           ? name!.trim()
           : 'Court ${state.courts.length + 1}',
+      description: _defaultCourtDescription,
     );
 
     final Map<String, SectionPointer> pointers =
@@ -854,6 +888,89 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     final SlotPricingDraft? slot = _slotById(court, slotId);
     if (slot == null) return;
     updateSlot(slotId, slot.copyWith(days: _toggleSetValue(slot.days, day)));
+  }
+
+  void toggleCourtWeekendDay(String day) {
+    final CourtDraft? court = state.activeCourt;
+    if (court == null) return;
+    updateActiveCourt(
+      court.copyWith(weekendDays: _toggleSetValue(court.weekendDays, day)),
+    );
+  }
+
+  void addCourtHolidayDate(String isoDate) {
+    final CourtDraft? court = state.activeCourt;
+    final String normalized = isoDate.trim();
+    if (court == null || normalized.isEmpty) return;
+    updateActiveCourt(
+      court.copyWith(
+        holidayDates: <String>{...court.holidayDates, normalized},
+        closedDates: court.closedDates.where((ClosedDateDraft item) {
+          return item.date != normalized;
+        }).toList(),
+      ),
+    );
+  }
+
+  void addCourtHolidayDates(Iterable<String> isoDates) {
+    final CourtDraft? court = state.activeCourt;
+    if (court == null) return;
+    final Set<String> normalized = isoDates
+        .map((String item) => item.trim())
+        .where((String item) => item.isNotEmpty)
+        .toSet();
+    if (normalized.isEmpty) return;
+    updateActiveCourt(
+      court.copyWith(
+        holidayDates: <String>{...court.holidayDates, ...normalized},
+        closedDates: court.closedDates.where((ClosedDateDraft item) {
+          return !normalized.contains(item.date);
+        }).toList(),
+      ),
+    );
+  }
+
+  void removeCourtHolidayDate(String isoDate) {
+    final CourtDraft? court = state.activeCourt;
+    if (court == null) return;
+    updateActiveCourt(
+      court.copyWith(
+        holidayDates: court.holidayDates.where((String item) {
+          return item != isoDate;
+        }).toSet(),
+      ),
+    );
+  }
+
+  void addCourtClosedDate(ClosedDateDraft closedDate) {
+    final CourtDraft? court = state.activeCourt;
+    final String normalized = closedDate.date.trim();
+    if (court == null || normalized.isEmpty) return;
+    updateActiveCourt(
+      court.copyWith(
+        closedDates: <ClosedDateDraft>[
+          ...court.closedDates.where((ClosedDateDraft item) {
+            return item.date != normalized;
+          }),
+          closedDate.copyWith(date: normalized),
+        ],
+        holidayDates: court.holidayDates.where((String item) {
+          return item != normalized;
+        }).toSet(),
+      ),
+    );
+  }
+
+  void removeCourtClosedDate(String isoDate) {
+    final CourtDraft? court = state.activeCourt;
+    if (court == null) return;
+    updateActiveCourt(
+      court.copyWith(
+        closedDates: court.closedDates.where((ClosedDateDraft item) {
+          return item.date != isoDate;
+        }).toList(),
+      ),
+    );
   }
 
   void removeSlot(String slotId) {

@@ -102,38 +102,40 @@ class _CourtsListScreenState extends State<CourtsListScreen>
   @override
   Widget build(BuildContext context) {
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.dark);
-    return FadeTransition(
-      opacity: _fadeIn,
-      child: CustomScrollView(
-        physics: const BouncingScrollPhysics(),
-        slivers: [
-          SliverToBoxAdapter(child: SizedBox(height: AppDimens.sizeX8)),
-          SliverPadding(
-            padding: AppUtils().getPadding(
-              left: AppDimens.sizeX20,
-              right: AppDimens.sizeX20,
-              bottom: AppDimens.sizeX120,
+    return Padding(
+      padding: AppUtils().getPadding(
+        left: AppDimens.paddingX20,
+        right: AppDimens.paddingX20,
+      ),
+      child: FadeTransition(
+        opacity: _fadeIn,
+        child: CustomScrollView(
+          physics: const BouncingScrollPhysics(),
+          slivers: [
+            SliverToBoxAdapter(child: SizedBox(height: AppDimens.sizeX8)),
+            SliverPadding(
+              padding: AppUtils().getPadding(bottom: AppDimens.sizeX120),
+              sliver: SliverList.builder(
+                itemCount: courts.length,
+                itemBuilder: (context, index) {
+                  return TweenAnimationBuilder<double>(
+                    tween: Tween(begin: 0, end: 1),
+                    duration: Duration(milliseconds: 500 + index * 120),
+                    curve: Curves.easeOutCubic,
+                    builder: (context, value, child) => Transform.translate(
+                      offset: Offset(0, 30 * (1 - value)),
+                      child: Opacity(opacity: value, child: child),
+                    ),
+                    child: Padding(
+                      padding: AppUtils().getPadding(bottom: AppDimens.sizeX20),
+                      child: CourtCard(court: courts[index]),
+                    ),
+                  );
+                },
+              ),
             ),
-            sliver: SliverList.builder(
-              itemCount: courts.length,
-              itemBuilder: (context, index) {
-                return TweenAnimationBuilder<double>(
-                  tween: Tween(begin: 0, end: 1),
-                  duration: Duration(milliseconds: 500 + index * 120),
-                  curve: Curves.easeOutCubic,
-                  builder: (context, value, child) => Transform.translate(
-                    offset: Offset(0, 30 * (1 - value)),
-                    child: Opacity(opacity: value, child: child),
-                  ),
-                  child: Padding(
-                    padding: AppUtils().getPadding(bottom: AppDimens.sizeX20),
-                    child: CourtCard(court: courts[index]),
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

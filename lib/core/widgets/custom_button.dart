@@ -17,11 +17,12 @@ class CustomButton extends StatelessWidget {
     this.isOutlined = false,
     this.widthFactor,
     this.minHeight = AppDimens.sizeX46,
-    
+    this.minWidth = AppDimens.sizeX100,
     this.verticalPadding = AppDimens.paddingX4,
     this.borderRadius = AppDimens.radiusX8,
     this.fontSize = AppDimens.fontBodyTextSmall,
     this.fontWeight = FontWeight.w600,
+    this.margin,
   });
 
   final String text;
@@ -34,10 +35,12 @@ class CustomButton extends StatelessWidget {
   final bool isOutlined;
   final double? widthFactor;
   final double minHeight;
+  final double minWidth;
   final double verticalPadding;
   final double borderRadius;
   final double fontSize;
   final FontWeight fontWeight;
+  final EdgeInsetsGeometry? margin;
 
   @override
   Widget build(BuildContext context) {
@@ -62,7 +65,7 @@ class CustomButton extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
               if (icon != null) ...<Widget>[
-                Icon(icon, size:AppDimens.sizeX18, color: foregroundColor),
+                Icon(icon, size: AppDimens.sizeX18, color: foregroundColor),
                 SizedBox(width: AppDimens.sizeX6),
               ],
               Text(
@@ -77,44 +80,48 @@ class CustomButton extends StatelessWidget {
             ],
           );
 
-    return TextButton(
-      onPressed: isLoading ? null : onPressed,
-      style: ButtonStyle(
-        padding: WidgetStateProperty.all<EdgeInsets>(EdgeInsets.zero),
-        minimumSize: WidgetStateProperty.all<Size>(Size(0, minHeight)),
-        overlayColor: WidgetStateProperty.all(
-          foregroundColor.withValues(alpha: isOutlined ? 0.08 : 0.12),
-        ),
-        textStyle: WidgetStateProperty.all<TextStyle>(
-          FutsalTheme.getTextTheme(context).bodyTextLarge!.copyWith(
-            color: foregroundColor,
-            fontWeight: fontWeight,
-            fontSize: fontSize,
+    return SizedBox(
+      child: TextButton(
+        onPressed: isLoading ? null : onPressed,
+
+        style: ButtonStyle(
+          padding: WidgetStateProperty.all<EdgeInsets>(EdgeInsets.zero),
+          minimumSize: WidgetStateProperty.all<Size>(Size(minWidth, minHeight)),
+          overlayColor: WidgetStateProperty.all(
+            foregroundColor.withValues(alpha: isOutlined ? 0.08 : 0.12),
           ),
-        ),
-        shape: WidgetStateProperty.all<RoundedRectangleBorder>(
-          RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(borderRadius),
+          textStyle: WidgetStateProperty.all<TextStyle>(
+            FutsalTheme.getTextTheme(context).bodyTextLarge!.copyWith(
+              color: foregroundColor,
+              fontWeight: fontWeight,
+              fontSize: fontSize,
+            ),
           ),
+          shape: WidgetStateProperty.all<RoundedRectangleBorder>(
+            RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(borderRadius),
+            ),
+          ),
+          side: WidgetStateProperty.all<BorderSide?>(
+            resolvedBorderColor == null
+                ? null
+                : BorderSide(color: resolvedBorderColor, width: 1.4),
+          ),
+
+          backgroundColor: WidgetStateProperty.all<Color>(resolvedBackground),
+          foregroundColor: WidgetStateProperty.all<Color>(foregroundColor),
         ),
-        side: WidgetStateProperty.all<BorderSide?>(
-          resolvedBorderColor == null
-              ? null
-              : BorderSide(color: resolvedBorderColor, width: 1.4),
+        child: Container(
+          alignment: Alignment.center,
+          width: widthFactor != null
+              ? MediaQuery.sizeOf(context).width * widthFactor!
+              : double.infinity,
+          padding: appUtils.getPadding(
+            symmetricVertical: verticalPadding,
+            symmetricHorizontal: AppDimens.paddingX12,
+          ),
+          child: content,
         ),
-        backgroundColor: WidgetStateProperty.all<Color>(resolvedBackground),
-        foregroundColor: WidgetStateProperty.all<Color>(foregroundColor),
-      ),
-      child: Container(
-        alignment: Alignment.center,
-        width: widthFactor != null
-            ? MediaQuery.sizeOf(context).width * widthFactor!
-            : double.infinity,
-        padding: appUtils.getPadding(
-          symmetricVertical: verticalPadding,
-          symmetricHorizontal: AppDimens.paddingX12,
-        ),
-        child: content,
       ),
     );
   }

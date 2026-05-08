@@ -254,7 +254,7 @@ class _EditorCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color focusBorderColor = LightColor.borderColor;
+    final Color focusBorderColor = LightColor.greyBorderColor;
 
     return AnimatedContainer(
       duration: _EditorTokens.animDuration,

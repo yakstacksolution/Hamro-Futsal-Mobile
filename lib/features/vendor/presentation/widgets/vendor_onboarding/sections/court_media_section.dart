@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:hamro_footsall/core/utils/app_utils.dart';
+import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/features/media/presentation/widgets/media_library_sheet.dart';
 import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_cubit.dart';
 import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_models.dart';
@@ -43,15 +45,17 @@ class CourtMediaSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return VendorPanel(
+      padding: AppUtils().getPadding(all: AppDimens.paddingX12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          const VendorPanelHeading(
+          const VendorOnboardingSectionHeader(
             title: 'Upload Photos and Memories',
             subtitle:
                 'Use separate court media to show condition, layout, and events without mixing it into the futsal-level gallery.',
+            icon: Icons.collections_rounded,
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: AppDimens.sizeX12),
           VendorUploadSection(
             title: 'Court photos',
             subtitle: 'Operational photos for this specific court.',
@@ -61,7 +65,7 @@ class CourtMediaSection extends StatelessWidget {
             files: court.photos,
             onRemove: cubit.removeCourtPhoto,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppDimens.sizeX16),
           VendorUploadSection(
             title: 'Memories',
             subtitle: 'Tournaments, events, or promotional moments.',

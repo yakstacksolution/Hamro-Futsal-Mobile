@@ -1,14 +1,19 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_quill_delta_from_html/flutter_quill_delta_from_html.dart';
+import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:vsc_quill_delta_to_html/vsc_quill_delta_to_html.dart';
-import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/widgets/custom_quill_editor.dart';
+import 'package:hamro_footsall/features/public/presentation/bloc/public_templates/public_templates_bloc.dart';
 import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_cubit.dart';
 import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_models.dart';
+import 'package:hamro_footsall/features/vendor/presentation/utils/vendor_template_defaults.dart';
+import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/sections/court_media_section.dart';
 import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/vendor_form_components.dart';
-import 'dart:async';
 
 class CourtInformationSection extends StatelessWidget {
   const CourtInformationSection({
@@ -24,45 +29,88 @@ class CourtInformationSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final _CourtSectionMeta meta = _sectionMeta(subsectionIndex);
     switch (subsectionIndex) {
       case 0:
-        return _CourtBasicInfoSubsection(cubit: cubit, court: court);
+        return _CourtBasicInfoSubsection(
+          cubit: cubit,
+          court: court,
+          meta: meta,
+        );
       case 1:
-        return _CourtDescriptionSubsection(cubit: cubit, court: court);
+        return _CourtDescriptionSubsection(
+          cubit: cubit,
+          court: court,
+          meta: meta,
+        );
       case 2:
-        return _CourtTimeSchedulesSubsection(cubit: cubit, court: court);
+        return CourtMediaSection(cubit: cubit, court: court);
       default:
         return const SizedBox.shrink();
     }
   }
+
+  _CourtSectionMeta _sectionMeta(int index) {
+    return switch (index) {
+      0 => const _CourtSectionMeta(
+        title: 'Court Info',
+        subtitle: 'Court identity, pricing, type, and playing format',
+        icon: Icons.stadium_rounded,
+      ),
+      1 => const _CourtSectionMeta(
+        title: 'Description',
+        subtitle: 'Tell customers about this court',
+        icon: Icons.description_rounded,
+      ),
+      2 => const _CourtSectionMeta(
+        title: 'Photos & Memories',
+        subtitle: 'Court photos and memories',
+        icon: Icons.photo_library_rounded,
+      ),
+      _ => const _CourtSectionMeta(
+        title: 'Court Information',
+        subtitle: 'Complete court details',
+        icon: Icons.info_rounded,
+      ),
+    };
+  }
 }
 
 class _CourtBasicInfoSubsection extends StatelessWidget {
-  const _CourtBasicInfoSubsection({required this.cubit, required this.court});
+  const _CourtBasicInfoSubsection({
+    required this.cubit,
+    required this.court,
+    required this.meta,
+  });
 
   final VendorOnboardingCubit cubit;
   final CourtDraft court;
+  final _CourtSectionMeta meta;
 
   @override
   Widget build(BuildContext context) {
     return VendorPanel(
+      padding: AppUtils().getPadding(all: AppDimens.paddingX12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          const VendorPanelHeading(
-            title: 'Court Info',
-            subtitle: 'Set the name, base price, and type for this court.',
+          VendorOnboardingSectionHeader(
+            title: meta.title,
+            subtitle: meta.subtitle,
+            icon: meta.icon,
           ),
-          const SizedBox(height: AppDimens.sizeX18),
+          const SizedBox(height: AppDimens.sizeX22),
           VendorInputField(
             label: 'Court name',
+            isRequired: true,
             initialValue: court.name,
             onChanged: (String value) =>
                 cubit.updateActiveCourt(court.copyWith(name: value)),
           ),
-          const SizedBox(height: AppDimens.sizeX14),
+          const SizedBox(height: AppDimens.sizeX16),
           VendorInputField(
             label: 'Base price',
+            isRequired: true,
             initialValue: formatDouble(court.basePrice),
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             onChanged: (String value) => cubit.updateActiveCourt(
@@ -72,8 +120,9 @@ class _CourtBasicInfoSubsection extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: AppDimens.sizeX14),
-          DropdownButtonFormField<String>(
+          const SizedBox(height: AppDimens.sizeX16),
+          VendorDropdownField<String>(
+            label: 'Court type',
             initialValue: court.courtType,
             items: courtTypeOptions
                 .map(
@@ -81,11 +130,41 @@ class _CourtBasicInfoSubsection extends StatelessWidget {
                       DropdownMenuItem<String>(value: item, child: Text(item)),
                 )
                 .toList(),
-            decoration: vendorInputDecoration('Court type'),
             onChanged: (String? value) => cubit.updateActiveCourt(
               court.copyWith(courtType: value, clearCourtType: value == null),
             ),
           ),
+          const SizedBox(height: AppDimens.sizeX16),
+          VendorDropdownField<String>(
+            label: 'Match format',
+            initialValue: court.matchFormat,
+            items: matchFormatOptions
+                .map(
+                  (String item) =>
+                      DropdownMenuItem<String>(value: item, child: Text(item)),
+                )
+                .toList(),
+            onChanged: (String? value) => cubit.updateActiveCourt(
+              court.copyWith(
+                matchFormat: value,
+                clearMatchFormat: value == null,
+              ),
+            ),
+          ),
+          const SizedBox(height: AppDimens.sizeX16),
+          VendorInputField(
+            label: 'Max players',
+            isRequired: true,
+            initialValue: formatInt(court.maxPlayers),
+            keyboardType: TextInputType.number,
+            onChanged: (String value) => cubit.updateActiveCourt(
+              court.copyWith(
+                maxPlayers: parseInt(value),
+                clearMaxPlayers: value.trim().isEmpty,
+              ),
+            ),
+          ),
+          const SizedBox(height: AppDimens.sizeX16),
         ],
       ),
     );
@@ -93,10 +172,15 @@ class _CourtBasicInfoSubsection extends StatelessWidget {
 }
 
 class _CourtDescriptionSubsection extends StatefulWidget {
-  const _CourtDescriptionSubsection({required this.cubit, required this.court});
+  const _CourtDescriptionSubsection({
+    required this.cubit,
+    required this.court,
+    required this.meta,
+  });
 
   final VendorOnboardingCubit cubit;
   final CourtDraft court;
+  final _CourtSectionMeta meta;
 
   @override
   State<_CourtDescriptionSubsection> createState() =>
@@ -143,14 +227,7 @@ class _CourtDescriptionSubsectionState
   }
 
   QuillController _initializeQuillController({String? html}) {
-    late final Document document;
-
-    if (html != null && html.trim().isNotEmpty) {
-      final delta = HtmlToDelta().convert(html);
-      document = Document.fromDelta(delta);
-    } else {
-      document = Document();
-    }
+    final Document document = _buildDocumentFromHtml(html);
 
     return QuillController(
       document: document,
@@ -206,10 +283,36 @@ class _CourtDescriptionSubsectionState
 
   Document _buildDocumentFromHtml(String? html) {
     if (html != null && html.trim().isNotEmpty) {
-      final delta = HtmlToDelta().convert(html);
-      return Document.fromDelta(delta);
+      try {
+        final delta = HtmlToDelta().convert(html);
+        return Document.fromDelta(delta);
+      } catch (_) {
+        final String fallbackText = _stripHtml(html);
+        final Document doc = Document();
+        if (fallbackText.isNotEmpty) {
+          doc.insert(0, '$fallbackText\n');
+        }
+        return doc;
+      }
     }
     return Document();
+  }
+
+  String _stripHtml(String html) =>
+      html.replaceAll(RegExp(r'<[^>]+>'), '').trim();
+
+  void _resetDescription(String html) {
+    final String normalized = html.trim();
+    if (normalized.isEmpty) return;
+
+    if (_initialized) {
+      _replaceEditorContent(normalized);
+    }
+
+    widget.cubit.updateActiveCourt(
+      widget.cubit.state.activeCourt?.copyWith(description: normalized) ??
+          widget.court.copyWith(description: normalized),
+    );
   }
 
   @override
@@ -227,18 +330,33 @@ class _CourtDescriptionSubsectionState
 
   @override
   Widget build(BuildContext context) {
+    final String? defaultDescription = context.select((
+      PublicTemplatesBloc bloc,
+    ) {
+      return templateDefaultFor(
+        bloc.state.templates,
+        VendorTemplateField.courtDescription,
+      );
+    });
+
     return VendorPanel(
-      padding: const EdgeInsets.all(12),
+      padding: AppUtils().getPadding(all: AppDimens.paddingX12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          _CompactCourtDescriptionHeader(
-            title: 'Description',
-            subtitle:
-                'Tell customers about this court. Describe the surface, size, and any unique features.',
-            icon: Icons.description_rounded,
+          VendorOnboardingSectionHeader(
+            title: widget.meta.title,
+            subtitle: widget.meta.subtitle,
+            icon: widget.meta.icon,
+            trailing:
+                defaultDescription != null &&
+                    defaultDescription.trim().isNotEmpty
+                ? VendorTemplateResetButton(
+                    onTap: () => _resetDescription(defaultDescription),
+                  )
+                : null,
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppDimens.sizeX12),
           if (!_initialized)
             const SizedBox(
               height: 450,
@@ -260,8 +378,8 @@ class _CourtDescriptionSubsectionState
   }
 }
 
-class _CompactCourtDescriptionHeader extends StatelessWidget {
-  const _CompactCourtDescriptionHeader({
+class _CourtSectionMeta {
+  const _CourtSectionMeta({
     required this.title,
     required this.subtitle,
     required this.icon,
@@ -270,165 +388,4 @@ class _CompactCourtDescriptionHeader extends StatelessWidget {
   final String title;
   final String subtitle;
   final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: <Color>[
-            LightColor.secondaryLight.withValues(alpha: 0.5),
-            LightColor.secondaryLight.withValues(alpha: 0.3),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: LightColor.secondaryColor.withValues(alpha: 0.2),
-        ),
-      ),
-      child: Row(
-        children: <Widget>[
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: LightColor.secondaryLight,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(icon, size: 18, color: LightColor.secondaryColor),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
-                    color: LightColor.primaryTextColor,
-                    height: 1.1,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  subtitle,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w400,
-                    color: LightColor.secondaryTextColor,
-                    height: 1.3,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CourtTimeSchedulesSubsection extends StatelessWidget {
-  const _CourtTimeSchedulesSubsection({
-    required this.cubit,
-    required this.court,
-  });
-
-  final VendorOnboardingCubit cubit;
-  final CourtDraft court;
-
-  @override
-  Widget build(BuildContext context) {
-    return VendorPanel(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          const VendorPanelHeading(
-            title: 'Time Schedules',
-            subtitle:
-                'Configure which days this court is available and set operating hours.',
-          ),
-          const SizedBox(height: 18),
-          SwitchListTile.adaptive(
-            contentPadding: EdgeInsets.zero,
-            value: court.availability.isOpen24Hours,
-            activeThumbColor: LightColor.secondaryColor,
-            title: const Text(
-              'Open 24 hours',
-              style: TextStyle(fontWeight: FontWeight.w700),
-            ),
-            subtitle: const Text(
-              'If enabled, open/close time fields are hidden.',
-            ),
-            onChanged: (bool value) => cubit.updateActiveCourt(
-              court.copyWith(
-                availability: court.availability.copyWith(
-                  isOpen24Hours: value,
-                  openTime: value ? '' : court.availability.openTime,
-                  closeTime: value ? '' : court.availability.closeTime,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 10),
-          const VendorFieldLabel('Availability days'),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: weekdayOptions
-                .map(
-                  (String day) => VendorSelectableChip(
-                    label: day,
-                    isSelected: court.availability.days.contains(day),
-                    onTap: () => cubit.toggleAvailabilityDay(day),
-                  ),
-                )
-                .toList(),
-          ),
-          if (!court.availability.isOpen24Hours) ...<Widget>[
-            const SizedBox(height: 16),
-            Row(
-              children: <Widget>[
-                Expanded(
-                  child: VendorInputField(
-                    label: 'Open time',
-                    initialValue: court.availability.openTime,
-                    onChanged: (String value) => cubit.updateActiveCourt(
-                      court.copyWith(
-                        availability: court.availability.copyWith(
-                          openTime: value,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: VendorInputField(
-                    label: 'Close time',
-                    initialValue: court.availability.closeTime,
-                    onChanged: (String value) => cubit.updateActiveCourt(
-                      court.copyWith(
-                        availability: court.availability.copyWith(
-                          closeTime: value,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ],
-      ),
-    );
-  }
 }

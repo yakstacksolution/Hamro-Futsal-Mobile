@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
-import 'package:hamro_footsall/core/theme/futsal_theme.dart' hide LightColor;
+import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/widgets/custom_text_field.dart';
@@ -21,6 +21,7 @@ class CustomDropdownField<T> extends StatelessWidget {
     this.contentPadding,
     this.isExpanded = true,
     this.enabled = true,
+    this.isRequired = false,
   });
 
   final String labelText;
@@ -36,6 +37,7 @@ class CustomDropdownField<T> extends StatelessWidget {
   final EdgeInsetsGeometry? contentPadding;
   final bool isExpanded;
   final bool enabled;
+  final bool isRequired;
 
   @override
   Widget build(BuildContext context) {
@@ -68,6 +70,7 @@ class CustomDropdownField<T> extends StatelessWidget {
           customTextFieldDecoration(
             context: context,
             labelText: labelText,
+            isRequired: isRequired,
             icon: icon,
           ).copyWith(
             contentPadding:

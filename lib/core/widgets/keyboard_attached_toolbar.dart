@@ -14,7 +14,9 @@ class KeyboardAttachedToolbar extends StatelessWidget {
     iconButtonSelectedData: IconButtonData(
       color: LightColor.secondaryColor,
       style: ButtonStyle(
-        backgroundColor: MaterialStateProperty.all(LightColor.secondaryLight),
+        backgroundColor: MaterialStateProperty.all(
+          LightColor.secondaryLight.withValues(alpha: 0.18),
+        ),
         shape: MaterialStateProperty.all(
           RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppDimens.radiusX10),
@@ -218,8 +220,6 @@ class KeyboardAttachedToolbar extends StatelessWidget {
     required VoidCallback onTap,
     required BuildContext context,
   }) {
-    final theme = Theme.of(context);
-    final iconColor = theme.colorScheme.onSurface;
     return Tooltip(
       message: tooltip,
       child: Material(
@@ -232,7 +232,7 @@ class KeyboardAttachedToolbar extends StatelessWidget {
             width: 40,
             height: 40,
             alignment: Alignment.center,
-            child: Icon(icon, size: 20, color: iconColor),
+            child: Icon(icon, size: 20, color: LightColor.secondaryColor),
           ),
         ),
       ),

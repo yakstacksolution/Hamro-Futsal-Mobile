@@ -1412,7 +1412,7 @@ String _extensionFor(UploadRef item) {
   final String path =
       ((item.remoteUrl ?? '').trim().isNotEmpty
               ? item.remoteUrl!
-              : item.remoteUrl??'')
+              : item.remoteUrl ?? '')
           .toLowerCase();
   final int index = path.lastIndexOf('.');
   if (index == -1 || index == path.length - 1) return '';

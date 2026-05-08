@@ -201,18 +201,10 @@ class VendorOnboardingValidator {
             }
             return VendorValidationResult.valid(key);
           case 2:
-            if (draft.availability.days.isEmpty) {
+            if (draft.photos.isEmpty && draft.memories.isEmpty) {
               return VendorValidationResult.invalid(
                 key,
-                'Select the court availability days.',
-              );
-            }
-            if (!draft.availability.isOpen24Hours &&
-                (draft.availability.openTime.trim().isEmpty ||
-                    draft.availability.closeTime.trim().isEmpty)) {
-              return VendorValidationResult.invalid(
-                key,
-                'Enter opening and closing time for the court.',
+                'Upload at least one photo or memory for the court.',
               );
             }
             return VendorValidationResult.valid(key);
@@ -220,10 +212,6 @@ class VendorOnboardingValidator {
       case 1:
         switch (subsectionIndex) {
           case 0:
-            return VendorValidationResult.valid(key);
-          case 1:
-            return VendorValidationResult.valid(key);
-          case 2:
             if (draft.advancePaymentRequired && draft.paymentPercent == null) {
               return VendorValidationResult.invalid(
                 key,
@@ -231,7 +219,7 @@ class VendorOnboardingValidator {
               );
             }
             return VendorValidationResult.valid(key);
-          case 3:
+          case 1:
             if (draft.advancePaymentRequired && draft.paymentQr == null) {
               return VendorValidationResult.invalid(
                 key,
@@ -249,16 +237,10 @@ class VendorOnboardingValidator {
         }
         return VendorValidationResult.valid(key);
       case 3:
-        if (draft.photos.isEmpty && draft.memories.isEmpty) {
-          return VendorValidationResult.invalid(
-            key,
-            'Upload at least one photo or memory for the court.',
-          );
-        }
-        return VendorValidationResult.valid(key);
-      case 4:
         switch (subsectionIndex) {
           case 0:
+            return VendorValidationResult.valid(key);
+          case 1:
             if (draft.slotConfigs.isEmpty) {
               return VendorValidationResult.invalid(
                 key,
@@ -280,7 +262,7 @@ class VendorOnboardingValidator {
               );
             }
             return VendorValidationResult.valid(key);
-          case 1:
+          case 2:
             if (draft.slotConfigs.isEmpty) {
               return VendorValidationResult.invalid(
                 key,
@@ -364,34 +346,33 @@ class VendorOnboardingValidator {
           case 1:
             return _hasMeaningfulRichText(draft.description);
           case 2:
-            return draft.availability.days.isNotEmpty ||
-                draft.availability.openTime.trim().isNotEmpty ||
-                draft.availability.closeTime.trim().isNotEmpty ||
-                draft.availability.isOpen24Hours;
+            return draft.photos.isNotEmpty || draft.memories.isNotEmpty;
         }
       case 1:
         switch (subsectionIndex) {
           case 0:
-            return draft.enableOnlineBooking;
+            return draft.advancePaymentRequired || draft.paymentPercent != null;
           case 1:
-            return draft.advancePaymentRequired;
-          case 2:
-            return draft.paymentPercent != null;
-          case 3:
             return draft.paymentQr != null;
         }
       case 2:
         return draft.amenities.isNotEmpty || draft.facilities.isNotEmpty;
       case 3:
-        return draft.photos.isNotEmpty || draft.memories.isNotEmpty;
-      case 4:
         switch (subsectionIndex) {
           case 0:
-            return draft.slotConfigs.isNotEmpty;
+            return draft.weekendDays.isNotEmpty ||
+                draft.holidayDates.isNotEmpty ||
+                draft.closedDates.isNotEmpty;
           case 1:
+            return draft.slotConfigs.isNotEmpty;
+          case 2:
             return draft.slotConfigs.any(
               (SlotPricingDraft slot) =>
-                  slot.price != null || slot.paymentPercent != null,
+                  slot.price != null ||
+                  slot.weekendPrice != null ||
+                  slot.holidayPrice != null ||
+                  slot.discountPrice != null ||
+                  slot.paymentPercent != null,
             );
         }
     }
@@ -420,7 +401,18 @@ class VendorOnboardingValidator {
   }
 
   static bool _isSlotPricingValid(SlotPricingDraft slot) {
-    return slot.price != null &&
+    return slot.weekendPrice != null &&
+        slot.weekendPrice! >= 0 &&
+        slot.holidayPrice != null &&
+        slot.holidayPrice! >= 0 &&
+        slot.customDatePrices.every(
+          (SlotCustomDatePriceDraft item) =>
+              item.date.trim().isNotEmpty && item.price >= 0,
+        ) &&
+        (slot.discountPrice == null || slot.discountPrice! >= 0) &&
+        (slot.discountType != 'Percent' ||
+            slot.discountPrice == null ||
+            slot.discountPrice! <= 100) &&
         (slot.paymentPercent == null ||
             (slot.paymentPercent! >= 0 && slot.paymentPercent! <= 100));
   }
