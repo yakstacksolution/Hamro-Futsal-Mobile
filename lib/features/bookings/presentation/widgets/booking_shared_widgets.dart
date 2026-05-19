@@ -6,11 +6,11 @@ import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/features/bookings/data/model/booking_model.dart';
 
 Color bookingStatusColor(BookingStatus status) => switch (status) {
-      BookingStatus.confirmed => LightColor.secondaryColor,
-      BookingStatus.pending => const Color(0xFFE65100),
-      BookingStatus.cancelled => LightColor.redColor,
-      BookingStatus.completed => LightColor.purpleColor,
-    };
+  BookingStatus.confirmed => LightColor.secondaryColor,
+  BookingStatus.pending => const Color(0xFFE65100),
+  BookingStatus.cancelled => LightColor.redColor,
+  BookingStatus.completed => LightColor.purpleColor,
+};
 
 class BookingStatusChip extends StatelessWidget {
   const BookingStatusChip({super.key, required this.status});
@@ -29,10 +29,10 @@ class BookingStatusChip extends StatelessWidget {
       child: Text(
         status.value[0].toUpperCase() + status.value.substring(1),
         style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
-              color: base,
-              fontWeight: FontWeight.w600,
-              fontSize: AppDimens.fontBodySubTitle,
-            ),
+          color: base,
+          fontWeight: FontWeight.w600,
+          fontSize: AppDimens.fontBodySubTitle,
+        ),
       ),
     );
   }
@@ -59,9 +59,9 @@ class BookingInfoChip extends StatelessWidget {
         Text(
           label,
           style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
-                color: color,
-                fontSize: AppDimens.fontBodySubTitle,
-              ),
+            color: color,
+            fontSize: AppDimens.fontBodySubTitle,
+          ),
         ),
       ],
     );
@@ -87,8 +87,10 @@ class _BookingSkeletonLoaderState extends State<BookingSkeletonLoader>
       vsync: this,
       duration: const Duration(milliseconds: 900),
     )..repeat(reverse: true);
-    _anim = Tween<double>(begin: 0.4, end: 1.0)
-        .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
+    _anim = Tween<double>(
+      begin: 0.4,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
   }
 
   @override
@@ -154,9 +156,10 @@ class _SkeletonCard extends StatelessWidget {
                       children: [
                         _Bone(width: 140, height: 14),
                         _Bone(
-                            width: 64,
-                            height: 20,
-                            radius: AppDimens.radiusX20),
+                          width: 64,
+                          height: 20,
+                          radius: AppDimens.radiusX20,
+                        ),
                       ],
                     ),
                     const SizedBox(height: AppDimens.paddingX8),
@@ -356,150 +359,162 @@ class BookingCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppDimens.radiusX12),
         onTap: onTap,
         child: Container(
-      decoration: BoxDecoration(
-        color: LightColor.cardColor,
-        borderRadius: BorderRadius.circular(AppDimens.radiusX12),
-        boxShadow: const [
-          BoxShadow(
-            color: LightColor.shadowColor,
-            blurRadius: 10,
-            spreadRadius: 0,
-            offset: Offset(0, 2),
-          ),
-        ],
-      ),
-      padding: AppUtils().getPadding(all: AppDimens.paddingX16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      showPlayer
-                          ? (booking.playerName?.isNotEmpty == true
-                              ? booking.playerName!
-                              : 'Unknown Player')
-                          : (booking.futsalName.isNotEmpty
-                              ? booking.futsalName
-                              : 'Futsal Court'),
-                      style: textTheme.bodyTextMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: LightColor.primaryTextColor,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: AppDimens.paddingX2),
-                    Text(
-                      booking.courtName.isNotEmpty ? booking.courtName : '—',
-                      style: textTheme.bodyTextSmall?.copyWith(
-                        color: LightColor.secondaryTextColor,
-                        fontSize: AppDimens.fontBodySubTitle,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: AppDimens.paddingX12),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: AppDimens.sizeX6,
-                    height: AppDimens.sizeX6,
-                    decoration: BoxDecoration(
-                      color: dot,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const SizedBox(width: AppDimens.paddingX4),
-                  Text(
-                    booking.status.value[0].toUpperCase() +
-                        booking.status.value.substring(1),
-                    style: textTheme.bodyTextSmall?.copyWith(
-                      color: dot,
-                      fontWeight: FontWeight.w600,
-                      fontSize: AppDimens.fontBodySubTitle,
-                    ),
-                  ),
-                ],
+          decoration: BoxDecoration(
+            color: LightColor.cardColor,
+            borderRadius: BorderRadius.circular(AppDimens.radiusX12),
+            boxShadow: const [
+              BoxShadow(
+                color: LightColor.shadowColor,
+                blurRadius: 10,
+                spreadRadius: 0,
+                offset: Offset(0, 2),
               ),
             ],
           ),
-          if (showPlayer && booking.playerPhone?.isNotEmpty == true) ...[
-            const SizedBox(height: AppDimens.paddingX4),
-            Text(
-              booking.playerPhone!,
-              style: textTheme.bodyTextSmall?.copyWith(
-                color: LightColor.hintTextColor,
-                fontSize: AppDimens.fontBodySubTitle,
-              ),
-            ),
-          ],
-          const SizedBox(height: AppDimens.paddingX12),
-          const Divider(color: LightColor.dividerColor, height: 1),
-          const SizedBox(height: AppDimens.paddingX12),
-          Row(
+          padding: AppUtils().getPadding(all: AppDimens.paddingX16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _Meta(
-                icon: Icons.calendar_today_outlined,
-                label: _fmt(booking.date),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          showPlayer
+                              ? (booking.playerName?.isNotEmpty == true
+                                    ? booking.playerName!
+                                    : 'Unknown Player')
+                              : (booking.futsalName.isNotEmpty
+                                    ? booking.futsalName
+                                    : 'Futsal Court'),
+                          style: textTheme.bodyTextMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: LightColor.primaryTextColor,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: AppDimens.paddingX2),
+                        Text(
+                          booking.courtName.isNotEmpty
+                              ? booking.courtName
+                              : '—',
+                          style: textTheme.bodyTextSmall?.copyWith(
+                            color: LightColor.secondaryTextColor,
+                            fontSize: AppDimens.fontBodySubTitle,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: AppDimens.paddingX12),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: AppDimens.sizeX6,
+                        height: AppDimens.sizeX6,
+                        decoration: BoxDecoration(
+                          color: dot,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: AppDimens.paddingX4),
+                      Text(
+                        booking.status.value[0].toUpperCase() +
+                            booking.status.value.substring(1),
+                        style: textTheme.bodyTextSmall?.copyWith(
+                          color: dot,
+                          fontWeight: FontWeight.w600,
+                          fontSize: AppDimens.fontBodySubTitle,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-              _separator(),
-              _Meta(
-                icon: Icons.access_time_outlined,
-                label: booking.startTime.isNotEmpty
-                    ? '${booking.startTime} – ${booking.endTime}'
-                    : '—',
+              if (showPlayer && booking.playerPhone?.isNotEmpty == true) ...[
+                const SizedBox(height: AppDimens.paddingX4),
+                Text(
+                  booking.playerPhone!,
+                  style: textTheme.bodyTextSmall?.copyWith(
+                    color: LightColor.hintTextColor,
+                    fontSize: AppDimens.fontBodySubTitle,
+                  ),
+                ),
+              ],
+              const SizedBox(height: AppDimens.paddingX12),
+              const Divider(color: LightColor.dividerColor, height: 1),
+              const SizedBox(height: AppDimens.paddingX12),
+              Row(
+                children: [
+                  _Meta(
+                    icon: Icons.calendar_today_outlined,
+                    label: _fmt(booking.date),
+                  ),
+                  _separator(),
+                  _Meta(
+                    icon: Icons.access_time_outlined,
+                    label: booking.startTime.isNotEmpty
+                        ? '${booking.startTime} – ${booking.endTime}'
+                        : '—',
+                  ),
+                  if (booking.amount > 0) ...[
+                    _separator(),
+                    _Meta(
+                      icon: Icons.payments_outlined,
+                      label: 'Rs. ${booking.amount.toStringAsFixed(0)}',
+                      color: LightColor.secondaryColor,
+                    ),
+                  ],
+                ],
               ),
-              if (booking.amount > 0) ...[
-                _separator(),
-                _Meta(
-                  icon: Icons.payments_outlined,
-                  label: 'Rs. ${booking.amount.toStringAsFixed(0)}',
-                  color: LightColor.secondaryColor,
+              if (booking.bookingRef.isNotEmpty) ...[
+                const SizedBox(height: AppDimens.paddingX8),
+                Text(
+                  'Ref: #${booking.bookingRef}',
+                  style: textTheme.bodyTextSmall?.copyWith(
+                    color: LightColor.hintTextColor,
+                    fontSize: AppDimens.fontBodySubTitle,
+                  ),
                 ),
               ],
             ],
           ),
-          if (booking.bookingRef.isNotEmpty) ...[
-            const SizedBox(height: AppDimens.paddingX8),
-            Text(
-              'Ref: #${booking.bookingRef}',
-              style: textTheme.bodyTextSmall?.copyWith(
-                color: LightColor.hintTextColor,
-                fontSize: AppDimens.fontBodySubTitle,
-              ),
-            ),
-          ],
-        ],
-      ),
         ),
       ),
     );
   }
 
   Widget _separator() => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 6),
-        child: Container(
-          width: 3,
-          height: 3,
-          decoration: const BoxDecoration(
-            color: LightColor.iconGrey,
-            shape: BoxShape.circle,
-          ),
-        ),
-      );
+    padding: const EdgeInsets.symmetric(horizontal: 6),
+    child: Container(
+      width: 3,
+      height: 3,
+      decoration: const BoxDecoration(
+        color: LightColor.iconGrey,
+        shape: BoxShape.circle,
+      ),
+    ),
+  );
 
   String _fmt(DateTime d) {
     const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     return '${d.day} ${months[d.month - 1]} ${d.year}';
   }
@@ -522,9 +537,9 @@ class _Meta extends StatelessWidget {
         Text(
           label,
           style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
-                color: c,
-                fontSize: AppDimens.fontBodySubTitle,
-              ),
+            color: c,
+            fontSize: AppDimens.fontBodySubTitle,
+          ),
         ),
       ],
     );
