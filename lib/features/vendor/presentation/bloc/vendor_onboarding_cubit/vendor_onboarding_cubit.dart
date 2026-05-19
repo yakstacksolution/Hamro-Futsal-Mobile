@@ -4,6 +4,7 @@ import 'package:dartz/dartz.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hamro_footsall/core/helper/exception_helper.dart';
+import 'package:hamro_footsall/features/vendor/data/model/court_onboarding_response_model.dart';
 import 'package:hamro_footsall/features/vendor/data/model/vendor_onboarding_response_model.dart';
 import 'package:hamro_footsall/features/vendor/data/vendor_draft_repository.dart';
 import 'package:hamro_footsall/features/vendor/data/repositories/vendor_onboarding_repository_impl.dart';
@@ -38,6 +39,7 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
   late final VendorOnboardingUseCase _onboardingUseCase;
   Timer? _saveDebounce;
   int _revision = 0;
+  int? _courtsFetchedForVenueId;
   Object? _editorFlushOwner;
   void Function()? _editorFlushCallback;
   String _defaultCourtDescription = '';
@@ -373,6 +375,8 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
       return;
     }
 
+    final bool shouldFetch = _shouldFetchRemoteCourts();
+
     if (state.courts.isEmpty) {
       emit(
         state.copyWith(
@@ -383,27 +387,33 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
           ),
           clearActiveCourtId: true,
           clearErrorMessage: true,
+          isLoadingCourts: shouldFetch,
         ),
       );
-      return;
+    } else {
+      final String activeCourtId =
+          state.activeCourtId ?? state.courts.first.id;
+      final SectionPointer pointer =
+          state.courtPointersById[activeCourtId] ??
+          const SectionPointer(sectionIndex: 0, subsectionIndex: 0);
+      emit(
+        state.copyWith(
+          activeCourtId: activeCourtId,
+          cursor: StepCursor(
+            category: VendorCategory.court,
+            sectionIndex: pointer.sectionIndex,
+            subsectionIndex: pointer.subsectionIndex,
+            courtId: activeCourtId,
+          ),
+          clearErrorMessage: true,
+          isLoadingCourts: shouldFetch,
+        ),
+      );
     }
 
-    final String activeCourtId = state.activeCourtId ?? state.courts.first.id;
-    final SectionPointer pointer =
-        state.courtPointersById[activeCourtId] ??
-        const SectionPointer(sectionIndex: 0, subsectionIndex: 0);
-    emit(
-      state.copyWith(
-        activeCourtId: activeCourtId,
-        cursor: StepCursor(
-          category: VendorCategory.court,
-          sectionIndex: pointer.sectionIndex,
-          subsectionIndex: pointer.subsectionIndex,
-          courtId: activeCourtId,
-        ),
-        clearErrorMessage: true,
-      ),
-    );
+    if (shouldFetch) {
+      unawaited(_fetchRemoteCourts());
+    }
   }
 
   void selectSection(int sectionIndex) {
@@ -454,7 +464,7 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
       return validation.message;
     }
 
-    final String? registrationFailure = await _submitFutsalProgressIfNeeded();
+    final String? registrationFailure = await _submitProgressIfNeeded();
     if (registrationFailure != null) {
       return registrationFailure;
     }
@@ -628,7 +638,7 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     final ImagePicker picker = ImagePicker();
     final XFile? photo = await picker.pickImage(
       source: ImageSource.camera,
-      imageQuality: 90, 
+      imageQuality: 90,
     );
     if (photo == null) return null;
     final UploadRef ref = UploadRef(name: photo.name, remoteUrl: photo.path);
@@ -1272,6 +1282,7 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
   Future<void> resetOnboarding() async {
     _saveDebounce?.cancel();
     _revision = 0;
+    _courtsFetchedForVenueId = null;
     await _draftRepository.clear();
     emit(_clearedState());
   }
@@ -1279,13 +1290,78 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
   void clearOnboardingState() {
     _saveDebounce?.cancel();
     _revision = 0;
+    _courtsFetchedForVenueId = null;
     emit(_clearedState());
+  }
+
+  void setRemoteFutsalId(int futsalId) {
+    emit(state.copyWith(remoteFutsalId: futsalId));
+  }
+
+  void prepareCourtForEditing(CourtDraft court) {
+    final Map<String, SectionPointer> pointers = <String, SectionPointer>{
+      court.id: const SectionPointer(sectionIndex: 0, subsectionIndex: 0),
+    };
+    emit(
+      _normalizeState(
+        state.copyWith(
+          courts: <CourtDraft>[court],
+          activeCourtId: court.id,
+          courtPointersById: pointers,
+          cursor: StepCursor(
+            category: VendorCategory.court,
+            sectionIndex: 0,
+            subsectionIndex: 0,
+            courtId: court.id,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<String?> deleteCourtById(int courtId) async {
+    final Either<AppException, void> response =
+        await _onboardingUseCase.deleteCourt(courtId);
+    return response.fold(
+      (AppException failure) => failure.errorMessage,
+      (_) => null,
+    );
   }
 
   @override
   Future<void> close() {
     _saveDebounce?.cancel();
     return super.close();
+  }
+
+  bool _shouldFetchRemoteCourts() {
+    final int? futsalId = state.remoteFutsalId;
+    if (futsalId == null) return false;
+    if (_courtsFetchedForVenueId == futsalId) return false;
+    if (state.isLoadingCourts) return false;
+    return true;
+  }
+
+  Future<void> _fetchRemoteCourts() async {
+    final int? futsalId = state.remoteFutsalId;
+    if (futsalId == null) return;
+    _courtsFetchedForVenueId = futsalId;
+
+    final Either<AppException, List<CourtDraft>> response =
+        await _onboardingUseCase.fetchCourtsByVenueId(futsalId);
+
+    response.fold(
+      (AppException failure) {
+        emit(state.copyWith(isLoadingCourts: false));
+      },
+      (List<CourtDraft> courts) {
+        emit(
+          _normalizeState(
+            state.copyWith(courts: courts, isLoadingCourts: false),
+          ),
+        );
+      },
+    );
   }
 
   void _moveToFutsal(int sectionIndex, int subsectionIndex) {
@@ -1374,9 +1450,14 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     }
   }
 
-  Future<String?> _submitFutsalProgressIfNeeded() async {
-    if (state.isInCourtCategory) return null;
+  Future<String?> _submitProgressIfNeeded() async {
+    if (state.isInCourtCategory) {
+      return _submitCourtProgressIfNeeded();
+    }
+    return _submitFutsalProgressIfNeeded();
+  }
 
+  Future<String?> _submitFutsalProgressIfNeeded() async {
     emit(state.copyWith(isSubmitting: true, clearErrorMessage: true));
 
     try {
@@ -1384,6 +1465,7 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
         mainStep: currentSectionIndex,
         subStep: currentSubstepIndex,
         futsalId: state.remoteFutsalId,
+        currentSubstepOnly: state.remoteFutsalId != null,
       );
       final Either<AppException, VendorOnboardingResponseModel> response =
           state.remoteFutsalId == null
@@ -1409,6 +1491,102 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
               clearErrorMessage: true,
             ),
           );
+          return null;
+        },
+      );
+    } catch (error) {
+      emit(
+        state.copyWith(
+          isSubmitting: false,
+          errorMessage: error.toString(),
+          errorOrigin: VendorErrorOrigin.api,
+        ),
+      );
+      return error.toString();
+    }
+  }
+
+  Future<String?> _submitCourtProgressIfNeeded() async {
+    final CourtDraft? court = state.activeCourt;
+    if (court == null) return null;
+
+    final int? futsalId = state.remoteFutsalId;
+    if (futsalId == null) {
+      const String message =
+          'Complete and save the futsal venue before adding courts.';
+      emit(
+        state.copyWith(
+          errorMessage: message,
+          errorOrigin: VendorErrorOrigin.api,
+        ),
+      );
+      return message;
+    }
+
+    emit(state.copyWith(isSubmitting: true, clearErrorMessage: true));
+
+    try {
+      final bool hasRemoteCourt = court.remoteId != null;
+      final Map<String, dynamic> body = state.toCourtBody(
+        court: court,
+        mainStep: currentSectionIndex,
+        subStep: currentSubstepIndex,
+        futsalId: futsalId,
+        currentSubstepOnly: hasRemoteCourt,
+      );
+      final Either<AppException, CourtOnboardingResponseModel> response =
+          hasRemoteCourt
+          ? await _onboardingUseCase.updateCourt(body)
+          : await _onboardingUseCase.submitCourt(body);
+
+      return response.fold(
+        (AppException failure) {
+          emit(
+            state.copyWith(
+              isSubmitting: false,
+              errorMessage: failure.errorMessage,
+              errorOrigin: VendorErrorOrigin.api,
+            ),
+          );
+          return failure.errorMessage;
+        },
+        (CourtOnboardingResponseModel data) {
+          final CourtDraft updatedCourt = data.mergeInto(court);
+          final List<CourtDraft> nextCourts = state.courts
+              .map(
+                (CourtDraft item) => item.id == court.id ? updatedCourt : item,
+              )
+              .toList();
+          final Map<String, SectionPointer> nextPointers =
+              Map<String, SectionPointer>.from(state.courtPointersById);
+          nextPointers[court.id] = SectionPointer(
+            sectionIndex: _clamp(
+              data.mainStep,
+              0,
+              courtSectionDefinitions.length - 1,
+            ),
+            subsectionIndex: _clamp(
+              data.subStep,
+              0,
+              courtSectionDefinitions[_clamp(
+                        data.mainStep,
+                        0,
+                        courtSectionDefinitions.length - 1,
+                      )]
+                      .substeps
+                      .length -
+                  1,
+            ),
+          );
+          emit(
+            state.copyWith(
+              isSubmitting: false,
+              courts: nextCourts,
+              courtPointersById: nextPointers,
+              clearErrorMessage: true,
+            ),
+          );
+          _scheduleDraftSave();
           return null;
         },
       );
@@ -1734,7 +1912,7 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
   }
 
   UploadRef? _toUploadRef(PlatformFile file) {
-    final String path = file.path ?? file.name;
+    final String path = file.path ?? '';
     if (path.trim().isEmpty) return null;
     return UploadRef(name: file.name, remoteUrl: path);
   }

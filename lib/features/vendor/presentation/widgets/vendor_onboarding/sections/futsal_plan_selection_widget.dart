@@ -102,11 +102,13 @@ class _FutsalPlanSelectionContentState
             builder: (BuildContext context, VendorOnboardingState vendorState) {
               final double? selectedPercent =
                   vendorState.futsal.commissionPercent;
+              final int? selectedPackageId = vendorState.futsal.packageId;
               final List<_PackageOption> packageOptions =
                   _resolvePackageOptions(packagesState.packages);
 
               return _buildCommissionPackages(
                 packageOptions: packageOptions,
+                selectedPackageId: selectedPackageId,
                 selectedPercent: selectedPercent,
                 futsalDraft: vendorState.futsal,
               );
@@ -119,6 +121,7 @@ class _FutsalPlanSelectionContentState
 
   Widget _buildCommissionPackages({
     required List<_PackageOption> packageOptions,
+    required int? selectedPackageId,
     required double? selectedPercent,
     required FutsalDraft futsalDraft,
   }) {
@@ -130,7 +133,9 @@ class _FutsalPlanSelectionContentState
             .entries
             .map((MapEntry<int, _PackageOption> entry) {
               final _PackageOption option = entry.value;
-              final bool isSelected = selectedPercent != null
+              final bool isSelected = selectedPackageId != null
+                  ? selectedPackageId == option.id
+                  : selectedPercent != null
                   ? (selectedPercent - option.percentage).abs() < 0.0001
                   : false;
 
@@ -149,6 +154,7 @@ class _FutsalPlanSelectionContentState
                     descriptionHtml: option.descriptionHtml,
                     onTap: () => _vendorOnboardingCubit.updateFutsal(
                       futsalDraft.copyWith(
+                        packageId: option.id,
                         commissionPercent: option.percentage,
                       ),
                     ),
@@ -167,11 +173,26 @@ class _FutsalPlanSelectionContentState
 
     final double? currentPercent =
         _vendorOnboardingCubit.state.futsal.commissionPercent;
-    if (currentPercent != null &&
-        options.any(
-          (_PackageOption option) =>
-              (option.percentage - currentPercent).abs() < 0.0001,
-        )) {
+    final int? currentPackageId = _vendorOnboardingCubit.state.futsal.packageId;
+    if (currentPackageId != null &&
+        options.any((_PackageOption option) => option.id == currentPackageId)) {
+      return;
+    }
+
+    final _PackageOption? matchingPercentOption = currentPercent == null
+        ? null
+        : options
+              .where(
+                (_PackageOption option) =>
+                    (option.percentage - currentPercent).abs() < 0.0001,
+              )
+              .firstOrNull;
+    if (matchingPercentOption != null) {
+      _vendorOnboardingCubit.updateFutsal(
+        _vendorOnboardingCubit.state.futsal.copyWith(
+          packageId: matchingPercentOption.id,
+        ),
+      );
       return;
     }
 
@@ -181,6 +202,7 @@ class _FutsalPlanSelectionContentState
 
     _vendorOnboardingCubit.updateFutsal(
       _vendorOnboardingCubit.state.futsal.copyWith(
+        packageId: preferred.id,
         commissionPercent: preferred.percentage,
       ),
     );
@@ -202,6 +224,7 @@ class _FutsalPlanSelectionContentState
 
     return const <_PackageOption>[
       _PackageOption(
+        id: 1,
         title: 'Basic',
         percentage: 5,
         isPopular: false,
@@ -210,6 +233,7 @@ class _FutsalPlanSelectionContentState
             '<ul><li>Basic listing</li><li>Standard visibility</li><li>Email support</li></ul>',
       ),
       _PackageOption(
+        id: 2,
         title: 'Standard',
         percentage: 10,
         isPopular: true,
@@ -231,6 +255,7 @@ class _FutsalPlanSelectionContentState
         : package.name.trim();
 
     return _PackageOption(
+      id: int.tryParse(package.id) ?? _asInt(package.raw['id']),
       title: title,
       percentage: percentage,
       isPopular: _isPopularPackage(package),
@@ -309,6 +334,11 @@ class _FutsalPlanSelectionContentState
     return normalized == 'true' || normalized == '1' || normalized == 'yes';
   }
 
+  int _asInt(dynamic value) {
+    if (value is int) return value;
+    return int.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
   IconData _iconForPackage(String name) {
     final String normalized = name.trim().toLowerCase();
 
@@ -327,6 +357,7 @@ class _FutsalPlanSelectionContentState
 
 class _PackageOption {
   const _PackageOption({
+    required this.id,
     required this.title,
     required this.percentage,
     required this.isPopular,
@@ -334,6 +365,7 @@ class _PackageOption {
     required this.descriptionHtml,
   });
 
+  final int id;
   final String title;
   final double percentage;
   final bool isPopular;

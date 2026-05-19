@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
- import 'package:hamro_footsall/features/courts_details/presentation/widget/court_amenities.dart';
+import 'package:hamro_footsall/core/theme/app_colors.dart';
+import 'package:hamro_footsall/core/theme/futsal_theme.dart';
+import 'package:hamro_footsall/core/utils/app_utils.dart';
+import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/features/courts_details/presentation/widget/court_amenities.dart';
 import 'package:hamro_footsall/features/courts_details/presentation/widget/court_booking_policies_section.dart';
 import 'package:hamro_footsall/features/courts_details/presentation/widget/court_hosted_by_section.dart';
 import 'package:hamro_footsall/features/courts_details/presentation/widget/court_intro_widget.dart';
@@ -269,19 +273,21 @@ class _CourtDetailPageState extends State<CourtDetailPage>
     return SlideTransition(
       position: _bottomBarSlide,
       child: Container(
-        padding: const EdgeInsets.all(12),
+        padding: AppUtils().getPadding(all: AppDimens.paddingX12),
         decoration: BoxDecoration(
-          color: DS.surface,
+          color: LightColor.cardColor,
           borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(20),
-            topRight: Radius.circular(20),
+            topLeft: Radius.circular(AppDimens.radiusX20),
+            topRight: Radius.circular(AppDimens.radiusX20),
           ),
-          border: Border.all(color: DS.border.withOpacity(0.7)),
+          border: Border.all(
+            color: LightColor.dividerColor.withValues(alpha: 0.7),
+          ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.12),
-              blurRadius: 28,
-              offset: const Offset(0, 10),
+              color: Colors.black.withValues(alpha: 0.12),
+              blurRadius: AppDimens.sizeX28,
+              offset: const Offset(0, AppDimens.sizeX10),
             ),
           ],
         ),
@@ -295,47 +301,58 @@ class _CourtDetailPageState extends State<CourtDetailPage>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Padding(
-                        padding: const EdgeInsets.only(left: 6),
+                        padding: AppUtils().getPadding(
+                          left: AppDimens.paddingX6,
+                        ),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
-                            Text(
-                              _court.price,
-                              style: const TextStyle(
-                                color: DS.textPrimary,
-                                fontSize: 20,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: -0.5,
+                            Flexible(
+                              child: Text(
+                                _court.price,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: FutsalTheme.getTextTheme(context)
+                                    .headingSmall
+                                    ?.copyWith(
+                                      color: LightColor.primaryTextColor,
+                                      fontWeight: FontWeight.w900,
+                                    ),
                               ),
                             ),
-                            const SizedBox(width: 4),
-                            const Padding(
-                              padding: EdgeInsets.only(bottom: 3),
+                            const SizedBox(width: AppDimens.sizeX4),
+                            Padding(
+                              padding: AppUtils().getPadding(
+                                bottom: AppDimens.paddingX2,
+                              ),
                               child: Text(
                                 '/ hour',
-                                style: TextStyle(
-                                  color: DS.textTertiary,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500,
-                                ),
+                                style: FutsalTheme.getTextTheme(context)
+                                    .bodyTextSmall
+                                    ?.copyWith(
+                                      color: LightColor.hintTextColor,
+                                      fontWeight: FontWeight.w500,
+                                    ),
                               ),
                             ),
                           ],
                         ),
                       ),
-                      SizedBox(height: 4),
+                      const SizedBox(height: AppDimens.sizeX4),
 
                       AnimatedContainer(
                         duration: const Duration(milliseconds: 220),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 5,
+                        padding: AppUtils().getPadding(
+                          horizontal: AppDimens.paddingX10,
+                          vertical: AppDimens.paddingX4,
                         ),
                         decoration: BoxDecoration(
                           color: hasSelection
-                              ? DS.primaryLight
-                              : DS.borderLight,
-                          borderRadius: BorderRadius.circular(999),
+                              ? LightColor.secondarySoft
+                              : LightColor.inputFillColor,
+                          borderRadius: BorderRadius.circular(
+                            AppDimens.radiusX50,
+                          ),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -344,33 +361,34 @@ class _CourtDetailPageState extends State<CourtDetailPage>
                               hasSelection
                                   ? Icons.check_circle_rounded
                                   : Icons.schedule_rounded,
-                              size: 12,
+                              size: AppDimens.sizeX12,
                               color: hasSelection
-                                  ? DS.primary
-                                  : DS.textTertiary,
+                                  ? LightColor.secondaryColor
+                                  : LightColor.hintTextColor,
                             ),
-                            const SizedBox(width: 5),
+                            const SizedBox(width: AppDimens.sizeX4),
                             Flexible(
                               child: Text(
                                 selectedLabel,
                                 overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: hasSelection
-                                      ? DS.primary
-                                      : DS.textTertiary,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                                style: FutsalTheme.getTextTheme(context)
+                                    .bodySubTitle
+                                    ?.copyWith(
+                                      color: hasSelection
+                                          ? LightColor.secondaryColor
+                                          : LightColor.hintTextColor,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                               ),
                             ),
                           ],
                         ),
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(height: AppDimens.sizeX2),
                     ],
                   ),
                 ),
-                SizedBox(width: 10),
+                const SizedBox(width: AppDimens.sizeX10),
                 Expanded(
                   child: GestureDetector(
                     onTap: hasSelection
@@ -380,24 +398,50 @@ class _CourtDetailPageState extends State<CourtDetailPage>
                         : null,
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 260),
-                      height: 46,
+                      height: AppDimens.sizeX46,
                       decoration: BoxDecoration(
-                        gradient: hasSelection ? DS.primaryGradient : null,
-                        color: hasSelection ? null : DS.border,
-                        borderRadius: BorderRadius.circular(10),
-                        boxShadow: hasSelection ? DS.shadowPrimary : null,
+                        gradient: hasSelection
+                            ? const LinearGradient(
+                                colors: [
+                                  LightColor.secondaryColor,
+                                  LightColor.secondaryDark,
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              )
+                            : null,
+                        color: hasSelection ? null : LightColor.dividerColor,
+                        borderRadius: BorderRadius.circular(
+                          AppDimens.radiusX10,
+                        ),
+                        boxShadow: hasSelection
+                            ? [
+                                BoxShadow(
+                                  color: LightColor.secondaryColor.withValues(
+                                    alpha: 0.35,
+                                  ),
+                                  blurRadius: AppDimens.sizeX20,
+                                  offset: const Offset(0, AppDimens.sizeX8),
+                                ),
+                              ]
+                            : null,
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Text(
-                            hasSelection ? 'Book Now' : 'Select Slot',
-                            style: TextStyle(
-                              color: hasSelection
-                                  ? Colors.white
-                                  : DS.textTertiary,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w800,
+                          Flexible(
+                            child: Text(
+                              hasSelection ? 'Book Now' : 'Select Slot',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: FutsalTheme.getTextTheme(context)
+                                  .bodyTextMedium
+                                  ?.copyWith(
+                                    color: hasSelection
+                                        ? LightColor.inverseTextColor
+                                        : LightColor.hintTextColor,
+                                    fontWeight: FontWeight.w800,
+                                  ),
                             ),
                           ),
                         ],
@@ -420,7 +464,7 @@ class _CourtDetailPageState extends State<CourtDetailPage>
         statusBarColor: Colors.transparent,
       ),
       child: Scaffold(
-        backgroundColor: DS.background,
+        backgroundColor: LightColor.background,
         body: SafeArea(
           top: false,
           bottom: true,
@@ -433,22 +477,29 @@ class _CourtDetailPageState extends State<CourtDetailPage>
                   SliverToBoxAdapter(
                     child: Container(
                       decoration: const BoxDecoration(
-                        color: DS.background,
+                        color: LightColor.background,
                         borderRadius: BorderRadius.vertical(
-                          top: Radius.circular(28),
+                          top: Radius.circular(AppDimens.radiusX28),
                         ),
                       ),
-                      transform: Matrix4.translationValues(0, -24, 0),
+                      transform: Matrix4.translationValues(
+                        0,
+                        -AppDimens.sizeX24,
+                        0,
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Center(
                             child: Container(
-                              margin: const EdgeInsets.only(top: 12, bottom: 4),
-                              width: 40,
-                              height: 4,
+                              margin: AppUtils().getMargin(
+                                top: AppDimens.marginX12,
+                                bottom: AppDimens.marginX4,
+                              ),
+                              width: AppDimens.sizeX40,
+                              height: AppDimens.sizeX4,
                               decoration: BoxDecoration(
-                                color: DS.border,
+                                color: LightColor.dividerColor,
                                 borderRadius: BorderRadius.circular(100),
                               ),
                             ),
@@ -515,74 +566,4 @@ class _CourtDetailPageState extends State<CourtDetailPage>
       ),
     );
   }
-}
-
-class DS {
-  DS._();
-
-  static const Color primary = Color(0xFF0D9E5C);
-  static const Color primaryDark = Color(0xFF087A45);
-  static const Color primaryLight = Color(0xFFE8F8F0);
-  static const Color primarySurface = Color(0xFFF0FDF4);
-  static const Color surface = Color(0xFFFFFFFF);
-  static const Color background = Color(0xFFF7F9FC);
-  static const Color textPrimary = Color(0xFF0F1923);
-  static const Color textSecondary = Color(0xFF6B7280);
-  static const Color textTertiary = Color(0xFF9CA3AF);
-  static const Color border = Color(0xFFE5E7EB);
-  static const Color borderLight = Color(0xFFF3F4F6);
-  static const Color divider = Color(0xFFF0F2F5);
-  static const Color orange = Color(0xFFF59E0B);
-  static const Color orangeLight = Color(0xFFFFF7ED);
-  static const Color blue = Color(0xFF3B82F6);
-  static const Color blueLight = Color(0xFFEFF6FF);
-  static const Color red = Color(0xFFEF4444);
-  static const Color redLight = Color(0xFFFEF2F2);
-  static const Color purple = Color(0xFF8B5CF6);
-  static const Color purpleLight = Color(0xFFFAF5FF);
-  static const Color yellow = Color(0xFFFBBF24);
-
-  static const LinearGradient primaryGradient = LinearGradient(
-    colors: [Color(0xFF0D9E5C), Color(0xFF059669)],
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-  );
-
-  static const LinearGradient darkGradient = LinearGradient(
-    colors: [Color(0xFF111827), Color(0xFF1F2937)],
-    begin: Alignment.topCenter,
-    end: Alignment.bottomCenter,
-  );
-
-  static List<BoxShadow> shadowSm = [
-    BoxShadow(
-      color: Colors.black.withOpacity(0.04),
-      blurRadius: 8,
-      offset: const Offset(0, 2),
-    ),
-  ];
-
-  static List<BoxShadow> shadowMd = [
-    BoxShadow(
-      color: Colors.black.withOpacity(0.06),
-      blurRadius: 16,
-      offset: const Offset(0, 4),
-    ),
-  ];
-
-  static List<BoxShadow> shadowLg = [
-    BoxShadow(
-      color: Colors.black.withOpacity(0.1),
-      blurRadius: 30,
-      offset: const Offset(0, 10),
-    ),
-  ];
-
-  static List<BoxShadow> shadowPrimary = [
-    BoxShadow(
-      color: primary.withOpacity(0.35),
-      blurRadius: 20,
-      offset: const Offset(0, 8),
-    ),
-  ];
 }

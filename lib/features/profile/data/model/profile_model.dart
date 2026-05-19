@@ -100,7 +100,9 @@ class UserData extends Equatable {
           json['vendor_onboarding_completed_at'] != null
           ? DateTime.tryParse(json['vendor_onboarding_completed_at'])
           : null,
-      vendorOnboardingData: json['vendor_onboarding_data'],
+      vendorOnboardingData: json['vendor_onboarding_data'] is Map
+          ? Map<String, dynamic>.from(json['vendor_onboarding_data'] as Map)
+          : null,
       designation: json['designation'],
       profilePhoto: json['profile_photo'],
       createdAt: json['created_at'] != null
@@ -109,15 +111,12 @@ class UserData extends Equatable {
       updatedAt: json['updated_at'] != null
           ? DateTime.tryParse(json['updated_at'])
           : null,
-      futsalId: json['futsal_id'] != null
-          ? int.tryParse(json['futsal_id'].toString())
-          : null,
-      mainStep: json['main_step'] != null
-          ? int.tryParse(json['main_step'].toString())
-          : null,
-      subStep: json['sub_step'] != null
-          ? int.tryParse(json['sub_step'].toString())
-          : null,
+      futsalId: _asInt(json['futsal_id']) ??
+          _asInt((json['vendor_onboarding_data'] as Map?)?['id']),
+      mainStep: _asInt(json['main_step']) ??
+          _asInt((json['vendor_onboarding_data'] as Map?)?['main_step']),
+      subStep: _asInt(json['sub_step']) ??
+          _asInt((json['vendor_onboarding_data'] as Map?)?['sub_step']),
     );
   }
 
@@ -214,4 +213,36 @@ class UserData extends Equatable {
       subStep: subStep ?? this.subStep,
     );
   }
+
+  // Merges [other] into this, preserving existing non-null values when [other] has null.
+  UserData mergeWith(UserData other) {
+    return copyWith(
+      id: other.id,
+      name: other.name.isNotEmpty ? other.name : null,
+      fullName: other.fullName.isNotEmpty ? other.fullName : null,
+      email: other.email.isNotEmpty ? other.email : null,
+      phone: other.phone,
+      latitude: other.latitude,
+      longitude: other.longitude,
+      role: other.role.isNotEmpty ? other.role : null,
+      emailVerifiedAt: other.emailVerifiedAt,
+      requiresVendorOnboarding: other.requiresVendorOnboarding,
+      vendorOnboardingCompletedAt: other.vendorOnboardingCompletedAt,
+      vendorOnboardingData: other.vendorOnboardingData,
+      designation: other.designation,
+      profilePhoto: other.profilePhoto,
+      createdAt: other.createdAt,
+      updatedAt: other.updatedAt,
+      futsalId: other.futsalId,
+      mainStep: other.mainStep,
+      subStep: other.subStep,
+    );
+  }
+}
+
+int? _asInt(Object? value) {
+  if (value == null) return null;
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  return int.tryParse(value.toString().trim());
 }

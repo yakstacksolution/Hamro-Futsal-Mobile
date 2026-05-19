@@ -18,6 +18,10 @@ final class AuthUseCase {
     OtpVerificationEntity otpData,
   ) async => await repository.verifyOtp(otpData.toMap());
 
+  Future<Either<AppException, Map<String, dynamic>>?> resendOtp(
+    ResendOtpEntity resendOtpData,
+  ) async => await repository.resendOtp(resendOtpData.toMap());
+
   Future<Either<AppException, bool>?> logout() async =>
       await repository.logout();
 }

@@ -17,6 +17,7 @@ class AuthenticationBloc
     on<LoginEvent>(_onLogin);
     on<RegisterEvent>(_onRegister);
     on<OtpVerificationEvent>(_onOtpVerification);
+    on<ResendOtpEvent>(_onResendOtp);
     on<LogoutEvent>(_onLogout);
   }
 
@@ -167,6 +168,60 @@ class AuthenticationBloc
       emit(
         state.copyWith(
           otpVerificationStatus: AuthStatus.failure,
+          errorMessage: error.toString(),
+        ),
+      );
+    }
+  }
+
+  FutureOr<void> _onResendOtp(
+    ResendOtpEvent event,
+    Emitter<AuthenticationState> emit,
+  ) async {
+    try {
+      emit(
+        state.copyWith(
+          resendOtpStatus: AuthStatus.loading,
+          clearErrorMessage: true,
+          clearErrorData: true,
+          clearSuccessMessage: true,
+        ),
+      );
+
+      final Either<AppException, Map<String, dynamic>>? response =
+          await authUseCase.resendOtp(
+            ResendOtpEntity(email: event.email, purpose: event.purpose),
+          );
+
+      if (response == null) {
+        emit(
+          state.copyWith(
+            resendOtpStatus: AuthStatus.failure,
+            errorMessage: 'Resend OTP failed. Please try again.',
+          ),
+        );
+        return;
+      }
+
+      response.fold(
+        (AppException failure) => emit(
+          state.copyWith(
+            resendOtpStatus: AuthStatus.failure,
+            errorMessage: failure.errorMessage,
+          ),
+        ),
+        (Map<String, dynamic> data) => emit(
+          state.copyWith(
+            resendOtpStatus: AuthStatus.success,
+            successMessage: 'OTP resent successfully. Check your email.',
+            clearErrorMessage: true,
+          ),
+        ),
+      );
+    } catch (error) {
+      emit(
+        state.copyWith(
+          resendOtpStatus: AuthStatus.failure,
           errorMessage: error.toString(),
         ),
       );

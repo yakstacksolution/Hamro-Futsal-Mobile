@@ -12,6 +12,7 @@ class AuthenticationState extends Equatable {
   final dynamic otpVerificationData;
   final bool obscurePassword;
   final AuthStatus otpVerificationStatus;
+  final AuthStatus resendOtpStatus;
   final AuthStatus logoutStatus;
 
   const AuthenticationState({
@@ -24,6 +25,7 @@ class AuthenticationState extends Equatable {
     this.registrationStatus = AuthStatus.initial,
     this.successMessage = '',
     this.otpVerificationStatus = AuthStatus.initial,
+    this.resendOtpStatus = AuthStatus.initial,
     this.logoutStatus = AuthStatus.initial,
   });
 
@@ -40,6 +42,7 @@ class AuthenticationState extends Equatable {
     bool clearErrorData = false,
     bool clearSuccessMessage = false,
     AuthStatus? otpVerificationStatus,
+    AuthStatus? resendOtpStatus,
     AuthStatus? logoutStatus,
   }) {
     return AuthenticationState(
@@ -63,6 +66,7 @@ class AuthenticationState extends Equatable {
           : successMessage ?? this.successMessage,
       otpVerificationStatus:
           otpVerificationStatus ?? this.otpVerificationStatus,
+      resendOtpStatus: resendOtpStatus ?? this.resendOtpStatus,
       logoutStatus: logoutStatus ?? this.logoutStatus,
     );
   }
@@ -78,6 +82,7 @@ class AuthenticationState extends Equatable {
     otpVerificationData,
     successMessage,
     otpVerificationStatus,
+    resendOtpStatus,
     logoutStatus,
   ];
 }

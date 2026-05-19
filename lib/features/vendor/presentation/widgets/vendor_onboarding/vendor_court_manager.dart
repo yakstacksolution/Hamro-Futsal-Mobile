@@ -55,7 +55,7 @@ class VendorCourtManager extends StatelessWidget {
             BlocProvider<VendorOnboardingCubit>.value(value: cubit),
             BlocProvider<PublicTemplatesBloc>.value(value: publicTemplatesBloc),
           ],
-          child: _CourtOnboardingPage(courtId: courtId),
+          child: CourtOnboardingPage(courtId: courtId),
         ),
       ),
     );
@@ -117,7 +117,12 @@ class VendorCourtManager extends StatelessWidget {
             ],
           ),
           const SizedBox(height: AppDimens.sizeX12),
-          if (state.courts.isEmpty)
+          if (state.isLoadingCourts)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: AppDimens.paddingX24),
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else if (state.courts.isEmpty)
             GestureDetector(
               onTap: () => _showAddCourtSheet(context),
               child: const _CourtEmptyStateCompact(),
@@ -499,16 +504,16 @@ class _CourtMetricPill extends StatelessWidget {
   }
 }
 
-class _CourtOnboardingPage extends StatefulWidget {
-  const _CourtOnboardingPage({required this.courtId});
+class CourtOnboardingPage extends StatefulWidget {
+  const CourtOnboardingPage({super.key, required this.courtId});
 
   final String courtId;
 
   @override
-  State<_CourtOnboardingPage> createState() => _CourtOnboardingPageState();
+  State<CourtOnboardingPage> createState() => CourtOnboardingPageState();
 }
 
-class _CourtOnboardingPageState extends State<_CourtOnboardingPage> {
+class CourtOnboardingPageState extends State<CourtOnboardingPage> {
   late final VendorOnboardingCubit _cubit;
 
   @override

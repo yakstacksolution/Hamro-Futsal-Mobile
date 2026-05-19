@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
+import 'package:hamro_footsall/core/theme/futsal_theme.dart';
+import 'package:hamro_footsall/core/utils/app_utils.dart';
+import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/widgets/custom_html_viewer.dart';
 import 'package:hamro_footsall/features/courts_details/presentation/page/court_details.dart';
 
 class CourtIntroWidget extends StatelessWidget {
@@ -10,86 +14,101 @@ class CourtIntroWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+      padding: AppUtils().getPadding(
+        top: AppDimens.paddingX18,
+        left: AppDimens.paddingX20,
+        right: AppDimens.paddingX20,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildTopTags(),
-          const SizedBox(height: 18),
-          _buildTitleSection(),
-          const SizedBox(height: 18),
-          _buildLocationCard(),
-          const SizedBox(height: 14),
-
-          _buildDescriptionCard(),
+          _buildTopTags(context),
+          const SizedBox(height: AppDimens.sizeX18),
+          _buildTitleSection(context),
+          const SizedBox(height: AppDimens.sizeX18),
+          _buildLocationCard(context),
+          const SizedBox(height: AppDimens.sizeX14),
+          _buildDescriptionCard(context),
         ],
       ),
     );
   }
 
-  Widget _buildTopTags() {
-    return Wrap(
-      spacing: 8,
-      crossAxisAlignment: WrapCrossAlignment.start,
-      alignment: WrapAlignment.spaceBetween,
-      direction: Axis.horizontal,
+  Widget _buildTopTags(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        _chipTag(
-          court.courtType,
-          Icons.stadium_outlined,
-          DS.blue,
-          DS.blueLight,
+        Expanded(
+          flex: 2,
+          child: _chipTag(
+            court.courtType,
+            Icons.stadium_outlined,
+            LightColor.blueColor,
+            LightColor.blueLightColor,
+            context,
+          ),
         ),
-        _chipTag(
-          '${court.maxPlayers} Players',
-          Icons.groups_rounded,
-          DS.purple,
-          DS.purpleLight,
+        const SizedBox(width: AppDimens.sizeX4),
+        Expanded(
+          flex: 2,
+          child: _chipTag(
+            '${court.maxPlayers} Players',
+            Icons.groups_rounded,
+            LightColor.purpleColor,
+            LightColor.purpleLightColor,
+            context,
+          ),
         ),
-        _chipTag(
-          '${court.openTime} - ${court.closeTime}',
-          Icons.access_time_rounded,
-          DS.primary,
-          DS.primaryLight,
+        const SizedBox(width: AppDimens.sizeX4),
+        Expanded(
+          flex: 3,
+          child: _chipTag(
+            '${court.openTime} - ${court.closeTime}',
+            Icons.access_time_rounded,
+            LightColor.secondaryColor,
+            LightColor.secondarySoft,
+            context,
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildTitleSection() {
+  Widget _buildTitleSection(BuildContext context) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
           child: Text(
             court.name,
-            style: const TextStyle(
-              color: DS.textPrimary,
-              fontSize: 18,
-              fontWeight: FontWeight.w900,
-              height: 1.2,
+            style: FutsalTheme.getTextTheme(context).headingSubTitle!.copyWith(
+              color: LightColor.primaryTextColor,
+              fontWeight: FontWeight.w600,
+              height: 1.4,
               letterSpacing: -0.6,
             ),
           ),
         ),
-        const SizedBox(width: 12),
-        _statusPill(court.isOpen),
+        const SizedBox(width: AppDimens.sizeX12),
+        _statusPill(court.isOpen, context),
       ],
     );
   }
 
-  Widget _buildLocationCard() {
+  Widget _buildLocationCard(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: AppUtils().getPadding(all: AppDimens.paddingX14),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: DS.border.withOpacity(0.45)),
+        color: LightColor.whiteColor,
+        borderRadius: BorderRadius.circular(AppDimens.sizeX8),
+        border: Border.all(
+          color: LightColor.dividerColor.withValues(alpha: 0.45),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 14,
-            offset: const Offset(0, 6),
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: AppDimens.sizeX14,
+            offset: const Offset(0, AppDimens.sizeX6),
           ),
         ],
       ),
@@ -99,47 +118,51 @@ class CourtIntroWidget extends StatelessWidget {
           Column(
             children: [
               Container(
-                width: 42,
-                height: 42,
+                width: AppDimens.sizeX42,
+                height: AppDimens.sizeX42,
                 decoration: BoxDecoration(
-                  color: DS.primaryLight,
-                  borderRadius: BorderRadius.circular(12),
+                  color: LightColor.secondarySoft,
+                  borderRadius: BorderRadius.circular(AppDimens.sizeX8),
                 ),
                 child: const Icon(
                   Icons.location_on_rounded,
-                  color: DS.primary,
-                  size: 20,
+                  color: LightColor.secondaryColor,
+                  size: AppDimens.sizeX20,
                 ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: AppDimens.sizeX4),
               Text(
                 "2.1 KM",
-                style: TextStyle(fontSize: 11, color: DS.textSecondary),
+                style: FutsalTheme.getTextTheme(context).bodyTextSmall!
+                    .copyWith(
+                      color: LightColor.hintTextColor,
+                      fontWeight: FontWeight.w500,
+                    ),
               ),
             ],
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: AppDimens.sizeX12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   court.location,
-                  style: const TextStyle(
-                    color: DS.textPrimary,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                  ),
+                  style: FutsalTheme.getTextTheme(context).bodyTextMedium!
+                      .copyWith(
+                        color: LightColor.primaryTextColor,
+                        fontWeight: FontWeight.w700,
+                      ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: AppDimens.sizeX4),
                 Text(
                   court.address,
-                  style: const TextStyle(
-                    color: DS.textTertiary,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w400,
-                    height: 1.4,
-                  ),
+                  style: FutsalTheme.getTextTheme(context).bodyTextSmall!
+                      .copyWith(
+                        color: LightColor.secondaryTextColor,
+                        fontWeight: FontWeight.w400,
+                        height: 1.4,
+                      ),
                 ),
               ],
             ),
@@ -149,26 +172,28 @@ class CourtIntroWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildDescriptionCard() {
+  Widget _buildDescriptionCard(BuildContext context) {
     final description = court.description.trim();
     final hasDescription = description.isNotEmpty;
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: AppUtils().getPadding(all: AppDimens.paddingX16),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [Color(0xFFFFFFFF), Color(0xFFF9FBFF)],
         ),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: DS.border.withOpacity(0.45)),
+        borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+        border: Border.all(
+          color: LightColor.dividerColor.withValues(alpha: 0.45),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.035),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
+            color: Colors.black.withValues(alpha: 0.035),
+            blurRadius: AppDimens.sizeX18,
+            offset: const Offset(0, AppDimens.sizeX8),
           ),
         ],
       ),
@@ -179,73 +204,75 @@ class CourtIntroWidget extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                width: 42,
-                height: 42,
+                width: AppDimens.sizeX42,
+                height: AppDimens.sizeX42,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [DS.blueLight, DS.primaryLight],
+                    colors: [
+                      LightColor.blueLightColor,
+                      LightColor.secondarySoft,
+                    ],
                   ),
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(AppDimens.radiusX8),
                 ),
                 child: const Icon(
                   Icons.description_rounded,
                   color: LightColor.secondaryColor,
-                  size: 20,
+                  size: AppDimens.sizeX20,
                 ),
               ),
-              const SizedBox(width: 12),
-              const Expanded(
+              const SizedBox(width: AppDimens.sizeX12),
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       'About this court',
-                      style: TextStyle(
-                        color: DS.textPrimary,
-                        fontSize: 15.5,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.2,
-                      ),
+                      style: FutsalTheme.getTextTheme(context).bodyTextLarge!
+                          .copyWith(
+                            color: LightColor.primaryTextColor,
+                            fontWeight: FontWeight.w800,
+                          ),
                     ),
-                    SizedBox(height: 3),
+                    const SizedBox(height: AppDimens.sizeX3),
                     Text(
                       'Overview and important details',
-                      style: TextStyle(
-                        color: DS.textTertiary,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      ),
+                      style: FutsalTheme.getTextTheme(context).bodyTextSmall!
+                          .copyWith(
+                            color: LightColor.hintTextColor,
+                            fontWeight: FontWeight.w500,
+                          ),
                     ),
                   ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppDimens.sizeX12),
 
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6),
+            padding: AppUtils().getPadding(horizontal: AppDimens.paddingX6),
             child: hasDescription
-                ? Text(
-                    description,
-                    style: const TextStyle(
-                      color: DS.textSecondary,
-                      fontSize: 13.8,
-                      fontWeight: FontWeight.w400,
-                      height: 1.75,
-                      letterSpacing: 0.1,
-                    ),
+                ? CustomHtmlReader(
+                    html: description,
+                    textStyle: FutsalTheme.getTextTheme(context).bodyTextMedium
+                        ?.copyWith(
+                          color: LightColor.secondaryTextColor,
+                          fontWeight: FontWeight.w400,
+                          height: 1.75,
+                          letterSpacing: 0.1,
+                        ),
                   )
-                : const Text(
+                : Text(
                     'No description available for this court yet.',
-                    style: TextStyle(
-                      color: DS.textTertiary,
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w500,
-                      height: 1.6,
-                    ),
+                    style: FutsalTheme.getTextTheme(context).bodyTextMedium!
+                        .copyWith(
+                          color: LightColor.hintTextColor,
+                          fontWeight: FontWeight.w500,
+                          height: 1.6,
+                        ),
                   ),
           ),
         ],
@@ -253,28 +280,29 @@ class CourtIntroWidget extends StatelessWidget {
     );
   }
 
-  Widget _statusPill(bool isOpen) {
+  Widget _statusPill(bool isOpen, BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+      padding: AppUtils().getPadding(
+        horizontal: AppDimens.paddingX8,
+        vertical: AppDimens.paddingX6,
+      ),
       decoration: BoxDecoration(
-        color: isOpen ? DS.primaryLight : DS.redLight,
-        borderRadius: BorderRadius.circular(999),
+        color: isOpen ? LightColor.secondarySoft : LightColor.redLightColor,
+        borderRadius: BorderRadius.circular(AppDimens.radiusX50),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
             isOpen ? Icons.check_circle_rounded : Icons.cancel_rounded,
-            size: 14,
-            color: isOpen ? DS.primary : DS.red,
+            size: AppDimens.sizeX14,
+            color: isOpen ? LightColor.secondaryColor : LightColor.redColor,
           ),
-          const SizedBox(width: 6),
+          const SizedBox(width: AppDimens.sizeX6),
           Text(
             isOpen ? 'Open now' : 'Closed',
-            style: TextStyle(
-              color: isOpen ? DS.primary : DS.red,
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
+            style: FutsalTheme.getTextTheme(context).bodySubTitle!.copyWith(
+              color: isOpen ? LightColor.secondaryColor : LightColor.redColor,
             ),
           ),
         ],
@@ -282,24 +310,39 @@ class CourtIntroWidget extends StatelessWidget {
     );
   }
 
-  Widget _chipTag(String label, IconData icon, Color fg, Color bg) {
+  Widget _chipTag(
+    String label,
+    IconData icon,
+    Color fg,
+    Color bg,
+    BuildContext context,
+  ) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      padding: AppUtils().getPadding(
+        horizontal: AppDimens.paddingX8,
+        vertical: AppDimens.paddingX6,
+      ),
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(AppDimens.radiusX50),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: 14, color: fg),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: TextStyle(
-              color: fg,
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
+          Icon(icon, size: AppDimens.sizeX14, color: fg),
+          const SizedBox(width: AppDimens.sizeX4),
+          Flexible(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: FutsalTheme.getTextTheme(context).bodyTextSmall!
+                    .copyWith(color: fg, fontWeight: FontWeight.w700),
+              ),
             ),
           ),
         ],

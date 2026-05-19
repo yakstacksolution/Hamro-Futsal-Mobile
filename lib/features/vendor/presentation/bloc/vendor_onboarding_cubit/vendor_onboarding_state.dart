@@ -14,6 +14,7 @@ class VendorOnboardingState {
     required this.isSubmitting,
     required this.isRestoringDraft,
     required this.isCompleted,
+    required this.isLoadingCourts,
     this.remoteFutsalId,
     this.activeCourtId,
     this.lastSavedAt,
@@ -39,6 +40,7 @@ class VendorOnboardingState {
       isSubmitting: false,
       isRestoringDraft: true,
       isCompleted: false,
+      isLoadingCourts: false,
     );
   }
 
@@ -57,6 +59,7 @@ class VendorOnboardingState {
   final bool isSubmitting;
   final bool isRestoringDraft;
   final bool isCompleted;
+  final bool isLoadingCourts;
   final String? errorMessage;
   final VendorErrorOrigin? errorOrigin;
 
@@ -90,6 +93,7 @@ class VendorOnboardingState {
     bool? isSubmitting,
     bool? isRestoringDraft,
     bool? isCompleted,
+    bool? isLoadingCourts,
     int? remoteFutsalId,
     String? errorMessage,
     VendorErrorOrigin? errorOrigin,
@@ -118,6 +122,7 @@ class VendorOnboardingState {
       isSubmitting: isSubmitting ?? this.isSubmitting,
       isRestoringDraft: isRestoringDraft ?? this.isRestoringDraft,
       isCompleted: isCompleted ?? this.isCompleted,
+      isLoadingCourts: isLoadingCourts ?? this.isLoadingCourts,
       errorMessage: clearErrorMessage
           ? null
           : errorMessage ?? this.errorMessage,
@@ -198,6 +203,7 @@ class VendorOnboardingState {
       isSubmitting: false,
       isRestoringDraft: false,
       isCompleted: false,
+      isLoadingCourts: false,
     );
   }
 }

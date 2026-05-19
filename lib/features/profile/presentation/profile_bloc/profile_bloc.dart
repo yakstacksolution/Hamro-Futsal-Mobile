@@ -34,13 +34,19 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
             errorMessage: failure.errorMessage,
           ),
         ),
-        (ProfileModel profile) => emit(
-          state.copyWith(
-            status: ProfileStatus.success,
-            profile: profile,
-            clearErrorMessage: true,
-          ),
-        ),
+        (ProfileModel profile) {
+          final ProfileModel? existing = state.profile;
+          final ProfileModel merged = existing == null
+              ? profile
+              : profile.copyWith(data: existing.data.mergeWith(profile.data));
+          emit(
+            state.copyWith(
+              status: ProfileStatus.success,
+              profile: merged,
+              clearErrorMessage: true,
+            ),
+          );
+        },
       );
     } catch (error) {
       emit(

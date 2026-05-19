@@ -38,6 +38,10 @@ class LightColor {
   static const Color warningColor = yellowColor;
   static const Color warningLightColor = Color(0xffFFF9C4);
   static const Color transparentColor = Colors.transparent;
+  static const Color blueColor = Color(0xFF3B82F6);
+  static const Color blueLightColor = Color(0xFFEFF6FF);
+  static const Color purpleColor = Color(0xFF8B5CF6);
+  static const Color purpleLightColor = Color(0xFFFAF5FF);
 
   static const Color secondaryDark = Color(0xFF059669);
   static const Color secondarySoft = Color(0x3310B981);

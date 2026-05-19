@@ -41,6 +41,10 @@ class AuthManager extends ServiceManager {
     return await _apiClient.verifyOtp(data: data);
   }
 
+  Future<Result> resendOtp(data) async {
+    return await _apiClient.resendOtp(data: data);
+  }
+
   Future<Result> logout() async {
     return await _apiClient.logout();
   }
@@ -85,6 +89,30 @@ class AuthManager extends ServiceManager {
     return await _apiClient.getPublicPackages();
   }
 
+  Future<Result> getCourtTypes() async {
+    return await _apiClient.getCourtTypes();
+  }
+
+  Future<Result> getMatchFormats() async {
+    return await _apiClient.getMatchFormats();
+  }
+
+  Future<Result> getAmenities() async {
+    return await _apiClient.getAmenities();
+  }
+
+  Future<Result> getFacilities() async {
+    return await _apiClient.getFacilities();
+  }
+
+  Future<Result> getVenueCourt() async {
+    return await _apiClient.getVenueCourt();
+  }
+
+  Future<Result> getVenueCourtByVenueId(int venueId) async {
+    return await _apiClient.getVenueCourtByVenueId(venueId: venueId);
+  }
+
   Future<Result> getPublicTemplates() async {
     return await _apiClient.getPublicTemplates();
   }
@@ -103,5 +131,21 @@ class AuthManager extends ServiceManager {
     return await _apiClient.updateVendorOnboardingFutsal(
       data: Map<String, dynamic>.from(data as Map),
     );
+  }
+
+  Future<Result> submitVendorOnboardingCourt(data) async {
+    return await _apiClient.submitVendorOnboardingCourt(
+      data: Map<String, dynamic>.from(data as Map),
+    );
+  }
+
+  Future<Result> updateVendorOnboardingCourt(data) async {
+    return await _apiClient.updateVendorOnboardingCourt(
+      data: Map<String, dynamic>.from(data as Map),
+    );
+  }
+
+  Future<Result> deleteVendorOnboardingCourt(int courtId) async {
+    return await _apiClient.deleteVendorOnboardingCourt(courtId: courtId);
   }
 }

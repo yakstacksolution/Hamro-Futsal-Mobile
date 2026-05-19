@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
+import 'package:hamro_footsall/core/theme/futsal_theme.dart';
+import 'package:hamro_footsall/core/utils/app_utils.dart';
+import 'package:hamro_footsall/core/utils/dimens.dart';
 
 class CourtRulesSection extends StatelessWidget {
   const CourtRulesSection({super.key, required this.rules});
@@ -8,47 +11,54 @@ class CourtRulesSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+      padding: AppUtils().getPadding(
+        top: AppDimens.paddingX12,
+        left: AppDimens.paddingX20,
+        right: AppDimens.paddingX20,
+      ),
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(16),
+        padding: AppUtils().getPadding(all: AppDimens.paddingX16),
         decoration: BoxDecoration(
           color: LightColor.cardColor,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: LightColor.borderColor.withValues(alpha: 0.7)),
+          borderRadius: BorderRadius.circular(AppDimens.radiusX10),
           boxShadow: [
             BoxShadow(
               color: LightColor.shadowColor.withValues(alpha: 0.04),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
+              blurRadius: AppDimens.sizeX12,
+              offset: const Offset(0, AppDimens.sizeX4),
             ),
           ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Row(
+            Row(
               children: [
-                Icon(Icons.gavel_rounded, size: 18, color: LightColor.warningColor),
-                SizedBox(width: 8),
+                const Icon(
+                  Icons.gavel_rounded,
+                  size: AppDimens.sizeX22,
+                  color: LightColor.warningColor,
+                ),
+                const SizedBox(width: AppDimens.sizeX8),
                 Text(
                   'Court Rules',
-                  style: TextStyle(
+                  style: textTheme.bodyTextLarge?.copyWith(
                     color: LightColor.primaryTextColor,
-                    fontSize: 16,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: AppDimens.sizeX14),
             if (rules.isEmpty)
-              const Text(
+              Text(
                 'No rules listed yet.',
-                style: TextStyle(
+                style: textTheme.bodyTextSmall?.copyWith(
                   color: LightColor.secondaryTextColor,
-                  fontSize: 13,
                   fontWeight: FontWeight.w500,
                 ),
               )
@@ -57,30 +67,33 @@ class CourtRulesSection extends StatelessWidget {
                 children: rules.asMap().entries.map((entry) {
                   final isLast = entry.key == rules.length - 1;
                   return Padding(
-                    padding: EdgeInsets.only(bottom: isLast ? 0 : 10),
+                    padding: AppUtils().getPadding(
+                      bottom: isLast ? 0 : AppDimens.paddingX10,
+                    ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Container(
-                          width: 22,
-                          height: 22,
+                          width: AppDimens.sizeX22,
+                          height: AppDimens.sizeX22,
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFFF6E8),
-                            borderRadius: BorderRadius.circular(6),
+                            color: LightColor.warningLightColor,
+                            borderRadius: BorderRadius.circular(
+                              AppDimens.radiusX6,
+                            ),
                           ),
                           child: const Icon(
                             Icons.warning_amber_rounded,
-                            size: 13,
+                            size: AppDimens.sizeX14,
                             color: LightColor.warningColor,
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: AppDimens.sizeX12),
                         Expanded(
                           child: Text(
                             entry.value,
-                            style: const TextStyle(
+                            style: textTheme.bodyTextSmall?.copyWith(
                               color: LightColor.secondaryTextColor,
-                              fontSize: 13.5,
                               fontWeight: FontWeight.w400,
                               height: 1.4,
                             ),

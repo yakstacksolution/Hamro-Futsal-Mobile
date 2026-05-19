@@ -8,136 +8,230 @@ import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/custom_image_view.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/utils/image_constants.dart';
-import 'package:hamro_footsall/features/profile/presentation/profile_bloc/profile_bloc.dart';
-import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_state.dart';
+import 'package:hamro_footsall/features/courts/data/model/venue_court_model.dart';
+import 'package:hamro_footsall/features/courts/data/repositories/venue_court_repository_impl.dart';
+import 'package:hamro_footsall/features/courts/domain/usecase/get_venue_court_use_case.dart';
+import 'package:hamro_footsall/features/courts/presentation/bloc/venue_court/venue_court_bloc.dart';
+import 'package:hamro_footsall/features/public/data/repositories/public_repository_impl.dart';
+import 'package:hamro_footsall/features/public/domain/usecase/get_public_templates_use_case.dart';
+import 'package:hamro_footsall/features/public/presentation/bloc/public_templates/public_templates_bloc.dart';
+import 'package:hamro_footsall/features/vendor/data/repositories/vendor_onboarding_repository_impl.dart';
+import 'package:hamro_footsall/features/vendor/data/vendor_draft_repository.dart';
+import 'package:hamro_footsall/features/vendor/domain/usecase/vendor_onboarding_usecase.dart';
+import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_cubit.dart';
 import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_drafts.dart';
+import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/vendor_court_manager.dart';
 
-class CourtsListPage extends StatefulWidget {
-  const CourtsListPage({super.key});
+class VenueCourtsListPage extends StatefulWidget {
+  const VenueCourtsListPage({super.key});
 
   @override
-  State<CourtsListPage> createState() => _CourtsListPageState();
+  State<VenueCourtsListPage> createState() => _VenueCourtsListPageState();
 }
 
-class _CourtsListPageState extends State<CourtsListPage> {
+class _VenueCourtsListPageState extends State<VenueCourtsListPage> {
   final TextEditingController _searchController = TextEditingController();
+  late final VenueCourtBloc _venueCourtBloc;
   _VenueFilter _selectedFilter = _VenueFilter.all;
+
+  @override
+  void initState() {
+    super.initState();
+    _venueCourtBloc = VenueCourtBloc(
+      GetVenueCourtUseCase(VenueCourtRepositoryImpl()),
+    )..add(const FetchVenueCourtEvent());
+  }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _venueCourtBloc.close();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final AppUtils appUtils = AppUtils();
-    final ProfileState profileState = context.watch<ProfileBloc>().state;
 
-    final List<_FutsalEntry> source = List<_FutsalEntry>.from(
-      _buildFutsalEntries(profileState),
-    )..sort(_compareFutsals);
+    return BlocProvider<VenueCourtBloc>.value(
+      value: _venueCourtBloc,
+      child: BlocBuilder<VenueCourtBloc, VenueCourtState>(
+        builder: (BuildContext context, VenueCourtState state) {
+          final List<_FutsalEntry> source = List<_FutsalEntry>.from(
+            state.venues.map(_FutsalEntry.fromModel),
+          )..sort(_compareFutsals);
+          final _PortfolioStats stats = _PortfolioStats.fromEntries(source);
 
-    final _PortfolioStats stats = _PortfolioStats.fromEntries(source);
+          return AnimatedBuilder(
+            animation: _searchController,
+            builder: (BuildContext context, _) {
+              final String query = _searchController.text.trim().toLowerCase();
 
-    return AnimatedBuilder(
-      animation: _searchController,
-      builder: (BuildContext context, _) {
-        final String query = _searchController.text.trim().toLowerCase();
+              List<_FutsalEntry> filtered = source.where((item) {
+                final bool matchesSearch = query.isEmpty
+                    ? true
+                    : item.matchesQuery(query);
 
-        List<_FutsalEntry> filtered = source.where((item) {
-          final bool matchesSearch = query.isEmpty
-              ? true
-              : item.matchesQuery(query);
+                final bool matchesFilter = switch (_selectedFilter) {
+                  _VenueFilter.all => true,
+                  _VenueFilter.liveOnly => item.liveCourts > 0,
+                  _VenueFilter.needsSetup =>
+                    item.liveCourts < item.courts.length,
+                };
 
-          final bool matchesFilter = switch (_selectedFilter) {
-            _VenueFilter.all => true,
-            _VenueFilter.liveOnly => item.liveCourts > 0,
-            _VenueFilter.needsSetup => item.liveCourts < item.courts.length,
-          };
+                return matchesSearch && matchesFilter;
+              }).toList();
 
-          return matchesSearch && matchesFilter;
-        }).toList();
-
-        return DecoratedBox(
-          decoration: const BoxDecoration(color: LightColor.whiteColor),
-          child: Column(
-            children: <Widget>[
-              _TopDashboardHeader(
-                stats: stats,
-                onAddFutsal: () {
-                  context.pushNamed(AppRouterParams.vendorStepper.name);
-                },
-                onAddCourt: () {
-                  context.pushNamed(AppRouterParams.createCourts.name);
-                },
-              ),
-              _OperationsStripV2(
-                stats: stats,
-                selectedFilter: _selectedFilter,
-                onFilterChanged: (_VenueFilter filter) {
-                  setState(() => _selectedFilter = filter);
-                },
-              ),
-              Expanded(
-                child: filtered.isEmpty
-                    ? ListView(
-                        physics: const BouncingScrollPhysics(),
-                        padding: appUtils.getPadding(
-                          left: AppDimens.paddingX16,
-                          top: AppDimens.paddingX6,
-                          right: AppDimens.paddingX16,
-                          bottom: AppDimens.paddingX24,
-                        ),
-                        children: <Widget>[
-                          _EmptyStateV2(
-                            isSearching:
-                                query.isNotEmpty ||
-                                _selectedFilter != _VenueFilter.all,
-                            onManageVenue: () {
-                              context.pushNamed(
-                                AppRouterParams.vendorStepper.name,
-                              );
-                            },
-                            onAddCourt: () {
-                              context.pushNamed(
-                                AppRouterParams.createCourts.name,
-                              );
-                            },
-                          ),
-                        ],
-                      )
-                    : ListView.separated(
-                        physics: const BouncingScrollPhysics(),
-                        padding: appUtils.getPadding(
-                          left: AppDimens.paddingX16,
-                          top: AppDimens.paddingX6,
-                          right: AppDimens.paddingX16,
-                          bottom: AppDimens.paddingX24,
-                        ),
-                        itemCount: filtered.length,
-                        separatorBuilder: (_, __) =>
-                            SizedBox(height: AppDimens.sizeX10),
-                        itemBuilder: (_, index) => _VenueCardV2(
-                          entry: filtered[index],
-                          onAddCourt: () => context.pushNamed(
-                            AppRouterParams.createCourts.name,
-                          ),
-                          onEditVenue: () => context.pushNamed(
-                            AppRouterParams.vendorStepper.name,
-                            queryParameters: {
-                              'futsalId': '1',
-                              'mainStep': '0',
-                              'subStep': '1',
-                            },
-                          ),
-                        ),
-                      ),
-              ),
-            ],
-          ),
-        );
-      },
+              return DecoratedBox(
+                decoration: const BoxDecoration(color: LightColor.whiteColor),
+                child: Column(
+                  children: <Widget>[
+                    _TopDashboardHeader(
+                      stats: stats,
+                      onAddFutsal: () {
+                        context.pushNamed(AppRouterParams.vendorStepper.name);
+                      },
+                      onAddCourt: () {
+                        context.pushNamed(AppRouterParams.vendorStepper.name);
+                      },
+                    ),
+                    _OperationsStripV2(
+                      stats: stats,
+                      selectedFilter: _selectedFilter,
+                      onFilterChanged: (_VenueFilter filter) {
+                        setState(() => _selectedFilter = filter);
+                      },
+                    ),
+                    Expanded(
+                      child: state.status == VenueCourtStatus.loading
+                          ? const Center(child: CircularProgressIndicator())
+                          : filtered.isEmpty
+                          ? ListView(
+                              physics: const BouncingScrollPhysics(),
+                              padding: appUtils.getPadding(
+                                left: AppDimens.paddingX16,
+                                top: AppDimens.paddingX6,
+                                right: AppDimens.paddingX16,
+                                bottom: AppDimens.paddingX24,
+                              ),
+                              children: <Widget>[
+                                _EmptyStateV2(
+                                  isSearching:
+                                      query.isNotEmpty ||
+                                      _selectedFilter != _VenueFilter.all,
+                                  onManageVenue: () {
+                                    context.pushNamed(
+                                      AppRouterParams.vendorStepper.name,
+                                    );
+                                  },
+                                  onAddCourt: () {
+                                    context.pushNamed(
+                                      AppRouterParams.vendorStepper.name,
+                                    );
+                                  },
+                                ),
+                              ],
+                            )
+                          : RefreshIndicator(
+                              onRefresh: () async {
+                                context.read<VenueCourtBloc>().add(
+                                  const FetchVenueCourtEvent(),
+                                );
+                              },
+                              child: ListView.separated(
+                                physics: const BouncingScrollPhysics(),
+                                padding: appUtils.getPadding(
+                                  left: AppDimens.paddingX16,
+                                  top: AppDimens.paddingX6,
+                                  right: AppDimens.paddingX16,
+                                  bottom: AppDimens.paddingX24,
+                                ),
+                                itemCount: filtered.length,
+                                separatorBuilder: (_, __) =>
+                                    SizedBox(height: AppDimens.sizeX10),
+                                itemBuilder: (_, index) => _VenueCardV2(
+                                  entry: filtered[index],
+                                  onAddCourt: () {
+                                    final int? venueId = filtered[index].id;
+                                    final VendorOnboardingCubit
+                                    cubit = VendorOnboardingCubit(
+                                      const EphemeralVendorDraftRepository(),
+                                      onboardingUseCase:
+                                          VendorOnboardingUseCase(
+                                            VendorOnboardingRepositoryImpl(),
+                                          ),
+                                    );
+                                    if (venueId != null) {
+                                      cubit.setRemoteFutsalId(venueId);
+                                    }
+                                    cubit.addCourt();
+                                    final String? courtId =
+                                        cubit.state.activeCourtId;
+                                    if (courtId == null) return;
+                                    Navigator.of(context)
+                                        .push<void>(
+                                          MaterialPageRoute<void>(
+                                            builder: (_) => MultiBlocProvider(
+                                              providers: <BlocProvider<dynamic>>[
+                                                BlocProvider<
+                                                  VendorOnboardingCubit
+                                                >(create: (_) => cubit),
+                                                BlocProvider<
+                                                  PublicTemplatesBloc
+                                                >(
+                                                  create: (_) =>
+                                                      PublicTemplatesBloc(
+                                                        GetPublicTemplatesUseCase(
+                                                          PublicRepositoryImpl(),
+                                                        ),
+                                                      )..add(
+                                                        FetchPublicTemplatesEvent(),
+                                                      ),
+                                                ),
+                                              ],
+                                              child: CourtOnboardingPage(
+                                                courtId: courtId,
+                                              ),
+                                            ),
+                                          ),
+                                        )
+                                        .then((_) {
+                                          if (context.mounted) {
+                                            final CourtDraft? updated =
+                                                cubit.state.courts.firstOrNull;
+                                            if (updated != null &&
+                                                venueId != null) {
+                                              context.read<VenueCourtBloc>().add(
+                                                UpsertVenueCourtLocallyEvent(
+                                                  venueId: venueId,
+                                                  court: updated,
+                                                ),
+                                              );
+                                            }
+                                          }
+                                        });
+                                  },
+                                  onEditVenue: () => context.pushNamed(
+                                    AppRouterParams.vendorStepper.name,
+                                    queryParameters: {
+                                      if (filtered[index].id != null)
+                                        'futsalId': filtered[index].id
+                                            .toString(),
+                                      'mainStep': '0',
+                                      'subStep': '1',
+                                    },
+                                  ),
+                                ),
+                              ),
+                            ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          );
+        },
+      ),
     );
   }
 
@@ -145,37 +239,6 @@ class _CourtsListPageState extends State<CourtsListPage> {
     final int courtCount = right.courts.length.compareTo(left.courts.length);
     if (courtCount != 0) return courtCount;
     return left.title.toLowerCase().compareTo(right.title.toLowerCase());
-  }
-
-  List<_FutsalEntry> _buildFutsalEntries(ProfileState state) {
-    final Object? raw = state.profile?.data.vendorOnboardingData;
-    if (raw is Map) {
-      try {
-        final VendorOnboardingState onboarding = VendorOnboardingState.fromJson(
-          Map<String, dynamic>.from(raw),
-        );
-        if (onboarding.futsal.title.trim().isNotEmpty ||
-            onboarding.courts.isNotEmpty) {
-          return <_FutsalEntry>[
-            _FutsalEntry(
-              title: onboarding.futsal.title.trim().isNotEmpty
-                  ? onboarding.futsal.title.trim()
-                  : 'My Futsal',
-              address: onboarding.futsal.location.fullAddress.trim(),
-              phone: onboarding.futsal.phone.trim(),
-              courts: onboarding.courts,
-              approvalStatus:
-                  onboarding.isCompleted || onboarding.remoteFutsalId != null
-                  ? _VenueApprovalStatus.approved
-                  : _VenueApprovalStatus.pending,
-            ),
-          ];
-        }
-      } catch (_) {
-        return _dummyFutsalEntries;
-      }
-    }
-    return _dummyFutsalEntries;
   }
 }
 
@@ -745,6 +808,63 @@ class _VenueCardV2State extends State<_VenueCardV2> {
                             child: _CourtRowV2(
                               court: widget.entry.courts[index],
                               index: index + 1,
+                              venueId: widget.entry.id,
+                              onManageCourt: () {
+                                final CourtDraft court =
+                                    widget.entry.courts[index];
+                                final VendorOnboardingCubit cubit =
+                                    VendorOnboardingCubit(
+                                      const EphemeralVendorDraftRepository(),
+                                      onboardingUseCase:
+                                          VendorOnboardingUseCase(
+                                            VendorOnboardingRepositoryImpl(),
+                                          ),
+                                    );
+                                if (widget.entry.id != null) {
+                                  cubit.setRemoteFutsalId(widget.entry.id!);
+                                }
+                                cubit.prepareCourtForEditing(court);
+                                Navigator.of(context)
+                                    .push<void>(
+                                      MaterialPageRoute<void>(
+                                        builder: (_) => MultiBlocProvider(
+                                          providers: <BlocProvider<dynamic>>[
+                                            BlocProvider<VendorOnboardingCubit>(
+                                              create: (_) => cubit,
+                                            ),
+                                            BlocProvider<PublicTemplatesBloc>(
+                                              create: (_) =>
+                                                  PublicTemplatesBloc(
+                                                    GetPublicTemplatesUseCase(
+                                                      PublicRepositoryImpl(),
+                                                    ),
+                                                  )..add(
+                                                    FetchPublicTemplatesEvent(),
+                                                  ),
+                                            ),
+                                          ],
+                                          child: CourtOnboardingPage(
+                                            courtId: court.id,
+                                          ),
+                                        ),
+                                      ),
+                                    )
+                                    .then((_) {
+                                      if (context.mounted) {
+                                        final CourtDraft? updated =
+                                            cubit.state.courts.firstOrNull;
+                                        if (updated != null &&
+                                            widget.entry.id != null) {
+                                          context.read<VenueCourtBloc>().add(
+                                            UpsertVenueCourtLocallyEvent(
+                                              venueId: widget.entry.id!,
+                                              court: updated,
+                                            ),
+                                          );
+                                        }
+                                      }
+                                    });
+                              },
                             ),
                           ),
                         ),
@@ -912,10 +1032,17 @@ class _CourtEmptyHintV2 extends StatelessWidget {
 }
 
 class _CourtRowV2 extends StatelessWidget {
-  const _CourtRowV2({required this.court, required this.index});
+  const _CourtRowV2({
+    required this.court,
+    required this.index,
+    required this.venueId,
+    required this.onManageCourt,
+  });
 
   final CourtDraft court;
   final int index;
+  final int? venueId;
+  final VoidCallback onManageCourt;
 
   @override
   Widget build(BuildContext context) {
@@ -1017,7 +1144,7 @@ class _CourtRowV2 extends StatelessWidget {
                           padding: EdgeInsets.zero,
                           menuPadding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
-                          tooltip: 'Venue actions',
+                          tooltip: 'Court actions',
                           color: LightColor.whiteColor,
                           surfaceTintColor: LightColor.whiteColor,
                           shape: RoundedRectangleBorder(
@@ -1025,6 +1152,11 @@ class _CourtRowV2 extends StatelessWidget {
                               AppDimens.radiusX10,
                             ),
                           ),
+                          onSelected: (action) {
+                            if (action == _VenueMenuAction.manageFutsal) {
+                              onManageCourt();
+                            }
+                          },
                           itemBuilder: (BuildContext context) => [
                             PopupMenuItem<_VenueMenuAction>(
                               value: _VenueMenuAction.manageFutsal,
@@ -1281,7 +1413,10 @@ class _EmptyStateV2 extends StatelessWidget {
                 borderRadius: BorderRadius.circular(AppDimens.radiusX10),
               ),
             ),
-            icon: const Icon(Icons.add_business_rounded),
+            icon: const Icon(
+              Icons.add_business_rounded,
+              color: LightColor.secondaryColor,
+            ),
             label: Text(
               'Add Futsal',
               style: textTheme.bodyTextSmall?.copyWith(
@@ -1343,6 +1478,7 @@ class _PortfolioStats {
 
 class _FutsalEntry {
   const _FutsalEntry({
+    required this.id,
     required this.title,
     required this.address,
     required this.phone,
@@ -1350,11 +1486,25 @@ class _FutsalEntry {
     this.approvalStatus = _VenueApprovalStatus.approved,
   });
 
+  final int? id;
   final String title;
   final String address;
   final String phone;
   final List<CourtDraft> courts;
   final _VenueApprovalStatus approvalStatus;
+
+  factory _FutsalEntry.fromModel(VenueCourtModel model) {
+    return _FutsalEntry(
+      id: model.id,
+      title: model.title.isEmpty ? 'My Futsal' : model.title,
+      address: model.address,
+      phone: model.phone,
+      courts: model.courts,
+      approvalStatus: model.isActive
+          ? _VenueApprovalStatus.active
+          : _VenueApprovalStatus.approved,
+    );
+  }
 
   bool matchesQuery(String query) {
     if (title.toLowerCase().contains(query)) return true;
@@ -1380,36 +1530,3 @@ class _FutsalEntry {
     return value;
   }
 }
-
-final List<_FutsalEntry> _dummyFutsalEntries = <_FutsalEntry>[
-  _FutsalEntry(
-    title: 'Hamro Futsal Arena',
-    address: 'Baneshwor, Kathmandu',
-    phone: '9812345678',
-    approvalStatus: _VenueApprovalStatus.approved,
-    courts: <CourtDraft>[
-      const CourtDraft(
-        id: 'dummy_court_1',
-        name: 'Arena Court A',
-        basePrice: 1800,
-        courtType: '5v5 Indoor',
-        enableOnlineBooking: true,
-        advancePaymentRequired: true,
-      ),
-      const CourtDraft(
-        id: 'dummy_court_2',
-        name: 'Arena Court B',
-        basePrice: 1600,
-        courtType: '7v7 Turf',
-        enableOnlineBooking: true,
-      ),
-      const CourtDraft(
-        id: 'dummy_court_3',
-        name: 'Training Court',
-        basePrice: 1200,
-        courtType: 'Practice Zone',
-        enableOnlineBooking: false,
-      ),
-    ],
-  ),
-];

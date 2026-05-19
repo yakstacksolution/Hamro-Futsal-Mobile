@@ -144,6 +144,18 @@ final class AuthenticationRepositoryImpl extends AuthRepository {
   }
 
   @override
+  Future<Either<AppException, Map<String, dynamic>>>? resendOtp(data) async {
+    final response = await _remoteDataSource.resendOtp(data);
+    if (response.isError()) {
+      return left(ResponseHelper.error(response));
+    }
+
+    final Map<String, dynamic> responseData = _extractResponseData(
+      response.getValue(),
+    );
+    return right(responseData);
+  }
+  @override
   Future<Either<AppException, bool>>? logout() async {
     final response = await _remoteDataSource.logout();
 

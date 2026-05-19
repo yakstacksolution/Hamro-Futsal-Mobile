@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
+import 'package:hamro_footsall/core/theme/futsal_theme.dart';
+import 'package:hamro_footsall/core/utils/app_utils.dart';
+import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/features/futsal_details/data/model/time_slot_model.dart';
- 
+
 typedef TimeSelectionChanged = void Function(int dateIndex, int slotIndex);
 
 class CourtTimeSlotSection extends StatefulWidget {
@@ -69,22 +72,24 @@ class _CourtTimeSlotSectionState extends State<CourtTimeSlotSection> {
     }
 
     final slots = _slotsForSelectedDate();
+    final textTheme = FutsalTheme.getTextTheme(context);
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+      padding: AppUtils().getPadding(
+        top: AppDimens.paddingX12,
+        left: AppDimens.paddingX20,
+        right: AppDimens.paddingX20,
+      ),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: AppUtils().getPadding(all: AppDimens.paddingX16),
         decoration: BoxDecoration(
           color: LightColor.cardColor,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: LightColor.borderColor.withValues(alpha: 0.6),
-          ),
+          borderRadius: BorderRadius.circular(AppDimens.radiusX10),
           boxShadow: [
             BoxShadow(
               color: LightColor.shadowColor.withValues(alpha: 0.05),
-              blurRadius: 14,
-              offset: const Offset(0, 4),
+              blurRadius: AppDimens.sizeX14,
+              offset: const Offset(0, AppDimens.sizeX4),
             ),
           ],
         ),
@@ -93,39 +98,45 @@ class _CourtTimeSlotSectionState extends State<CourtTimeSlotSection> {
           children: [
             Row(
               children: [
-                const Text(
-                  'Select Date & Time',
-                  style: TextStyle(
-                    color: LightColor.primaryTextColor,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
+                Expanded(
+                  child: Text(
+                    'Select Date & Time',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: textTheme.bodyTextLarge?.copyWith(
+                      color: LightColor.primaryTextColor,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
-                const Spacer(),
+                const SizedBox(width: AppDimens.sizeX8),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 5,
+                  padding: AppUtils().getPadding(
+                    horizontal: AppDimens.paddingX8,
+                    vertical: AppDimens.paddingX4,
                   ),
                   decoration: BoxDecoration(
                     color: LightColor.secondaryLight,
-                    borderRadius: BorderRadius.circular(999),
+                    borderRadius: BorderRadius.circular(AppDimens.radiusX50),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       const Icon(
                         Icons.schedule_rounded,
-                        size: 14,
+                        size: AppDimens.sizeX14,
                         color: LightColor.secondaryColor,
                       ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${widget.openTime} - ${widget.closeTime}',
-                        style: const TextStyle(
-                          color: LightColor.secondaryColor,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
+                      const SizedBox(width: AppDimens.sizeX4),
+                      Flexible(
+                        child: Text(
+                          '${widget.openTime} - ${widget.closeTime}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: textTheme.bodySubTitle?.copyWith(
+                            color: LightColor.secondaryColor,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
                     ],
@@ -133,29 +144,28 @@ class _CourtTimeSlotSectionState extends State<CourtTimeSlotSection> {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppDimens.sizeX16),
             _buildDateSelector(),
-            const SizedBox(height: 16),
-            const Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              mainAxisAlignment: MainAxisAlignment.start,
+            const SizedBox(height: AppDimens.sizeX16),
+            const Wrap(
+              spacing: AppDimens.sizeX14,
+              runSpacing: AppDimens.sizeX8,
+              crossAxisAlignment: WrapCrossAlignment.end,
               children: [
                 _SlotLegend(bg: LightColor.secondaryLight, label: 'Available'),
-                SizedBox(width: 14),
                 _SlotLegend(bg: LightColor.secondaryColor, label: 'Selected'),
-                SizedBox(width: 14),
                 _SlotLegend(bg: LightColor.dividerColor, label: 'Booked'),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppDimens.sizeX16),
 
             GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 4,
-                mainAxisSpacing: 14,
-                crossAxisSpacing: 10,
+                mainAxisSpacing: AppDimens.sizeX14,
+                crossAxisSpacing: AppDimens.sizeX10,
                 childAspectRatio: 2,
               ),
               itemCount: slots.length,
@@ -185,14 +195,7 @@ class _CourtTimeSlotSectionState extends State<CourtTimeSlotSection> {
                           : slot.isAvailable
                           ? LightColor.secondaryLight
                           : LightColor.dividerColor,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: selected
-                            ? Colors.transparent
-                            : slot.isAvailable
-                            ? LightColor.secondaryColor.withValues(alpha: 0.25)
-                            : LightColor.borderColor.withValues(alpha: 0.8),
-                      ),
+                      borderRadius: BorderRadius.circular(AppDimens.radiusX10),
                     ),
                     child: Center(
                       child: Column(
@@ -200,13 +203,12 @@ class _CourtTimeSlotSectionState extends State<CourtTimeSlotSection> {
                         children: [
                           Text(
                             slot.time,
-                            style: TextStyle(
+                            style: textTheme.bodySubTitle?.copyWith(
                               color: selected
                                   ? LightColor.whiteColor
                                   : slot.isAvailable
                                   ? LightColor.primaryTextColor
                                   : LightColor.hintTextColor,
-                              fontSize: 10,
                               fontWeight: selected
                                   ? FontWeight.w800
                                   : FontWeight.w600,
@@ -217,13 +219,12 @@ class _CourtTimeSlotSectionState extends State<CourtTimeSlotSection> {
                           ),
                           Text(
                             "Rs. 1200",
-                            style: TextStyle(
+                            style: textTheme.bodyMiniSubTitle?.copyWith(
                               color: selected
                                   ? LightColor.whiteColor
                                   : slot.isAvailable
                                   ? LightColor.primaryTextColor
                                   : LightColor.hintTextColor,
-                              fontSize: 8,
                               fontWeight: selected
                                   ? FontWeight.w800
                                   : FontWeight.w600,
@@ -244,7 +245,7 @@ class _CourtTimeSlotSectionState extends State<CourtTimeSlotSection> {
 
   Widget _buildDateSelector() {
     return SizedBox(
-      height: 80,
+      height: AppDimens.sizeX80,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
@@ -265,57 +266,49 @@ class _CourtTimeSlotSectionState extends State<CourtTimeSlotSection> {
             },
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 250),
-              width: 60,
-              margin: const EdgeInsets.only(right: 10),
+              width: AppDimens.sizeX60,
+              margin: AppUtils().getMargin(right: AppDimens.marginX10),
               decoration: BoxDecoration(
                 gradient: selected ? _selectedSlotGradient : null,
                 color: selected ? null : LightColor.cardColor,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: selected
-                      ? Colors.transparent
-                      : today
-                      ? LightColor.secondaryColor.withValues(alpha: 0.35)
-                      : LightColor.borderColor.withValues(alpha: 0.6),
-                  width: 1.5,
-                ),
+                borderRadius: BorderRadius.circular(AppDimens.radiusX16),
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
                     _dayName(date),
-                    style: TextStyle(
-                      color: selected
-                          ? Colors.white70
-                          : LightColor.hintTextColor,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: FutsalTheme.getTextTheme(context).bodySubTitle
+                        ?.copyWith(
+                          color: selected
+                              ? Colors.white70
+                              : LightColor.hintTextColor,
+                          fontWeight: FontWeight.w600,
+                        ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: AppDimens.sizeX4),
                   Text(
                     '${date.day}',
-                    style: TextStyle(
-                      color: selected
-                          ? Colors.white
-                          : LightColor.primaryTextColor,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                    ),
+                    style: FutsalTheme.getTextTheme(context).bodyTextLarge
+                        ?.copyWith(
+                          color: selected
+                              ? Colors.white
+                              : LightColor.primaryTextColor,
+                          fontWeight: FontWeight.w800,
+                        ),
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: AppDimens.sizeX2),
                   Text(
                     today ? 'Today' : _monthName(date),
-                    style: TextStyle(
-                      color: selected
-                          ? Colors.white70
-                          : today
-                          ? LightColor.secondaryColor
-                          : LightColor.hintTextColor,
-                      fontSize: 10,
-                      fontWeight: today ? FontWeight.w700 : FontWeight.w500,
-                    ),
+                    style: FutsalTheme.getTextTheme(context).bodySubTitle
+                        ?.copyWith(
+                          color: selected
+                              ? Colors.white70
+                              : today
+                              ? LightColor.secondaryColor
+                              : LightColor.hintTextColor,
+                          fontWeight: today ? FontWeight.w700 : FontWeight.w500,
+                        ),
                   ),
                 ],
               ),
@@ -377,22 +370,18 @@ class _SlotLegend extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 14,
-          height: 14,
+          width: AppDimens.sizeX14,
+          height: AppDimens.sizeX14,
           decoration: BoxDecoration(
             color: bg,
-            borderRadius: BorderRadius.circular(4),
-            border: Border.all(
-              color: LightColor.borderColor.withValues(alpha: 0.7),
-            ),
+            borderRadius: BorderRadius.circular(AppDimens.radiusX4),
           ),
         ),
-        const SizedBox(width: 6),
+        const SizedBox(width: AppDimens.sizeX6),
         Text(
           label,
-          style: const TextStyle(
+          style: FutsalTheme.getTextTheme(context).bodySubTitle?.copyWith(
             color: LightColor.hintTextColor,
-            fontSize: 11,
             fontWeight: FontWeight.w500,
           ),
         ),

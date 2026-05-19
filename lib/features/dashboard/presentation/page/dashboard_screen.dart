@@ -2,7 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:hamro_footsall/features/courts/presentation/pages/courts_list_page_widget.dart';
+import 'package:hamro_footsall/features/courts/presentation/pages/venue_courts_list_page_widget.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/page/footsall_home_page.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/page/messages_page.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/widgets/app_drawer.dart';
@@ -125,9 +125,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
         // return _overviewSection();
         return FootsallHomePage();
       case 1:
-        return CourtsListPage();
+        return VenueCourtsListPage();
       case 2:
-        return CourtsListPage();
+        return VenueCourtsListPage();
       case 3:
         return MessagesPage();
       // case 4:

@@ -157,7 +157,8 @@ class _StepperLogicScreenState extends State<StepperLogicScreen> {
                   previous.errorKeys != current.errorKeys ||
                   previous.errorMessage != current.errorMessage ||
                   previous.errorOrigin != current.errorOrigin ||
-                  previous.remoteFutsalId != current.remoteFutsalId;
+                  previous.remoteFutsalId != current.remoteFutsalId ||
+                  previous.isLoadingCourts != current.isLoadingCourts;
             },
         builder: (BuildContext context, VendorOnboardingState state) {
           final VendorOnboardingCubit cubit = _cubit;

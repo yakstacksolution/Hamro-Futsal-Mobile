@@ -211,7 +211,8 @@ class _AuthScreenState extends State<AuthScreen> {
         final bool requiresVerification =
             errorData?['verification_required'] == true &&
             errorData?['next_step'] == 'verify_otp';
-
+        // context.goNamed(AppRouterParams.dashboard.name);
+        // return;
         if ((state.loginStatus == AuthStatus.failure ||
                 state.registrationStatus == AuthStatus.failure) &&
             (state.errorMessage != null || errorData != null)) {

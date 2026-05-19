@@ -98,3 +98,23 @@ class OtpVerificationEntity extends Equatable {
     };
   }
 }
+
+class ResendOtpEntity extends Equatable {
+  final String email;
+  final String? purpose;
+
+  const ResendOtpEntity({
+    required this.email,
+    this.purpose,
+  });
+
+  @override
+  List<Object?> get props => [email, purpose];
+
+  Map<String, dynamic> toMap() {
+    return <String, dynamic>{
+      "email": email,
+      if (purpose != null && purpose!.isNotEmpty) "purpose": purpose,
+    };
+  }
+}

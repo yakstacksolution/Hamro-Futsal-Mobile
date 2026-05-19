@@ -23,6 +23,10 @@ class ApiClient {
     return _post(url: '$_baseUrl/auth/verify-otp', data: data);
   }
 
+  Future<Result> resendOtp({required Map<String, dynamic> data}) {
+    return _post(url: '$_baseUrl/auth/resend-otp', data: data);
+  }
+
   Future<Result> logout() {
     return _post(url: '$_baseUrl/auth/logout');
   }
@@ -67,6 +71,30 @@ class ApiClient {
     return _get(url: '$_baseUrl/auth/packages');
   }
 
+  Future<Result> getCourtTypes() {
+    return _get(url: '$_baseUrl/court-types');
+  }
+
+  Future<Result> getMatchFormats() {
+    return _get(url: '$_baseUrl/match-formate');
+  }
+
+  Future<Result> getAmenities() {
+    return _get(url: '$_baseUrl/auth/amenities');
+  }
+
+  Future<Result> getFacilities() {
+    return _get(url: '$_baseUrl/auth/facilities');
+  }
+
+  Future<Result> getVenueCourt() {
+    return _get(url: '$_baseUrl/auth/get-venue-courts');
+  }
+
+  Future<Result> getVenueCourtByVenueId({required int venueId}) {
+    return _get(url: '$_baseUrl/auth/get-court/$venueId');
+  }
+
   Future<Result> getPublicTemplates() {
     return _get(url: '$_baseUrl/auth/templates');
   }
@@ -78,13 +106,43 @@ class ApiClient {
   Future<Result> submitVendorOnboardingFutsal({
     required Map<String, dynamic> data,
   }) {
-    return _post(url: '$_baseUrl/auth/vendor/onboarding/store', data: data);
+    return _post(
+      url: '$_baseUrl/auth/vendor/onboarding/store-venue',
+      data: data,
+    );
   }
 
   Future<Result> updateVendorOnboardingFutsal({
     required Map<String, dynamic> data,
   }) {
-    return _put(url: '$_baseUrl/auth/vendor/onboarding/update', data: data);
+    return _put(
+      url: '$_baseUrl/auth/vendor/onboarding/update-venue',
+      data: data,
+    );
+  }
+
+  Future<Result> submitVendorOnboardingCourt({
+    required Map<String, dynamic> data,
+  }) {
+    return _post(
+      url: '$_baseUrl/auth/vendor/onboarding/store-court',
+      data: data,
+    );
+  }
+
+  Future<Result> updateVendorOnboardingCourt({
+    required Map<String, dynamic> data,
+  }) {
+    return _put(
+      url: '$_baseUrl/auth/vendor/onboarding/update-court',
+      data: data,
+    );
+  }
+
+  Future<Result> deleteVendorOnboardingCourt({required int courtId}) {
+    return _delete(
+      url: '$_baseUrl/auth/vendor/onboarding/delete-court/$courtId',
+    );
   }
 
   Future<Result> _get({required String url, Map<String, dynamic>? query}) {
@@ -113,6 +171,14 @@ class ApiClient {
       data: requestData,
       token: AppSettings().tokenModel.accessToken,
       method: HttpVerb.post,
+    );
+  }
+
+  Future<Result> _delete({required String url}) {
+    return _apiCallWrapper.makeRequest(
+      url: url,
+      token: AppSettings().tokenModel.accessToken,
+      method: HttpVerb.delete,
     );
   }
 

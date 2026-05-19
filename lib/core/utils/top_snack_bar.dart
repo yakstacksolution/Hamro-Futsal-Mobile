@@ -9,7 +9,7 @@ typedef ControllerCallback = void Function(AnimationController);
 
 enum DismissType { onTap, onSwipe, none }
 
-OverlayEntry? _previousEntry;
+final Map<Object, OverlayEntry> _activeEntries = {};
 
 void showTopSnackBar(
   OverlayState overlayState,
@@ -26,14 +26,28 @@ void showTopSnackBar(
   SafeAreaValues safeAreaValues = const SafeAreaValues(),
   DismissType dismissType = DismissType.onTap,
   List<DismissDirection> dismissDirection = const [DismissDirection.up],
+  Object? key,
 }) {
+  final entryKey = key ?? UniqueKey();
+
+  // Remove any existing entry with the same key
+  if (_activeEntries.containsKey(entryKey)) {
+    final existingEntry = _activeEntries[entryKey];
+    if (existingEntry != null && existingEntry.mounted) {
+      existingEntry.remove();
+    }
+    _activeEntries.remove(entryKey);
+  }
+
   late OverlayEntry overlayEntry;
   overlayEntry = OverlayEntry(
     builder: (_) {
       return _TopSnackBar(
         onDismissed: () {
-          overlayEntry.remove();
-          _previousEntry = null;
+          if (overlayEntry.mounted) {
+            overlayEntry.remove();
+          }
+          _activeEntries.remove(entryKey);
         },
         animationDuration: animationDuration,
         reverseAnimationDuration: reverseAnimationDuration,
@@ -52,12 +66,8 @@ void showTopSnackBar(
     },
   );
 
-  if (_previousEntry != null && _previousEntry!.mounted) {
-    _previousEntry?.remove();
-  }
-
   overlayState.insert(overlayEntry);
-  _previousEntry = overlayEntry;
+  _activeEntries[entryKey] = overlayEntry;
 }
 
 class _TopSnackBar extends StatefulWidget {
@@ -266,11 +276,7 @@ class CustomSnackBar extends StatefulWidget {
   const CustomSnackBar.error({
     super.key,
     this.messagePadding = const EdgeInsets.symmetric(horizontal: 24),
-    this.textStyle = const TextStyle(
-      color: LightColor.redColor,
-      fontSize: 12,
-      fontWeight: FontWeight.w700,
-    ),
+    this.textStyle = const TextStyle(color: LightColor.redColor, fontSize: 12),
     this.color = LightColor.redColor,
     this.maxLines = 2,
     this.backgroundColor = LightColor.redLightColor,
@@ -288,7 +294,7 @@ class CustomSnackBar extends StatefulWidget {
     this.textStyle = const TextStyle(
       color: LightColor.primaryDark,
       fontSize: 12,
-      fontWeight: FontWeight.w700,
+      // fontWeight: FontWeight.w700,
     ),
     this.color = LightColor.primaryDark,
     this.maxLines = 2,

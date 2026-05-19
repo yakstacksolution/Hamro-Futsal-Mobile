@@ -2,6 +2,7 @@ import 'package:dartz/dartz.dart';
 import 'package:hamro_footsall/core/helper/exception_helper.dart';
 import 'package:hamro_footsall/core/helper/response_helper.dart';
 import 'package:hamro_footsall/features/public/data/data_source/public_remote_data_source.dart';
+import 'package:hamro_footsall/features/public/data/model/public_option_model.dart';
 import 'package:hamro_footsall/features/public/data/model/public_package_model.dart';
 import 'package:hamro_footsall/features/public/data/model/public_service_model.dart';
 import 'package:hamro_footsall/features/public/data/model/public_template_model.dart';
@@ -76,6 +77,83 @@ final class PublicRepositoryImpl extends PublicRepository {
   }
 
   @override
+  Future<Either<AppException, List<PublicOptionModel>>> getCourtTypes() async {
+    final response = await _remoteDataSource.getCourtTypes();
+    if (response.isError()) {
+      return left(ResponseHelper.error(response));
+    }
+
+    try {
+      return right(_extractOptions(response.getValue(), 'court_types'));
+    } catch (_) {
+      return left(
+        DefaultException(
+          errorMessage: 'Could not parse court types from server.',
+          statusCode: 0,
+        ),
+      );
+    }
+  }
+
+  @override
+  Future<Either<AppException, List<PublicOptionModel>>>
+  getMatchFormats() async {
+    final response = await _remoteDataSource.getMatchFormats();
+    if (response.isError()) {
+      return left(ResponseHelper.error(response));
+    }
+
+    try {
+      return right(_extractOptions(response.getValue(), 'match_formats'));
+    } catch (_) {
+      return left(
+        DefaultException(
+          errorMessage: 'Could not parse match formats from server.',
+          statusCode: 0,
+        ),
+      );
+    }
+  }
+
+  @override
+  Future<Either<AppException, List<PublicOptionModel>>> getAmenities() async {
+    final response = await _remoteDataSource.getAmenities();
+    if (response.isError()) {
+      return left(ResponseHelper.error(response));
+    }
+
+    try {
+      return right(_extractOptions(response.getValue(), 'amenities'));
+    } catch (_) {
+      return left(
+        DefaultException(
+          errorMessage: 'Could not parse amenities from server.',
+          statusCode: 0,
+        ),
+      );
+    }
+  }
+
+  @override
+  Future<Either<AppException, List<PublicOptionModel>>> getFacilities() async {
+    final response = await _remoteDataSource.getFacilities();
+    if (response.isError()) {
+      return left(ResponseHelper.error(response));
+    }
+
+    try {
+      return right(_extractOptions(response.getValue(), 'facilities'));
+    } catch (_) {
+      return left(
+        DefaultException(
+          errorMessage: 'Could not parse facilities from server.',
+          statusCode: 0,
+        ),
+      );
+    }
+  }
+
+  @override
   Future<Either<AppException, List<PublicTemplateModel>>> getTemplates() async {
     final response = await _remoteDataSource.getTemplates();
     if (response.isError()) {
@@ -102,6 +180,34 @@ final class PublicRepositoryImpl extends PublicRepository {
         ),
       );
     }
+  }
+
+  List<PublicOptionModel> _extractOptions(dynamic payload, String key) {
+    final List<dynamic> items = _extractList(
+      payload: payload,
+      key: key,
+      alternateKeys: key == 'match_formats'
+          ? const <String>['match_formates', 'match_format', 'match_formate']
+          : const <String>[],
+    );
+    return items
+        .map(_optionFromAny)
+        .whereType<PublicOptionModel>()
+        .where((PublicOptionModel item) => item.name.trim().isNotEmpty)
+        .toList(growable: false);
+  }
+
+  PublicOptionModel? _optionFromAny(dynamic item) {
+    if (item is Map) {
+      return PublicOptionModel.fromJson(Map<String, dynamic>.from(item));
+    }
+    final String name = item?.toString().trim() ?? '';
+    if (name.isEmpty) return null;
+    return PublicOptionModel(
+      id: name,
+      name: name,
+      raw: <String, dynamic>{'name': name},
+    );
   }
 
   List<dynamic> _extractTemplateList(dynamic payload) {
@@ -156,27 +262,46 @@ final class PublicRepositoryImpl extends PublicRepository {
     return templates;
   }
 
-  List<dynamic> _extractList({required dynamic payload, required String key}) {
+  List<dynamic> _extractList({
+    required dynamic payload,
+    required String key,
+    List<String> alternateKeys = const <String>[],
+  }) {
     if (payload is List) return payload;
 
     if (payload is Map<String, dynamic>) {
-      final dynamic direct = payload[key];
+      final dynamic direct = _valueForKeys(payload, key, alternateKeys);
       if (direct is List) return direct;
 
       final dynamic data =
           payload['data'] ?? payload['items'] ?? payload['results'];
       if (data is List) return data;
       if (data is Map<String, dynamic>) {
-        final dynamic nested = data[key] ?? data['items'] ?? data['results'];
+        final dynamic nested =
+            _valueForKeys(data, key, alternateKeys) ??
+            data['items'] ??
+            data['results'];
         if (nested is List) return nested;
       }
     }
 
     if (payload is Map) {
       final Map<String, dynamic> map = Map<String, dynamic>.from(payload);
-      return _extractList(payload: map, key: key);
+      return _extractList(payload: map, key: key, alternateKeys: alternateKeys);
     }
 
     return const <dynamic>[];
+  }
+
+  dynamic _valueForKeys(
+    Map<String, dynamic> map,
+    String key,
+    List<String> alternateKeys,
+  ) {
+    if (map.containsKey(key)) return map[key];
+    for (final String alternateKey in alternateKeys) {
+      if (map.containsKey(alternateKey)) return map[alternateKey];
+    }
+    return null;
   }
 }

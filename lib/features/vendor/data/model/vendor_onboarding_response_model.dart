@@ -61,9 +61,10 @@ class VendorOnboardingResponseModel {
     final Map<String, dynamic> policies = _mapFromAny(data['policies']);
     final Map<String, dynamic> package = _mapFromAny(data['package']);
     final Map<String, dynamic> media = _mapFromAny(data['media']);
+    final Map<String, dynamic> court = _mapFromAny(data['court']);
 
     return VendorOnboardingResponseModel(
-      id: _asInt(data['id']),
+      id: _asInt(court['id'] ?? data['court_id'] ?? data['id']),
       vendorOnboardingId: _asInt(data['vendor_onboarding_id']),
       userId: _asInt(data['user_id']),
       mainStep: _asInt(progress['main_step'] ?? data['main_step']) ?? 0,
@@ -103,9 +104,14 @@ class VendorOnboardingResponseModel {
       futsalRules: _asTrimmedString(
         policies['rules'] ?? data['rules'] ?? data['futsal_rules'],
       ),
-      packageId: _asInt(package['package_id'] ?? data['package_id']),
+      packageId: _asInt(
+        package['package_id'] ?? package['id'] ?? data['package_id'],
+      ),
       packagePercentage: _asDouble(
-        package['package_percentage'] ?? data['package_percentage'],
+        package['package_percentage'] ??
+            package['commission_percent'] ??
+            data['package_percentage'] ??
+            data['commission_percent'],
       ),
       coverImage: _uploadFromAny(
         media['cover_image'] ??
@@ -140,6 +146,7 @@ class VendorOnboardingResponseModel {
       ),
       cancellationPolicy: cancelledPolicy.trim(),
       futsalRules: futsalRules.trim(),
+      packageId: packageId,
       commissionPercent:
           packagePercentage ?? _commissionPercentFromPackageId(packageId),
       coverImage: coverImage,

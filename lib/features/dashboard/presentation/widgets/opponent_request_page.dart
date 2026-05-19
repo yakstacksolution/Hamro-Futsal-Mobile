@@ -142,7 +142,7 @@ class _OpponentRequestScreenState extends State<OpponentRequestScreen>
       setState(() => _selectedTeam.players.removeAt(i));
   void _showToast(String msg) {
     ScaffoldMessenger.of(context)
-      ..clearSnackBars()
+      ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
           content: Text(

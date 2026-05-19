@@ -11,6 +11,7 @@ import 'package:hamro_footsall/features/auth/data/repositories/authentication_re
 import 'package:hamro_footsall/features/dashboard/presentation/page/overview_screen.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/widgets/opponent_request_page.dart';
 import 'package:hamro_footsall/features/profile/data/model/profile_model.dart';
+import 'package:hamro_footsall/features/profile/presentation/pages/about_app_page.dart';
 import 'package:hamro_footsall/features/profile/presentation/profile_bloc/profile_bloc.dart';
 import 'package:hamro_footsall/features/profile/presentation/widgets/profile_details_page.dart';
 
@@ -127,7 +128,11 @@ class _ProfilePageState extends State<ProfilePage> {
                                       // Handle FAQ tap
                                       break;
                                     case 5:
-                                      // Handle about app tap
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute<void>(
+                                          builder: (_) => const AboutAppPage(),
+                                        ),
+                                      );
                                       break;
                                     default:
                                       break;

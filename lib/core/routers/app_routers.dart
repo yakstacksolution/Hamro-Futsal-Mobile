@@ -17,7 +17,6 @@ import 'package:hamro_footsall/features/profile/data/repositories/profile_reposi
 import 'package:hamro_footsall/features/profile/data/model/profile_model.dart';
 import 'package:hamro_footsall/features/profile/domain/usecase/profile_usecase.dart';
 import 'package:hamro_footsall/features/profile/presentation/pages/profile_page.dart';
-import 'package:hamro_footsall/features/courts/presentation/pages/create_courts_page.dart';
 import 'package:hamro_footsall/features/profile/presentation/profile_bloc/profile_bloc.dart';
 import 'package:hamro_footsall/features/profile/presentation/widgets/profile_details_page.dart';
 import 'package:hamro_footsall/features/vendor/data/vendor_draft_repository.dart';
@@ -89,12 +88,6 @@ class AppRouters {
               builder: (context, state) => const FutsalDetailsPageView(),
             ),
           ],
-        ),
-
-        GoRoute(
-          name: AppRouterParams.createCourts.name,
-          path: AppRouterParams.createCourts.path,
-          builder: (context, state) => const CreateCourtsPage(),
         ),
         GoRoute(
           name: AppRouterParams.profile.name,

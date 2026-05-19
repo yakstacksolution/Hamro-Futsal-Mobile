@@ -306,6 +306,7 @@ class FutsalDraft {
     this.features = const <String>{},
     this.cancellationPolicy = '',
     this.futsalRules = '',
+    this.packageId,
     this.commissionPercent,
     this.coverImage,
     this.gallery = const <UploadRef>[],
@@ -326,6 +327,7 @@ class FutsalDraft {
   final Set<String> features;
   final String cancellationPolicy;
   final String futsalRules;
+  final int? packageId;
   final double? commissionPercent;
   final UploadRef? coverImage;
   final List<UploadRef> gallery;
@@ -346,12 +348,14 @@ class FutsalDraft {
     Set<String>? features,
     String? cancellationPolicy,
     String? futsalRules,
+    int? packageId,
     double? commissionPercent,
     UploadRef? coverImage,
     List<UploadRef>? gallery,
     SelectedImageRef? selectedCoverImage,
     List<SelectedImageRef>? selectedGalleryImages,
     List<UploadRef>? companyDocuments,
+    bool clearPackageId = false,
     bool clearCommissionPercent = false,
     bool clearCoverImage = false,
     bool clearSelectedCoverImage = false,
@@ -369,6 +373,7 @@ class FutsalDraft {
       features: features ?? this.features,
       cancellationPolicy: cancellationPolicy ?? this.cancellationPolicy,
       futsalRules: futsalRules ?? this.futsalRules,
+      packageId: clearPackageId ? null : packageId ?? this.packageId,
       commissionPercent: clearCommissionPercent
           ? null
           : commissionPercent ?? this.commissionPercent,
@@ -397,6 +402,7 @@ class FutsalDraft {
       'features': features.toList(),
       'cancellationPolicy': cancellationPolicy,
       'futsalRules': futsalRules,
+      'packageId': packageId,
       'commissionPercent': commissionPercent,
       'coverImage': coverImage?.toJson(),
       'gallery': gallery.map((UploadRef item) => item.toJson()).toList(),
@@ -418,7 +424,10 @@ class FutsalDraft {
     return FutsalDraft(
       title: json['title'] as String? ?? '',
       slug: json['slug'] as String? ?? '',
-      description: json['description'] as String? ?? '',
+      description:
+          json['description'] as String? ??
+          json['court_description'] as String? ??
+          '',
       registrationNumber: json['registrationNumber'] as String? ?? '',
       phone: json['phone'] as String? ?? '',
       email: json['email'] as String? ?? '',
@@ -432,6 +441,7 @@ class FutsalDraft {
       features: _stringSetFromJson(json['features']),
       cancellationPolicy: json['cancellationPolicy'] as String? ?? '',
       futsalRules: json['futsalRules'] as String? ?? '',
+      packageId: _asInt(json['packageId']),
       commissionPercent: _asDouble(json['commissionPercent']),
       coverImage: parsedCoverImage,
       gallery: parsedGallery,
@@ -451,10 +461,13 @@ class FutsalDraft {
 class CourtDraft {
   const CourtDraft({
     required this.id,
+    this.remoteId,
     this.name = '',
     this.basePrice,
     this.description = '',
+    this.courtTypeId = 1,
     this.courtType = 'Indoor',
+    this.matchFormatId = 1,
     this.matchFormat = '5v5',
     this.maxPlayers = 10,
     this.availability = const AvailabilityDraft(),
@@ -473,10 +486,13 @@ class CourtDraft {
   });
 
   final String id;
+  final int? remoteId;
   final String name;
   final double? basePrice;
   final String description;
+  final int? courtTypeId;
   final String? courtType;
+  final int? matchFormatId;
   final String? matchFormat;
   final int? maxPlayers;
   final AvailabilityDraft availability;
@@ -494,10 +510,13 @@ class CourtDraft {
   final List<SlotPricingDraft> slotConfigs;
 
   CourtDraft copyWith({
+    int? remoteId,
     String? name,
     double? basePrice,
     String? description,
+    int? courtTypeId,
     String? courtType,
+    int? matchFormatId,
     String? matchFormat,
     int? maxPlayers,
     AvailabilityDraft? availability,
@@ -514,18 +533,26 @@ class CourtDraft {
     List<ClosedDateDraft>? closedDates,
     List<SlotPricingDraft>? slotConfigs,
     bool clearBasePrice = false,
+    bool clearCourtTypeId = false,
     bool clearCourtType = false,
+    bool clearMatchFormatId = false,
     bool clearMatchFormat = false,
     bool clearMaxPlayers = false,
     bool clearPaymentPercent = false,
     bool clearPaymentQr = false,
+    bool clearRemoteId = false,
   }) {
     return CourtDraft(
       id: id,
+      remoteId: clearRemoteId ? null : remoteId ?? this.remoteId,
       name: name ?? this.name,
       basePrice: clearBasePrice ? null : basePrice ?? this.basePrice,
       description: description ?? this.description,
+      courtTypeId: clearCourtTypeId ? null : courtTypeId ?? this.courtTypeId,
       courtType: clearCourtType ? null : courtType ?? this.courtType,
+      matchFormatId: clearMatchFormatId
+          ? null
+          : matchFormatId ?? this.matchFormatId,
       matchFormat: clearMatchFormat ? null : matchFormat ?? this.matchFormat,
       maxPlayers: clearMaxPlayers ? null : maxPlayers ?? this.maxPlayers,
       availability: availability ?? this.availability,
@@ -550,10 +577,13 @@ class CourtDraft {
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
       'id': id,
+      'remoteId': remoteId,
       'name': name,
       'basePrice': basePrice,
-      'description': description,
+      'court_description': description,
+      'courtTypeId': courtTypeId,
       'courtType': courtType,
+      'matchFormatId': matchFormatId,
       'matchFormat': matchFormat,
       'maxPlayers': maxPlayers,
       'availability': availability.toJson(),
@@ -582,12 +612,34 @@ class CourtDraft {
     );
     return CourtDraft(
       id: json['id'] as String? ?? '',
-      name: json['name'] as String? ?? '',
-      basePrice: _asDouble(json['basePrice']),
-      description: json['description'] as String? ?? '',
-      courtType: _normalizedCourtType(json['courtType'] as String?),
-      matchFormat: _normalizedMatchFormat(json['matchFormat'] as String?),
-      maxPlayers: _asInt(json['maxPlayers']) ?? 10,
+      remoteId: _asInt(
+        json['remoteId'] ?? json['remote_id'] ?? json['court_id'],
+      ),
+      name: (json['name'] ?? json['court_name']) as String? ?? '',
+      basePrice: _asDouble(json['basePrice'] ?? json['base_price']),
+      description:
+          json['description'] as String? ??
+          json['court_description'] as String? ??
+          '',
+      courtTypeId:
+          _asInt(json['courtTypeId'] ?? json['court_type_id']) ??
+          _knownCourtTypeId(json['courtType'] ?? json['court_type']),
+      courtType: _normalizedCourtType(
+        json['courtType'] ?? json['court_type_name'] ?? json['court_type'],
+      ),
+      matchFormatId:
+          _asInt(json['matchFormatId'] ?? json['match_format_id']) ??
+          _knownMatchFormatId(json['matchFormat'] ?? json['match_format']),
+      matchFormat: _normalizedMatchFormat(
+        json['matchFormat'] ??
+            json['match_format_name'] ??
+            json['match_format'],
+      ),
+      maxPlayers:
+          _asInt(
+            json['maxPlayers'] ?? json['max_players'] ?? json['max_player'],
+          ) ??
+          10,
       availability: AvailabilityDraft.fromJson(
         json['availability'] is Map
             ? Map<String, dynamic>.from(json['availability'] as Map)
@@ -671,18 +723,39 @@ int? _asInt(Object? value) {
   return int.tryParse(value.toString().trim());
 }
 
-String _normalizedCourtType(String? value) {
-  return switch (value?.trim().toLowerCase()) {
+String _normalizedCourtType(Object? value) {
+  final String normalized = value?.toString().trim() ?? '';
+  if (normalized.isEmpty) return 'Indoor';
+  return switch (normalized.toLowerCase()) {
     'outdoor' || 'outdoor turf' => 'Outdoor',
-    _ => 'Indoor',
+    'indoor' => 'Indoor',
+    _ => normalized,
   };
 }
 
-String _normalizedMatchFormat(String? value) {
-  return switch (value?.trim().toLowerCase()) {
+String _normalizedMatchFormat(Object? value) {
+  final String normalized = value?.toString().trim() ?? '';
+  if (normalized.isEmpty) return '5v5';
+  return switch (normalized.toLowerCase()) {
     '6v6' => '6v6',
     '7v7' => '7v7',
-    _ => '5v5',
+    '5v5' => '5v5',
+    _ => normalized,
+  };
+}
+
+int _knownCourtTypeId(Object? value) {
+  return switch (value?.toString().trim().toLowerCase()) {
+    '2' || 'outdoor' || 'outdoor turf' => 2,
+    _ => 1,
+  };
+}
+
+int _knownMatchFormatId(Object? value) {
+  return switch (value?.toString().trim().toLowerCase()) {
+    '2' || '6v6' => 2,
+    '3' || '7v7' => 3,
+    _ => 1,
   };
 }
 

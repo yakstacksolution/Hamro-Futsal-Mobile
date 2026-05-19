@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; 
+import 'package:flutter/services.dart';
+import 'package:hamro_footsall/core/theme/app_colors.dart';
+import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/features/courts_details/presentation/page/court_details.dart';
@@ -212,12 +214,14 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
               return Container(
                 padding: AppUtils().getPadding(all: AppDimens.paddingX12),
                 decoration: BoxDecoration(
-                  color: DS.surface,
+                  color: LightColor.cardColor,
                   borderRadius: BorderRadius.only(
                     topLeft: Radius.circular(AppDimens.radiusX20),
                     topRight: Radius.circular(AppDimens.radiusX20),
                   ),
-                  border: Border.all(color: DS.border.withValues(alpha: 0.7)),
+                  border: Border.all(
+                    color: LightColor.dividerColor.withValues(alpha: 0.7),
+                  ),
                   boxShadow: <BoxShadow>[
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.12),
@@ -241,15 +245,12 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
                               children: <Widget>[
                                 Text(
                                   _court.price,
-                                  // style: FutsalTheme.getTextField(
-                                  //   context,
-                                  //   style: FutsalTheme.getTextTheme(
-                                  //     context,
-                                  //   ).headingSmall,
-                                  //   color: DS.textPrimary,
-                                  //   fontWeight: FontWeight.w900,
-                                  //   letterSpacing: -0.5,
-                                  // ),
+                                  style: FutsalTheme.getTextTheme(context)
+                                      .headingSmall
+                                      ?.copyWith(
+                                        color: LightColor.primaryTextColor,
+                                        fontWeight: FontWeight.w900,
+                                      ),
                                 ),
                                 SizedBox(width: AppDimens.sizeX4),
                                 Padding(
@@ -258,15 +259,12 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
                                   ),
                                   child: Text(
                                     '/ hour',
-                                    // style: FutsalTheme.getTextField(
-                                    //   context,
-                                    //   style: FutsalTheme.getTextTheme(
-                                    //     context,
-                                    //   ).bodyTextSmall,
-                                    //   color: DS.textTertiary,
-                                    //   fontSize: AppDimens.fontBodyTextSmall + 1,
-                                    //   fontWeight: FontWeight.w500,
-                                    // ),
+                                    style: FutsalTheme.getTextTheme(context)
+                                        .bodyTextSmall
+                                        ?.copyWith(
+                                          color: LightColor.hintTextColor,
+                                          fontWeight: FontWeight.w500,
+                                        ),
                                   ),
                                 ),
                               ],
@@ -281,8 +279,8 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
                             ),
                             decoration: BoxDecoration(
                               color: hasSelection
-                                  ? DS.primaryLight
-                                  : DS.borderLight,
+                                  ? LightColor.secondarySoft
+                                  : LightColor.inputFillColor,
                               borderRadius: BorderRadius.circular(
                                 AppDimens.radiusX50,
                               ),
@@ -296,25 +294,22 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
                                       : Icons.schedule_rounded,
                                   size: AppDimens.sizeX12,
                                   color: hasSelection
-                                      ? DS.primary
-                                      : DS.textTertiary,
+                                      ? LightColor.secondaryColor
+                                      : LightColor.hintTextColor,
                                 ),
                                 SizedBox(width: AppDimens.sizeX4 + 1),
                                 Flexible(
                                   child: Text(
                                     selectedLabel,
                                     overflow: TextOverflow.ellipsis,
-                                    // style: FutsalTheme.getTextField(
-                                    //   context,
-                                    //   style: FutsalTheme.getTextTheme(
-                                    //     context,
-                                    //   ).bodyMiniSubTitle,
-                                    //   color: hasSelection
-                                    //       ? DS.primary
-                                    //       : DS.textTertiary,
-                                    //   fontSize: AppDimens.fontBodyTextSmall - 1,
-                                    //   fontWeight: FontWeight.w600,
-                                    // ),
+                                    style: FutsalTheme.getTextTheme(context)
+                                        .bodyMiniSubTitle
+                                        ?.copyWith(
+                                          color: hasSelection
+                                              ? LightColor.secondaryColor
+                                              : LightColor.hintTextColor,
+                                          fontWeight: FontWeight.w600,
+                                        ),
                                   ),
                                 ),
                               ],
@@ -336,27 +331,44 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
                           duration: const Duration(milliseconds: 260),
                           height: AppDimens.sizeX46,
                           decoration: BoxDecoration(
-                            gradient: hasSelection ? DS.primaryGradient : null,
-                            color: hasSelection ? null : DS.border,
+                            gradient: hasSelection
+                                ? const LinearGradient(
+                                    colors: <Color>[
+                                      LightColor.secondaryColor,
+                                      LightColor.secondaryDark,
+                                    ],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  )
+                                : null,
+                            color: hasSelection
+                                ? null
+                                : LightColor.dividerColor,
                             borderRadius: BorderRadius.circular(
                               AppDimens.radiusX10,
                             ),
-                            boxShadow: hasSelection ? DS.shadowPrimary : null,
+                            boxShadow: hasSelection
+                                ? <BoxShadow>[
+                                    BoxShadow(
+                                      color: LightColor.secondaryColor
+                                          .withValues(alpha: 0.35),
+                                      blurRadius: AppDimens.sizeX20,
+                                      offset: const Offset(0, AppDimens.sizeX8),
+                                    ),
+                                  ]
+                                : null,
                           ),
                           child: Center(
                             child: Text(
                               hasSelection ? 'Book Now' : 'Select Slot',
-                              // style: FutsalTheme.getTextField(
-                              //   context,
-                              //   style: FutsalTheme.getTextTheme(
-                              //     context,
-                              //   ).bodyTextMedium,
-                              //   color: hasSelection
-                              //       ? LightColor.whiteColor
-                              //       : DS.textTertiary,
-                              //   fontSize: AppDimens.fontBodyTextLarge - 1,
-                              //   fontWeight: FontWeight.w800,
-                              // ),
+                              style: FutsalTheme.getTextTheme(context)
+                                  .bodyTextLarge
+                                  ?.copyWith(
+                                    color: hasSelection
+                                        ? LightColor.inverseTextColor
+                                        : LightColor.hintTextColor,
+                                    fontWeight: FontWeight.w800,
+                                  ),
                             ),
                           ),
                         ),
@@ -379,7 +391,7 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
         statusBarColor: Colors.transparent,
       ),
       child: Scaffold(
-        backgroundColor: DS.background,
+        backgroundColor: LightColor.background,
         body: SafeArea(
           top: false,
           bottom: true,
@@ -393,7 +405,7 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
                   SliverToBoxAdapter(
                     child: Container(
                       decoration: const BoxDecoration(
-                        color: DS.background,
+                        color: LightColor.background,
                         borderRadius: BorderRadius.vertical(
                           top: Radius.circular(AppDimens.radiusX28),
                         ),
@@ -415,7 +427,7 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
                               width: AppDimens.sizeX40,
                               height: AppDimens.sizeX4,
                               decoration: BoxDecoration(
-                                color: DS.border,
+                                color: LightColor.dividerColor,
                                 borderRadius: BorderRadius.circular(
                                   AppDimens.radiusX50,
                                 ),
@@ -433,7 +445,10 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
                           // // Divider
                           // Padding(
                           //   padding: const EdgeInsets.symmetric(horizontal: 20),
-                          //   child: Divider(color: DS.divider, height: 40),
+                          //   child: Divider(
+                          //     color: LightColor.dividerColor,
+                          //     height: 40,
+                          //   ),
                           // ),
                           CourtTimeSlotSection(
                             dates: _dates,

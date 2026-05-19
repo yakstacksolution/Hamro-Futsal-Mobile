@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
+import 'package:hamro_footsall/core/theme/futsal_theme.dart';
+import 'package:hamro_footsall/core/utils/app_utils.dart';
+import 'package:hamro_footsall/core/utils/dimens.dart';
 
 class CourtBookingPoliciesSection extends StatelessWidget {
   const CourtBookingPoliciesSection({super.key, required this.policies});
@@ -8,51 +11,54 @@ class CourtBookingPoliciesSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+      padding: AppUtils().getPadding(
+        top: AppDimens.paddingX12,
+        left: AppDimens.paddingX20,
+        right: AppDimens.paddingX20,
+      ),
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(16),
+        padding: AppUtils().getPadding(all: AppDimens.paddingX16),
         decoration: BoxDecoration(
           color: LightColor.cardColor,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: LightColor.borderColor.withValues(alpha: 0.7)),
+          borderRadius: BorderRadius.circular(AppDimens.radiusX10),
           boxShadow: [
             BoxShadow(
               color: LightColor.shadowColor.withValues(alpha: 0.04),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
+              blurRadius: AppDimens.sizeX12,
+              offset: const Offset(0, AppDimens.sizeX4),
             ),
           ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Row(
+            Row(
               children: [
-                Icon(
+                const Icon(
                   Icons.policy_outlined,
-                  size: 18,
+                  size: AppDimens.sizeX24,
                   color: LightColor.secondaryColor,
                 ),
-                SizedBox(width: 8),
+                const SizedBox(width: AppDimens.sizeX8),
                 Text(
                   'Booking Policies',
-                  style: TextStyle(
+                  style: textTheme.bodyTextLarge?.copyWith(
                     color: LightColor.primaryTextColor,
-                    fontSize: 16,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: AppDimens.sizeX16),
             if (policies.isEmpty)
-              const Text(
+              Text(
                 'No booking policy added yet.',
-                style: TextStyle(
+                style: textTheme.bodyTextSmall?.copyWith(
                   color: LightColor.secondaryTextColor,
-                  fontSize: 13,
                   fontWeight: FontWeight.w500,
                 ),
               )
@@ -61,35 +67,37 @@ class CourtBookingPoliciesSection extends StatelessWidget {
                 children: policies.asMap().entries.map((entry) {
                   final isLast = entry.key == policies.length - 1;
                   return Padding(
-                    padding: EdgeInsets.only(bottom: isLast ? 0 : 12),
+                    padding: AppUtils().getPadding(
+                      bottom: isLast ? 0 : AppDimens.paddingX12,
+                    ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Container(
-                          width: 24,
-                          height: 24,
+                          width: AppDimens.sizeX24,
+                          height: AppDimens.sizeX24,
                           decoration: BoxDecoration(
-                            color: LightColor.secondaryLight,
-                            borderRadius: BorderRadius.circular(7),
+                            color: LightColor.secondaryColor,
+                            borderRadius: BorderRadius.circular(
+                              AppDimens.radiusX8,
+                            ),
                           ),
                           child: Center(
                             child: Text(
                               '${entry.key + 1}',
-                              style: const TextStyle(
-                                color: LightColor.secondaryColor,
-                                fontSize: 11,
+                              style: textTheme.bodySubTitle?.copyWith(
+                                color: LightColor.whiteColor,
                                 fontWeight: FontWeight.w800,
                               ),
                             ),
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: AppDimens.sizeX12),
                         Expanded(
                           child: Text(
                             entry.value,
-                            style: const TextStyle(
+                            style: textTheme.bodyTextSmall?.copyWith(
                               color: LightColor.secondaryTextColor,
-                              fontSize: 13.5,
                               fontWeight: FontWeight.w400,
                               height: 1.4,
                             ),

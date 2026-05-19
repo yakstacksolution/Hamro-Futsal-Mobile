@@ -8,6 +8,10 @@ import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:vsc_quill_delta_to_html/vsc_quill_delta_to_html.dart';
 import 'package:hamro_footsall/core/widgets/custom_quill_editor.dart';
+import 'package:hamro_footsall/features/public/data/model/public_option_model.dart';
+import 'package:hamro_footsall/features/public/data/repositories/public_repository_impl.dart';
+import 'package:hamro_footsall/features/public/domain/usecase/get_court_options_use_case.dart';
+import 'package:hamro_footsall/features/public/presentation/bloc/public_court_options/public_court_options_bloc.dart';
 import 'package:hamro_footsall/features/public/presentation/bloc/public_templates/public_templates_bloc.dart';
 import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_cubit.dart';
 import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_models.dart';
@@ -76,7 +80,7 @@ class CourtInformationSection extends StatelessWidget {
   }
 }
 
-class _CourtBasicInfoSubsection extends StatelessWidget {
+class _CourtBasicInfoSubsection extends StatefulWidget {
   const _CourtBasicInfoSubsection({
     required this.cubit,
     required this.court,
@@ -88,88 +92,267 @@ class _CourtBasicInfoSubsection extends StatelessWidget {
   final _CourtSectionMeta meta;
 
   @override
+  State<_CourtBasicInfoSubsection> createState() =>
+      _CourtBasicInfoSubsectionState();
+}
+
+class _CourtBasicInfoSubsectionState extends State<_CourtBasicInfoSubsection> {
+  late final PublicCourtOptionsBloc _optionsBloc;
+
+  @override
+  void initState() {
+    super.initState();
+    _optionsBloc = PublicCourtOptionsBloc(
+      GetCourtOptionsUseCase(PublicRepositoryImpl()),
+    )..add(const FetchPublicCourtOptionsEvent());
+  }
+
+  @override
+  void dispose() {
+    _optionsBloc.close();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return VendorPanel(
-      padding: AppUtils().getPadding(all: AppDimens.paddingX12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          VendorOnboardingSectionHeader(
-            title: meta.title,
-            subtitle: meta.subtitle,
-            icon: meta.icon,
-          ),
-          const SizedBox(height: AppDimens.sizeX22),
-          VendorInputField(
-            label: 'Court name',
-            isRequired: true,
-            initialValue: court.name,
-            onChanged: (String value) =>
-                cubit.updateActiveCourt(court.copyWith(name: value)),
-          ),
-          const SizedBox(height: AppDimens.sizeX16),
-          VendorInputField(
-            label: 'Base price',
-            isRequired: true,
-            initialValue: formatDouble(court.basePrice),
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            onChanged: (String value) => cubit.updateActiveCourt(
-              court.copyWith(
-                basePrice: parseDouble(value),
-                clearBasePrice: value.trim().isEmpty,
-              ),
-            ),
-          ),
-          const SizedBox(height: AppDimens.sizeX16),
-          VendorDropdownField<String>(
-            label: 'Court type',
-            initialValue: court.courtType,
-            items: courtTypeOptions
-                .map(
-                  (String item) =>
-                      DropdownMenuItem<String>(value: item, child: Text(item)),
-                )
-                .toList(),
-            onChanged: (String? value) => cubit.updateActiveCourt(
-              court.copyWith(courtType: value, clearCourtType: value == null),
-            ),
-          ),
-          const SizedBox(height: AppDimens.sizeX16),
-          VendorDropdownField<String>(
-            label: 'Match format',
-            initialValue: court.matchFormat,
-            items: matchFormatOptions
-                .map(
-                  (String item) =>
-                      DropdownMenuItem<String>(value: item, child: Text(item)),
-                )
-                .toList(),
-            onChanged: (String? value) => cubit.updateActiveCourt(
-              court.copyWith(
-                matchFormat: value,
-                clearMatchFormat: value == null,
-              ),
-            ),
-          ),
-          const SizedBox(height: AppDimens.sizeX16),
-          VendorInputField(
-            label: 'Max players',
-            isRequired: true,
-            initialValue: formatInt(court.maxPlayers),
-            keyboardType: TextInputType.number,
-            onChanged: (String value) => cubit.updateActiveCourt(
-              court.copyWith(
-                maxPlayers: parseInt(value),
-                clearMaxPlayers: value.trim().isEmpty,
-              ),
-            ),
-          ),
-          const SizedBox(height: AppDimens.sizeX16),
-        ],
+    return BlocProvider<PublicCourtOptionsBloc>.value(
+      value: _optionsBloc,
+      child: _CourtBasicInfoForm(
+        cubit: widget.cubit,
+        court: widget.court,
+        meta: widget.meta,
       ),
     );
   }
 }
+
+class _CourtBasicInfoForm extends StatelessWidget {
+  const _CourtBasicInfoForm({
+    required this.cubit,
+    required this.court,
+    required this.meta,
+  });
+
+  final VendorOnboardingCubit cubit;
+  final CourtDraft court;
+  final _CourtSectionMeta meta;
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocListener<PublicCourtOptionsBloc, PublicCourtOptionsState>(
+      listenWhen:
+          (PublicCourtOptionsState previous, PublicCourtOptionsState current) {
+            return previous.courtTypes != current.courtTypes ||
+                previous.matchFormats != current.matchFormats;
+          },
+      listener: (BuildContext context, PublicCourtOptionsState state) {
+        _syncCourtOptions(state);
+      },
+      child: VendorPanel(
+        padding: AppUtils().getPadding(all: AppDimens.paddingX12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            VendorOnboardingSectionHeader(
+              title: meta.title,
+              subtitle: meta.subtitle,
+              icon: meta.icon,
+            ),
+            const SizedBox(height: AppDimens.sizeX22),
+            VendorInputField(
+              label: 'Court name',
+              isRequired: true,
+              initialValue: court.name,
+              onChanged: (String value) =>
+                  cubit.updateActiveCourt(court.copyWith(name: value)),
+            ),
+            const SizedBox(height: AppDimens.sizeX16),
+            VendorInputField(
+              label: 'Base price',
+              isRequired: true,
+              initialValue: formatDouble(court.basePrice),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              onChanged: (String value) => cubit.updateActiveCourt(
+                court.copyWith(
+                  basePrice: parseDouble(value),
+                  clearBasePrice: value.trim().isEmpty,
+                ),
+              ),
+            ),
+            const SizedBox(height: AppDimens.sizeX16),
+            BlocBuilder<PublicCourtOptionsBloc, PublicCourtOptionsState>(
+              builder: (BuildContext context, PublicCourtOptionsState state) {
+                final List<PublicOptionModel> options = _options(
+                  state.courtTypes,
+                  fallback: _fallbackCourtTypes,
+                );
+                return VendorDropdownField<int>(
+                  label: 'Court type',
+                  hintText: state.status == PublicCourtOptionsStatus.loading
+                      ? 'Loading court types...'
+                      : null,
+                  initialValue: _selectedId(court.courtTypeId, options),
+                  items: _dropdownItems(options),
+                  onChanged: (int? value) => cubit.updateActiveCourt(
+                    court.copyWith(
+                      courtTypeId: value,
+                      courtType: _optionLabel(value, options),
+                      clearCourtTypeId: value == null,
+                      clearCourtType: value == null,
+                    ),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: AppDimens.sizeX16),
+            BlocBuilder<PublicCourtOptionsBloc, PublicCourtOptionsState>(
+              builder: (BuildContext context, PublicCourtOptionsState state) {
+                final List<PublicOptionModel> options = _options(
+                  state.matchFormats,
+                  fallback: _fallbackMatchFormats,
+                );
+                return VendorDropdownField<int>(
+                  label: 'Match format',
+                  hintText: state.status == PublicCourtOptionsStatus.loading
+                      ? 'Loading match formats...'
+                      : null,
+                  initialValue: _selectedId(court.matchFormatId, options),
+                  items: _dropdownItems(options),
+                  onChanged: (int? value) => cubit.updateActiveCourt(
+                    court.copyWith(
+                      matchFormatId: value,
+                      matchFormat: _optionLabel(value, options),
+                      clearMatchFormatId: value == null,
+                      clearMatchFormat: value == null,
+                    ),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: AppDimens.sizeX16),
+            VendorInputField(
+              label: 'Max players',
+              isRequired: true,
+              initialValue: formatInt(court.maxPlayers),
+              keyboardType: TextInputType.number,
+              onChanged: (String value) => cubit.updateActiveCourt(
+                court.copyWith(
+                  maxPlayers: parseInt(value),
+                  clearMaxPlayers: value.trim().isEmpty,
+                ),
+              ),
+            ),
+            const SizedBox(height: AppDimens.sizeX16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _syncCourtOptions(PublicCourtOptionsState state) {
+    final List<PublicOptionModel> courtTypes = _options(
+      state.courtTypes,
+      fallback: const <PublicOptionModel>[],
+    );
+    final List<PublicOptionModel> matchFormats = _options(
+      state.matchFormats,
+      fallback: const <PublicOptionModel>[],
+    );
+
+    final PublicOptionModel? nextCourtType = _resolvedOptionValue(
+      court.courtTypeId,
+      court.courtType,
+      courtTypes,
+    );
+    final PublicOptionModel? nextMatchFormat = _resolvedOptionValue(
+      court.matchFormatId,
+      court.matchFormat,
+      matchFormats,
+    );
+
+    if (nextCourtType == null && nextMatchFormat == null) return;
+
+    cubit.updateActiveCourt(
+      court.copyWith(
+        courtTypeId: nextCourtType?.idAsInt,
+        courtType: nextCourtType?.name,
+        matchFormatId: nextMatchFormat?.idAsInt,
+        matchFormat: nextMatchFormat?.name,
+      ),
+    );
+  }
+
+  List<PublicOptionModel> _options(
+    List<PublicOptionModel> models, {
+    required List<PublicOptionModel> fallback,
+  }) {
+    final List<PublicOptionModel> options = models
+        .where(
+          (PublicOptionModel item) =>
+              item.name.trim().isNotEmpty && item.idAsInt != null,
+        )
+        .toList(growable: false);
+    return options.isEmpty ? fallback : options;
+  }
+
+  List<DropdownMenuItem<int>> _dropdownItems(List<PublicOptionModel> options) {
+    return options
+        .map(
+          (PublicOptionModel item) => DropdownMenuItem<int>(
+            value: item.idAsInt,
+            child: Text(item.name),
+          ),
+        )
+        .toList(growable: false);
+  }
+
+  int? _selectedId(int? value, List<PublicOptionModel> options) {
+    if (value == null) return null;
+    return options.any((PublicOptionModel item) => item.idAsInt == value)
+        ? value
+        : null;
+  }
+
+  String? _optionLabel(int? id, List<PublicOptionModel> options) {
+    if (id == null) return null;
+    return options
+        .where((PublicOptionModel item) => item.idAsInt == id)
+        .firstOrNull
+        ?.name;
+  }
+
+  PublicOptionModel? _resolvedOptionValue(
+    int? currentValue,
+    String? currentLabel,
+    List<PublicOptionModel> options,
+  ) {
+    if (options.isEmpty) return null;
+    if (currentValue != null) {
+      final PublicOptionModel? currentOption = options
+          .where((PublicOptionModel item) => item.idAsInt == currentValue)
+          .firstOrNull;
+      if (currentOption != null) {
+        return currentOption.name == currentLabel?.trim()
+            ? null
+            : currentOption;
+      }
+    }
+    return options.first;
+  }
+}
+
+const List<PublicOptionModel> _fallbackCourtTypes = <PublicOptionModel>[
+  PublicOptionModel(id: '1', name: 'Indoor', raw: <String, dynamic>{}),
+  PublicOptionModel(id: '2', name: 'Outdoor', raw: <String, dynamic>{}),
+];
+
+const List<PublicOptionModel> _fallbackMatchFormats = <PublicOptionModel>[
+  PublicOptionModel(id: '1', name: '5v5', raw: <String, dynamic>{}),
+  PublicOptionModel(id: '2', name: '6v6', raw: <String, dynamic>{}),
+  PublicOptionModel(id: '3', name: '7v7', raw: <String, dynamic>{}),
+];
 
 class _CourtDescriptionSubsection extends StatefulWidget {
   const _CourtDescriptionSubsection({

@@ -88,7 +88,7 @@ class RegisterForm extends StatelessWidget {
             initialValue: selectedAccountType,
             labelText: 'Account Type',
             icon: Icons.badge_outlined,
-            hintText: 'Select Player or Footsall Vendor',
+            hintText: 'Select Player or Vendor',
             items: accountTypes.map((String type) {
               return DropdownMenuItem<String>(
                 value: type,

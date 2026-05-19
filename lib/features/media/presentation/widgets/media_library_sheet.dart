@@ -17,6 +17,7 @@ import 'package:hamro_footsall/features/media/presentation/bloc/media_bloc.dart'
 import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_cubit.dart';
 import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_state.dart';
 import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_models.dart';
+import 'package:image_picker/image_picker.dart';
 
 Future<List<UploadRef>?> showVendorMediaLibrarySheet({
   required BuildContext context,
@@ -74,6 +75,7 @@ class _VendorMediaLibrarySheetState extends State<VendorMediaLibrarySheet> {
   final Set<String> _knownRemoteKeys = <String>{};
   _LibraryFilter _filter = _LibraryFilter.all;
   bool _isAdding = false;
+  bool _isCapturing = false;
   List<UploadRef> _pendingUploadFiles = const <UploadRef>[];
 
   @override
@@ -130,9 +132,8 @@ class _VendorMediaLibrarySheetState extends State<VendorMediaLibrarySheet> {
                           },
                           onAddImages: _visibleImageExtensions(allowed).isEmpty
                               ? null
-                              : () => _handleAddFiles(
-                                  _visibleImageExtensions(allowed).toList(),
-                                  allowMultiple: true,
+                              : () => _handleAddImagesFromGallery(
+                                  allowMultiple: widget.allowMultiple,
                                 ),
                           onAddFiles:
                               _visibleDocumentExtensions(allowed).isEmpty
@@ -141,7 +142,12 @@ class _VendorMediaLibrarySheetState extends State<VendorMediaLibrarySheet> {
                                   _visibleDocumentExtensions(allowed).toList(),
                                   allowMultiple: true,
                                 ),
+                          onAddFromCamera:
+                              _visibleImageExtensions(allowed).isEmpty
+                              ? null
+                              : _handleAddImageFromCamera,
                           isAddingImages: _isAdding,
+                          isCapturing: _isCapturing,
                         ),
 
                         const SizedBox(height: AppDimens.sizeX12),
@@ -258,6 +264,7 @@ class _VendorMediaLibrarySheetState extends State<VendorMediaLibrarySheet> {
       context.read<MediaBloc>().add(const ClearMediaFeedbackEvent());
       setState(() {
         _isAdding = false;
+        _isCapturing = false;
         _pendingUploadFiles = const <UploadRef>[];
       });
       return;
@@ -301,6 +308,7 @@ class _VendorMediaLibrarySheetState extends State<VendorMediaLibrarySheet> {
           }
           _pendingUploadFiles = const <UploadRef>[];
           _isAdding = false;
+          _isCapturing = false;
         });
       }
 
@@ -377,23 +385,124 @@ class _VendorMediaLibrarySheetState extends State<VendorMediaLibrarySheet> {
 
     if (!mounted) return;
 
-    if (files.isEmpty) {
+    await _confirmAndUpload(files);
+  }
+
+  Future<void> _handleAddImagesFromGallery({
+    required bool allowMultiple,
+  }) async {
+    setState(() => _isAdding = true);
+
+    try {
+      final ImagePicker picker = ImagePicker();
+      final List<XFile> pickedImages = allowMultiple
+          ? await picker.pickMultiImage(imageQuality: 90)
+          : <XFile>[
+              if (await picker.pickImage(
+                    source: ImageSource.gallery,
+                    imageQuality: 90,
+                  )
+                  case final XFile image)
+                image,
+            ];
+
+      if (!mounted) return;
+
+      await _confirmAndUpload(
+        pickedImages
+            .map(
+              (XFile image) =>
+                  UploadRef(name: image.name, remoteUrl: image.path),
+            )
+            .toList(),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      AppUtils().showSnackBar(
+        context,
+        MsgType.error,
+        'Could not select image. Please try again.',
+      );
       setState(() => _isAdding = false);
+    }
+  }
+
+  Future<void> _handleAddImageFromCamera() async {
+    setState(() => _isCapturing = true);
+
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? photo = await picker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 90,
+      );
+
+      if (!mounted) return;
+
+      await _confirmAndUpload(
+        photo == null
+            ? const <UploadRef>[]
+            : <UploadRef>[UploadRef(name: photo.name, remoteUrl: photo.path)],
+        isCamera: true,
+      );
+    } catch (error) {
+      if (!mounted) return;
+      AppUtils().showSnackBar(
+        context,
+        MsgType.error,
+        'Could not open camera. Please try again.',
+      );
+      setState(() => _isCapturing = false);
+    }
+  }
+
+  Future<void> _confirmAndUpload(
+    List<UploadRef> files, {
+    bool isCamera = false,
+  }) async {
+    if (!mounted) return;
+
+    if (files.isEmpty) {
+      setState(() {
+        _isAdding = false;
+        if (isCamera) _isCapturing = false;
+      });
       return;
     }
 
-    final bool confirmed = await _confirmUpload(files);
+    final List<UploadRef> uploadableFiles = files
+        .where((UploadRef item) => _isLocalPath(item.remoteUrl))
+        .toList();
+    if (uploadableFiles.length != files.length) {
+      AppUtils().showSnackBar(
+        context,
+        MsgType.error,
+        'Selected file is not accessible from this device.',
+      );
+      setState(() {
+        _isAdding = false;
+        if (isCamera) _isCapturing = false;
+      });
+      return;
+    }
+
+    final bool confirmed = await _confirmUpload(uploadableFiles);
     if (!mounted) return;
 
     if (!confirmed) {
-      setState(() => _isAdding = false);
+      setState(() {
+        _isAdding = false;
+        if (isCamera) _isCapturing = false;
+      });
       return;
     }
 
-    _pendingUploadFiles = files;
+    setState(() {
+      _pendingUploadFiles = uploadableFiles;
+    });
     context.read<MediaBloc>().add(
       CreateMediaEvent(
-        files.map((UploadRef item) => item.remoteUrl ?? '').toList(),
+        uploadableFiles.map((UploadRef item) => item.remoteUrl!).toList(),
       ),
     );
   }
@@ -419,9 +528,7 @@ class _VendorMediaLibrarySheetState extends State<VendorMediaLibrarySheet> {
   }
 
   Future<void> _removeItem(UploadRef item) async {
-    if ((item.remoteUrl ?? '').trim().isNotEmpty &&
-        (item.remoteUrl!.trim().isEmpty ||
-            item.remoteUrl!.trim() == item.remoteUrl!.trim())) {
+    if (_isRemoteUrl(item.remoteUrl)) {
       AppUtils().showSnackBar(
         context,
         MsgType.info,
@@ -661,12 +768,7 @@ class _UploadMediaPreviewDialog extends StatelessWidget {
               child: isImage
                   ? AspectRatio(
                       aspectRatio: 1.3,
-                      child: CustomImageView(
-                        url: previewFile.remoteUrl,
-                        fit: BoxFit.cover,
-                        width: double.infinity,
-                        height: double.infinity,
-                      ),
+                      child: _MediaPreview(item: previewFile, isImage: true),
                     )
                   : _UploadPreviewFallback(file: previewFile),
             ),
@@ -765,14 +867,18 @@ class _CompactActionRow extends StatelessWidget {
     required this.onFilterChanged,
     required this.onAddImages,
     required this.onAddFiles,
+    required this.onAddFromCamera,
     required this.isAddingImages,
+    required this.isCapturing,
   });
 
   final _LibraryFilter activeFilter;
   final ValueChanged<_LibraryFilter> onFilterChanged;
   final VoidCallback? onAddImages;
   final VoidCallback? onAddFiles;
+  final VoidCallback? onAddFromCamera;
   final bool isAddingImages;
+  final bool isCapturing;
 
   @override
   Widget build(BuildContext context) {
@@ -784,6 +890,17 @@ class _CompactActionRow extends StatelessWidget {
             icon: Icons.image_outlined,
             isLoading: isAddingImages,
             onTap: onAddImages,
+            accentColor: LightColor.secondaryColor,
+            softColor: LightColor.secondaryLight,
+          ),
+        ),
+        const SizedBox(width: AppDimens.sizeX10),
+        Expanded(
+          child: _SmallActionButton(
+            label: 'Camera',
+            icon: Icons.photo_camera_outlined,
+            isLoading: isCapturing,
+            onTap: onAddFromCamera,
             accentColor: LightColor.secondaryColor,
             softColor: LightColor.secondaryLight,
           ),
@@ -1260,7 +1377,7 @@ class _MediaPreview extends StatelessWidget {
         : item.remoteUrl?.trim();
 
     if (isImage) {
-      if (remoteUrl != null) {
+      if (_isRemoteUrl(remoteUrl)) {
         return CustomImageView(
           url: remoteUrl,
           fit: BoxFit.cover,
@@ -1269,11 +1386,18 @@ class _MediaPreview extends StatelessWidget {
         );
       }
 
-      return CustomImageView(
-        file: File(item.remoteUrl ?? ''),
-        fit: BoxFit.cover,
-        width: double.infinity,
-        height: double.infinity,
+      if (_isLocalPath(remoteUrl)) {
+        return CustomImageView(
+          file: File(remoteUrl!),
+          fit: BoxFit.cover,
+          width: double.infinity,
+          height: double.infinity,
+        );
+      }
+
+      return const _MiniFilePlaceholder(
+        icon: Icons.broken_image_outlined,
+        label: 'IMAGE',
       );
     }
 
@@ -1409,22 +1533,33 @@ Set<String> _visibleDocumentExtensions(Set<String> allowed) {
 }
 
 String _extensionFor(UploadRef item) {
-  final String path =
-      ((item.remoteUrl ?? '').trim().isNotEmpty
-              ? item.remoteUrl!
-              : item.remoteUrl ?? '')
-          .toLowerCase();
+  final String rawPath = (item.remoteUrl ?? item.name).trim();
+  final String path = rawPath.split('?').first.toLowerCase();
   final int index = path.lastIndexOf('.');
   if (index == -1 || index == path.length - 1) return '';
   return path.substring(index + 1);
 }
 
 String _itemKey(UploadRef item) {
+  if (item.id != null) return 'id:${item.id}';
   final String remoteUrl = item.remoteUrl?.trim() ?? '';
   if (remoteUrl.isNotEmpty) {
-    return remoteUrl;
+    return _isRemoteUrl(remoteUrl) ? 'remote:$remoteUrl' : 'local:$remoteUrl';
   }
-  return item.remoteUrl!.trim();
+  return 'name:${item.name}';
+}
+
+bool _isRemoteUrl(String? value) {
+  if (value == null) return false;
+  final String path = value.trim().toLowerCase();
+  return path.startsWith('http://') || path.startsWith('https://');
+}
+
+bool _isLocalPath(String? value) {
+  if (value == null) return false;
+  final String path = value.trim();
+  if (path.isEmpty || _isRemoteUrl(path)) return false;
+  return File(path).existsSync();
 }
 
 IconData _fileIcon(UploadRef item) {
