@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hamro_footsall/features/bookings/presentation/pages/bookings_page.dart';
 import 'package:hamro_footsall/features/courts/presentation/pages/venue_courts_list_page_widget.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/page/footsall_home_page.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/page/messages_page.dart';
@@ -19,13 +20,16 @@ import 'package:hamro_footsall/features/profile/presentation/pages/profile_page.
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
+  static final ValueNotifier<int> selectedNavIndex = ValueNotifier<int>(0);
+
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  final ValueNotifier<int> _selectedNavIndexNotifier = ValueNotifier<int>(0);
+  final ValueNotifier<int> _selectedNavIndexNotifier =
+      DashboardScreen.selectedNavIndex;
   final ValueNotifier<int> _selectedFilterNotifier = ValueNotifier<int>(0);
   static const DashboardUser _user = DashboardUser(
     id: 'USR-1024',
@@ -127,7 +131,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       case 1:
         return VenueCourtsListPage();
       case 2:
-        return VenueCourtsListPage();
+        return const BookingsPage();
       case 3:
         return MessagesPage();
       // case 4:
@@ -139,7 +143,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   void dispose() {
-    _selectedNavIndexNotifier.dispose();
     _selectedFilterNotifier.dispose();
     super.dispose();
   }

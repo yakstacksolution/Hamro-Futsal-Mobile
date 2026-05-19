@@ -148,4 +148,12 @@ class AuthManager extends ServiceManager {
   Future<Result> deleteVendorOnboardingCourt(int courtId) async {
     return await _apiClient.deleteVendorOnboardingCourt(courtId: courtId);
   }
+
+  Future<Result> getMyBookings() async {
+    return await _apiClient.getMyBookings();
+  }
+
+  Future<Result> getFutsalBookings() async {
+    return await _apiClient.getFutsalBookings();
+  }
 }

@@ -145,6 +145,14 @@ class ApiClient {
     );
   }
 
+  Future<Result> getMyBookings() {
+    return _get(url: '$_baseUrl/bookings/my-bookings');
+  }
+
+  Future<Result> getFutsalBookings() {
+    return _get(url: '$_baseUrl/bookings/futsal-bookings');
+  }
+
   Future<Result> _get({required String url, Map<String, dynamic>? query}) {
     return _apiCallWrapper.makeRequest(
       url: url,
