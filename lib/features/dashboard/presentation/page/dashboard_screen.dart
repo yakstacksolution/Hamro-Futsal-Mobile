@@ -12,7 +12,7 @@ import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
-import 'package:hamro_footsall/features/dashboard/presentation/widgets/bottom_navigation_bar.dart'; 
+import 'package:hamro_footsall/features/dashboard/presentation/widgets/bottom_navigation_bar.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/widgets/search_bar_widget.dart';
 import 'package:hamro_footsall/features/profile/presentation/profile_bloc/profile_bloc.dart';
 import 'package:hamro_footsall/features/profile/presentation/pages/profile_page.dart';

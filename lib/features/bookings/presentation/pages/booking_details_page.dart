@@ -4,6 +4,8 @@ import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/widgets/custom_app_bar.dart';
+import 'package:hamro_footsall/core/widgets/custom_button.dart';
 import 'package:hamro_footsall/features/bookings/data/model/booking_model.dart';
 import 'package:hamro_footsall/features/bookings/presentation/widgets/booking_shared_widgets.dart';
 
@@ -22,85 +24,79 @@ class BookingDetailsPage extends StatelessWidget {
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.dark);
     return Scaffold(
       backgroundColor: LightColor.background,
-      appBar: AppBar(
-        backgroundColor: LightColor.background,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded,
-              size: 18, color: LightColor.primaryTextColor),
-          onPressed: () => Navigator.of(context).maybePop(),
-        ),
-        title: Text(
-          'Booking Details',
-          style: FutsalTheme.getTextTheme(context).bodyTextMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-                color: LightColor.primaryTextColor,
-              ),
-        ),
-      ),
-      body: ListView(
-        padding: AppUtils().getPadding(
-          symmetricHorizontal: AppDimens.paddingX20,
-          top: AppDimens.paddingX4,
-          bottom: AppDimens.paddingX24,
-        ),
-        children: [
-          _SummaryHeader(booking: booking, isFutsalView: isFutsalView),
-          const SizedBox(height: AppDimens.paddingX16),
-          _InfoCard(
-            children: [
-              _InfoRow(
-                icon: Icons.calendar_today_rounded,
-                label: 'Date',
-                value: _formatDate(booking.date),
-              ),
-              _Divider(),
-              _InfoRow(
-                icon: Icons.access_time_rounded,
-                label: 'Time',
-                value: booking.startTime.isEmpty
-                    ? '—'
-                    : '${booking.startTime} – ${booking.endTime}',
-              ),
-              _Divider(),
-              _InfoRow(
-                icon: Icons.stadium_outlined,
-                label: 'Court',
-                value: booking.courtName.isNotEmpty ? booking.courtName : '—',
-              ),
-              _Divider(),
-              _InfoRow(
-                icon: Icons.location_on_outlined,
-                label: 'Venue',
-                value: booking.futsalName.isNotEmpty
-                    ? booking.futsalName
-                    : 'Futsal Court',
-                subtitle: booking.futsalAddress,
-              ),
-            ],
+      appBar: const CustomAppBar(title: 'Booking Details'),
+      body: SafeArea(
+        bottom: true,
+        child: ListView(
+          padding: AppUtils().getPadding(
+            symmetricHorizontal: AppDimens.paddingX20,
+            top: AppDimens.paddingX4,
+            bottom: AppDimens.paddingX24,
           ),
-          if (isFutsalView) ...[
+          children: [
+            _SummaryHeader(booking: booking, isFutsalView: isFutsalView),
             const SizedBox(height: AppDimens.paddingX16),
-            _PlayerCard(booking: booking),
+            _InfoCard(
+              children: [
+                _InfoRow(
+                  icon: Icons.calendar_today_rounded,
+                  label: 'Date',
+                  value: _formatDate(booking.date),
+                ),
+                _Divider(),
+                _InfoRow(
+                  icon: Icons.access_time_rounded,
+                  label: 'Time',
+                  value: booking.startTime.isEmpty
+                      ? '—'
+                      : '${booking.startTime} – ${booking.endTime}',
+                ),
+                _Divider(),
+                _InfoRow(
+                  icon: Icons.stadium_outlined,
+                  label: 'Court',
+                  value: booking.courtName.isNotEmpty ? booking.courtName : '—',
+                ),
+                _Divider(),
+                _InfoRow(
+                  icon: Icons.location_on_outlined,
+                  label: 'Venue',
+                  value: booking.futsalName.isNotEmpty
+                      ? booking.futsalName
+                      : 'Futsal Court',
+                  subtitle: booking.futsalAddress,
+                ),
+              ],
+            ),
+            if (isFutsalView) ...[
+              const SizedBox(height: AppDimens.paddingX16),
+              _PlayerCard(booking: booking),
+            ],
+            const SizedBox(height: AppDimens.paddingX16),
+            _PaymentCard(booking: booking),
+            const SizedBox(height: AppDimens.paddingX24),
+            _Actions(booking: booking, isFutsalView: isFutsalView),
           ],
-          const SizedBox(height: AppDimens.paddingX16),
-          _PaymentCard(booking: booking),
-          const SizedBox(height: AppDimens.paddingX24),
-          _Actions(booking: booking, isFutsalView: isFutsalView),
-        ],
+        ),
       ),
     );
   }
 
   String _formatDate(DateTime d) {
-    const days = [
-      'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun',
-    ];
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     return '${days[d.weekday - 1]}, ${d.day} ${months[d.month - 1]} ${d.year}';
   }
@@ -117,13 +113,13 @@ class _SummaryHeader extends StatelessWidget {
     final textTheme = FutsalTheme.getTextTheme(context);
     final title = isFutsalView
         ? (booking.playerName?.isNotEmpty == true
-            ? booking.playerName!
-            : 'Unknown Player')
-        : (booking.futsalName.isNotEmpty
-            ? booking.futsalName
-            : 'Futsal Court');
+              ? booking.playerName!
+              : 'Unknown Player')
+        : (booking.futsalName.isNotEmpty ? booking.futsalName : 'Futsal Court');
     final subtitle = isFutsalView
-        ? (booking.futsalName.isNotEmpty ? booking.futsalName : 'Futsal booking')
+        ? (booking.futsalName.isNotEmpty
+              ? booking.futsalName
+              : 'Futsal booking')
         : (booking.courtName.isNotEmpty ? booking.courtName : 'Booking');
 
     return Container(
@@ -394,11 +390,7 @@ class _PaymentCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          _amountRow(
-            context,
-            'Booking fee',
-            'NPR ${base.toStringAsFixed(0)}',
-          ),
+          _amountRow(context, 'Booking fee', 'NPR ${base.toStringAsFixed(0)}'),
           const SizedBox(height: 8),
           _amountRow(
             context,
@@ -477,114 +469,51 @@ class _Actions extends StatelessWidget {
     }
 
     if (booking.status == BookingStatus.completed) {
-      return _PrimaryButton(label: 'Book Again', onTap: () {});
+      return CustomButton(text: 'Book Again', onPressed: () {});
     }
 
     if (isFutsalView && booking.status == BookingStatus.pending) {
       return Row(
         children: [
           Expanded(
-            child: _OutlineButton(
-              label: 'Reject',
-              color: LightColor.redColor,
-              onTap: () {},
+            child: CustomButton(
+              text: 'Reject',
+              borderColor: LightColor.redColor,
+              backgroundColor: LightColor.transparentColor,
+              foregroundColor: LightColor.redColor,
+              borderRadius: 8,
+              onPressed: () {},
             ),
           ),
           const SizedBox(width: 12),
-          Expanded(child: _PrimaryButton(label: 'Accept', onTap: () {})),
+          Expanded(
+            child: CustomButton(text: 'Accept', onPressed: () {}),
+          ),
         ],
       );
     }
 
     if (isFutsalView) {
-      return _PrimaryButton(label: 'Mark as Completed', onTap: () {});
+      return CustomButton(text: 'Mark as Completed', onPressed: () {});
     }
 
     return Row(
       children: [
         Expanded(
-          child: _OutlineButton(
-            label: 'Cancel',
-            color: LightColor.redColor,
-            onTap: () {},
+          child: CustomButton(
+            text: 'Cancel',
+            borderColor: LightColor.redColor,
+            backgroundColor: LightColor.transparentColor,
+            foregroundColor: LightColor.redColor,
+            borderRadius: 8,
+            onPressed: () {},
           ),
         ),
         const SizedBox(width: 12),
-        Expanded(child: _PrimaryButton(label: 'Contact Venue', onTap: () {})),
+        Expanded(
+          child: CustomButton(text: 'Contact Venue', onPressed: () {}),
+        ),
       ],
-    );
-  }
-}
-
-class _PrimaryButton extends StatelessWidget {
-  const _PrimaryButton({required this.label, required this.onTap});
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = FutsalTheme.getTextTheme(context);
-    return SizedBox(
-      height: 48,
-      child: Material(
-        color: LightColor.secondaryColor,
-        borderRadius: BorderRadius.circular(AppDimens.radiusX12),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(AppDimens.radiusX12),
-          onTap: onTap,
-          child: Center(
-            child: Text(
-              label,
-              style: textTheme.bodyTextMedium?.copyWith(
-                color: LightColor.whiteColor,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _OutlineButton extends StatelessWidget {
-  const _OutlineButton({
-    required this.label,
-    required this.color,
-    required this.onTap,
-  });
-
-  final String label;
-  final Color color;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = FutsalTheme.getTextTheme(context);
-    return SizedBox(
-      height: 48,
-      child: Material(
-        color: LightColor.cardColor,
-        borderRadius: BorderRadius.circular(AppDimens.radiusX12),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(AppDimens.radiusX12),
-          onTap: onTap,
-          child: Container(
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(AppDimens.radiusX12),
-              border: Border.all(color: color.withValues(alpha: 0.4)),
-            ),
-            child: Text(
-              label,
-              style: textTheme.bodyTextMedium?.copyWith(
-                color: color,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

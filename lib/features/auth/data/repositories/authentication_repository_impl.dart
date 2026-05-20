@@ -155,6 +155,7 @@ final class AuthenticationRepositoryImpl extends AuthRepository {
     );
     return right(responseData);
   }
+
   @override
   Future<Either<AppException, bool>>? logout() async {
     final response = await _remoteDataSource.logout();

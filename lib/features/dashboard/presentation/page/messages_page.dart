@@ -9,11 +9,11 @@ enum MessageFilter { all, unread, active, bookings }
 
 extension on MessageFilter {
   String get label => switch (this) {
-        MessageFilter.all => 'All',
-        MessageFilter.unread => 'Unread',
-        MessageFilter.active => 'Active',
-        MessageFilter.bookings => 'Bookings',
-      };
+    MessageFilter.all => 'All',
+    MessageFilter.unread => 'Unread',
+    MessageFilter.active => 'Active',
+    MessageFilter.bookings => 'Bookings',
+  };
 }
 
 class MessagesPage extends StatefulWidget {
@@ -117,12 +117,11 @@ class _MessagesPageState extends State<MessagesPage> {
   }
 
   int _filterCount(MessageFilter filter) => switch (filter) {
-        MessageFilter.all => _messages.length,
-        MessageFilter.unread =>
-          _messages.where((m) => m.unreadCount > 0).length,
-        MessageFilter.active => _messages.where((m) => m.isActive).length,
-        MessageFilter.bookings => _messages.where((m) => m.isBooking).length,
-      };
+    MessageFilter.all => _messages.length,
+    MessageFilter.unread => _messages.where((m) => m.unreadCount > 0).length,
+    MessageFilter.active => _messages.where((m) => m.isActive).length,
+    MessageFilter.bookings => _messages.where((m) => m.isBooking).length,
+  };
 
   void _markRead(String id) {
     setState(() {
@@ -135,8 +134,10 @@ class _MessagesPageState extends State<MessagesPage> {
   @override
   Widget build(BuildContext context) {
     final items = _visibleMessages;
-    final int unreadTotal =
-        _messages.fold<int>(0, (sum, m) => sum + m.unreadCount);
+    final int unreadTotal = _messages.fold<int>(
+      0,
+      (sum, m) => sum + m.unreadCount,
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -211,9 +212,7 @@ class _MessagesPageState extends State<MessagesPage> {
     final textTheme = FutsalTheme.getTextTheme(context);
 
     return Padding(
-      padding: AppUtils().getPadding(
-        symmetricHorizontal: AppDimens.paddingX20,
-      ),
+      padding: AppUtils().getPadding(symmetricHorizontal: AppDimens.paddingX20),
       child: SizedBox(
         height: 40,
         child: TextField(
@@ -292,8 +291,7 @@ class _MessagesPageState extends State<MessagesPage> {
           symmetricHorizontal: AppDimens.paddingX20,
         ),
         itemCount: MessageFilter.values.length,
-        separatorBuilder: (_, __) =>
-            const SizedBox(width: AppDimens.paddingX8),
+        separatorBuilder: (_, __) => const SizedBox(width: AppDimens.paddingX8),
         itemBuilder: (context, index) {
           final filter = MessageFilter.values[index];
           return _FilterChipItem(
@@ -388,12 +386,11 @@ class _FilterChipItem extends StatelessWidget {
           alignment: Alignment.center,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
           decoration: BoxDecoration(
-            color:
-                isSelected ? LightColor.primaryTextColor : Colors.transparent,
+            color: isSelected ? LightColor.secondaryColor : Colors.transparent,
             borderRadius: BorderRadius.circular(AppDimens.radiusX20),
             border: Border.all(
               color: isSelected
-                  ? LightColor.primaryTextColor
+                  ? LightColor.secondaryColor
                   : LightColor.dividerColor,
             ),
           ),
@@ -532,8 +529,9 @@ class _MessageCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: textTheme.bodyTextMedium?.copyWith(
-                        fontWeight:
-                            isUnread ? FontWeight.w700 : FontWeight.w600,
+                        fontWeight: isUnread
+                            ? FontWeight.w700
+                            : FontWeight.w600,
                         color: LightColor.primaryTextColor,
                       ),
                     ),
@@ -548,9 +546,7 @@ class _MessageCard extends StatelessWidget {
               Row(
                 children: [
                   Icon(
-                    item.isActive
-                        ? Icons.circle
-                        : Icons.access_time_rounded,
+                    item.isActive ? Icons.circle : Icons.access_time_rounded,
                     size: 9,
                     color: item.isActive
                         ? LightColor.secondaryColor
@@ -586,11 +582,7 @@ class _MessageCard extends StatelessWidget {
             onTap: onReply,
           ),
         ),
-        Container(
-          width: 1,
-          height: 18,
-          color: LightColor.dividerColor,
-        ),
+        Container(width: 1, height: 18, color: LightColor.dividerColor),
         Expanded(
           child: _QuickAction(
             icon: isUnread
@@ -626,8 +618,8 @@ class _QuickAction extends StatelessWidget {
     final Color color = !enabled
         ? LightColor.disabledTextColor
         : (emphasised
-            ? LightColor.secondaryColor
-            : LightColor.secondaryTextColor);
+              ? LightColor.secondaryColor
+              : LightColor.secondaryTextColor);
 
     return InkWell(
       onTap: onTap,
@@ -778,13 +770,13 @@ class _MessageItem {
   final bool isBooking;
 
   _MessageItem copyWith({int? unreadCount}) => _MessageItem(
-        id: id,
-        name: name,
-        message: message,
-        time: time,
-        avatarUrl: avatarUrl,
-        unreadCount: unreadCount ?? this.unreadCount,
-        isActive: isActive,
-        isBooking: isBooking,
-      );
+    id: id,
+    name: name,
+    message: message,
+    time: time,
+    avatarUrl: avatarUrl,
+    unreadCount: unreadCount ?? this.unreadCount,
+    isActive: isActive,
+    isBooking: isBooking,
+  );
 }

@@ -311,13 +311,11 @@ class _FilterChipItem extends StatelessWidget {
           alignment: Alignment.center,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
           decoration: BoxDecoration(
-            color: isSelected
-                ? LightColor.primaryTextColor
-                : Colors.transparent,
+            color: isSelected ? LightColor.secondaryColor : Colors.transparent,
             borderRadius: BorderRadius.circular(AppDimens.radiusX20),
             border: Border.all(
               color: isSelected
-                  ? LightColor.primaryTextColor
+                  ? LightColor.secondaryColor
                   : LightColor.dividerColor,
             ),
           ),
