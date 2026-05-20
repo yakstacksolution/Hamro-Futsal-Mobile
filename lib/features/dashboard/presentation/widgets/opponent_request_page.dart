@@ -1,14 +1,35 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/widgets/custom_app_bar.dart';
+import 'package:hamro_footsall/core/widgets/custom_button.dart';
 import 'package:hamro_footsall/core/widgets/custom_text_field.dart';
 
 enum _OpponentTab { create, requests }
 
 enum _RequestFilter { all, open, settled }
+
+enum _SplitMode { even, custom }
+
+enum _CustomBasis { teams, result }
+
+extension on _SplitMode {
+  String get label => switch (this) {
+    _SplitMode.even => 'Even',
+    _SplitMode.custom => 'Custom %',
+  };
+}
+
+extension on _CustomBasis {
+  String get label => switch (this) {
+    _CustomBasis.teams => 'By team',
+    _CustomBasis.result => 'By result',
+  };
+}
 
 extension on _OpponentTab {
   String get label => switch (this) {
@@ -41,6 +62,44 @@ class _OpponentRequestScreenState extends State<OpponentRequestScreen> {
   DateTime _date = DateTime(2026, 5, 3);
   TimeOfDay _time = const TimeOfDay(hour: 18, minute: 0);
   String _venue = 'Green Turf Arena, Kathmandu';
+  _SplitMode _split = _SplitMode.even;
+  _CustomBasis _basis = _CustomBasis.teams;
+  int _myPercent = 50;
+  int _loserPercent = 70;
+
+  static const Map<String, int> _courtFeeByType = {
+    '5v5': 1200,
+    '6v6': 1500,
+    '7v7': 1800,
+  };
+
+  int get _courtFee => _courtFeeByType[_matchType] ?? 1200;
+
+  bool get _isResultBased =>
+      _split == _SplitMode.custom && _basis == _CustomBasis.result;
+
+  int get _myPct {
+    if (_split == _SplitMode.even) return 50;
+    if (_isResultBased) return 0; // conditional on match result
+    return _myPercent;
+  }
+
+  int get _yourShare {
+    if (_split == _SplitMode.even) return (_courtFee * 0.5).round();
+    if (_isResultBased) return 0; // conditional
+    return (_courtFee * _myPercent / 100).round();
+  }
+
+  int get _opponentShare => _courtFee - _yourShare;
+
+  int get _loserShare => (_courtFee * _loserPercent / 100).round();
+  int get _winnerShare => _courtFee - _loserShare;
+
+  int get _perPlayerShare {
+    final n = _selectedTeam.players.length;
+    if (n == 0 || _yourShare == 0) return 0;
+    return (_yourShare / n).round();
+  }
 
   final List<String> _venues = const [
     'Green Turf Arena, Kathmandu',
@@ -75,14 +134,25 @@ class _OpponentRequestScreenState extends State<OpponentRequestScreen> {
     _Request(
       team: 'Royal Futsal Club',
       time: 'Today, 6:30 PM',
-      level: 'Intermediate',
+      level: 'Intermediate · 5v5',
       status: 'New',
+      venue: 'Green Turf Arena, Kathmandu',
+      slot: '6:00 AM – 7:00 AM',
+      totalFee: 1200,
+      yourShare: 600,
+      myPct: 50,
+      createdAt: DateTime.now().subtract(const Duration(minutes: 4)),
     ),
     _Request(
       team: 'Bhaktapur Warriors',
       time: 'Tomorrow, 5:00 PM',
-      level: 'Advanced',
+      level: 'Advanced · 6v6',
       status: 'Pending',
+      venue: 'Champions Court, Bhaktapur',
+      slot: '5:00 PM – 6:00 PM',
+      totalFee: 1500,
+      yourShare: 900,
+      myPct: 60,
     ),
   ];
 
@@ -96,7 +166,10 @@ class _OpponentRequestScreenState extends State<OpponentRequestScreen> {
 
   bool _isOpen(_Request r) => r.status == 'New' || r.status == 'Pending';
   bool _isSettled(_Request r) =>
-      r.status == 'Accepted' || r.status == 'Rejected' || r.status == 'Sent';
+      r.status == 'Accepted' ||
+      r.status == 'Rejected' ||
+      r.status == 'Sent' ||
+      r.status == 'Expired';
 
   int get _openCount => _requests.where(_isOpen).length;
 
@@ -137,11 +210,19 @@ class _OpponentRequestScreenState extends State<OpponentRequestScreen> {
     return '${months[_date.month - 1]} ${_date.day.toString().padLeft(2, '0')}';
   }
 
-  String get _formattedTime {
-    final h = _time.hourOfPeriod == 0 ? 12 : _time.hourOfPeriod;
-    final m = _time.minute.toString().padLeft(2, '0');
-    final p = _time.period == DayPeriod.am ? 'AM' : 'PM';
+  String get _formattedTime => _fmtTime(_time);
+
+  String _fmtTime(TimeOfDay t) {
+    final h = t.hourOfPeriod == 0 ? 12 : t.hourOfPeriod;
+    final m = t.minute.toString().padLeft(2, '0');
+    final p = t.period == DayPeriod.am ? 'AM' : 'PM';
     return '$h:$m $p';
+  }
+
+  String get _formattedSlot {
+    final endHour = (_time.hour + 1) % 24;
+    final end = TimeOfDay(hour: endHour, minute: _time.minute);
+    return '${_fmtTime(_time)} – ${_fmtTime(end)}';
   }
 
   Future<void> _pickDate() async {
@@ -195,6 +276,15 @@ class _OpponentRequestScreenState extends State<OpponentRequestScreen> {
   }
 
   void _sendRequest() {
+    final String shareLabel;
+    if (_split == _SplitMode.even) {
+      shareLabel = 'Your share NPR $_yourShare of $_courtFee (50%)';
+    } else if (_isResultBased) {
+      shareLabel =
+          'Loser NPR $_loserShare ($_loserPercent%) · Winner NPR $_winnerShare';
+    } else {
+      shareLabel = 'Your share NPR $_yourShare of $_courtFee ($_myPercent%)';
+    }
     setState(() {
       _requests.insert(
         0,
@@ -202,8 +292,13 @@ class _OpponentRequestScreenState extends State<OpponentRequestScreen> {
           team: _selectedTeam.name,
           time: '$_formattedDate · $_formattedTime',
           level:
-              '$_level · $_matchType · ${_selectedTeam.players.length} players',
+              '$_level · $_matchType · ${_selectedTeam.players.length} players · $shareLabel',
           status: 'Sent',
+          venue: _venue,
+          slot: _formattedSlot,
+          totalFee: _courtFee,
+          yourShare: _isResultBased ? _loserShare : _yourShare,
+          myPct: _isResultBased ? null : _myPct,
         ),
       );
       _tab = _OpponentTab.requests;
@@ -331,6 +426,18 @@ class _OpponentRequestScreenState extends State<OpponentRequestScreen> {
                         dateLabel: _formattedDate,
                         timeLabel: _formattedTime,
                         venueLabel: _venue,
+                        split: _split,
+                        basis: _basis,
+                        myPercent: _myPct,
+                        customPercent: _myPercent,
+                        loserPercent: _loserPercent,
+                        courtFee: _courtFee,
+                        yourShare: _yourShare,
+                        opponentShare: _opponentShare,
+                        winnerShare: _winnerShare,
+                        loserShare: _loserShare,
+                        perPlayer: _perPlayerShare,
+                        playerCount: _selectedTeam.players.length,
                         onTeamChanged: (i) =>
                             setState(() => _selectedTeamIndex = i),
                         onCreateTeam: _openCreateTeam,
@@ -341,6 +448,11 @@ class _OpponentRequestScreenState extends State<OpponentRequestScreen> {
                         onPickDate: _pickDate,
                         onPickTime: _pickTime,
                         onPickVenue: _pickVenue,
+                        onSplit: (v) => setState(() => _split = v),
+                        onBasisChange: (v) => setState(() => _basis = v),
+                        onPercentChange: (v) => setState(() => _myPercent = v),
+                        onLoserPctChange: (v) =>
+                            setState(() => _loserPercent = v),
                         onSend: _sendRequest,
                       )
                     : _RequestsView(
@@ -360,6 +472,12 @@ class _OpponentRequestScreenState extends State<OpponentRequestScreen> {
                         onDelete: (r) {
                           final i = _requests.indexOf(r);
                           if (i >= 0) _deleteRequest(i);
+                        },
+                        onExpire: (r) {
+                          final i = _requests.indexOf(r);
+                          if (i >= 0 && _requests[i].status == 'New') {
+                            _updateStatus(i, 'Expired');
+                          }
                         },
                       ),
               ),
@@ -398,12 +516,28 @@ class _Team {
 }
 
 class _Request {
-  String team, time, level, status;
+  String team;
+  String time;
+  String level;
+  String status;
+  String venue;
+  String slot;
+  int totalFee;
+  int yourShare;
+  int? myPct;
+  DateTime? createdAt;
+
   _Request({
     required this.team,
     required this.time,
     required this.level,
     required this.status,
+    required this.venue,
+    required this.slot,
+    required this.totalFee,
+    required this.yourShare,
+    this.myPct,
+    this.createdAt,
   });
 
   String get initials {
@@ -417,6 +551,8 @@ class _Request {
     return (parts[0].substring(0, 1) + parts[1].substring(0, 1)).toUpperCase();
   }
 }
+
+const Duration _kAcceptWindow = Duration(minutes: 20);
 
 // ─────────────────────────────────────────────
 //  HEADER + SEGMENT
@@ -569,6 +705,18 @@ class _CreateView extends StatelessWidget {
     required this.dateLabel,
     required this.timeLabel,
     required this.venueLabel,
+    required this.split,
+    required this.basis,
+    required this.myPercent,
+    required this.customPercent,
+    required this.loserPercent,
+    required this.courtFee,
+    required this.yourShare,
+    required this.opponentShare,
+    required this.winnerShare,
+    required this.loserShare,
+    required this.perPlayer,
+    required this.playerCount,
     required this.onTeamChanged,
     required this.onCreateTeam,
     required this.onMatchType,
@@ -578,6 +726,10 @@ class _CreateView extends StatelessWidget {
     required this.onPickDate,
     required this.onPickTime,
     required this.onPickVenue,
+    required this.onSplit,
+    required this.onBasisChange,
+    required this.onPercentChange,
+    required this.onLoserPctChange,
     required this.onSend,
   });
 
@@ -586,8 +738,17 @@ class _CreateView extends StatelessWidget {
   final int selectedTeamIndex;
   final String matchType, level;
   final String dateLabel, timeLabel, venueLabel;
+  final _SplitMode split;
+  final _CustomBasis basis;
+  final int myPercent, customPercent, loserPercent;
+  final int courtFee, yourShare, opponentShare, winnerShare, loserShare;
+  final int perPlayer, playerCount;
   final ValueChanged<int> onTeamChanged;
   final ValueChanged<String> onMatchType, onLevel;
+  final ValueChanged<_SplitMode> onSplit;
+  final ValueChanged<_CustomBasis> onBasisChange;
+  final ValueChanged<int> onPercentChange;
+  final ValueChanged<int> onLoserPctChange;
   final VoidCallback onCreateTeam, onAddPlayer, onSend;
   final VoidCallback onPickDate, onPickTime, onPickVenue;
   final ValueChanged<int> onDelPlayer;
@@ -705,12 +866,583 @@ class _CreateView extends StatelessWidget {
             maxLines: 3,
           ),
         ),
+        const SizedBox(height: AppDimens.paddingX18),
+
+        const _SectionLabel('Cost split'),
+        _CostSplitCard(
+          matchType: matchType,
+          split: split,
+          basis: basis,
+          myPercent: myPercent,
+          customPercent: customPercent,
+          loserPercent: loserPercent,
+          courtFee: courtFee,
+          yourShare: yourShare,
+          opponentShare: opponentShare,
+          winnerShare: winnerShare,
+          loserShare: loserShare,
+          perPlayer: perPlayer,
+          playerCount: playerCount,
+          onSplit: onSplit,
+          onBasisChange: onBasisChange,
+          onPercentChange: onPercentChange,
+          onLoserPctChange: onLoserPctChange,
+        ),
         const SizedBox(height: AppDimens.paddingX24),
 
-        _PrimaryButton(
-          label: 'Send Opponent Request',
+        CustomButton(
+          text: 'Send Opponent Request',
           icon: Icons.send_rounded,
-          onTap: onSend,
+          onPressed: onSend,
+          minHeight: AppDimens.sizeX54,
+          fontSize: AppDimens.fontBodyTextSmall,
+        ),
+        const SizedBox(height: AppDimens.paddingX24),
+      ],
+    );
+  }
+}
+
+class _CostSplitCard extends StatelessWidget {
+  const _CostSplitCard({
+    required this.matchType,
+    required this.split,
+    required this.basis,
+    required this.myPercent,
+    required this.customPercent,
+    required this.loserPercent,
+    required this.courtFee,
+    required this.yourShare,
+    required this.opponentShare,
+    required this.winnerShare,
+    required this.loserShare,
+    required this.perPlayer,
+    required this.playerCount,
+    required this.onSplit,
+    required this.onBasisChange,
+    required this.onPercentChange,
+    required this.onLoserPctChange,
+  });
+
+  final String matchType;
+  final _SplitMode split;
+  final _CustomBasis basis;
+  final int myPercent, customPercent, loserPercent;
+  final int courtFee, yourShare, opponentShare, winnerShare, loserShare;
+  final int perPlayer, playerCount;
+  final ValueChanged<_SplitMode> onSplit;
+  final ValueChanged<_CustomBasis> onBasisChange;
+  final ValueChanged<int> onPercentChange;
+  final ValueChanged<int> onLoserPctChange;
+
+  bool get _isResult =>
+      split == _SplitMode.custom && basis == _CustomBasis.result;
+  bool get _isCustomTeams =>
+      split == _SplitMode.custom && basis == _CustomBasis.teams;
+
+  String _npr(int v) {
+    final s = v.toString();
+    final buf = StringBuffer();
+    for (int i = 0; i < s.length; i++) {
+      if (i > 0 && (s.length - i) % 3 == 0) buf.write(',');
+      buf.write(s[i]);
+    }
+    return 'NPR ${buf.toString()}';
+  }
+
+  String _badgeLabel() {
+    if (split == _SplitMode.even) return '50% my side';
+    if (_isResult) return 'Conditional';
+    return '$customPercent% my side';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+
+    return _Card(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Court fee · $matchType',
+                      style: textTheme.bodyTextSmall?.copyWith(
+                        color: LightColor.hintTextColor,
+                        fontSize: 11.5,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      _npr(courtFee),
+                      style: textTheme.bodyTextLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: LightColor.primaryTextColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: LightColor.secondaryColor.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(AppDimens.radiusX20),
+                ),
+                child: Text(
+                  _badgeLabel(),
+                  style: textTheme.bodyTextSmall?.copyWith(
+                    fontSize: AppDimens.fontBodySubTitle,
+                    fontWeight: FontWeight.w700,
+                    color: LightColor.secondaryColor,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppDimens.paddingX12),
+          Row(
+            children: List.generate(_SplitMode.values.length, (i) {
+              final m = _SplitMode.values[i];
+              final isLast = i == _SplitMode.values.length - 1;
+              return Expanded(
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    right: isLast ? 0 : AppDimens.paddingX6,
+                  ),
+                  child: _PillChip(
+                    label: m.label,
+                    active: split == m,
+                    compact: true,
+                    onTap: () => onSplit(m),
+                  ),
+                ),
+              );
+            }),
+          ),
+          if (split == _SplitMode.custom) ...[
+            const SizedBox(height: AppDimens.paddingX10),
+            _BasisToggle(basis: basis, onChange: onBasisChange),
+            const SizedBox(height: AppDimens.paddingX10),
+            _PercentSlider(
+              percent: _isResult ? loserPercent : customPercent,
+              leftLabel: _isResult ? 'Loser pays' : 'My side pays',
+              rightLabel: _isResult ? 'Winner' : 'Opponent',
+              min: _isResult ? 50 : 10,
+              max: 90,
+              onChanged: _isResult ? onLoserPctChange : onPercentChange,
+            ),
+          ],
+          const SizedBox(height: AppDimens.paddingX12),
+          const Divider(
+            height: 1,
+            thickness: 1,
+            color: LightColor.dividerColor,
+          ),
+          const SizedBox(height: AppDimens.paddingX12),
+          if (_isResult) ...[
+            const _CostHintRow(
+              icon: Icons.emoji_events_outlined,
+              text:
+                  'Loser covers the larger share. Settle the amount after the match result.',
+            ),
+            const SizedBox(height: AppDimens.paddingX12),
+            _CostLine(
+              label: 'Loser pays',
+              value: _npr(loserShare),
+              pct: loserPercent,
+              emphasised: true,
+            ),
+            const SizedBox(height: AppDimens.paddingX8),
+            _CostLine(
+              label: 'Winner pays',
+              value: _npr(winnerShare),
+              pct: 100 - loserPercent,
+            ),
+          ] else ...[
+            _CostLine(
+              label: 'Your team',
+              value: _npr(yourShare),
+              pct: myPercent,
+              emphasised: true,
+            ),
+            const SizedBox(height: AppDimens.paddingX8),
+            _CostLine(
+              label: 'Opponent team',
+              value: _npr(opponentShare),
+              pct: 100 - myPercent,
+            ),
+            const SizedBox(height: AppDimens.paddingX8),
+            _CostLine(
+              label: playerCount == 0
+                  ? 'Per player'
+                  : 'Per player ($playerCount)',
+              value: perPlayer == 0 ? '—' : _npr(perPlayer),
+              muted: true,
+            ),
+          ],
+          const SizedBox(height: AppDimens.paddingX12),
+          Container(
+            padding: AppUtils().getPadding(
+              symmetricHorizontal: AppDimens.paddingX12,
+              symmetricVertical: AppDimens.paddingX10,
+            ),
+            decoration: BoxDecoration(
+              color: LightColor.secondaryColor.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+            ),
+            child: Row(
+              children: [
+                Text(
+                  _isResult ? 'You pay (if loser)' : 'You pay',
+                  style: textTheme.bodyTextSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: LightColor.secondaryColor,
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  _isResult
+                      ? '${_npr(loserShare)} · $loserPercent%'
+                      : '${_npr(yourShare)} · ${_isCustomTeams ? myPercent : 50}%',
+                  style: textTheme.bodyTextMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: LightColor.secondaryColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BasisToggle extends StatelessWidget {
+  const _BasisToggle({required this.basis, required this.onChange});
+
+  final _CustomBasis basis;
+  final ValueChanged<_CustomBasis> onChange;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    return Container(
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: LightColor.background,
+        borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+        border: Border.all(color: LightColor.dividerColor),
+      ),
+      child: Row(
+        children: _CustomBasis.values.map((b) {
+          final active = basis == b;
+          return Expanded(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => onChange(b),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                height: 30,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: active
+                      ? LightColor.cardColor
+                      : LightColor.transparentColor,
+                  borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+                  boxShadow: active
+                      ? const [
+                          BoxShadow(
+                            color: LightColor.shadowColor,
+                            blurRadius: 6,
+                            offset: Offset(0, 1),
+                          ),
+                        ]
+                      : null,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      b == _CustomBasis.teams
+                          ? Icons.groups_2_outlined
+                          : Icons.emoji_events_outlined,
+                      size: 14,
+                      color: active
+                          ? LightColor.secondaryColor
+                          : LightColor.secondaryTextColor,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      b.label,
+                      style: textTheme.bodyTextSmall?.copyWith(
+                        fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                        color: active
+                            ? LightColor.secondaryColor
+                            : LightColor.secondaryTextColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+}
+
+class _PercentSlider extends StatelessWidget {
+  const _PercentSlider({
+    required this.percent,
+    required this.onChanged,
+    this.leftLabel = 'My side pays',
+    this.rightLabel = 'Opponent',
+    this.min = 10,
+    this.max = 90,
+  });
+
+  final int percent;
+  final ValueChanged<int> onChanged;
+  final String leftLabel;
+  final String rightLabel;
+  final int min;
+  final int max;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    final divisions = ((max - min) / 10).round();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                leftLabel,
+                style: textTheme.bodyTextSmall?.copyWith(
+                  color: LightColor.secondaryTextColor,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            Text(
+              '$percent%',
+              style: textTheme.bodyTextMedium?.copyWith(
+                color: LightColor.secondaryColor,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            Text(
+              '  ·  $rightLabel ${100 - percent}%',
+              style: textTheme.bodyTextSmall?.copyWith(
+                color: LightColor.hintTextColor,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+        SliderTheme(
+          data: SliderTheme.of(context).copyWith(
+            trackHeight: 4,
+            activeTrackColor: LightColor.secondaryColor,
+            inactiveTrackColor: LightColor.dividerColor,
+            thumbColor: LightColor.secondaryColor,
+            overlayColor: LightColor.secondaryColor.withValues(alpha: 0.12),
+            valueIndicatorColor: LightColor.secondaryColor,
+            valueIndicatorTextStyle: textTheme.bodyTextSmall?.copyWith(
+              color: LightColor.whiteColor,
+              fontWeight: FontWeight.w600,
+            ),
+            showValueIndicator: ShowValueIndicator.onDrag,
+          ),
+          child: Slider(
+            value: percent.clamp(min, max).toDouble(),
+            min: min.toDouble(),
+            max: max.toDouble(),
+            divisions: divisions,
+            label: '$percent%',
+            onChanged: (v) => onChanged(v.round()),
+          ),
+        ),
+        Row(
+          children: [
+            _StepButton(
+              icon: Icons.remove_rounded,
+              enabled: percent > min,
+              onTap: () => onChanged((percent - 10).clamp(min, max)),
+            ),
+            const SizedBox(width: AppDimens.paddingX8),
+            _StepButton(
+              icon: Icons.add_rounded,
+              enabled: percent < max,
+              onTap: () => onChanged((percent + 10).clamp(min, max)),
+            ),
+            const Spacer(),
+            Text(
+              '10% steps',
+              style: textTheme.bodyTextSmall?.copyWith(
+                color: LightColor.hintTextColor,
+                fontSize: AppDimens.fontBodySubTitle,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _StepButton extends StatelessWidget {
+  const _StepButton({
+    required this.icon,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = enabled
+        ? LightColor.secondaryColor
+        : LightColor.disabledTextColor;
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+      child: InkWell(
+        onTap: enabled ? onTap : null,
+        borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+        child: Container(
+          width: 32,
+          height: 28,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: LightColor.background,
+            borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+            border: Border.all(color: LightColor.dividerColor),
+          ),
+          child: Icon(icon, size: 16, color: color),
+        ),
+      ),
+    );
+  }
+}
+
+class _CostLine extends StatelessWidget {
+  const _CostLine({
+    required this.label,
+    required this.value,
+    this.pct,
+    this.muted = false,
+    this.emphasised = false,
+  });
+
+  final String label;
+  final String value;
+  final int? pct;
+  final bool muted;
+  final bool emphasised;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    final Color labelColor = muted
+        ? LightColor.hintTextColor
+        : LightColor.secondaryTextColor;
+    final Color valueColor = muted
+        ? LightColor.hintTextColor
+        : (emphasised
+              ? LightColor.secondaryColor
+              : LightColor.primaryTextColor);
+    return Row(
+      children: [
+        Expanded(
+          child: Row(
+            children: [
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: textTheme.bodyTextSmall?.copyWith(
+                    color: labelColor,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              if (pct != null) ...[
+                const SizedBox(width: AppDimens.paddingX6),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 1,
+                  ),
+                  decoration: BoxDecoration(
+                    color: emphasised
+                        ? LightColor.secondaryColor.withValues(alpha: 0.10)
+                        : LightColor.dividerColor,
+                    borderRadius: BorderRadius.circular(AppDimens.radiusX20),
+                  ),
+                  child: Text(
+                    '$pct%',
+                    style: textTheme.bodyTextSmall?.copyWith(
+                      fontSize: AppDimens.fontBodySubTitle,
+                      fontWeight: FontWeight.w700,
+                      color: emphasised
+                          ? LightColor.secondaryColor
+                          : LightColor.secondaryTextColor,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+        Text(
+          value,
+          style: textTheme.bodyTextSmall?.copyWith(
+            color: valueColor,
+            fontWeight: muted ? FontWeight.w600 : FontWeight.w700,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CostHintRow extends StatelessWidget {
+  const _CostHintRow({required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 16, color: LightColor.secondaryTextColor),
+        const SizedBox(width: AppDimens.paddingX8),
+        Expanded(
+          child: Text(
+            text,
+            style: textTheme.bodyTextSmall?.copyWith(
+              color: LightColor.secondaryTextColor,
+              height: 1.45,
+            ),
+          ),
         ),
       ],
     );
@@ -910,13 +1642,14 @@ class _RequestsView extends StatelessWidget {
     required this.onAccept,
     required this.onReject,
     required this.onDelete,
+    required this.onExpire,
   });
 
   final _RequestFilter filter;
   final int Function(_RequestFilter) filterCount;
   final List<_Request> requests;
   final ValueChanged<_RequestFilter> onFilter;
-  final ValueChanged<_Request> onAccept, onReject, onDelete;
+  final ValueChanged<_Request> onAccept, onReject, onDelete, onExpire;
 
   @override
   Widget build(BuildContext context) {
@@ -960,10 +1693,14 @@ class _RequestsView extends StatelessWidget {
                   separatorBuilder: (_, __) =>
                       const SizedBox(height: AppDimens.paddingX12),
                   itemBuilder: (_, i) => _RequestCard(
+                    key: ValueKey(
+                      '${requests[i].team}-${requests[i].createdAt?.millisecondsSinceEpoch ?? i}',
+                    ),
                     request: requests[i],
                     onAccept: () => onAccept(requests[i]),
                     onReject: () => onReject(requests[i]),
                     onDelete: () => onDelete(requests[i]),
+                    onExpire: () => onExpire(requests[i]),
                   ),
                 ),
         ),
@@ -1042,25 +1779,137 @@ class _ChipPillFilter extends StatelessWidget {
   }
 }
 
-class _RequestCard extends StatelessWidget {
+class _RequestCard extends StatefulWidget {
   const _RequestCard({
+    super.key,
     required this.request,
     required this.onAccept,
     required this.onReject,
     required this.onDelete,
+    required this.onExpire,
   });
 
   final _Request request;
   final VoidCallback onAccept;
   final VoidCallback onReject;
   final VoidCallback onDelete;
+  final VoidCallback onExpire;
 
-  bool get _isOpen => request.status == 'New' || request.status == 'Pending';
+  @override
+  State<_RequestCard> createState() => _RequestCardState();
+}
+
+class _RequestCardState extends State<_RequestCard> {
+  Timer? _ticker;
+  Duration _remaining = Duration.zero;
+
+  bool get _isOpen =>
+      widget.request.status == 'New' || widget.request.status == 'Pending';
+
+  bool get _hasCountdown =>
+      widget.request.status == 'New' && widget.request.createdAt != null;
+
+  @override
+  void initState() {
+    super.initState();
+    _recompute(initial: true);
+  }
+
+  @override
+  void didUpdateWidget(covariant _RequestCard old) {
+    super.didUpdateWidget(old);
+    if (old.request.status != widget.request.status ||
+        old.request.createdAt != widget.request.createdAt) {
+      _ticker?.cancel();
+      _ticker = null;
+      _recompute(initial: true);
+    }
+  }
+
+  void _recompute({bool initial = false}) {
+    if (!_hasCountdown) {
+      if (_remaining != Duration.zero) {
+        setState(() => _remaining = Duration.zero);
+      }
+      return;
+    }
+    final elapsed = DateTime.now().difference(widget.request.createdAt!);
+    final remaining = _kAcceptWindow - elapsed;
+    if (remaining.inSeconds <= 0) {
+      _ticker?.cancel();
+      _ticker = null;
+      if (mounted) setState(() => _remaining = Duration.zero);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) widget.onExpire();
+      });
+      return;
+    }
+    if (initial) {
+      _remaining = remaining;
+      _ticker ??= Timer.periodic(
+        const Duration(seconds: 1),
+        (_) => _recompute(),
+      );
+    } else if (mounted) {
+      setState(() => _remaining = remaining);
+    }
+  }
+
+  @override
+  void dispose() {
+    _ticker?.cancel();
+    super.dispose();
+  }
+
+  String _formatRemaining(Duration d) {
+    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return '$m:$s';
+  }
+
+  String _npr(int v) {
+    final s = v.toString();
+    final buf = StringBuffer();
+    for (int i = 0; i < s.length; i++) {
+      if (i > 0 && (s.length - i) % 3 == 0) buf.write(',');
+      buf.write(s[i]);
+    }
+    return 'NPR ${buf.toString()}';
+  }
+
+  void _confirmDelete(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: LightColor.transparentColor,
+      builder: (ctx) => _ConfirmDeleteSheet(
+        title: 'Remove request?',
+        message:
+            'This will remove the request from ${widget.request.team}. You can\'t undo this.',
+        onConfirm: () {
+          Navigator.pop(ctx);
+          widget.onDelete();
+        },
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
+    final request = widget.request;
     final emphasised = request.status == 'New';
+    final isExpired = request.status == 'Expired';
+    final showCountdown = _hasCountdown && _remaining.inSeconds > 0;
+    final urgent = showCountdown && _remaining.inMinutes < 5;
+
+    final String priceText;
+    if (request.myPct == null) {
+      priceText =
+          '${_npr(request.yourShare)} if loser · ${_npr(request.totalFee)} total';
+    } else {
+      priceText =
+          '${_npr(request.yourShare)} · ${request.myPct}% of ${_npr(request.totalFee)}';
+    }
 
     return Material(
       color: LightColor.cardColor,
@@ -1141,7 +1990,7 @@ class _RequestCard extends StatelessWidget {
                             const SizedBox(width: AppDimens.paddingX4),
                             Flexible(
                               child: Text(
-                                request.time,
+                                '${request.time} · ${request.level}',
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: textTheme.bodyTextSmall?.copyWith(
@@ -1160,15 +2009,22 @@ class _RequestCard extends StatelessWidget {
                   _StatusBadge(status: request.status),
                 ],
               ),
-              const SizedBox(height: AppDimens.paddingX10),
-              Text(
-                request.level,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: textTheme.bodyTextSmall?.copyWith(
-                  color: LightColor.secondaryTextColor,
-                  height: 1.4,
+              if (showCountdown) ...[
+                const SizedBox(height: AppDimens.paddingX10),
+                _CountdownPill(
+                  label: _formatRemaining(_remaining),
+                  urgent: urgent,
                 ),
+              ],
+              const SizedBox(height: AppDimens.paddingX12),
+              _InfoMini(icon: Icons.event_outlined, label: request.slot),
+              const SizedBox(height: AppDimens.paddingX6),
+              _InfoMini(icon: Icons.location_on_outlined, label: request.venue),
+              const SizedBox(height: AppDimens.paddingX6),
+              _InfoMini(
+                icon: Icons.payments_outlined,
+                label: priceText,
+                emphasised: true,
               ),
               const SizedBox(height: AppDimens.paddingX12),
               const Divider(
@@ -1176,14 +2032,36 @@ class _RequestCard extends StatelessWidget {
                 thickness: 1,
                 color: LightColor.dividerColor,
               ),
-              if (_isOpen)
+              if (isExpired)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.hourglass_disabled_rounded,
+                        size: AppDimens.sizeX16,
+                        color: LightColor.hintTextColor,
+                      ),
+                      const SizedBox(width: AppDimens.paddingX6),
+                      Text(
+                        'Accept window expired',
+                        style: textTheme.bodyTextSmall?.copyWith(
+                          color: LightColor.hintTextColor,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else if (_isOpen)
                 Row(
                   children: [
                     Expanded(
                       child: _QuickAction(
                         icon: Icons.close_rounded,
                         label: 'Reject',
-                        onTap: onReject,
+                        onTap: widget.onReject,
                       ),
                     ),
                     Container(
@@ -1196,7 +2074,7 @@ class _RequestCard extends StatelessWidget {
                         icon: Icons.check_circle_outline_rounded,
                         label: 'Accept',
                         emphasised: true,
-                        onTap: onAccept,
+                        onTap: widget.onAccept,
                       ),
                     ),
                   ],
@@ -1235,20 +2113,101 @@ class _RequestCard extends StatelessWidget {
       ),
     );
   }
+}
 
-  void _confirmDelete(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: LightColor.transparentColor,
-      builder: (ctx) => _ConfirmDeleteSheet(
-        title: 'Remove request?',
-        message:
-            'This will remove the request from ${request.team}. You can\'t undo this.',
-        onConfirm: () {
-          Navigator.pop(ctx);
-          onDelete();
-        },
+class _CountdownPill extends StatelessWidget {
+  const _CountdownPill({required this.label, required this.urgent});
+
+  final String label;
+  final bool urgent;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    final Color fg = urgent ? LightColor.redColor : LightColor.secondaryColor;
+    final Color bg = urgent
+        ? LightColor.redLightColor
+        : LightColor.secondaryColor.withValues(alpha: 0.10);
+    return Container(
+      padding: AppUtils().getPadding(
+        horizontal: AppDimens.paddingX10,
+        vertical: AppDimens.paddingX6,
       ),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(AppDimens.radiusX6),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            urgent ? Icons.timer_rounded : Icons.timer_outlined,
+            size: 14,
+            color: fg,
+          ),
+          const SizedBox(width: AppDimens.paddingX6),
+          Text(
+            'Accept within',
+            style: textTheme.bodyTextSmall?.copyWith(
+              color: fg,
+              fontWeight: FontWeight.w500,
+              fontSize: AppDimens.fontBodySubTitle,
+            ),
+          ),
+          const Spacer(),
+          Text(
+            label,
+            style: textTheme.bodyTextMedium?.copyWith(
+              color: fg,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InfoMini extends StatelessWidget {
+  const _InfoMini({
+    required this.icon,
+    required this.label,
+    this.emphasised = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool emphasised;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    final color = emphasised
+        ? LightColor.primaryTextColor
+        : LightColor.secondaryTextColor;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(
+          icon,
+          size: 14,
+          color: emphasised
+              ? LightColor.secondaryColor
+              : LightColor.hintTextColor,
+        ),
+        const SizedBox(width: AppDimens.paddingX8),
+        Expanded(
+          child: Text(
+            label,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: textTheme.bodyTextSmall?.copyWith(
+              color: color,
+              fontWeight: emphasised ? FontWeight.w700 : FontWeight.w500,
+              height: 1.35,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -2234,6 +3193,10 @@ class _StatusBadge extends StatelessWidget {
       case 'New':
         fg = LightColor.secondaryColor;
         bg = LightColor.secondaryColor.withValues(alpha: 0.10);
+        break;
+      case 'Expired':
+        fg = LightColor.hintTextColor;
+        bg = LightColor.dividerColor;
         break;
       default:
         fg = LightColor.secondaryTextColor;
