@@ -5,6 +5,7 @@ import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_quill_delta_from_html/flutter_quill_delta_from_html.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/widgets/loading_widget.dart';
 import 'package:vsc_quill_delta_to_html/vsc_quill_delta_to_html.dart';
 import 'package:hamro_footsall/core/widgets/custom_quill_editor.dart';
 import 'package:hamro_footsall/features/courts/presentation/models/picked_location.dart';
@@ -353,10 +354,7 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
 
   Widget _buildDescription() {
     if (!_initialized) {
-      return const SizedBox(
-        height: 250,
-        child: Center(child: CircularProgressIndicator()),
-      );
+      return const SizedBox(height: 250, child: Center(child: LoadingWidget()));
     }
 
     return Column(

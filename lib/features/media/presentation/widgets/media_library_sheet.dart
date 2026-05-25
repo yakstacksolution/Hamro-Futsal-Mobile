@@ -10,6 +10,7 @@ import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/widgets/custom_bottom_sheet.dart';
 import 'package:hamro_footsall/core/widgets/custom_button.dart';
 import 'package:hamro_footsall/core/widgets/custom_confirm_dialog.dart';
+import 'package:hamro_footsall/core/widgets/loading_widget.dart';
 import 'package:hamro_footsall/features/media/data/model/media_model.dart';
 import 'package:hamro_footsall/features/media/data/repositories/media_repository_impl.dart';
 import 'package:hamro_footsall/features/media/domain/usecase/media_use_case.dart';
@@ -154,13 +155,7 @@ class _VendorMediaLibrarySheetState extends State<VendorMediaLibrarySheet> {
 
                         Expanded(
                           child: mediaState.fetchStatus == MediaStatus.loading
-                              ? SizedBox(
-                                  child: Center(
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 0.5,
-                                    ),
-                                  ),
-                                )
+                              ? SizedBox(child: Center(child: LoadingWidget()))
                               : isFetchingInitialMedia
                               ? const _CompactLoadingState()
                               : library.isEmpty
@@ -1058,12 +1053,7 @@ class _SmallActionButton extends StatelessWidget {
                   SizedBox(
                     width: AppDimens.sizeX18,
                     height: AppDimens.sizeX18,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        isDisabled ? LightColor.hintTextColor : accentColor,
-                      ),
-                    ),
+                    child: LoadingWidget(),
                   )
                 else
                   Icon(
@@ -1110,16 +1100,7 @@ class _CompactLoadingState extends StatelessWidget {
         child: const Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            SizedBox(
-              width: 28,
-              height: 28,
-              child: CircularProgressIndicator(
-                strokeWidth: 2.5,
-                valueColor: AlwaysStoppedAnimation<Color>(
-                  LightColor.secondaryColor,
-                ),
-              ),
-            ),
+            SizedBox(width: 28, height: 28, child: LoadingWidget()),
             SizedBox(height: 12),
             Text(
               'Loading media library...',

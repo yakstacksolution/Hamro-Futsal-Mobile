@@ -11,6 +11,7 @@ import 'package:hamro_footsall/core/widgets/custom_bottom_sheet.dart';
 import 'package:hamro_footsall/core/widgets/custom_button.dart';
 import 'package:hamro_footsall/core/widgets/custom_delete_dialog.dart';
 import 'package:hamro_footsall/core/widgets/custom_text_field.dart';
+import 'package:hamro_footsall/core/widgets/loading_widget.dart';
 import 'package:hamro_footsall/features/public/presentation/bloc/public_templates/public_templates_bloc.dart';
 import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_cubit.dart';
 import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_state.dart';
@@ -120,7 +121,7 @@ class VendorCourtManager extends StatelessWidget {
           if (state.isLoadingCourts)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: AppDimens.paddingX24),
-              child: Center(child: CircularProgressIndicator()),
+              child: Center(child: LoadingWidget()),
             )
           else if (state.courts.isEmpty)
             GestureDetector(

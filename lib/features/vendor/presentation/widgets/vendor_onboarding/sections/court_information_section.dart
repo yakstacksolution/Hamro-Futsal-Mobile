@@ -6,6 +6,7 @@ import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_quill_delta_from_html/flutter_quill_delta_from_html.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/widgets/loading_widget.dart';
 import 'package:vsc_quill_delta_to_html/vsc_quill_delta_to_html.dart';
 import 'package:hamro_footsall/core/widgets/custom_quill_editor.dart';
 import 'package:hamro_footsall/features/public/data/model/public_option_model.dart';
@@ -541,10 +542,7 @@ class _CourtDescriptionSubsectionState
           ),
           const SizedBox(height: AppDimens.sizeX12),
           if (!_initialized)
-            const SizedBox(
-              height: 450,
-              child: Center(child: CircularProgressIndicator()),
-            )
+            const SizedBox(height: 450, child: Center(child: LoadingWidget()))
           else
             SizedBox(
               height: 450,

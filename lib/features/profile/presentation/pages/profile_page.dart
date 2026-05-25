@@ -7,11 +7,14 @@ import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/custom_image_view.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/widgets/loading_widget.dart';
 import 'package:hamro_footsall/features/auth/data/repositories/authentication_repository_impl.dart';
+import 'package:hamro_footsall/features/dashboard/presentation/page/expenses_screen.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/page/overview_screen.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/widgets/opponent_request_page.dart';
 import 'package:hamro_footsall/features/profile/data/model/profile_model.dart';
 import 'package:hamro_footsall/features/profile/presentation/pages/about_app_page.dart';
+import 'package:hamro_footsall/features/profile/presentation/pages/settings_page.dart';
 import 'package:hamro_footsall/features/profile/presentation/profile_bloc/profile_bloc.dart';
 import 'package:hamro_footsall/features/profile/presentation/widgets/profile_details_page.dart';
 
@@ -29,26 +32,38 @@ class _ProfilePageState extends State<ProfilePage> {
     _ProfileItem(
       title: 'Settings',
       icon: Icons.settings_outlined,
-      onTap: () {},
+      onTap: () => Navigator.of(
+        context,
+      ).push(MaterialPageRoute<void>(builder: (_) => const SettingsPage())),
     ),
     _ProfileItem(
       title: 'Opponent Requests',
       icon: Icons.sports_kabaddi_rounded,
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute<void>(builder: (_) => OpponentRequestScreen()),
-      ),
-    ),
-    _ProfileItem(
-      title: 'Overview',
-      icon: Icons.insights_rounded,
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute<void>(builder: (_) => OverviewScreen()),
-      ),
+      onTap: () => Navigator.of(
+        context,
+      ).push(MaterialPageRoute<void>(builder: (_) => OpponentRequestScreen())),
     ),
     _ProfileItem(
       title: 'Transaction History',
       icon: Icons.receipt_long_outlined,
       onTap: () {},
+    ),
+  ];
+
+  late final List<_ProfileItem> _vendorItems = <_ProfileItem>[
+    _ProfileItem(
+      title: 'Overview',
+      icon: Icons.insights_rounded,
+      onTap: () => Navigator.of(
+        context,
+      ).push(MaterialPageRoute<void>(builder: (_) => OverviewScreen())),
+    ),
+    _ProfileItem(
+      title: 'Expenses',
+      icon: Icons.account_balance_wallet_outlined,
+      onTap: () => Navigator.of(
+        context,
+      ).push(MaterialPageRoute<void>(builder: (_) => const ExpensesScreen())),
     ),
   ];
 
@@ -61,9 +76,9 @@ class _ProfilePageState extends State<ProfilePage> {
     _ProfileItem(
       title: 'About App',
       icon: Icons.info_outline_rounded,
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute<void>(builder: (_) => const AboutAppPage()),
-      ),
+      onTap: () => Navigator.of(
+        context,
+      ).push(MaterialPageRoute<void>(builder: (_) => const AboutAppPage())),
     ),
   ];
 
@@ -75,8 +90,7 @@ class _ProfilePageState extends State<ProfilePage> {
           current.errorMessage != null,
       listener: (context, state) {
         if (state.errorMessage != null) {
-          AppUtils()
-              .showSnackBar(context, MsgType.error, state.errorMessage!);
+          AppUtils().showSnackBar(context, MsgType.error, state.errorMessage!);
         }
       },
       builder: (context, state) {
@@ -100,22 +114,20 @@ class _ProfilePageState extends State<ProfilePage> {
                     onTap: profile == null
                         ? null
                         : () => Navigator.of(context).push(
-                              MaterialPageRoute<void>(
-                                builder: (_) =>
-                                    ProfileDetailsPage(user: profile.data),
+                            MaterialPageRoute<void>(
+                              builder: (_) => BlocProvider<ProfileBloc>.value(
+                                value: context.read<ProfileBloc>(),
+                                child: ProfileDetailsPage(user: profile.data),
                               ),
                             ),
+                          ),
                   ),
                   const SizedBox(height: AppDimens.paddingX24),
-                  _SectionGroup(
-                    label: 'General',
-                    items: _generalItems,
-                  ),
+                  _SectionGroup(label: 'General', items: _generalItems),
                   const SizedBox(height: AppDimens.paddingX20),
-                  _SectionGroup(
-                    label: 'Support',
-                    items: _supportItems,
-                  ),
+                  _SectionGroup(label: 'Vendor', items: _vendorItems),
+                  const SizedBox(height: AppDimens.paddingX20),
+                  _SectionGroup(label: 'Support', items: _supportItems),
                   const SizedBox(height: AppDimens.paddingX20),
                   _SectionGroup(
                     label: 'Account',
@@ -164,9 +176,9 @@ class _ProfilePageState extends State<ProfilePage> {
       child: Text(
         'Hamro Futsal · v1.0.0',
         style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
-              color: LightColor.hintTextColor,
-              fontSize: AppDimens.fontBodySubTitle,
-            ),
+          color: LightColor.hintTextColor,
+          fontSize: AppDimens.fontBodySubTitle,
+        ),
       ),
     );
   }
@@ -180,8 +192,8 @@ class _ProfilePageState extends State<ProfilePage> {
     setState(() => _isLoggingOut = false);
 
     response?.fold(
-      (failure) => AppUtils()
-          .showSnackBar(context, MsgType.error, failure.errorMessage),
+      (failure) =>
+          AppUtils().showSnackBar(context, MsgType.error, failure.errorMessage),
       (_) {
         AppUtils().showSnackBar(context, MsgType.success, 'Logout successful');
         context.goNamed(AppRouterParams.login.name);
@@ -337,9 +349,7 @@ class _SectionGroup extends StatelessWidget {
           ),
         ),
         Container(
-          margin: const EdgeInsets.symmetric(
-            horizontal: AppDimens.paddingX16,
-          ),
+          margin: const EdgeInsets.symmetric(horizontal: AppDimens.paddingX16),
           decoration: BoxDecoration(
             color: LightColor.cardColor,
             borderRadius: BorderRadius.circular(AppDimens.radiusX12),
@@ -378,8 +388,9 @@ class _SettingsRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
-    final Color contentColor =
-        item.destructive ? LightColor.redColor : LightColor.primaryTextColor;
+    final Color contentColor = item.destructive
+        ? LightColor.redColor
+        : LightColor.primaryTextColor;
     final Color iconColor = item.destructive
         ? LightColor.redColor
         : LightColor.secondaryTextColor;
@@ -399,12 +410,7 @@ class _SettingsRow extends StatelessWidget {
                 width: 22,
                 height: 22,
                 child: item.loading
-                    ? const CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          LightColor.redColor,
-                        ),
-                      )
+                    ? const LoadingWidget()
                     : Icon(item.icon, color: iconColor, size: 20),
               ),
               const SizedBox(width: AppDimens.paddingX14),

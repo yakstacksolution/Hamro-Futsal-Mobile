@@ -4,6 +4,7 @@ import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/widgets/loading_widget.dart';
 import 'package:hamro_footsall/features/bookings/data/model/booking_model.dart';
 import 'package:hamro_footsall/features/bookings/presentation/bloc/booking_bloc/booking_bloc.dart';
 import 'package:hamro_footsall/features/bookings/presentation/widgets/booking_shared_widgets.dart';
@@ -69,16 +70,17 @@ class RecentBookingsWidget extends StatelessWidget {
                 state.futsalBookings.isEmpty)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 24),
-                child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                child: Center(child: LoadingWidget()),
               )
             else if (state.futsalBookingsStatus == BookingLoadStatus.failure &&
                 state.futsalBookings.isEmpty)
               _InlineError(
-                message: state.futsalBookingsError ??
+                message:
+                    state.futsalBookingsError ??
                     'Failed to load recent bookings.',
-                onRetry: () => context
-                    .read<BookingBloc>()
-                    .add(const FetchFutsalBookingsEvent()),
+                onRetry: () => context.read<BookingBloc>().add(
+                  const FetchFutsalBookingsEvent(),
+                ),
               )
             else if (recent.isEmpty)
               const _InlineEmpty()
@@ -98,8 +100,7 @@ class RecentBookingsWidget extends StatelessWidget {
   }
 
   static List<BookingModel> _recent(List<BookingModel> all, int max) {
-    final sorted = [...all]
-      ..sort((a, b) => b.date.compareTo(a.date));
+    final sorted = [...all]..sort((a, b) => b.date.compareTo(a.date));
     return sorted.take(max).toList(growable: false);
   }
 
@@ -113,13 +114,16 @@ class RecentBookingsWidget extends StatelessWidget {
     }).length;
 
     final double revenue = bookings
-        .where((b) =>
-            b.status == BookingStatus.confirmed ||
-            b.status == BookingStatus.completed)
+        .where(
+          (b) =>
+              b.status == BookingStatus.confirmed ||
+              b.status == BookingStatus.completed,
+        )
         .fold<double>(0, (sum, b) => sum + b.amount);
 
-    final int pending =
-        bookings.where((b) => b.status == BookingStatus.pending).length;
+    final int pending = bookings
+        .where((b) => b.status == BookingStatus.pending)
+        .length;
 
     return [
       _Summary(
@@ -277,9 +281,7 @@ class _BookingTile extends StatelessWidget {
     final statusColor = bookingStatusColor(booking.status);
     final displayName = (booking.playerName?.isNotEmpty == true)
         ? booking.playerName!
-        : (booking.futsalName.isNotEmpty
-            ? booking.futsalName
-            : 'Unknown');
+        : (booking.futsalName.isNotEmpty ? booking.futsalName : 'Unknown');
 
     return Container(
       padding: AppUtils().getPadding(all: AppDimens.paddingX14),
@@ -330,10 +332,7 @@ class _BookingTile extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 10),
-              _StatusBadge(
-                status: booking.status,
-                statusColor: statusColor,
-              ),
+              _StatusBadge(status: booking.status, statusColor: statusColor),
             ],
           ),
           const SizedBox(height: 14),
@@ -355,9 +354,7 @@ class _BookingTile extends StatelessWidget {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        booking.courtName.isNotEmpty
-                            ? booking.courtName
-                            : '—',
+                        booking.courtName.isNotEmpty ? booking.courtName : '—',
                         style: textTheme.bodyTextSmall?.copyWith(
                           color: LightColor.primaryTextColor,
                           fontWeight: FontWeight.w600,
@@ -466,8 +463,18 @@ class _BookingTile extends StatelessWidget {
     if (diff == 1) return 'Tomorrow';
     if (diff == -1) return 'Yesterday';
     const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     return '${d.day} ${months[d.month - 1]}';
   }
@@ -548,11 +555,11 @@ class _StatusBadge extends StatelessWidget {
   }
 
   static IconData _iconFor(BookingStatus s) => switch (s) {
-        BookingStatus.confirmed => Icons.check_circle_rounded,
-        BookingStatus.pending => Icons.access_time_filled_rounded,
-        BookingStatus.completed => Icons.verified_rounded,
-        BookingStatus.cancelled => Icons.cancel_rounded,
-      };
+    BookingStatus.confirmed => Icons.check_circle_rounded,
+    BookingStatus.pending => Icons.access_time_filled_rounded,
+    BookingStatus.completed => Icons.verified_rounded,
+    BookingStatus.cancelled => Icons.cancel_rounded,
+  };
 }
 
 class _InlineEmpty extends StatelessWidget {

@@ -52,7 +52,7 @@ class ApiClient {
   }
 
   Future<Result> updateProfile({required Map<String, dynamic> data}) {
-    return _put(url: '$_baseUrl/account/2/user/update-profile/', data: data);
+    return _put(url: '$_baseUrl/auth/profile', data: data);
   }
 
   Future<Result> getMedia() {

@@ -3,6 +3,7 @@ import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/widgets/loading_widget.dart';
 
 class CustomButton extends StatelessWidget {
   const CustomButton({
@@ -52,14 +53,7 @@ class CustomButton extends StatelessWidget {
         borderColor ?? (isOutlined ? foregroundColor : null);
 
     final content = isLoading
-        ? SizedBox(
-            width: 20,
-            height: 20,
-            child: CircularProgressIndicator(
-              strokeWidth: 1.7,
-              valueColor: AlwaysStoppedAnimation<Color>(foregroundColor),
-            ),
-          )
+        ? SizedBox(width: 20, height: 20, child: LoadingWidget())
         : Row(
             mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,

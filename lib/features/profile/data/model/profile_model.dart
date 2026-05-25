@@ -50,6 +50,9 @@ class UserData extends Equatable {
   final Map<String, dynamic>? vendorOnboardingData;
   final String? designation;
   final String? profilePhoto;
+  final DateTime? dateOfBirth;
+  final String? gender;
+  final String? address;
   final DateTime? createdAt;
   final DateTime? updatedAt;
   final int? futsalId;
@@ -71,6 +74,9 @@ class UserData extends Equatable {
     this.vendorOnboardingData,
     this.designation,
     this.profilePhoto,
+    this.dateOfBirth,
+    this.gender,
+    this.address,
     this.createdAt,
     this.updatedAt,
     this.futsalId,
@@ -105,17 +111,25 @@ class UserData extends Equatable {
           : null,
       designation: json['designation'],
       profilePhoto: json['profile_photo'],
+      dateOfBirth: json['date_of_birth'] != null
+          ? DateTime.tryParse(json['date_of_birth'].toString())
+          : null,
+      gender: json['gender']?.toString(),
+      address: json['address']?.toString(),
       createdAt: json['created_at'] != null
           ? DateTime.tryParse(json['created_at'])
           : null,
       updatedAt: json['updated_at'] != null
           ? DateTime.tryParse(json['updated_at'])
           : null,
-      futsalId: _asInt(json['futsal_id']) ??
+      futsalId:
+          _asInt(json['futsal_id']) ??
           _asInt((json['vendor_onboarding_data'] as Map?)?['id']),
-      mainStep: _asInt(json['main_step']) ??
+      mainStep:
+          _asInt(json['main_step']) ??
           _asInt((json['vendor_onboarding_data'] as Map?)?['main_step']),
-      subStep: _asInt(json['sub_step']) ??
+      subStep:
+          _asInt(json['sub_step']) ??
           _asInt((json['vendor_onboarding_data'] as Map?)?['sub_step']),
     );
   }
@@ -137,6 +151,9 @@ class UserData extends Equatable {
       'vendor_onboarding_data': vendorOnboardingData,
       'designation': designation,
       'profile_photo': profilePhoto,
+      'date_of_birth': dateOfBirth?.toIso8601String(),
+      'gender': gender,
+      'address': address,
       'created_at': createdAt?.toIso8601String(),
       'updated_at': updatedAt?.toIso8601String(),
       'futsal_id': futsalId,
@@ -161,6 +178,9 @@ class UserData extends Equatable {
     vendorOnboardingData,
     designation,
     profilePhoto,
+    dateOfBirth,
+    gender,
+    address,
     createdAt,
     updatedAt,
     futsalId,
@@ -183,6 +203,9 @@ class UserData extends Equatable {
     Map<String, dynamic>? vendorOnboardingData,
     String? designation,
     String? profilePhoto,
+    DateTime? dateOfBirth,
+    String? gender,
+    String? address,
     DateTime? createdAt,
     DateTime? updatedAt,
     int? futsalId,
@@ -206,6 +229,9 @@ class UserData extends Equatable {
       vendorOnboardingData: vendorOnboardingData ?? this.vendorOnboardingData,
       designation: designation ?? this.designation,
       profilePhoto: profilePhoto ?? this.profilePhoto,
+      dateOfBirth: dateOfBirth ?? this.dateOfBirth,
+      gender: gender ?? this.gender,
+      address: address ?? this.address,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       futsalId: futsalId ?? this.futsalId,
@@ -231,6 +257,9 @@ class UserData extends Equatable {
       vendorOnboardingData: other.vendorOnboardingData,
       designation: other.designation,
       profilePhoto: other.profilePhoto,
+      dateOfBirth: other.dateOfBirth,
+      gender: other.gender,
+      address: other.address,
       createdAt: other.createdAt,
       updatedAt: other.updatedAt,
       futsalId: other.futsalId,

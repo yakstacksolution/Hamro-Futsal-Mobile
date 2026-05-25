@@ -13,6 +13,7 @@ import 'package:hamro_footsall/core/widgets/custom_delete_dialog.dart';
 import 'package:hamro_footsall/core/widgets/custom_checkbox.dart';
 import 'package:hamro_footsall/core/widgets/custom_dropdown_field.dart';
 import 'package:hamro_footsall/core/widgets/custom_text_field.dart';
+import 'package:hamro_footsall/core/widgets/loading_widget.dart';
 import 'package:hamro_footsall/features/courts/presentation/models/picked_location.dart';
 import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_models.dart';
 import 'package:http/http.dart' as http;
@@ -1020,7 +1021,7 @@ class _NetworkUploadPreviewState extends State<_NetworkUploadPreview> {
           child: const SizedBox(
             width: AppDimens.sizeX22,
             height: AppDimens.sizeX22,
-            child: CircularProgressIndicator(strokeWidth: 2),
+            child: LoadingWidget(),
           ),
         );
       },
@@ -1513,9 +1514,7 @@ class _VendorLocationSearchFieldState extends State<VendorLocationSearchField> {
                         child: SizedBox(
                           width: AppDimens.sizeX18,
                           height: AppDimens.sizeX18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: AppDimens.sizeX2,
-                          ),
+                          child: LoadingWidget(),
                         ),
                       )
                     : value.text.isNotEmpty

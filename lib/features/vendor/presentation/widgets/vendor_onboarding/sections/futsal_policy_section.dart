@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_quill_delta_from_html/flutter_quill_delta_from_html.dart';
+import 'package:hamro_footsall/core/widgets/loading_widget.dart';
 import 'package:vsc_quill_delta_to_html/vsc_quill_delta_to_html.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
@@ -334,10 +335,7 @@ class _FutsalPolicySectionState extends State<FutsalPolicySection> {
 
   Widget _buildCancellationPolicy() {
     if (!_policyInitialized) {
-      return const SizedBox(
-        height: 450,
-        child: Center(child: CircularProgressIndicator()),
-      );
+      return const SizedBox(height: 450, child: Center(child: LoadingWidget()));
     }
     return SizedBox(
       height: 450,
@@ -352,10 +350,7 @@ class _FutsalPolicySectionState extends State<FutsalPolicySection> {
 
   Widget _buildFutsalRules() {
     if (!_rulesInitialized) {
-      return const SizedBox(
-        height: 450,
-        child: Center(child: CircularProgressIndicator()),
-      );
+      return const SizedBox(height: 450, child: Center(child: LoadingWidget()));
     }
     return SizedBox(
       height: 450,

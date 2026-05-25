@@ -13,6 +13,7 @@ part 'profile_state.dart';
 class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
   ProfileBloc(this._profileUseCase) : super(const ProfileState()) {
     on<FetchProfileEvent>(_onFetchProfile);
+    on<UpdateProfileEvent>(_onUpdateProfile);
   }
 
   final ProfileUseCase _profileUseCase;
@@ -34,19 +35,13 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
             errorMessage: failure.errorMessage,
           ),
         ),
-        (ProfileModel profile) {
-          final ProfileModel? existing = state.profile;
-          final ProfileModel merged = existing == null
-              ? profile
-              : profile.copyWith(data: existing.data.mergeWith(profile.data));
-          emit(
-            state.copyWith(
-              status: ProfileStatus.success,
-              profile: merged,
-              clearErrorMessage: true,
-            ),
-          );
-        },
+        (ProfileModel profile) => emit(
+          state.copyWith(
+            status: ProfileStatus.success,
+            profile: _mergeProfile(state.profile, profile),
+            clearErrorMessage: true,
+          ),
+        ),
       );
     } catch (error) {
       emit(
@@ -56,5 +51,71 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
         ),
       );
     }
+  }
+
+  FutureOr<void> _onUpdateProfile(
+    UpdateProfileEvent event,
+    Emitter<ProfileState> emit,
+  ) async {
+    try {
+      emit(
+        state.copyWith(
+          status: ProfileStatus.updating,
+          clearErrorMessage: true,
+          clearSuccessMessage: true,
+        ),
+      );
+
+      final Map<String, dynamic> payload = _buildUpdatePayload(event);
+      final Either<AppException, ProfileModel> response = await _profileUseCase
+          .updateProfile(payload);
+
+      response.fold(
+        (AppException failure) => emit(
+          state.copyWith(
+            status: ProfileStatus.failure,
+            errorMessage: failure.errorMessage,
+          ),
+        ),
+        (ProfileModel profile) => emit(
+          state.copyWith(
+            status: ProfileStatus.updateSuccess,
+            profile: _mergeProfile(state.profile, profile),
+            successMessage: profile.message.isNotEmpty
+                ? profile.message
+                : 'Profile updated successfully.',
+            clearErrorMessage: true,
+          ),
+        ),
+      );
+    } catch (error) {
+      emit(
+        state.copyWith(
+          status: ProfileStatus.failure,
+          errorMessage: error.toString(),
+        ),
+      );
+    }
+  }
+
+  ProfileModel _mergeProfile(ProfileModel? existing, ProfileModel incoming) {
+    if (existing == null) return incoming;
+    return incoming.copyWith(data: existing.data.mergeWith(incoming.data));
+  }
+
+  Map<String, dynamic> _buildUpdatePayload(UpdateProfileEvent event) {
+    return <String, dynamic>{
+      if (event.fullName != null) 'full_name': event.fullName,
+      if (event.email != null) 'email': event.email,
+      if (event.phone != null) 'phone': event.phone,
+      if (event.dateOfBirth != null)
+        'date_of_birth':
+            '${event.dateOfBirth!.year.toString().padLeft(4, '0')}-'
+            '${event.dateOfBirth!.month.toString().padLeft(2, '0')}-'
+            '${event.dateOfBirth!.day.toString().padLeft(2, '0')}',
+      if (event.gender != null) 'gender': event.gender!.toLowerCase(),
+      if (event.address != null) 'address': event.address,
+      if (event.profilePhoto != null) 'profile_photo': event.profilePhoto,
+    };
   }
 }

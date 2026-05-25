@@ -1,4 +1,5 @@
 import 'package:dartz/dartz.dart';
+import 'package:hamro_footsall/core/api/api_client/result.dart';
 import 'package:hamro_footsall/core/helper/exception_helper.dart';
 import 'package:hamro_footsall/core/helper/response_helper.dart';
 import 'package:hamro_footsall/features/profile/data/data_source/profile_data_source.dart';
@@ -14,6 +15,18 @@ final class ProfileRepositoryImpl extends ProfileRepository {
   @override
   Future<Either<AppException, ProfileModel>> getProfile() async {
     final response = await _remoteDataSource.getProfile();
+    return _toProfileResult(response);
+  }
+
+  @override
+  Future<Either<AppException, ProfileModel>> updateProfile(
+    Map<String, dynamic> data,
+  ) async {
+    final response = await _remoteDataSource.updateProfile(data);
+    return _toProfileResult(response);
+  }
+
+  Either<AppException, ProfileModel> _toProfileResult(Result response) {
     if (response.isError()) {
       return left(ResponseHelper.error(response));
     }

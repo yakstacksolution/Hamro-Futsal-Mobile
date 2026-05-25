@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/widgets/loading_widget.dart';
 import 'package:hamro_footsall/features/public/data/model/public_template_model.dart';
 import 'package:hamro_footsall/features/public/presentation/bloc/public_templates/public_templates_bloc.dart';
 import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_cubit.dart';
@@ -164,10 +164,7 @@ class _StepperLogicScreenState extends State<StepperLogicScreen> {
           final VendorOnboardingCubit cubit = _cubit;
 
           if (state.isRestoringDraft) {
-            return const Scaffold(
-              backgroundColor: LightColor.background,
-              body: Center(child: CircularProgressIndicator()),
-            );
+            return const LoadingWidget();
           }
 
           return VendorOnboardingShell(

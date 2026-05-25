@@ -4,4 +4,7 @@ import 'package:hamro_footsall/features/profile/data/model/profile_model.dart';
 
 abstract class ProfileRepository {
   Future<Either<AppException, ProfileModel>> getProfile();
+  Future<Either<AppException, ProfileModel>> updateProfile(
+    Map<String, dynamic> data,
+  );
 }

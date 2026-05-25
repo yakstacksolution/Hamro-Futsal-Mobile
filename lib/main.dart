@@ -12,13 +12,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  await dotenv.load(fileName: ".env");
   final SharedPreferences preferences = await SharedPreferences.getInstance();
   await AppSettings().init(SharedPreferencesWrapper(preferences));
-
   final bool hasLoggedIn =
       AppSettings().tokenModel.accessToken?.trim().isNotEmpty ?? false;
+  await dotenv.load(fileName: ".env");
+
   final String initialLocation = hasLoggedIn
       ? AppRouterParams.dashboard.path
       : AppRouterParams.login.path;

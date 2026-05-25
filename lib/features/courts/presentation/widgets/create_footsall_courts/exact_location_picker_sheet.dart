@@ -11,6 +11,7 @@ import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/utils/image_constants.dart';
 import 'package:hamro_footsall/core/widgets/custom_button.dart';
 import 'package:hamro_footsall/core/widgets/custom_text_field.dart';
+import 'package:hamro_footsall/core/widgets/loading_widget.dart';
 import 'package:hamro_footsall/features/courts/presentation/models/picked_location.dart';
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
@@ -332,9 +333,7 @@ class _ExactLocationPickerSheetState extends State<ExactLocationPickerSheet> {
                           ? const SizedBox(
                               width: 18,
                               height: 18,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2.2,
-                              ),
+                              child: LoadingWidget(),
                             )
                           : IconButton(
                               onPressed: hasSearchText ? _clearSearch : null,

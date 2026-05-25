@@ -5,6 +5,7 @@ import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/widgets/custom_html_viewer.dart';
+import 'package:hamro_footsall/core/widgets/loading_widget.dart';
 import 'package:hamro_footsall/features/public/data/model/public_package_model.dart';
 import 'package:hamro_footsall/features/public/data/repositories/public_repository_impl.dart';
 import 'package:hamro_footsall/features/public/domain/usecase/get_public_packages_use_case.dart';
@@ -94,7 +95,7 @@ class _FutsalPlanSelectionContentState
               packagesState.packages.isEmpty) {
             return const SizedBox(
               height: 140,
-              child: Center(child: CircularProgressIndicator()),
+              child: Center(child: LoadingWidget()),
             );
           }
 

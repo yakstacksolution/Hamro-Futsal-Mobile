@@ -8,11 +8,11 @@ import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/custom_image_view.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/utils/image_constants.dart';
+import 'package:hamro_footsall/core/widgets/loading_widget.dart';
 import 'package:hamro_footsall/features/courts/data/model/venue_court_model.dart';
 import 'package:hamro_footsall/features/courts/data/repositories/venue_court_repository_impl.dart';
 import 'package:hamro_footsall/features/courts/domain/usecase/get_venue_court_use_case.dart';
 import 'package:hamro_footsall/features/courts/presentation/bloc/venue_court/venue_court_bloc.dart';
-import 'package:hamro_footsall/features/courts/presentation/widgets/venue_courts_list_shimmer.dart';
 import 'package:hamro_footsall/features/public/data/repositories/public_repository_impl.dart';
 import 'package:hamro_footsall/features/public/domain/usecase/get_public_templates_use_case.dart';
 import 'package:hamro_footsall/features/public/presentation/bloc/public_templates/public_templates_bloc.dart';
@@ -108,7 +108,7 @@ class _VenueCourtsListPageState extends State<VenueCourtsListPage> {
                     const SizedBox(height: AppDimens.paddingX10),
                     Expanded(
                       child: state.status == VenueCourtStatus.loading
-                          ? const VenueCourtsListShimmer()
+                          ? const LoadingWidget()
                           : filtered.isEmpty
                           ? ListView(
                               physics: const BouncingScrollPhysics(),
