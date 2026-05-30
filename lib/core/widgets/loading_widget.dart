@@ -5,18 +5,28 @@ import 'package:hamro_footsall/core/theme/app_colors.dart';
 
 class LoadingWidget extends StatelessWidget {
   final bool? isButtonLoading;
-  const LoadingWidget({super.key, this.isButtonLoading});
+  final bool isTransparentBackground;
+  const LoadingWidget({
+    super.key,
+    this.isButtonLoading,
+    this.isTransparentBackground = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: isTransparentBackground == true
+          ? Colors.transparent
+          : isButtonLoading == true
+          ? Colors.transparent
+          : Colors.white,
       body: Center(
         child: CustomLoading(
-          color: isButtonLoading == true
+          color: isButtonLoading == false
               ? LightColor.secondaryColor
               : LightColor.whiteColor,
           size: 30,
+          strokeWidth: isButtonLoading == true ? 2.5 : 4,
           secondCircleColor: LightColor.secondaryLight,
           thirdCircleColor: LightColor.secondaryLight,
         ),
@@ -30,13 +40,15 @@ class CustomLoading extends StatefulWidget {
   final Color color;
   final Color secondCircleColor;
   final Color thirdCircleColor;
+  final double strokeWidth;
   const CustomLoading({
-    Key? key,
+    super.key,
     required this.color,
     required this.size,
     required this.secondCircleColor,
     required this.thirdCircleColor,
-  }) : super(key: key);
+    this.strokeWidth = 4,
+  });
 
   @override
   State<CustomLoading> createState() => _CustomLoadingState();
@@ -59,7 +71,7 @@ class _CustomLoadingState extends State<CustomLoading>
   Widget build(BuildContext context) {
     final Color color = widget.color;
     final double size = widget.size;
-    const double strokeWidth = 4;
+    final double strokeWidth = widget.strokeWidth;
     final Color secondRingColor = widget.secondCircleColor;
     final Color thirdRingColor = widget.thirdCircleColor;
     return AnimatedBuilder(

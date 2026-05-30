@@ -141,6 +141,24 @@ class CreateFootsallCourtsBloc extends ChangeNotifier {
   final TextEditingController houseRulesController = TextEditingController();
   final TextEditingController shopLogoController = TextEditingController();
 
+  // Focus nodes for keyboard "next" traversal between fields.
+  final FocusNode shopNameFocus = FocusNode();
+  final FocusNode slugFocus = FocusNode();
+  final FocusNode descriptionFocus = FocusNode();
+  final FocusNode phoneFocus = FocusNode();
+  final FocusNode emailFocus = FocusNode();
+  final FocusNode websiteFocus = FocusNode();
+  final FocusNode cityFocus = FocusNode();
+  final FocusNode countryFocus = FocusNode();
+  final FocusNode establishedYearFocus = FocusNode();
+  final FocusNode basicPriceFocus = FocusNode();
+  final FocusNode registrationFocus = FocusNode();
+  final FocusNode amenitiesNotesFocus = FocusNode();
+  final FocusNode bookingAdvanceDaysFocus = FocusNode();
+  final FocusNode cancellationWindowFocus = FocusNode();
+  final FocusNode houseRulesFocus = FocusNode();
+  final FocusNode shopLogoFocus = FocusNode();
+
   CreateFootsallCourtsState _state;
 
   CreateFootsallCourtsState get state => _state;
@@ -197,6 +215,22 @@ class CreateFootsallCourtsBloc extends ChangeNotifier {
     cancellationWindowController.dispose();
     houseRulesController.dispose();
     shopLogoController.dispose();
+    shopNameFocus.dispose();
+    slugFocus.dispose();
+    descriptionFocus.dispose();
+    phoneFocus.dispose();
+    emailFocus.dispose();
+    websiteFocus.dispose();
+    cityFocus.dispose();
+    countryFocus.dispose();
+    establishedYearFocus.dispose();
+    basicPriceFocus.dispose();
+    registrationFocus.dispose();
+    amenitiesNotesFocus.dispose();
+    bookingAdvanceDaysFocus.dispose();
+    cancellationWindowFocus.dispose();
+    houseRulesFocus.dispose();
+    shopLogoFocus.dispose();
     super.dispose();
   }
 

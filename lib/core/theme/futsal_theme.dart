@@ -17,7 +17,7 @@ class FutsalTheme {
       textTheme: GoogleFonts.poppinsTextTheme(Theme.of(context).textTheme),
 
       textSelectionTheme: TextSelectionThemeData(
-        selectionColor: LightColor.secondaryColor.withOpacity(0.3),
+        selectionColor: LightColor.secondaryColor.withValues(alpha: 0.3),
         selectionHandleColor: LightColor.secondaryColor,
       ),
 

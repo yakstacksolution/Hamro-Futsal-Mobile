@@ -256,50 +256,33 @@ class _AuthBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: <Color>[
-            LightColor.secondarySoft,
-            LightColor.primarySoft.withAlpha(12),
-            LightColor.background,
-          ],
-          stops: const <double>[0, 0.35, 1],
+    return Stack(
+      children: <Widget>[
+        Positioned(
+          top: -84,
+          left: -52,
+          child: _BackgroundBubble(
+            size: AppDimens.sizeX190,
+            colors: const <Color>[LightColor.primarySoft, Color(0x1416A34A)],
+          ),
         ),
-      ),
-      child: Stack(
-        children: <Widget>[
-          Positioned(
-            top: -84,
-            left: -52,
-            child: _BackgroundBubble(
-              size: AppDimens.sizeX190,
-              colors: const <Color>[LightColor.primarySoft, Color(0x1416A34A)],
-            ),
+        Positioned(
+          top: 130,
+          right: -70,
+          child: _BackgroundBubble(
+            size: AppDimens.sizeX230,
+            colors: const <Color>[LightColor.secondarySoft, Color(0x1410B981)],
           ),
-          Positioned(
-            top: 130,
-            right: -70,
-            child: _BackgroundBubble(
-              size: AppDimens.sizeX230,
-              colors: const <Color>[
-                LightColor.secondarySoft,
-                Color(0x1410B981),
-              ],
-            ),
+        ),
+        Positioned(
+          bottom: -65,
+          left: -40,
+          child: _BackgroundBubble(
+            size: AppDimens.sizeX170,
+            colors: const <Color>[Color(0x1A14532D), Color(0x0F14532D)],
           ),
-          Positioned(
-            bottom: -65,
-            left: -40,
-            child: _BackgroundBubble(
-              size: AppDimens.sizeX170,
-              colors: const <Color>[Color(0x1A14532D), Color(0x0F14532D)],
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

@@ -4,6 +4,7 @@ import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/custom_image_view.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/utils/image_constants.dart';
 import 'package:hamro_footsall/core/widgets/custom_app_bar.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
@@ -90,9 +91,7 @@ class _Subtitle extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
     return Padding(
-      padding: AppUtils().getPadding(
-        symmetricHorizontal: AppDimens.paddingX20,
-      ),
+      padding: AppUtils().getPadding(symmetricHorizontal: AppDimens.paddingX20),
       child: Text(
         'Hamro Footsall · v$version',
         style: textTheme.bodyTextSmall?.copyWith(
@@ -221,18 +220,18 @@ class _ProductOfCard extends StatelessWidget {
       child: Row(
         children: <Widget>[
           Container(
-            width: 48,
-            height: 48,
-            padding: AppUtils().getPadding(all: AppDimens.paddingX6),
+            width: 62,
+            height: 62,
+            padding: AppUtils().getPadding(all: AppDimens.paddingX8),
             decoration: BoxDecoration(
               color: LightColor.background,
-              borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+              borderRadius: BorderRadius.circular(AppDimens.radiusX12),
               border: Border.all(color: LightColor.dividerColor),
             ),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+              borderRadius: BorderRadius.circular(AppDimens.radiusX10),
               child: CustomImageView(
-                imagePath: 'assets/icons/location.png',
+                imagePath: ImageConstants.yakStackLogo,
                 fit: BoxFit.contain,
               ),
             ),
@@ -557,12 +556,7 @@ class _InfoDivider extends StatelessWidget {
   Widget build(BuildContext context) {
     return const Padding(
       padding: EdgeInsets.symmetric(horizontal: AppDimens.paddingX14),
-      child: Divider(
-        height: 1,
-        thickness: 1,
-        color: LightColor.dividerColor,
-      ),
+      child: Divider(height: 1, thickness: 1, color: LightColor.dividerColor),
     );
   }
 }
-

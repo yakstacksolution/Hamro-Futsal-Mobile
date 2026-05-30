@@ -4,6 +4,7 @@ import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/widgets/loading_widget.dart';
 import 'package:hamro_footsall/features/public/data/model/public_option_model.dart';
 import 'package:hamro_footsall/features/public/data/repositories/public_repository_impl.dart';
 import 'package:hamro_footsall/features/public/domain/usecase/get_court_options_use_case.dart';
@@ -17,10 +18,12 @@ class CourtAmenitiesSection extends StatefulWidget {
     super.key,
     required this.cubit,
     required this.court,
+    required this.subsectionIndex,
   });
 
   final VendorOnboardingCubit cubit;
   final CourtDraft court;
+  final int subsectionIndex;
 
   @override
   State<CourtAmenitiesSection> createState() => _CourtAmenitiesSectionState();
@@ -34,7 +37,29 @@ class _CourtAmenitiesSectionState extends State<CourtAmenitiesSection> {
     super.initState();
     _optionsBloc = PublicCourtOptionsBloc(
       GetCourtOptionsUseCase(PublicRepositoryImpl()),
-    )..add(const FetchPublicCourtOptionsEvent());
+    );
+    _ensureFetchedForSubstep(widget.subsectionIndex);
+  }
+
+  @override
+  void didUpdateWidget(covariant CourtAmenitiesSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.subsectionIndex != widget.subsectionIndex) {
+      _ensureFetchedForSubstep(widget.subsectionIndex);
+    }
+  }
+
+  void _ensureFetchedForSubstep(int subsection) {
+    final PublicCourtOptionsState state = _optionsBloc.state;
+    if (subsection == 1) {
+      if (state.facilities.isEmpty && !state.isLoadingFacilities) {
+        _optionsBloc.add(const FetchPublicFacilitiesEvent());
+      }
+    } else {
+      if (state.amenities.isEmpty && !state.isLoadingAmenities) {
+        _optionsBloc.add(const FetchPublicAmenitiesEvent());
+      }
+    }
   }
 
   @override
@@ -45,65 +70,60 @@ class _CourtAmenitiesSectionState extends State<CourtAmenitiesSection> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isFacilities = widget.subsectionIndex == 1;
     return BlocProvider<PublicCourtOptionsBloc>.value(
       value: _optionsBloc,
       child: BlocBuilder<PublicCourtOptionsBloc, PublicCourtOptionsState>(
         builder: (BuildContext context, PublicCourtOptionsState state) {
-          final List<String> amenities = _optionLabels(
-            state.amenities,
-            fallback: courtAmenityOptions,
-          );
-          final List<String> facilities = _optionLabels(
-            state.facilities,
-            fallback: courtFacilityOptions,
-          );
-
+          final bool isLoading = isFacilities
+              ? state.isLoadingFacilities && state.facilities.isEmpty
+              : state.isLoadingAmenities && state.amenities.isEmpty;
           return VendorPanel(
             padding: AppUtils().getPadding(all: AppDimens.paddingX12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                const VendorOnboardingSectionHeader(
-                  title: 'Amenities & Facilities',
-                  subtitle: 'Court-specific services and player facilities.',
-                  icon: Icons.dashboard_customize_rounded,
+                VendorOnboardingSectionHeader(
+                  title: isFacilities ? 'Facilities' : 'Amenities',
+                  subtitle: isFacilities
+                      ? 'Player-facing facilities available at this court.'
+                      : 'Court-specific services and equipment.',
+                  icon: isFacilities
+                      ? Icons.meeting_room_rounded
+                      : Icons.chair_alt_rounded,
                 ),
                 const SizedBox(height: AppDimens.sizeX12),
-                _CourtOptionGroup(
-                  title: 'Amenities',
-                  icon: Icons.chair_alt_rounded,
-                  options: amenities,
-                  icons: courtAmenityIcons,
-                  selectedValues: widget.court.amenities,
-                  onTap: widget.cubit.toggleCourtAmenity,
-                ),
-                const SizedBox(height: AppDimens.sizeX12),
-                _CourtOptionGroup(
-                  title: 'Facilities',
-                  icon: Icons.meeting_room_rounded,
-                  options: facilities,
-                  icons: courtFacilityIcons,
-                  selectedValues: widget.court.facilities,
-                  onTap: widget.cubit.toggleCourtFacility,
-                ),
+                if (isLoading)
+                  const SizedBox(
+                    height: 200,
+                    child: Center(child: LoadingWidget()),
+                  )
+                else if (isFacilities)
+                  _CourtOptionGroup(
+                    title: 'Facilities',
+                    icon: Icons.meeting_room_rounded,
+                    options: state.facilities,
+                    selectedIds: widget.court.facilities,
+                    onTap: widget.cubit.toggleCourtFacility,
+                    emptyMessage:
+                        'No facilities available right now. Please try again later.',
+                  )
+                else
+                  _CourtOptionGroup(
+                    title: 'Amenities',
+                    icon: Icons.chair_alt_rounded,
+                    options: state.amenities,
+                    selectedIds: widget.court.amenities,
+                    onTap: widget.cubit.toggleCourtAmenity,
+                    emptyMessage:
+                        'No amenities available right now. Please try again later.',
+                  ),
               ],
             ),
           );
         },
       ),
     );
-  }
-
-  List<String> _optionLabels(
-    List<PublicOptionModel> models, {
-    required List<String> fallback,
-  }) {
-    final List<String> labels = models
-        .map((PublicOptionModel item) => item.name.trim())
-        .where((String item) => item.isNotEmpty)
-        .toSet()
-        .toList(growable: false);
-    return labels.isEmpty ? fallback : labels;
   }
 }
 
@@ -112,21 +132,21 @@ class _CourtOptionGroup extends StatelessWidget {
     required this.title,
     required this.icon,
     required this.options,
-    required this.icons,
-    required this.selectedValues,
+    required this.selectedIds,
     required this.onTap,
+    required this.emptyMessage,
   });
 
   final String title;
   final IconData icon;
-  final List<String> options;
-  final Map<String, IconData> icons;
-  final Set<String> selectedValues;
-  final ValueChanged<String> onTap;
+  final List<PublicOptionModel> options;
+  final Set<int> selectedIds;
+  final ValueChanged<int> onTap;
+  final String emptyMessage;
 
   @override
   Widget build(BuildContext context) {
-    final int selectedCount = selectedValues.length;
+    final int selectedCount = selectedIds.length;
     final String countLabel = '$selectedCount/${options.length} selected';
 
     return VendorGroupedContentCard(
@@ -137,12 +157,14 @@ class _CourtOptionGroup extends StatelessWidget {
         children: <Widget>[
           _SelectionCountPill(label: countLabel),
           const SizedBox(height: AppDimens.sizeX10),
-          _CourtOptionGrid(
-            options: options,
-            icons: icons,
-            selectedValues: selectedValues,
-            onTap: onTap,
-          ),
+          if (options.isEmpty)
+            _CourtOptionEmpty(message: emptyMessage)
+          else
+            _CourtOptionGrid(
+              options: options,
+              selectedIds: selectedIds,
+              onTap: onTap,
+            ),
         ],
       ),
     );
@@ -152,15 +174,13 @@ class _CourtOptionGroup extends StatelessWidget {
 class _CourtOptionGrid extends StatelessWidget {
   const _CourtOptionGrid({
     required this.options,
-    required this.icons,
-    required this.selectedValues,
+    required this.selectedIds,
     required this.onTap,
   });
 
-  final List<String> options;
-  final Map<String, IconData> icons;
-  final Set<String> selectedValues;
-  final ValueChanged<String> onTap;
+  final List<PublicOptionModel> options;
+  final Set<int> selectedIds;
+  final ValueChanged<int> onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -175,14 +195,40 @@ class _CourtOptionGrid extends StatelessWidget {
       ),
       itemCount: options.length,
       itemBuilder: (BuildContext context, int index) {
-        final String item = options[index];
+        final PublicOptionModel item = options[index];
+        final int? id = item.idAsInt;
+        if (id == null) return const SizedBox.shrink();
         return VendorSelectableChip(
-          label: item,
-          icon: icons[item],
-          isSelected: selectedValues.contains(item),
-          onTap: () => onTap(item),
+          label: item.name,
+          isSelected: selectedIds.contains(id),
+          onTap: () => onTap(id),
         );
       },
+    );
+  }
+}
+
+class _CourtOptionEmpty extends StatelessWidget {
+  const _CourtOptionEmpty({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: AppUtils().getPadding(all: AppDimens.paddingX12),
+      decoration: BoxDecoration(
+        color: LightColor.inputFillColor,
+        borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+      ),
+      child: Text(
+        message,
+        style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
+          color: LightColor.secondaryTextColor,
+          height: 1.5,
+        ),
+      ),
     );
   }
 }

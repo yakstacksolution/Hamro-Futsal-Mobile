@@ -62,7 +62,7 @@ class VendorBottomActionBar extends StatelessWidget {
                 ),
                 boxShadow: <BoxShadow>[
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.06),
+                    color: Colors.black.withValues(alpha: 0.06),
                     blurRadius: AppDimens.radiusX22,
                     offset: const Offset(0, AppDimens.sizeX10),
                   ),

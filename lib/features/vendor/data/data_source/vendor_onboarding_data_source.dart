@@ -15,9 +15,9 @@ abstract class VendorOnboardingRemoteDataSource {
 final class VendorOnboardingRemoteDataSourceImpl
     extends VendorOnboardingRemoteDataSource {
   @override
-  Future<Result> fetchVendorOnboardingFutsal(int futsalId) async =>
+  Future<Result> fetchVendorOnboardingFutsal(int venueId) async =>
       await Client.instance().getAuthManager().fetchVendorOnboardingFutsal(
-        futsalId,
+        venueId,
       );
 
   @override

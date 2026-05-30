@@ -1,33 +1,87 @@
+enum UploadVerificationStatus {
+  none,
+  pending,
+  approved,
+  rejected;
+
+  static UploadVerificationStatus fromString(String? raw) {
+    final String value = (raw ?? '').trim().toLowerCase();
+    switch (value) {
+      case 'pending':
+        return UploadVerificationStatus.pending;
+      case 'approved':
+        return UploadVerificationStatus.approved;
+      case 'rejected':
+        return UploadVerificationStatus.rejected;
+      default:
+        return UploadVerificationStatus.none;
+    }
+  }
+
+  String? get apiValue {
+    switch (this) {
+      case UploadVerificationStatus.pending:
+        return 'pending';
+      case UploadVerificationStatus.approved:
+        return 'approved';
+      case UploadVerificationStatus.rejected:
+        return 'rejected';
+      case UploadVerificationStatus.none:
+        return null;
+    }
+  }
+
+  bool get isLocked =>
+      this == UploadVerificationStatus.pending ||
+      this == UploadVerificationStatus.approved;
+}
+
 class UploadRef {
-  const UploadRef({required this.name, this.id, this.remoteUrl});
+  const UploadRef({
+    required this.name,
+    this.id,
+    this.remoteUrl,
+    this.verificationStatus = UploadVerificationStatus.none,
+  });
 
   final String name;
   final int? id;
   final String? remoteUrl;
+  final UploadVerificationStatus verificationStatus;
 
   UploadRef copyWith({
     String? name,
     String? localPath,
     int? id,
     String? remoteUrl,
+    UploadVerificationStatus? verificationStatus,
     bool clearId = false,
   }) {
     return UploadRef(
       name: name ?? this.name,
       id: clearId ? null : id ?? this.id,
       remoteUrl: remoteUrl ?? this.remoteUrl,
+      verificationStatus: verificationStatus ?? this.verificationStatus,
     );
   }
 
   Map<String, dynamic> toJson() {
-    return <String, dynamic>{'name': name, 'id': id, 'remoteUrl': remoteUrl};
+    return <String, dynamic>{
+      'name': name,
+      'id': id,
+      'remoteUrl': remoteUrl,
+      'verification_status': verificationStatus.name,
+    };
   }
 
   factory UploadRef.fromJson(Map<String, dynamic> json) {
     return UploadRef(
       name: json['name'] as String? ?? '',
       id: json['id'] as int?,
-      remoteUrl: json['remoteUrl'] as String?,
+      remoteUrl: json['full_url'] as String?,
+      verificationStatus: UploadVerificationStatus.fromString(
+        json['verification_status'] as String?,
+      ),
     );
   }
 }
@@ -424,10 +478,7 @@ class FutsalDraft {
     return FutsalDraft(
       title: json['title'] as String? ?? '',
       slug: json['slug'] as String? ?? '',
-      description:
-          json['description'] as String? ??
-          json['court_description'] as String? ??
-          '',
+      description: json['description'] as String? ?? '',
       registrationNumber: json['registrationNumber'] as String? ?? '',
       phone: json['phone'] as String? ?? '',
       email: json['email'] as String? ?? '',
@@ -458,10 +509,122 @@ class FutsalDraft {
   }
 }
 
+enum AdvancePaymentType {
+  flat,
+  percentage;
+
+  static AdvancePaymentType? fromString(String? raw) {
+    final String value = (raw ?? '').trim().toLowerCase();
+    switch (value) {
+      case 'fixed':
+      case 'flat':
+        return AdvancePaymentType.flat;
+      case 'percentage':
+      case 'percent':
+        return AdvancePaymentType.percentage;
+      default:
+        return null;
+    }
+  }
+
+  String get apiValue {
+    switch (this) {
+      case AdvancePaymentType.flat:
+        return 'fixed';
+      case AdvancePaymentType.percentage:
+        return 'percentage';
+    }
+  }
+
+  String get label {
+    switch (this) {
+      case AdvancePaymentType.flat:
+        return 'Flat';
+      case AdvancePaymentType.percentage:
+        return 'Percentage';
+    }
+  }
+}
+
+class CourtTagDetail {
+  const CourtTagDetail({
+    required this.id,
+    required this.name,
+    this.slug,
+    this.description,
+    this.icon,
+    this.image,
+    this.sortOrder,
+  });
+
+  final int id;
+  final String name;
+  final String? slug;
+  final String? description;
+  final String? icon;
+  final String? image;
+  final int? sortOrder;
+
+  CourtTagDetail copyWith({
+    int? id,
+    String? name,
+    String? slug,
+    String? description,
+    String? icon,
+    String? image,
+    int? sortOrder,
+  }) {
+    return CourtTagDetail(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      slug: slug ?? this.slug,
+      description: description ?? this.description,
+      icon: icon ?? this.icon,
+      image: image ?? this.image,
+      sortOrder: sortOrder ?? this.sortOrder,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return <String, dynamic>{
+      'id': id,
+      'name': name,
+      'slug': slug,
+      'description': description,
+      'icon': icon,
+      'image': image,
+      'sort_order': sortOrder,
+    };
+  }
+
+  factory CourtTagDetail.fromJson(Map<String, dynamic> json) {
+    String? asNonEmpty(Object? value) {
+      final String text = value?.toString().trim() ?? '';
+      return text.isEmpty ? null : text;
+    }
+
+    return CourtTagDetail(
+      id: _asInt(json['id'] ?? json['amenity_id'] ?? json['facility_id']) ?? 0,
+      name: (json['name'] ?? json['title'] ?? '').toString().trim(),
+      slug: asNonEmpty(json['slug']),
+      description: asNonEmpty(json['description']),
+      icon: asNonEmpty(json['icon']),
+      image: asNonEmpty(json['image']),
+      sortOrder: _asInt(json['sort_order']),
+    );
+  }
+}
+
 class CourtDraft {
   const CourtDraft({
     required this.id,
     this.remoteId,
+    this.venueId,
+    this.mainStep,
+    this.subStep,
+    this.category,
+    this.slug,
+    this.code,
     this.name = '',
     this.basePrice,
     this.description = '',
@@ -470,23 +633,42 @@ class CourtDraft {
     this.matchFormatId = 1,
     this.matchFormat = '5v5',
     this.maxPlayers = 10,
+    this.surfaceType,
+    this.slotDuration,
     this.availability = const AvailabilityDraft(),
     this.enableOnlineBooking = true,
+    this.isPaymentRequired = true,
     this.advancePaymentRequired = false,
-    this.paymentPercent,
+    this.advancePaymentType,
+    this.advancePrice,
+    this.advancePriceUserEdited = false,
     this.paymentQr,
-    this.amenities = const <String>{},
-    this.facilities = const <String>{},
+    Set<int> amenities = const <int>{},
+    Set<int> facilities = const <int>{},
+    this.amenityDetails = const <CourtTagDetail>[],
+    this.facilityDetails = const <CourtTagDetail>[],
     this.photos = const <UploadRef>[],
     this.memories = const <UploadRef>[],
     this.weekendDays = const <String>{'Saturday'},
     this.holidayDates = const <String>{},
     this.closedDates = const <ClosedDateDraft>[],
     this.slotConfigs = const <SlotPricingDraft>[],
-  });
+    this.slotSchedules = const <Map<String, dynamic>>[],
+    this.bookingPolicies,
+    this.courtRules,
+    this.cancellationPolicy,
+    this.status,
+  }) : _amenities = amenities,
+       _facilities = facilities;
 
   final String id;
   final int? remoteId;
+  final int? venueId;
+  final int? mainStep;
+  final int? subStep;
+  final int? category;
+  final String? slug;
+  final String? code;
   final String name;
   final double? basePrice;
   final String description;
@@ -495,22 +677,52 @@ class CourtDraft {
   final int? matchFormatId;
   final String? matchFormat;
   final int? maxPlayers;
+  final String? surfaceType;
+  final int? slotDuration;
   final AvailabilityDraft availability;
   final bool enableOnlineBooking;
+  final bool? isPaymentRequired;
   final bool advancePaymentRequired;
-  final double? paymentPercent;
+  final AdvancePaymentType? advancePaymentType;
+  final double? advancePrice;
+  final bool advancePriceUserEdited;
   final UploadRef? paymentQr;
-  final Set<String> amenities;
-  final Set<String> facilities;
+  final Set<Object?> _amenities;
+  final Set<Object?> _facilities;
+  Set<int> get amenities {
+    final Set<Object?> raw = _amenities;
+    if (raw is Set<int>) return raw;
+    return raw.whereType<int>().toSet();
+  }
+
+  Set<int> get facilities {
+    final Set<Object?> raw = _facilities;
+    if (raw is Set<int>) return raw;
+    return raw.whereType<int>().toSet();
+  }
+
+  final List<CourtTagDetail> amenityDetails;
+  final List<CourtTagDetail> facilityDetails;
   final List<UploadRef> photos;
   final List<UploadRef> memories;
   final Set<String> weekendDays;
   final Set<String> holidayDates;
   final List<ClosedDateDraft> closedDates;
   final List<SlotPricingDraft> slotConfigs;
+  final List<Map<String, dynamic>> slotSchedules;
+  final String? bookingPolicies;
+  final String? courtRules;
+  final String? cancellationPolicy;
+  final String? status;
 
   CourtDraft copyWith({
     int? remoteId,
+    int? venueId,
+    int? mainStep,
+    int? subStep,
+    int? category,
+    String? slug,
+    String? code,
     String? name,
     double? basePrice,
     String? description,
@@ -519,32 +731,63 @@ class CourtDraft {
     int? matchFormatId,
     String? matchFormat,
     int? maxPlayers,
+    String? surfaceType,
+    int? slotDuration,
     AvailabilityDraft? availability,
     bool? enableOnlineBooking,
+    bool? isPaymentRequired,
     bool? advancePaymentRequired,
-    double? paymentPercent,
+    AdvancePaymentType? advancePaymentType,
+    double? advancePrice,
+    bool? advancePriceUserEdited,
     UploadRef? paymentQr,
-    Set<String>? amenities,
-    Set<String>? facilities,
+    Set<int>? amenities,
+    Set<int>? facilities,
+    List<CourtTagDetail>? amenityDetails,
+    List<CourtTagDetail>? facilityDetails,
     List<UploadRef>? photos,
     List<UploadRef>? memories,
     Set<String>? weekendDays,
     Set<String>? holidayDates,
     List<ClosedDateDraft>? closedDates,
     List<SlotPricingDraft>? slotConfigs,
+    List<Map<String, dynamic>>? slotSchedules,
+    String? bookingPolicies,
+    String? courtRules,
+    String? cancellationPolicy,
+    String? status,
     bool clearBasePrice = false,
     bool clearCourtTypeId = false,
     bool clearCourtType = false,
     bool clearMatchFormatId = false,
     bool clearMatchFormat = false,
     bool clearMaxPlayers = false,
-    bool clearPaymentPercent = false,
+    bool clearAdvancePaymentType = false,
+    bool clearAdvancePrice = false,
     bool clearPaymentQr = false,
     bool clearRemoteId = false,
+    bool clearVenueId = false,
+    bool clearMainStep = false,
+    bool clearSubStep = false,
+    bool clearCategory = false,
+    bool clearSlug = false,
+    bool clearCode = false,
+    bool clearSurfaceType = false,
+    bool clearSlotDuration = false,
+    bool clearBookingPolicies = false,
+    bool clearCourtRules = false,
+    bool clearCancellationPolicy = false,
+    bool clearStatus = false,
   }) {
     return CourtDraft(
       id: id,
       remoteId: clearRemoteId ? null : remoteId ?? this.remoteId,
+      venueId: clearVenueId ? null : venueId ?? this.venueId,
+      mainStep: clearMainStep ? null : mainStep ?? this.mainStep,
+      subStep: clearSubStep ? null : subStep ?? this.subStep,
+      category: clearCategory ? null : category ?? this.category,
+      slug: clearSlug ? null : slug ?? this.slug,
+      code: clearCode ? null : code ?? this.code,
       name: name ?? this.name,
       basePrice: clearBasePrice ? null : basePrice ?? this.basePrice,
       description: description ?? this.description,
@@ -555,22 +798,43 @@ class CourtDraft {
           : matchFormatId ?? this.matchFormatId,
       matchFormat: clearMatchFormat ? null : matchFormat ?? this.matchFormat,
       maxPlayers: clearMaxPlayers ? null : maxPlayers ?? this.maxPlayers,
+      surfaceType: clearSurfaceType ? null : surfaceType ?? this.surfaceType,
+      slotDuration: clearSlotDuration
+          ? null
+          : slotDuration ?? this.slotDuration,
       availability: availability ?? this.availability,
       enableOnlineBooking: enableOnlineBooking ?? this.enableOnlineBooking,
+      isPaymentRequired: isPaymentRequired ?? this.isPaymentRequired,
       advancePaymentRequired:
           advancePaymentRequired ?? this.advancePaymentRequired,
-      paymentPercent: clearPaymentPercent
+      advancePaymentType: clearAdvancePaymentType
           ? null
-          : paymentPercent ?? this.paymentPercent,
+          : advancePaymentType ?? this.advancePaymentType,
+      advancePrice: clearAdvancePrice
+          ? null
+          : advancePrice ?? this.advancePrice,
+      advancePriceUserEdited:
+          advancePriceUserEdited ?? this.advancePriceUserEdited,
       paymentQr: clearPaymentQr ? null : paymentQr ?? this.paymentQr,
       amenities: amenities ?? this.amenities,
       facilities: facilities ?? this.facilities,
+      amenityDetails: amenityDetails ?? this.amenityDetails,
+      facilityDetails: facilityDetails ?? this.facilityDetails,
       photos: photos ?? this.photos,
       memories: memories ?? this.memories,
       weekendDays: weekendDays ?? this.weekendDays,
       holidayDates: holidayDates ?? this.holidayDates,
       closedDates: closedDates ?? this.closedDates,
       slotConfigs: slotConfigs ?? this.slotConfigs,
+      slotSchedules: slotSchedules ?? this.slotSchedules,
+      bookingPolicies: clearBookingPolicies
+          ? null
+          : bookingPolicies ?? this.bookingPolicies,
+      courtRules: clearCourtRules ? null : courtRules ?? this.courtRules,
+      cancellationPolicy: clearCancellationPolicy
+          ? null
+          : cancellationPolicy ?? this.cancellationPolicy,
+      status: clearStatus ? null : status ?? this.status,
     );
   }
 
@@ -578,21 +842,38 @@ class CourtDraft {
     return <String, dynamic>{
       'id': id,
       'remoteId': remoteId,
+      'venueId': venueId,
+      'mainStep': mainStep,
+      'subStep': subStep,
+      'category': category,
+      'slug': slug,
+      'code': code,
       'name': name,
       'basePrice': basePrice,
-      'court_description': description,
+      'description': description,
       'courtTypeId': courtTypeId,
       'courtType': courtType,
       'matchFormatId': matchFormatId,
       'matchFormat': matchFormat,
       'maxPlayers': maxPlayers,
+      'surfaceType': surfaceType,
+      'slotDuration': slotDuration,
       'availability': availability.toJson(),
       'enableOnlineBooking': enableOnlineBooking,
+      'isPaymentRequired': isPaymentRequired,
       'advancePaymentRequired': advancePaymentRequired,
-      'paymentPercent': paymentPercent,
+      'advancePaymentType': advancePaymentType?.apiValue,
+      'advancePrice': advancePrice,
+      'advancePriceUserEdited': advancePriceUserEdited,
       'paymentQr': paymentQr?.toJson(),
       'amenities': amenities.toList(),
       'facilities': facilities.toList(),
+      'amenityDetails': amenityDetails
+          .map((CourtTagDetail item) => item.toJson())
+          .toList(),
+      'facilityDetails': facilityDetails
+          .map((CourtTagDetail item) => item.toJson())
+          .toList(),
       'photos': photos.map((UploadRef item) => item.toJson()).toList(),
       'memories': memories.map((UploadRef item) => item.toJson()).toList(),
       'weekendDays': weekendDays.toList(),
@@ -603,6 +884,11 @@ class CourtDraft {
       'slotConfigs': slotConfigs
           .map((SlotPricingDraft item) => item.toJson())
           .toList(),
+      'slotSchedules': slotSchedules,
+      'bookingPolicies': bookingPolicies,
+      'courtRules': courtRules,
+      'cancellationPolicy': cancellationPolicy,
+      'status': status,
     };
   }
 
@@ -615,12 +901,15 @@ class CourtDraft {
       remoteId: _asInt(
         json['remoteId'] ?? json['remote_id'] ?? json['court_id'],
       ),
+      venueId: _asInt(json['venueId'] ?? json['venue_id']),
+      mainStep: _asInt(json['mainStep'] ?? json['main_step']),
+      subStep: _asInt(json['subStep'] ?? json['sub_step']),
+      category: _asInt(json['category']),
+      slug: json['slug'] as String?,
+      code: json['code'] as String?,
       name: (json['name'] ?? json['court_name']) as String? ?? '',
       basePrice: _asDouble(json['basePrice'] ?? json['base_price']),
-      description:
-          json['description'] as String? ??
-          json['court_description'] as String? ??
-          '',
+      description: json['description'] as String? ?? '',
       courtTypeId:
           _asInt(json['courtTypeId'] ?? json['court_type_id']) ??
           _knownCourtTypeId(json['courtType'] ?? json['court_type']),
@@ -640,17 +929,31 @@ class CourtDraft {
             json['maxPlayers'] ?? json['max_players'] ?? json['max_player'],
           ) ??
           10,
+      surfaceType:
+          json['surfaceType'] as String? ?? json['surface_type'] as String?,
+      slotDuration: _asInt(json['slotDuration'] ?? json['slot_duration']),
       availability: AvailabilityDraft.fromJson(
         json['availability'] is Map
             ? Map<String, dynamic>.from(json['availability'] as Map)
             : const <String, dynamic>{},
       ),
       enableOnlineBooking: json['enableOnlineBooking'] as bool? ?? true,
+      isPaymentRequired:
+          json['isPaymentRequired'] as bool? ??
+          json['is_payment_required'] as bool? ??
+          true,
       advancePaymentRequired: json['advancePaymentRequired'] as bool? ?? false,
-      paymentPercent: _asDouble(json['paymentPercent']),
+      advancePaymentType: AdvancePaymentType.fromString(
+        json['advancePaymentType'] as String?,
+      ),
+      advancePrice: _asDouble(json['advancePrice'] ?? json['paymentPercent']),
+      advancePriceUserEdited:
+          json['advancePriceUserEdited'] as bool? ?? false,
       paymentQr: _uploadFromJson(json['paymentQr']),
-      amenities: _stringSetFromJson(json['amenities']),
-      facilities: _stringSetFromJson(json['facilities']),
+      amenities: _intSetFromJson(json['amenities']),
+      facilities: _intSetFromJson(json['facilities']),
+      amenityDetails: _tagDetailsFromJson(json['amenityDetails']),
+      facilityDetails: _tagDetailsFromJson(json['facilityDetails']),
       photos: _uploadsFromJson(json['photos']),
       memories: _uploadsFromJson(json['memories']),
       weekendDays: restoredWeekendDays.isEmpty
@@ -659,6 +962,16 @@ class CourtDraft {
       holidayDates: _stringSetFromJson(json['holidayDates']),
       closedDates: _closedDatesFromJson(json['closedDates']),
       slotConfigs: _slotConfigsFromJson(json['slotConfigs']),
+      slotSchedules: _mapListFromJson(json['slotSchedules']),
+      bookingPolicies:
+          json['bookingPolicies'] as String? ??
+          json['booking_policies'] as String?,
+      courtRules:
+          json['courtRules'] as String? ?? json['court_rules'] as String?,
+      cancellationPolicy:
+          json['cancellationPolicy'] as String? ??
+          json['cancellation_policy'] as String?,
+      status: json['status'] as String?,
     );
   }
 }
@@ -771,6 +1084,27 @@ Set<String> _stringSetFromJson(Object? value) {
   return value.whereType<String>().toSet();
 }
 
+Set<int> _intSetFromJson(Object? value) {
+  if (value is! List) return const <int>{};
+  return value
+      .map((Object? item) {
+        if (item is int) return item;
+        if (item is num) return item.toInt();
+        return int.tryParse(item?.toString() ?? '');
+      })
+      .whereType<int>()
+      .toSet();
+}
+
+List<CourtTagDetail> _tagDetailsFromJson(Object? value) {
+  if (value is! List) return const <CourtTagDetail>[];
+  return value
+      .whereType<Map>()
+      .map((Map item) => CourtTagDetail.fromJson(Map<String, dynamic>.from(item)))
+      .where((CourtTagDetail item) => item.id != 0)
+      .toList();
+}
+
 UploadRef? _uploadFromJson(Object? value) {
   if (value is! Map) return null;
   return UploadRef.fromJson(Map<String, dynamic>.from(value));
@@ -820,6 +1154,14 @@ List<SlotCustomDatePriceDraft> _slotCustomDatePricesFromJson(Object? value) {
             SlotCustomDatePriceDraft.fromJson(Map<String, dynamic>.from(item)),
       )
       .where((SlotCustomDatePriceDraft item) => item.date.trim().isNotEmpty)
+      .toList();
+}
+
+List<Map<String, dynamic>> _mapListFromJson(Object? value) {
+  if (value is! List) return const <Map<String, dynamic>>[];
+  return value
+      .whereType<Map>()
+      .map((Map item) => Map<String, dynamic>.from(item))
       .toList();
 }
 

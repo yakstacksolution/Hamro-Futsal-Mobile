@@ -21,8 +21,8 @@ String? templateDefaultFor(
       secondaryKeywords: <String>['about', 'venue'],
     ),
     VendorTemplateField.courtDescription => const _TemplateFieldConfig(
-      exactKeys: <String>['court_description'],
-      preferredTitles: <String>['court_description'],
+      exactKeys: <String>['description'],
+      preferredTitles: <String>['description'],
       primaryKeywords: <String>['court', 'description'],
       secondaryKeywords: <String>['pitch', 'ground'],
     ),

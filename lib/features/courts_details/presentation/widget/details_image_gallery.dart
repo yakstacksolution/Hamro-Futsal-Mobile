@@ -65,7 +65,7 @@ class _DetailsImageGalleryState extends State<DetailsImageGallery> {
                           end: Alignment.bottomCenter,
                           colors: [
                             LightColor.transparentColor,
-                            LightColor.primaryTextColor.withOpacity(0.5),
+                            LightColor.primaryTextColor.withValues(alpha: 0.5),
                           ],
                         ),
                       ),
@@ -127,7 +127,7 @@ class _DetailsImageGalleryState extends State<DetailsImageGallery> {
                       decoration: BoxDecoration(
                         color: active
                             ? LightColor.whiteColor
-                            : LightColor.whiteColor.withOpacity(0.4),
+                            : LightColor.whiteColor.withValues(alpha: 0.4),
                         borderRadius: BorderRadius.circular(100),
                       ),
                     );
@@ -143,10 +143,10 @@ class _DetailsImageGalleryState extends State<DetailsImageGallery> {
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: LightColor.primaryTextColor.withOpacity(0.35),
+                        color: LightColor.primaryTextColor.withValues(alpha: 0.35),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: LightColor.whiteColor.withOpacity(0.15),
+                          color: LightColor.whiteColor.withValues(alpha: 0.15),
                         ),
                       ),
                       child: Row(
@@ -194,10 +194,10 @@ class _DetailsImageGalleryState extends State<DetailsImageGallery> {
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: LightColor.primaryTextColor.withOpacity(0.25),
+              color: LightColor.primaryTextColor.withValues(alpha: 0.25),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                color: LightColor.whiteColor.withOpacity(0.15),
+                color: LightColor.whiteColor.withValues(alpha: 0.15),
               ),
             ),
             child: Icon(icon, color: iconColor, size: 22),

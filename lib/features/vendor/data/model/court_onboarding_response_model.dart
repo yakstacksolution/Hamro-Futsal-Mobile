@@ -13,6 +13,8 @@ final class CourtOnboardingResponseModel {
     this.description = '',
     this.capacity,
     this.advancePaymentRequired,
+    this.advancePaymentType,
+    this.advancePrice,
     this.paymentQrId,
   });
 
@@ -27,6 +29,8 @@ final class CourtOnboardingResponseModel {
   final String description;
   final int? capacity;
   final bool? advancePaymentRequired;
+  final AdvancePaymentType? advancePaymentType;
+  final double? advancePrice;
   final int? paymentQrId;
 
   factory CourtOnboardingResponseModel.fromJson(Map<String, dynamic> json) {
@@ -43,11 +47,13 @@ final class CourtOnboardingResponseModel {
       subStep: _asInt(data['sub_step']) ?? 0,
       name: _asTrimmedString(data['name'] ?? data['court_name']),
       basePrice: _asDouble(data['base_price']),
-      description: _asTrimmedString(
-        data['description'] ?? data['court_description'],
-      ),
+      description: _asTrimmedString(data['description']),
       capacity: _asInt(data['capacity'] ?? data['max_player']),
       advancePaymentRequired: _asBool(data['advance_payment_required']),
+      advancePaymentType: AdvancePaymentType.fromString(
+        data['advance_payment_type']?.toString(),
+      ),
+      advancePrice: _asDouble(data['advance_price']),
       paymentQrId: _asInt(data['payment_qr_id']),
     );
   }
@@ -62,6 +68,8 @@ final class CourtOnboardingResponseModel {
       matchFormatId: matchFormatId,
       maxPlayers: capacity,
       advancePaymentRequired: advancePaymentRequired,
+      advancePaymentType: advancePaymentType,
+      advancePrice: advancePrice,
       paymentQr: paymentQrId == null
           ? draft.paymentQr
           : UploadRef(

@@ -13,4 +13,6 @@ final class ImageConstants {
 
   static const String locationIcon = 'assets/icons/location.png';
   static const String pinIcon = 'assets/icons/pin.png';
+
+  static const String yakStackLogo = 'assets/logo/yak-stack-logo.png';
 }

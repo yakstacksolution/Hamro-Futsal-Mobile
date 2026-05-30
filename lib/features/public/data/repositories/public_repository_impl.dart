@@ -240,7 +240,7 @@ final class PublicRepositoryImpl extends PublicRepository {
     final Map<String, dynamic> map = Map<String, dynamic>.from(payload);
     const List<String> knownKeys = <String>[
       'futsal_description',
-      'court_description',
+      'description',
       'cancelation_policy',
       'cancellation_policy',
       'futsal_rules',

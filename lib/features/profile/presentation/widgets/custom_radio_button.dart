@@ -92,15 +92,15 @@ class CustomRadioButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: isSelected
-                ? activeColor.withOpacity(0.5)
+                ? activeColor.withValues(alpha: 0.5)
                 : Colors.transparent,
             width: 1.5,
           ),
           boxShadow: [
             BoxShadow(
               color: isSelected
-                  ? activeColor.withOpacity(0.15)
-                  : Colors.black.withOpacity(0.04),
+                  ? activeColor.withValues(alpha: 0.15)
+                  : Colors.black.withValues(alpha: 0.04),
               blurRadius: isSelected ? 12 : 8,
               offset: const Offset(0, 2),
             ),

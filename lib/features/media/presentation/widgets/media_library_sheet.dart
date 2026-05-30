@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -36,7 +37,7 @@ Future<List<UploadRef>?> showVendorMediaLibrarySheet({
       create: (_) =>
           MediaBloc(MediaUseCase(MediaRepositoryImpl()))
             ..add(const FetchMediaEvent()),
-      child: VendorMediaLibrarySheet(
+      child: MediaLibrarySheet(
         cubit: cubit,
         title: title,
         subtitle: subtitle,
@@ -48,8 +49,8 @@ Future<List<UploadRef>?> showVendorMediaLibrarySheet({
   );
 }
 
-class VendorMediaLibrarySheet extends StatefulWidget {
-  const VendorMediaLibrarySheet({
+class MediaLibrarySheet extends StatefulWidget {
+  const MediaLibrarySheet({
     super.key,
     required this.cubit,
     required this.title,
@@ -67,11 +68,10 @@ class VendorMediaLibrarySheet extends StatefulWidget {
   final List<UploadRef> initiallySelected;
 
   @override
-  State<VendorMediaLibrarySheet> createState() =>
-      _VendorMediaLibrarySheetState();
+  State<MediaLibrarySheet> createState() => _VendorMediaLibrarySheetState();
 }
 
-class _VendorMediaLibrarySheetState extends State<VendorMediaLibrarySheet> {
+class _VendorMediaLibrarySheetState extends State<MediaLibrarySheet> {
   final Set<String> _selectedPaths = <String>{};
   final Set<String> _knownRemoteKeys = <String>{};
   _LibraryFilter _filter = _LibraryFilter.all;
@@ -878,40 +878,17 @@ class _CompactActionRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: <Widget>[
         Expanded(
-          child: _SmallActionButton(
-            label: 'Add Image',
-            icon: Icons.image_outlined,
-            isLoading: isAddingImages,
-            onTap: onAddImages,
-            accentColor: LightColor.secondaryColor,
-            softColor: LightColor.secondaryLight,
+          child: _AddMediaMenuButton(
+            onAddImages: onAddImages,
+            onAddFromCamera: onAddFromCamera,
+            onAddFiles: onAddFiles,
+            isLoading: isAddingImages || isCapturing,
           ),
         ),
-        const SizedBox(width: AppDimens.sizeX10),
-        Expanded(
-          child: _SmallActionButton(
-            label: 'Camera',
-            icon: Icons.photo_camera_outlined,
-            isLoading: isCapturing,
-            onTap: onAddFromCamera,
-            accentColor: LightColor.secondaryColor,
-            softColor: LightColor.secondaryLight,
-          ),
-        ),
-        const SizedBox(width: AppDimens.sizeX10),
-        Expanded(
-          child: _SmallActionButton(
-            label: 'Add File',
-            icon: Icons.insert_drive_file_outlined,
-            isLoading: false,
-            onTap: onAddFiles,
-            accentColor: LightColor.secondaryColor,
-            softColor: LightColor.secondaryLight,
-          ),
-        ),
-        const SizedBox(width: AppDimens.sizeX10),
+        const SizedBox(width: AppDimens.sizeX8),
         _FilterMenuButton(
           activeFilter: activeFilter,
           onSelected: onFilterChanged,
@@ -1002,84 +979,214 @@ class _FilterMenuButton extends StatelessWidget {
   }
 }
 
-class _SmallActionButton extends StatelessWidget {
-  const _SmallActionButton({
-    required this.label,
-    required this.icon,
-    required this.onTap,
-    required this.isLoading,
-    required this.accentColor,
-    required this.softColor,
-  });
+enum _AddSource {
+  gallery('Gallery', 'Choose from your photos', Icons.image_outlined),
+  camera('Camera', 'Take a new photo', Icons.photo_camera_outlined),
+  files('Files', 'Browse documents', Icons.insert_drive_file_outlined);
+
+  const _AddSource(this.label, this.description, this.icon);
 
   final String label;
+  final String description;
   final IconData icon;
-  final VoidCallback? onTap;
+}
+
+class _AddMediaMenuButton extends StatelessWidget {
+  const _AddMediaMenuButton({
+    required this.onAddImages,
+    required this.onAddFromCamera,
+    required this.onAddFiles,
+    required this.isLoading,
+  });
+
+  final VoidCallback? onAddImages;
+  final VoidCallback? onAddFromCamera;
+  final VoidCallback? onAddFiles;
   final bool isLoading;
-  final Color accentColor;
-  final Color softColor;
+
+  VoidCallback? _callbackFor(_AddSource source) {
+    switch (source) {
+      case _AddSource.gallery:
+        return onAddImages;
+      case _AddSource.camera:
+        return onAddFromCamera;
+      case _AddSource.files:
+        return onAddFiles;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final bool isDisabled = onTap == null;
+    final bool hasAnyOption =
+        onAddImages != null || onAddFromCamera != null || onAddFiles != null;
+    final bool isDisabled = !hasAnyOption || isLoading;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: LightColor.secondaryColor,
-        borderRadius: BorderRadius.circular(AppDimens.radiusX6),
-        border: Border.all(
-          color: isDisabled ? LightColor.dividerColor : LightColor.borderColor,
-        ),
+    return PopupMenuButton<_AddSource>(
+      enabled: !isDisabled,
+      tooltip: 'Pick from...',
+      offset: const Offset(0, AppDimens.sizeX8),
+      color: LightColor.whiteColor,
+      elevation: 10,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppDimens.radiusX16),
       ),
-      child: InkWell(
-        onTap: isDisabled ? null : onTap,
-        child: Ink(
-          height: AppDimens.sizeX36,
-          decoration: BoxDecoration(
-            color: LightColor.hintTextColor,
-            borderRadius: BorderRadius.circular(AppDimens.radiusX8),
-            border: Border.all(
-              color: isDisabled
-                  ? LightColor.dividerColor
-                  : LightColor.borderColor,
-            ),
-          ),
-          child: Padding(
-            padding: AppUtils().getPadding(horizontal: AppDimens.paddingX6),
+      onSelected: (_AddSource source) {
+        final VoidCallback? callback = _callbackFor(source);
+        if (callback == null) return;
+
+        WidgetsBinding.instance.addPostFrameCallback((_) => callback());
+      },
+      itemBuilder: (BuildContext context) {
+        return _AddSource.values.map((_AddSource source) {
+          final bool enabled = _callbackFor(source) != null;
+          return PopupMenuItem<_AddSource>(
+            value: source,
+            enabled: enabled,
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
               children: <Widget>[
-                if (isLoading)
-                  SizedBox(
-                    width: AppDimens.sizeX18,
-                    height: AppDimens.sizeX18,
-                    child: LoadingWidget(),
-                  )
-                else
-                  Icon(
-                    icon,
-                    size: AppDimens.sizeX16,
-                    color: LightColor.whiteColor,
+                Container(
+                  width: AppDimens.sizeX36,
+                  height: AppDimens.sizeX36,
+                  decoration: BoxDecoration(
+                    color: LightColor.dividerColor,
+                    borderRadius: BorderRadius.circular(AppDimens.radiusX6),
                   ),
-                const SizedBox(width: AppDimens.sizeX6),
-                Expanded(
-                  child: Text(
-                    label,
-                    overflow: TextOverflow.ellipsis,
-                    style: FutsalTheme.getTextTheme(context).bodyTextSmall
-                        ?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: LightColor.whiteColor,
-                        ),
+                  child: Icon(
+                    source.icon,
+                    size: AppDimens.sizeX18,
+                    color: enabled
+                        ? LightColor.secondaryColor
+                        : LightColor.secondaryTextColor,
                   ),
                 ),
                 const SizedBox(width: AppDimens.sizeX12),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      source.label,
+                      style: FutsalTheme.getTextTheme(context).bodyTextSmall
+                          ?.copyWith(
+                            color: enabled
+                                ? LightColor.primaryTextColor
+                                : LightColor.secondaryTextColor,
+                          ),
+                    ),
+                    Text(
+                      source.description,
+                      style: FutsalTheme.getTextTheme(context).bodySubTitle
+                          ?.copyWith(color: LightColor.secondaryTextColor),
+                    ),
+                  ],
+                ),
               ],
             ),
+          );
+        }).toList();
+      },
+      child: CustomPaint(
+        foregroundPainter: const _DashedRRectPainter(
+          color: LightColor.greyBorderColor,
+          radius: AppDimens.radiusX10,
+        ),
+        child: Container(
+          height: AppDimens.sizeX42,
+          decoration: BoxDecoration(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+          ),
+          padding: AppUtils().getPadding(horizontal: AppDimens.paddingX12),
+          child: Row(
+            children: <Widget>[
+              if (isLoading)
+                const SizedBox(
+                  width: AppDimens.sizeX18,
+                  height: AppDimens.sizeX18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      LightColor.secondaryColor,
+                    ),
+                  ),
+                )
+              else
+                Icon(
+                  Icons.add_photo_alternate_outlined,
+                  size: AppDimens.sizeX18,
+                  color: isDisabled
+                      ? LightColor.secondaryTextColor
+                      : LightColor.secondaryColor,
+                ),
+              const SizedBox(width: AppDimens.sizeX8),
+              Flexible(
+                child: Text(
+                  'Pick from...',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: FutsalTheme.getTextTheme(context).bodyTextSmall
+                      ?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: isDisabled
+                            ? LightColor.secondaryTextColor
+                            : LightColor.secondaryColor,
+                      ),
+                ),
+              ),
+              const SizedBox(width: AppDimens.sizeX6),
+              Icon(
+                Icons.keyboard_arrow_down_rounded,
+                size: AppDimens.sizeX18,
+                color: isDisabled
+                    ? LightColor.secondaryTextColor
+                    : LightColor.secondaryColor,
+              ),
+            ],
           ),
         ),
       ),
     );
+  }
+}
+
+class _DashedRRectPainter extends CustomPainter {
+  const _DashedRRectPainter({required this.color, this.radius = 10});
+
+  final Color color;
+  final double radius;
+
+  static const double _strokeWidth = 1.4;
+  static const double _dashLength = 5;
+  static const double _gapLength = 4;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final Paint paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = _strokeWidth
+      ..strokeCap = StrokeCap.round;
+
+    final Path path = Path()
+      ..addRRect(
+        RRect.fromRectAndRadius(Offset.zero & size, Radius.circular(radius)),
+      );
+
+    for (final ui.PathMetric metric in path.computeMetrics()) {
+      double distance = 0;
+      while (distance < metric.length) {
+        final double next = distance + _dashLength;
+        canvas.drawPath(
+          metric.extractPath(distance, next.clamp(0, metric.length)),
+          paint,
+        );
+        distance = next + _gapLength;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DashedRRectPainter oldDelegate) {
+    return oldDelegate.color != color || oldDelegate.radius != radius;
   }
 }
 
@@ -1221,12 +1328,6 @@ class _CompactMediaCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: LightColor.whiteColor,
             borderRadius: BorderRadius.circular(4),
-            border: Border.all(
-              color: isSelected
-                  ? LightColor.secondaryColor
-                  : LightColor.borderColor,
-              width: isSelected ? 1.4 : 1,
-            ),
             boxShadow: isSelected
                 ? <BoxShadow>[
                     BoxShadow(
@@ -1250,74 +1351,101 @@ class _CompactMediaCard extends StatelessWidget {
                       ),
                     ),
                     Positioned(
-                      top: 4,
-                      right: 4,
-                      child: Row(
-                        children: <Widget>[
-                          GestureDetector(
-                            onTap: onTap,
-                            child: Container(
-                              width: 20,
-                              height: 20,
-                              decoration: BoxDecoration(
-                                color: isSelected
-                                    ? LightColor.secondaryColor
-                                    : Colors.white.withValues(alpha: 0.96),
-                                borderRadius: BorderRadius.circular(999),
-                                border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.95),
-                                  width: 1.2,
-                                ),
-                                boxShadow: <BoxShadow>[
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.08),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              child: Icon(
-                                isSelected
-                                    ? Icons.check_rounded
-                                    : Icons.circle_outlined,
-                                size: 12,
-                                color: isSelected
-                                    ? Colors.white
-                                    : LightColor.secondaryTextColor,
-                              ),
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      child: IgnorePointer(
+                        child: Container(
+                          height: AppDimens.sizeX40,
+                          decoration: BoxDecoration(
+                            borderRadius: const BorderRadius.vertical(
+                              top: Radius.circular(4),
+                            ),
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: <Color>[
+                                Colors.black.withValues(alpha: 0.28),
+                                Colors.transparent,
+                              ],
                             ),
                           ),
-                          SizedBox(width: AppDimens.sizeX3),
-                          GestureDetector(
-                            onTap: canRemove ? onRemove : null,
-                            child: Container(
-                              width: AppDimens.sizeX20,
-                              height: AppDimens.sizeX20,
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.96),
-                                borderRadius: BorderRadius.circular(999),
-                                border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.95),
-                                  width: 1.2,
-                                ),
-                                boxShadow: <BoxShadow>[
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.08),
-                                    blurRadius: AppDimens.sizeX8,
-                                    offset: const Offset(0, AppDimens.sizeX2),
-                                  ),
-                                ],
-                              ),
-                              child: const Icon(
-                                Icons.delete_outline_rounded,
-                                size: AppDimens.sizeX12,
-                                color: LightColor.redColor,
-                              ),
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
                     ),
+                    Positioned(
+                      top: AppDimens.sizeX6,
+                      right: AppDimens.sizeX6,
+                      child: GestureDetector(
+                        onTap: onTap,
+                        child: Container(
+                          width: AppDimens.sizeX20,
+                          height: AppDimens.sizeX20,
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? LightColor.secondaryColor
+                                : Colors.white.withValues(alpha: 0.96),
+                            borderRadius: BorderRadius.circular(999),
+                            border: Border.all(
+                              color: isSelected
+                                  ? Colors.white
+                                  : LightColor.borderColor,
+                              width: 1.4,
+                            ),
+                            boxShadow: <BoxShadow>[
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.12),
+                                blurRadius: 6,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Icon(
+                            isSelected
+                                ? Icons.check_rounded
+                                : Icons.circle_outlined,
+                            size: AppDimens.sizeX14,
+                            color: isSelected
+                                ? Colors.white
+                                : LightColor.secondaryTextColor,
+                          ),
+                        ),
+                      ),
+                    ),
+                    // if (canRemove)
+                    //   Positioned(
+                    //     top: AppDimens.sizeX6,
+                    //     left: AppDimens.sizeX6,
+                    //     child: GestureDetector(
+                    //       onTap: onRemove,
+                    //       child: Container(
+                    //         width: AppDimens.sizeX24,
+                    //         height: AppDimens.sizeX24,
+                    //         decoration: BoxDecoration(
+                    //           color: LightColor.redColor,
+                    //           borderRadius: BorderRadius.circular(999),
+                    //           border: Border.all(
+                    //             color: Colors.white,
+                    //             width: 1.4,
+                    //           ),
+                    //           boxShadow: <BoxShadow>[
+                    //             BoxShadow(
+                    //               color: LightColor.redColor.withValues(
+                    //                 alpha: 0.35,
+                    //               ),
+                    //               blurRadius: 6,
+                    //               offset: const Offset(0, 2),
+                    //             ),
+                    //           ],
+                    //         ),
+                    //         child: const Icon(
+                    //           Icons.delete_outline_rounded,
+                    //           size: AppDimens.sizeX14,
+                    //           color: Colors.white,
+                    //         ),
+                    //       ),
+                    //     ),
+                    //   ),
                     if (isSelected)
                       Positioned.fill(
                         child: IgnorePointer(

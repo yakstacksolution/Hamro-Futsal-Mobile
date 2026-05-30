@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_drafts.dart';
 
 class ProfileModel extends Equatable {
   final String status;
@@ -37,7 +38,6 @@ class ProfileModel extends Equatable {
 
 class UserData extends Equatable {
   final int id;
-  final String name;
   final String fullName;
   final String email;
   final String? phone;
@@ -49,7 +49,7 @@ class UserData extends Equatable {
   final DateTime? vendorOnboardingCompletedAt;
   final Map<String, dynamic>? vendorOnboardingData;
   final String? designation;
-  final String? profilePhoto;
+  final UploadRef? profilePhoto;
   final DateTime? dateOfBirth;
   final String? gender;
   final String? address;
@@ -61,7 +61,6 @@ class UserData extends Equatable {
 
   const UserData({
     required this.id,
-    required this.name,
     required this.fullName,
     required this.email,
     this.phone,
@@ -87,7 +86,6 @@ class UserData extends Equatable {
   factory UserData.fromJson(Map<String, dynamic> json) {
     return UserData(
       id: json['id'] ?? 0,
-      name: json['name'] ?? '',
       fullName: json['full_name'] ?? '',
       email: json['email'] ?? '',
       phone: json['phone'],
@@ -110,7 +108,9 @@ class UserData extends Equatable {
           ? Map<String, dynamic>.from(json['vendor_onboarding_data'] as Map)
           : null,
       designation: json['designation'],
-      profilePhoto: json['profile_photo'],
+      profilePhoto: json['profile_photo'] != null
+          ? UploadRef.fromJson(json['profile_photo'])
+          : null,
       dateOfBirth: json['date_of_birth'] != null
           ? DateTime.tryParse(json['date_of_birth'].toString())
           : null,
@@ -137,7 +137,6 @@ class UserData extends Equatable {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'name': name,
       'full_name': fullName,
       'email': email,
       'phone': phone,
@@ -165,7 +164,6 @@ class UserData extends Equatable {
   @override
   List<Object?> get props => [
     id,
-    name,
     fullName,
     email,
     phone,
@@ -202,7 +200,7 @@ class UserData extends Equatable {
     DateTime? vendorOnboardingCompletedAt,
     Map<String, dynamic>? vendorOnboardingData,
     String? designation,
-    String? profilePhoto,
+    UploadRef? profilePhoto,
     DateTime? dateOfBirth,
     String? gender,
     String? address,
@@ -214,7 +212,6 @@ class UserData extends Equatable {
   }) {
     return UserData(
       id: id ?? this.id,
-      name: name ?? this.name,
       fullName: fullName ?? this.fullName,
       email: email ?? this.email,
       phone: phone ?? this.phone,
@@ -244,7 +241,6 @@ class UserData extends Equatable {
   UserData mergeWith(UserData other) {
     return copyWith(
       id: other.id,
-      name: other.name.isNotEmpty ? other.name : null,
       fullName: other.fullName.isNotEmpty ? other.fullName : null,
       email: other.email.isNotEmpty ? other.email : null,
       phone: other.phone,

@@ -14,6 +14,7 @@ import 'package:hamro_footsall/features/public/presentation/bloc/public_template
 import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_cubit.dart';
 import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_models.dart';
 import 'package:hamro_footsall/features/vendor/presentation/utils/vendor_template_defaults.dart';
+import 'package:hamro_footsall/features/vendor/presentation/validation/vendor_onboarding_validator.dart';
 import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/vendor_form_components.dart';
 
 class FutsalInformationSection extends StatefulWidget {
@@ -45,6 +46,14 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
   bool _isFlushRegistered = false;
   final Object _flushOwner = Object();
 
+  // Basic Information (subsection 0) field focus nodes, for keyboard "next"
+  // traversal and focusing the first invalid field when validation fails.
+  final FocusNode _nameFocus = FocusNode();
+  final FocusNode _registrationFocus = FocusNode();
+  final FocusNode _phoneFocus = FocusNode();
+  final FocusNode _emailFocus = FocusNode();
+  final FocusNode _websiteFocus = FocusNode();
+
   @override
   void initState() {
     super.initState();
@@ -61,6 +70,39 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
       _registerFlush();
       _initializeEditor();
     }
+
+    widget.cubit.focusInvalidFieldRequest.addListener(
+      _handleFocusInvalidRequest,
+    );
+  }
+
+  void _handleFocusInvalidRequest() {
+    if (widget.subsectionIndex != 0) return;
+    final String? raw = widget.cubit.focusInvalidFieldRequest.value;
+    if (raw == null) return;
+    if (raw.split('#').first !=
+        VendorOnboardingValidator.futsalSubstepKey(0, 0)) {
+      return;
+    }
+    final FocusNode? target = _firstInvalidBasicInfoFocus();
+    if (target == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) target.requestFocus();
+    });
+  }
+
+  FocusNode? _firstInvalidBasicInfoFocus() {
+    final FutsalDraft draft = widget.cubit.state.futsal;
+    final String slug = draft.slug.trim();
+    final bool slugValid = RegExp(
+      r'^[a-z0-9]+(?:-[a-z0-9]+)*$',
+    ).hasMatch(slug);
+    if (draft.title.trim().isEmpty || slug.isEmpty || !slugValid) {
+      return _nameFocus;
+    }
+    if (draft.phone.trim().isEmpty) return _phoneFocus;
+    if (draft.email.trim().isEmpty) return _emailFocus;
+    return _websiteFocus;
   }
 
   @override
@@ -172,6 +214,9 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
   void dispose() {
     _flushPendingChanges();
     _unregisterFlush();
+    widget.cubit.focusInvalidFieldRequest.removeListener(
+      _handleFocusInvalidRequest,
+    );
     _debounceTimer?.cancel();
     if (_initialized) {
       _quillController.removeListener(_onEditorChanged);
@@ -180,6 +225,11 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
     _exactLocationController?.dispose();
     _longitudeController?.dispose();
     _latitudeController?.dispose();
+    _nameFocus.dispose();
+    _registrationFocus.dispose();
+    _phoneFocus.dispose();
+    _emailFocus.dispose();
+    _websiteFocus.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -298,6 +348,10 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
           isRequired: true,
           hintText: 'Enter futsal club name',
           enableIcon: true,
+          focusNode: _nameFocus,
+          ensureVisibleOnFocus: true,
+          textInputAction: TextInputAction.next,
+          onSubmitted: (_) => _registrationFocus.requestFocus(),
           initialValue: widget.draft.title,
           onChanged: widget.cubit.updateFutsalBasicIdentity,
         ),
@@ -309,7 +363,10 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
           hintText: 'Enter Futsal registration number',
           enableIcon: true,
           readOnly: false,
-
+          focusNode: _registrationFocus,
+          ensureVisibleOnFocus: true,
+          textInputAction: TextInputAction.next,
+          onSubmitted: (_) => _phoneFocus.requestFocus(),
           initialValue: widget.draft.registrationNumber,
           onChanged: (String value) => widget.cubit.updateFutsal(
             widget.draft.copyWith(registrationNumber: value),
@@ -324,6 +381,10 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
           enableIcon: true,
           keyboardType: TextInputType.phone,
           isRequired: true,
+          focusNode: _phoneFocus,
+          ensureVisibleOnFocus: true,
+          textInputAction: TextInputAction.next,
+          onSubmitted: (_) => _emailFocus.requestFocus(),
           onChanged: (String value) =>
               widget.cubit.updateFutsal(widget.draft.copyWith(phone: value)),
         ),
@@ -335,6 +396,10 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
           initialValue: widget.draft.email,
           enableIcon: true,
           keyboardType: TextInputType.emailAddress,
+          focusNode: _emailFocus,
+          ensureVisibleOnFocus: true,
+          textInputAction: TextInputAction.next,
+          onSubmitted: (_) => _websiteFocus.requestFocus(),
           onChanged: (String value) =>
               widget.cubit.updateFutsal(widget.draft.copyWith(email: value)),
         ),
@@ -345,6 +410,9 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
           initialValue: widget.draft.websiteOrSocialLink,
           enableIcon: true,
           keyboardType: TextInputType.url,
+          focusNode: _websiteFocus,
+          ensureVisibleOnFocus: true,
+          textInputAction: TextInputAction.done,
           onChanged: widget.cubit.updateFutsalWebsiteOrSocialLink,
         ),
         const SizedBox(height: 10),

@@ -193,12 +193,10 @@ Map<String, dynamic> _courtSubstepBody(
             'max_player': court.maxPlayers,
           };
         case 1:
-          return <String, dynamic>{
-            'court_description': court.description.trim(),
-          };
+          return <String, dynamic>{'description': court.description.trim()};
         case 2:
           return <String, dynamic>{
-            'photo_ids': _uploadIds(court.photos),
+            'court_photo_ids': _uploadIds(court.photos),
             'memory_ids': _uploadIds(court.memories),
           };
       }
@@ -207,15 +205,22 @@ Map<String, dynamic> _courtSubstepBody(
         case 0:
           return <String, dynamic>{
             'advance_payment_required': court.advancePaymentRequired,
-            'payment_percent': court.paymentPercent,
+            'advance_payment_type': court.advancePaymentType?.apiValue,
+            'advance_price': court.advancePrice,
           };
         case 1:
           return <String, dynamic>{'payment_qr_id': court.paymentQr?.id};
       }
     case 2:
+      switch (subStep) {
+        case 0:
+          return <String, dynamic>{'amenity_ids': court.amenities.toList()};
+        case 1:
+          return <String, dynamic>{'facility_ids': court.facilities.toList()};
+      }
       return <String, dynamic>{
-        'amenities': court.amenities.toList(),
-        'facilities': court.facilities.toList(),
+        'amenity_ids': court.amenities.toList(),
+        'facility_ids': court.facilities.toList(),
       };
     case 3:
       switch (subStep) {
@@ -242,14 +247,15 @@ Map<String, dynamic> _fullCourtBody(CourtDraft court) {
     'court_type': _courtTypeId(court),
     'match_format': _matchFormatId(court),
     'max_player': court.maxPlayers,
-    'court_description': court.description.trim(),
-    'photo_ids': _uploadIds(court.photos),
+    'description': court.description.trim(),
+    'court_photo_ids': _uploadIds(court.photos),
     'memory_ids': _uploadIds(court.memories),
     'advance_payment_required': court.advancePaymentRequired,
-    'payment_percent': court.paymentPercent,
+    'advance_payment_type': court.advancePaymentType?.apiValue,
+    'advance_price': court.advancePrice,
     'payment_qr_id': court.paymentQr?.id,
-    'amenities': court.amenities.toList(),
-    'facilities': court.facilities.toList(),
+    'amenity_ids': court.amenities.toList(),
+    'facility_ids': court.facilities.toList(),
     'weekend_days': court.weekendDays.toList(),
     'holiday_dates': court.holidayDates.toList(),
     'closed_dates': _closedDateBodies(court.closedDates),

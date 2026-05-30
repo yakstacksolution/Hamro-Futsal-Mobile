@@ -71,6 +71,9 @@ class AmenitiesFacilitiesSection extends StatelessWidget {
         const SizedBox(height: 20),
         CustomTextField(
           controller: bloc.amenitiesNotesController,
+          focusNode: bloc.amenitiesNotesFocus,
+          ensureVisibleOnFocus: true,
+          isRequired: false,
           labelText: 'Amenities Notes',
           hintText:
               'Mention equipment quality, seating capacity, or any premium services.',

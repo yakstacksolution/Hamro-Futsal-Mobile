@@ -17,10 +17,6 @@ Future<TimeOfDay?> customCupertinoTimePicker(
   final now = TimeOfDay.now();
   TimeOfDay selectedTime = initialTime ?? now;
 
-  DateTime dateTimeFromTimeOfDay(TimeOfDay tod) {
-    return DateTime(0, 1, 1, tod.hour, tod.minute);
-  }
-
   return showModalBottomSheet<TimeOfDay?>(
     context: context,
     isDismissible: true,
@@ -37,8 +33,36 @@ Future<TimeOfDay?> customCupertinoTimePicker(
       return StatefulBuilder(
         builder: (context, setState) {
           final textTheme = FutsalTheme.getTextTheme(context);
+          final bottomInset = MediaQuery.of(context).viewPadding.bottom;
+          final pickerTextStyle = textTheme.bodyTextLarge?.copyWith(
+            fontWeight: FontWeight.w800,
+            color: LightColor.primaryTextColor,
+          );
+
+          final hour12 = selectedTime.hourOfPeriod == 0
+              ? 12
+              : selectedTime.hourOfPeriod;
+          final isAm = selectedTime.period == DayPeriod.am;
+
+          void updateTime({int? hour12, int? minute, bool? am}) {
+            final h12 =
+                hour12 ??
+                (selectedTime.hourOfPeriod == 0
+                    ? 12
+                    : selectedTime.hourOfPeriod);
+            final m = minute ?? selectedTime.minute;
+            final amNow = am ?? (selectedTime.period == DayPeriod.am);
+            var h24 = h12 % 12;
+            if (!amNow) h24 += 12;
+            selectedTime = TimeOfDay(hour: h24, minute: m);
+          }
+
           return Padding(
-            padding: AppUtils().getPadding(horizontal: AppDimens.paddingX16),
+            padding: AppUtils().getPadding(
+              left: AppDimens.paddingX16,
+              right: AppDimens.paddingX16,
+              bottom: bottomInset + AppDimens.paddingX24,
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
@@ -66,36 +90,107 @@ Future<TimeOfDay?> customCupertinoTimePicker(
                   ],
                 ),
                 SizedBox(height: AppDimens.sizeX12),
-                IntrinsicHeight(
-                  child: CupertinoTheme(
-                    data: CupertinoTheme.of(context).copyWith(
-                      textTheme: CupertinoTextThemeData(
-                        dateTimePickerTextStyle: textTheme.bodyTextLarge
-                            ?.copyWith(
-                              fontWeight: FontWeight.w800,
-                              color: LightColor.primaryTextColor,
+                SizedBox(
+                  height: AppDimens.sizeX220,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: <Widget>[
+                      IgnorePointer(
+                        child: Container(
+                          height: AppDimens.sizeX48,
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            border: Border.all(
+                              color: LightColor.secondaryColor.withValues(
+                                alpha: 0.4,
+                              ),
+                              width: AppDimens.sizeX1,
                             ),
+                            borderRadius: BorderRadius.circular(
+                              AppDimens.radiusX12,
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
-                    child: SizedBox(
-                      height: AppDimens.sizeX150,
-                      child: CupertinoDatePicker(
-                        itemExtent: 48,
-                        mode: CupertinoDatePickerMode.time,
-                        initialDateTime: dateTimeFromTimeOfDay(selectedTime),
-                        use24hFormat: false,
-                        onDateTimeChanged: (DateTime dateTime) {
-                          setState(() {
-                            selectedTime = TimeOfDay(
-                              hour: dateTime.hour,
-                              minute: dateTime.minute,
-                            );
-                          });
-                        },
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: <Widget>[
+                          SizedBox(
+                            width: AppDimens.sizeX60,
+                            child: CupertinoPicker(
+                              key: ValueKey('hour-$selectedTime'),
+                              itemExtent: AppDimens.sizeX48,
+                              backgroundColor: Colors.transparent,
+                              selectionOverlay: const SizedBox.shrink(),
+                              scrollController: FixedExtentScrollController(
+                                initialItem: hour12 - 1,
+                              ),
+                              onSelectedItemChanged: (index) =>
+                                  updateTime(hour12: index + 1),
+                              children: List<Widget>.generate(
+                                12,
+                                (i) => Center(
+                                  child: Text(
+                                    '${i + 1}',
+                                    style: pickerTextStyle,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: AppDimens.sizeX12),
+                          SizedBox(
+                            width: AppDimens.sizeX60,
+                            child: CupertinoPicker(
+                              key: ValueKey('minute-$selectedTime'),
+                              itemExtent: AppDimens.sizeX48,
+                              backgroundColor: Colors.transparent,
+                              selectionOverlay: const SizedBox.shrink(),
+                              scrollController: FixedExtentScrollController(
+                                initialItem: selectedTime.minute,
+                              ),
+                              onSelectedItemChanged: (index) =>
+                                  updateTime(minute: index),
+                              children: List<Widget>.generate(
+                                60,
+                                (i) => Center(
+                                  child: Text(
+                                    i.toString().padLeft(2, '0'),
+                                    style: pickerTextStyle,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: AppDimens.sizeX12),
+                          SizedBox(
+                            width: AppDimens.sizeX60,
+                            child: CupertinoPicker(
+                              key: ValueKey('period-$selectedTime'),
+                              itemExtent: AppDimens.sizeX48,
+                              backgroundColor: Colors.transparent,
+                              selectionOverlay: const SizedBox.shrink(),
+                              scrollController: FixedExtentScrollController(
+                                initialItem: isAm ? 0 : 1,
+                              ),
+                              onSelectedItemChanged: (index) =>
+                                  updateTime(am: index == 0),
+                              children: <Widget>[
+                                Center(
+                                  child: Text('AM', style: pickerTextStyle),
+                                ),
+                                Center(
+                                  child: Text('PM', style: pickerTextStyle),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
+                    ],
                   ),
                 ),
+                SizedBox(height: AppDimens.sizeX24),
                 CustomButton(
                   text: 'Select',
                   backgroundColor: LightColor.secondaryColor,

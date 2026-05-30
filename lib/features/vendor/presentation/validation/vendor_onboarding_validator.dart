@@ -212,11 +212,36 @@ class VendorOnboardingValidator {
       case 1:
         switch (subsectionIndex) {
           case 0:
-            if (draft.advancePaymentRequired && draft.paymentPercent == null) {
-              return VendorValidationResult.invalid(
-                key,
-                'Enter the advance payment percentage.',
-              );
+            if (draft.advancePaymentRequired) {
+              if (draft.advancePaymentType == null) {
+                return VendorValidationResult.invalid(
+                  key,
+                  'Select an advance payment type.',
+                );
+              }
+              final double? price = draft.advancePrice;
+              if (price == null || price <= 0) {
+                return VendorValidationResult.invalid(
+                  key,
+                  'Enter the advance payment amount.',
+                );
+              }
+              if (draft.advancePaymentType == AdvancePaymentType.percentage &&
+                  price > 100) {
+                return VendorValidationResult.invalid(
+                  key,
+                  'Percentage cannot exceed 100.',
+                );
+              }
+              if (draft.advancePaymentType == AdvancePaymentType.flat) {
+                final double? basePrice = draft.basePrice;
+                if (basePrice != null && price > basePrice) {
+                  return VendorValidationResult.invalid(
+                    key,
+                    'Flat amount cannot exceed the base price.',
+                  );
+                }
+              }
             }
             return VendorValidationResult.valid(key);
           case 1:
@@ -229,11 +254,23 @@ class VendorOnboardingValidator {
             return VendorValidationResult.valid(key);
         }
       case 2:
-        if (draft.amenities.isEmpty && draft.facilities.isEmpty) {
-          return VendorValidationResult.invalid(
-            key,
-            'Select at least one court amenity or facility.',
-          );
+        switch (subsectionIndex) {
+          case 0:
+            if (draft.amenities.isEmpty) {
+              return VendorValidationResult.invalid(
+                key,
+                'Select at least one court amenity.',
+              );
+            }
+            return VendorValidationResult.valid(key);
+          case 1:
+            if (draft.facilities.isEmpty) {
+              return VendorValidationResult.invalid(
+                key,
+                'Select at least one court facility.',
+              );
+            }
+            return VendorValidationResult.valid(key);
         }
         return VendorValidationResult.valid(key);
       case 3:
@@ -351,12 +388,20 @@ class VendorOnboardingValidator {
       case 1:
         switch (subsectionIndex) {
           case 0:
-            return draft.advancePaymentRequired || draft.paymentPercent != null;
+            return draft.advancePaymentRequired ||
+                draft.advancePrice != null ||
+                draft.advancePaymentType != null;
           case 1:
             return draft.paymentQr != null;
         }
       case 2:
-        return draft.amenities.isNotEmpty || draft.facilities.isNotEmpty;
+        switch (subsectionIndex) {
+          case 0:
+            return draft.amenities.isNotEmpty;
+          case 1:
+            return draft.facilities.isNotEmpty;
+        }
+        return false;
       case 3:
         switch (subsectionIndex) {
           case 0:

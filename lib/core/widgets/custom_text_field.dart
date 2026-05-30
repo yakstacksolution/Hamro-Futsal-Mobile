@@ -4,7 +4,7 @@ import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 
-class CustomTextField extends StatelessWidget {
+class CustomTextField extends StatefulWidget {
   const CustomTextField({
     super.key,
     required this.labelText,
@@ -28,6 +28,7 @@ class CustomTextField extends StatelessWidget {
     this.initialValue,
     this.onSubmitted,
     this.isRequired = true,
+    this.ensureVisibleOnFocus = false,
   });
 
   final String labelText;
@@ -52,30 +53,93 @@ class CustomTextField extends StatelessWidget {
   final ValueChanged<String>? onSubmitted;
   final bool? isRequired;
 
+  /// When true, the field scrolls itself into view inside the nearest
+  /// [Scrollable] as soon as it gains focus (so it stays above the keyboard).
+  final bool ensureVisibleOnFocus;
+
+  @override
+  State<CustomTextField> createState() => _CustomTextFieldState();
+}
+
+class _CustomTextFieldState extends State<CustomTextField> {
+  FocusNode? _internalNode;
+
+  /// The node we attach to the underlying [TextFormField]. We only need a
+  /// concrete node when auto-scroll is requested; otherwise we keep the prior
+  /// behaviour and let the field manage its own (or the caller-provided) node.
+  FocusNode? get _effectiveNode {
+    if (widget.focusNode != null) return widget.focusNode;
+    if (!widget.ensureVisibleOnFocus) return null;
+    return _internalNode ??= FocusNode();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.ensureVisibleOnFocus) {
+      _effectiveNode?.addListener(_handleFocusChange);
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant CustomTextField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.focusNode != widget.focusNode ||
+        oldWidget.ensureVisibleOnFocus != widget.ensureVisibleOnFocus) {
+      oldWidget.focusNode?.removeListener(_handleFocusChange);
+      _internalNode?.removeListener(_handleFocusChange);
+      if (widget.ensureVisibleOnFocus) {
+        _effectiveNode?.addListener(_handleFocusChange);
+      }
+    }
+  }
+
+  void _handleFocusChange() {
+    if (!(_effectiveNode?.hasFocus ?? false)) return;
+    // Wait for the keyboard to start animating in before measuring.
+    Future<void>.delayed(const Duration(milliseconds: 250), () {
+      if (!mounted || !(_effectiveNode?.hasFocus ?? false)) return;
+      Scrollable.ensureVisible(
+        context,
+        alignment: 0.15,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOut,
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    widget.focusNode?.removeListener(_handleFocusChange);
+    _internalNode?.removeListener(_handleFocusChange);
+    _internalNode?.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
     return TextFormField(
-      controller: controller,
-      focusNode: focusNode,
-      initialValue: controller == null ? initialValue : null,
-      keyboardType: keyboardType,
-      textCapitalization: textCapitalization,
-      obscureText: obscureText,
-      onChanged: onChanged,
-      enabled: enabled,
-      maxLines: maxLines,
-      minLines: minLines,
-      textInputAction: textInputAction,
-      readOnly: readOnly,
-      onTap: onTap,
-      onFieldSubmitted: onSubmitted,
-      validator: validator,
+      controller: widget.controller,
+      focusNode: _effectiveNode,
+      initialValue: widget.controller == null ? widget.initialValue : null,
+      keyboardType: widget.keyboardType,
+      textCapitalization: widget.textCapitalization,
+      obscureText: widget.obscureText,
+      onChanged: widget.onChanged,
+      enabled: widget.enabled,
+      maxLines: widget.maxLines,
+      minLines: widget.minLines,
+      textInputAction: widget.textInputAction,
+      readOnly: widget.readOnly,
+      onTap: widget.onTap,
+      onFieldSubmitted: widget.onSubmitted,
+      validator: widget.validator,
       cursorColor: LightColor.primaryTextColor,
       cursorHeight: AppDimens.sizeX16,
       cursorWidth: 1.2,
       style:
-          style ??
+          widget.style ??
           textTheme.bodyTextLarge?.copyWith(
             color: LightColor.primaryTextColor,
             fontSize: AppDimens.fontBodyTextSmall,
@@ -83,11 +147,11 @@ class CustomTextField extends StatelessWidget {
           ),
       decoration: customTextFieldDecoration(
         context: context,
-        labelText: labelText,
-        isRequired: isRequired ?? true,
-        hintText: hintText,
-        icon: icon,
-        suffixIcon: suffixIcon,
+        labelText: widget.labelText,
+        isRequired: widget.isRequired ?? true,
+        hintText: widget.hintText,
+        icon: widget.icon,
+        suffixIcon: widget.suffixIcon,
       ),
     );
   }

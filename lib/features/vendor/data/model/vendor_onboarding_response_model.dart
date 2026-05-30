@@ -55,76 +55,42 @@ class VendorOnboardingResponseModel {
     final Map<String, dynamic> data = (json['data'] is Map<String, dynamic>)
         ? json['data'] as Map<String, dynamic>
         : json;
-    final Map<String, dynamic> progress = _mapFromAny(data['progress']);
-    final Map<String, dynamic> basicInfo = _mapFromAny(data['basic_info']);
-    final Map<String, dynamic> location = _mapFromAny(data['location']);
-    final Map<String, dynamic> policies = _mapFromAny(data['policies']);
-    final Map<String, dynamic> package = _mapFromAny(data['package']);
-    final Map<String, dynamic> media = _mapFromAny(data['media']);
-    final Map<String, dynamic> court = _mapFromAny(data['court']);
 
     return VendorOnboardingResponseModel(
-      id: _asInt(court['id'] ?? data['court_id'] ?? data['id']),
+      id: _asInt(data['id'] ?? data['court_id']),
       vendorOnboardingId: _asInt(data['vendor_onboarding_id']),
       userId: _asInt(data['user_id']),
-      mainStep: _asInt(progress['main_step'] ?? data['main_step']) ?? 0,
-      subStep: _asInt(progress['sub_step'] ?? data['sub_step']) ?? 0,
-      futsalName: _asTrimmedString(
-        basicInfo['name'] ?? data['futsal_name'] ?? data['name'],
-      ),
-      slug: _asTrimmedString(basicInfo['slug'] ?? data['slug']),
-      registrationNumber: _asTrimmedString(
-        basicInfo['registration_number'] ?? data['registration_number'],
-      ),
-      phone: _asTrimmedString(
-        basicInfo['phone'] ?? data['phone_number'] ?? data['phone'],
-      ),
-      email: _asTrimmedString(
-        basicInfo['email'] ?? data['email_address'] ?? data['email'],
-      ),
-      socialLink: _asTrimmedString(
-        basicInfo['social_link'] ?? data['social_link'],
-      ),
-      description: _asTrimmedString(
-        basicInfo['description'] ?? data['description'],
-      ),
+      mainStep: _asInt(data['main_step']) ?? 0,
+      subStep: _asInt(data['sub_step']) ?? 0,
+      futsalName: _asTrimmedString(data['futsal_name'] ?? data['name']),
+      slug: _asTrimmedString(data['slug']),
+      registrationNumber: _asTrimmedString(data['registration_number']),
+      phone: _asTrimmedString(data['phone'] ?? data['phone_number']),
+      email: _asTrimmedString(data['email'] ?? data['email_address']),
+      socialLink: _asTrimmedString(data['social_link']),
+      description: _asTrimmedString(data['description']),
       futsalAddress: _asTrimmedString(
-        location['city'] ?? data['address'] ?? data['futsal_address'],
+        data['futsal_address'] ?? data['address'],
       ),
-      exactAddress: _asTrimmedString(
-        location['exact_address'] ?? data['exact_address'],
-      ),
-      latitude: _asDouble(location['latitude'] ?? data['latitude']),
-      longitude: _asDouble(location['longitude'] ?? data['longitude']),
+      exactAddress: _asTrimmedString(data['exact_address']),
+      latitude: _asDouble(data['latitude']),
+      longitude: _asDouble(data['longitude']),
       cancelledPolicy: _asTrimmedString(
-        policies['cancellation_policy'] ??
-            data['cancellation_policy'] ??
-            data['cancelled_policy'],
+        data['cancelled_policy'] ?? data['cancellation_policy'],
       ),
-      futsalRules: _asTrimmedString(
-        policies['rules'] ?? data['rules'] ?? data['futsal_rules'],
-      ),
-      packageId: _asInt(
-        package['package_id'] ?? package['id'] ?? data['package_id'],
-      ),
+      futsalRules: _asTrimmedString(data['futsal_rules'] ?? data['rules']),
+      packageId: _asInt(data['package_id']),
       packagePercentage: _asDouble(
-        package['package_percentage'] ??
-            package['commission_percent'] ??
-            data['package_percentage'] ??
-            data['commission_percent'],
+        data['package_percentage'] ?? data['commission_percent'],
       ),
       coverImage: _uploadFromAny(
-        media['cover_image'] ??
-            data['cover_image_media'] ??
-            data['cover_image_id'],
+        data['cover_image_media'] ?? data['cover_image_id'],
       ),
       galleryImages: _uploadsFromAny(
-        media['gallery'] ?? data['gallery_media'] ?? data['gallery_image_ids'],
+        data['gallery_media'] ?? data['gallery_image_ids'],
       ),
       companyDocuments: _uploadsFromAny(
-        media['company_documents'] ??
-            data['company_document_media'] ??
-            data['company_document_ids'],
+        data['company_document_media'] ?? data['company_document_ids'],
       ),
     );
   }
@@ -160,12 +126,6 @@ class VendorOnboardingResponseModel {
       companyDocuments: companyDocuments,
     );
   }
-}
-
-Map<String, dynamic> _mapFromAny(dynamic value) {
-  if (value is Map<String, dynamic>) return value;
-  if (value is Map) return Map<String, dynamic>.from(value);
-  return const <String, dynamic>{};
 }
 
 double? _commissionPercentFromPackageId(int? packageId) {
@@ -210,6 +170,9 @@ UploadRef? _uploadFromAny(dynamic value) {
       id: id,
       name: name,
       remoteUrl: remoteUrl.isEmpty ? null : remoteUrl,
+      verificationStatus: UploadVerificationStatus.fromString(
+        _asTrimmedString(map['verification_status']),
+      ),
     );
   }
 

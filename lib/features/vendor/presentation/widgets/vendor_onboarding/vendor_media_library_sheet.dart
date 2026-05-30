@@ -551,9 +551,7 @@ class _SmallActionButton extends StatelessWidget {
                 SizedBox(
                   width: 14,
                   height: 14,
-                  child: LoadingWidget(
-                    
-                  ),
+                  child: LoadingWidget(isButtonLoading: true),
                 )
               else
                 Icon(

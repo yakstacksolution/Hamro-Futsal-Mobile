@@ -11,8 +11,8 @@ final class VendorOnboardingUseCase {
   final VendorOnboardingRepository _repository;
 
   Future<Either<AppException, VendorOnboardingResponseModel>>
-  fetchVendorOnboardingFutsal(int futsalId) async =>
-      await _repository.fetchVendorOnboardingFutsal(futsalId);
+  fetchVendorOnboardingFutsal(int venueId) async =>
+      await _repository.fetchVendorOnboardingFutsal(venueId);
 
   Future<Either<AppException, VendorOnboardingResponseModel>> submitFutsal(
     Map<String, dynamic> body,

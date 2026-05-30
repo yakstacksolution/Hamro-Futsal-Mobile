@@ -19,6 +19,8 @@ class SharedPreferencesVendorDraftRepository implements VendorDraftRepository {
   @override
   bool get persistsLocally => true;
 
+  static const int _schemaVersion = 2;
+
   @override
   Future<VendorOnboardingState?> load() async {
     final String? raw = AppSettings().vendorOnboardingDraftJson;
@@ -31,12 +33,23 @@ class SharedPreferencesVendorDraftRepository implements VendorDraftRepository {
       return null;
     }
 
-    return VendorOnboardingState.fromJson(Map<String, dynamic>.from(decoded));
+    final Map<String, dynamic> map = Map<String, dynamic>.from(decoded);
+    final int storedVersion = map['__schemaVersion'] is int
+        ? map['__schemaVersion'] as int
+        : 0;
+    if (storedVersion < _schemaVersion) {
+      await clear();
+      return null;
+    }
+
+    return VendorOnboardingState.fromJson(map);
   }
 
   @override
   Future<void> save(VendorOnboardingState state) async {
-    AppSettings().vendorOnboardingDraftJson = jsonEncode(state.toJson());
+    final Map<String, dynamic> body = state.toJson();
+    body['__schemaVersion'] = _schemaVersion;
+    AppSettings().vendorOnboardingDraftJson = jsonEncode(body);
   }
 
   @override

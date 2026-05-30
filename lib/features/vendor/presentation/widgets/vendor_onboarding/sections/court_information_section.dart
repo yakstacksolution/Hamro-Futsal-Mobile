@@ -17,6 +17,7 @@ import 'package:hamro_footsall/features/public/presentation/bloc/public_template
 import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_cubit.dart';
 import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_models.dart';
 import 'package:hamro_footsall/features/vendor/presentation/utils/vendor_template_defaults.dart';
+import 'package:hamro_footsall/features/vendor/presentation/validation/vendor_onboarding_validator.dart';
 import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/sections/court_media_section.dart';
 import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/vendor_form_components.dart';
 
@@ -100,16 +101,49 @@ class _CourtBasicInfoSubsection extends StatefulWidget {
 class _CourtBasicInfoSubsectionState extends State<_CourtBasicInfoSubsection> {
   late final PublicCourtOptionsBloc _optionsBloc;
 
+  final FocusNode _nameFocus = FocusNode();
+  final FocusNode _basePriceFocus = FocusNode();
+  final FocusNode _maxPlayersFocus = FocusNode();
+
   @override
   void initState() {
     super.initState();
     _optionsBloc = PublicCourtOptionsBloc(
       GetCourtOptionsUseCase(PublicRepositoryImpl()),
     )..add(const FetchPublicCourtOptionsEvent());
+    widget.cubit.focusInvalidFieldRequest.addListener(
+      _handleFocusInvalidRequest,
+    );
+  }
+
+  void _handleFocusInvalidRequest() {
+    final String? raw = widget.cubit.focusInvalidFieldRequest.value;
+    if (raw == null) return;
+    if (raw.split('#').first !=
+        VendorOnboardingValidator.courtSubstepKey(widget.court.id, 0, 0)) {
+      return;
+    }
+    final CourtDraft? court = widget.cubit.state.activeCourt;
+    if (court == null) return;
+    final FocusNode? target = court.name.trim().isEmpty
+        ? _nameFocus
+        : court.basePrice == null
+        ? _basePriceFocus
+        : null; // court type is a dropdown — nothing to focus
+    if (target == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) target.requestFocus();
+    });
   }
 
   @override
   void dispose() {
+    widget.cubit.focusInvalidFieldRequest.removeListener(
+      _handleFocusInvalidRequest,
+    );
+    _nameFocus.dispose();
+    _basePriceFocus.dispose();
+    _maxPlayersFocus.dispose();
     _optionsBloc.close();
     super.dispose();
   }
@@ -122,6 +156,9 @@ class _CourtBasicInfoSubsectionState extends State<_CourtBasicInfoSubsection> {
         cubit: widget.cubit,
         court: widget.court,
         meta: widget.meta,
+        nameFocus: _nameFocus,
+        basePriceFocus: _basePriceFocus,
+        maxPlayersFocus: _maxPlayersFocus,
       ),
     );
   }
@@ -132,11 +169,17 @@ class _CourtBasicInfoForm extends StatelessWidget {
     required this.cubit,
     required this.court,
     required this.meta,
+    required this.nameFocus,
+    required this.basePriceFocus,
+    required this.maxPlayersFocus,
   });
 
   final VendorOnboardingCubit cubit;
   final CourtDraft court;
   final _CourtSectionMeta meta;
+  final FocusNode nameFocus;
+  final FocusNode basePriceFocus;
+  final FocusNode maxPlayersFocus;
 
   @override
   Widget build(BuildContext context) {
@@ -163,6 +206,10 @@ class _CourtBasicInfoForm extends StatelessWidget {
             VendorInputField(
               label: 'Court name',
               isRequired: true,
+              focusNode: nameFocus,
+              ensureVisibleOnFocus: true,
+              textInputAction: TextInputAction.next,
+              onSubmitted: (_) => basePriceFocus.requestFocus(),
               initialValue: court.name,
               onChanged: (String value) =>
                   cubit.updateActiveCourt(court.copyWith(name: value)),
@@ -171,15 +218,16 @@ class _CourtBasicInfoForm extends StatelessWidget {
             VendorInputField(
               label: 'Base price',
               isRequired: true,
+              focusNode: basePriceFocus,
+              ensureVisibleOnFocus: true,
+              textInputAction: TextInputAction.next,
+              onSubmitted: (_) => maxPlayersFocus.requestFocus(),
               initialValue: formatDouble(court.basePrice),
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
-              onChanged: (String value) => cubit.updateActiveCourt(
-                court.copyWith(
-                  basePrice: parseDouble(value),
-                  clearBasePrice: value.trim().isEmpty,
-                ),
+              onChanged: (String value) => cubit.setCourtBasePrice(
+                value.trim().isEmpty ? null : parseDouble(value),
               ),
             ),
             const SizedBox(height: AppDimens.sizeX16),
@@ -236,6 +284,9 @@ class _CourtBasicInfoForm extends StatelessWidget {
             VendorInputField(
               label: 'Max players',
               isRequired: true,
+              focusNode: maxPlayersFocus,
+              ensureVisibleOnFocus: true,
+              textInputAction: TextInputAction.done,
               initialValue: formatInt(court.maxPlayers),
               keyboardType: TextInputType.number,
               onChanged: (String value) => cubit.updateActiveCourt(

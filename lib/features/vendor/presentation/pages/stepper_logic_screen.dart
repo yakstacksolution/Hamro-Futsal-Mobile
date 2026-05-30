@@ -189,30 +189,52 @@ class _StepperLogicScreenState extends State<StepperLogicScreen> {
                   right: AppDimens.paddingX16,
                   bottom: AppDimens.paddingX20,
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    VendorOnboardingHeader(cubit: cubit, state: state),
-                    const SizedBox(height: AppDimens.sizeX14),
-                    VendorCategorySwitcher(
-                      activeCategory: state.cursor.category,
-                      canAccessCourtCategory: cubit.canAccessCourtCategory,
-                      onCategorySelected: cubit.selectCategory,
-                    ),
-                    if (state.isInCourtCategory) ...<Widget>[
+                child: SizedBox(
+                  width: double.infinity,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      VendorOnboardingHeader(cubit: cubit, state: state),
                       const SizedBox(height: AppDimens.sizeX14),
-                      VendorCourtManager(cubit: cubit, state: state),
-                    ],
-                    if (!state.isInCourtCategory &&
-                        cubit.isCourtEditorVisible) ...<Widget>[
-                      const SizedBox(height: AppDimens.sizeX14),
-                      VendorOnboardingStepContent(
-                        title: 'Futsal Steps',
-                        cubit: cubit,
-                        state: state,
+                      VendorCategorySwitcher(
+                        activeCategory: state.cursor.category,
+                        onCategorySelected: cubit.selectCategory,
                       ),
+                      if (state.isInCourtCategory) ...<Widget>[
+                        const SizedBox(
+                          key: ValueKey<String>('court-gap'),
+                          height: AppDimens.sizeX14,
+                        ),
+                        KeyedSubtree(
+                          key: const ValueKey<String>('court-body'),
+                          child: ExcludeSemantics(
+                            child: VendorCourtManager(
+                              cubit: cubit,
+                              state: state,
+                            ),
+                          ),
+                        ),
+                      ],
+                      if (!state.isInCourtCategory &&
+                          cubit.isCourtEditorVisible) ...<Widget>[
+                        const SizedBox(
+                          key: ValueKey<String>('futsal-gap'),
+                          height: AppDimens.sizeX14,
+                        ),
+                        KeyedSubtree(
+                          key: const ValueKey<String>('futsal-body'),
+                          child: ExcludeSemantics(
+                            child: VendorOnboardingStepContent(
+                              title: 'Futsal Steps',
+                              cubit: cubit,
+                              state: state,
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ),
             ),

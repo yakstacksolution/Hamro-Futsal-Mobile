@@ -113,12 +113,16 @@ class AuthManager extends ServiceManager {
     return await _apiClient.getVenueCourtByVenueId(venueId: venueId);
   }
 
+  Future<Result> getCourtDetails(int courtId) async {
+    return await _apiClient.getCourtDetails(courtId: courtId);
+  }
+
   Future<Result> getPublicTemplates() async {
     return await _apiClient.getPublicTemplates();
   }
 
-  Future<Result> fetchVendorOnboardingFutsal(int futsalId) async {
-    return await _apiClient.fetchVendorOnboardingFutsal(futsalId: futsalId);
+  Future<Result> fetchVendorOnboardingFutsal(int venueId) async {
+    return await _apiClient.fetchVendorOnboardingFutsal(venueId: venueId);
   }
 
   Future<Result> submitVendorOnboardingFutsal(data) async {

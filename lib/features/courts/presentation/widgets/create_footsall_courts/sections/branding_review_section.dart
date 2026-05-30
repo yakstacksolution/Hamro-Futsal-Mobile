@@ -46,6 +46,9 @@ class BrandingReviewSection extends StatelessWidget {
         const SizedBox(height: 8),
         CustomTextField(
           controller: bloc.shopLogoController,
+          focusNode: bloc.shopLogoFocus,
+          ensureVisibleOnFocus: true,
+          isRequired: false,
           textInputAction: TextInputAction.done,
           labelText: 'Shop Logo URL',
           hintText: 'https://res.cloudinary.com/demo/image/upload/sample.jpg',

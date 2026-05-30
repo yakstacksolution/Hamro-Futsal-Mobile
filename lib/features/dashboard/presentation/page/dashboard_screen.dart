@@ -161,6 +161,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
             _hasHandledVendorOnboarding = true;
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (!mounted) return;
+              final bool isDashboardOnTop =
+                  ModalRoute.of(context)?.isCurrent ?? false;
+              if (!isDashboardOnTop) return;
               context.pushNamed(
                 AppRouterParams.vendorStepper.name,
                 queryParameters: {

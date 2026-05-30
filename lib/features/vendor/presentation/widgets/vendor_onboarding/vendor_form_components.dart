@@ -335,7 +335,7 @@ class VendorTemplateResetButton extends StatelessWidget {
           width: AppDimens.sizeX30,
           height: AppDimens.sizeX30,
           decoration: BoxDecoration(
-            color: LightColor.secondaryLight.withOpacity(0.22),
+            color: LightColor.secondaryLight.withValues(alpha: 0.22),
             borderRadius: BorderRadius.circular(999),
           ),
           child: const Icon(
@@ -363,6 +363,10 @@ class VendorInputField extends StatelessWidget {
     this.readOnly = false,
     this.onTap,
     this.isRequired = false,
+    this.focusNode,
+    this.textInputAction,
+    this.onSubmitted,
+    this.ensureVisibleOnFocus = false,
   });
 
   final String? label;
@@ -376,11 +380,19 @@ class VendorInputField extends StatelessWidget {
   final bool readOnly;
   final VoidCallback? onTap;
   final bool isRequired;
+  final FocusNode? focusNode;
+  final TextInputAction? textInputAction;
+  final ValueChanged<String>? onSubmitted;
+  final bool ensureVisibleOnFocus;
 
   @override
   Widget build(BuildContext context) {
     return CustomTextField(
       controller: controller,
+      focusNode: focusNode,
+      textInputAction: textInputAction,
+      onSubmitted: onSubmitted,
+      ensureVisibleOnFocus: ensureVisibleOnFocus,
       isRequired: isRequired,
       labelText: label ?? '',
       icon: enableIcon == true
@@ -539,6 +551,7 @@ class VendorUploadSection extends StatelessWidget {
     required this.onPick,
     required this.files,
     required this.onRemove,
+    this.onReplace,
     this.actionLabel = 'Upload',
     this.actionIcon = Icons.upload_rounded,
     this.previewAsImage = false,
@@ -549,6 +562,7 @@ class VendorUploadSection extends StatelessWidget {
   final VoidCallback onPick;
   final List<UploadRef> files;
   final ValueChanged<UploadRef>? onRemove;
+  final ValueChanged<UploadRef>? onReplace;
   final String actionLabel;
   final IconData actionIcon;
   final bool previewAsImage;
@@ -658,6 +672,9 @@ class VendorUploadSection extends StatelessWidget {
                             onRemove: onRemove == null
                                 ? null
                                 : () => onRemove!(file),
+                            onReplace: onReplace == null
+                                ? null
+                                : () => onReplace!(file),
                           ),
                         )
                         .toList(),
@@ -730,11 +747,16 @@ class VendorUploadItem extends StatelessWidget {
     required this.file,
     this.previewAsImage = false,
     this.onRemove,
+    this.onReplace,
   });
 
   final UploadRef file;
   final bool previewAsImage;
   final VoidCallback? onRemove;
+  final VoidCallback? onReplace;
+
+  bool get _isRejected =>
+      file.verificationStatus == UploadVerificationStatus.rejected;
 
   bool get _isImageFile {
     if (previewAsImage && _rawImageSource.isNotEmpty) return true;
@@ -785,9 +807,16 @@ class VendorUploadItem extends StatelessWidget {
       return Container(
         margin: AppUtils().getMargin(bottom: AppDimens.sizeX10),
         decoration: BoxDecoration(
-          color: LightColor.whiteColor,
+          color: _isRejected
+              ? LightColor.redLightColor.withValues(alpha: 0.35)
+              : LightColor.whiteColor,
           borderRadius: BorderRadius.circular(AppDimens.radiusX14),
-          border: Border.all(color: LightColor.greyBorderColor),
+          border: Border.all(
+            color: _isRejected
+                ? LightColor.redColor
+                : LightColor.greyBorderColor,
+            width: _isRejected ? 1.2 : 1,
+          ),
           boxShadow: <BoxShadow>[
             BoxShadow(
               color: LightColor.shadowColor,
@@ -822,37 +851,47 @@ class VendorUploadItem extends StatelessWidget {
               child: Row(
                 children: <Widget>[
                   Expanded(
-                    child: Text(
-                      file.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: FutsalTheme.getTextTheme(context).bodyTextMedium
-                          ?.copyWith(
-                            color: LightColor.primaryTextColor,
-                            fontWeight: FontWeight.w700,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        Text(
+                          file.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: FutsalTheme.getTextTheme(context)
+                              .bodyTextMedium
+                              ?.copyWith(
+                                color: LightColor.primaryTextColor,
+                                fontWeight: FontWeight.w700,
+                              ),
+                        ),
+                        if (file.verificationStatus !=
+                            UploadVerificationStatus.none) ...<Widget>[
+                          const SizedBox(height: AppDimens.sizeX6),
+                          VerificationStatusBadge(
+                            status: file.verificationStatus,
                           ),
+                        ],
+                      ],
                     ),
                   ),
                   const SizedBox(width: AppDimens.sizeX8),
-                  Container(
-                    width: AppDimens.sizeX34,
-                    height: AppDimens.sizeX34,
-                    decoration: BoxDecoration(
-                      color: LightColor.background,
-                      borderRadius: BorderRadius.circular(AppDimens.radiusX10),
-                    ),
-                    child: IconButton(
-                      onPressed: () => _confirmRemove(context),
-                      icon: const Icon(
-                        Icons.delete_outline_rounded,
-                        color: LightColor.secondaryColor,
-                        size: AppDimens.sizeX18,
-                      ),
-                    ),
+                  _UploadActionButton(
+                    file: file,
+                    onRemove: onRemove == null
+                        ? null
+                        : () => _confirmRemove(context),
+                    onReplace: onReplace,
                   ),
                 ],
               ),
             ),
+            if (_isRejected)
+              const _RejectionCallout(
+                message:
+                    'This document was rejected. Please replace it with a clearer or correct file.',
+              ),
           ],
         ),
       );
@@ -862,9 +901,14 @@ class VendorUploadItem extends StatelessWidget {
       margin: AppUtils().getMargin(bottom: AppDimens.sizeX10),
       padding: AppUtils().getPadding(all: AppDimens.sizeX12),
       decoration: BoxDecoration(
-        color: LightColor.whiteColor,
+        color: _isRejected
+            ? LightColor.redLightColor.withValues(alpha: 0.35)
+            : LightColor.whiteColor,
         borderRadius: BorderRadius.circular(AppDimens.radiusX14),
-        border: Border.all(color: LightColor.greyBorderColor),
+        border: Border.all(
+          color: _isRejected ? LightColor.redColor : LightColor.greyBorderColor,
+          width: _isRejected ? 1.2 : 1,
+        ),
         boxShadow: <BoxShadow>[
           BoxShadow(
             color: LightColor.shadowColor,
@@ -873,96 +917,327 @@ class VendorUploadItem extends StatelessWidget {
           ),
         ],
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Container(
-            width: AppDimens.sizeX44,
-            height: AppDimens.sizeX44,
-            decoration: BoxDecoration(
-              color: LightColor.background,
-              borderRadius: BorderRadius.circular(AppDimens.radiusX12),
-            ),
-            child: const Icon(
-              Icons.insert_drive_file_rounded,
-              color: LightColor.secondaryColor,
-              size: AppDimens.sizeX22,
-            ),
-          ),
-          const SizedBox(width: AppDimens.sizeX12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  file.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-
-                  style: FutsalTheme.getTextTheme(context).bodyTextMedium
-                      ?.copyWith(
-                        color: LightColor.primaryTextColor,
-                        fontWeight: FontWeight.w700,
-                      ),
+          Row(
+            children: <Widget>[
+              Container(
+                width: AppDimens.sizeX44,
+                height: AppDimens.sizeX44,
+                decoration: BoxDecoration(
+                  color: LightColor.background,
+                  borderRadius: BorderRadius.circular(AppDimens.radiusX12),
                 ),
-                const SizedBox(height: AppDimens.sizeX6),
-                Row(
+                child: const Icon(
+                  Icons.insert_drive_file_rounded,
+                  color: LightColor.secondaryColor,
+                  size: AppDimens.sizeX22,
+                ),
+              ),
+              const SizedBox(width: AppDimens.sizeX12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    Container(
-                      padding: AppUtils().getPadding(
-                        horizontal: AppDimens.sizeX8,
-                        vertical: AppDimens.sizeX4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: LightColor.inputFillColor,
-                        borderRadius: BorderRadius.circular(
-                          AppDimens.radiusX50,
-                        ),
-                      ),
-                      child: Text(
-                        file.name.split('.').last.toUpperCase(),
-                        style: FutsalTheme.getTextTheme(context).bodyTextSmall
-                            ?.copyWith(
-                              color: LightColor.secondaryTextColor,
-                              fontWeight: FontWeight.w700,
-                            ),
-                      ),
+                    Text(
+                      file.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+
+                      style: FutsalTheme.getTextTheme(context).bodyTextMedium
+                          ?.copyWith(
+                            color: LightColor.primaryTextColor,
+                            fontWeight: FontWeight.w700,
+                          ),
                     ),
-                    const SizedBox(width: AppDimens.sizeX8),
-                    Expanded(
-                      child: Text(
-                        file.remoteUrl ?? '',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: FutsalTheme.getTextTheme(context).bodyTextSmall
-                            ?.copyWith(color: LightColor.secondaryTextColor),
-                      ),
+                    const SizedBox(height: AppDimens.sizeX6),
+                    Row(
+                      children: <Widget>[
+                        Container(
+                          padding: AppUtils().getPadding(
+                            horizontal: AppDimens.sizeX8,
+                            vertical: AppDimens.sizeX4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: LightColor.inputFillColor,
+                            borderRadius: BorderRadius.circular(
+                              AppDimens.radiusX50,
+                            ),
+                          ),
+                          child: Text(
+                            file.name.split('.').last.toUpperCase(),
+                            style: FutsalTheme.getTextTheme(context)
+                                .bodyTextSmall
+                                ?.copyWith(
+                                  color: LightColor.secondaryTextColor,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                          ),
+                        ),
+                        if (file.verificationStatus !=
+                            UploadVerificationStatus.none) ...<Widget>[
+                          const SizedBox(width: AppDimens.sizeX8),
+                          VerificationStatusBadge(
+                            status: file.verificationStatus,
+                          ),
+                        ],
+                        const SizedBox(width: AppDimens.sizeX8),
+                        Expanded(
+                          child: Text(
+                            file.remoteUrl ?? '',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: FutsalTheme.getTextTheme(context)
+                                .bodyTextSmall
+                                ?.copyWith(
+                                  color: LightColor.secondaryTextColor,
+                                ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
-            ),
-          ),
-          if (onRemove != null)
-            Container(
-              width: AppDimens.sizeX36,
-              height: AppDimens.sizeX36,
-              decoration: BoxDecoration(
-                color: LightColor.background,
-                borderRadius: BorderRadius.circular(AppDimens.radiusX10),
               ),
-              child: IconButton(
-                onPressed: () => _confirmRemove(context),
-                icon: const Icon(
-                  Icons.delete_outline_rounded,
-                  color: LightColor.secondaryColor,
-                  size: AppDimens.sizeX18,
+              if (onRemove != null || onReplace != null)
+                _UploadActionButton(
+                  file: file,
+                  onRemove: onRemove == null
+                      ? null
+                      : () => _confirmRemove(context),
+                  onReplace: onReplace,
                 ),
-              ),
+            ],
+          ),
+          if (_isRejected) ...<Widget>[
+            const SizedBox(height: AppDimens.sizeX10),
+            const _RejectionCallout(
+              message:
+                  'This document was rejected. Please replace it with a clearer or correct file.',
             ),
+          ],
         ],
       ),
     );
   }
+}
+
+class _RejectionCallout extends StatelessWidget {
+  const _RejectionCallout({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: AppUtils().getMargin(
+        top: AppDimens.sizeX10,
+        left: AppDimens.sizeX12,
+        right: AppDimens.sizeX12,
+        bottom: AppDimens.sizeX12,
+      ),
+      padding: AppUtils().getPadding(
+        horizontal: AppDimens.sizeX10,
+        vertical: AppDimens.sizeX8,
+      ),
+      decoration: BoxDecoration(
+        color: LightColor.redLightColor.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+        border: Border.all(color: LightColor.redColor.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          const Icon(
+            Icons.error_outline_rounded,
+            color: LightColor.redColor,
+            size: AppDimens.sizeX18,
+          ),
+          const SizedBox(width: AppDimens.sizeX8),
+          Expanded(
+            child: Text(
+              message,
+              style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
+                color: LightColor.redColor,
+                fontWeight: FontWeight.w600,
+                height: 1.35,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _UploadActionButton extends StatelessWidget {
+  const _UploadActionButton({
+    required this.file,
+    required this.onRemove,
+    required this.onReplace,
+  });
+
+  final UploadRef file;
+  final VoidCallback? onRemove;
+  final VoidCallback? onReplace;
+
+  @override
+  Widget build(BuildContext context) {
+    final bool locked = file.verificationStatus.isLocked;
+    final bool rejected =
+        file.verificationStatus == UploadVerificationStatus.rejected;
+
+    if (locked) {
+      return _IconActionButton(
+        icon: Icons.lock_outline_rounded,
+        background: LightColor.background,
+        foreground: LightColor.disabledTextColor,
+        onTap: null,
+        tooltip:
+            'This document is locked while under review. It can be replaced only after it is rejected.',
+      );
+    }
+
+    if (rejected && onReplace != null) {
+      return _IconActionButton(
+        icon: Icons.cached_rounded,
+        background: LightColor.redLightColor,
+        foreground: LightColor.redColor,
+        onTap: onReplace,
+        tooltip: 'Replace this rejected document',
+      );
+    }
+
+    return _IconActionButton(
+      icon: Icons.delete_outline_rounded,
+      background: LightColor.background,
+      foreground: LightColor.secondaryColor,
+      onTap: onRemove,
+      tooltip: null,
+    );
+  }
+}
+
+class _IconActionButton extends StatelessWidget {
+  const _IconActionButton({
+    required this.icon,
+    required this.background,
+    required this.foreground,
+    required this.onTap,
+    required this.tooltip,
+  });
+
+  final IconData icon;
+  final Color background;
+  final Color foreground;
+  final VoidCallback? onTap;
+  final String? tooltip;
+
+  @override
+  Widget build(BuildContext context) {
+    final Widget button = Container(
+      width: AppDimens.sizeX36,
+      height: AppDimens.sizeX36,
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+      ),
+      child: IconButton(
+        onPressed: onTap,
+        icon: Icon(icon, color: foreground, size: AppDimens.sizeX18),
+      ),
+    );
+    if (tooltip == null) return button;
+    return Tooltip(message: tooltip!, child: button);
+  }
+}
+
+class VerificationStatusBadge extends StatelessWidget {
+  const VerificationStatusBadge({super.key, required this.status});
+
+  final UploadVerificationStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    final _BadgePalette palette = _paletteFor(status);
+    return Container(
+      padding: AppUtils().getPadding(
+        horizontal: AppDimens.sizeX8,
+        vertical: AppDimens.sizeX4,
+      ),
+      decoration: BoxDecoration(
+        color: palette.background,
+        borderRadius: BorderRadius.circular(AppDimens.radiusX50),
+        border: Border.all(color: palette.foreground.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Icon(
+            palette.icon,
+            size: AppDimens.sizeX12,
+            color: palette.foreground,
+          ),
+          const SizedBox(width: AppDimens.sizeX4),
+          Text(
+            palette.label,
+            style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
+              color: palette.foreground,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  _BadgePalette _paletteFor(UploadVerificationStatus status) {
+    switch (status) {
+      case UploadVerificationStatus.pending:
+        return const _BadgePalette(
+          label: 'Pending',
+          icon: Icons.schedule_rounded,
+          foreground: LightColor.warningColor,
+          background: LightColor.warningLightColor,
+        );
+      case UploadVerificationStatus.approved:
+        return const _BadgePalette(
+          label: 'Approved',
+          icon: Icons.verified_rounded,
+          foreground: LightColor.secondaryColor,
+          background: LightColor.secondarySoft,
+        );
+      case UploadVerificationStatus.rejected:
+        return const _BadgePalette(
+          label: 'Rejected',
+          icon: Icons.error_outline_rounded,
+          foreground: LightColor.redColor,
+          background: LightColor.redLightColor,
+        );
+      case UploadVerificationStatus.none:
+        return const _BadgePalette(
+          label: '',
+          icon: Icons.help_outline_rounded,
+          foreground: LightColor.secondaryTextColor,
+          background: LightColor.inputFillColor,
+        );
+    }
+  }
+}
+
+class _BadgePalette {
+  const _BadgePalette({
+    required this.label,
+    required this.icon,
+    required this.foreground,
+    required this.background,
+  });
+
+  final String label;
+  final IconData icon;
+  final Color foreground;
+  final Color background;
 }
 
 class _NetworkUploadPreview extends StatefulWidget {

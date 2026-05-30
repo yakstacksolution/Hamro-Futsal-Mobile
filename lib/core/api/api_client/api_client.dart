@@ -95,12 +95,16 @@ class ApiClient {
     return _get(url: '$_baseUrl/auth/get-court/$venueId');
   }
 
+  Future<Result> getCourtDetails({required int courtId}) {
+    return _get(url: '$_baseUrl/auth/court/$courtId');
+  }
+
   Future<Result> getPublicTemplates() {
     return _get(url: '$_baseUrl/auth/templates');
   }
 
-  Future<Result> fetchVendorOnboardingFutsal({required int futsalId}) {
-    return _get(url: '$_baseUrl/auth/get-futsal/$futsalId');
+  Future<Result> fetchVendorOnboardingFutsal({required int venueId}) {
+    return _get(url: '$_baseUrl/auth/get-venue/$venueId');
   }
 
   Future<Result> submitVendorOnboardingFutsal({
@@ -115,7 +119,7 @@ class ApiClient {
   Future<Result> updateVendorOnboardingFutsal({
     required Map<String, dynamic> data,
   }) {
-    return _put(
+    return _post(
       url: '$_baseUrl/auth/vendor/onboarding/update-venue',
       data: data,
     );
@@ -133,7 +137,7 @@ class ApiClient {
   Future<Result> updateVendorOnboardingCourt({
     required Map<String, dynamic> data,
   }) {
-    return _put(
+    return _post(
       url: '$_baseUrl/auth/vendor/onboarding/update-court',
       data: data,
     );

@@ -10,6 +10,7 @@ import 'package:hamro_footsall/core/widgets/custom_button.dart';
 import 'package:hamro_footsall/core/widgets/custom_date_picker.dart';
 import 'package:hamro_footsall/core/widgets/custom_dropdown_field.dart';
 import 'package:hamro_footsall/core/widgets/custom_text_field.dart';
+import 'package:hamro_footsall/core/widgets/loading_widget.dart';
 import 'package:intl/intl.dart';
 import 'package:hamro_footsall/features/media/presentation/widgets/media_library_sheet.dart';
 import 'package:hamro_footsall/features/profile/data/model/profile_model.dart';
@@ -39,6 +40,8 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
   late String _selectedGender;
   DateTime? _dateOfBirth;
   String? _avatarUrl;
+  int? _avatarMediaId;
+  bool _isPhotoOnlyUpdate = false;
 
   late final TextEditingController _fullnameController;
   late final TextEditingController _dobController;
@@ -92,6 +95,8 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
         VendorOnboardingRepositoryImpl(),
       ),
     );
+
+    context.read<ProfileBloc>().add(const FetchProfileEvent());
   }
 
   @override
@@ -142,10 +147,31 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
     );
 
     if (picked == null || picked.isEmpty) return;
-    final String? remoteUrl = picked.first.remoteUrl;
+    final UploadRef selected = picked.first;
+    final String? remoteUrl = selected.remoteUrl;
     if (remoteUrl == null || remoteUrl.trim().isEmpty) return;
 
-    setState(() => _avatarUrl = remoteUrl);
+    setState(() {
+      _avatarUrl = remoteUrl;
+      _avatarMediaId = selected.id;
+    });
+
+    if (selected.id == null) return;
+    if (!mounted) return;
+    _isPhotoOnlyUpdate = true;
+    context.read<ProfileBloc>().add(_buildUpdateEvent());
+  }
+
+  UpdateProfileEvent _buildUpdateEvent() {
+    return UpdateProfileEvent(
+      fullName: _fullnameController.text.trim(),
+      email: _emailController.text.trim(),
+      phone: _phoneController.text.trim(),
+      dateOfBirth: _dateOfBirth,
+      gender: _selectedGender,
+      address: _addressController.text.trim(),
+      profilePhoto: _avatarMediaId?.toString(),
+    );
   }
 
   @override
@@ -158,20 +184,30 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
           listenWhen: (previous, current) =>
               previous.status != current.status &&
               (current.status == ProfileStatus.updateSuccess ||
+                  current.status == ProfileStatus.success ||
                   (current.status == ProfileStatus.failure &&
                       current.errorMessage != null)),
           listener: (context, state) {
+            if (state.status == ProfileStatus.success) {
+              _syncFromProfile(state.profile?.data);
+              return;
+            }
             if (state.status == ProfileStatus.updateSuccess) {
+              final bool wasPhotoOnly = _isPhotoOnlyUpdate;
+              _isPhotoOnlyUpdate = false;
               AppUtils().showSnackBar(
                 context,
                 MsgType.success,
                 state.successMessage ?? 'Profile updated successfully.',
               );
-              Navigator.of(context).maybePop();
+              if (!wasPhotoOnly) {
+                Navigator.of(context).maybePop();
+              }
               return;
             }
             if (state.status == ProfileStatus.failure &&
                 state.errorMessage != null) {
+              _isPhotoOnlyUpdate = false;
               AppUtils().showSnackBar(
                 context,
                 MsgType.error,
@@ -181,154 +217,187 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
           },
           builder: (context, state) {
             final bool isUpdating = state.isUpdating;
-            return GestureDetector(
-              onTap: () => FocusScope.of(context).unfocus(),
-              behavior: HitTestBehavior.opaque,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: SingleChildScrollView(
-                      physics: const BouncingScrollPhysics(),
-                      padding: AppUtils().getPadding(
-                        symmetricHorizontal: AppDimens.paddingX20,
-                        top: AppDimens.paddingX16,
-                        bottom: AppDimens.paddingX32,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _ProfileSummaryCard(
-                            name: _resolvedFullName(widget.user),
-                            address: _resolvedAddress(widget.user),
-                            avatarUrl: _avatarUrl ?? '',
-                            onChangeImageTap: _changeProfilePhoto,
+            final bool isFetching = state.status == ProfileStatus.loading;
+            return Stack(
+              children: <Widget>[
+                GestureDetector(
+                  onTap: () => FocusScope.of(context).unfocus(),
+                  behavior: HitTestBehavior.opaque,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: SingleChildScrollView(
+                          physics: const BouncingScrollPhysics(),
+                          padding: AppUtils().getPadding(
+                            symmetricHorizontal: AppDimens.paddingX20,
+                            top: AppDimens.paddingX16,
+                            bottom: AppDimens.paddingX32,
                           ),
-                          const SizedBox(height: AppDimens.paddingX20),
-                          _sectionLabel(context, 'Personal information'),
-                          const SizedBox(height: AppDimens.paddingX10),
-                          _SectionCard(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              CustomTextField(
-                                controller: _fullnameController,
-                                focusNode: _fullnameFocus,
-                                keyboardType: TextInputType.text,
-                                textCapitalization: TextCapitalization.words,
-                                textInputAction: TextInputAction.next,
-                                onSubmitted: (_) => _pickDateOfBirth(),
-                                labelText: 'Full name',
-                                hintText: 'Enter your full name',
-                                icon: Icons.person_outline_rounded,
+                              _ProfileSummaryCard(
+                                name: _resolvedFullName(widget.user),
+                                address: _resolvedAddress(widget.user),
+                                avatarUrl: _avatarUrl ?? '',
+                                onChangeImageTap: _changeProfilePhoto,
                               ),
-                              const SizedBox(height: AppDimens.paddingX16),
-                              CustomTextField(
-                                controller: _dobController,
-                                focusNode: _dobFocus,
-                                keyboardType: TextInputType.datetime,
-                                labelText: 'Date of birth',
-                                hintText: 'Select date of birth',
-                                icon: Icons.cake_outlined,
-                                readOnly: true,
-                                onTap: _pickDateOfBirth,
-                                suffixIcon: GestureDetector(
-                                  behavior: HitTestBehavior.opaque,
-                                  onTap: _pickDateOfBirth,
-                                  child: const Padding(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                    ),
-                                    child: Icon(
-                                      Icons.calendar_month_outlined,
-                                      color: LightColor.secondaryTextColor,
-                                      size: AppDimens.sizeX18,
+                              const SizedBox(height: AppDimens.paddingX20),
+                              _sectionLabel(context, 'Personal information'),
+                              const SizedBox(height: AppDimens.paddingX10),
+                              _SectionCard(
+                                children: [
+                                  CustomTextField(
+                                    controller: _fullnameController,
+                                    focusNode: _fullnameFocus,
+                                    keyboardType: TextInputType.text,
+                                    textCapitalization:
+                                        TextCapitalization.words,
+                                    textInputAction: TextInputAction.next,
+                                    onSubmitted: (_) => _pickDateOfBirth(),
+                                    labelText: 'Full name',
+                                    hintText: 'Enter your full name',
+                                    icon: Icons.person_outline_rounded,
+                                  ),
+                                  const SizedBox(height: AppDimens.paddingX16),
+                                  CustomTextField(
+                                    controller: _dobController,
+                                    focusNode: _dobFocus,
+                                    keyboardType: TextInputType.datetime,
+                                    labelText: 'Date of birth',
+                                    hintText: 'Select date of birth',
+                                    icon: Icons.cake_outlined,
+                                    readOnly: true,
+                                    onTap: _pickDateOfBirth,
+                                    suffixIcon: GestureDetector(
+                                      behavior: HitTestBehavior.opaque,
+                                      onTap: _pickDateOfBirth,
+                                      child: const Padding(
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                        ),
+                                        child: Icon(
+                                          Icons.calendar_month_outlined,
+                                          color: LightColor.secondaryTextColor,
+                                          size: AppDimens.sizeX18,
+                                        ),
+                                      ),
                                     ),
                                   ),
-                                ),
+                                  const SizedBox(height: AppDimens.paddingX16),
+                                  CustomDropdownField<String>(
+                                    labelText: 'Gender',
+                                    icon: Icons.wc_rounded,
+                                    hintText: 'Select gender',
+                                    initialValue: _selectedGender,
+                                    focusNode: _genderFocus,
+                                    items: _genderOptions
+                                        .map(
+                                          (option) => DropdownMenuItem<String>(
+                                            value: option,
+                                            child: Text(option),
+                                          ),
+                                        )
+                                        .toList(),
+                                    onChanged: (value) {
+                                      if (value == null) return;
+                                      setState(() => _selectedGender = value);
+                                    },
+                                  ),
+                                ],
                               ),
-                              const SizedBox(height: AppDimens.paddingX16),
-                              CustomDropdownField<String>(
-                                labelText: 'Gender',
-                                icon: Icons.wc_rounded,
-                                hintText: 'Select gender',
-                                initialValue: _selectedGender,
-                                focusNode: _genderFocus,
-                                items: _genderOptions
-                                    .map(
-                                      (option) => DropdownMenuItem<String>(
-                                        value: option,
-                                        child: Text(option),
-                                      ),
-                                    )
-                                    .toList(),
-                                onChanged: (value) {
-                                  if (value == null) return;
-                                  setState(() => _selectedGender = value);
-                                },
+                              const SizedBox(height: AppDimens.paddingX20),
+                              _sectionLabel(context, 'Contact information'),
+                              const SizedBox(height: AppDimens.paddingX10),
+                              _SectionCard(
+                                children: [
+                                  CustomTextField(
+                                    controller: _emailController,
+                                    focusNode: _emailFocus,
+                                    keyboardType: TextInputType.emailAddress,
+                                    textInputAction: TextInputAction.next,
+                                    onSubmitted: (_) => FocusScope.of(
+                                      context,
+                                    ).requestFocus(_phoneFocus),
+                                    labelText: 'Email address',
+                                    hintText: 'name@example.com',
+                                    icon: Icons.email_outlined,
+                                    readOnly: true,
+                                  ),
+                                  const SizedBox(height: AppDimens.paddingX16),
+                                  CustomTextField(
+                                    controller: _phoneController,
+                                    focusNode: _phoneFocus,
+                                    keyboardType: TextInputType.phone,
+                                    textInputAction: TextInputAction.next,
+                                    onSubmitted: (_) => FocusScope.of(
+                                      context,
+                                    ).requestFocus(_addressFocus),
+                                    labelText: 'Phone number',
+                                    hintText: '+977 #########',
+                                    icon: Icons.phone_outlined,
+                                  ),
+                                  const SizedBox(height: AppDimens.paddingX16),
+                                  CustomTextField(
+                                    controller: _addressController,
+                                    focusNode: _addressFocus,
+                                    keyboardType: TextInputType.streetAddress,
+                                    textCapitalization:
+                                        TextCapitalization.words,
+                                    textInputAction: TextInputAction.done,
+                                    onSubmitted: (_) =>
+                                        FocusScope.of(context).unfocus(),
+                                    labelText: 'Address',
+                                    hintText: 'Enter your address',
+                                    icon: Icons.location_on_outlined,
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: AppDimens.paddingX28),
+                              CustomButton(
+                                text: 'Save changes',
+                                isLoading: isUpdating,
+                                onPressed: _onSavePressed,
                               ),
                             ],
                           ),
-                          const SizedBox(height: AppDimens.paddingX20),
-                          _sectionLabel(context, 'Contact information'),
-                          const SizedBox(height: AppDimens.paddingX10),
-                          _SectionCard(
-                            children: [
-                              CustomTextField(
-                                controller: _emailController,
-                                focusNode: _emailFocus,
-                                keyboardType: TextInputType.emailAddress,
-                                textInputAction: TextInputAction.next,
-                                onSubmitted: (_) => FocusScope.of(
-                                  context,
-                                ).requestFocus(_phoneFocus),
-                                labelText: 'Email address',
-                                hintText: 'name@example.com',
-                                icon: Icons.email_outlined,
-                              ),
-                              const SizedBox(height: AppDimens.paddingX16),
-                              CustomTextField(
-                                controller: _phoneController,
-                                focusNode: _phoneFocus,
-                                keyboardType: TextInputType.phone,
-                                textInputAction: TextInputAction.next,
-                                onSubmitted: (_) => FocusScope.of(
-                                  context,
-                                ).requestFocus(_addressFocus),
-                                labelText: 'Phone number',
-                                hintText: '+977 9812345678',
-                                icon: Icons.phone_outlined,
-                              ),
-                              const SizedBox(height: AppDimens.paddingX16),
-                              CustomTextField(
-                                controller: _addressController,
-                                focusNode: _addressFocus,
-                                keyboardType: TextInputType.streetAddress,
-                                textCapitalization: TextCapitalization.words,
-                                textInputAction: TextInputAction.done,
-                                onSubmitted: (_) =>
-                                    FocusScope.of(context).unfocus(),
-                                labelText: 'Address',
-                                hintText: 'Enter your address',
-                                icon: Icons.location_on_outlined,
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: AppDimens.paddingX28),
-                          CustomButton(
-                            text: 'Save changes',
-                            isLoading: isUpdating,
-                            onPressed: _onSavePressed,
-                          ),
-                        ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (isFetching)
+                  Positioned.fill(
+                    child: Center(
+                      child: const LoadingWidget(
+                        isButtonLoading: false,
+                        isTransparentBackground: true,
                       ),
                     ),
                   ),
-                ],
-              ),
+              ],
             );
           },
         ),
       ),
     );
+  }
+
+  void _syncFromProfile(UserData? user) {
+    if (user == null) return;
+    setState(() {
+      _selectedGender = _resolvedGender(user);
+      _dateOfBirth = user.dateOfBirth;
+      _avatarUrl = _resolvedAvatar(user);
+      _fullnameController.text = _resolvedFullName(user);
+      _dobController.text = _dateOfBirth == null
+          ? ''
+          : DateFormat('dd MMM y').format(_dateOfBirth!);
+      _emailController.text = _resolvedValue(user.email, '');
+      _phoneController.text = _resolvedValue(user.phone, '');
+      _addressController.text = _resolvedAddress(user);
+    });
   }
 
   void _onSavePressed() {
@@ -337,22 +406,7 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
     final ProfileBloc bloc = context.read<ProfileBloc>();
     if (bloc.state.isUpdating) return;
 
-    final String fullName = _fullnameController.text.trim();
-    final String email = _emailController.text.trim();
-    final String phone = _phoneController.text.trim();
-    final String address = _addressController.text.trim();
-
-    bloc.add(
-      UpdateProfileEvent(
-        fullName: fullName,
-        email: email.isEmpty ? null : email,
-        phone: phone.isEmpty ? null : phone,
-        dateOfBirth: _dateOfBirth,
-        gender: _selectedGender,
-        address: address,
-        profilePhoto: _avatarUrl,
-      ),
-    );
+    bloc.add(_buildUpdateEvent());
   }
 
   Widget _sectionLabel(BuildContext context, String label) {
@@ -373,7 +427,6 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
   String _resolvedFullName(UserData? user) {
     if (user == null) return 'Guest User';
     if (user.fullName.trim().isNotEmpty) return user.fullName;
-    if (user.name.trim().isNotEmpty) return user.name;
     return 'Guest User';
   }
 
@@ -401,7 +454,7 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
   }
 
   String? _resolvedAvatar(UserData? user) {
-    final String? profilePhoto = user?.profilePhoto;
+    final String? profilePhoto = user?.profilePhoto?.remoteUrl;
     if (profilePhoto == null || profilePhoto.trim().isEmpty) return null;
     return profilePhoto;
   }

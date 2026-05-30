@@ -126,45 +126,43 @@ class _FutsalPlanSelectionContentState
     required double? selectedPercent,
     required FutsalDraft futsalDraft,
   }) {
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: packageOptions
-            .asMap()
-            .entries
-            .map((MapEntry<int, _PackageOption> entry) {
-              final _PackageOption option = entry.value;
-              final bool isSelected = selectedPackageId != null
-                  ? selectedPackageId == option.id
-                  : selectedPercent != null
-                  ? (selectedPercent - option.percentage).abs() < 0.0001
-                  : false;
+    const double spacing = 12;
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        final double cardWidth = packageOptions.length == 1
+            ? constraints.maxWidth
+            : (constraints.maxWidth - spacing) / 2;
+        return Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          children: packageOptions.map((_PackageOption option) {
+            final bool isSelected = selectedPackageId != null
+                ? selectedPackageId == option.id
+                : selectedPercent != null
+                ? (selectedPercent - option.percentage).abs() < 0.0001
+                : false;
 
-              return Expanded(
-                child: Padding(
-                  padding: EdgeInsets.only(
-                    right: entry.key == packageOptions.length - 1 ? 0 : 12,
-                  ),
-                  child: _CommissionPackageCard(
-                    title: option.title,
-                    percentage: option.percentage,
-                    isSelected: isSelected,
-                    icon: option.icon,
-                    color: LightColor.secondaryColor,
-                    isRecommended: option.isPopular,
-                    descriptionHtml: option.descriptionHtml,
-                    onTap: () => _vendorOnboardingCubit.updateFutsal(
-                      futsalDraft.copyWith(
-                        packageId: option.id,
-                        commissionPercent: option.percentage,
-                      ),
-                    ),
+            return SizedBox(
+              width: cardWidth,
+              child: _CommissionPackageCard(
+                title: option.title,
+                percentage: option.percentage,
+                isSelected: isSelected,
+                icon: option.icon,
+                color: LightColor.secondaryColor,
+                isRecommended: option.isPopular,
+                descriptionHtml: option.descriptionHtml,
+                onTap: () => _vendorOnboardingCubit.updateFutsal(
+                  futsalDraft.copyWith(
+                    packageId: option.id,
+                    commissionPercent: option.percentage,
                   ),
                 ),
-              );
-            })
-            .toList(growable: false),
-      ),
+              ),
+            );
+          }).toList(growable: false),
+        );
+      },
     );
   }
 

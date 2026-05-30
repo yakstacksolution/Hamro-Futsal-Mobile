@@ -22,7 +22,10 @@ class BusinessRegistrationSection extends StatelessWidget {
             Expanded(
               child: CustomTextField(
                 controller: bloc.cityController,
+                focusNode: bloc.cityFocus,
+                ensureVisibleOnFocus: true,
                 textInputAction: TextInputAction.next,
+                onSubmitted: (_) => bloc.countryFocus.requestFocus(),
                 labelText: 'City *',
                 hintText: 'Kathmandu',
                 icon: Icons.location_city_rounded,
@@ -34,7 +37,10 @@ class BusinessRegistrationSection extends StatelessWidget {
             Expanded(
               child: CustomTextField(
                 controller: bloc.countryController,
+                focusNode: bloc.countryFocus,
+                ensureVisibleOnFocus: true,
                 textInputAction: TextInputAction.next,
+                onSubmitted: (_) => bloc.establishedYearFocus.requestFocus(),
                 labelText: 'Country *',
                 hintText: 'Nepal',
                 icon: Icons.public_rounded,
@@ -62,8 +68,11 @@ class BusinessRegistrationSection extends StatelessWidget {
         const SizedBox(height: 14),
         CustomTextField(
           controller: bloc.establishedYearController,
+          focusNode: bloc.establishedYearFocus,
+          ensureVisibleOnFocus: true,
           keyboardType: TextInputType.number,
           textInputAction: TextInputAction.next,
+          onSubmitted: (_) => bloc.basicPriceFocus.requestFocus(),
           labelText: 'Established Year *',
           hintText: '2018',
           icon: Icons.event_available_rounded,
@@ -72,8 +81,11 @@ class BusinessRegistrationSection extends StatelessWidget {
         const SizedBox(height: 14),
         CustomTextField(
           controller: bloc.basicPriceController,
+          focusNode: bloc.basicPriceFocus,
+          ensureVisibleOnFocus: true,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           textInputAction: TextInputAction.next,
+          onSubmitted: (_) => bloc.registrationFocus.requestFocus(),
           labelText: 'Basic Price *',
           hintText: '1500',
           icon: Icons.payments_rounded,
@@ -82,13 +94,13 @@ class BusinessRegistrationSection extends StatelessWidget {
         const SizedBox(height: 14),
         CustomTextField(
           controller: bloc.registrationController,
-          textInputAction: TextInputAction.next,
-          labelText: 'Registration Number',
+          focusNode: bloc.registrationFocus,
+          ensureVisibleOnFocus: true,
+          isRequired: false,
+          textInputAction: TextInputAction.done,
+          labelText: 'Registration Number (optional)',
           hintText: 'REG-2026-00123',
-
           icon: Icons.assignment_rounded,
-          validator: (String? value) =>
-              bloc.requiredValidator(value, fieldName: 'Registration number'),
         ),
         const SizedBox(height: 14),
         DropdownButtonFormField<String>(

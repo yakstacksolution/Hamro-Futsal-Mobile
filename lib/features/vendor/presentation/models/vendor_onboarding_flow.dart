@@ -27,7 +27,7 @@ enum CourtInformationSubstep { basicInfo, description, photosMemories }
 
 enum CourtBookingPaymentSubstep { advancePayment, paymentQr }
 
-enum CourtAmenitiesSubstep { details }
+enum CourtAmenitiesSubstep { amenities, facilities }
 
 enum CourtSlotsSubstep { slotSchedule, weekendHolidays, slotPricing }
 
@@ -263,14 +263,19 @@ const List<VendorSectionDefinition> courtSectionDefinitions =
       ),
       VendorSectionDefinition(
         id: 'court_amenities',
-        title: 'Amenities',
+        title: 'Amenities & Facilities',
         subtitle: 'Court-specific amenities and facilities.',
         icon: Icons.weekend_rounded,
         substeps: <VendorSubstepDefinition>[
           VendorSubstepDefinition(
             id: 'court_amenities_form',
             title: 'Amenities',
-            subtitle: 'Amenities and facilities for this court.',
+            subtitle: 'Court-specific amenities for this court.',
+          ),
+          VendorSubstepDefinition(
+            id: 'court_facilities_form',
+            title: 'Facilities',
+            subtitle: 'Player-facing facilities for this court.',
           ),
         ],
       ),

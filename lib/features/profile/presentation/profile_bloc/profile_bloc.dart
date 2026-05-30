@@ -35,13 +35,17 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
             errorMessage: failure.errorMessage,
           ),
         ),
-        (ProfileModel profile) => emit(
-          state.copyWith(
-            status: ProfileStatus.success,
-            profile: _mergeProfile(state.profile, profile),
-            clearErrorMessage: true,
-          ),
-        ),
+        (ProfileModel profile) {
+          final ProfileModel merged = _mergeProfile(state.profile, profile);
+          emit(
+            state.copyWith(
+              status: ProfileStatus.success,
+              profile: merged,
+              profileImage: merged.data.profilePhoto?.remoteUrl,
+              clearErrorMessage: true,
+            ),
+          );
+        },
       );
     } catch (error) {
       emit(
@@ -77,16 +81,20 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
             errorMessage: failure.errorMessage,
           ),
         ),
-        (ProfileModel profile) => emit(
-          state.copyWith(
-            status: ProfileStatus.updateSuccess,
-            profile: _mergeProfile(state.profile, profile),
-            successMessage: profile.message.isNotEmpty
-                ? profile.message
-                : 'Profile updated successfully.',
-            clearErrorMessage: true,
-          ),
-        ),
+        (ProfileModel profile) {
+          final ProfileModel merged = _mergeProfile(state.profile, profile);
+          emit(
+            state.copyWith(
+              status: ProfileStatus.updateSuccess,
+              profile: merged,
+              profileImage: merged.data.profilePhoto?.remoteUrl,
+              successMessage: profile.message.isNotEmpty
+                  ? profile.message
+                  : 'Profile updated successfully.',
+              clearErrorMessage: true,
+            ),
+          );
+        },
       );
     } catch (error) {
       emit(
@@ -104,18 +112,19 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
   }
 
   Map<String, dynamic> _buildUpdatePayload(UpdateProfileEvent event) {
+    final DateTime? dob = event.dateOfBirth;
     return <String, dynamic>{
-      if (event.fullName != null) 'full_name': event.fullName,
-      if (event.email != null) 'email': event.email,
-      if (event.phone != null) 'phone': event.phone,
-      if (event.dateOfBirth != null)
-        'date_of_birth':
-            '${event.dateOfBirth!.year.toString().padLeft(4, '0')}-'
-            '${event.dateOfBirth!.month.toString().padLeft(2, '0')}-'
-            '${event.dateOfBirth!.day.toString().padLeft(2, '0')}',
-      if (event.gender != null) 'gender': event.gender!.toLowerCase(),
-      if (event.address != null) 'address': event.address,
-      if (event.profilePhoto != null) 'profile_photo': event.profilePhoto,
+      'full_name': event.fullName ?? '',
+      'email': event.email ?? '',
+      'phone': event.phone ?? '',
+      'date_of_birth': dob == null
+          ? ''
+          : '${dob.year.toString().padLeft(4, '0')}-'
+                '${dob.month.toString().padLeft(2, '0')}-'
+                '${dob.day.toString().padLeft(2, '0')}',
+      'gender': event.gender?.toLowerCase() ?? '',
+      'address': event.address ?? '',
+      'profile_photo': int.parse(event.profilePhoto ?? '0'),
     };
   }
 }

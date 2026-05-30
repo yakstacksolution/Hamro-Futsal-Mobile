@@ -38,27 +38,38 @@ class PoliciesSection extends StatelessWidget {
         const SizedBox(height: 16),
         CustomTextField(
           controller: bloc.bookingAdvanceDaysController,
+          focusNode: bloc.bookingAdvanceDaysFocus,
+          ensureVisibleOnFocus: true,
           labelText: 'Booking Advance Limit (days) *',
           hintText: '30',
           icon: Icons.calendar_month_rounded,
           keyboardType: TextInputType.number,
           textInputAction: TextInputAction.next,
+          onSubmitted: (_) => bloc.state.allowCancellation
+              ? bloc.cancellationWindowFocus.requestFocus()
+              : bloc.houseRulesFocus.requestFocus(),
           validator: bloc.bookingAdvanceDaysValidator,
         ),
         const SizedBox(height: 14),
         CustomTextField(
           controller: bloc.cancellationWindowController,
+          focusNode: bloc.cancellationWindowFocus,
+          ensureVisibleOnFocus: true,
           labelText: 'Cancellation Window (hours)',
           hintText: bloc.state.allowCancellation ? '12' : 'Disabled',
           icon: Icons.access_time_filled_rounded,
           keyboardType: TextInputType.number,
           textInputAction: TextInputAction.next,
+          onSubmitted: (_) => bloc.houseRulesFocus.requestFocus(),
           enabled: bloc.state.allowCancellation,
+          isRequired: bloc.state.allowCancellation,
           validator: bloc.cancellationWindowValidator,
         ),
         const SizedBox(height: 14),
         CustomTextField(
           controller: bloc.houseRulesController,
+          focusNode: bloc.houseRulesFocus,
+          ensureVisibleOnFocus: true,
           labelText: 'House Rules *',
           hintText:
               'Example: non-marking shoes only, report 15 minutes early, no outside food.',

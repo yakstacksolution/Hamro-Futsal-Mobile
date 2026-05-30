@@ -1,9 +1,12 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:dartz/dartz.dart';
+import 'package:flutter/foundation.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hamro_footsall/core/helper/exception_helper.dart';
+import 'package:hamro_footsall/features/courts/data/repositories/venue_court_repository_impl.dart';
+import 'package:hamro_footsall/features/courts/domain/usecase/get_venue_court_use_case.dart';
 import 'package:hamro_footsall/features/vendor/data/model/court_onboarding_response_model.dart';
 import 'package:hamro_footsall/features/vendor/data/model/vendor_onboarding_response_model.dart';
 import 'package:hamro_footsall/features/vendor/data/vendor_draft_repository.dart';
@@ -40,9 +43,19 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
   Timer? _saveDebounce;
   int _revision = 0;
   int? _courtsFetchedForVenueId;
+  final Set<int> _courtDetailsFetched = <int>{};
+  final Set<int> _courtDetailsFetching = <int>{};
   Object? _editorFlushOwner;
   void Function()? _editorFlushCallback;
   String _defaultCourtDescription = '';
+
+  /// Emits the substep key that just failed validation so the corresponding
+  /// form section can focus (and scroll to) its first invalid field. A unique
+  /// token is appended (`<key>#<n>`) so repeated failures on the same key still
+  /// notify listeners. Not part of the immutable state by design.
+  final ValueNotifier<String?> focusInvalidFieldRequest =
+      ValueNotifier<String?>(null);
+  int _focusRequestToken = 0;
 
   void registerActiveEditorFlush(Object owner, void Function() callback) {
     _editorFlushOwner = owner;
@@ -368,13 +381,6 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
       return;
     }
 
-    if (!canAccessCourtCategory) {
-      _emitError(
-        'Complete the futsal basic info and location before creating courts.',
-      );
-      return;
-    }
-
     final bool shouldFetch = _shouldFetchRemoteCourts();
 
     if (state.courts.isEmpty) {
@@ -391,8 +397,7 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
         ),
       );
     } else {
-      final String activeCourtId =
-          state.activeCourtId ?? state.courts.first.id;
+      final String activeCourtId = state.activeCourtId ?? state.courts.first.id;
       final SectionPointer pointer =
           state.courtPointersById[activeCourtId] ??
           const SectionPointer(sectionIndex: 0, subsectionIndex: 0);
@@ -703,19 +708,21 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     );
   }
 
-  void toggleCourtAmenity(String value) {
+  void toggleCourtAmenity(int value) {
     final CourtDraft? court = state.activeCourt;
     if (court == null) return;
     updateActiveCourt(
-      court.copyWith(amenities: _toggleSetValue(court.amenities, value)),
+      court.copyWith(amenities: _toggleSetValueT<int>(court.amenities, value)),
     );
   }
 
-  void toggleCourtFacility(String value) {
+  void toggleCourtFacility(int value) {
     final CourtDraft? court = state.activeCourt;
     if (court == null) return;
     updateActiveCourt(
-      court.copyWith(facilities: _toggleSetValue(court.facilities, value)),
+      court.copyWith(
+        facilities: _toggleSetValueT<int>(court.facilities, value),
+      ),
     );
   }
 
@@ -733,13 +740,79 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
   void toggleCourtAdvancePayment(bool value) {
     final CourtDraft? court = state.activeCourt;
     if (court == null) return;
+    final AdvancePaymentType resolvedType =
+        court.advancePaymentType ?? AdvancePaymentType.flat;
+    final double? defaultPrice = value
+        ? _defaultAdvancePrice(resolvedType, court.basePrice)
+        : null;
     updateActiveCourt(
       court.copyWith(
         advancePaymentRequired: value,
-        clearPaymentPercent: !value,
+        advancePaymentType: value ? resolvedType : null,
+        advancePrice: defaultPrice,
+        advancePriceUserEdited: false,
+        clearAdvancePaymentType: !value,
+        clearAdvancePrice: !value || defaultPrice == null,
         clearPaymentQr: !value,
       ),
     );
+  }
+
+  void setCourtAdvancePaymentType(AdvancePaymentType type) {
+    final CourtDraft? court = state.activeCourt;
+    if (court == null) return;
+    if (court.advancePaymentType == type) return;
+    final double? defaultPrice = _defaultAdvancePrice(type, court.basePrice);
+    updateActiveCourt(
+      court.copyWith(
+        advancePaymentType: type,
+        advancePrice: defaultPrice,
+        advancePriceUserEdited: false,
+        clearAdvancePrice: defaultPrice == null,
+      ),
+    );
+  }
+
+  void setCourtAdvancePrice(double? price) {
+    final CourtDraft? court = state.activeCourt;
+    if (court == null) return;
+    updateActiveCourt(
+      court.copyWith(
+        advancePrice: price,
+        advancePriceUserEdited: true,
+        clearAdvancePrice: price == null,
+      ),
+    );
+  }
+
+  void setCourtBasePrice(double? basePrice) {
+    final CourtDraft? court = state.activeCourt;
+    if (court == null) return;
+    final bool shouldAutoFillAdvance =
+        court.advancePaymentRequired &&
+        court.advancePaymentType == AdvancePaymentType.flat &&
+        !court.advancePriceUserEdited;
+    final double? autoAdvance = shouldAutoFillAdvance
+        ? _defaultAdvancePrice(AdvancePaymentType.flat, basePrice)
+        : null;
+    updateActiveCourt(
+      court.copyWith(
+        basePrice: basePrice,
+        clearBasePrice: basePrice == null,
+        advancePrice: shouldAutoFillAdvance ? autoAdvance : null,
+        clearAdvancePrice: shouldAutoFillAdvance && autoAdvance == null,
+      ),
+    );
+  }
+
+  double? _defaultAdvancePrice(AdvancePaymentType type, double? basePrice) {
+    switch (type) {
+      case AdvancePaymentType.flat:
+        if (basePrice == null || basePrice <= 0) return null;
+        return basePrice / 2;
+      case AdvancePaymentType.percentage:
+        return 50;
+    }
   }
 
   void setDefaultCourtDescription(String? description) {
@@ -794,7 +867,8 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
   }
 
   void selectCourt(String courtId) {
-    if (_courtById(courtId) == null) return;
+    final CourtDraft? court = _courtById(courtId);
+    if (court == null) return;
     final SectionPointer pointer =
         state.courtPointersById[courtId] ??
         const SectionPointer(sectionIndex: 0, subsectionIndex: 0);
@@ -810,7 +884,79 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
         clearErrorMessage: true,
       ),
     );
+    unawaited(_fetchCourtDetailsForEditing(court));
     _scheduleDraftSave();
+  }
+
+  Future<void> _fetchCourtDetailsForEditing(CourtDraft court) async {
+    final int? courtId = court.remoteId ?? int.tryParse(court.id);
+    if (courtId == null ||
+        _courtDetailsFetched.contains(courtId) ||
+        _courtDetailsFetching.contains(courtId)) {
+      return;
+    }
+
+    _courtDetailsFetching.add(courtId);
+    emit(state.copyWith(isLoadingCourts: true, clearErrorMessage: true));
+
+    final Either<AppException, CourtDraft> response =
+        await GetVenueCourtUseCase(
+          VenueCourtRepositoryImpl(),
+        ).getCourtDetails(courtId);
+
+    _courtDetailsFetching.remove(courtId);
+    if (isClosed) return;
+
+    response.fold(
+      (AppException failure) {
+        emit(
+          state.copyWith(
+            isLoadingCourts: false,
+            errorMessage: failure.errorMessage,
+            errorOrigin: VendorErrorOrigin.api,
+          ),
+        );
+      },
+      (CourtDraft details) {
+        _courtDetailsFetched.add(courtId);
+        final List<CourtDraft> courts = state.courts
+            .map((CourtDraft item) {
+              final bool sameCourt =
+                  item.id == court.id ||
+                  (item.remoteId != null && item.remoteId == courtId) ||
+                  item.id == courtId.toString();
+              return sameCourt ? details : item;
+            })
+            .toList(growable: false);
+
+        final String activeCourtId = details.id;
+        final Map<String, SectionPointer> pointers =
+            Map<String, SectionPointer>.from(state.courtPointersById);
+        final SectionPointer pointer =
+            pointers.remove(court.id) ??
+            pointers[activeCourtId] ??
+            const SectionPointer(sectionIndex: 0, subsectionIndex: 0);
+        pointers[activeCourtId] = pointer;
+
+        emit(
+          _normalizeState(
+            state.copyWith(
+              courts: courts,
+              activeCourtId: activeCourtId,
+              courtPointersById: pointers,
+              cursor: StepCursor(
+                category: VendorCategory.court,
+                sectionIndex: pointer.sectionIndex,
+                subsectionIndex: pointer.subsectionIndex,
+                courtId: activeCourtId,
+              ),
+              isLoadingCourts: false,
+              clearErrorMessage: true,
+            ),
+          ),
+        );
+      },
+    );
   }
 
   void removeCourt(String courtId) {
@@ -1148,6 +1294,7 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
   }
 
   void removeCompanyDocument(UploadRef file) {
+    if (file.verificationStatus.isLocked) return;
     updateFutsal(
       state.futsal.copyWith(
         companyDocuments: state.futsal.companyDocuments
@@ -1155,6 +1302,21 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
             .toList(),
       ),
     );
+  }
+
+  void replaceCompanyDocument(UploadRef oldFile, UploadRef newFile) {
+    if (oldFile.verificationStatus != UploadVerificationStatus.rejected) {
+      return;
+    }
+    final List<UploadRef> updated = state.futsal.companyDocuments
+        .map((UploadRef item) {
+          final bool matches =
+              item.remoteUrl == oldFile.remoteUrl &&
+              (oldFile.id == null || item.id == oldFile.id);
+          return matches ? newFile : item;
+        })
+        .toList(growable: false);
+    updateFutsal(state.futsal.copyWith(companyDocuments: updated));
   }
 
   void removeCourtPaymentQr() {
@@ -1320,8 +1482,8 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
   }
 
   Future<String?> deleteCourtById(int courtId) async {
-    final Either<AppException, void> response =
-        await _onboardingUseCase.deleteCourt(courtId);
+    final Either<AppException, void> response = await _onboardingUseCase
+        .deleteCourt(courtId);
     return response.fold(
       (AppException failure) => failure.errorMessage,
       (_) => null,
@@ -1331,6 +1493,7 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
   @override
   Future<void> close() {
     _saveDebounce?.cancel();
+    focusInvalidFieldRequest.dispose();
     return super.close();
   }
 
@@ -1625,6 +1788,9 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
         errorKeys: errorKeys,
       ),
     );
+
+    _focusRequestToken++;
+    focusInvalidFieldRequest.value = '${result.key}#$_focusRequestToken';
   }
 
   Set<String> _pruneActiveErrorKeys(Set<String> existing) {
@@ -1879,6 +2045,14 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
 
   Set<String> _toggleSetValue(Set<String> current, String value) {
     final Set<String> next = Set<String>.from(current);
+    if (!next.add(value)) {
+      next.remove(value);
+    }
+    return next;
+  }
+
+  Set<T> _toggleSetValueT<T>(Set<T> current, T value) {
+    final Set<T> next = Set<T>.from(current);
     if (!next.add(value)) {
       next.remove(value);
     }

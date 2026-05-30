@@ -521,7 +521,10 @@ class CourtOnboardingPageState extends State<CourtOnboardingPage> {
   void initState() {
     super.initState();
     _cubit = context.read<VendorOnboardingCubit>();
-    _cubit.selectCourt(widget.courtId);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _cubit.selectCourt(widget.courtId);
+    });
   }
 
   @override

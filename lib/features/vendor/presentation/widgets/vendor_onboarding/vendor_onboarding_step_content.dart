@@ -145,7 +145,11 @@ class VendorOnboardingSectionContent extends StatelessWidget {
         court: activeCourt,
         subsectionIndex: cubit.currentSubstepIndex,
       ),
-      2 => CourtAmenitiesSection(cubit: cubit, court: activeCourt),
+      2 => CourtAmenitiesSection(
+        cubit: cubit,
+        court: activeCourt,
+        subsectionIndex: cubit.currentSubstepIndex,
+      ),
       3 => CourtSlotsSection(
         cubit: cubit,
         court: activeCourt,

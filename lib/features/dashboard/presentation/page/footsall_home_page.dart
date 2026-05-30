@@ -164,7 +164,7 @@ class _CourtCardState extends State<CourtCard> {
           borderRadius: BorderRadius.circular(AppDimens.radiusX18),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.06),
+              color: Colors.black.withValues(alpha: 0.06),
               blurRadius: AppDimens.radiusX24,
               offset: const Offset(0, 8),
             ),
@@ -201,10 +201,10 @@ class _CourtCardState extends State<CourtCard> {
                               height: AppDimens.sizeX36,
                               width: AppDimens.sizeX36,
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.85),
+                                color: Colors.white.withValues(alpha: 0.85),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                  color: Colors.white.withOpacity(0.6),
+                                  color: Colors.white.withValues(alpha: 0.6),
                                 ),
                               ),
                               child: Icon(
@@ -271,7 +271,7 @@ class _CourtCardState extends State<CourtCard> {
                         width: AppDimens.sizeX3,
                         height: AppDimens.sizeX3,
                         decoration: BoxDecoration(
-                          color: LightColor.secondaryTextColor.withOpacity(0.4),
+                          color: LightColor.secondaryTextColor.withValues(alpha: 0.4),
                           shape: BoxShape.circle,
                         ),
                       ),
@@ -280,8 +280,8 @@ class _CourtCardState extends State<CourtCard> {
                         widget.court.distance,
                         style: FutsalTheme.getTextTheme(context).bodyTextSmall
                             ?.copyWith(
-                              color: LightColor.secondaryTextColor.withOpacity(
-                                0.8,
+                              color: LightColor.secondaryTextColor.withValues(
+                                alpha: 0.8,
                               ),
                             ),
                       ),
@@ -337,7 +337,7 @@ class _CourtCardState extends State<CourtCard> {
             vertical: AppDimens.paddingX6,
           ),
           decoration: BoxDecoration(
-            color: LightColor.whiteColor.withOpacity(0.85),
+            color: LightColor.whiteColor.withValues(alpha: 0.85),
             borderRadius: BorderRadius.circular(AppDimens.sizeX30),
           ),
           child: Row(
@@ -390,12 +390,12 @@ class _StatusPill extends StatelessWidget {
             vertical: AppDimens.paddingX4,
           ),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.85),
+            color: Colors.white.withValues(alpha: 0.85),
             borderRadius: BorderRadius.circular(AppDimens.sizeX30),
             border: Border.all(
               color: isOpen
-                  ? LightColor.secondaryColor.withOpacity(0.3)
-                  : LightColor.redColor.withOpacity(0.3),
+                  ? LightColor.secondaryColor.withValues(alpha: 0.3)
+                  : LightColor.redColor.withValues(alpha: 0.3),
               width: 1,
             ),
           ),

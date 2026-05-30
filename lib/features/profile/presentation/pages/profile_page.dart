@@ -110,6 +110,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 children: [
                   _ProfileRow(
                     profile: profile,
+                    profileImage: state.profileImage,
                     isLoading: isLoading,
                     onTap: profile == null
                         ? null
@@ -205,11 +206,13 @@ class _ProfilePageState extends State<ProfilePage> {
 class _ProfileRow extends StatelessWidget {
   const _ProfileRow({
     required this.profile,
+    required this.profileImage,
     required this.isLoading,
     required this.onTap,
   });
 
   final ProfileModel? profile;
+  final String? profileImage;
   final bool isLoading;
   final VoidCallback? onTap;
 
@@ -224,7 +227,7 @@ class _ProfileRow extends StatelessWidget {
     final String email = (user?.email.trim().isNotEmpty ?? false)
         ? user!.email
         : 'No email available';
-    final String? profilePhoto = user?.profilePhoto;
+    final String? profilePhoto = profileImage ?? user?.profilePhoto?.remoteUrl;
 
     return Material(
       color: Colors.transparent,
@@ -410,7 +413,7 @@ class _SettingsRow extends StatelessWidget {
                 width: 22,
                 height: 22,
                 child: item.loading
-                    ? const LoadingWidget()
+                    ? const LoadingWidget(isButtonLoading: true)
                     : Icon(item.icon, color: iconColor, size: 20),
               ),
               const SizedBox(width: AppDimens.paddingX14),

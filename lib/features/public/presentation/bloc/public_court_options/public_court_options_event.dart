@@ -10,3 +10,11 @@ sealed class PublicCourtOptionsEvent extends Equatable {
 final class FetchPublicCourtOptionsEvent extends PublicCourtOptionsEvent {
   const FetchPublicCourtOptionsEvent();
 }
+
+final class FetchPublicAmenitiesEvent extends PublicCourtOptionsEvent {
+  const FetchPublicAmenitiesEvent();
+}
+
+final class FetchPublicFacilitiesEvent extends PublicCourtOptionsEvent {
+  const FetchPublicFacilitiesEvent();
+}

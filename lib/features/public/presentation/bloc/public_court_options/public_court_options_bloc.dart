@@ -15,6 +15,8 @@ class PublicCourtOptionsBloc
   PublicCourtOptionsBloc(this._useCase)
     : super(const PublicCourtOptionsState()) {
     on<FetchPublicCourtOptionsEvent>(_onFetchOptions);
+    on<FetchPublicAmenitiesEvent>(_onFetchAmenities);
+    on<FetchPublicFacilitiesEvent>(_onFetchFacilities);
   }
 
   final GetCourtOptionsUseCase _useCase;
@@ -93,6 +95,56 @@ class PublicCourtOptionsBloc
             matchFailure?.errorMessage ??
             amenitiesFailure?.errorMessage ??
             facilitiesFailure?.errorMessage,
+      ),
+    );
+  }
+
+  FutureOr<void> _onFetchAmenities(
+    FetchPublicAmenitiesEvent event,
+    Emitter<PublicCourtOptionsState> emit,
+  ) async {
+    emit(state.copyWith(isLoadingAmenities: true));
+    final Either<AppException, List<PublicOptionModel>> response =
+        await _useCase.getAmenities();
+    response.fold(
+      (AppException error) => emit(
+        state.copyWith(
+          isLoadingAmenities: false,
+          status: PublicCourtOptionsStatus.failure,
+          errorMessage: error.errorMessage,
+        ),
+      ),
+      (List<PublicOptionModel> items) => emit(
+        state.copyWith(
+          isLoadingAmenities: false,
+          status: PublicCourtOptionsStatus.success,
+          amenities: items,
+        ),
+      ),
+    );
+  }
+
+  FutureOr<void> _onFetchFacilities(
+    FetchPublicFacilitiesEvent event,
+    Emitter<PublicCourtOptionsState> emit,
+  ) async {
+    emit(state.copyWith(isLoadingFacilities: true));
+    final Either<AppException, List<PublicOptionModel>> response =
+        await _useCase.getFacilities();
+    response.fold(
+      (AppException error) => emit(
+        state.copyWith(
+          isLoadingFacilities: false,
+          status: PublicCourtOptionsStatus.failure,
+          errorMessage: error.errorMessage,
+        ),
+      ),
+      (List<PublicOptionModel> items) => emit(
+        state.copyWith(
+          isLoadingFacilities: false,
+          status: PublicCourtOptionsStatus.success,
+          facilities: items,
+        ),
       ),
     );
   }
