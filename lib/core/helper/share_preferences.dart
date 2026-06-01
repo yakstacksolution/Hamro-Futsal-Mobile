@@ -5,7 +5,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 class _AuthPreferenceKeys {
   static const tokenModel = 'token_model';
   static const isInitialViewOnboarding = 'is_initial_view_onboarding';
-  static const vendorOnboardingDraft = 'vendor_onboarding_draft_v1';
 }
 
 class AppSettings {
@@ -44,20 +43,8 @@ class AppSettings {
       _preferences.getBool(_AuthPreferenceKeys.isInitialViewOnboarding) ??
       false;
 
-  set vendorOnboardingDraftJson(String value) => _preferences.setString(
-    _AuthPreferenceKeys.vendorOnboardingDraft,
-    value,
-  );
-
-  String? get vendorOnboardingDraftJson =>
-      _preferences.getString(_AuthPreferenceKeys.vendorOnboardingDraft);
-
   void logout() {
     _preferences.remove(_AuthPreferenceKeys.tokenModel);
-  }
-
-  void clearVendorOnboardingDraft() {
-    _preferences.remove(_AuthPreferenceKeys.vendorOnboardingDraft);
   }
 }
 

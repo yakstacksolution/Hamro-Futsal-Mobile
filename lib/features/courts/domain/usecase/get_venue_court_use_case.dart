@@ -14,4 +14,23 @@ final class GetVenueCourtUseCase {
 
   Future<Either<AppException, CourtDraft>> getCourtDetails(int courtId) async =>
       await _repository.getCourtDetails(courtId);
+
+  Future<Either<AppException, List<SlotPricingDraft>>> getCourtSlots(
+    int courtId,
+  ) async => await _repository.getCourtSlots(courtId);
+
+  Future<Either<AppException, List<SlotPricingDraft>>> createCourtSlot(
+    Map<String, dynamic> data,
+  ) async => await _repository.createCourtSlot(data);
+
+  Future<Either<AppException, List<SlotPricingDraft>>> updateCourtSlot(
+    Map<String, dynamic> data,
+  ) async => await _repository.updateCourtSlot(data);
+
+  Future<Either<AppException, List<SlotPricingDraft>>> deleteCourtSlot(
+    Map<String, dynamic> data,
+  ) async => await _repository.deleteCourtSlot(data);
+
+  Future<Either<AppException, Unit>> deleteCourt(int courtId) async =>
+      await _repository.deleteCourt(courtId);
 }

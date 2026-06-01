@@ -1,6 +1,10 @@
+import 'dart:async';
+
+import 'package:dartz/dartz.dart' hide State;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hamro_footsall/core/helper/exception_helper.dart';
 import 'package:hamro_footsall/core/routers/app_router_params.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
@@ -8,6 +12,7 @@ import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/custom_image_view.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/utils/image_constants.dart';
+import 'package:hamro_footsall/core/widgets/custom_button.dart';
 import 'package:hamro_footsall/core/widgets/loading_widget.dart';
 import 'package:hamro_footsall/features/courts/data/model/venue_court_model.dart';
 import 'package:hamro_footsall/features/courts/data/repositories/venue_court_repository_impl.dart';
@@ -1156,6 +1161,40 @@ class _CourtRowV2 extends StatelessWidget {
   final int? venueId;
   final VoidCallback onManageCourt;
 
+  Future<void> _confirmDeleteCourt(BuildContext context) async {
+    final VenueCourtBloc bloc = context.read<VenueCourtBloc>();
+    final String name = court.name.trim().isEmpty
+        ? 'Court $index'
+        : court.name.trim();
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext _) => _CourtDeleteDialog(
+        courtName: name,
+        onConfirm: () async {
+          final int? courtId = court.remoteId ?? int.tryParse(court.id);
+          if (courtId == null) {
+            bloc.add(
+              RemoveVenueCourtLocallyEvent(venueId: venueId, court: court),
+            );
+            return null;
+          }
+          final Either<AppException, Unit> result = await GetVenueCourtUseCase(
+            VenueCourtRepositoryImpl(),
+          ).deleteCourt(courtId);
+          return result.fold((AppException failure) => failure.errorMessage, (
+            _,
+          ) {
+            bloc.add(
+              RemoveVenueCourtLocallyEvent(venueId: venueId, court: court),
+            );
+            return null;
+          });
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final AppUtils appUtils = AppUtils();
@@ -1257,6 +1296,8 @@ class _CourtRowV2 extends StatelessWidget {
                       onSelected: (action) {
                         if (action == _VenueMenuAction.manageFutsal) {
                           onManageCourt();
+                        } else if (action == _VenueMenuAction.deleteCourt) {
+                          unawaited(_confirmDeleteCourt(context));
                         }
                       },
                       itemBuilder: (BuildContext context) => [
@@ -1586,5 +1627,113 @@ class _FutsalEntry {
       value = value == null ? price : (price < value ? price : value);
     }
     return value;
+  }
+}
+
+/// Delete-confirmation dialog whose action button shows a loading state while
+/// the court is being deleted, and only closes once the backend confirms.
+class _CourtDeleteDialog extends StatefulWidget {
+  const _CourtDeleteDialog({required this.courtName, required this.onConfirm});
+
+  final String courtName;
+  final Future<String?> Function() onConfirm;
+
+  @override
+  State<_CourtDeleteDialog> createState() => _CourtDeleteDialogState();
+}
+
+class _CourtDeleteDialogState extends State<_CourtDeleteDialog> {
+  bool _isDeleting = false;
+  String? _error;
+
+  Future<void> _delete() async {
+    if (_isDeleting) return;
+    setState(() {
+      _isDeleting = true;
+      _error = null;
+    });
+    final String? error = await widget.onConfirm();
+    if (!mounted) return;
+    if (error != null) {
+      setState(() {
+        _isDeleting = false;
+        _error = error;
+      });
+      return;
+    }
+    Navigator.of(context).pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    return AlertDialog(
+      backgroundColor: LightColor.cardColor,
+      surfaceTintColor: LightColor.cardColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppDimens.radiusX12),
+      ),
+      title: Text(
+        'Delete Court',
+        style: textTheme.bodyTextLarge?.copyWith(
+          color: LightColor.primaryTextColor,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            'Are you sure you want to delete "${widget.courtName}"? '
+            'This action cannot be undone.',
+            style: textTheme.bodyTextSmall?.copyWith(
+              color: LightColor.secondaryTextColor,
+              height: 1.5,
+            ),
+          ),
+          if (_error != null) ...<Widget>[
+            const SizedBox(height: AppDimens.sizeX10),
+            Text(
+              _error!,
+              style: textTheme.bodySubTitle?.copyWith(
+                color: LightColor.redColor,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ],
+      ),
+      actions: <Widget>[
+        Row(
+          children: <Widget>[
+            Expanded(
+              child: CustomButton(
+                text: 'Cancel',
+                isOutlined: true,
+                foregroundColor: LightColor.secondaryColor,
+                borderColor: LightColor.secondaryColor,
+                minHeight: AppDimens.sizeX42,
+                onPressed: _isDeleting
+                    ? null
+                    : () => Navigator.of(context).pop(),
+              ),
+            ),
+            const SizedBox(width: AppDimens.sizeX10),
+            Expanded(
+              child: CustomButton(
+                text: 'Delete',
+                icon: Icons.delete_outline_rounded,
+                isLoading: _isDeleting,
+                minHeight: AppDimens.sizeX42,
+                backgroundColor: LightColor.redColor,
+                foregroundColor: LightColor.whiteColor,
+                onPressed: _isDeleting ? null : _delete,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
   }
 }

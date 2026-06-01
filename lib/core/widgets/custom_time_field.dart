@@ -3,7 +3,7 @@ import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/widgets/custom_text_field.dart';
 import 'package:hamro_footsall/core/widgets/custom_time_picker_bottom_sheet.dart';
 
-class CustomTimeField extends StatelessWidget {
+class CustomTimeField extends StatefulWidget {
   const CustomTimeField({
     super.key,
     required this.label,
@@ -18,10 +18,35 @@ class CustomTimeField extends StatelessWidget {
   final TimeOfDay? initialFallback;
 
   @override
+  State<CustomTimeField> createState() => _CustomTimeFieldState();
+}
+
+class _CustomTimeFieldState extends State<CustomTimeField> {
+  late final TextEditingController _controller = TextEditingController(
+    text: widget.value,
+  );
+
+  @override
+  void didUpdateWidget(covariant CustomTimeField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // The field is read-only and fully driven by [value]; keep the controller
+    // in sync so a newly picked time is reflected on the next rebuild.
+    if (widget.value != _controller.text) {
+      _controller.text = widget.value;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return CustomTextField(
-      labelText: label,
-      initialValue: value,
+      labelText: widget.label,
+      controller: _controller,
       readOnly: true,
       suffixIcon: const Icon(
         Icons.schedule_rounded,
@@ -34,14 +59,16 @@ class CustomTimeField extends StatelessWidget {
 
   Future<void> _pickTime(BuildContext context) async {
     final TimeOfDay initial =
-        timeOfDayFromString(value) ?? initialFallback ?? TimeOfDay.now();
+        timeOfDayFromString(widget.value) ??
+        widget.initialFallback ??
+        TimeOfDay.now();
     final TimeOfDay? picked = await customCupertinoTimePicker(
       context,
       'Select Time',
       initialTime: initial,
     );
     if (picked == null) return;
-    onChanged(formatTimeOfDay(picked));
+    widget.onChanged(formatTimeOfDay(picked));
   }
 }
 

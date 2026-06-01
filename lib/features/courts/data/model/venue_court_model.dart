@@ -1,4 +1,5 @@
 import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_drafts.dart';
+import 'package:hamro_footsall/features/vendor/presentation/models/weekday_option.dart';
 
 final class VenueCourtModel {
   const VenueCourtModel({
@@ -79,6 +80,32 @@ final class VenueCourtModel {
     throw const FormatException('Court detail payload is not an object.');
   }
 
+  /// Parses slot responses into editable slots. Accepts:
+  /// * a bare list, `{data: [...]}`, or a map with `slots`/`slot_schedules`
+  ///   (list endpoints), and
+  /// * a single-slot create/update response `{data: {slot: {...}}}` where the
+  ///   slot carries nested `slot_pricing`.
+  static List<SlotPricingDraft> slotsFromResponse(dynamic payload) {
+    final dynamic data = payload is Map ? payload['data'] ?? payload : payload;
+
+    if (data is List) {
+      return _slotsFromResponse(data, null);
+    }
+    if (data is Map) {
+      final Map<String, dynamic> map = Map<String, dynamic>.from(data);
+      // Single-slot create/update response.
+      final dynamic single = map['slot'] ?? map['slot_schedule'];
+      if (single is Map) {
+        return _slotsFromResponse(<dynamic>[single], map['slot_pricings']);
+      }
+      return _slotsFromResponse(
+        map['slots'] ?? map['slot_schedules'] ?? map['data'],
+        map['slot_pricings'],
+      );
+    }
+    return const <SlotPricingDraft>[];
+  }
+
   static List<VenueCourtModel> listFromResponse(dynamic payload) {
     final dynamic data = payload is Map ? payload['data'] ?? payload : payload;
 
@@ -116,7 +143,16 @@ final class VenueCourtModel {
 }
 
 CourtDraft _courtFromJson(Map<String, dynamic> json) {
-  final int? remoteId = _asInt(json['id'] ?? json['court_id']);
+  // Be liberal in how the court identifier can arrive so the tile always has a
+  // stable, non-empty id (needed for navigation, detail fetch, and update).
+  final Object? rawId =
+      json['id'] ??
+      json['court_id'] ??
+      json['courtId'] ??
+      json['_id'] ??
+      json['uuid'];
+  final int? remoteId = _asInt(rawId);
+  final String rawIdString = rawId?.toString().trim() ?? '';
   final Object? courtType = json['court_type'];
   final Object? matchFormat = json['match_format'];
   final String slug = _asString(json['slug']);
@@ -150,11 +186,12 @@ CourtDraft _courtFromJson(Map<String, dynamic> json) {
             : UploadRef(name: '', id: _asInt(json['payment_qr_id'])));
 
   return CourtDraft(
-    id: remoteId?.toString() ?? slug,
+    id: remoteId?.toString() ?? (rawIdString.isNotEmpty ? rawIdString : slug),
     remoteId: remoteId,
     venueId: _asInt(json['venue_id']),
     mainStep: _asInt(json['main_step']),
     subStep: _asInt(json['sub_step']),
+    isStepCompleted: _asBool(json['is_step_completed']) ?? false,
     category: _asInt(json['category']),
     slug: slug.isEmpty ? null : slug,
     code: code.isEmpty ? null : code,
@@ -198,12 +235,13 @@ CourtDraft _courtFromJson(Map<String, dynamic> json) {
       json['court_photos'] ?? json['photos'] ?? json['images'] ?? json['media'],
     ),
     memories: _uploadsFromAny(json['court_memories'] ?? json['memories']),
-    weekendDays: _nameSetFromAny(json['weekend_days']).isEmpty
-        ? const <String>{'Saturday'}
-        : _nameSetFromAny(json['weekend_days']),
+    weekendDays: _weekendKeysFromAny(json['weekend_days']).isEmpty
+        ? const <String>{'sat'}
+        : _weekendKeysFromAny(json['weekend_days']),
     holidayDates: _nameSetFromAny(json['holiday_dates']),
     closedDates: _closedDatesFromAny(json['closed_dates']),
-    slotConfigs: _slotConfigsFromAny(
+    slotConfigs: _slotsFromResponse(
+      json['slot_schedules'],
       json['slot_pricings'] ??
           json['slot_configs'] ??
           json['slotConfigs'] ??
@@ -283,6 +321,18 @@ Set<int> _idSetFromAny(dynamic value) {
       .toSet();
 }
 
+Set<String> _weekendKeysFromAny(dynamic value) {
+  return _listFromAny(value)
+      .map((dynamic item) {
+        final dynamic raw = item is Map
+            ? (item['key'] ?? item['id'] ?? item['name'] ?? item['day'])
+            : item;
+        return WeekdayOption.fromAny(raw)?.key;
+      })
+      .whereType<String>()
+      .toSet();
+}
+
 List<CourtTagDetail> _tagDetailsFromAny(dynamic value) {
   return _listFromAny(value)
       .whereType<Map>()
@@ -306,6 +356,11 @@ Set<String> _nameSetFromAny(dynamic value) {
       .map((dynamic item) {
         if (item is Map) {
           return _asString(item['name'] ?? item['title'] ?? item['date']);
+        }
+        // The backend may wrap each holiday date in its own list,
+        // e.g. `holiday_dates: [[2026-05-31], [2026-06-01]]`.
+        if (item is List) {
+          return item.isEmpty ? '' : _asString(item.first);
         }
         return _asString(item);
       })
@@ -347,7 +402,7 @@ List<ClosedDateDraft> _closedDatesFromAny(dynamic value) {
         if (item is Map) {
           return ClosedDateDraft.fromJson(<String, dynamic>{
             'date': item['date'] ?? item['closed_date'],
-            'isFullDay': item['isFullDay'] ?? item['is_full_day'] ?? true,
+            'isFullDay': _isFullDayFromAny(item),
             'startTime': item['startTime'] ?? item['start_time'],
             'endTime': item['endTime'] ?? item['end_time'],
           });
@@ -358,24 +413,148 @@ List<ClosedDateDraft> _closedDatesFromAny(dynamic value) {
       .toList(growable: false);
 }
 
-List<SlotPricingDraft> _slotConfigsFromAny(dynamic value) {
+/// Resolves the full-day flag from either the legacy `is_full_day` boolean or
+/// the `closure_type` string (`full_day` / `hourly`) the backend now returns.
+bool _isFullDayFromAny(Map item) {
+  final Object? closureType = item['closure_type'] ?? item['closer_type'];
+  if (closureType != null) {
+    return closureType.toString().trim().toLowerCase() != 'hourly';
+  }
+  return _asBool(item['isFullDay'] ?? item['is_full_day']) ?? true;
+}
+
+/// Builds the editable slot list from the backend. Newer responses split slot
+/// structure (`slot_schedules`: label, days, times) from pricing
+/// (`slot_pricings`), so we combine them by id. Older pricing-only shapes still
+/// work via the fallback. Days are normalized to the capitalized UI labels and
+/// times to the picker's display format so the schedule UI renders the values.
+List<SlotPricingDraft> _slotsFromResponse(dynamic schedules, dynamic pricings) {
+  final List<dynamic> scheduleList = _listFromAny(schedules);
+  final List<dynamic> pricingList = _listFromAny(pricings);
+
+  final Map<String, Map<String, dynamic>> pricingById =
+      <String, Map<String, dynamic>>{};
+  for (final dynamic item in pricingList) {
+    if (item is Map) {
+      final Map<String, dynamic> map = Map<String, dynamic>.from(item);
+      final String slotId = _asString(
+        map['slot_schedule_id'] ?? map['slot_id'] ?? map['id'],
+      );
+      if (slotId.isNotEmpty) pricingById[slotId] = map;
+    }
+  }
+
+  if (scheduleList.isNotEmpty) {
+    return scheduleList
+        .whereType<Map>()
+        .map((Map item) {
+          final Map<String, dynamic> schedule = Map<String, dynamic>.from(item);
+          final String id = _asString(
+            schedule['id'] ??
+                schedule['slot_id'] ??
+                schedule['slot_schedule_id'],
+          );
+          return _slotFromMaps(
+            schedule,
+            pricingById[id] ?? const <String, dynamic>{},
+          );
+        })
+        .where((SlotPricingDraft slot) => slot.id.isNotEmpty)
+        .toList(growable: false);
+  }
+
+  // Legacy / pricing-only shape: structure and pricing live in the same map.
+  return pricingList
+      .whereType<Map>()
+      .map(
+        (Map item) =>
+            _slotFromMaps(const <String, dynamic>{}, Map<String, dynamic>.from(item)),
+      )
+      .toList(growable: false);
+}
+
+SlotPricingDraft _slotFromMaps(
+  Map<String, dynamic> schedule,
+  Map<String, dynamic> pricing,
+) {
+  // Pricing may be nested under the slot (`slot_pricing`) or supplied
+  // separately (a matched `slot_pricings` row); prefer the nested object.
+  final dynamic nested = schedule['slot_pricing'] ?? schedule['slot_pricings'];
+  final Map<String, dynamic> price = nested is Map
+      ? Map<String, dynamic>.from(nested)
+      : pricing;
+
+  return SlotPricingDraft.fromJson(<String, dynamic>{
+    'id': _asString(
+      schedule['id'] ??
+          schedule['slot_id'] ??
+          schedule['slot_schedule_id'] ??
+          pricing['id'],
+    ),
+    'label': schedule['label'] ?? schedule['name'] ?? pricing['label'],
+    'days': _slotDayLabelsFromAny(
+      schedule['days'] ?? schedule['available_days'] ?? pricing['days'],
+    ).toList(),
+    'startTime': _slotApiTime(
+      schedule['start_time'] ??
+          schedule['startTime'] ??
+          pricing['start_time'] ??
+          pricing['startTime'],
+    ),
+    'endTime': _slotApiTime(
+      schedule['end_time'] ??
+          schedule['endTime'] ??
+          pricing['end_time'] ??
+          pricing['endTime'],
+    ),
+    'price': price['price'] ?? price['base_price'],
+    'weekendPrice': price['weekend_price'],
+    'holidayPrice': price['holiday_price'],
+    'discountPrice': price['discount_price'],
+    'discountType': price['discount_type'],
+    'paymentPercent': price['payment_percent'],
+    'customDatePrices': _customDatePricesFromAny(
+      price['custom_date_prices'] ?? price['customDatePrices'],
+    ),
+  });
+}
+
+/// Normalizes custom date prices (`[{date, price}]`) for [SlotPricingDraft].
+List<Map<String, dynamic>> _customDatePricesFromAny(dynamic value) {
   return _listFromAny(value)
       .whereType<Map>()
-      .map((Map item) {
-        final Map<String, dynamic> map = Map<String, dynamic>.from(item);
-        return SlotPricingDraft.fromJson(<String, dynamic>{
-          'id': _asString(map['id'] ?? map['slot_id']),
-          'label': map['label'] ?? map['name'] ?? map['title'],
-          'days': map['days'] ?? map['available_days'],
-          'startTime': map['startTime'] ?? map['start_time'],
-          'endTime': map['endTime'] ?? map['end_time'],
-          'price': map['price'] ?? map['base_price'],
-          'weekendPrice': map['weekendPrice'] ?? map['weekend_price'],
-          'holidayPrice': map['holidayPrice'] ?? map['holiday_price'],
-          'discountPrice': map['discountPrice'] ?? map['discount_price'],
-          'discountType': map['discountType'] ?? map['discount_type'],
-          'paymentPercent': map['paymentPercent'] ?? map['payment_percent'],
-        });
-      })
+      .map(
+        (Map item) => <String, dynamic>{
+          'date': _asString(item['date']),
+          'price': _asDouble(item['price']),
+        },
+      )
+      .where((Map<String, dynamic> item) => (item['date'] as String).isNotEmpty)
       .toList(growable: false);
+}
+
+/// Normalizes backend day codes (lowercase, e.g. `sun`) to the capitalized
+/// short labels the slot UI uses (`Sun`).
+Set<String> _slotDayLabelsFromAny(dynamic value) {
+  return _listFromAny(value)
+      .map((dynamic item) => WeekdayOption.fromAny(item)?.label)
+      .whereType<String>()
+      .toSet();
+}
+
+/// Converts a backend time (`HH:mm` or `HH:mm:ss`, 24-hour) into the 12-hour
+/// display string the time picker produces (e.g. `23:36:00` -> `11 : 36 PM`).
+String _slotApiTime(Object? value) {
+  final String raw = _asString(value);
+  if (raw.isEmpty) return '';
+  final List<String> parts = raw.split(':');
+  if (parts.length < 2) return '';
+  final int? hour = int.tryParse(parts[0].trim());
+  final int? minute = int.tryParse(parts[1].trim());
+  if (hour == null || minute == null) return '';
+  if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return '';
+  final int twelveHour = hour % 12 == 0 ? 12 : hour % 12;
+  final String meridiem = hour < 12 ? 'AM' : 'PM';
+  return '${twelveHour.toString().padLeft(2, '0')} : '
+      '${minute.toString().padLeft(2, '0')} $meridiem';
 }

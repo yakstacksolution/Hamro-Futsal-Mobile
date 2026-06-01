@@ -5,7 +5,7 @@ import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_models.dart';
 
-class VendorCategorySwitcher extends StatelessWidget {
+class VendorCategorySwitcher extends StatefulWidget {
   const VendorCategorySwitcher({
     super.key,
     required this.activeCategory,
@@ -16,133 +16,108 @@ class VendorCategorySwitcher extends StatelessWidget {
   final ValueChanged<VendorCategory> onCategorySelected;
 
   @override
+  State<VendorCategorySwitcher> createState() => _VendorCategorySwitcherState();
+}
+
+class _VendorCategorySwitcherState extends State<VendorCategorySwitcher>
+    with SingleTickerProviderStateMixin {
+  late final TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(
+      length: VendorCategory.values.length,
+      vsync: this,
+      initialIndex: _indexForCategory(widget.activeCategory),
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant VendorCategorySwitcher oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final int nextIndex = _indexForCategory(widget.activeCategory);
+    if (_tabController.index != nextIndex) {
+      _tabController.animateTo(nextIndex);
+    }
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  int _indexForCategory(VendorCategory category) {
+    return category == VendorCategory.futsal ? 0 : 1;
+  }
+
+  VendorCategory _categoryForIndex(int index) {
+    return index == 0 ? VendorCategory.futsal : VendorCategory.court;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return ExcludeSemantics(
-      child: Container(
-        padding: AppUtils().getPadding(all: AppDimens.paddingX4),
-        decoration: BoxDecoration(
-          color: LightColor.whiteColor,
-          borderRadius: BorderRadius.circular(AppDimens.radiusX10),
-          border: Border.all(color: LightColor.greyBorderColor),
-          boxShadow: [
-            BoxShadow(
-              color: LightColor.primaryTextColor.withValues(alpha: 0.04),
-              blurRadius: AppDimens.radiusX16,
-              offset: const Offset(0, AppDimens.sizeX8),
-            ),
-          ],
+    final TextStyle? labelStyle = FutsalTheme.getTextTheme(
+      context,
+    ).bodyTextSmall?.copyWith(fontWeight: FontWeight.w800);
+
+    return Container(
+      padding: AppUtils().getPadding(all: AppDimens.paddingX4),
+      decoration: BoxDecoration(
+        color: LightColor.whiteColor,
+        borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+        border: Border.all(color: LightColor.greyBorderColor),
+        boxShadow: [
+          BoxShadow(
+            color: LightColor.primaryTextColor.withValues(alpha: 0.04),
+            blurRadius: AppDimens.radiusX16,
+            offset: const Offset(0, AppDimens.sizeX8),
+          ),
+        ],
+      ),
+      child: TabBar(
+        controller: _tabController,
+        onTap: (int index) {
+          widget.onCategorySelected(_categoryForIndex(index));
+        },
+        dividerColor: Colors.transparent,
+        indicatorSize: TabBarIndicatorSize.tab,
+        indicator: BoxDecoration(
+          color: LightColor.secondaryColor,
+          borderRadius: BorderRadius.circular(AppDimens.radiusX8),
         ),
-        child: Row(
-          children: [
-            Expanded(
-              child: _Tab(
-                title: 'Futsal',
-                icon: Icons.storefront_rounded,
-                isSelected: activeCategory == VendorCategory.futsal,
-                isLocked: false,
-                onTap: () => onCategorySelected(VendorCategory.futsal),
-              ),
-            ),
-            const SizedBox(width: AppDimens.sizeX6),
-            Expanded(
-              child: _Tab(
-                title: 'Court',
-                icon: Icons.stadium_rounded,
-                isSelected: activeCategory == VendorCategory.court,
-                isLocked: false,
-                onTap: () => onCategorySelected(VendorCategory.court),
-              ),
-            ),
-          ],
-        ),
+        labelColor: LightColor.whiteColor,
+        unselectedLabelColor: LightColor.primaryTextColor,
+        labelStyle: labelStyle,
+        unselectedLabelStyle: labelStyle,
+        tabs: const <Widget>[
+          _CategoryTab(icon: Icons.storefront_rounded, title: 'Futsal'),
+          _CategoryTab(icon: Icons.stadium_rounded, title: 'Court'),
+        ],
       ),
     );
   }
 }
 
-class _Tab extends StatelessWidget {
-  const _Tab({
-    required this.title,
-    required this.icon,
-    required this.isSelected,
-    required this.isLocked,
-    required this.onTap,
-  });
+class _CategoryTab extends StatelessWidget {
+  const _CategoryTab({required this.icon, required this.title});
 
-  final String title;
   final IconData icon;
-  final bool isSelected;
-  final bool isLocked;
-  final VoidCallback onTap;
+  final String title;
 
   @override
   Widget build(BuildContext context) {
-    final Color bg = isSelected
-        ? LightColor.secondaryColor
-        : LightColor.whiteColor;
-
-    final Color textColor = isSelected
-        ? LightColor.whiteColor
-        : isLocked
-        ? LightColor.secondaryTextColor
-        : LightColor.primaryTextColor;
-
-    // Always white icon color
-    final Color iconColor = LightColor.whiteColor;
-
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      excludeFromSemantics: true,
-      onTap: onTap,
-      child: Container(
-        padding: AppUtils().getPadding(
-          horizontal: AppDimens.sizeX8,
-          vertical: AppDimens.sizeX6,
-        ),
-        decoration: BoxDecoration(
-          color: bg,
-          borderRadius: BorderRadius.circular(AppDimens.radiusX8),
-          border: Border.all(
-            color: isSelected
-                ? LightColor.secondaryColor
-                : LightColor.whiteColor,
-          ),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: AppDimens.sizeX26,
-              height: AppDimens.sizeX26,
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? LightColor.whiteColor.withValues(alpha: 0.16)
-                    : LightColor.secondaryColor,
-                borderRadius: BorderRadius.circular(AppDimens.radiusX6),
-              ),
-              child: Icon(
-                isLocked ? Icons.lock_rounded : icon,
-                size: AppDimens.sizeX16,
-                color: iconColor,
-              ),
-            ),
-            const SizedBox(width: AppDimens.sizeX8),
-            Expanded(
-              child: Text(
-                isLocked ? 'Court (Locked)' : title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: FutsalTheme.getTextTheme(context).bodyTextSmall
-                    ?.copyWith(color: textColor, fontWeight: FontWeight.w800),
-              ),
-            ),
-            if (isSelected)
-              const Icon(
-                Icons.check_rounded,
-                size: AppDimens.sizeX16,
-                color: LightColor.whiteColor,
-              ),
-          ],
-        ),
+    return Tab(
+      height: AppDimens.sizeX44,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Icon(icon, size: AppDimens.sizeX16),
+          const SizedBox(width: AppDimens.sizeX8),
+          Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
+        ],
       ),
     );
   }

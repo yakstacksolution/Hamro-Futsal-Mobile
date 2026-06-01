@@ -22,17 +22,12 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
   VendorOnboardingCubit(
     this._draftRepository, {
     VendorOnboardingUseCase? onboardingUseCase,
-  }) : super(VendorOnboardingState.initial()) {
-    if (_draftRepository.persistsLocally) {
-      unawaited(restoreDraft());
-    } else {
-      emit(
-        state.copyWith(
-          isRestoringDraft: false,
-          saveStatus: DraftSaveStatus.unsaved,
-        ),
-      );
-    }
+  }) : super(
+         VendorOnboardingState.initial().copyWith(
+           isRestoringDraft: false,
+           saveStatus: DraftSaveStatus.unsaved,
+         ),
+       ) {
     _onboardingUseCase =
         onboardingUseCase ??
         VendorOnboardingUseCase(VendorOnboardingRepositoryImpl());
@@ -41,7 +36,6 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
   final VendorDraftRepository _draftRepository;
   late final VendorOnboardingUseCase _onboardingUseCase;
   Timer? _saveDebounce;
-  int _revision = 0;
   int? _courtsFetchedForVenueId;
   final Set<int> _courtDetailsFetched = <int>{};
   final Set<int> _courtDetailsFetching = <int>{};
@@ -49,10 +43,6 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
   void Function()? _editorFlushCallback;
   String _defaultCourtDescription = '';
 
-  /// Emits the substep key that just failed validation so the corresponding
-  /// form section can focus (and scroll to) its first invalid field. A unique
-  /// token is appended (`<key>#<n>`) so repeated failures on the same key still
-  /// notify listeners. Not part of the immutable state by design.
   final ValueNotifier<String?> focusInvalidFieldRequest =
       ValueNotifier<String?>(null);
   int _focusRequestToken = 0;
@@ -271,44 +261,7 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
   }
 
   Future<void> restoreDraft() async {
-    try {
-      final VendorOnboardingState? restored = await _draftRepository.load();
-      if (restored == null) {
-        emit(
-          state.copyWith(
-            isRestoringDraft: false,
-            saveStatus: DraftSaveStatus.idle,
-          ),
-        );
-        return;
-      }
-
-      _revision = 0;
-      emit(
-        _normalizeState(
-          restored.copyWith(
-            isDirty: false,
-            isRestoringDraft: false,
-            isSubmitting: false,
-            isCompleted: false,
-            saveStatus: restored.lastSavedAt != null
-                ? DraftSaveStatus.saved
-                : DraftSaveStatus.idle,
-            clearErrorMessage: true,
-            errorKeys: const <String>{},
-          ),
-        ),
-      );
-    } catch (_) {
-      emit(
-        state.copyWith(
-          isRestoringDraft: false,
-          saveStatus: DraftSaveStatus.failure,
-          errorMessage: 'Could not restore the saved onboarding draft.',
-          errorOrigin: VendorErrorOrigin.local,
-        ),
-      );
-    }
+    emit(state.copyWith(isRestoringDraft: false));
   }
 
   Future<void> fetchVendorOnboarding(int futsalId) async {
@@ -419,6 +372,15 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     if (shouldFetch) {
       unawaited(_fetchRemoteCourts());
     }
+  }
+
+  Future<void> refreshRemoteCourts() async {
+    final int? futsalId = state.remoteFutsalId;
+    if (futsalId == null || state.isLoadingCourts) return;
+
+    _courtsFetchedForVenueId = null;
+    emit(state.copyWith(isLoadingCourts: true, clearErrorMessage: true));
+    await _fetchRemoteCourts();
   }
 
   void selectSection(int sectionIndex) {
@@ -680,6 +642,27 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     _emitUpdated(state.copyWith(courts: courts));
   }
 
+  /// Merges [court] into the onboarding list: replaces the entry that matches
+  /// by remote id (preferred) or local id, or appends it when not present.
+  /// Used to sync edits made in an isolated court-editor cubit back into the
+  /// shared onboarding state when the editor closes.
+  void upsertCourt(CourtDraft court) {
+    final List<CourtDraft> courts = List<CourtDraft>.from(state.courts);
+    final int index = courts.indexWhere((CourtDraft item) {
+      final bool sameRemote =
+          item.remoteId != null &&
+          court.remoteId != null &&
+          item.remoteId == court.remoteId;
+      return sameRemote || item.id == court.id;
+    });
+    if (index >= 0) {
+      courts[index] = court;
+    } else {
+      courts.add(court);
+    }
+    _emitUpdated(state.copyWith(courts: courts));
+  }
+
   void toggleFutsalAmenity(String value) {
     updateFutsal(
       state.futsal.copyWith(
@@ -869,17 +852,18 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
   void selectCourt(String courtId) {
     final CourtDraft? court = _courtById(courtId);
     if (court == null) return;
+    final String activeCourtId = court.id;
     final SectionPointer pointer =
-        state.courtPointersById[courtId] ??
+        state.courtPointersById[activeCourtId] ??
         const SectionPointer(sectionIndex: 0, subsectionIndex: 0);
     emit(
       state.copyWith(
-        activeCourtId: courtId,
+        activeCourtId: activeCourtId,
         cursor: StepCursor(
           category: VendorCategory.court,
           sectionIndex: pointer.sectionIndex,
           subsectionIndex: pointer.subsectionIndex,
-          courtId: courtId,
+          courtId: activeCourtId,
         ),
         clearErrorMessage: true,
       ),
@@ -888,16 +872,56 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     _scheduleDraftSave();
   }
 
-  Future<void> _fetchCourtDetailsForEditing(CourtDraft court) async {
+  void openCourtForEditing(String courtId) {
+    final CourtDraft? court = _courtById(courtId);
+    if (court == null) return;
+    final String activeCourtId = court.id;
+
+    final int? remoteId = court.remoteId ?? int.tryParse(court.id);
+    if (remoteId != null) {
+      _courtDetailsFetched.remove(remoteId);
+      _courtSlotsFetched.remove(remoteId);
+    }
+
+    final SectionPointer pointer =
+        state.courtPointersById[activeCourtId] ??
+        const SectionPointer(sectionIndex: 0, subsectionIndex: 0);
+    emit(
+      state.copyWith(
+        activeCourtId: activeCourtId,
+        cursor: StepCursor(
+          category: VendorCategory.court,
+          sectionIndex: pointer.sectionIndex,
+          subsectionIndex: pointer.subsectionIndex,
+          courtId: activeCourtId,
+        ),
+        clearErrorMessage: true,
+      ),
+    );
+    unawaited(_fetchCourtDetailsForEditing(court, forceRefresh: true));
+    _scheduleDraftSave();
+  }
+
+  Future<void> _fetchCourtDetailsForEditing(
+    CourtDraft court, {
+    bool forceRefresh = false,
+  }) async {
     final int? courtId = court.remoteId ?? int.tryParse(court.id);
-    if (courtId == null ||
-        _courtDetailsFetched.contains(courtId) ||
-        _courtDetailsFetching.contains(courtId)) {
+    if (courtId == null || _courtDetailsFetching.contains(courtId)) {
+      return;
+    }
+    if (!forceRefresh && _courtDetailsFetched.contains(courtId)) {
       return;
     }
 
     _courtDetailsFetching.add(courtId);
-    emit(state.copyWith(isLoadingCourts: true, clearErrorMessage: true));
+    emit(
+      state.copyWith(
+        isLoadingCourts: true,
+        isLoadingCourtDetails: true,
+        clearErrorMessage: true,
+      ),
+    );
 
     final Either<AppException, CourtDraft> response =
         await GetVenueCourtUseCase(
@@ -912,6 +936,7 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
         emit(
           state.copyWith(
             isLoadingCourts: false,
+            isLoadingCourtDetails: false,
             errorMessage: failure.errorMessage,
             errorOrigin: VendorErrorOrigin.api,
           ),
@@ -931,11 +956,30 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
 
         final String activeCourtId = details.id;
         final Map<String, SectionPointer> pointers =
-            Map<String, SectionPointer>.from(state.courtPointersById);
-        final SectionPointer pointer =
-            pointers.remove(court.id) ??
-            pointers[activeCourtId] ??
-            const SectionPointer(sectionIndex: 0, subsectionIndex: 0);
+            Map<String, SectionPointer>.from(state.courtPointersById)
+              ..remove(court.id);
+
+        // When onboarding is finished (is_step_completed) the vendor is just
+        // managing the court, so start from the beginning. Otherwise resume at
+        // the section/substep the backend reports they last left off at.
+        final int sectionIndex = details.isStepCompleted
+            ? 0
+            : _clamp(
+                details.mainStep ?? 0,
+                0,
+                courtSectionDefinitions.length - 1,
+              );
+        final int subsectionIndex = details.isStepCompleted
+            ? 0
+            : _clamp(
+                details.subStep ?? 0,
+                0,
+                courtSectionDefinitions[sectionIndex].substeps.length - 1,
+              );
+        final SectionPointer pointer = SectionPointer(
+          sectionIndex: sectionIndex,
+          subsectionIndex: subsectionIndex,
+        );
         pointers[activeCourtId] = pointer;
 
         emit(
@@ -951,6 +995,7 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
                 courtId: activeCourtId,
               ),
               isLoadingCourts: false,
+              isLoadingCourtDetails: false,
               clearErrorMessage: true,
             ),
           ),
@@ -1023,6 +1068,220 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
           ),
         ],
       ),
+    );
+  }
+
+  /// Creates or updates a single slot via `update-court-slot`. A new slot has a
+  /// non-numeric local id, so no `slot_schedule_id` is sent and the backend
+  /// creates it; an existing slot sends its id and is updated. Refreshes the
+  /// list from the server on success. Returns an error message or null.
+  Future<String?> saveCourtSlot(SlotPricingDraft slot) async {
+    final CourtDraft? court = state.activeCourt;
+    final int? courtId = court == null
+        ? null
+        : (court.remoteId ?? int.tryParse(court.id));
+    if (court == null || courtId == null) {
+      const String message = 'Save the court before managing slots.';
+      emit(
+        state.copyWith(
+          errorMessage: message,
+          errorOrigin: VendorErrorOrigin.api,
+        ),
+      );
+      return message;
+    }
+
+    emit(state.copyWith(isSubmitting: true, clearErrorMessage: true));
+    final GetVenueCourtUseCase useCase = GetVenueCourtUseCase(
+      VenueCourtRepositoryImpl(),
+    );
+    final Map<String, dynamic> body = courtSlotBody(slot, courtId: courtId);
+    // A new slot has a non-numeric local id (no backend slot_id) -> create.
+    final bool isNew = int.tryParse(slot.id) == null;
+    final Either<AppException, List<SlotPricingDraft>> response = isNew
+        ? await useCase.createCourtSlot(body)
+        : await useCase.updateCourtSlot(body);
+    // After creating, re-fetch so the new slot carries the authoritative id
+    // from `get-court-slots` (the create response id may not be the one the
+    // pricing/update endpoints expect).
+    return _applySlotMutation(response, courtId, refresh: isNew);
+  }
+
+  /// Updates only the pricing (weekend/holiday/discount/custom date prices) of
+  /// an existing slot via `update-court-slot` (sub-step 2). Refreshes the list
+  /// on success. Returns an error message or null.
+  Future<String?> saveCourtSlotPricing(SlotPricingDraft slot) async {
+    final CourtDraft? court = state.activeCourt;
+    final int? courtId = court == null
+        ? null
+        : (court.remoteId ?? int.tryParse(court.id));
+    if (court == null || courtId == null || int.tryParse(slot.id) == null) {
+      const String message = 'Save the slot before setting prices.';
+      emit(
+        state.copyWith(
+          errorMessage: message,
+          errorOrigin: VendorErrorOrigin.api,
+        ),
+      );
+      return message;
+    }
+
+    emit(state.copyWith(isSubmitting: true, clearErrorMessage: true));
+    final Either<AppException, List<SlotPricingDraft>> response =
+        await GetVenueCourtUseCase(
+          VenueCourtRepositoryImpl(),
+        ).updateCourtSlot(courtSlotPricingBody(slot, courtId: courtId));
+    return _applySlotMutation(response, courtId);
+  }
+
+  /// Deletes a slot via `delete-court-slot`. A slot that was never persisted
+  /// (non-numeric id) is just removed locally. Returns an error message or null.
+  Future<String?> deleteCourtSlot(SlotPricingDraft slot) async {
+    final CourtDraft? court = state.activeCourt;
+    final int? courtId = court == null
+        ? null
+        : (court.remoteId ?? int.tryParse(court.id));
+    final int? scheduleId = int.tryParse(slot.id);
+    if (court == null || courtId == null || scheduleId == null) {
+      removeSlot(slot.id);
+      return null;
+    }
+
+    emit(state.copyWith(isSubmitting: true, clearErrorMessage: true));
+    final Either<AppException, List<SlotPricingDraft>> response =
+        await GetVenueCourtUseCase(VenueCourtRepositoryImpl()).deleteCourtSlot(
+          <String, dynamic>{
+            'court_id': courtId,
+            'main_step': 3,
+            'sub_step': 1,
+            'slot_id': scheduleId,
+          },
+        );
+    return _applySlotMutation(response, courtId, removedSlotId: slot.id);
+  }
+
+  /// Shared handling for slot mutations. On success: a delete removes the slot
+  /// by id; a create/update upserts the returned slot(s) (including their
+  /// pricing) into the list by id so a single-slot response updates in place
+  /// without wiping the rest. Falls back to a full re-fetch only when the
+  /// response carries no slots.
+  Future<String?> _applySlotMutation(
+    Either<AppException, List<SlotPricingDraft>> response,
+    int courtId, {
+    String? removedSlotId,
+    bool refresh = false,
+  }) async {
+    if (isClosed) return null;
+    String? errorMessage;
+    List<SlotPricingDraft> slots = const <SlotPricingDraft>[];
+    response.fold(
+      (AppException failure) => errorMessage = failure.errorMessage,
+      (List<SlotPricingDraft> value) => slots = value,
+    );
+
+    if (errorMessage != null) {
+      emit(
+        state.copyWith(
+          isSubmitting: false,
+          errorMessage: errorMessage,
+          errorOrigin: VendorErrorOrigin.api,
+        ),
+      );
+      return errorMessage;
+    }
+
+    emit(state.copyWith(isSubmitting: false, clearErrorMessage: true));
+    final CourtDraft? current = state.activeCourt;
+    if (current == null) return null;
+    _courtSlotsFetched.add(courtId);
+
+    if (removedSlotId != null) {
+      updateActiveCourt(
+        current.copyWith(
+          slotConfigs: current.slotConfigs
+              .where((SlotPricingDraft item) => item.id != removedSlotId)
+              .toList(),
+        ),
+      );
+      return null;
+    }
+
+    if (!refresh && slots.isNotEmpty) {
+      updateActiveCourt(
+        current.copyWith(slotConfigs: _upsertSlots(current.slotConfigs, slots)),
+      );
+    } else {
+      await fetchActiveCourtSlots(force: true);
+    }
+    return null;
+  }
+
+  /// Merges [updates] into [existing] by slot id: replaces a matching slot in
+  /// place, otherwise appends (a newly created slot).
+  List<SlotPricingDraft> _upsertSlots(
+    List<SlotPricingDraft> existing,
+    List<SlotPricingDraft> updates,
+  ) {
+    final List<SlotPricingDraft> result = List<SlotPricingDraft>.of(existing);
+    for (final SlotPricingDraft update in updates) {
+      final int index = result.indexWhere(
+        (SlotPricingDraft item) => item.id == update.id,
+      );
+      if (index >= 0) {
+        result[index] = update;
+      } else {
+        result.add(update);
+      }
+    }
+    return result;
+  }
+
+  final Set<int> _courtSlotsFetched = <int>{};
+  final Set<int> _courtSlotsFetching = <int>{};
+
+  /// Loads slots for the active court from `get-court-slots` and replaces the
+  /// local slot list. Guarded so it only runs once per court unless [force] is
+  /// set (e.g. refresh after a save or delete).
+  Future<void> fetchActiveCourtSlots({bool force = false}) async {
+    final CourtDraft? court = state.activeCourt;
+    if (court == null) return;
+    final int? courtId = court.remoteId ?? int.tryParse(court.id);
+    if (courtId == null) return;
+    if (!force &&
+        (_courtSlotsFetched.contains(courtId) ||
+            _courtSlotsFetching.contains(courtId))) {
+      return;
+    }
+
+    _courtSlotsFetching.add(courtId);
+    emit(state.copyWith(isLoadingCourts: true, clearErrorMessage: true));
+
+    final Either<AppException, List<SlotPricingDraft>> response =
+        await GetVenueCourtUseCase(
+          VenueCourtRepositoryImpl(),
+        ).getCourtSlots(courtId);
+
+    _courtSlotsFetching.remove(courtId);
+    if (isClosed) return;
+
+    response.fold(
+      (AppException failure) {
+        emit(
+          state.copyWith(
+            isLoadingCourts: false,
+            errorMessage: failure.errorMessage,
+            errorOrigin: VendorErrorOrigin.api,
+          ),
+        );
+      },
+      (List<SlotPricingDraft> slots) {
+        _courtSlotsFetched.add(courtId);
+        final CourtDraft? current = state.activeCourt;
+        if (current != null) {
+          updateActiveCourt(current.copyWith(slotConfigs: slots));
+        }
+        emit(state.copyWith(isLoadingCourts: false, clearErrorMessage: true));
+      },
     );
   }
 
@@ -1304,21 +1563,6 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     );
   }
 
-  void replaceCompanyDocument(UploadRef oldFile, UploadRef newFile) {
-    if (oldFile.verificationStatus != UploadVerificationStatus.rejected) {
-      return;
-    }
-    final List<UploadRef> updated = state.futsal.companyDocuments
-        .map((UploadRef item) {
-          final bool matches =
-              item.remoteUrl == oldFile.remoteUrl &&
-              (oldFile.id == null || item.id == oldFile.id);
-          return matches ? newFile : item;
-        })
-        .toList(growable: false);
-    updateFutsal(state.futsal.copyWith(companyDocuments: updated));
-  }
-
   void removeCourtPaymentQr() {
     final CourtDraft? court = state.activeCourt;
     if (court == null) return;
@@ -1443,7 +1687,6 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
 
   Future<void> resetOnboarding() async {
     _saveDebounce?.cancel();
-    _revision = 0;
     _courtsFetchedForVenueId = null;
     await _draftRepository.clear();
     emit(_clearedState());
@@ -1451,7 +1694,6 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
 
   void clearOnboardingState() {
     _saveDebounce?.cancel();
-    _revision = 0;
     _courtsFetchedForVenueId = null;
     emit(_clearedState());
   }
@@ -1588,15 +1830,12 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
   }
 
   void _emitUpdated(VendorOnboardingState nextState) {
-    _revision++;
     emit(
       _normalizeState(
         nextState.copyWith(
           isDirty: true,
           isCompleted: false,
-          saveStatus: _draftRepository.persistsLocally
-              ? DraftSaveStatus.idle
-              : DraftSaveStatus.unsaved,
+          saveStatus: DraftSaveStatus.unsaved,
           clearErrorMessage: true,
           errorKeys: _pruneActiveErrorKeys(nextState.errorKeys),
         ),
@@ -1853,45 +2092,13 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
   }
 
   Future<void> _saveDraft({required bool showSavingState}) async {
-    if (!_draftRepository.persistsLocally) return;
-    if (state.isRestoringDraft) return;
-
-    final int snapshotRevision = _revision;
-    final VendorOnboardingState snapshot = state;
-
     if (showSavingState) {
-      emit(snapshot.copyWith(saveStatus: DraftSaveStatus.saving));
-    }
-
-    try {
-      await _draftRepository.save(snapshot);
-      if (_revision == snapshotRevision) {
-        emit(
-          state.copyWith(
-            saveStatus: DraftSaveStatus.saved,
-            lastSavedAt: DateTime.now(),
-            isDirty: false,
-          ),
-        );
-      }
-    } catch (_) {
-      emit(
-        state.copyWith(
-          saveStatus: DraftSaveStatus.failure,
-          errorMessage: 'Draft save failed. Try again.',
-          errorOrigin: VendorErrorOrigin.local,
-        ),
-      );
+      emit(state.copyWith(saveStatus: DraftSaveStatus.unsaved));
     }
   }
 
   void _scheduleDraftSave() {
-    if (!_draftRepository.persistsLocally) return;
     _saveDebounce?.cancel();
-    _saveDebounce = Timer(
-      const Duration(milliseconds: 700),
-      () => unawaited(_saveDraft(showSavingState: false)),
-    );
   }
 
   VendorOnboardingState _normalizeState(VendorOnboardingState input) {
@@ -2000,15 +2207,15 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
   VendorOnboardingState _clearedState() {
     return VendorOnboardingState.initial().copyWith(
       isRestoringDraft: false,
-      saveStatus: _draftRepository.persistsLocally
-          ? DraftSaveStatus.idle
-          : DraftSaveStatus.unsaved,
+      saveStatus: DraftSaveStatus.unsaved,
     );
   }
 
   CourtDraft? _courtById(String courtId) {
     for (final CourtDraft court in state.courts) {
-      if (court.id == courtId) return court;
+      if (court.id == courtId || court.remoteId?.toString() == courtId) {
+        return court;
+      }
     }
     return null;
   }

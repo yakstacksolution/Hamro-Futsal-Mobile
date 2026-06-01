@@ -54,8 +54,8 @@ final class VendorOnboardingRemoteDataSourceImpl
 
   @override
   Future<Result> deleteCourt(int courtId) async {
-    return await Client.instance()
-        .getAuthManager()
-        .deleteVendorOnboardingCourt(courtId);
+    return await Client.instance().getAuthManager().deleteVendorOnboardingCourt(
+      courtId,
+    );
   }
 }

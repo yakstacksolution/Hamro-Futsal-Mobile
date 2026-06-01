@@ -4,6 +4,7 @@ import 'package:hamro_footsall/features/public/data/model/public_package_model.d
 import 'package:hamro_footsall/features/public/data/model/public_option_model.dart';
 import 'package:hamro_footsall/features/public/data/model/public_service_model.dart';
 import 'package:hamro_footsall/features/public/data/model/public_template_model.dart';
+import 'package:hamro_footsall/features/public/data/model/public_venue_model.dart';
 
 abstract class PublicRepository {
   Future<Either<AppException, List<PublicServiceModel>>> getServices();
@@ -13,4 +14,8 @@ abstract class PublicRepository {
   Future<Either<AppException, List<PublicOptionModel>>> getAmenities();
   Future<Either<AppException, List<PublicOptionModel>>> getFacilities();
   Future<Either<AppException, List<PublicTemplateModel>>> getTemplates();
+  Future<Either<AppException, PublicVenuePage>> getVenueList({
+    int page,
+    int perPage,
+  });
 }

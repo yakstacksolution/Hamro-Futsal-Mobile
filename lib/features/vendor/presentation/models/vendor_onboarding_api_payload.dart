@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart';
+import 'package:hamro_footsall/core/widgets/custom_time_field.dart';
 import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_state.dart';
 import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_drafts.dart';
 
@@ -231,9 +233,19 @@ Map<String, dynamic> _courtSubstepBody(
             'closed_dates': _closedDateBodies(court.closedDates),
           };
         case 1:
-          return <String, dynamic>{'slots': _slotBodies(court.slotConfigs)};
+          return <String, dynamic>{
+            'slot_schedules': _slotBodies(
+              court.slotConfigs,
+              includeScheduleId: true,
+            ),
+          };
         case 2:
-          return <String, dynamic>{'slots': _slotBodies(court.slotConfigs)};
+          return <String, dynamic>{
+            'slot_schedules': _slotBodies(
+              court.slotConfigs,
+              includeScheduleId: true,
+            ),
+          };
       }
   }
 
@@ -259,7 +271,7 @@ Map<String, dynamic> _fullCourtBody(CourtDraft court) {
     'weekend_days': court.weekendDays.toList(),
     'holiday_dates': court.holidayDates.toList(),
     'closed_dates': _closedDateBodies(court.closedDates),
-    'slots': _slotBodies(court.slotConfigs),
+    'slot_schedules': _slotBodies(court.slotConfigs),
   };
 }
 
@@ -278,27 +290,112 @@ int? _matchFormatId(CourtDraft court) {
   return court.matchFormatId ?? int.tryParse(court.matchFormat?.trim() ?? '');
 }
 
+/// Body for the single-slot create/update endpoint
+/// (`update-court-slot`). Sends `slot_schedule_id` only when the slot already
+/// exists on the backend (a numeric id), so a new slot is created instead.
+Map<String, dynamic> courtSlotBody(
+  SlotPricingDraft slot, {
+  required int courtId,
+}) {
+  final int? scheduleId = int.tryParse(slot.id);
+  return <String, dynamic>{
+    'court_id': courtId,
+    // Slots live in the "Slots & Payments" section (index 3) under the
+    // "Slot Schedule" sub-step (index 1); the backend validates these.
+    'main_step': 3,
+    'sub_step': 1,
+    if (scheduleId != null) 'slot_id': scheduleId,
+    'label': slot.label.trim(),
+    'days': slot.days.map((String day) => day.toLowerCase()).toList(),
+    'start_time': _toApiTime(slot.startTime),
+    'end_time': _toApiTime(slot.endTime),
+  };
+}
+
+/// Body for updating only the pricing of an existing slot (sub-step 2). Sends
+/// the slot id plus weekend/holiday/discount prices and any custom date prices.
+Map<String, dynamic> courtSlotPricingBody(
+  SlotPricingDraft slot, {
+  required int courtId,
+}) {
+  final int? scheduleId = int.tryParse(slot.id);
+  final bool hasDiscount =
+      slot.discountPrice != null && slot.discountPrice! > 0;
+  return <String, dynamic>{
+    'court_id': courtId,
+    'main_step': 3,
+    'sub_step': 2,
+    if (scheduleId != null) 'slot_id': scheduleId,
+    'price': slot.price,
+    'weekend_price': slot.weekendPrice,
+    'holiday_price': slot.holidayPrice,
+    // Only send discount fields when a discount is actually set; the backend
+    // rejects a discount_type with no discount.
+    if (hasDiscount) 'discount_type': _discountTypeApiValue(slot.discountType),
+    if (hasDiscount) 'discount_price': slot.discountPrice,
+    'payment_percent': slot.paymentPercent,
+    'custom_date_prices': slot.customDatePrices
+        .map(
+          (SlotCustomDatePriceDraft item) => <String, dynamic>{
+            'date': item.date,
+            'price': item.price,
+          },
+        )
+        .toList(),
+  };
+}
+
+/// Maps the draft discount type (`Flat`/`Percent`) to the backend value
+/// (`flat` / `percentage`).
+String _discountTypeApiValue(String discountType) {
+  return discountType.trim().toLowerCase() == 'percent'
+      ? 'percentage'
+      : 'flat';
+}
+
+/// Converts a stored time string (12-hour display, e.g. `06 : 00 AM`) into the
+/// 24-hour `H:i` format the backend expects (e.g. `06:00`). Returns null when
+/// the value is empty or unparseable so the field is omitted/cleared.
+String? _toApiTime(String value) {
+  final TimeOfDay? time = timeOfDayFromString(value);
+  if (time == null) return null;
+  final String hour = time.hour.toString().padLeft(2, '0');
+  final String minute = time.minute.toString().padLeft(2, '0');
+  return '$hour:$minute';
+}
+
 List<Map<String, dynamic>> _closedDateBodies(List<ClosedDateDraft> dates) {
   return dates
       .map(
         (ClosedDateDraft item) => <String, dynamic>{
           'date': item.date,
-          'is_full_day': item.isFullDay,
-          'start_time': item.startTime,
-          'end_time': item.endTime,
+          'closure_type': item.isFullDay ? 'full_day' : 'hourly',
+          'start_time': item.isFullDay ? null : _toApiTime(item.startTime),
+          'end_time': item.isFullDay ? null : _toApiTime(item.endTime),
         },
       )
       .toList();
 }
 
-List<Map<String, dynamic>> _slotBodies(List<SlotPricingDraft> slots) {
+List<Map<String, dynamic>> _slotBodies(
+  List<SlotPricingDraft> slots, {
+  bool includeScheduleId = false,
+}) {
   return slots
       .map(
         (SlotPricingDraft item) => <String, dynamic>{
+          // Only existing slots carry a backend integer id. New slots created
+          // locally have a non-numeric id, so the key is omitted and the
+          // backend creates them; once saved, the id flows back into state and
+          // subsequent submits update instead of recreating.
+          if (includeScheduleId && int.tryParse(item.id) != null)
+            'slot_schedule_id': int.parse(item.id),
           'label': item.label.trim(),
-          'days': item.days.toList(),
-          'start_time': item.startTime,
-          'end_time': item.endTime,
+          'days': item.days
+              .map((String day) => day.toLowerCase())
+              .toList(),
+          'start_time': _toApiTime(item.startTime),
+          'end_time': _toApiTime(item.endTime),
           'price': item.price,
           'weekend_price': item.weekendPrice,
           'holiday_price': item.holidayPrice,

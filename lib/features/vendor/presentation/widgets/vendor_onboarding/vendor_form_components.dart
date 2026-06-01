@@ -890,7 +890,7 @@ class VendorUploadItem extends StatelessWidget {
             if (_isRejected)
               const _RejectionCallout(
                 message:
-                    'This document was rejected. Please replace it with a clearer or correct file.',
+                    'This document was rejected. Please remove it and add a new, corrected document.',
               ),
           ],
         ),
@@ -1014,7 +1014,7 @@ class VendorUploadItem extends StatelessWidget {
             const SizedBox(height: AppDimens.sizeX10),
             const _RejectionCallout(
               message:
-                  'This document was rejected. Please replace it with a clearer or correct file.',
+                  'This document was rejected. Please remove it and add a new, corrected document.',
             ),
           ],
         ],

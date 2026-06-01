@@ -622,6 +622,7 @@ class CourtDraft {
     this.venueId,
     this.mainStep,
     this.subStep,
+    this.isStepCompleted = false,
     this.category,
     this.slug,
     this.code,
@@ -649,7 +650,7 @@ class CourtDraft {
     this.facilityDetails = const <CourtTagDetail>[],
     this.photos = const <UploadRef>[],
     this.memories = const <UploadRef>[],
-    this.weekendDays = const <String>{'Saturday'},
+    this.weekendDays = const <String>{'sat'},
     this.holidayDates = const <String>{},
     this.closedDates = const <ClosedDateDraft>[],
     this.slotConfigs = const <SlotPricingDraft>[],
@@ -666,6 +667,7 @@ class CourtDraft {
   final int? venueId;
   final int? mainStep;
   final int? subStep;
+  final bool isStepCompleted;
   final int? category;
   final String? slug;
   final String? code;
@@ -720,6 +722,7 @@ class CourtDraft {
     int? venueId,
     int? mainStep,
     int? subStep,
+    bool? isStepCompleted,
     int? category,
     String? slug,
     String? code,
@@ -785,6 +788,7 @@ class CourtDraft {
       venueId: clearVenueId ? null : venueId ?? this.venueId,
       mainStep: clearMainStep ? null : mainStep ?? this.mainStep,
       subStep: clearSubStep ? null : subStep ?? this.subStep,
+      isStepCompleted: isStepCompleted ?? this.isStepCompleted,
       category: clearCategory ? null : category ?? this.category,
       slug: clearSlug ? null : slug ?? this.slug,
       code: clearCode ? null : code ?? this.code,
@@ -845,6 +849,7 @@ class CourtDraft {
       'venueId': venueId,
       'mainStep': mainStep,
       'subStep': subStep,
+      'isStepCompleted': isStepCompleted,
       'category': category,
       'slug': slug,
       'code': code,
@@ -904,6 +909,10 @@ class CourtDraft {
       venueId: _asInt(json['venueId'] ?? json['venue_id']),
       mainStep: _asInt(json['mainStep'] ?? json['main_step']),
       subStep: _asInt(json['subStep'] ?? json['sub_step']),
+      isStepCompleted:
+          json['isStepCompleted'] as bool? ??
+          json['is_step_completed'] as bool? ??
+          false,
       category: _asInt(json['category']),
       slug: json['slug'] as String?,
       code: json['code'] as String?,
@@ -957,7 +966,7 @@ class CourtDraft {
       photos: _uploadsFromJson(json['photos']),
       memories: _uploadsFromJson(json['memories']),
       weekendDays: restoredWeekendDays.isEmpty
-          ? const <String>{'Saturday'}
+          ? const <String>{'sat'}
           : restoredWeekendDays,
       holidayDates: _stringSetFromJson(json['holidayDates']),
       closedDates: _closedDatesFromJson(json['closedDates']),

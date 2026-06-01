@@ -58,21 +58,6 @@ class FutsalBusinessSection extends StatelessWidget {
     cubit.addCompanyDocuments(picked);
   }
 
-  Future<void> _replaceCompanyDocument(
-    BuildContext context,
-    UploadRef rejected,
-  ) async {
-    final List<UploadRef>? picked = await showVendorMediaLibrarySheet(
-      context: context,
-      cubit: cubit,
-      allowedExtensions: const <String>['pdf', 'jpg', 'jpeg', 'png'],
-      allowMultiple: false,
-      initiallySelected: const <UploadRef>[],
-    );
-    if (picked == null || picked.isEmpty) return;
-    cubit.replaceCompanyDocument(rejected, picked.first);
-  }
-
   @override
   Widget build(BuildContext context) {
     final _BusinessSectionMeta meta = _sectionMeta(subsectionIndex);
@@ -116,14 +101,13 @@ class FutsalBusinessSection extends StatelessWidget {
           if (subsectionIndex == 2)
             VendorUploadSection(
               title: 'Company documents',
-              subtitle: 'Registration, PAN, license, or supporting documents.',
+              subtitle:
+                  'Add registration, PAN, license, or supporting documents. ',
               onPick: () => unawaited(_openDocumentLibrary(context)),
-              actionLabel: 'Library',
+              actionLabel: 'Add',
               actionIcon: Icons.folder_copy_rounded,
               files: draft.companyDocuments,
               onRemove: cubit.removeCompanyDocument,
-              onReplace: (UploadRef file) =>
-                  unawaited(_replaceCompanyDocument(context, file)),
             ),
         ],
       ),

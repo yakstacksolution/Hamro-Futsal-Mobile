@@ -105,6 +105,10 @@ class AuthManager extends ServiceManager {
     return await _apiClient.getFacilities();
   }
 
+  Future<Result> getPublicVenueList({int page = 1, int perPage = 10}) async {
+    return await _apiClient.getPublicVenueList(page: page, perPage: perPage);
+  }
+
   Future<Result> getVenueCourt() async {
     return await _apiClient.getVenueCourt();
   }
@@ -115,6 +119,28 @@ class AuthManager extends ServiceManager {
 
   Future<Result> getCourtDetails(int courtId) async {
     return await _apiClient.getCourtDetails(courtId: courtId);
+  }
+
+  Future<Result> getCourtSlots(int courtId) async {
+    return await _apiClient.getCourtSlots(courtId: courtId);
+  }
+
+  Future<Result> createCourtSlot(data) async {
+    return await _apiClient.createCourtSlot(
+      data: Map<String, dynamic>.from(data as Map),
+    );
+  }
+
+  Future<Result> updateCourtSlot(data) async {
+    return await _apiClient.updateCourtSlot(
+      data: Map<String, dynamic>.from(data as Map),
+    );
+  }
+
+  Future<Result> deleteCourtSlot(data) async {
+    return await _apiClient.deleteCourtSlot(
+      data: Map<String, dynamic>.from(data as Map),
+    );
   }
 
   Future<Result> getPublicTemplates() async {
@@ -151,6 +177,12 @@ class AuthManager extends ServiceManager {
 
   Future<Result> deleteVendorOnboardingCourt(int courtId) async {
     return await _apiClient.deleteVendorOnboardingCourt(courtId: courtId);
+  }
+
+  Future<Result> deleteVendorCourt(data) async {
+    return await _apiClient.deleteVendorCourt(
+      data: Map<String, dynamic>.from(data as Map),
+    );
   }
 
   Future<Result> getMyBookings() async {

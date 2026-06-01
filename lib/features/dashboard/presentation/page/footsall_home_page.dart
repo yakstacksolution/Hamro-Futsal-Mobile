@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hamro_footsall/core/routers/app_router_params.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
@@ -9,6 +10,10 @@ import 'dart:ui';
 import 'package:hamro_footsall/core/utils/custom_image_view.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/utils/image_constants.dart';
+import 'package:hamro_footsall/features/public/data/model/public_venue_model.dart';
+import 'package:hamro_footsall/features/public/data/repositories/public_repository_impl.dart';
+import 'package:hamro_footsall/features/public/domain/usecase/get_public_venues_use_case.dart';
+import 'package:hamro_footsall/features/public/presentation/bloc/public_venue/public_venue_bloc.dart';
 
 class FootsallHomePage extends StatelessWidget {
   const FootsallHomePage({super.key});
@@ -30,57 +35,8 @@ class _CourtsListScreenState extends State<CourtsListScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _animController;
   late Animation<double> _fadeIn;
-
-  final List<CourtModel> courts = [
-    CourtModel(
-      name: 'Goal Arena Futsal',
-      location: 'Baneshwor, Kathmandu',
-      price: 'Rs. 1,800',
-      rating: 4.8,
-      reviewCount: 128,
-      image:
-          'https://images.unsplash.com/photo-1517466787929-bc90951d0974?auto=format&fit=crop&w=1200&q=80',
-      isOpen: true,
-      distance: '1.2 km',
-      features: ['Indoor', 'Parking', 'Lights'],
-    ),
-    CourtModel(
-      name: 'Urban Kick Center',
-      location: 'Lalitpur, Jawalakhel',
-      price: 'Rs. 2,000',
-      rating: 4.6,
-      reviewCount: 94,
-      image:
-          'https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=1200&q=80',
-      isOpen: true,
-      distance: '2.8 km',
-      features: ['Turf', 'Shower', 'Cafe'],
-    ),
-    CourtModel(
-      name: 'Champion 5A Side',
-      location: 'Koteshwor, Kathmandu',
-      price: 'Rs. 1,500',
-      rating: 4.5,
-      reviewCount: 76,
-      image:
-          'https://images.unsplash.com/photo-1486286701208-1d58e9338013?auto=format&fit=crop&w=1200&q=80',
-      isOpen: false,
-      distance: '3.5 km',
-      features: ['Outdoor', 'Training', 'Parking'],
-    ),
-    CourtModel(
-      name: 'Royal Futsal Hub',
-      location: 'Bhaktapur',
-      price: 'Rs. 1,700',
-      rating: 4.7,
-      reviewCount: 111,
-      image:
-          'https://images.unsplash.com/photo-1552667466-07770ae110d0?auto=format&fit=crop&w=1200&q=80',
-      isOpen: true,
-      distance: '5.1 km',
-      features: ['Indoor', 'Cafe', 'Events'],
-    ),
-  ];
+  late final PublicVenueBloc _publicVenueBloc;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
@@ -91,50 +47,81 @@ class _CourtsListScreenState extends State<CourtsListScreen>
     );
     _fadeIn = CurvedAnimation(parent: _animController, curve: Curves.easeOut);
     _animController.forward();
+
+    _publicVenueBloc = PublicVenueBloc(
+      GetPublicVenuesUseCase(PublicRepositoryImpl()),
+    )..add(const FetchPublicVenuesEvent());
+    _scrollController.addListener(_onScroll);
   }
 
   @override
   void dispose() {
+    _scrollController
+      ..removeListener(_onScroll)
+      ..dispose();
+    _publicVenueBloc.close();
     _animController.dispose();
     super.dispose();
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final double maxScroll = _scrollController.position.maxScrollExtent;
+    final double currentScroll = _scrollController.position.pixels;
+    // Start loading the next page slightly before the user hits the bottom.
+    if (currentScroll >= maxScroll - 300) {
+      _publicVenueBloc.add(const LoadMorePublicVenuesEvent());
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.dark);
-    return Padding(
-      padding: AppUtils().getPadding(
-        left: AppDimens.paddingX20,
-        right: AppDimens.paddingX20,
-      ),
-      child: FadeTransition(
-        opacity: _fadeIn,
-        child: CustomScrollView(
-          physics: const BouncingScrollPhysics(),
-          slivers: [
-            SliverToBoxAdapter(child: SizedBox(height: AppDimens.sizeX8)),
-            SliverPadding(
-              padding: AppUtils().getPadding(bottom: AppDimens.sizeX120),
-              sliver: SliverList.builder(
-                itemCount: courts.length,
-                itemBuilder: (context, index) {
-                  return TweenAnimationBuilder<double>(
-                    tween: Tween(begin: 0, end: 1),
-                    duration: Duration(milliseconds: 500 + index * 120),
-                    curve: Curves.easeOutCubic,
-                    builder: (context, value, child) => Transform.translate(
-                      offset: Offset(0, 30 * (1 - value)),
-                      child: Opacity(opacity: value, child: child),
+    return BlocProvider<PublicVenueBloc>.value(
+      value: _publicVenueBloc,
+      child: Padding(
+        padding: AppUtils().getPadding(
+          left: AppDimens.paddingX20,
+          right: AppDimens.paddingX20,
+        ),
+        child: FadeTransition(
+          opacity: _fadeIn,
+          child: BlocBuilder<PublicVenueBloc, PublicVenueState>(
+            builder: (BuildContext context, PublicVenueState state) {
+              final List<PublicVenueModel> courts = state.venues;
+              return CustomScrollView(
+                controller: _scrollController,
+                physics: const BouncingScrollPhysics(),
+                slivers: [
+                  SliverToBoxAdapter(child: SizedBox(height: AppDimens.sizeX8)),
+                  SliverPadding(
+                    padding: AppUtils().getPadding(bottom: AppDimens.sizeX120),
+                    sliver: SliverList.builder(
+                      itemCount: courts.length,
+                      itemBuilder: (context, index) {
+                        return TweenAnimationBuilder<double>(
+                          tween: Tween(begin: 0, end: 1),
+                          duration: Duration(milliseconds: 500 + index * 120),
+                          curve: Curves.easeOutCubic,
+                          builder: (context, value, child) =>
+                              Transform.translate(
+                                offset: Offset(0, 30 * (1 - value)),
+                                child: Opacity(opacity: value, child: child),
+                              ),
+                          child: Padding(
+                            padding: AppUtils().getPadding(
+                              bottom: AppDimens.sizeX20,
+                            ),
+                            child: CourtCard(court: courts[index]),
+                          ),
+                        );
+                      },
                     ),
-                    child: Padding(
-                      padding: AppUtils().getPadding(bottom: AppDimens.sizeX20),
-                      child: CourtCard(court: courts[index]),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
+                  ),
+                ],
+              );
+            },
+          ),
         ),
       ),
     );
@@ -142,7 +129,7 @@ class _CourtsListScreenState extends State<CourtsListScreen>
 }
 
 class CourtCard extends StatefulWidget {
-  final CourtModel court;
+  final PublicVenueModel court;
   const CourtCard({super.key, required this.court});
 
   @override
@@ -164,9 +151,10 @@ class _CourtCardState extends State<CourtCard> {
           borderRadius: BorderRadius.circular(AppDimens.radiusX18),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
-              blurRadius: AppDimens.radiusX24,
-              offset: const Offset(0, 8),
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: AppDimens.sizeX8,
+              spreadRadius: 0.5,
+              offset: const Offset(0, 1),
             ),
           ],
         ),
@@ -271,7 +259,9 @@ class _CourtCardState extends State<CourtCard> {
                         width: AppDimens.sizeX3,
                         height: AppDimens.sizeX3,
                         decoration: BoxDecoration(
-                          color: LightColor.secondaryTextColor.withValues(alpha: 0.4),
+                          color: LightColor.secondaryTextColor.withValues(
+                            alpha: 0.4,
+                          ),
                           shape: BoxShape.circle,
                         ),
                       ),
@@ -429,31 +419,4 @@ class _StatusPill extends StatelessWidget {
       ),
     );
   }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Court Model
-// ─────────────────────────────────────────────────────────────────────────────
-class CourtModel {
-  final String name;
-  final String location;
-  final String price;
-  final double rating;
-  final int reviewCount;
-  final String image;
-  final bool isOpen;
-  final String distance;
-  final List<String> features;
-
-  CourtModel({
-    required this.name,
-    required this.location,
-    required this.price,
-    required this.rating,
-    required this.reviewCount,
-    required this.image,
-    required this.isOpen,
-    required this.distance,
-    required this.features,
-  });
 }

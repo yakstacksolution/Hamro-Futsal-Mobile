@@ -9,6 +9,7 @@ abstract class PublicRemoteDataSource {
   Future<Result> getAmenities();
   Future<Result> getFacilities();
   Future<Result> getTemplates();
+  Future<Result> getVenueList({int page, int perPage});
 }
 
 final class PublicRemoteDataSourceImpl extends PublicRemoteDataSource {
@@ -39,4 +40,11 @@ final class PublicRemoteDataSourceImpl extends PublicRemoteDataSource {
   @override
   Future<Result> getTemplates() async =>
       await Client.instance().getAuthManager().getPublicTemplates();
+
+  @override
+  Future<Result> getVenueList({int page = 1, int perPage = 10}) async =>
+      await Client.instance().getAuthManager().getPublicVenueList(
+        page: page,
+        perPage: perPage,
+      );
 }

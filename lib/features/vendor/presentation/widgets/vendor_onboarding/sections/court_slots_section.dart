@@ -4,8 +4,8 @@ import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/widgets/custom_button.dart';
-import 'package:hamro_footsall/core/widgets/custom_delete_dialog.dart';
 import 'package:hamro_footsall/core/widgets/custom_time_field.dart';
+import 'package:hamro_footsall/core/widgets/loading_widget.dart';
 import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_cubit.dart';
 import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_models.dart';
 import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/vendor_form_components.dart';
@@ -65,14 +65,67 @@ class CourtSlotsSection extends StatelessWidget {
   }
 }
 
-class _SlotScheduleView extends StatelessWidget {
+class _SlotScheduleView extends StatefulWidget {
   const _SlotScheduleView({required this.cubit, required this.court});
 
   final VendorOnboardingCubit cubit;
   final CourtDraft court;
 
   @override
+  State<_SlotScheduleView> createState() => _SlotScheduleViewState();
+}
+
+class _SlotScheduleViewState extends State<_SlotScheduleView> {
+  String? _selectedSlotId;
+  bool _loadingSlots = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Load the latest slots for this court once the view is mounted.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadSlots());
+  }
+
+  Future<void> _loadSlots() async {
+    if (!mounted) return;
+    setState(() => _loadingSlots = true);
+    await widget.cubit.fetchActiveCourtSlots();
+    if (mounted) setState(() => _loadingSlots = false);
+  }
+
+  Future<void> _openSlotSheet({SlotPricingDraft? existing}) async {
+    FocusScope.of(context).unfocus();
+    await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext _) =>
+          _SlotFormSheet(cubit: widget.cubit, slot: existing),
+    );
+  }
+
+  Future<void> _confirmDelete(SlotPricingDraft slot) async {
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext _) => _SlotDeleteDialog(
+        onConfirm: () => widget.cubit.deleteCourtSlot(slot),
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final List<SlotPricingDraft> slots = widget.court.slotConfigs;
+    final bool hasSelection =
+        _selectedSlotId != null &&
+        slots.any((SlotPricingDraft slot) => slot.id == _selectedSlotId);
+    final List<SlotPricingDraft> filtered = hasSelection
+        ? slots
+              .where((SlotPricingDraft slot) => slot.id == _selectedSlotId)
+              .toList()
+        : slots;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
@@ -89,34 +142,868 @@ class _SlotScheduleView extends StatelessWidget {
               verticalPadding: AppDimens.paddingX2,
               backgroundColor: LightColor.secondaryColor,
               foregroundColor: LightColor.whiteColor,
-              onPressed: cubit.addSlotToActiveCourt,
+              onPressed: () => _openSlotSheet(),
             ),
           ),
         ),
         const SizedBox(height: AppDimens.sizeX12),
-        if (court.slotConfigs.isEmpty)
+        if (_loadingSlots && slots.isEmpty)
+          const _SlotsLoadingIndicator()
+        else if (slots.isEmpty)
           const _EmptySlotsCard()
-        else
+        else ...<Widget>[
+          _SlotFilterDropdown(
+            slots: slots,
+            selectedId: hasSelection ? _selectedSlotId : null,
+            onChanged: (String? id) => setState(() => _selectedSlotId = id),
+          ),
+          const SizedBox(height: AppDimens.sizeX12),
           Column(
-            children: court.slotConfigs
+            children: filtered
                 .map(
                   (SlotPricingDraft slot) => Padding(
                     padding: AppUtils().getPadding(
                       bottom: AppDimens.paddingX12,
                     ),
-                    child: _ScheduleSlotCard(
+                    child: _SlotListTile(
                       key: ValueKey<String>(slot.id),
                       slot: slot,
-                      onChanged: (SlotPricingDraft nextSlot) =>
-                          cubit.updateSlot(slot.id, nextSlot),
-                      onToggleDay: (String day) =>
-                          cubit.toggleSlotDay(slot.id, day),
-                      onRemove: () => cubit.removeSlot(slot.id),
+                      onEdit: () => _openSlotSheet(existing: slot),
+                      onDelete: () => _confirmDelete(slot),
                     ),
                   ),
                 )
                 .toList(),
           ),
+        ],
+      ],
+    );
+  }
+}
+
+/// Inline loading indicator shown while the slot list is being fetched.
+class _SlotsLoadingIndicator extends StatelessWidget {
+  const _SlotsLoadingIndicator();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: AppUtils().getPadding(vertical: AppDimens.paddingX24),
+      alignment: Alignment.center,
+      child: const CustomLoading(
+        color: LightColor.secondaryColor,
+        size: 28,
+        strokeWidth: 3,
+        secondCircleColor: LightColor.secondaryLight,
+        thirdCircleColor: LightColor.secondaryLight,
+      ),
+    );
+  }
+}
+
+/// Delete-confirmation dialog whose action button shows a loading state while
+/// the slot is being deleted, and only closes once the backend confirms.
+class _SlotDeleteDialog extends StatefulWidget {
+  const _SlotDeleteDialog({required this.onConfirm});
+
+  final Future<String?> Function() onConfirm;
+
+  @override
+  State<_SlotDeleteDialog> createState() => _SlotDeleteDialogState();
+}
+
+class _SlotDeleteDialogState extends State<_SlotDeleteDialog> {
+  bool _isDeleting = false;
+  String? _error;
+
+  Future<void> _delete() async {
+    if (_isDeleting) return;
+    setState(() {
+      _isDeleting = true;
+      _error = null;
+    });
+    final String? error = await widget.onConfirm();
+    if (!mounted) return;
+    if (error != null) {
+      setState(() {
+        _isDeleting = false;
+        _error = error;
+      });
+      return;
+    }
+    Navigator.of(context).pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    return AlertDialog(
+      backgroundColor: LightColor.cardColor,
+      surfaceTintColor: LightColor.cardColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppDimens.radiusX12),
+      ),
+      title: Text(
+        'Delete Slot',
+        style: textTheme.bodyTextLarge?.copyWith(
+          color: LightColor.primaryTextColor,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            'Are you sure you want to delete this slot? This action cannot be undone.',
+            style: textTheme.bodyTextSmall?.copyWith(
+              color: LightColor.secondaryTextColor,
+              height: 1.5,
+            ),
+          ),
+          if (_error != null) ...<Widget>[
+            const SizedBox(height: AppDimens.sizeX10),
+            Text(
+              _error!,
+              style: textTheme.bodySubTitle?.copyWith(
+                color: LightColor.redColor,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ],
+      ),
+      actions: <Widget>[
+        Row(
+          children: <Widget>[
+            Expanded(
+              child: CustomButton(
+                text: 'Cancel',
+                isOutlined: true,
+                foregroundColor: LightColor.secondaryColor,
+                borderColor: LightColor.secondaryColor,
+                minHeight: AppDimens.sizeX42,
+                onPressed: _isDeleting
+                    ? null
+                    : () => Navigator.of(context).pop(),
+              ),
+            ),
+            const SizedBox(width: AppDimens.sizeX10),
+            Expanded(
+              child: CustomButton(
+                text: 'Delete',
+                icon: Icons.delete_outline_rounded,
+                isLoading: _isDeleting,
+                minHeight: AppDimens.sizeX42,
+                backgroundColor: LightColor.redColor,
+                foregroundColor: LightColor.whiteColor,
+                onPressed: _isDeleting ? null : _delete,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+/// Read-only slot summary row with an Update / Delete menu. Editing happens in
+/// the [_SlotFormSheet] bottom sheet.
+class _SlotListTile extends StatelessWidget {
+  const _SlotListTile({
+    super.key,
+    required this.slot,
+    required this.onEdit,
+    required this.onDelete,
+    this.infoText,
+  });
+
+  final SlotPricingDraft slot;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  /// Secondary line under the slot name. Defaults to the booking days; the
+  /// pricing sub-step passes a price summary instead.
+  final String? infoText;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    final List<String> days = weekdayOptions.where(slot.days.contains).toList();
+    final String detailText =
+        infoText ?? (days.isEmpty ? 'No booking days' : days.join(' · '));
+
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+        border: Border.all(color: LightColor.greyBorderColor),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+        child: Material(
+          color: LightColor.cardColor,
+          child: InkWell(
+            onTap: onEdit,
+            child: IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  _timeBlock(textTheme),
+                  Expanded(
+                    child: Padding(
+                      padding: AppUtils().getPadding(
+                        left: AppDimens.paddingX12,
+                        right: AppDimens.paddingX4,
+                        top: AppDimens.paddingX10,
+                        bottom: AppDimens.paddingX10,
+                      ),
+                      child: Row(
+                        children: <Widget>[
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: <Widget>[
+                                Text(
+                                  _slotDisplayTitle(slot),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: textTheme.bodyTextMedium?.copyWith(
+                                    color: LightColor.primaryTextColor,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                                const SizedBox(height: AppDimens.sizeX6),
+                                Text(
+                                  detailText,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: textTheme.bodySubTitle?.copyWith(
+                                    color: LightColor.secondaryTextColor,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          _menu(context, textTheme),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _timeBlock(dynamic textTheme) {
+    final ({String time, String meridiem}) start = _splitTime(slot.startTime);
+    final ({String time, String meridiem}) end = _splitTime(slot.endTime);
+    final bool hasTime = start.time.isNotEmpty || end.time.isNotEmpty;
+
+    return Container(
+      width: AppDimens.sizeX100,
+      padding: AppUtils().getPadding(
+        horizontal: AppDimens.paddingX12,
+        vertical: AppDimens.paddingX12,
+      ),
+      color: LightColor.secondaryLight.withValues(alpha: 0.16),
+      child: Center(
+        child: hasTime
+            ? Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  _timeText(start, textTheme),
+                  Padding(
+                    padding: AppUtils().getPadding(
+                      vertical: AppDimens.paddingX6,
+                    ),
+                    child: Container(
+                      width: double.infinity,
+                      height: 1,
+                      color: LightColor.secondaryColor.withValues(alpha: 0.4),
+                    ),
+                  ),
+                  _timeText(end, textTheme),
+                ],
+              )
+            : const Icon(
+                Icons.schedule_rounded,
+                color: LightColor.secondaryColor,
+                size: AppDimens.sizeX20,
+              ),
+      ),
+    );
+  }
+
+  Widget _timeText(({String time, String meridiem}) value, dynamic textTheme) {
+    final String label = value.meridiem.isEmpty
+        ? value.time
+        : '${value.time} ${value.meridiem}';
+    return Text(
+      label,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: textTheme.bodyTextSmall?.copyWith(
+        color: LightColor.secondaryColor,
+        fontWeight: FontWeight.w800,
+      ),
+    );
+  }
+
+  Widget _menu(BuildContext context, dynamic textTheme) {
+    return PopupMenuButton<int>(
+      icon: const Icon(
+        Icons.more_vert_rounded,
+        color: LightColor.secondaryTextColor,
+      ),
+      color: LightColor.cardColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+      ),
+      onSelected: (int value) => value == 0 ? onEdit() : onDelete(),
+      itemBuilder: (BuildContext context) => <PopupMenuEntry<int>>[
+        PopupMenuItem<int>(
+          value: 0,
+          child: Row(
+            children: <Widget>[
+              const Icon(
+                Icons.edit_outlined,
+                size: AppDimens.sizeX18,
+                color: LightColor.secondaryColor,
+              ),
+              const SizedBox(width: AppDimens.sizeX8),
+              Text('Update', style: textTheme.bodyTextSmall),
+            ],
+          ),
+        ),
+        PopupMenuItem<int>(
+          value: 1,
+          child: Row(
+            children: <Widget>[
+              const Icon(
+                Icons.delete_outline_rounded,
+                size: AppDimens.sizeX18,
+                color: LightColor.redColor,
+              ),
+              const SizedBox(width: AppDimens.sizeX8),
+              Text('Delete', style: textTheme.bodyTextSmall),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  ({String time, String meridiem}) _splitTime(String value) {
+    final String raw = value.trim();
+    if (raw.isEmpty) return (time: '', meridiem: '');
+    final RegExpMatch? match = RegExp(
+      r'(\d{1,2})\s*:\s*(\d{2})\s*(AM|PM)?',
+      caseSensitive: false,
+    ).firstMatch(raw);
+    if (match != null) {
+      return (
+        time: '${match.group(1)}:${match.group(2)}',
+        meridiem: (match.group(3) ?? '').toUpperCase(),
+      );
+    }
+    return (time: raw, meridiem: '');
+  }
+}
+
+/// Bottom sheet to create or edit a slot (label, booking days, start/end time).
+/// Performs the save itself so the action button can show a loading state and
+/// the sheet only closes once the backend confirms success.
+class _SlotFormSheet extends StatefulWidget {
+  const _SlotFormSheet({required this.cubit, this.slot});
+
+  final VendorOnboardingCubit cubit;
+  final SlotPricingDraft? slot;
+
+  @override
+  State<_SlotFormSheet> createState() => _SlotFormSheetState();
+}
+
+class _SlotFormSheetState extends State<_SlotFormSheet> {
+  late final TextEditingController _labelController;
+  late Set<String> _days;
+  late String _startTime;
+  late String _endTime;
+  String? _error;
+  bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final SlotPricingDraft? slot = widget.slot;
+    _labelController = TextEditingController(text: slot?.label ?? '');
+    _days = <String>{...?slot?.days};
+    _startTime = slot?.startTime ?? '';
+    _endTime = slot?.endTime ?? '';
+  }
+
+  @override
+  void dispose() {
+    _labelController.dispose();
+    super.dispose();
+  }
+
+  bool get _allSelected => weekdayOptions.every(_days.contains);
+
+  Future<void> _submit() async {
+    if (_isSaving) return;
+    FocusScope.of(context).unfocus();
+    final String label = _labelController.text.trim();
+    if (label.isEmpty) {
+      setState(() => _error = 'Enter a slot label.');
+      return;
+    }
+    if (_days.isEmpty) {
+      setState(() => _error = 'Select at least one booking day.');
+      return;
+    }
+    if (_startTime.trim().isEmpty || _endTime.trim().isEmpty) {
+      setState(() => _error = 'Select both start and end time.');
+      return;
+    }
+
+    setState(() {
+      _isSaving = true;
+      _error = null;
+    });
+
+    final SlotPricingDraft draft =
+        (widget.slot ?? const SlotPricingDraft(id: '')).copyWith(
+          label: label,
+          days: _days,
+          startTime: _startTime,
+          endTime: _endTime,
+        );
+    final String? error = await widget.cubit.saveCourtSlot(draft);
+    if (!mounted) return;
+    if (error != null) {
+      setState(() {
+        _isSaving = false;
+        _error = error;
+      });
+      return;
+    }
+    Navigator.of(context).pop(true);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    final bool isEdit = widget.slot != null;
+
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: Container(
+        decoration: const BoxDecoration(
+          color: LightColor.cardColor,
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(AppDimens.radiusX20),
+          ),
+        ),
+        padding: AppUtils().getPadding(
+          left: AppDimens.paddingX16,
+          right: AppDimens.paddingX16,
+          top: AppDimens.paddingX12,
+          bottom: AppDimens.paddingX20,
+        ),
+        child: SafeArea(
+          top: false,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Center(
+                  child: Container(
+                    width: AppDimens.sizeX40,
+                    height: AppDimens.sizeX4,
+                    decoration: BoxDecoration(
+                      color: LightColor.greyBorderColor,
+                      borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppDimens.sizeX16),
+                Row(
+                  children: <Widget>[
+                    Text(
+                      isEdit ? 'Edit Slot' : 'Add Slot',
+                      style: textTheme.bodyTextLarge?.copyWith(
+                        color: LightColor.primaryTextColor,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const Spacer(),
+                    InkWell(
+                      onTap: () => Navigator.of(context).pop(),
+                      borderRadius: BorderRadius.circular(AppDimens.radiusX20),
+                      child: const Icon(
+                        Icons.close_rounded,
+                        color: LightColor.secondaryTextColor,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppDimens.sizeX16),
+                VendorInputField(
+                  isRequired: true,
+                  label: 'Slot label',
+                  controller: _labelController,
+                  initialValue: '',
+                  hintText: 'e.g. Morning Slot',
+                  onChanged: (_) {
+                    if (_error != null) setState(() => _error = null);
+                  },
+                ),
+                const SizedBox(height: AppDimens.sizeX16),
+                const VendorFieldLabel('Booking days'),
+                const SizedBox(height: AppDimens.sizeX10),
+                Wrap(
+                  spacing: AppDimens.sizeX8,
+                  runSpacing: AppDimens.sizeX8,
+                  children: <Widget>[
+                    VendorSelectableChip(
+                      label: 'All',
+                      isSelected: _allSelected,
+                      onTap: () => setState(() {
+                        _error = null;
+                        if (_allSelected) {
+                          _days = <String>{};
+                        } else {
+                          _days = weekdayOptions.toSet();
+                        }
+                      }),
+                    ),
+                    ...weekdayOptions.map(
+                      (String day) => VendorSelectableChip(
+                        label: day,
+                        isSelected: _days.contains(day),
+                        onTap: () => setState(() {
+                          _error = null;
+                          if (!_days.add(day)) _days.remove(day);
+                        }),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppDimens.sizeX16),
+                Row(
+                  children: <Widget>[
+                    Expanded(
+                      child: CustomTimeField(
+                        label: 'Start time',
+                        value: _startTime,
+                        onChanged: (String value) => setState(() {
+                          _error = null;
+                          _startTime = value;
+                        }),
+                      ),
+                    ),
+                    const SizedBox(width: AppDimens.sizeX12),
+                    Expanded(
+                      child: CustomTimeField(
+                        label: 'End time',
+                        value: _endTime,
+                        onChanged: (String value) => setState(() {
+                          _error = null;
+                          _endTime = value;
+                        }),
+                      ),
+                    ),
+                  ],
+                ),
+                if (_error != null) ...<Widget>[
+                  const SizedBox(height: AppDimens.sizeX12),
+                  Text(
+                    _error!,
+                    style: textTheme.bodySubTitle?.copyWith(
+                      color: LightColor.redColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: AppDimens.sizeX20),
+                Row(
+                  children: <Widget>[
+                    Expanded(
+                      child: CustomButton(
+                        text: 'Cancel',
+                        isOutlined: true,
+                        foregroundColor: LightColor.secondaryColor,
+                        borderColor: LightColor.secondaryColor,
+                        minHeight: AppDimens.sizeX44,
+                        onPressed: _isSaving
+                            ? null
+                            : () => Navigator.of(context).pop(),
+                      ),
+                    ),
+                    const SizedBox(width: AppDimens.sizeX12),
+                    Expanded(
+                      child: CustomButton(
+                        text: isEdit ? 'Update Slot' : 'Add Slot',
+                        icon: Icons.check_rounded,
+                        isLoading: _isSaving,
+                        minHeight: AppDimens.sizeX44,
+                        backgroundColor: LightColor.secondaryColor,
+                        foregroundColor: LightColor.whiteColor,
+                        onPressed: _isSaving ? null : _submit,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+String _slotDisplayTitle(SlotPricingDraft slot) =>
+    slot.label.trim().isEmpty ? 'Untitled slot' : slot.label.trim();
+
+String _slotTimeSummary(SlotPricingDraft slot) {
+  final String start = slot.startTime.trim();
+  final String end = slot.endTime.trim();
+  if (start.isEmpty && end.isEmpty) return 'Time not set';
+  return '$start - $end';
+}
+
+String _slotDaysSummary(SlotPricingDraft slot) {
+  final List<String> ordered = weekdayOptions
+      .where(slot.days.contains)
+      .toList();
+  if (ordered.isEmpty) return 'No booking days';
+  if (ordered.length == weekdayOptions.length) return 'Every day';
+  return ordered.join(', ');
+}
+
+/// Compact dropdown used by both the slot schedule and pricing sub-steps to
+/// quickly jump to a single slot (or show all). Each entry shows the slot name,
+/// time, and booking days; [selectedId] of null means "All slots".
+class _SlotFilterDropdown extends StatelessWidget {
+  const _SlotFilterDropdown({
+    required this.slots,
+    required this.selectedId,
+    required this.onChanged,
+  });
+
+  final List<SlotPricingDraft> slots;
+  final String? selectedId;
+  final ValueChanged<String?> onChanged;
+
+  static const String _allValue = '__all__';
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+
+    return Container(
+      padding: AppUtils().getPadding(horizontal: AppDimens.paddingX12),
+      decoration: BoxDecoration(
+        color: LightColor.cardColor,
+        borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+        border: Border.all(color: LightColor.greyBorderColor),
+      ),
+      child: Row(
+        children: <Widget>[
+          const Icon(
+            Icons.filter_list_rounded,
+            color: LightColor.secondaryColor,
+            size: AppDimens.sizeX20,
+          ),
+          const SizedBox(width: AppDimens.sizeX8),
+          Expanded(
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: selectedId ?? _allValue,
+                isExpanded: true,
+                itemHeight: null,
+                icon: const Icon(
+                  Icons.expand_more_rounded,
+                  color: LightColor.secondaryColor,
+                ),
+                borderRadius: BorderRadius.circular(AppDimens.radiusX12),
+                dropdownColor: LightColor.cardColor,
+                elevation: 3,
+                menuMaxHeight: AppDimens.sizeX320,
+                padding: AppUtils().getPadding(vertical: AppDimens.paddingX12),
+                selectedItemBuilder: (BuildContext context) => <Widget>[
+                  _filterButtonLabel('All slots', textTheme),
+                  ...slots.map(
+                    (SlotPricingDraft slot) =>
+                        _filterButtonLabel(_slotDisplayTitle(slot), textTheme),
+                  ),
+                ],
+                items: <DropdownMenuItem<String>>[
+                  DropdownMenuItem<String>(
+                    value: _allValue,
+                    child: _allSlotsItem(textTheme, selectedId == null),
+                  ),
+                  ...slots.map(
+                    (SlotPricingDraft slot) => DropdownMenuItem<String>(
+                      value: slot.id,
+                      child: _slotFilterItem(slot, textTheme, selectedId),
+                    ),
+                  ),
+                ],
+                onChanged: (String? value) => onChanged(
+                  (value == null || value == _allValue) ? null : value,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _filterButtonLabel(String text, dynamic textTheme) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Text(
+        text,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: textTheme.bodyTextMedium?.copyWith(
+          fontWeight: FontWeight.w600,
+          color: LightColor.primaryTextColor,
+        ),
+      ),
+    );
+  }
+
+  Widget _allSlotsItem(dynamic textTheme, bool isSelected) {
+    return Padding(
+      padding: AppUtils().getPadding(vertical: AppDimens.paddingX10),
+      child: Row(
+        children: <Widget>[
+          Expanded(
+            child: Text(
+              'All slots',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: textTheme.bodyTextMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: isSelected
+                    ? LightColor.secondaryColor
+                    : LightColor.primaryTextColor,
+              ),
+            ),
+          ),
+          if (isSelected)
+            const Icon(
+              Icons.check_circle_rounded,
+              size: AppDimens.sizeX18,
+              color: LightColor.secondaryColor,
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _slotFilterItem(
+    SlotPricingDraft slot,
+    dynamic textTheme,
+    String? selectedId,
+  ) {
+    final bool isSelected = slot.id == selectedId;
+    return Padding(
+      padding: AppUtils().getPadding(vertical: AppDimens.paddingX10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: <Widget>[
+                    Flexible(
+                      child: Text(
+                        _slotDisplayTitle(slot),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: textTheme.bodyTextMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: isSelected
+                              ? LightColor.secondaryColor
+                              : LightColor.primaryTextColor,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: AppDimens.sizeX8),
+                    Text(
+                      _slotTimeSummary(slot),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: textTheme.bodyMiniSubTitle?.copyWith(
+                        fontSize: 10.0,
+                        color: LightColor.secondaryTextColor,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppDimens.sizeX4),
+                _metaLine(
+                  Icons.event_rounded,
+                  _slotDaysSummary(slot),
+                  textTheme,
+                ),
+              ],
+            ),
+          ),
+          if (isSelected)
+            const Padding(
+              padding: EdgeInsets.only(left: AppDimens.sizeX8),
+              child: Icon(
+                Icons.check_circle_rounded,
+                size: AppDimens.sizeX18,
+                color: LightColor.secondaryColor,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _metaLine(IconData icon, String text, dynamic textTheme) {
+    return Row(
+      children: <Widget>[
+        Icon(
+          icon,
+          size: AppDimens.sizeX14,
+          color: LightColor.secondaryTextColor,
+        ),
+        const SizedBox(width: AppDimens.sizeX6),
+        Expanded(
+          child: Text(
+            text,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: textTheme.bodyTextSmall?.copyWith(
+              fontSize: 10.0,
+              color: LightColor.secondaryTextColor,
+            ),
+          ),
+        ),
       ],
     );
   }
@@ -180,12 +1067,12 @@ class _WeekendHolidayView extends StatelessWidget {
         Wrap(
           spacing: AppDimens.sizeX8,
           runSpacing: AppDimens.sizeX8,
-          children: weekdayOptions
+          children: WeekdayOption.values
               .map(
-                (String day) => VendorSelectableChip(
-                  label: day,
-                  isSelected: court.weekendDays.contains(day),
-                  onTap: () => cubit.toggleCourtWeekendDay(day),
+                (WeekdayOption day) => VendorSelectableChip(
+                  label: day.label,
+                  isSelected: court.weekendDays.contains(day.key),
+                  onTap: () => cubit.toggleCourtWeekendDay(day.key),
                 ),
               )
               .toList(),
@@ -218,14 +1105,87 @@ class _WeekendHolidayView extends StatelessWidget {
   }
 }
 
-class _SlotPricingView extends StatelessWidget {
+class _SlotPricingView extends StatefulWidget {
   const _SlotPricingView({required this.cubit, required this.court});
 
   final VendorOnboardingCubit cubit;
   final CourtDraft court;
 
   @override
+  State<_SlotPricingView> createState() => _SlotPricingViewState();
+}
+
+class _SlotPricingViewState extends State<_SlotPricingView> {
+  String? _selectedSlotId;
+  bool _loadingSlots = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadSlots());
+  }
+
+  Future<void> _loadSlots() async {
+    if (!mounted) return;
+    setState(() => _loadingSlots = true);
+    await widget.cubit.fetchActiveCourtSlots();
+    if (mounted) setState(() => _loadingSlots = false);
+  }
+
+  Future<void> _openPricingSheet(SlotPricingDraft slot) async {
+    FocusScope.of(context).unfocus();
+    await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext _) => _SlotPricingSheet(
+        cubit: widget.cubit,
+        court: widget.court,
+        slot: slot,
+      ),
+    );
+  }
+
+  Future<void> _confirmDelete(SlotPricingDraft slot) async {
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext _) => _SlotDeleteDialog(
+        onConfirm: () => widget.cubit.deleteCourtSlot(slot),
+      ),
+    );
+  }
+
+  /// Price summary shown under the slot name in place of booking days.
+  String _pricingSummary(SlotPricingDraft slot) {
+    final List<String> parts = <String>[];
+    if (slot.weekendPrice != null) {
+      parts.add('Weekend ${formatDouble(slot.weekendPrice)}');
+    }
+    if (slot.holidayPrice != null) {
+      parts.add('Holiday ${formatDouble(slot.holidayPrice)}');
+    }
+    if (slot.discountPrice != null) {
+      final String value = slot.discountType == 'Percent'
+          ? '${formatDouble(slot.discountPrice)}%'
+          : formatDouble(slot.discountPrice);
+      parts.add('Discount $value');
+    }
+    return parts.isEmpty ? 'No special pricing set' : parts.join(' · ');
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final List<SlotPricingDraft> slots = widget.court.slotConfigs;
+    final bool hasSelection =
+        _selectedSlotId != null &&
+        slots.any((SlotPricingDraft slot) => slot.id == _selectedSlotId);
+    final List<SlotPricingDraft> filtered = hasSelection
+        ? slots
+              .where((SlotPricingDraft slot) => slot.id == _selectedSlotId)
+              .toList()
+        : slots;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
@@ -235,154 +1195,85 @@ class _SlotPricingView extends StatelessWidget {
           icon: Icons.attach_money_rounded,
         ),
         const SizedBox(height: AppDimens.sizeX12),
-        if (court.slotConfigs.isEmpty)
+        if (_loadingSlots && slots.isEmpty)
+          const _SlotsLoadingIndicator()
+        else if (slots.isEmpty)
           const _EmptySlotsCard()
-        else
+        else ...<Widget>[
+          _SlotFilterDropdown(
+            slots: slots,
+            selectedId: hasSelection ? _selectedSlotId : null,
+            onChanged: (String? id) => setState(() => _selectedSlotId = id),
+          ),
+          const SizedBox(height: AppDimens.sizeX12),
           Column(
-            children: court.slotConfigs
+            children: filtered
                 .map(
                   (SlotPricingDraft slot) => Padding(
                     padding: AppUtils().getPadding(
                       bottom: AppDimens.paddingX12,
                     ),
-                    child: _PricingSlotCard(
+                    child: _SlotListTile(
                       key: ValueKey<String>('pricing-${slot.id}'),
                       slot: slot,
-                      court: court,
-                      onChanged: (SlotPricingDraft nextSlot) =>
-                          cubit.updateSlot(slot.id, nextSlot),
+                      infoText: _pricingSummary(slot),
+                      onEdit: () => _openPricingSheet(slot),
+                      onDelete: () => _confirmDelete(slot),
                     ),
                   ),
                 )
                 .toList(),
           ),
+        ],
       ],
     );
   }
 }
 
-class _ScheduleSlotCard extends StatelessWidget {
-  const _ScheduleSlotCard({
-    super.key,
+/// Bottom sheet to update a slot's pricing (weekend / holiday / discount and
+/// custom date prices). Edits a working copy and saves via the cubit, only
+/// closing once the backend confirms success.
+class _SlotPricingSheet extends StatefulWidget {
+  const _SlotPricingSheet({
+    required this.cubit,
+    required this.court,
     required this.slot,
-    required this.onChanged,
-    required this.onToggleDay,
-    required this.onRemove,
   });
 
+  final VendorOnboardingCubit cubit;
+  final CourtDraft court;
   final SlotPricingDraft slot;
-  final ValueChanged<SlotPricingDraft> onChanged;
-  final ValueChanged<String> onToggleDay;
-  final VoidCallback onRemove;
-
-  Future<void> _confirmDelete(BuildContext context) async {
-    final bool confirmed = await showDeleteDialog(
-      context: context,
-      title: 'Delete Slot',
-      message:
-          'Are you sure you want to delete this slot? This action cannot be undone.',
-      confirmText: 'Delete',
-      cancelText: 'Cancel',
-      confirmColor: LightColor.secondaryColor,
-    );
-    if (confirmed) {
-      onRemove();
-    }
-  }
 
   @override
-  Widget build(BuildContext context) {
-    return _SlotShell(
-      title: slot.label.trim().isEmpty ? 'Slot Configuration' : slot.label,
-      subtitle: '${slot.startTime} - ${slot.endTime}',
-      trailing: IconButton(
-        onPressed: () => _confirmDelete(context),
-        icon: const Icon(Icons.delete_outline_rounded),
-        color: LightColor.secondaryColor,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          VendorInputField(
-            isRequired: true,
-            label: 'Slot label',
-            initialValue: slot.label,
-            onChanged: (String value) => onChanged(slot.copyWith(label: value)),
-          ),
-          const SizedBox(height: AppDimens.sizeX14),
-          const VendorFieldLabel('Booking days'),
-          const SizedBox(height: AppDimens.sizeX10),
-          Wrap(
-            spacing: AppDimens.sizeX8,
-            runSpacing: AppDimens.sizeX8,
-            children: <Widget>[
-              VendorSelectableChip(
-                label: 'All',
-                isSelected: weekdayOptions.every(slot.days.contains),
-                onTap: () => onChanged(
-                  slot.copyWith(
-                    days: weekdayOptions.every(slot.days.contains)
-                        ? const <String>{}
-                        : weekdayOptions.toSet(),
-                  ),
-                ),
-              ),
-              ...weekdayOptions.map(
-                (String day) => VendorSelectableChip(
-                  label: day,
-                  isSelected: slot.days.contains(day),
-                  onTap: () => onToggleDay(day),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppDimens.sizeX18),
-          Row(
-            children: <Widget>[
-              Expanded(
-                child: CustomTimeField(
-                  label: 'Start time',
-                  value: slot.startTime,
-                  onChanged: (String value) =>
-                      onChanged(slot.copyWith(startTime: value)),
-                ),
-              ),
-              const SizedBox(width: AppDimens.sizeX12),
-              Expanded(
-                child: CustomTimeField(
-                  label: 'End time',
-                  value: slot.endTime,
-                  onChanged: (String value) =>
-                      onChanged(slot.copyWith(endTime: value)),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
+  State<_SlotPricingSheet> createState() => _SlotPricingSheetState();
 }
 
-class _PricingSlotCard extends StatelessWidget {
-  const _PricingSlotCard({
-    super.key,
-    required this.slot,
-    required this.court,
-    required this.onChanged,
-  });
+class _SlotPricingSheetState extends State<_SlotPricingSheet> {
+  late SlotPricingDraft _slot;
+  String? _error;
+  bool _isSaving = false;
 
-  final SlotPricingDraft slot;
-  final CourtDraft court;
-  final ValueChanged<SlotPricingDraft> onChanged;
+  @override
+  void initState() {
+    super.initState();
+    _slot = widget.slot;
+  }
 
-  Future<void> _addCustomDatePrice(BuildContext context) async {
+  void _update(SlotPricingDraft next) {
+    setState(() {
+      _slot = next;
+      _error = null;
+    });
+  }
+
+  Future<void> _addCustomDatePrice() async {
+    FocusScope.of(context).unfocus();
     final SlotCustomDatePriceDraft? picked =
         await showDialog<SlotCustomDatePriceDraft>(
           context: context,
-          builder: (BuildContext context) {
+          builder: (BuildContext _) {
             return _CustomDatePriceDialog(
-              initialDates: slot.customDatePrices
+              initialDates: _slot.customDatePrices
                   .map((SlotCustomDatePriceDraft item) => item.date)
                   .toSet(),
               priceForDate: _priceForDate,
@@ -391,11 +1282,11 @@ class _PricingSlotCard extends StatelessWidget {
           },
         );
     if (picked == null) return;
-    onChanged(
-      slot.copyWith(
+    _update(
+      _slot.copyWith(
         customDatePrices:
             <SlotCustomDatePriceDraft>[
-              ...slot.customDatePrices.where(
+              ..._slot.customDatePrices.where(
                 (SlotCustomDatePriceDraft item) => item.date != picked.date,
               ),
               picked,
@@ -407,69 +1298,193 @@ class _PricingSlotCard extends StatelessWidget {
     );
   }
 
+  Future<void> _submit() async {
+    if (_isSaving) return;
+    FocusScope.of(context).unfocus();
+    setState(() {
+      _isSaving = true;
+      _error = null;
+    });
+    final String? error = await widget.cubit.saveCourtSlotPricing(_slot);
+    if (!mounted) return;
+    if (error != null) {
+      setState(() {
+        _isSaving = false;
+        _error = error;
+      });
+      return;
+    }
+    Navigator.of(context).pop(true);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return _SlotShell(
-      title: slot.label.trim().isEmpty ? 'Slot Pricing' : slot.label,
-      subtitle: '${slot.startTime} - ${slot.endTime}',
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          SizedBox(height: AppDimens.sizeX10),
-          _MoneyField(
-            label: 'Weekend price',
-            value: slot.weekendPrice,
-            onChanged: (String value) => onChanged(
-              slot.copyWith(
-                weekendPrice: parseDouble(value),
-                clearWeekendPrice: value.trim().isEmpty,
-              ),
-            ),
-          ),
-          const SizedBox(height: AppDimens.sizeX16),
-          _MoneyField(
-            label: 'Holiday price',
-            value: slot.holidayPrice,
-            onChanged: (String value) => onChanged(
-              slot.copyWith(
-                holidayPrice: parseDouble(value),
-                clearHolidayPrice: value.trim().isEmpty,
-              ),
-            ),
-          ),
+    final textTheme = FutsalTheme.getTextTheme(context);
 
-          const SizedBox(height: AppDimens.sizeX16),
-          _DiscountTypeSelector(
-            value: slot.discountType,
-            onChanged: (String value) =>
-                onChanged(slot.copyWith(discountType: value)),
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: Container(
+        decoration: const BoxDecoration(
+          color: LightColor.cardColor,
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(AppDimens.radiusX20),
           ),
-          const SizedBox(height: AppDimens.sizeX16),
-          _MoneyField(
-            label: slot.discountType == 'Percent'
-                ? 'Discount %'
-                : 'Discount price',
-            value: slot.discountPrice,
-            onChanged: (String value) => onChanged(
-              slot.copyWith(
-                discountPrice: parseDouble(value),
-                clearDiscountPrice: value.trim().isEmpty,
-              ),
+        ),
+        padding: AppUtils().getPadding(
+          left: AppDimens.paddingX16,
+          right: AppDimens.paddingX16,
+          top: AppDimens.paddingX12,
+          bottom: AppDimens.paddingX20,
+        ),
+        child: SafeArea(
+          top: false,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Center(
+                  child: Container(
+                    width: AppDimens.sizeX40,
+                    height: AppDimens.sizeX4,
+                    decoration: BoxDecoration(
+                      color: LightColor.greyBorderColor,
+                      borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppDimens.sizeX16),
+                Row(
+                  children: <Widget>[
+                    Expanded(
+                      child: Text(
+                        _slotDisplayTitle(_slot),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: textTheme.bodyTextLarge?.copyWith(
+                          color: LightColor.primaryTextColor,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                    InkWell(
+                      onTap: () => Navigator.of(context).pop(),
+                      borderRadius: BorderRadius.circular(AppDimens.radiusX20),
+                      child: const Icon(
+                        Icons.close_rounded,
+                        color: LightColor.secondaryTextColor,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppDimens.sizeX4),
+                Text(
+                  'Update pricing for this slot',
+                  style: textTheme.bodySubTitle?.copyWith(
+                    color: LightColor.secondaryTextColor,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: AppDimens.sizeX16),
+                _MoneyField(
+                  label: 'Weekend price',
+                  value: _slot.weekendPrice,
+                  onChanged: (String value) => _update(
+                    _slot.copyWith(
+                      weekendPrice: parseDouble(value),
+                      clearWeekendPrice: value.trim().isEmpty,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppDimens.sizeX16),
+                _MoneyField(
+                  label: 'Holiday price',
+                  value: _slot.holidayPrice,
+                  onChanged: (String value) => _update(
+                    _slot.copyWith(
+                      holidayPrice: parseDouble(value),
+                      clearHolidayPrice: value.trim().isEmpty,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppDimens.sizeX16),
+                _DiscountTypeSelector(
+                  value: _slot.discountType,
+                  onChanged: (String value) =>
+                      _update(_slot.copyWith(discountType: value)),
+                ),
+                const SizedBox(height: AppDimens.sizeX16),
+                _MoneyField(
+                  label: _slot.discountType == 'Percent'
+                      ? 'Discount %'
+                      : 'Discount price',
+                  value: _slot.discountPrice,
+                  onChanged: (String value) => _update(
+                    _slot.copyWith(
+                      discountPrice: parseDouble(value),
+                      clearDiscountPrice: value.trim().isEmpty,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppDimens.sizeX16),
+                _CustomDatePricesSection(
+                  prices: _slot.customDatePrices,
+                  onAdd: _addCustomDatePrice,
+                  onRemove: (String date) => _update(
+                    _slot.copyWith(
+                      customDatePrices: _slot.customDatePrices
+                          .where(
+                            (SlotCustomDatePriceDraft item) => item.date != date,
+                          )
+                          .toList(),
+                    ),
+                  ),
+                ),
+                if (_error != null) ...<Widget>[
+                  const SizedBox(height: AppDimens.sizeX12),
+                  Text(
+                    _error!,
+                    style: textTheme.bodySubTitle?.copyWith(
+                      color: LightColor.redColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: AppDimens.sizeX20),
+                Row(
+                  children: <Widget>[
+                    Expanded(
+                      child: CustomButton(
+                        text: 'Cancel',
+                        isOutlined: true,
+                        foregroundColor: LightColor.secondaryColor,
+                        borderColor: LightColor.secondaryColor,
+                        minHeight: AppDimens.sizeX44,
+                        onPressed: _isSaving
+                            ? null
+                            : () => Navigator.of(context).pop(),
+                      ),
+                    ),
+                    const SizedBox(width: AppDimens.sizeX12),
+                    Expanded(
+                      child: CustomButton(
+                        text: 'Save Pricing',
+                        icon: Icons.check_rounded,
+                        isLoading: _isSaving,
+                        minHeight: AppDimens.sizeX44,
+                        backgroundColor: LightColor.secondaryColor,
+                        foregroundColor: LightColor.whiteColor,
+                        onPressed: _isSaving ? null : _submit,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: AppDimens.sizeX16),
-          _CustomDatePricesSection(
-            prices: slot.customDatePrices,
-            onAdd: () => _addCustomDatePrice(context),
-            onRemove: (String date) => onChanged(
-              slot.copyWith(
-                customDatePrices: slot.customDatePrices
-                    .where((SlotCustomDatePriceDraft item) => item.date != date)
-                    .toList(),
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -477,22 +1492,24 @@ class _PricingSlotCard extends StatelessWidget {
   double? _priceForDate(DateTime date) {
     final String isoDate = _formatIsoDate(date);
     final String day = _weekdayLabel(date);
-    for (final SlotCustomDatePriceDraft item in slot.customDatePrices) {
+    for (final SlotCustomDatePriceDraft item in _slot.customDatePrices) {
       if (item.date == isoDate) return item.price;
     }
-    if (court.holidayDates.contains(isoDate)) return slot.holidayPrice;
-    if (court.weekendDays.contains(day)) return slot.weekendPrice;
-    return slot.price ?? court.basePrice;
+    if (widget.court.holidayDates.contains(isoDate)) return _slot.holidayPrice;
+    if (widget.court.weekendDays.contains(day)) return _slot.weekendPrice;
+    return _slot.price ?? widget.court.basePrice;
   }
 
   _DatePriceMarker? _markerForDate(DateTime date) {
     final String isoDate = _formatIsoDate(date);
     final String day = _weekdayLabel(date);
-    for (final SlotCustomDatePriceDraft item in slot.customDatePrices) {
+    for (final SlotCustomDatePriceDraft item in _slot.customDatePrices) {
       if (item.date == isoDate) return _DatePriceMarker.custom;
     }
-    if (court.holidayDates.contains(isoDate)) return _DatePriceMarker.holiday;
-    if (court.weekendDays.contains(day)) return _DatePriceMarker.weekend;
+    if (widget.court.holidayDates.contains(isoDate)) {
+      return _DatePriceMarker.holiday;
+    }
+    if (widget.court.weekendDays.contains(day)) return _DatePriceMarker.weekend;
     return null;
   }
 }
@@ -784,82 +1801,6 @@ class _MoneyField extends StatelessWidget {
       initialValue: formatDouble(value),
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
       onChanged: onChanged,
-    );
-  }
-}
-
-class _SlotShell extends StatelessWidget {
-  const _SlotShell({
-    required this.title,
-    required this.subtitle,
-    required this.child,
-    this.trailing,
-  });
-
-  final String title;
-  final String subtitle;
-  final Widget child;
-  final Widget? trailing;
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = FutsalTheme.getTextTheme(context);
-    return Container(
-      padding: AppUtils().getPadding(all: AppDimens.paddingX14),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(AppDimens.radiusX10),
-        border: Border.all(color: LightColor.greyBorderColor),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Row(
-            children: <Widget>[
-              Container(
-                width: AppDimens.sizeX36,
-                height: AppDimens.sizeX36,
-                decoration: BoxDecoration(
-                  color: LightColor.secondaryLight.withValues(alpha: 0.22),
-                  borderRadius: BorderRadius.circular(AppDimens.radiusX8),
-                ),
-                child: const Icon(
-                  Icons.schedule_rounded,
-                  color: LightColor.secondaryColor,
-                  size: AppDimens.sizeX18,
-                ),
-              ),
-              const SizedBox(width: AppDimens.sizeX10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: textTheme.bodyTextSmall?.copyWith(
-                        color: LightColor.primaryTextColor,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: AppDimens.sizeX2),
-                    Text(
-                      subtitle,
-                      style: textTheme.bodySubTitle?.copyWith(
-                        color: LightColor.secondaryTextColor,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (trailing != null) trailing!,
-            ],
-          ),
-          const SizedBox(height: AppDimens.sizeX14),
-          child,
-        ],
-      ),
     );
   }
 }
@@ -1779,7 +2720,7 @@ DateTime _dateOnly(DateTime date) {
 }
 
 String _weekdayLabel(DateTime date) {
-  return weekdayOptions[date.weekday % DateTime.daysPerWeek];
+  return WeekdayOption.forDate(date).key;
 }
 
 List<DateTime?> _monthCells(DateTime visibleMonth) {

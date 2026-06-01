@@ -6,4 +6,17 @@ import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboar
 abstract class VenueCourtRepository {
   Future<Either<AppException, List<VenueCourtModel>>> getVenueCourt();
   Future<Either<AppException, CourtDraft>> getCourtDetails(int courtId);
+  Future<Either<AppException, List<SlotPricingDraft>>> getCourtSlots(
+    int courtId,
+  );
+  Future<Either<AppException, List<SlotPricingDraft>>> createCourtSlot(
+    Map<String, dynamic> data,
+  );
+  Future<Either<AppException, List<SlotPricingDraft>>> updateCourtSlot(
+    Map<String, dynamic> data,
+  );
+  Future<Either<AppException, List<SlotPricingDraft>>> deleteCourtSlot(
+    Map<String, dynamic> data,
+  );
+  Future<Either<AppException, Unit>> deleteCourt(int courtId);
 }

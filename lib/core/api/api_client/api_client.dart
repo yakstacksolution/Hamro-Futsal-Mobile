@@ -87,6 +87,13 @@ class ApiClient {
     return _get(url: '$_baseUrl/auth/facilities');
   }
 
+  Future<Result> getPublicVenueList({int page = 1, int perPage = 10}) {
+    return _get(
+      url: '$_baseUrl/public/venue-list',
+      query: <String, dynamic>{'page': page, 'per_page': perPage},
+    );
+  }
+
   Future<Result> getVenueCourt() {
     return _get(url: '$_baseUrl/auth/get-venue-courts');
   }
@@ -97,6 +104,33 @@ class ApiClient {
 
   Future<Result> getCourtDetails({required int courtId}) {
     return _get(url: '$_baseUrl/auth/court/$courtId');
+  }
+
+  Future<Result> getCourtSlots({required int courtId}) {
+    return _get(
+      url: '$_baseUrl/auth/vendor/onboarding/get-court-slots/$courtId',
+    );
+  }
+
+  Future<Result> createCourtSlot({required Map<String, dynamic> data}) {
+    return _post(
+      url: '$_baseUrl/auth/vendor/onboarding/create-court-slot',
+      data: data,
+    );
+  }
+
+  Future<Result> updateCourtSlot({required Map<String, dynamic> data}) {
+    return _post(
+      url: '$_baseUrl/auth/vendor/onboarding/update-court-slot',
+      data: data,
+    );
+  }
+
+  Future<Result> deleteCourtSlot({required Map<String, dynamic> data}) {
+    return _post(
+      url: '$_baseUrl/auth/vendor/onboarding/delete-court-slot',
+      data: data,
+    );
   }
 
   Future<Result> getPublicTemplates() {
@@ -146,6 +180,13 @@ class ApiClient {
   Future<Result> deleteVendorOnboardingCourt({required int courtId}) {
     return _delete(
       url: '$_baseUrl/auth/vendor/onboarding/delete-court/$courtId',
+    );
+  }
+
+  Future<Result> deleteVendorCourt({required Map<String, dynamic> data}) {
+    return _post(
+      url: '$_baseUrl/auth/vendor/onboarding/delete-court',
+      data: data,
     );
   }
 

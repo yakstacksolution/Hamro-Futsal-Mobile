@@ -15,6 +15,7 @@ class VenueCourtBloc extends Bloc<VenueCourtEvent, VenueCourtState> {
   VenueCourtBloc(this._getVenueCourtUseCase) : super(const VenueCourtState()) {
     on<FetchVenueCourtEvent>(_onFetchVenueCourt);
     on<UpsertVenueCourtLocallyEvent>(_onUpsertVenueCourtLocally);
+    on<RemoveVenueCourtLocallyEvent>(_onRemoveVenueCourtLocally);
   }
 
   final GetVenueCourtUseCase _getVenueCourtUseCase;
@@ -36,6 +37,34 @@ class VenueCourtBloc extends Bloc<VenueCourtEvent, VenueCourtState> {
       } else {
         courts.add(event.court);
       }
+
+      return VenueCourtModel(
+        id: venue.id,
+        title: venue.title,
+        address: venue.address,
+        phone: venue.phone,
+        status: venue.status,
+        courts: courts,
+      );
+    }).toList();
+
+    emit(state.copyWith(venues: updatedVenues));
+  }
+
+  void _onRemoveVenueCourtLocally(
+    RemoveVenueCourtLocallyEvent event,
+    Emitter<VenueCourtState> emit,
+  ) {
+    final List<VenueCourtModel> updatedVenues = state.venues.map((venue) {
+      if (venue.id != event.venueId) return venue;
+
+      final List<CourtDraft> courts = venue.courts.where((CourtDraft c) {
+        final bool sameRemote =
+            c.remoteId != null &&
+            event.court.remoteId != null &&
+            c.remoteId == event.court.remoteId;
+        return !(sameRemote || c.id == event.court.id);
+      }).toList();
 
       return VenueCourtModel(
         id: venue.id,

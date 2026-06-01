@@ -15,6 +15,7 @@ class VendorOnboardingState {
     required this.isRestoringDraft,
     required this.isCompleted,
     required this.isLoadingCourts,
+    this.isLoadingCourtDetails = false,
     this.remoteFutsalId,
     this.activeCourtId,
     this.lastSavedAt,
@@ -60,6 +61,10 @@ class VendorOnboardingState {
   final bool isRestoringDraft;
   final bool isCompleted;
   final bool isLoadingCourts;
+
+  /// True while a single court's full details are being fetched (and the step
+  /// cursor is being aligned to the API response) when opening the editor.
+  final bool isLoadingCourtDetails;
   final String? errorMessage;
   final VendorErrorOrigin? errorOrigin;
 
@@ -94,6 +99,7 @@ class VendorOnboardingState {
     bool? isRestoringDraft,
     bool? isCompleted,
     bool? isLoadingCourts,
+    bool? isLoadingCourtDetails,
     int? remoteFutsalId,
     String? errorMessage,
     VendorErrorOrigin? errorOrigin,
@@ -123,6 +129,8 @@ class VendorOnboardingState {
       isRestoringDraft: isRestoringDraft ?? this.isRestoringDraft,
       isCompleted: isCompleted ?? this.isCompleted,
       isLoadingCourts: isLoadingCourts ?? this.isLoadingCourts,
+      isLoadingCourtDetails:
+          isLoadingCourtDetails ?? this.isLoadingCourtDetails,
       errorMessage: clearErrorMessage
           ? null
           : errorMessage ?? this.errorMessage,
@@ -188,11 +196,12 @@ class VendorOnboardingState {
             ? Map<String, dynamic>.from(json['futsal'] as Map)
             : const <String, dynamic>{},
       ),
-      mediaLibrary:
-          ((json['mediaLibrary'] as List?) ?? const <dynamic>[])
-              .whereType<Map>()
-              .map((Map item) => UploadRef.fromJson(Map<String, dynamic>.from(item)))
-              .toList(),
+      mediaLibrary: ((json['mediaLibrary'] as List?) ?? const <dynamic>[])
+          .whereType<Map>()
+          .map(
+            (Map item) => UploadRef.fromJson(Map<String, dynamic>.from(item)),
+          )
+          .toList(),
       courts: courts,
       remoteFutsalId: _asInt(json['remoteFutsalId']),
       activeCourtId: json['activeCourtId'] as String?,

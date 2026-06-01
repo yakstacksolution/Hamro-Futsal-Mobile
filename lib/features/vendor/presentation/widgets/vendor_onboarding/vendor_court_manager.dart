@@ -12,7 +12,14 @@ import 'package:hamro_footsall/core/widgets/custom_button.dart';
 import 'package:hamro_footsall/core/widgets/custom_delete_dialog.dart';
 import 'package:hamro_footsall/core/widgets/custom_text_field.dart';
 import 'package:hamro_footsall/core/widgets/loading_widget.dart';
+import 'package:hamro_footsall/features/courts/data/repositories/venue_court_repository_impl.dart';
+import 'package:hamro_footsall/features/courts/domain/usecase/get_venue_court_use_case.dart';
+import 'package:hamro_footsall/features/public/data/repositories/public_repository_impl.dart';
+import 'package:hamro_footsall/features/public/domain/usecase/get_public_templates_use_case.dart';
 import 'package:hamro_footsall/features/public/presentation/bloc/public_templates/public_templates_bloc.dart';
+import 'package:hamro_footsall/features/vendor/data/repositories/vendor_onboarding_repository_impl.dart';
+import 'package:hamro_footsall/features/vendor/data/vendor_draft_repository.dart';
+import 'package:hamro_footsall/features/vendor/domain/usecase/vendor_onboarding_usecase.dart';
 import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_cubit.dart';
 import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_state.dart';
 import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_models.dart';
@@ -40,26 +47,121 @@ class VendorCourtManager extends StatelessWidget {
       cubit.addCourt(name: courtName);
       final String? courtId = cubit.state.activeCourtId;
       if (context.mounted && courtId != null) {
-        unawaited(_openCourtEditor(context, courtId));
+        unawaited(_openCourtEditor(context, courtId, resolveRemote: false));
       }
     }
   }
 
-  Future<void> _openCourtEditor(BuildContext context, String courtId) async {
-    cubit.selectCourt(courtId);
-    final PublicTemplatesBloc publicTemplatesBloc = context
-        .read<PublicTemplatesBloc>();
-    await Navigator.of(context).push<void>(
+  Future<void> _openCourtEditor(
+    BuildContext context,
+    String courtId, {
+    bool resolveRemote = true,
+  }) async {
+    // Find the court being opened in the shared onboarding state.
+    CourtDraft? court;
+    for (final CourtDraft item in cubit.state.courts) {
+      if (item.id == courtId) {
+        court = item;
+        break;
+      }
+    }
+    if (court == null) return;
+
+    final int? venueId = cubit.state.remoteFutsalId;
+    final CourtDraft resolvedCourt = resolveRemote
+        ? await _resolveRemoteCourt(court, venueId)
+        : court;
+    final CourtDraft editorCourt = resolveRemote
+        ? await _fetchCourtDetailsForEditor(resolvedCourt)
+        : resolvedCourt;
+    if (!context.mounted) return;
+
+    final VendorOnboardingCubit editorCubit = VendorOnboardingCubit(
+      const EphemeralVendorDraftRepository(),
+      onboardingUseCase: VendorOnboardingUseCase(
+        VendorOnboardingRepositoryImpl(),
+      ),
+    );
+    if (venueId != null) {
+      editorCubit.setRemoteFutsalId(venueId);
+    }
+    editorCubit.prepareCourtForEditing(editorCourt);
+    final String editorCourtId =
+        editorCourt.remoteId?.toString() ?? editorCourt.id;
+    editorCubit.openCourtForEditing(editorCourtId);
+
+    await Navigator.of(context, rootNavigator: true).push<void>(
       MaterialPageRoute<void>(
+        settings: RouteSettings(
+          name: '/vendor/court-onboarding/$editorCourtId',
+        ),
         builder: (_) => MultiBlocProvider(
           providers: <BlocProvider<dynamic>>[
-            BlocProvider<VendorOnboardingCubit>.value(value: cubit),
-            BlocProvider<PublicTemplatesBloc>.value(value: publicTemplatesBloc),
+            BlocProvider<VendorOnboardingCubit>(create: (_) => editorCubit),
+            BlocProvider<PublicTemplatesBloc>(
+              create: (_) => PublicTemplatesBloc(
+                GetPublicTemplatesUseCase(PublicRepositoryImpl()),
+              )..add(FetchPublicTemplatesEvent()),
+            ),
           ],
-          child: CourtOnboardingPage(courtId: courtId),
+          child: CourtOnboardingPage(courtId: editorCourtId),
         ),
       ),
     );
+
+    final List<CourtDraft> editedCourts = editorCubit.state.courts;
+    if (editedCourts.isNotEmpty) {
+      cubit.upsertCourt(editedCourts.first);
+    }
+  }
+
+  Future<CourtDraft> _resolveRemoteCourt(CourtDraft court, int? venueId) async {
+    if (court.remoteId != null || int.tryParse(court.id) != null) {
+      return court;
+    }
+    if (venueId == null) return court;
+
+    final VendorOnboardingUseCase useCase = VendorOnboardingUseCase(
+      VendorOnboardingRepositoryImpl(),
+    );
+    final response = await useCase.fetchCourtsByVenueId(venueId);
+
+    return response.fold((_) => court, (List<CourtDraft> remoteCourts) {
+      if (remoteCourts.isEmpty) return court;
+
+      cubit.replaceCourts(remoteCourts);
+
+      for (final CourtDraft remoteCourt in remoteCourts) {
+        if (remoteCourt.id == court.id ||
+            remoteCourt.remoteId?.toString() == court.id ||
+            (court.remoteId != null &&
+                remoteCourt.remoteId == court.remoteId)) {
+          return remoteCourt;
+        }
+      }
+
+      final String courtName = court.name.trim().toLowerCase();
+      if (courtName.isNotEmpty) {
+        for (final CourtDraft remoteCourt in remoteCourts) {
+          if (remoteCourt.name.trim().toLowerCase() == courtName) {
+            return remoteCourt;
+          }
+        }
+      }
+
+      return court;
+    });
+  }
+
+  Future<CourtDraft> _fetchCourtDetailsForEditor(CourtDraft court) async {
+    final int? courtId = court.remoteId ?? int.tryParse(court.id);
+    if (courtId == null) return court;
+
+    final response = await GetVenueCourtUseCase(
+      VenueCourtRepositoryImpl(),
+    ).getCourtDetails(courtId);
+
+    return response.fold((_) => court, (CourtDraft details) => details);
   }
 
   Future<void> _confirmRemoveCourt(
@@ -87,6 +189,7 @@ class VendorCourtManager extends StatelessWidget {
   Widget build(BuildContext context) {
     return VendorPanel(
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Row(
@@ -121,7 +224,15 @@ class VendorCourtManager extends StatelessWidget {
           if (state.isLoadingCourts)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: AppDimens.paddingX24),
-              child: Center(child: LoadingWidget()),
+              child: Center(
+                child: CustomLoading(
+                  color: LightColor.secondaryColor,
+                  size: 30,
+                  strokeWidth: 3.5,
+                  secondCircleColor: LightColor.secondaryLight,
+                  thirdCircleColor: LightColor.secondaryLight,
+                ),
+              ),
             )
           else if (state.courts.isEmpty)
             GestureDetector(
@@ -143,7 +254,7 @@ class VendorCourtManager extends StatelessWidget {
                   isSelected: state.activeCourtId == court.id,
                   completedSections: completedSections,
                   totalSections: courtSectionDefinitions.length,
-                  onTap: () => _openCourtEditor(context, court.id),
+                  onTap: () => unawaited(_openCourtEditor(context, court.id)),
                   onRemove: () => _confirmRemoveCourt(
                     context,
                     court.id,
@@ -247,6 +358,7 @@ class _CourtEmptyStateCompact extends StatelessWidget {
           const SizedBox(width: AppDimens.sizeX10),
           Expanded(
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Text(
@@ -322,6 +434,7 @@ class _CourtListTile extends StatelessWidget {
             ),
           ),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               Row(
@@ -330,6 +443,7 @@ class _CourtListTile extends StatelessWidget {
                   const SizedBox(width: AppDimens.sizeX12),
                   Expanded(
                     child: Column(
+                      mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
                         Text(
@@ -523,7 +637,7 @@ class CourtOnboardingPageState extends State<CourtOnboardingPage> {
     _cubit = context.read<VendorOnboardingCubit>();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      _cubit.selectCourt(widget.courtId);
+      _cubit.openCourtForEditing(widget.courtId);
     });
   }
 
@@ -532,13 +646,7 @@ class CourtOnboardingPageState extends State<CourtOnboardingPage> {
     return BlocBuilder<VendorOnboardingCubit, VendorOnboardingState>(
       bloc: _cubit,
       builder: (BuildContext context, VendorOnboardingState state) {
-        CourtDraft? court;
-        for (final CourtDraft item in state.courts) {
-          if (item.id == widget.courtId) {
-            court = item;
-            break;
-          }
-        }
+        final CourtDraft? court = _visibleCourt(state);
         final String courtName = court == null || court.name.trim().isEmpty
             ? 'Court Setup'
             : court.name.trim();
@@ -567,7 +675,7 @@ class CourtOnboardingPageState extends State<CourtOnboardingPage> {
             surfaceTintColor: LightColor.background,
             foregroundColor: LightColor.primaryTextColor,
           ),
-          bottomNavigationBar: court == null
+          bottomNavigationBar: (court == null || state.isLoadingCourtDetails)
               ? null
               : VendorBottomActionBar(
                   hasPrevious: true,
@@ -592,7 +700,20 @@ class CourtOnboardingPageState extends State<CourtOnboardingPage> {
                 ),
           body: SafeArea(
             top: false,
-            child: court == null
+            child: state.isLoadingCourtDetails
+                ? const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(AppDimens.paddingX24),
+                      child: CustomLoading(
+                        color: LightColor.secondaryColor,
+                        size: 30,
+                        strokeWidth: 3.5,
+                        secondCircleColor: LightColor.secondaryLight,
+                        thirdCircleColor: LightColor.secondaryLight,
+                      ),
+                    ),
+                  )
+                : court == null
                 ? const Center(child: Text('Court not found.'))
                 : SingleChildScrollView(
                     keyboardDismissBehavior:
@@ -620,6 +741,22 @@ class CourtOnboardingPageState extends State<CourtOnboardingPage> {
         );
       },
     );
+  }
+
+  CourtDraft? _visibleCourt(VendorOnboardingState state) {
+    for (final CourtDraft item in state.courts) {
+      if (item.id == widget.courtId ||
+          item.remoteId?.toString() == widget.courtId) {
+        return item;
+      }
+    }
+
+    final CourtDraft? activeCourt = state.activeCourt;
+    if (activeCourt != null) {
+      return activeCourt;
+    }
+
+    return state.courts.length == 1 ? state.courts.first : null;
   }
 }
 
