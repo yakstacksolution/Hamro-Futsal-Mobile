@@ -636,6 +636,7 @@ class CourtDraft {
     this.maxPlayers = 10,
     this.surfaceType,
     this.slotDuration,
+    this.slotCount,
     this.availability = const AvailabilityDraft(),
     this.enableOnlineBooking = true,
     this.isPaymentRequired = true,
@@ -681,6 +682,7 @@ class CourtDraft {
   final int? maxPlayers;
   final String? surfaceType;
   final int? slotDuration;
+  final int? slotCount;
   final AvailabilityDraft availability;
   final bool enableOnlineBooking;
   final bool? isPaymentRequired;
@@ -736,6 +738,7 @@ class CourtDraft {
     int? maxPlayers,
     String? surfaceType,
     int? slotDuration,
+    int? slotCount,
     AvailabilityDraft? availability,
     bool? enableOnlineBooking,
     bool? isPaymentRequired,
@@ -777,6 +780,7 @@ class CourtDraft {
     bool clearCode = false,
     bool clearSurfaceType = false,
     bool clearSlotDuration = false,
+    bool clearSlotCount = false,
     bool clearBookingPolicies = false,
     bool clearCourtRules = false,
     bool clearCancellationPolicy = false,
@@ -806,6 +810,7 @@ class CourtDraft {
       slotDuration: clearSlotDuration
           ? null
           : slotDuration ?? this.slotDuration,
+      slotCount: clearSlotCount ? null : slotCount ?? this.slotCount,
       availability: availability ?? this.availability,
       enableOnlineBooking: enableOnlineBooking ?? this.enableOnlineBooking,
       isPaymentRequired: isPaymentRequired ?? this.isPaymentRequired,
@@ -863,6 +868,7 @@ class CourtDraft {
       'maxPlayers': maxPlayers,
       'surfaceType': surfaceType,
       'slotDuration': slotDuration,
+      'slotCount': slotCount,
       'availability': availability.toJson(),
       'enableOnlineBooking': enableOnlineBooking,
       'isPaymentRequired': isPaymentRequired,
@@ -902,9 +908,11 @@ class CourtDraft {
       json['weekendDays'],
     );
     return CourtDraft(
-      id: json['id'] as String? ?? '',
+      // The API sends an int `id` (the remote court id); local drafts persist a
+      // String `id`. Only treat it as the local id when it is actually a String.
+      id: json['id'] is String ? json['id'] as String : '',
       remoteId: _asInt(
-        json['remoteId'] ?? json['remote_id'] ?? json['court_id'],
+        json['remoteId'] ?? json['remote_id'] ?? json['court_id'] ?? json['id'],
       ),
       venueId: _asInt(json['venueId'] ?? json['venue_id']),
       mainStep: _asInt(json['mainStep'] ?? json['main_step']),
@@ -912,6 +920,7 @@ class CourtDraft {
       isStepCompleted:
           json['isStepCompleted'] as bool? ??
           json['is_step_completed'] as bool? ??
+          json['is_completed'] as bool? ??
           false,
       category: _asInt(json['category']),
       slug: json['slug'] as String?,
@@ -927,11 +936,14 @@ class CourtDraft {
       ),
       matchFormatId:
           _asInt(json['matchFormatId'] ?? json['match_format_id']) ??
-          _knownMatchFormatId(json['matchFormat'] ?? json['match_format']),
+          _knownMatchFormatId(
+            json['matchFormat'] ?? json['match_format'] ?? json['match_type'],
+          ),
       matchFormat: _normalizedMatchFormat(
         json['matchFormat'] ??
             json['match_format_name'] ??
-            json['match_format'],
+            json['match_format'] ??
+            json['match_type'],
       ),
       maxPlayers:
           _asInt(
@@ -941,6 +953,7 @@ class CourtDraft {
       surfaceType:
           json['surfaceType'] as String? ?? json['surface_type'] as String?,
       slotDuration: _asInt(json['slotDuration'] ?? json['slot_duration']),
+      slotCount: _asInt(json['slotCount'] ?? json['slot_count']),
       availability: AvailabilityDraft.fromJson(
         json['availability'] is Map
             ? Map<String, dynamic>.from(json['availability'] as Map)
@@ -956,14 +969,13 @@ class CourtDraft {
         json['advancePaymentType'] as String?,
       ),
       advancePrice: _asDouble(json['advancePrice'] ?? json['paymentPercent']),
-      advancePriceUserEdited:
-          json['advancePriceUserEdited'] as bool? ?? false,
+      advancePriceUserEdited: json['advancePriceUserEdited'] as bool? ?? false,
       paymentQr: _uploadFromJson(json['paymentQr']),
       amenities: _intSetFromJson(json['amenities']),
       facilities: _intSetFromJson(json['facilities']),
       amenityDetails: _tagDetailsFromJson(json['amenityDetails']),
       facilityDetails: _tagDetailsFromJson(json['facilityDetails']),
-      photos: _uploadsFromJson(json['photos']),
+      photos: _uploadsFromJson(json['photos'] ?? json['court_photos']),
       memories: _uploadsFromJson(json['memories']),
       weekendDays: restoredWeekendDays.isEmpty
           ? const <String>{'sat'}
@@ -1109,7 +1121,9 @@ List<CourtTagDetail> _tagDetailsFromJson(Object? value) {
   if (value is! List) return const <CourtTagDetail>[];
   return value
       .whereType<Map>()
-      .map((Map item) => CourtTagDetail.fromJson(Map<String, dynamic>.from(item)))
+      .map(
+        (Map item) => CourtTagDetail.fromJson(Map<String, dynamic>.from(item)),
+      )
       .where((CourtTagDetail item) => item.id != 0)
       .toList();
 }

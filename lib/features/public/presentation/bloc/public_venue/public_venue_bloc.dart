@@ -6,6 +6,7 @@ import 'package:equatable/equatable.dart';
 import 'package:hamro_footsall/core/helper/exception_helper.dart';
 import 'package:hamro_footsall/features/public/data/model/public_venue_model.dart';
 import 'package:hamro_footsall/features/public/domain/usecase/get_public_venues_use_case.dart';
+import 'package:hamro_footsall/features/public/presentation/models/venue_filter.dart';
 
 part 'public_venue_event.dart';
 part 'public_venue_state.dart';
@@ -26,11 +27,19 @@ class PublicVenueBloc extends Bloc<PublicVenueEvent, PublicVenueState> {
     Emitter<PublicVenueState> emit,
   ) async {
     emit(
-      state.copyWith(status: PublicVenueStatus.loading, clearError: true),
+      state.copyWith(
+        status: PublicVenueStatus.loading,
+        activeFilter: event.filter,
+        clearError: true,
+      ),
     );
 
-    final Either<AppException, PublicVenuePage> response =
-        await _getPublicVenuesUseCase(page: 1, perPage: _perPage);
+    final Either<AppException, PublicListingVenuePage> response =
+        await _getPublicVenuesUseCase(
+          page: 1,
+          perPage: _perPage,
+          filter: event.filter,
+        );
 
     response.fold(
       (AppException failure) => emit(
@@ -39,12 +48,13 @@ class PublicVenueBloc extends Bloc<PublicVenueEvent, PublicVenueState> {
           errorMessage: failure.errorMessage,
         ),
       ),
-      (PublicVenuePage page) => emit(
+      (PublicListingVenuePage page) => emit(
         state.copyWith(
           status: PublicVenueStatus.success,
           venues: page.venues,
           page: page.page,
           hasReachedMax: !page.hasMore,
+          activeFilter: event.filter,
           clearError: true,
         ),
       ),
@@ -64,10 +74,11 @@ class PublicVenueBloc extends Bloc<PublicVenueEvent, PublicVenueState> {
 
     emit(state.copyWith(isLoadingMore: true, clearError: true));
 
-    final Either<AppException, PublicVenuePage> response =
+    final Either<AppException, PublicListingVenuePage> response =
         await _getPublicVenuesUseCase(
           page: state.page + 1,
           perPage: _perPage,
+          filter: state.activeFilter,
         );
 
     response.fold(
@@ -77,10 +88,10 @@ class PublicVenueBloc extends Bloc<PublicVenueEvent, PublicVenueState> {
           errorMessage: failure.errorMessage,
         ),
       ),
-      (PublicVenuePage page) => emit(
+      (PublicListingVenuePage page) => emit(
         state.copyWith(
           status: PublicVenueStatus.success,
-          venues: <PublicVenueModel>[...state.venues, ...page.venues],
+          venues: <PublicListingVenueModel>[...state.venues, ...page.venues],
           page: page.page,
           hasReachedMax: !page.hasMore,
           isLoadingMore: false,

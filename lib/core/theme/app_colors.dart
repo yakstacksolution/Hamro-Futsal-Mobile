@@ -14,6 +14,7 @@ class LightColor {
 
   static const Color background = Color(0xffF4F4F8);
   static const Color cardColor = whiteColor;
+  
 
   static const Color hintTextColor = Color(0xff9EA0B0);
   static const Color disabledTextColor = Color(0xffC2C4D0);

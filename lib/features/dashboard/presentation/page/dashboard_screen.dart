@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hamro_footsall/core/helper/venue_distance_helper.dart';
 import 'package:hamro_footsall/features/bookings/presentation/pages/bookings_page.dart';
 import 'package:hamro_footsall/features/courts/presentation/pages/venue_courts_list_page_widget.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/page/footsall_home_page.dart';
@@ -13,7 +14,10 @@ import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/widgets/bottom_navigation_bar.dart';
+import 'package:hamro_footsall/features/dashboard/presentation/widgets/category_filter_widget.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/widgets/search_bar_widget.dart';
+import 'package:hamro_footsall/features/public/presentation/models/venue_filter.dart';
+import 'package:hamro_footsall/features/public/presentation/pages/venue_filter_page.dart';
 import 'package:hamro_footsall/features/profile/presentation/profile_bloc/profile_bloc.dart';
 import 'package:hamro_footsall/features/profile/presentation/pages/profile_page.dart';
 
@@ -30,7 +34,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final ValueNotifier<int> _selectedNavIndexNotifier =
       DashboardScreen.selectedNavIndex;
-  final ValueNotifier<int> _selectedFilterNotifier = ValueNotifier<int>(0);
+  final ValueNotifier<VenueFilter> _venueFilterNotifier =
+      ValueNotifier<VenueFilter>(VenueFilter.empty);
   static const DashboardUser _user = DashboardUser(
     id: 'USR-1024',
     name: 'Hamro Futsal',
@@ -38,6 +43,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
   );
 
   bool _hasHandledVendorOnboarding = false;
+
+  @override
+  void initState() {
+    super.initState();
+    VenueDistanceHelper.instance.position.addListener(_syncVenueLocation);
+    VenueDistanceHelper.instance.ensurePosition();
+  }
 
   static const List<BoxShadow> _cardShadow = <BoxShadow>[
     BoxShadow(
@@ -50,6 +62,42 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   void _onBottomIconPressed(int index) {
     _selectedNavIndexNotifier.value = index;
+  }
+
+  Future<void> _openVenueFilter() async {
+    final VenueFilter? result = await Navigator.of(context).push<VenueFilter>(
+      MaterialPageRoute<VenueFilter>(
+        builder: (_) =>
+            VenueFilterPage(initialFilter: _venueFilterNotifier.value),
+      ),
+    );
+    if (result != null) {
+      _venueFilterNotifier.value = _withCurrentLocation(result);
+    }
+  }
+
+  void _onCategoryFilterChanged(Set<int> ids) {
+    _venueFilterNotifier.value = _withCurrentLocation(
+      _venueFilterNotifier.value.copyWith(categoryFilterIds: ids),
+    );
+  }
+
+  VenueFilter _withCurrentLocation(VenueFilter filter) {
+    final position = VenueDistanceHelper.instance.position.value;
+    if (position == null) {
+      return filter.copyWith(clearLocation: true, clearRadius: true);
+    }
+    return filter.copyWith(
+      latitude: position.latitude,
+      longitude: position.longitude,
+      radius: filter.radius ?? 10,
+    );
+  }
+
+  void _syncVenueLocation() {
+    _venueFilterNotifier.value = _withCurrentLocation(
+      _venueFilterNotifier.value,
+    );
   }
 
   Widget _tapable({
@@ -126,16 +174,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildCurrentTabSection(int selectedNavIndex) {
     switch (selectedNavIndex) {
       case 0:
-        // return _overviewSection();
-        return FootsallHomePage();
+        return FootsallHomePage(filter: _venueFilterNotifier.value);
       case 1:
         return VenueCourtsListPage();
       case 2:
         return const BookingsPage();
       case 3:
         return MessagesPage();
-      // case 4:
-      //   return CourtsListPageWidget();
+
       default:
         return ProfilePage();
     }
@@ -143,7 +189,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   void dispose() {
-    _selectedFilterNotifier.dispose();
+    VenueDistanceHelper.instance.position.removeListener(_syncVenueLocation);
+    _venueFilterNotifier.dispose();
     super.dispose();
   }
 
@@ -183,7 +230,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: AnimatedBuilder(
             animation: Listenable.merge(<Listenable>[
               _selectedNavIndexNotifier,
-              _selectedFilterNotifier,
+              _venueFilterNotifier,
             ]),
             builder: (BuildContext context, Widget? child) {
               final int selectedNavIndex = _selectedNavIndexNotifier.value;
@@ -242,13 +289,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
           padding: AppUtils().getPadding(
             left: AppDimens.paddingX20,
             right: AppDimens.paddingX20,
-            bottom: AppDimens.paddingX12,
           ),
           child: Column(
             children: [
-              ExpandableFocusSearchBar(),
-              const SizedBox(height: AppDimens.sizeX14),
-              _buildFilterRow(),
+              ExpandableFocusSearchBar(
+                onFilterTap: _openVenueFilter,
+                filterCount: _venueFilterNotifier.value.activeCount,
+              ),
+              const SizedBox(height: AppDimens.sizeX22),
+              CategoryFilterWidget(
+                selectedFilterIds: _venueFilterNotifier.value.categoryFilterIds,
+                onSelectionChanged: _onCategoryFilterChanged,
+              ),
             ],
           ),
         ),
@@ -264,64 +316,4 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ],
     );
   }
-
-  Widget _buildFilterRow() {
-    return SizedBox(
-      height: AppDimens.sizeX40,
-      child: ValueListenableBuilder<int>(
-        valueListenable: _selectedFilterNotifier,
-        builder: (BuildContext context, int selectedFilter, Widget? child) {
-          return ListView.builder(
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            itemCount: _filters.length,
-            itemBuilder: (context, i) {
-              final selected = selectedFilter == i;
-              return GestureDetector(
-                onTap: () => _selectedFilterNotifier.value = i,
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 220),
-                  margin: AppUtils().getMargin(right: AppDimens.marginX10),
-                  padding: AppUtils().getPadding(
-                    symmetricHorizontal: AppDimens.paddingX18,
-                    symmetricVertical: AppDimens.paddingX8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: selected
-                        ? LightColor.secondaryColor
-                        : LightColor.transparentColor,
-                    borderRadius: BorderRadius.circular(AppDimens.radiusX8),
-                    border: Border.all(
-                      color: selected
-                          ? LightColor.transparentColor
-                          : LightColor.iconGrey.withValues(alpha: 0.4),
-                      width: 0.8,
-                    ),
-                  ),
-                  child: Text(
-                    _filters[i],
-                    style: FutsalTheme.getTextTheme(context).bodyTextMedium
-                        ?.copyWith(
-                          color: selected
-                              ? LightColor.whiteColor
-                              : LightColor.secondaryTextColor,
-                        ),
-                  ),
-                ),
-              );
-            },
-          );
-        },
-      ),
-    );
-  }
-
-  final List<String> _filters = [
-    '🔥 All',
-    '📍 Nearby',
-    '🏠 Indoor',
-    '🌿 Outdoor',
-    '🟢 Open Now',
-    '⭐ Top Rated',
-  ];
 }

@@ -9,7 +9,12 @@ sealed class PublicVenueEvent extends Equatable {
 
 /// Loads the first page (and resets any previously loaded pages).
 final class FetchPublicVenuesEvent extends PublicVenueEvent {
-  const FetchPublicVenuesEvent();
+  const FetchPublicVenuesEvent({this.filter = VenueFilter.empty});
+
+  final VenueFilter filter;
+
+  @override
+  List<Object?> get props => <Object?>[filter];
 }
 
 /// Appends the next page to the already-loaded venues.

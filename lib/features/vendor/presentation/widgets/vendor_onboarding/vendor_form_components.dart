@@ -14,7 +14,7 @@ import 'package:hamro_footsall/core/widgets/custom_checkbox.dart';
 import 'package:hamro_footsall/core/widgets/custom_dropdown_field.dart';
 import 'package:hamro_footsall/core/widgets/custom_text_field.dart';
 import 'package:hamro_footsall/core/widgets/loading_widget.dart';
-import 'package:hamro_footsall/features/courts/presentation/models/picked_location.dart';
+import 'package:hamro_footsall/features/courts/data/model/picked_location.dart';
 import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_models.dart';
 import 'package:http/http.dart' as http;
 

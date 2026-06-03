@@ -87,11 +87,19 @@ class ApiClient {
     return _get(url: '$_baseUrl/auth/facilities');
   }
 
-  Future<Result> getPublicVenueList({int page = 1, int perPage = 10}) {
+  Future<Result> getPublicVenueList({
+    int page = 1,
+    int perPage = 10,
+    Map<String, dynamic>? data,
+  }) {
     return _get(
-      url: '$_baseUrl/public/venue-list',
-      query: <String, dynamic>{'page': page, 'per_page': perPage},
+      url: '$_baseUrl/venues',
+      query: data ?? <String, dynamic>{'page': page, 'per_page': perPage},
     );
+  }
+
+  Future<Result> getCategoryFilter() {
+    return _get(url: '$_baseUrl/filters');
   }
 
   Future<Result> getVenueCourt() {

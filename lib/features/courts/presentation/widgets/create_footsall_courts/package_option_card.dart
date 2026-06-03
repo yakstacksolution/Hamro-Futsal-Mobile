@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
-import 'package:hamro_footsall/features/courts/presentation/models/create_courts_package_option.dart';
-
+import 'package:hamro_footsall/features/courts/data/model/create_courts_package_option.dart';
+ 
 class PackageOptionCard extends StatelessWidget {
   const PackageOptionCard({
     super.key,
@@ -136,7 +136,9 @@ class PackageOptionCard extends StatelessWidget {
                         ? Icons.radio_button_checked_rounded
                         : Icons.radio_button_off_rounded,
                     size: 18,
-                    color: isSelected ? LightColor.secondaryColor : LightColor.hintTextColor,
+                    color: isSelected
+                        ? LightColor.secondaryColor
+                        : LightColor.hintTextColor,
                   ),
                   const SizedBox(width: 8),
                   Text(

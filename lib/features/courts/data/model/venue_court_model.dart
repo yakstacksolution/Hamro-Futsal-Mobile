@@ -154,7 +154,9 @@ CourtDraft _courtFromJson(Map<String, dynamic> json) {
   final int? remoteId = _asInt(rawId);
   final String rawIdString = rawId?.toString().trim() ?? '';
   final Object? courtType = json['court_type'];
-  final Object? matchFormat = json['match_format'];
+  // The list endpoint sends `match_type` (e.g. "5v5"); detail/other endpoints
+  // may use `match_format`. Accept both.
+  final Object? matchFormat = json['match_format'] ?? json['match_type'];
   final String slug = _asString(json['slug']);
   final String code = _asString(json['code']);
   final String surfaceType = _asString(json['surface_type']);
@@ -191,7 +193,8 @@ CourtDraft _courtFromJson(Map<String, dynamic> json) {
     venueId: _asInt(json['venue_id']),
     mainStep: _asInt(json['main_step']),
     subStep: _asInt(json['sub_step']),
-    isStepCompleted: _asBool(json['is_step_completed']) ?? false,
+    isStepCompleted:
+        _asBool(json['is_step_completed'] ?? json['is_completed']) ?? false,
     category: _asInt(json['category']),
     slug: slug.isEmpty ? null : slug,
     code: code.isEmpty ? null : code,
@@ -199,15 +202,15 @@ CourtDraft _courtFromJson(Map<String, dynamic> json) {
     basePrice: _asDouble(json['base_price'] ?? json['price']),
     description: _asString(json['description']),
     courtTypeId: _asInt(json['court_type_id'] ?? courtType),
-    courtType: _optionName(courtType) ?? _asString(json['court_type_name']),
+    courtType: _resolveOptionName(courtType, json['court_type_name']),
     matchFormatId: _asInt(json['match_format_id'] ?? matchFormat),
-    matchFormat:
-        _optionName(matchFormat) ?? _asString(json['match_format_name']),
+    matchFormat: _resolveOptionName(matchFormat, json['match_format_name']),
     maxPlayers:
         _asInt(json['capacity'] ?? json['max_player'] ?? json['max_players']) ??
         10,
     surfaceType: surfaceType.isEmpty ? null : surfaceType,
     slotDuration: _asInt(json['slot_duration']),
+    slotCount: _asInt(json['slot_count'] ?? json['slotCount']),
     availability: AvailabilityDraft.fromJson(availability),
     enableOnlineBooking:
         _asBool(json['enable_online_booking']) ??
@@ -273,6 +276,19 @@ String? _optionName(Object? value) {
         : _asString(value['name'] ?? value['title']);
   }
   return null;
+}
+
+/// Resolves a display name that the backend may send either as an object
+/// (`{id, name}`), as a plain scalar string (`"Hard Court"`, `"5v5"`), or via a
+/// separate `*_name` field. Returns an empty string when none are present.
+String _resolveOptionName(Object? value, Object? fallbackName) {
+  final String? fromOption = _optionName(value);
+  if (fromOption != null && fromOption.isNotEmpty) return fromOption;
+  if (value is! Map) {
+    final String scalar = _asString(value);
+    if (scalar.isNotEmpty) return scalar;
+  }
+  return _asString(fallbackName);
 }
 
 int? _asInt(Object? value) {

@@ -124,7 +124,10 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
                 '${dob.day.toString().padLeft(2, '0')}',
       'gender': event.gender?.toLowerCase() ?? '',
       'address': event.address ?? '',
-      'profile_photo': int.parse(event.profilePhoto ?? '0'),
+      if (event.profilePhoto?.isNotEmpty == true)
+        'profile_photo': int.parse(event.profilePhoto!),
     };
   }
 }
+
+ 

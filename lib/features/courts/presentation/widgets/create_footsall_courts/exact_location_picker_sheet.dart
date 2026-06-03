@@ -12,8 +12,8 @@ import 'package:hamro_footsall/core/utils/image_constants.dart';
 import 'package:hamro_footsall/core/widgets/custom_button.dart';
 import 'package:hamro_footsall/core/widgets/custom_text_field.dart';
 import 'package:hamro_footsall/core/widgets/loading_widget.dart';
-import 'package:hamro_footsall/features/courts/presentation/models/picked_location.dart';
-import 'package:http/http.dart' as http;
+import 'package:hamro_footsall/features/courts/data/model/picked_location.dart';
+ import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 
 class ExactLocationPickerSheet extends StatefulWidget {

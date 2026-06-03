@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/widgets/loading_widget.dart';
@@ -164,7 +165,17 @@ class _StepperLogicScreenState extends State<StepperLogicScreen> {
           final VendorOnboardingCubit cubit = _cubit;
 
           if (state.isRestoringDraft) {
-            return const LoadingWidget();
+            return Scaffold(
+              body: Center(
+                child: CustomLoading(
+                  color: LightColor.secondaryColor,
+                  size: 30,
+                  strokeWidth: 3.5,
+                  secondCircleColor: LightColor.secondaryLight,
+                  thirdCircleColor: LightColor.secondaryLight,
+                ),
+              ),
+            );
           }
 
           return VendorOnboardingShell(
@@ -180,73 +191,62 @@ class _StepperLogicScreenState extends State<StepperLogicScreen> {
             ),
             body: SafeArea(
               top: false,
-              child: LayoutBuilder(
-                builder: (BuildContext context, BoxConstraints constraints) {
-                  return SingleChildScrollView(
-                    keyboardDismissBehavior:
-                        ScrollViewKeyboardDismissBehavior.onDrag,
-                    padding: _appUtils.getPadding(
-                      left: AppDimens.paddingX16,
-                      top: AppDimens.paddingX16,
-                      right: AppDimens.paddingX16,
-                      bottom: AppDimens.paddingX20,
-                    ),
-                    child: SizedBox(
-                      width: (constraints.maxWidth - (AppDimens.paddingX16 * 2))
-                          .clamp(0.0, double.infinity)
-                          .toDouble(),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          VendorOnboardingHeader(cubit: cubit, state: state),
-                          const SizedBox(height: AppDimens.sizeX14),
-                          VendorCategorySwitcher(
-                            activeCategory: state.cursor.category,
-                            onCategorySelected: (VendorCategory category) {
-                              cubit.selectCategory(category);
-                              if (category == VendorCategory.court) {
-                                unawaited(cubit.refreshRemoteCourts());
-                              }
-                            },
-                          ),
-                          if (state.isInCourtCategory) ...<Widget>[
-                            const SizedBox(
-                              key: ValueKey<String>('court-gap'),
-                              height: AppDimens.sizeX14,
-                            ),
-                            KeyedSubtree(
-                              key: const ValueKey<String>('court-body'),
-                              child: ExcludeSemantics(
-                                child: VendorCourtManager(
-                                  cubit: cubit,
-                                  state: state,
-                                ),
-                              ),
-                            ),
-                          ],
-                          if (!state.isInCourtCategory &&
-                              cubit.isCourtEditorVisible) ...<Widget>[
-                            const SizedBox(
-                              key: ValueKey<String>('futsal-gap'),
-                              height: AppDimens.sizeX14,
-                            ),
-                            KeyedSubtree(
-                              key: const ValueKey<String>('futsal-body'),
-                              child: ExcludeSemantics(
-                                child: VendorOnboardingStepContent(
-                                  title: 'Futsal Steps',
-                                  cubit: cubit,
-                                  state: state,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ],
+              child: SingleChildScrollView(
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
+                padding: _appUtils.getPadding(
+                  left: AppDimens.paddingX16,
+                  top: AppDimens.paddingX16,
+                  right: AppDimens.paddingX16,
+                  bottom: AppDimens.paddingX20,
+                ),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      VendorOnboardingHeader(cubit: cubit, state: state),
+                      const SizedBox(height: AppDimens.sizeX14),
+                      VendorCategorySwitcher(
+                        activeCategory: state.cursor.category,
+                        onCategorySelected: cubit.selectCategory,
                       ),
-                    ),
-                  );
-                },
+                      if (state.isInCourtCategory) ...<Widget>[
+                        const SizedBox(
+                          key: ValueKey<String>('court-gap'),
+                          height: AppDimens.sizeX14,
+                        ),
+                        KeyedSubtree(
+                          key: const ValueKey<String>('court-body'),
+                          child: ExcludeSemantics(
+                            child: VendorCourtManager(
+                              cubit: cubit,
+                              state: state,
+                            ),
+                          ),
+                        ),
+                      ],
+                      if (!state.isInCourtCategory &&
+                          cubit.isCourtEditorVisible) ...<Widget>[
+                        const SizedBox(
+                          key: ValueKey<String>('futsal-gap'),
+                          height: AppDimens.sizeX14,
+                        ),
+                        KeyedSubtree(
+                          key: const ValueKey<String>('futsal-body'),
+                          child: ExcludeSemantics(
+                            child: VendorOnboardingStepContent(
+                              title: 'Futsal Steps',
+                              cubit: cubit,
+                              state: state,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
               ),
             ),
           );

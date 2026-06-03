@@ -105,8 +105,20 @@ class AuthManager extends ServiceManager {
     return await _apiClient.getFacilities();
   }
 
-  Future<Result> getPublicVenueList({int page = 1, int perPage = 10}) async {
-    return await _apiClient.getPublicVenueList(page: page, perPage: perPage);
+  Future<Result> getPublicVenueList({
+    int page = 1,
+    int perPage = 10,
+    Map<String, dynamic>? data,
+  }) async {
+    return await _apiClient.getPublicVenueList(
+      page: page,
+      perPage: perPage,
+      data: data,
+    );
+  }
+
+  Future<Result> getCategoryFilter() async {
+    return await _apiClient.getCategoryFilter();
   }
 
   Future<Result> getVenueCourt() async {

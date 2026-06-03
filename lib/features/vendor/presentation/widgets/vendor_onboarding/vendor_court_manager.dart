@@ -166,7 +166,7 @@ class VendorCourtManager extends StatelessWidget {
 
   Future<void> _confirmRemoveCourt(
     BuildContext context,
-    String courtId,
+    CourtDraft court,
     String courtName,
   ) async {
     final bool confirmed = await showDeleteDialog(
@@ -180,9 +180,50 @@ class VendorCourtManager extends StatelessWidget {
       confirmColor: LightColor.redColor,
     );
 
-    if (confirmed) {
-      cubit.removeCourt(courtId);
+    if (!confirmed || !context.mounted) return;
+
+    // A court that was never persisted has no remote id, so there is nothing to
+    // delete on the server — just drop it from local state.
+    final int? remoteCourtId = court.remoteId ?? int.tryParse(court.id);
+    if (remoteCourtId == null) {
+      cubit.removeCourt(court.id);
+      return;
     }
+
+    // Block the UI with a loader while the delete request is in flight.
+    unawaited(
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const Center(
+          child: CustomLoading(
+            color: LightColor.secondaryColor,
+            size: 36,
+            strokeWidth: 3.5,
+            secondCircleColor: LightColor.secondaryLight,
+            thirdCircleColor: LightColor.secondaryLight,
+          ),
+        ),
+      ),
+    );
+
+    final String? error = await cubit.deleteCourtById(remoteCourtId);
+    if (!context.mounted) return;
+
+    // Dismiss the loader.
+    Navigator.of(context, rootNavigator: true).pop();
+
+    if (error != null) {
+      AppUtils().showSnackBar(context, MsgType.error, error);
+      return;
+    }
+
+    cubit.removeCourt(court.id);
+    AppUtils().showSnackBar(
+      context,
+      MsgType.success,
+      '"$courtName" deleted successfully.',
+    );
   }
 
   @override
@@ -257,7 +298,7 @@ class VendorCourtManager extends StatelessWidget {
                   onTap: () => unawaited(_openCourtEditor(context, court.id)),
                   onRemove: () => _confirmRemoveCourt(
                     context,
-                    court.id,
+                    court,
                     court.name.trim().isEmpty
                         ? 'Unnamed Court'
                         : court.name.trim(),
@@ -401,36 +442,40 @@ class _CourtListTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+
     final String courtName = court.name.trim().isEmpty
         ? 'Unnamed Court'
         : court.name.trim();
-    final bool isComplete = completedSections == totalSections;
-
+    final bool isComplete =
+        totalSections > 0 && completedSections == totalSections;
     final double progress = totalSections == 0
         ? 0
-        : completedSections / totalSections;
-    final int progressPercent = (progress.clamp(0, 1) * 100).round();
+        : (completedSections / totalSections).clamp(0, 1);
+    final int progressPercent = (progress * 100).round();
+
     final UploadRef? coverImage = court.photos.isNotEmpty
         ? court.photos.first
         : (court.memories.isNotEmpty ? court.memories.first : null);
+
+    final int slotCount = court.slotCount ?? court.slotConfigs.length;
+    final String price = formatDouble(court.basePrice);
+    final String courtType = court.courtType?.trim() ?? '';
+    final String matchFormat = court.matchFormat?.trim() ?? '';
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+        borderRadius: BorderRadius.circular(AppDimens.radiusX8),
         child: Ink(
-          padding: AppUtils().getPadding(all: AppDimens.paddingX10),
+          padding: AppUtils().getPadding(all: AppDimens.paddingX12),
           decoration: BoxDecoration(
-            color: isSelected
-                ? LightColor.secondaryLight.withValues(alpha: 0.16)
-                : LightColor.background,
-            borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+            color: LightColor.whiteColor,
+            borderRadius: BorderRadius.circular(AppDimens.radiusX8),
             border: Border.all(
-              color: isSelected
-                  ? LightColor.secondaryLight
-                  : LightColor.greyBorderColor,
-              width: isSelected ? 1.5 : 1,
+              color: LightColor.greyBorderColor,
+              width: isSelected ? 1.4 : 1,
             ),
           ),
           child: Column(
@@ -438,6 +483,7 @@ class _CourtListTile extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
                   _CourtThumbnail(image: coverImage),
                   const SizedBox(width: AppDimens.sizeX12),
@@ -446,80 +492,79 @@ class _CourtListTile extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
-                        Text(
-                          courtName,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: FutsalTheme.getTextTheme(context).bodyTextSmall
-                              ?.copyWith(
-                                color: LightColor.primaryTextColor,
-                                fontWeight: FontWeight.w800,
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            Expanded(
+                              child: Text(
+                                courtName,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: textTheme.bodyTextMedium?.copyWith(
+                                  color: LightColor.primaryTextColor,
+                                  fontWeight: FontWeight.w800,
+                                ),
                               ),
+                            ),
+                            const SizedBox(width: AppDimens.sizeX8),
+                            _RemoveButton(onTap: onRemove),
+                          ],
                         ),
                         const SizedBox(height: AppDimens.sizeX6),
-                        Row(
+                        Wrap(
+                          spacing: AppDimens.sizeX6,
+                          runSpacing: AppDimens.sizeX6,
                           children: <Widget>[
-                            _CourtMetricPill(
-                              icon: isComplete
-                                  ? Icons.check_circle_rounded
-                                  : Icons.pie_chart_rounded,
-                              label: '$progressPercent%',
-                              isStrong: isComplete,
-                            ),
-                            const SizedBox(width: AppDimens.sizeX6),
-                            _CourtMetricPill(
+                            if (courtType.isNotEmpty)
+                              _InfoChip(
+                                icon: Icons.stadium_rounded,
+                                label: courtType,
+                              ),
+                            if (matchFormat.isNotEmpty)
+                              _InfoChip(
+                                icon: Icons.sports_soccer_rounded,
+                                label: matchFormat,
+                              ),
+                            _InfoChip(
                               icon: Icons.schedule_rounded,
                               label:
-                                  '${court.slotConfigs.length} ${court.slotConfigs.length == 1 ? 'slot' : 'slots'}',
+                                  '$slotCount ${slotCount == 1 ? 'slot' : 'slots'}',
                             ),
                           ],
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(width: AppDimens.sizeX8),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: <Widget>[
-                      Text(
-                        formatDouble(court.basePrice).isEmpty
-                            ? '-'
-                            : formatDouble(court.basePrice),
-                        style: FutsalTheme.getTextTheme(context).bodyTextSmall
-                            ?.copyWith(
-                              color: LightColor.secondaryColor,
-                              fontWeight: FontWeight.w900,
-                            ),
-                      ),
-                      const SizedBox(height: AppDimens.sizeX6),
-                      GestureDetector(
-                        onTap: onRemove,
-                        child: Container(
-                          width: AppDimens.sizeX28,
-                          height: AppDimens.sizeX28,
-                          decoration: BoxDecoration(
-                            color: LightColor.primaryTextColor.withValues(
-                              alpha: 0.05,
-                            ),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.close_rounded,
-                            size: AppDimens.sizeX12,
-                            color: LightColor.secondaryTextColor,
-                          ),
-                        ),
-                      ),
-                    ],
+                ],
+              ),
+              const SizedBox(height: AppDimens.sizeX8),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: <Widget>[
+                  Text(
+                    price.isEmpty ? '—' : 'Rs $price',
+                    style: textTheme.bodyTextSmall?.copyWith(
+                      color: LightColor.secondaryColor,
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    isComplete ? 'Complete' : '$progressPercent%',
+                    style: textTheme.bodyMiniSubTitle?.copyWith(
+                      color: isComplete
+                          ? LightColor.secondaryColor
+                          : LightColor.secondaryTextColor,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ],
               ),
-              const SizedBox(height: AppDimens.sizeX10),
+              const SizedBox(height: AppDimens.sizeX6),
               ClipRRect(
                 borderRadius: BorderRadius.circular(AppDimens.radiusX4),
                 child: LinearProgressIndicator(
-                  value: progress.clamp(0, 1),
-                  minHeight: AppDimens.sizeX4,
+                  value: progress,
+                  minHeight: AppDimens.sizeX3,
                   backgroundColor: LightColor.greyBorderColor,
                   valueColor: AlwaysStoppedAnimation<Color>(
                     isComplete
@@ -530,6 +575,72 @@ class _CourtListTile extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _InfoChip extends StatelessWidget {
+  const _InfoChip({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: AppUtils().getPadding(
+        horizontal: AppDimens.paddingX6,
+        vertical: AppDimens.paddingX4,
+      ),
+      decoration: BoxDecoration(
+        color: LightColor.cardColor,
+        borderRadius: BorderRadius.circular(AppDimens.radiusX4),
+        border: Border.all(color: LightColor.greyBorderColor),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Icon(
+            icon,
+            size: AppDimens.sizeX12,
+            color: LightColor.secondaryTextColor,
+          ),
+          const SizedBox(width: AppDimens.sizeX4),
+          Text(
+            label,
+            style: FutsalTheme.getTextTheme(
+              context,
+            ).bodyMiniSubTitle?.copyWith(color: LightColor.primaryTextColor),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RemoveButton extends StatelessWidget {
+  const _RemoveButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        width: AppDimens.sizeX28,
+        height: AppDimens.sizeX28,
+        decoration: BoxDecoration(
+          color: LightColor.primaryTextColor.withValues(alpha: 0.05),
+          shape: BoxShape.circle,
+        ),
+        child: const Icon(
+          Icons.close_rounded,
+          size: AppDimens.sizeX12,
+          color: LightColor.secondaryTextColor,
         ),
       ),
     );
@@ -564,57 +675,6 @@ class _CourtThumbnail extends StatelessWidget {
               color: LightColor.secondaryColor,
               size: AppDimens.sizeX24,
             ),
-    );
-  }
-}
-
-class _CourtMetricPill extends StatelessWidget {
-  const _CourtMetricPill({
-    required this.icon,
-    required this.label,
-    this.isStrong = false,
-  });
-
-  final IconData icon;
-  final String label;
-  final bool isStrong;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: AppUtils().getPadding(
-        horizontal: AppDimens.paddingX8,
-        vertical: AppDimens.paddingX4,
-      ),
-      decoration: BoxDecoration(
-        color: isStrong
-            ? LightColor.secondaryLight.withValues(alpha: 0.2)
-            : LightColor.cardColor,
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: LightColor.greyBorderColor),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Icon(
-            icon,
-            size: AppDimens.sizeX12,
-            color: isStrong
-                ? LightColor.secondaryColor
-                : LightColor.secondaryTextColor,
-          ),
-          const SizedBox(width: AppDimens.sizeX4),
-          Text(
-            label,
-            style: FutsalTheme.getTextTheme(context).bodyMiniSubTitle?.copyWith(
-              color: isStrong
-                  ? LightColor.secondaryColor
-                  : LightColor.secondaryTextColor,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

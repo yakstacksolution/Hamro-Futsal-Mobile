@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hamro_footsall/core/helper/venue_distance_helper.dart';
 import 'package:hamro_footsall/core/routers/app_router_params.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
@@ -10,22 +12,29 @@ import 'dart:ui';
 import 'package:hamro_footsall/core/utils/custom_image_view.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/utils/image_constants.dart';
+import 'package:hamro_footsall/core/widgets/loading_widget.dart';
+import 'package:hamro_footsall/features/dashboard/presentation/widgets/loading/home_body_loading.dart';
 import 'package:hamro_footsall/features/public/data/model/public_venue_model.dart';
 import 'package:hamro_footsall/features/public/data/repositories/public_repository_impl.dart';
 import 'package:hamro_footsall/features/public/domain/usecase/get_public_venues_use_case.dart';
 import 'package:hamro_footsall/features/public/presentation/bloc/public_venue/public_venue_bloc.dart';
+import 'package:hamro_footsall/features/public/presentation/models/venue_filter.dart';
 
 class FootsallHomePage extends StatelessWidget {
-  const FootsallHomePage({super.key});
+  const FootsallHomePage({super.key, this.filter = VenueFilter.empty});
+
+  final VenueFilter filter;
 
   @override
   Widget build(BuildContext context) {
-    return const CourtsListScreen();
+    return CourtsListScreen(filter: filter);
   }
 }
 
 class CourtsListScreen extends StatefulWidget {
-  const CourtsListScreen({super.key});
+  const CourtsListScreen({super.key, this.filter = VenueFilter.empty});
+
+  final VenueFilter filter;
 
   @override
   State<CourtsListScreen> createState() => _CourtsListScreenState();
@@ -50,8 +59,19 @@ class _CourtsListScreenState extends State<CourtsListScreen>
 
     _publicVenueBloc = PublicVenueBloc(
       GetPublicVenuesUseCase(PublicRepositoryImpl()),
-    )..add(const FetchPublicVenuesEvent());
+    )..add(FetchPublicVenuesEvent(filter: widget.filter));
     _scrollController.addListener(_onScroll);
+
+    // Resolve the device position early so venue cards can show distances.
+    VenueDistanceHelper.instance.ensurePosition();
+  }
+
+  @override
+  void didUpdateWidget(covariant CourtsListScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.filter != widget.filter) {
+      _publicVenueBloc.add(FetchPublicVenuesEvent(filter: widget.filter));
+    }
   }
 
   @override
@@ -68,10 +88,16 @@ class _CourtsListScreenState extends State<CourtsListScreen>
     if (!_scrollController.hasClients) return;
     final double maxScroll = _scrollController.position.maxScrollExtent;
     final double currentScroll = _scrollController.position.pixels;
-    // Start loading the next page slightly before the user hits the bottom.
     if (currentScroll >= maxScroll - 300) {
       _publicVenueBloc.add(const LoadMorePublicVenuesEvent());
     }
+  }
+
+  Future<void> _refresh() async {
+    _publicVenueBloc.add(FetchPublicVenuesEvent(filter: widget.filter));
+    await _publicVenueBloc.stream.firstWhere(
+      (PublicVenueState state) => state.status != PublicVenueStatus.loading,
+    );
   }
 
   @override
@@ -79,57 +105,245 @@ class _CourtsListScreenState extends State<CourtsListScreen>
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.dark);
     return BlocProvider<PublicVenueBloc>.value(
       value: _publicVenueBloc,
-      child: Padding(
-        padding: AppUtils().getPadding(
-          left: AppDimens.paddingX20,
-          right: AppDimens.paddingX20,
-        ),
-        child: FadeTransition(
-          opacity: _fadeIn,
-          child: BlocBuilder<PublicVenueBloc, PublicVenueState>(
-            builder: (BuildContext context, PublicVenueState state) {
-              final List<PublicVenueModel> courts = state.venues;
-              return CustomScrollView(
-                controller: _scrollController,
-                physics: const BouncingScrollPhysics(),
-                slivers: [
-                  SliverToBoxAdapter(child: SizedBox(height: AppDimens.sizeX8)),
-                  SliverPadding(
-                    padding: AppUtils().getPadding(bottom: AppDimens.sizeX120),
-                    sliver: SliverList.builder(
-                      itemCount: courts.length,
-                      itemBuilder: (context, index) {
-                        return TweenAnimationBuilder<double>(
-                          tween: Tween(begin: 0, end: 1),
-                          duration: Duration(milliseconds: 500 + index * 120),
-                          curve: Curves.easeOutCubic,
-                          builder: (context, value, child) =>
-                              Transform.translate(
-                                offset: Offset(0, 30 * (1 - value)),
-                                child: Opacity(opacity: value, child: child),
-                              ),
-                          child: Padding(
-                            padding: AppUtils().getPadding(
-                              bottom: AppDimens.sizeX20,
-                            ),
-                            child: CourtCard(court: courts[index]),
-                          ),
-                        );
-                      },
+      child: FadeTransition(
+        opacity: _fadeIn,
+        child: BlocBuilder<PublicVenueBloc, PublicVenueState>(
+          builder: (BuildContext context, PublicVenueState state) {
+            return state.status == PublicVenueStatus.loading
+                ? HomeBodyLoading()
+                : Padding(
+                    padding: AppUtils().getPadding(
+                      left: AppDimens.paddingX20,
+                      right: AppDimens.paddingX20,
                     ),
-                  ),
-                ],
-              );
-            },
+                    child: RefreshIndicator(
+                      onRefresh: _refresh,
+                      color: LightColor.secondaryColor,
+                      child: CustomScrollView(
+                        controller: _scrollController,
+                        physics: const AlwaysScrollableScrollPhysics(
+                          parent: BouncingScrollPhysics(),
+                        ),
+                        slivers: <Widget>[
+                          SliverToBoxAdapter(
+                            child: SizedBox(height: AppDimens.sizeX22),
+                          ),
+                          ..._buildContentSlivers(state),
+                        ],
+                      ),
+                    ),
+                  );
+          },
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _buildContentSlivers(PublicVenueState state) {
+    final List<PublicListingVenueModel> venues = state.venues;
+
+    if (state.status == PublicVenueStatus.loading && venues.isEmpty) {
+      return <Widget>[
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: Padding(
+              padding: AppUtils().getPadding(top: AppDimens.sizeX100),
+              child: const CustomLoading(
+                color: LightColor.secondaryColor,
+                size: 32,
+                strokeWidth: 3.5,
+                secondCircleColor: LightColor.secondaryLight,
+                thirdCircleColor: LightColor.secondaryLight,
+              ),
+            ),
           ),
         ),
+      ];
+    }
+
+    if (state.status == PublicVenueStatus.failure && venues.isEmpty) {
+      return <Widget>[
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: Padding(
+              padding: AppUtils().getPadding(top: AppDimens.sizeX80),
+              child: _VenueMessageView(
+                icon: Icons.wifi_off_rounded,
+                title: 'Unable to load venues',
+                message:
+                    state.errorMessage ??
+                    'Please check your connection and try again.',
+                actionLabel: 'Retry',
+                onAction: () => _publicVenueBloc.add(
+                  FetchPublicVenuesEvent(filter: widget.filter),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ];
+    }
+
+    if (venues.isEmpty) {
+      return <Widget>[
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: Padding(
+              padding: AppUtils().getPadding(top: AppDimens.sizeX80),
+              child: const _VenueMessageView(
+                icon: Icons.stadium_outlined,
+                title: 'No venues found',
+                message: 'There are no futsal venues to show right now.',
+              ),
+            ),
+          ),
+        ),
+      ];
+    }
+
+    final List<PublicListingVenueModel> filtered = widget.filter.apply(venues);
+
+    if (filtered.isEmpty) {
+      return <Widget>[
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: Padding(
+              padding: AppUtils().getPadding(top: AppDimens.sizeX80),
+              child: const _VenueMessageView(
+                icon: Icons.filter_alt_off_rounded,
+                title: 'No matching venues',
+                message: 'Try adjusting or clearing your filters.',
+              ),
+            ),
+          ),
+        ),
+      ];
+    }
+
+    return <Widget>[
+      SliverPadding(
+        padding: AppUtils().getPadding(bottom: AppDimens.sizeX20),
+        sliver: SliverList.builder(
+          itemCount: filtered.length,
+          itemBuilder: (BuildContext context, int index) {
+            return TweenAnimationBuilder<double>(
+              tween: Tween<double>(begin: 0, end: 1),
+              duration: Duration(milliseconds: 500 + index * 120),
+              curve: Curves.easeOutCubic,
+              builder: (BuildContext context, double value, Widget? child) =>
+                  Transform.translate(
+                    offset: Offset(0, 30 * (1 - value)),
+                    child: Opacity(opacity: value, child: child),
+                  ),
+              child: Padding(
+                padding: AppUtils().getPadding(bottom: AppDimens.sizeX20),
+                child: CourtCard(court: filtered[index]),
+              ),
+            );
+          },
+        ),
+      ),
+      SliverToBoxAdapter(
+        child: Padding(
+          padding: AppUtils().getPadding(
+            top: AppDimens.sizeX4,
+            bottom: AppDimens.sizeX120,
+          ),
+          child: state.isLoadingMore
+              ? const Center(
+                  child: CustomLoading(
+                    color: LightColor.secondaryColor,
+                    size: 24,
+                    strokeWidth: 3,
+                    secondCircleColor: LightColor.secondaryLight,
+                    thirdCircleColor: LightColor.secondaryLight,
+                  ),
+                )
+              : const SizedBox.shrink(),
+        ),
+      ),
+    ];
+  }
+}
+
+class _VenueMessageView extends StatelessWidget {
+  const _VenueMessageView({
+    required this.icon,
+    required this.title,
+    required this.message,
+    this.actionLabel,
+    this.onAction,
+  });
+
+  final IconData icon;
+  final String title;
+  final String message;
+  final String? actionLabel;
+  final VoidCallback? onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: AppUtils().getPadding(all: AppDimens.paddingX24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: <Widget>[
+          Icon(
+            icon,
+            size: AppDimens.sizeX48,
+            color: LightColor.secondaryTextColor,
+          ),
+          const SizedBox(height: AppDimens.sizeX12),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: FutsalTheme.getTextTheme(context).bodyTextLarge?.copyWith(
+              color: LightColor.primaryTextColor,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: AppDimens.sizeX6),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
+              color: LightColor.secondaryTextColor,
+              height: 1.5,
+            ),
+          ),
+          if (actionLabel != null && onAction != null) ...<Widget>[
+            const SizedBox(height: AppDimens.sizeX16),
+            OutlinedButton.icon(
+              onPressed: onAction,
+              icon: const Icon(Icons.refresh_rounded, size: AppDimens.sizeX18),
+              label: Text(actionLabel!),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: LightColor.secondaryColor,
+                side: const BorderSide(color: LightColor.secondaryColor),
+                padding: AppUtils().getPadding(
+                  horizontal: AppDimens.paddingX20,
+                  vertical: AppDimens.paddingX10,
+                ),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
 }
 
 class CourtCard extends StatefulWidget {
-  final PublicVenueModel court;
+  final PublicListingVenueModel court;
   const CourtCard({super.key, required this.court});
 
   @override
@@ -171,7 +385,7 @@ class _CourtCardState extends State<CourtCard> {
                   fit: StackFit.expand,
                   children: [
                     CustomImageView(
-                      url: widget.court.image,
+                      url: widget.court.featureImage,
                       fit: BoxFit.cover,
                       width: double.infinity,
                       height: double.infinity,
@@ -219,22 +433,13 @@ class _CourtCardState extends State<CourtCard> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          widget.court.name,
-                          style: FutsalTheme.getTextTheme(context).bodyTextLarge
-                              ?.copyWith(
-                                color: LightColor.primaryTextColor,
-                                fontWeight: FontWeight.w600,
-                              ),
+                  Text(
+                    widget.court.name,
+                    style: FutsalTheme.getTextTheme(context).bodyTextLarge
+                        ?.copyWith(
+                          color: LightColor.primaryTextColor,
+                          fontWeight: FontWeight.w600,
                         ),
-                      ),
-                      const SizedBox(width: AppDimens.sizeX8),
-                      _ratingWidget(),
-                    ],
                   ),
                   const SizedBox(height: AppDimens.sizeX6),
 
@@ -248,33 +453,16 @@ class _CourtCardState extends State<CourtCard> {
                         color: LightColor.secondaryTextColor,
                       ),
                       const SizedBox(width: AppDimens.sizeX6),
-                      Text(
-                        widget.court.location,
-
-                        style: FutsalTheme.getTextTheme(context).bodyTextSmall
-                            ?.copyWith(color: LightColor.secondaryTextColor),
-                      ),
-                      const SizedBox(width: AppDimens.sizeX10),
-                      Container(
-                        width: AppDimens.sizeX3,
-                        height: AppDimens.sizeX3,
-                        decoration: BoxDecoration(
-                          color: LightColor.secondaryTextColor.withValues(
-                            alpha: 0.4,
-                          ),
-                          shape: BoxShape.circle,
+                      Flexible(
+                        child: Text(
+                          widget.court.address,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: FutsalTheme.getTextTheme(context).bodyTextSmall
+                              ?.copyWith(color: LightColor.secondaryTextColor),
                         ),
                       ),
-                      const SizedBox(width: AppDimens.sizeX8),
-                      Text(
-                        widget.court.distance,
-                        style: FutsalTheme.getTextTheme(context).bodyTextSmall
-                            ?.copyWith(
-                              color: LightColor.secondaryTextColor.withValues(
-                                alpha: 0.8,
-                              ),
-                            ),
-                      ),
+                      _DistanceLabel(court: widget.court),
                     ],
                   ),
                   const SizedBox(height: AppDimens.sizeX12),
@@ -283,7 +471,7 @@ class _CourtCardState extends State<CourtCard> {
                       Row(
                         children: [
                           Text(
-                            widget.court.price,
+                            'Rs. ${widget.court.price.toStringAsFixed(0)}',
                             style: FutsalTheme.getTextTheme(context)
                                 .headingSubTitle
                                 ?.copyWith(
@@ -315,51 +503,70 @@ class _CourtCardState extends State<CourtCard> {
       ),
     );
   }
+}
 
-  Widget _ratingWidget() {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(AppDimens.sizeX30),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Container(
-          padding: AppUtils().getPadding(
-            horizontal: AppDimens.paddingX10,
-            vertical: AppDimens.paddingX6,
-          ),
-          decoration: BoxDecoration(
-            color: LightColor.whiteColor.withValues(alpha: 0.85),
-            borderRadius: BorderRadius.circular(AppDimens.sizeX30),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.star_rounded,
-                color: LightColor.ratingColor,
-                size: AppDimens.sizeX14,
+class _DistanceLabel extends StatefulWidget {
+  const _DistanceLabel({required this.court});
+
+  final PublicListingVenueModel court;
+
+  @override
+  State<_DistanceLabel> createState() => _DistanceLabelState();
+}
+
+class _DistanceLabelState extends State<_DistanceLabel> {
+  @override
+  void initState() {
+    super.initState();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      VenueDistanceHelper.instance.ensurePosition();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<Position?>(
+      valueListenable: VenueDistanceHelper.instance.position,
+      builder: (BuildContext context, Position? position, Widget? child) {
+        if (position == null) {
+          return const SizedBox.shrink();
+        }
+
+        final double latitude = widget.court.latitude;
+        final double longitude = widget.court.longitude;
+
+        final String? distance = VenueDistanceHelper.instance.formatDistance(
+          latitude,
+          longitude,
+        );
+
+        if (distance == null) {
+          return const SizedBox.shrink();
+        }
+
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(width: AppDimens.sizeX10),
+            Container(
+              width: AppDimens.sizeX3,
+              height: AppDimens.sizeX3,
+              decoration: BoxDecoration(
+                color: LightColor.secondaryTextColor.withValues(alpha: 0.4),
+                shape: BoxShape.circle,
               ),
-              const SizedBox(width: AppDimens.sizeX4),
-              Text(
-                widget.court.rating.toString(),
-                style: FutsalTheme.getTextTheme(context).bodyTextSmall
-                    ?.copyWith(
-                      color: LightColor.ratingColor,
-                      fontWeight: FontWeight.w600,
-                    ),
+            ),
+            const SizedBox(width: AppDimens.sizeX28),
+            Text(
+              distance,
+              style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
+                color: LightColor.secondaryTextColor.withValues(alpha: 0.8),
               ),
-              const SizedBox(width: AppDimens.sizeX4),
-              Text(
-                '(${widget.court.reviewCount})',
-                style: FutsalTheme.getTextTheme(context).bodyTextSmall
-                    ?.copyWith(
-                      color: LightColor.secondaryDark,
-                      fontWeight: FontWeight.w500,
-                    ),
-              ),
-            ],
-          ),
-        ),
-      ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

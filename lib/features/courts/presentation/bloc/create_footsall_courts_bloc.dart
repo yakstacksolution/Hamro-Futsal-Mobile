@@ -1,12 +1,12 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:hamro_footsall/features/courts/data/model/create_courts_action_result.dart';
+import 'package:hamro_footsall/features/courts/data/model/create_courts_package_option.dart';
+import 'package:hamro_footsall/features/courts/data/model/create_footsall_court_payload.dart';
+import 'package:hamro_footsall/features/courts/data/model/picked_location.dart';
 import 'package:hamro_footsall/features/courts/presentation/bloc/create_footsall_courts_state.dart';
-import 'package:hamro_footsall/features/courts/presentation/models/create_courts_action_result.dart';
-import 'package:hamro_footsall/features/courts/presentation/models/create_courts_package_option.dart';
-import 'package:hamro_footsall/features/courts/presentation/models/create_courts_step_definition.dart';
-import 'package:hamro_footsall/features/courts/presentation/models/create_footsall_court_payload.dart';
-import 'package:hamro_footsall/features/courts/presentation/models/picked_location.dart';
-
+ import 'package:hamro_footsall/features/courts/data/model/create_courts_step_definition.dart';
+ 
 class CreateFootsallCourtsBloc extends ChangeNotifier {
   CreateFootsallCourtsBloc()
     : _state = CreateFootsallCourtsState.initial(

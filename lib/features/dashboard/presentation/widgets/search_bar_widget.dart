@@ -8,8 +8,14 @@ import 'package:hamro_footsall/core/utils/dimens.dart';
 class ExpandableFocusSearchBar extends StatefulWidget {
   final ValueChanged<String>? onChanged;
   final VoidCallback? onFilterTap;
+  final int filterCount;
 
-  const ExpandableFocusSearchBar({super.key, this.onChanged, this.onFilterTap});
+  const ExpandableFocusSearchBar({
+    super.key,
+    this.onChanged,
+    this.onFilterTap,
+    this.filterCount = 0,
+  });
 
   @override
   State<ExpandableFocusSearchBar> createState() =>
@@ -168,11 +174,48 @@ class _ExpandableFocusSearchBarState extends State<ExpandableFocusSearchBar>
                   bg: LightColor.greyBorderColor,
                 ),
               SizedBox(width: AppDimens.sizeX2),
-              _buildIconButton(
-                Icons.tune_rounded,
-                onTap: widget.onFilterTap,
-                color: LightColor.whiteColor,
-                isGradient: true,
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  _buildIconButton(
+                    Icons.tune_rounded,
+                    onTap: widget.onFilterTap,
+                    color: LightColor.whiteColor,
+                    isGradient: true,
+                  ),
+                  if (widget.filterCount > 0)
+                    Positioned(
+                      right: -2,
+                      top: -4,
+                      child: Container(
+                        padding: const EdgeInsets.all(AppDimens.sizeX4),
+                        constraints: const BoxConstraints(
+                          minWidth: AppDimens.sizeX16,
+                          minHeight: AppDimens.sizeX16,
+                        ),
+                        decoration: BoxDecoration(
+                          color: LightColor.redColor,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: LightColor.cardColor,
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Text(
+                          '${widget.filterCount}',
+                          textAlign: TextAlign.center,
+                          style: FutsalTheme.getTextTheme(context)
+                              .bodyMiniSubTitle
+                              ?.copyWith(
+                                color: LightColor.whiteColor,
+                                fontWeight: FontWeight.w800,
+                                fontSize: AppDimens.sizeX10,
+                                height: 1,
+                              ),
+                        ),
+                      ),
+                    ),
+                ],
               ),
               SizedBox(width: AppDimens.sizeX8),
             ],

@@ -1,5 +1,6 @@
 import 'package:hamro_footsall/core/api/api_client/result.dart';
 import 'package:hamro_footsall/core/api/client.dart';
+import 'package:hamro_footsall/features/public/presentation/models/venue_filter.dart';
 
 abstract class PublicRemoteDataSource {
   Future<Result> getServices();
@@ -9,7 +10,8 @@ abstract class PublicRemoteDataSource {
   Future<Result> getAmenities();
   Future<Result> getFacilities();
   Future<Result> getTemplates();
-  Future<Result> getVenueList({int page, int perPage});
+  Future<Result> getVenueList({int page, int perPage, VenueFilter? filter});
+  Future<Result> getCategoryFilter();
 }
 
 final class PublicRemoteDataSourceImpl extends PublicRemoteDataSource {
@@ -42,9 +44,17 @@ final class PublicRemoteDataSourceImpl extends PublicRemoteDataSource {
       await Client.instance().getAuthManager().getPublicTemplates();
 
   @override
-  Future<Result> getVenueList({int page = 1, int perPage = 10}) async =>
-      await Client.instance().getAuthManager().getPublicVenueList(
-        page: page,
-        perPage: perPage,
-      );
+  Future<Result> getVenueList({
+    int page = 1,
+    int perPage = 10,
+    VenueFilter? filter,
+  }) async => await Client.instance().getAuthManager().getPublicVenueList(
+    page: page,
+    perPage: perPage,
+    data: filter?.toVenueListPayload(page: page, perPage: perPage),
+  );
+
+  @override
+  Future<Result> getCategoryFilter() async =>
+      await Client.instance().getAuthManager().getCategoryFilter();
 }
