@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
@@ -29,6 +30,7 @@ class CustomTextField extends StatefulWidget {
     this.onSubmitted,
     this.isRequired = true,
     this.ensureVisibleOnFocus = false,
+    this.inputFormatters,
   });
 
   final String labelText;
@@ -52,6 +54,7 @@ class CustomTextField extends StatefulWidget {
   final String? initialValue;
   final ValueChanged<String>? onSubmitted;
   final bool? isRequired;
+  final List<TextInputFormatter>? inputFormatters;
 
   /// When true, the field scrolls itself into view inside the nearest
   /// [Scrollable] as soon as it gains focus (so it stays above the keyboard).
@@ -135,6 +138,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
       onTap: widget.onTap,
       onFieldSubmitted: widget.onSubmitted,
       validator: widget.validator,
+      inputFormatters: widget.inputFormatters,
       cursorColor: LightColor.primaryTextColor,
       cursorHeight: AppDimens.sizeX16,
       cursorWidth: 1.2,

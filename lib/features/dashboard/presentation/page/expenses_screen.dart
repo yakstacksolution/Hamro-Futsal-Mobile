@@ -2235,10 +2235,6 @@ class _DetailRow extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────
-//  CREATE EXPENSE
-// ─────────────────────────────────────────────
-
 class _CreateExpensePage extends StatefulWidget {
   const _CreateExpensePage({required this.venues});
   final List<_Venue> venues;
