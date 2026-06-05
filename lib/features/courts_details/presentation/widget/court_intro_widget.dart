@@ -5,6 +5,7 @@ import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/widgets/custom_html_viewer.dart';
 import 'package:hamro_footsall/features/courts_details/presentation/page/court_details.dart';
+import 'package:hamro_footsall/features/dashboard/presentation/widgets/venue_status_widget.dart';
 
 class CourtIntroWidget extends StatelessWidget {
   final CourtDetailModel court;
@@ -27,8 +28,8 @@ class CourtIntroWidget extends StatelessWidget {
           _buildTitleSection(context),
           const SizedBox(height: AppDimens.sizeX18),
           _buildLocationCard(context),
-          const SizedBox(height: AppDimens.sizeX14),
-          _buildDescriptionCard(context),
+          // const SizedBox(height: AppDimens.sizeX14),
+          // _buildDescriptionCard(context),
         ],
       ),
     );
@@ -61,7 +62,7 @@ class CourtIntroWidget extends StatelessWidget {
         ),
         const SizedBox(width: AppDimens.sizeX4),
         Expanded(
-          flex: 3,
+          flex: 2,
           child: _chipTag(
             '${court.openTime} - ${court.closeTime}',
             Icons.access_time_rounded,
@@ -90,7 +91,7 @@ class CourtIntroWidget extends StatelessWidget {
           ),
         ),
         const SizedBox(width: AppDimens.sizeX12),
-        _statusPill(court.isOpen, context),
+        VenueStatusWidget(isOpen: court.isOpen),
       ],
     );
   }
@@ -132,7 +133,7 @@ class CourtIntroWidget extends StatelessWidget {
               ),
               const SizedBox(height: AppDimens.sizeX4),
               Text(
-                "2.1 KM",
+                court.distance.trim().isEmpty ? '--' : court.distance,
                 style: FutsalTheme.getTextTheme(context).bodyTextSmall!
                     .copyWith(
                       color: LightColor.hintTextColor,
@@ -157,6 +158,8 @@ class CourtIntroWidget extends StatelessWidget {
                 const SizedBox(height: AppDimens.sizeX4),
                 Text(
                   court.address,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: FutsalTheme.getTextTheme(context).bodyTextSmall!
                       .copyWith(
                         color: LightColor.secondaryTextColor,
@@ -274,36 +277,6 @@ class CourtIntroWidget extends StatelessWidget {
                           height: 1.6,
                         ),
                   ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _statusPill(bool isOpen, BuildContext context) {
-    return Container(
-      padding: AppUtils().getPadding(
-        horizontal: AppDimens.paddingX8,
-        vertical: AppDimens.paddingX6,
-      ),
-      decoration: BoxDecoration(
-        color: isOpen ? LightColor.secondarySoft : LightColor.redLightColor,
-        borderRadius: BorderRadius.circular(AppDimens.radiusX50),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            isOpen ? Icons.check_circle_rounded : Icons.cancel_rounded,
-            size: AppDimens.sizeX14,
-            color: isOpen ? LightColor.secondaryColor : LightColor.redColor,
-          ),
-          const SizedBox(width: AppDimens.sizeX6),
-          Text(
-            isOpen ? 'Open now' : 'Closed',
-            style: FutsalTheme.getTextTheme(context).bodySubTitle!.copyWith(
-              color: isOpen ? LightColor.secondaryColor : LightColor.redColor,
-            ),
           ),
         ],
       ),

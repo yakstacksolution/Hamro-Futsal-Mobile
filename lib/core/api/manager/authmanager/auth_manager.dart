@@ -121,6 +121,18 @@ class AuthManager extends ServiceManager {
     return await _apiClient.getCategoryFilter();
   }
 
+  Future<Result> getVenueHostedBy(int venueId) async {
+    return await _apiClient.getVenueHostedBy(venueId: venueId);
+  }
+
+  Future<Result> getVenueDescription(int venueId) async {
+    return await _apiClient.getVenueDescription(venueId: venueId);
+  }
+
+  Future<Result> getVenueAmenitiesFacilities(int venueId) async {
+    return await _apiClient.getVenueAmenitiesFacilities(venueId: venueId);
+  }
+
   Future<Result> getVenueCourt() async {
     return await _apiClient.getVenueCourt();
   }

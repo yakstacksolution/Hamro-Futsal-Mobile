@@ -473,7 +473,9 @@ class _CourtDetailPageState extends State<CourtDetailPage>
               CustomScrollView(
                 physics: const BouncingScrollPhysics(),
                 slivers: [
-                  SliverToBoxAdapter(child: DetailsImageGallery()),
+                  SliverToBoxAdapter(
+                    child: DetailsImageGallery(images: [_court.images.first]),
+                  ),
                   SliverToBoxAdapter(
                     child: Container(
                       decoration: const BoxDecoration(

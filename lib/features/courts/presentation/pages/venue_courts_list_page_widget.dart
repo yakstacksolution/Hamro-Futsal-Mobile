@@ -128,7 +128,6 @@ class _VenueCourtsListPageState extends State<VenueCourtsListPage> {
                                   query.isNotEmpty ||
                                   _selectedFilter != _VenueFilter.all,
                             ),
-                      // child: VenueListLoading(),
                     ),
                   ],
                 ),
@@ -714,8 +713,7 @@ class _VenueCardV2State extends State<_VenueCardV2> {
                           child: CustomImageView(
                             fit: BoxFit.cover,
                             radius: BorderRadius.circular(AppDimens.radiusX10),
-                            url:
-                                'https://images.unsplash.com/photo-1517466787929-bc90951d0974?auto=format&fit=crop&w=1200&q=80',
+                            url: widget.entry.imageUrl,
                           ),
                         ),
                         const SizedBox(width: AppDimens.paddingX12),
@@ -1201,6 +1199,9 @@ class _CourtRowV2 extends StatelessWidget {
         : court.name.trim();
     final String type = (court.courtType ?? '').trim();
     final bool isLive = court.enableOnlineBooking;
+    final String photoUrl = court.photos
+        .map((UploadRef photo) => (photo.remoteUrl ?? '').trim())
+        .firstWhere((String url) => url.isNotEmpty, orElse: () => '');
 
     final Color iconBg = isLive
         ? LightColor.secondarySoft
@@ -1233,8 +1234,7 @@ class _CourtRowV2 extends StatelessWidget {
               child: CustomImageView(
                 fit: BoxFit.cover,
                 radius: BorderRadius.circular(AppDimens.radiusX6),
-                url:
-                    'https://images.unsplash.com/photo-1517466787929-bc90951d0974?auto=format&fit=crop&w=1200&q=80',
+                url: photoUrl.isEmpty ? null : photoUrl,
               ),
             ),
           ),
@@ -1579,6 +1579,7 @@ class _FutsalEntry {
     required this.address,
     required this.phone,
     required this.courts,
+    this.imageUrl,
     this.approvalStatus = _VenueApprovalStatus.approved,
   });
 
@@ -1587,6 +1588,7 @@ class _FutsalEntry {
   final String address;
   final String phone;
   final List<CourtDraft> courts;
+  final String? imageUrl;
   final _VenueApprovalStatus approvalStatus;
 
   factory _FutsalEntry.fromModel(VenueCourtModel model) {
@@ -1596,6 +1598,7 @@ class _FutsalEntry {
       address: model.address,
       phone: model.phone,
       courts: model.courts,
+      imageUrl: model.imageUrl,
       approvalStatus: model.isActive
           ? _VenueApprovalStatus.active
           : _VenueApprovalStatus.approved,

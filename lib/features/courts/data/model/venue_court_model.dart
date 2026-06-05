@@ -9,6 +9,7 @@ final class VenueCourtModel {
     required this.phone,
     required this.status,
     required this.courts,
+    this.imageUrl,
   });
 
   final int? id;
@@ -17,6 +18,7 @@ final class VenueCourtModel {
   final String phone;
   final String status;
   final List<CourtDraft> courts;
+  final String? imageUrl;
 
   bool get isActive => status.toLowerCase() == 'active';
 
@@ -38,6 +40,7 @@ final class VenueCourtModel {
       ),
       phone: _asString(json['phone'] ?? json['phone_number']),
       status: _asString(json['status']),
+      imageUrl: _venueImageUrlFromJson(json),
       courts: courtItems
           .whereType<Map>()
           .map((Map item) => _courtFromJson(Map<String, dynamic>.from(item)))
@@ -256,6 +259,55 @@ CourtDraft _courtFromJson(Map<String, dynamic> json) {
     cancellationPolicy: json['cancellation_policy'] as String?,
     status: json['status'] as String?,
   );
+}
+
+/// Extracts a display image url for the venue. The vendor endpoints send media
+/// objects (`cover_image_media`, `gallery_media`); other endpoints may send a
+/// direct string (`feature_image`) or a gallery list (`venue_gallery_images`),
+/// so check each shape in turn.
+String? _venueImageUrlFromJson(Map<String, dynamic> json) {
+  final String direct = _imageUrlFromAny(
+    json['cover_image_media'] ??
+        json['cover_image'] ??
+        json['feature_image'] ??
+        json['image_url'] ??
+        json['image'] ??
+        json['logo'],
+  );
+  if (direct.isNotEmpty) return direct;
+
+  for (final dynamic item in _listFromAny(
+    json['gallery_media'] ??
+        json['venue_gallery_images'] ??
+        json['gallery_images'] ??
+        json['venue_photos'] ??
+        json['photos'] ??
+        json['images'],
+  )) {
+    final String url = _imageUrlFromAny(item);
+    if (url.isNotEmpty) return url;
+  }
+  return null;
+}
+
+/// Resolves an image url from either a plain string or a media object.
+String _imageUrlFromAny(dynamic value) {
+  if (value is Map) {
+    return _asString(
+      value['image_url'] ??
+          value['full_url'] ??
+          value['url'] ??
+          value['original_url'] ??
+          value['preview_url'] ??
+          value['media_url'] ??
+          value['file_url'] ??
+          value['thumbnail_url'] ??
+          value['src'] ??
+          value['path'] ??
+          value['file_path'],
+    );
+  }
+  return _asString(value);
 }
 
 List<dynamic> _listFromAny(dynamic value) {

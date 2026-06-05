@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hamro_footsall/core/routers/app_router_params.dart';
@@ -10,6 +11,7 @@ import 'package:hamro_footsall/features/auth/presentation/register_screen.dart';
 import 'package:hamro_footsall/features/auth/domain/usecase/authentication_usecase.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/page/dashboard_screen.dart';
 import 'package:hamro_footsall/features/futsal_details/presentation/view/futsal_details_page_view.dart';
+import 'package:hamro_footsall/features/public/data/model/public_venue_model.dart';
 import 'package:hamro_footsall/features/public/data/repositories/public_repository_impl.dart';
 import 'package:hamro_footsall/features/public/domain/usecase/get_public_templates_use_case.dart';
 import 'package:hamro_footsall/features/public/presentation/bloc/public_templates/public_templates_bloc.dart';
@@ -85,7 +87,55 @@ class AppRouters {
             GoRoute(
               name: AppRouterParams.courtDetails.name,
               path: AppRouterParams.courtDetails.path,
-              builder: (context, state) => const FutsalDetailsPageView(),
+              pageBuilder: (context, state) {
+                PublicListingVenueModel publicListingVenueModel =
+                    state.extra as PublicListingVenueModel;
+                return CustomTransitionPage<void>(
+                  key: state.pageKey,
+                  transitionDuration: const Duration(milliseconds: 620),
+                  reverseTransitionDuration: const Duration(milliseconds: 420),
+                  child: FutsalDetailsPageView(
+                    publicVenue: publicListingVenueModel,
+                  ),
+                  transitionsBuilder:
+                      (
+                        BuildContext context,
+                        Animation<double> animation,
+                        Animation<double> secondaryAnimation,
+                        Widget child,
+                      ) {
+                        final Animation<double> primaryCurve = CurvedAnimation(
+                          parent: animation,
+                          curve: Curves.easeOutQuint,
+                          reverseCurve: Curves.easeInCubic,
+                        );
+                        final Animation<double> contentCurve = CurvedAnimation(
+                          parent: animation,
+                          curve: const Interval(
+                            0.12,
+                            1,
+                            curve: Curves.easeOutCubic,
+                          ),
+                        );
+                        return FadeTransition(
+                          opacity: contentCurve,
+                          child: SlideTransition(
+                            position: Tween<Offset>(
+                              begin: const Offset(0, 0.045),
+                              end: Offset.zero,
+                            ).animate(contentCurve),
+                            child: ScaleTransition(
+                              scale: Tween<double>(
+                                begin: 0.985,
+                                end: 1,
+                              ).animate(primaryCurve),
+                              child: child,
+                            ),
+                          ),
+                        );
+                      },
+                );
+              },
             ),
           ],
         ),

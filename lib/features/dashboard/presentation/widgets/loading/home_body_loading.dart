@@ -10,9 +10,11 @@ class HomeBodyLoading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Mirrors the loaded list layout exactly: horizontal padding of 20 and a
+    // raw 22px top spacer (the content uses `SizedBox(height: sizeX22)`), so
+    // the skeleton cards line up with the real cards when content arrives.
     return Padding(
       padding: AppUtils().getPadding(
-        top: AppDimens.paddingX14,
         left: AppDimens.paddingX20,
         right: AppDimens.paddingX20,
       ),
@@ -22,7 +24,7 @@ class HomeBodyLoading extends StatelessWidget {
         child: ListView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          padding: AppUtils().getPadding(top: AppDimens.sizeX8),
+          padding: const EdgeInsets.only(top: AppDimens.sizeX22),
           itemCount: itemCount,
           itemBuilder: (BuildContext context, int index) {
             return Padding(

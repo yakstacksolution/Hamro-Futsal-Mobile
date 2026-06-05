@@ -41,6 +41,10 @@ class PublicVenueBloc extends Bloc<PublicVenueEvent, PublicVenueState> {
           filter: event.filter,
         );
 
+    // A newer fetch (e.g. triggered by a location fix) superseded this one
+    // while it was in flight — drop the stale response.
+    if (event.filter != state.activeFilter) return;
+
     response.fold(
       (AppException failure) => emit(
         state.copyWith(

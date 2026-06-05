@@ -5,9 +5,17 @@ import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 
 class CourtAmenitiesSection extends StatelessWidget {
-  const CourtAmenitiesSection({super.key, required this.features});
+  const CourtAmenitiesSection({
+    super.key,
+    required this.features,
+    this.categories,
+  });
 
   final List<String> features;
+
+  /// Optional feature → category override (e.g. 'Parking' → 'Amenities').
+  /// Falls back to the built-in categories when not provided.
+  final Map<String, String>? categories;
 
   @override
   Widget build(BuildContext context) {
@@ -39,7 +47,7 @@ class CourtAmenitiesSection extends StatelessWidget {
           featureIcons: _featureIcons,
           featureColors: _featureColors,
           featureBgColors: _featureBgColors,
-          featureCategories: _featureCategories,
+          featureCategories: categories ?? _featureCategories,
         ),
       ),
     );

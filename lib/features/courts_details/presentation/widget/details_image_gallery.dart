@@ -5,7 +5,9 @@ import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/utils/custom_image_view.dart';
 
 class DetailsImageGallery extends StatefulWidget {
-  const DetailsImageGallery({super.key});
+  const DetailsImageGallery({super.key, this.images = const <String>[]});
+
+  final List<String> images;
 
   @override
   State<DetailsImageGallery> createState() => _DetailsImageGalleryState();
@@ -15,13 +17,6 @@ class _DetailsImageGalleryState extends State<DetailsImageGallery> {
   late final PageController _imagePageController;
   int _currentImageIndex = 0;
   bool _isSaved = false;
-
-  final List<String> imageList = [
-    'https://images.unsplash.com/photo-1575361204480-aadea25e6e68?w=800',
-    'https://images.unsplash.com/photo-1551958219-acbc608c6377?w=800',
-    'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=800',
-    'https://images.unsplash.com/photo-1431324155629-1a6deb1dec8d?w=800',
-  ];
 
   @override
   void initState() {
@@ -39,42 +34,46 @@ class _DetailsImageGalleryState extends State<DetailsImageGallery> {
       height: 340,
       child: Stack(
         children: [
-          PageView.builder(
-            controller: _imagePageController,
-            itemCount: imageList.length,
-            onPageChanged: (i) => setState(() => _currentImageIndex = i),
-            itemBuilder: (context, index) {
-              return Stack(
-                fit: StackFit.expand,
-                children: [
-                  CustomImageView(
-                    url: imageList[index],
-                    fit: BoxFit.cover,
-                    width: double.infinity,
-                    height: double.infinity,
-                  ),
-                  Positioned(
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    height: 120,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            LightColor.transparentColor,
-                            LightColor.primaryTextColor.withValues(alpha: 0.5),
-                          ],
+          widget.images.isEmpty
+              ? Container(color: LightColor.inputFillColor)
+              : PageView.builder(
+                  controller: _imagePageController,
+                  itemCount: widget.images.length,
+                  onPageChanged: (i) => setState(() => _currentImageIndex = i),
+                  itemBuilder: (context, index) {
+                    return Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        CustomImageView(
+                          url: widget.images[index],
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          height: double.infinity,
                         ),
-                      ),
-                    ),
-                  ),
-                ],
-              );
-            },
-          ),
+                        Positioned(
+                          bottom: 0,
+                          left: 0,
+                          right: 0,
+                          height: 120,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  LightColor.transparentColor,
+                                  LightColor.primaryTextColor.withValues(
+                                    alpha: 0.5,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
 
           Positioned(
             top: MediaQuery.of(context).padding.top + 8,
@@ -116,61 +115,67 @@ class _DetailsImageGalleryState extends State<DetailsImageGallery> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: List.generate(imageList.length, (i) {
-                    final active = i == _currentImageIndex;
-                    return AnimatedContainer(
-                      duration: const Duration(milliseconds: 300),
-                      margin: const EdgeInsets.only(right: 6),
-                      width: active ? 24 : 8,
-                      height: 6,
-                      decoration: BoxDecoration(
-                        color: active
-                            ? LightColor.whiteColor
-                            : LightColor.whiteColor.withValues(alpha: 0.4),
-                        borderRadius: BorderRadius.circular(100),
-                      ),
-                    );
-                  }),
-                ),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: LightColor.primaryTextColor.withValues(alpha: 0.35),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: LightColor.whiteColor.withValues(alpha: 0.15),
+                if (widget.images.isNotEmpty)
+                  Row(
+                    children: List.generate(widget.images.length, (i) {
+                      final active = i == _currentImageIndex;
+                      return AnimatedContainer(
+                        duration: const Duration(milliseconds: 300),
+                        margin: const EdgeInsets.only(right: 6),
+                        width: active ? 24 : 8,
+                        height: 6,
+                        decoration: BoxDecoration(
+                          color: active
+                              ? LightColor.whiteColor
+                              : LightColor.whiteColor.withValues(alpha: 0.4),
+                          borderRadius: BorderRadius.circular(100),
                         ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            Icons.photo,
-                            color: LightColor.whiteColor,
-                            size: 14,
+                      );
+                    }),
+                  ),
+                if (widget.images.isNotEmpty)
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: LightColor.primaryTextColor.withValues(
+                            alpha: 0.35,
                           ),
-                          const SizedBox(width: 5),
-                          Text(
-                            '${_currentImageIndex + 1}/${imageList.length}',
-                            style: const TextStyle(
-                              color: LightColor.whiteColor,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: LightColor.whiteColor.withValues(
+                              alpha: 0.15,
                             ),
                           ),
-                        ],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.photo,
+                              color: LightColor.whiteColor,
+                              size: 14,
+                            ),
+                            const SizedBox(width: 5),
+                            Text(
+                              '${_currentImageIndex + 1}/${widget.images.length}',
+                              style: const TextStyle(
+                                color: LightColor.whiteColor,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                ),
               ],
             ),
           ),

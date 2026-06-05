@@ -14,6 +14,7 @@ import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/utils/image_constants.dart';
 import 'package:hamro_footsall/core/widgets/loading_widget.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/widgets/loading/home_body_loading.dart';
+import 'package:hamro_footsall/features/dashboard/presentation/widgets/venue_status_widget.dart';
 import 'package:hamro_footsall/features/public/data/model/public_venue_model.dart';
 import 'package:hamro_footsall/features/public/data/repositories/public_repository_impl.dart';
 import 'package:hamro_footsall/features/public/domain/usecase/get_public_venues_use_case.dart';
@@ -109,8 +110,14 @@ class _CourtsListScreenState extends State<CourtsListScreen>
         opacity: _fadeIn,
         child: BlocBuilder<PublicVenueBloc, PublicVenueState>(
           builder: (BuildContext context, PublicVenueState state) {
-            return state.status == PublicVenueStatus.loading
-                ? HomeBodyLoading()
+            // Show the skeleton only when there is nothing to render yet —
+            // location-triggered refetches keep the current list on screen
+            // instead of flashing the loading state again.
+            final bool showSkeleton =
+                state.status == PublicVenueStatus.loading &&
+                state.venues.isEmpty;
+            return showSkeleton
+                ? const HomeBodyLoading()
                 : Padding(
                     padding: AppUtils().getPadding(
                       left: AppDimens.paddingX20,
@@ -141,27 +148,6 @@ class _CourtsListScreenState extends State<CourtsListScreen>
 
   List<Widget> _buildContentSlivers(PublicVenueState state) {
     final List<PublicListingVenueModel> venues = state.venues;
-
-    if (state.status == PublicVenueStatus.loading && venues.isEmpty) {
-      return <Widget>[
-        SliverFillRemaining(
-          hasScrollBody: false,
-          child: Align(
-            alignment: Alignment.topCenter,
-            child: Padding(
-              padding: AppUtils().getPadding(top: AppDimens.sizeX100),
-              child: const CustomLoading(
-                color: LightColor.secondaryColor,
-                size: 32,
-                strokeWidth: 3.5,
-                secondCircleColor: LightColor.secondaryLight,
-                thirdCircleColor: LightColor.secondaryLight,
-              ),
-            ),
-          ),
-        ),
-      ];
-    }
 
     if (state.status == PublicVenueStatus.failure && venues.isEmpty) {
       return <Widget>[
@@ -352,153 +338,185 @@ class CourtCard extends StatefulWidget {
 
 class _CourtCardState extends State<CourtCard> {
   bool _saved = false;
+  bool _isPressed = false;
+
+  PublicListingVenueModel _courtWithDistance() {
+    final double? latitude = widget.court.latitude;
+    final double? longitude = widget.court.longitude;
+    if (latitude == null || longitude == null) return widget.court;
+
+    return widget.court.copyWith(
+      distanceMeters:
+          widget.court.distanceMeters ??
+          VenueDistanceHelper.instance.distanceMeters(latitude, longitude),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: () {
-        context.pushNamed(AppRouterParams.courtDetails.name);
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapCancel: () => setState(() => _isPressed = false),
+      onTapUp: (_) {
+        setState(() => _isPressed = false);
+        HapticFeedback.selectionClick();
+        context.pushNamed(
+          AppRouterParams.courtDetails.name,
+          extra: _courtWithDistance(),
+        );
       },
-      child: Container(
-        decoration: BoxDecoration(
-          color: LightColor.whiteColor,
-          borderRadius: BorderRadius.circular(AppDimens.radiusX18),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: AppDimens.sizeX8,
-              spreadRadius: 0.5,
-              offset: const Offset(0, 1),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ClipRRect(
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(AppDimens.radiusX18),
+      child: AnimatedScale(
+        scale: _isPressed ? 0.985 : 1,
+        duration: const Duration(milliseconds: 160),
+        curve: Curves.easeOutCubic,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOutCubic,
+          decoration: BoxDecoration(
+            color: LightColor.whiteColor,
+            borderRadius: BorderRadius.circular(AppDimens.radiusX18),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.03),
+                blurRadius: AppDimens.sizeX8,
+                spreadRadius: 0.5,
+                offset: const Offset(0, 1),
               ),
-              child: SizedBox(
-                height: AppDimens.sizeX200,
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    CustomImageView(
-                      url: widget.court.featureImage,
-                      fit: BoxFit.cover,
-                      width: double.infinity,
-                      height: double.infinity,
-                    ),
-                    Positioned(
-                      top: 12,
-                      right: 12,
-                      child: GestureDetector(
-                        onTap: () => setState(() => _saved = !_saved),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: BackdropFilter(
-                            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                            child: Container(
-                              height: AppDimens.sizeX36,
-                              width: AppDimens.sizeX36,
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.85),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.6),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ClipRRect(
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(AppDimens.radiusX18),
+                ),
+                child: SizedBox(
+                  height: AppDimens.sizeX200,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      CustomImageView(
+                        url: widget.court.featureImage,
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        height: double.infinity,
+                      ),
+                      Positioned(
+                        top: 12,
+                        right: 12,
+                        child: GestureDetector(
+                          onTap: () => setState(() => _saved = !_saved),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: BackdropFilter(
+                              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                              child: Container(
+                                height: AppDimens.sizeX36,
+                                width: AppDimens.sizeX36,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.85),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: Colors.white.withValues(alpha: 0.6),
+                                  ),
                                 ),
-                              ),
-                              child: Icon(
-                                _saved
-                                    ? Icons.favorite_rounded
-                                    : Icons.favorite_border_rounded,
-                                color: _saved
-                                    ? LightColor.secondaryColor
-                                    : LightColor.secondaryTextColor,
-                                size: AppDimens.sizeX22,
+                                child: Icon(
+                                  _saved
+                                      ? Icons.favorite_rounded
+                                      : Icons.favorite_border_rounded,
+                                  color: _saved
+                                      ? LightColor.secondaryColor
+                                      : LightColor.secondaryTextColor,
+                                  size: AppDimens.sizeX22,
+                                ),
                               ),
                             ),
                           ),
                         ),
                       ),
+                    ],
+                  ),
+                ),
+              ),
+
+              Padding(
+                padding: AppUtils().getPadding(all: AppDimens.sizeX14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.court.name ?? '',
+                      style: FutsalTheme.getTextTheme(context).bodyTextLarge
+                          ?.copyWith(
+                            color: LightColor.primaryTextColor,
+                            fontWeight: FontWeight.w600,
+                          ),
+                    ),
+                    const SizedBox(height: AppDimens.sizeX6),
+
+                    Row(
+                      children: [
+                        CustomImageView(
+                          imagePath: ImageConstants.locationIcon,
+                          height: AppDimens.sizeX14,
+                          width: AppDimens.sizeX14,
+                          fit: BoxFit.contain,
+                          color: LightColor.secondaryTextColor,
+                        ),
+                        const SizedBox(width: AppDimens.sizeX6),
+                        Flexible(
+                          child: Text(
+                            widget.court.address ?? '',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: FutsalTheme.getTextTheme(context)
+                                .bodyTextSmall
+                                ?.copyWith(
+                                  color: LightColor.secondaryTextColor,
+                                ),
+                          ),
+                        ),
+                        _DistanceLabel(court: widget.court),
+                      ],
+                    ),
+                    const SizedBox(height: AppDimens.sizeX12),
+                    Row(
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              widget.court.price == null
+                                  ? 'Rs. --'
+                                  : 'Rs. ${widget.court.price!.toStringAsFixed(0)}',
+                              style: FutsalTheme.getTextTheme(context)
+                                  .headingSubTitle
+                                  ?.copyWith(
+                                    color: LightColor.secondaryColor,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                            ),
+                            const SizedBox(width: AppDimens.sizeX4),
+                            Text(
+                              '/ hour',
+                              style: FutsalTheme.getTextTheme(context)
+                                  .bodyTextMedium
+                                  ?.copyWith(
+                                    color: LightColor.secondaryTextColor,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                            ),
+                          ],
+                        ),
+                        const Spacer(),
+                        VenueStatusWidget(isOpen: widget.court.isOpen ?? false),
+                      ],
                     ),
                   ],
                 ),
               ),
-            ),
-
-            Padding(
-              padding: AppUtils().getPadding(all: AppDimens.sizeX14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    widget.court.name,
-                    style: FutsalTheme.getTextTheme(context).bodyTextLarge
-                        ?.copyWith(
-                          color: LightColor.primaryTextColor,
-                          fontWeight: FontWeight.w600,
-                        ),
-                  ),
-                  const SizedBox(height: AppDimens.sizeX6),
-
-                  Row(
-                    children: [
-                      CustomImageView(
-                        imagePath: ImageConstants.locationIcon,
-                        height: AppDimens.sizeX14,
-                        width: AppDimens.sizeX14,
-                        fit: BoxFit.contain,
-                        color: LightColor.secondaryTextColor,
-                      ),
-                      const SizedBox(width: AppDimens.sizeX6),
-                      Flexible(
-                        child: Text(
-                          widget.court.address,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: FutsalTheme.getTextTheme(context).bodyTextSmall
-                              ?.copyWith(color: LightColor.secondaryTextColor),
-                        ),
-                      ),
-                      _DistanceLabel(court: widget.court),
-                    ],
-                  ),
-                  const SizedBox(height: AppDimens.sizeX12),
-                  Row(
-                    children: [
-                      Row(
-                        children: [
-                          Text(
-                            'Rs. ${widget.court.price.toStringAsFixed(0)}',
-                            style: FutsalTheme.getTextTheme(context)
-                                .headingSubTitle
-                                ?.copyWith(
-                                  color: LightColor.secondaryColor,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                          ),
-                          const SizedBox(width: AppDimens.sizeX4),
-                          Text(
-                            '/ hour',
-                            style: FutsalTheme.getTextTheme(context)
-                                .bodyTextMedium
-                                ?.copyWith(
-                                  color: LightColor.secondaryTextColor,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                          ),
-                        ],
-                      ),
-                      const Spacer(),
-                      _StatusPill(isOpen: widget.court.isOpen),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -533,13 +551,16 @@ class _DistanceLabelState extends State<_DistanceLabel> {
           return const SizedBox.shrink();
         }
 
-        final double latitude = widget.court.latitude;
-        final double longitude = widget.court.longitude;
+        final double? latitude = widget.court.latitude;
+        final double? longitude = widget.court.longitude;
 
-        final String? distance = VenueDistanceHelper.instance.formatDistance(
-          latitude,
-          longitude,
-        );
+        if (latitude == null || longitude == null) {
+          return const SizedBox.shrink();
+        }
+
+        final String? distance =
+            _formatDistanceMeters(widget.court.distanceMeters) ??
+            VenueDistanceHelper.instance.formatDistance(latitude, longitude);
 
         if (distance == null) {
           return const SizedBox.shrink();
@@ -569,61 +590,11 @@ class _DistanceLabelState extends State<_DistanceLabel> {
       },
     );
   }
-}
 
-class _StatusPill extends StatelessWidget {
-  final bool isOpen;
-  const _StatusPill({required this.isOpen});
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(AppDimens.sizeX30),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Container(
-          padding: AppUtils().getPadding(
-            horizontal: AppDimens.paddingX10,
-            vertical: AppDimens.paddingX4,
-          ),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.85),
-            borderRadius: BorderRadius.circular(AppDimens.sizeX30),
-            border: Border.all(
-              color: isOpen
-                  ? LightColor.secondaryColor.withValues(alpha: 0.3)
-                  : LightColor.redColor.withValues(alpha: 0.3),
-              width: 1,
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                height: AppDimens.sizeX6,
-                width: AppDimens.sizeX6,
-                decoration: BoxDecoration(
-                  color: isOpen
-                      ? LightColor.secondaryColor
-                      : LightColor.redColor,
-                  shape: BoxShape.circle,
-                ),
-              ),
-              const SizedBox(width: AppDimens.sizeX4),
-              Text(
-                isOpen ? 'Open Now' : 'Closed',
-                style: FutsalTheme.getTextTheme(context).bodyTextSmall
-                    ?.copyWith(
-                      fontSize: AppDimens.sizeX10,
-                      color: isOpen
-                          ? LightColor.secondaryColor
-                          : LightColor.redColor,
-                    ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+  String? _formatDistanceMeters(double? meters) {
+    if (meters == null) return null;
+    if (meters < 1000) return '${meters.round()} m';
+    final double km = meters / 1000;
+    return km < 10 ? '${km.toStringAsFixed(1)} km' : '${km.round()} km';
   }
 }

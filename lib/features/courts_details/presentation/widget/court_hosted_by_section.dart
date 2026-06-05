@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
+import 'package:hamro_footsall/core/theme/futsal_text.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
+import 'package:hamro_footsall/core/utils/custom_image_view.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 
 class CourtHostedBySection extends StatelessWidget {
@@ -10,15 +12,19 @@ class CourtHostedBySection extends StatelessWidget {
     required this.hostName,
     required this.hostSince,
     required this.hostedCourts,
-    required this.responseRate,
     required this.rating,
+    this.avatarUrl,
+    this.hostedVenues,
+    this.responseRate,
   });
 
   final String hostName;
   final String hostSince;
   final int hostedCourts;
-  final double responseRate;
   final double rating;
+  final String? avatarUrl;
+  final int? hostedVenues;
+  final double? responseRate;
 
   @override
   Widget build(BuildContext context) {
@@ -61,23 +67,7 @@ class CourtHostedBySection extends StatelessWidget {
             const SizedBox(height: AppDimens.sizeX14),
             Row(
               children: [
-                Container(
-                  width: AppDimens.sizeX56,
-                  height: AppDimens.sizeX56,
-                  decoration: BoxDecoration(
-                    color: LightColor.secondaryColor,
-                    borderRadius: BorderRadius.circular(AppDimens.radiusX10),
-                  ),
-                  child: Center(
-                    child: Text(
-                      initial,
-                      style: textTheme.headingXSmall?.copyWith(
-                        color: LightColor.inverseTextColor,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
-                ),
+                _buildAvatar(textTheme, initial),
                 const SizedBox(width: AppDimens.sizeX12),
                 Expanded(
                   child: Column(
@@ -148,11 +138,18 @@ class CourtHostedBySection extends StatelessWidget {
                   value: hostedCourts.toString(),
                 ),
                 const SizedBox(width: AppDimens.sizeX10),
-                _HostMetricTile(
-                  icon: Icons.flash_on_rounded,
-                  label: 'Response',
-                  value: '${responseRate.toInt()}%',
-                ),
+                if (hostedVenues != null)
+                  _HostMetricTile(
+                    icon: Icons.stadium_rounded,
+                    label: 'Venues',
+                    value: hostedVenues.toString(),
+                  )
+                else
+                  _HostMetricTile(
+                    icon: Icons.flash_on_rounded,
+                    label: 'Response',
+                    value: '${(responseRate ?? 0).toInt()}%',
+                  ),
                 const SizedBox(width: AppDimens.sizeX10),
                 _HostMetricTile(
                   icon: Icons.star_rounded,
@@ -162,6 +159,37 @@ class CourtHostedBySection extends StatelessWidget {
               ],
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAvatar(FutsalTextTheme textTheme, String initial) {
+    final String url = (avatarUrl ?? '').trim();
+    if (url.isNotEmpty) {
+      return CustomImageView(
+        url: url,
+        width: AppDimens.sizeX56,
+        height: AppDimens.sizeX56,
+        fit: BoxFit.cover,
+        radius: BorderRadius.circular(AppDimens.radiusX10),
+      );
+    }
+
+    return Container(
+      width: AppDimens.sizeX56,
+      height: AppDimens.sizeX56,
+      decoration: BoxDecoration(
+        color: LightColor.secondaryColor,
+        borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+      ),
+      child: Center(
+        child: Text(
+          initial,
+          style: textTheme.headingXSmall?.copyWith(
+            color: LightColor.inverseTextColor,
+            fontWeight: FontWeight.w800,
+          ),
         ),
       ),
     );

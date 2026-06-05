@@ -2,16 +2,16 @@ import 'package:equatable/equatable.dart';
 
 final class VenueGalleryImageModel extends Equatable {
   const VenueGalleryImageModel({
-    required this.id,
-    required this.mediaId,
-    required this.imageUrl,
-    required this.sortOrder,
+    this.id,
+    this.mediaId,
+    this.imageUrl,
+    this.sortOrder,
   });
 
-  final int id;
-  final int mediaId;
-  final String imageUrl;
-  final int sortOrder;
+  final int? id;
+  final int? mediaId;
+  final String? imageUrl;
+  final int? sortOrder;
 
   factory VenueGalleryImageModel.fromJson(Map<String, dynamic> json) {
     return VenueGalleryImageModel(
@@ -22,6 +22,15 @@ final class VenueGalleryImageModel extends Equatable {
     );
   }
 
+  Map<String, dynamic> toJson() {
+    return <String, dynamic>{
+      'id': id,
+      'media_id': mediaId,
+      'image_url': imageUrl,
+      'sort_order': sortOrder,
+    };
+  }
+
   @override
   List<Object?> get props => <Object?>[id, mediaId, imageUrl, sortOrder];
 }
@@ -30,45 +39,144 @@ final class VenueGalleryImageModel extends Equatable {
 /// (`data.venues[]`).
 final class PublicListingVenueModel extends Equatable {
   const PublicListingVenueModel({
-    required this.name,
-    required this.slug,
-    required this.address,
-    required this.featureImage,
-    required this.exactLocation,
-    required this.price,
-    required this.isOpen,
-    required this.openCloseStatus,
-    required this.galleryImages,
-    required this.longitude,
-    required this.latitude,
+    this.id,
+    this.name,
+    this.slug,
+    this.address,
+    this.featureImage,
+    this.exactLocation,
+    this.price,
+    this.isOpen,
+    this.openCloseStatus,
+    this.galleryImages,
+    this.longitude,
+    this.latitude,
+    this.courtType,
+    this.matchFormat,
+    this.maxPlayers,
+    this.openTime,
+    this.closeTime,
+    this.distanceMeters,
   });
 
-  final String name;
-  final String slug;
-  final String address;
-  final String featureImage;
-  final String exactLocation;
-  final double price;
-  final bool isOpen;
-  final String openCloseStatus;
-  final List<VenueGalleryImageModel> galleryImages;
-  final double longitude;
-  final double latitude;
+  final int? id;
+  final String? name;
+  final String? slug;
+  final String? address;
+  final String? featureImage;
+  final String? exactLocation;
+  final double? price;
+  final bool? isOpen;
+  final String? openCloseStatus;
+  final List<VenueGalleryImageModel>? galleryImages;
+  final double? longitude;
+  final double? latitude;
+  final String? courtType;
+  final String? matchFormat;
+  final int? maxPlayers;
+  final String? openTime;
+  final String? closeTime;
+  final double? distanceMeters;
 
   factory PublicListingVenueModel.fromJson(Map<String, dynamic> json) {
     return PublicListingVenueModel(
-      name: (json['name'] ?? '').toString(),
-      slug: (json['slug'] ?? '').toString(),
-      address: (json['address'] ?? '').toString(),
-      featureImage: (json['feature_image'] ?? '').toString(),
-      exactLocation: (json['exact_location'] ?? '').toString(),
+      id: _parseInt(json['id'] ?? json['venue_id']),
+      name: _parseString(json['name']),
+      slug: _parseString(json['slug']),
+      address: _parseString(json['address']),
+      featureImage: _parseString(json['feature_image']),
+      exactLocation: _parseString(json['exact_location']),
       price: _parseDouble(json['price']),
       isOpen: _parseBool(json['is_open']),
-      openCloseStatus: (json['open_close_status'] ?? '').toString(),
+      openCloseStatus: _parseString(json['open_close_status']),
       galleryImages: _parseGalleryImages(json['venue_gallery_images']),
       longitude: _parseDouble(json['longitude']),
       latitude: _parseDouble(json['latitude']),
+      courtType: _parseOptionText(
+        json['court_type'] ?? json['court_type_name'] ?? json['type'],
+      ),
+      matchFormat: _parseOptionText(
+        json['match_format'] ??
+            json['match_format_name'] ??
+            json['match_type'] ??
+            json['match_type_name'],
+      ),
+      maxPlayers: _parseInt(
+        json['max_player'] ?? json['max_players'] ?? json['capacity'],
+      ),
+      openTime: _parseString(json['open_time'] ?? json['opening_time']),
+      closeTime: _parseString(json['close_time'] ?? json['closing_time']),
+      distanceMeters: _parseDouble(
+        json['distance_meters'] ?? json['distance_meter'] ?? json['distance'],
+      ),
     );
+  }
+
+  PublicListingVenueModel copyWith({
+    int? id,
+    String? name,
+    String? slug,
+    String? address,
+    String? featureImage,
+    String? exactLocation,
+    double? price,
+    bool? isOpen,
+    String? openCloseStatus,
+    List<VenueGalleryImageModel>? galleryImages,
+    double? longitude,
+    double? latitude,
+    String? courtType,
+    String? matchFormat,
+    int? maxPlayers,
+    String? openTime,
+    String? closeTime,
+    double? distanceMeters,
+  }) {
+    return PublicListingVenueModel(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      slug: slug ?? this.slug,
+      address: address ?? this.address,
+      featureImage: featureImage ?? this.featureImage,
+      exactLocation: exactLocation ?? this.exactLocation,
+      price: price ?? this.price,
+      isOpen: isOpen ?? this.isOpen,
+      openCloseStatus: openCloseStatus ?? this.openCloseStatus,
+      galleryImages: galleryImages ?? this.galleryImages,
+      longitude: longitude ?? this.longitude,
+      latitude: latitude ?? this.latitude,
+      courtType: courtType ?? this.courtType,
+      matchFormat: matchFormat ?? this.matchFormat,
+      maxPlayers: maxPlayers ?? this.maxPlayers,
+      openTime: openTime ?? this.openTime,
+      closeTime: closeTime ?? this.closeTime,
+      distanceMeters: distanceMeters ?? this.distanceMeters,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return <String, dynamic>{
+      'id': id,
+      'name': name,
+      'slug': slug,
+      'address': address,
+      'feature_image': featureImage,
+      'exact_location': exactLocation,
+      'price': price,
+      'is_open': isOpen,
+      'open_close_status': openCloseStatus,
+      'venue_gallery_images': galleryImages
+          ?.map((VenueGalleryImageModel image) => image.toJson())
+          .toList(growable: false),
+      'longitude': longitude,
+      'latitude': latitude,
+      'court_type': courtType,
+      'match_format': matchFormat,
+      'max_player': maxPlayers,
+      'open_time': openTime,
+      'close_time': closeTime,
+      'distance_meters': distanceMeters,
+    };
   }
 
   static List<VenueGalleryImageModel> _parseGalleryImages(dynamic value) {
@@ -85,24 +193,47 @@ final class PublicListingVenueModel extends Equatable {
     return const <VenueGalleryImageModel>[];
   }
 
-  static double _parseDouble(dynamic value) {
+  static String? _parseString(dynamic value) {
+    final String text = value?.toString().trim() ?? '';
+    return text.isEmpty ? null : text;
+  }
+
+  static double? _parseDouble(dynamic value) {
+    if (value == null) return null;
     if (value is num) return value.toDouble();
-    return double.tryParse(value?.toString() ?? '') ?? 0;
+    return double.tryParse(value.toString());
   }
 
-  static int _parseInt(dynamic value) {
+  static int? _parseInt(dynamic value) {
+    if (value == null) return null;
     if (value is num) return value.toInt();
-    return int.tryParse(value?.toString() ?? '') ?? 0;
+    return int.tryParse(value.toString());
   }
 
-  static bool _parseBool(dynamic value) {
+  static bool? _parseBool(dynamic value) {
+    if (value == null) return null;
     if (value is bool) return value;
     final String text = value?.toString().toLowerCase() ?? '';
     return text == 'true' || text == '1' || text == 'open';
   }
 
+  static String? _parseOptionText(dynamic value) {
+    if (value is Map) {
+      return _parseString(
+        value['name'] ??
+            value['title'] ??
+            value['label'] ??
+            value['type'] ??
+            value['format'] ??
+            value['value'],
+      );
+    }
+    return _parseString(value);
+  }
+
   @override
   List<Object?> get props => <Object?>[
+    id,
     name,
     slug,
     address,
@@ -114,6 +245,12 @@ final class PublicListingVenueModel extends Equatable {
     galleryImages,
     longitude,
     latitude,
+    courtType,
+    matchFormat,
+    maxPlayers,
+    openTime,
+    closeTime,
+    distanceMeters,
   ];
 }
 
@@ -165,16 +302,33 @@ final class PublicListingVenuePage extends Equatable {
             ),
           )
           .toList(growable: false),
-      page: PublicListingVenueModel._parseInt(
-        meta['current_page'] ?? meta['page'] ?? 1,
-      ),
-      perPage: PublicListingVenueModel._parseInt(
-        meta['per_page'] ?? meta['perPage'] ?? items.length,
-      ),
-      total: PublicListingVenueModel._parseInt(
-        meta['total'] ?? meta['total_count'] ?? items.length,
-      ),
+      page:
+          PublicListingVenueModel._parseInt(
+            meta['current_page'] ?? meta['page'] ?? 1,
+          ) ??
+          1,
+      perPage:
+          PublicListingVenueModel._parseInt(
+            meta['per_page'] ?? meta['perPage'] ?? items.length,
+          ) ??
+          items.length,
+      total:
+          PublicListingVenueModel._parseInt(
+            meta['total'] ?? meta['total_count'] ?? items.length,
+          ) ??
+          items.length,
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return <String, dynamic>{
+      'venues': venues
+          .map((PublicListingVenueModel venue) => venue.toJson())
+          .toList(growable: false),
+      'page': page,
+      'per_page': perPage,
+      'total': total,
+    };
   }
 
   @override

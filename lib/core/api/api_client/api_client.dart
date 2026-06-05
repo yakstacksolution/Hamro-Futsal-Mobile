@@ -102,6 +102,18 @@ class ApiClient {
     return _get(url: '$_baseUrl/filters');
   }
 
+  Future<Result> getVenueHostedBy({required int venueId}) {
+    return _get(url: '$_baseUrl/hosted-by/2');
+  }
+
+  Future<Result> getVenueDescription({required int venueId}) {
+    return _get(url: '$_baseUrl/venue-description/$venueId');
+  }
+
+  Future<Result> getVenueAmenitiesFacilities({required int venueId}) {
+    return _get(url: '$_baseUrl/venue-amenities-facilities/$venueId');
+  }
+
   Future<Result> getVenueCourt() {
     return _get(url: '$_baseUrl/auth/get-venue-courts');
   }

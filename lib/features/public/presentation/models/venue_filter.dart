@@ -141,7 +141,8 @@ class VenueFilter extends Equatable {
 
   /// The venue's hourly price, or null when the backend sent no usable value.
   static double? _venuePrice(PublicListingVenueModel venue) {
-    return venue.price > 0 ? venue.price : null;
+    final double? price = venue.price;
+    return price != null && price > 0 ? price : null;
   }
 
   @override
