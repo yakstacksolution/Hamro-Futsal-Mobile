@@ -1,6 +1,8 @@
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
@@ -274,8 +276,10 @@ class _Analytics {
     return !e.date.isBefore(p.start) && e.date.isBefore(p.end);
   }).toList();
 
-  int get total => _scoped.fold(0, (a, e) => a + e.amount);
-  int get prevTotal => _scopedPrev.fold(0, (a, e) => a + e.amount);
+  // All aggregates are cached (`late final`) so each one is computed at most
+  // once per build, regardless of how many widgets read them.
+  late final int total = _scoped.fold(0, (a, e) => a + e.amount);
+  late final int prevTotal = _scopedPrev.fold(0, (a, e) => a + e.amount);
   int get count => _scoped.length;
 
   int get avgPerDay {
@@ -285,36 +289,30 @@ class _Analytics {
 
   int get avgPerEntry => count == 0 ? 0 : (total / count).round();
 
-  Map<_ExpenseCategory, int> get byCategory {
-    final m = <_ExpenseCategory, int>{};
-    for (final e in _scoped) {
-      m[e.category] = (m[e.category] ?? 0) + e.amount;
-    }
-    return m;
-  }
+  late final Map<_ExpenseCategory, int> byCategory = _scoped.fold(
+    <_ExpenseCategory, int>{},
+    (m, e) =>
+        m..update(e.category, (v) => v + e.amount, ifAbsent: () => e.amount),
+  );
 
-  Map<String, int> get byVenue {
-    final m = <String, int>{};
-    for (final e in _scoped) {
-      m[e.venueId] = (m[e.venueId] ?? 0) + e.amount;
-    }
-    return m;
-  }
+  late final Map<String, int> byVenue = _scoped.fold(
+    <String, int>{},
+    (m, e) =>
+        m..update(e.venueId, (v) => v + e.amount, ifAbsent: () => e.amount),
+  );
 
-  _ExpenseCategory? get largestCategory {
-    final m = byCategory;
-    if (m.isEmpty) return null;
-    return m.entries.reduce((a, b) => a.value >= b.value ? a : b).key;
-  }
+  late final _ExpenseCategory? largestCategory = byCategory.isEmpty
+      ? null
+      : byCategory.entries.reduce((a, b) => a.value >= b.value ? a : b).key;
 
-  String? get largestVenueId {
-    final m = byVenue;
-    if (m.isEmpty) return null;
-    return m.entries.reduce((a, b) => a.value >= b.value ? a : b).key;
-  }
+  late final String? largestVenueId = byVenue.isEmpty
+      ? null
+      : byVenue.entries.reduce((a, b) => a.value >= b.value ? a : b).key;
 
   /// Bucketed series for the trend chart.
-  List<_Bucket> get series {
+  late final List<_Bucket> series = _buildSeries();
+
+  List<_Bucket> _buildSeries() {
     switch (period) {
       case _Period.year:
         return _monthlyBuckets();
@@ -524,71 +522,96 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
       ),
       body: SafeArea(
         top: false,
-        child: ListView(
+        child: CustomScrollView(
           physics: const BouncingScrollPhysics(),
-          padding: AppUtils().getPadding(
-            symmetricHorizontal: AppDimens.paddingX20,
-            top: AppDimens.paddingX4,
-            bottom: AppDimens.paddingX50 + AppDimens.paddingX20,
-          ),
-          children: [
-            _SubtitleLine(
-              range: range,
-              count: analytics.count,
-              total: analytics.total,
+          slivers: [
+            SliverPadding(
+              padding: AppUtils().getPadding(
+                symmetricHorizontal: AppDimens.paddingX20,
+                top: AppDimens.paddingX4,
+              ),
+              sliver: SliverToBoxAdapter(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _SubtitleLine(
+                      range: range,
+                      count: analytics.count,
+                      total: analytics.total,
+                    ),
+                    const SizedBox(height: AppDimens.paddingX14),
+                    _PeriodChips(
+                      period: _period,
+                      customRange: _customRange,
+                      onPeriod: (p) {
+                        if (p == _Period.custom) {
+                          _pickRange();
+                        } else {
+                          setState(() => _period = p);
+                        }
+                      },
+                      onEditCustom: _pickRange,
+                    ),
+                    const SizedBox(height: AppDimens.paddingX12),
+                    _VenueFilter(
+                      venues: _data.venues,
+                      selectedId: _venueId,
+                      onChange: (id) => setState(() => _venueId = id),
+                    ),
+                    const SizedBox(height: AppDimens.paddingX18),
+
+                    _SectionLabel('Total spend'),
+                    _HeroCard(analytics: analytics),
+                    const SizedBox(height: AppDimens.paddingX18),
+
+                    _SectionLabel('Snapshot'),
+                    _KpiGrid(analytics: analytics, venues: _data.venues),
+                    const SizedBox(height: AppDimens.paddingX18),
+
+                    _SectionLabel('Trend'),
+                    _TrendCard(analytics: analytics),
+                    const SizedBox(height: AppDimens.paddingX18),
+
+                    _SectionLabel('By category'),
+                    _CategoryCard(
+                      analytics: analytics,
+                      selectedCategory: _categoryFilter,
+                      onSelect: (c) => setState(() => _categoryFilter = c),
+                    ),
+                    const SizedBox(height: AppDimens.paddingX18),
+
+                    _SectionLabel(
+                      _categoryFilter == null
+                          ? 'Records'
+                          : 'Records · ${_categoryFilter!.label}',
+                    ),
+                    _CategoryFilterRow(
+                      selected: _categoryFilter,
+                      onChange: (c) => setState(() => _categoryFilter = c),
+                    ),
+                    const SizedBox(height: AppDimens.paddingX10),
+                  ],
+                ),
+              ),
             ),
-            const SizedBox(height: AppDimens.paddingX14),
-            _PeriodChips(
-              period: _period,
-              customRange: _customRange,
-              onPeriod: (p) {
-                if (p == _Period.custom) {
-                  _pickRange();
-                } else {
-                  setState(() => _period = p);
-                }
-              },
-              onEditCustom: _pickRange,
-            ),
-            const SizedBox(height: AppDimens.paddingX12),
-            _VenueFilter(
+            // Records are grouped per day and built lazily — only the
+            // day-cards near the viewport are instantiated.
+            _RecordsSliver(
+              expenses: analytics._scoped,
               venues: _data.venues,
-              selectedId: _venueId,
-              onChange: (id) => setState(() => _venueId = id),
+              hasFilters: _categoryFilter != null || _venueId != null,
+              onTap: _showExpenseDetails,
+              onAdd: _openCreate,
+              onClearFilters: () => setState(() {
+                _categoryFilter = null;
+                _venueId = null;
+              }),
             ),
-            const SizedBox(height: AppDimens.paddingX18),
-
-            _SectionLabel('Total spend'),
-            _HeroCard(analytics: analytics),
-            const SizedBox(height: AppDimens.paddingX18),
-
-            _SectionLabel('Snapshot'),
-            _KpiGrid(analytics: analytics, venues: _data.venues),
-            const SizedBox(height: AppDimens.paddingX18),
-
-            _SectionLabel('Trend'),
-            _TrendCard(analytics: analytics),
-            const SizedBox(height: AppDimens.paddingX18),
-
-            _SectionLabel('By category'),
-            _CategoryCard(
-              analytics: analytics,
-              selectedCategory: _categoryFilter,
-              onSelect: (c) => setState(() => _categoryFilter = c),
+            const SliverToBoxAdapter(
+              child: SizedBox(
+                height: AppDimens.paddingX50 + AppDimens.paddingX20,
+              ),
             ),
-            const SizedBox(height: AppDimens.paddingX18),
-
-            _SectionLabel(
-              _categoryFilter == null
-                  ? 'Records'
-                  : 'Records · ${_categoryFilter!.label}',
-            ),
-            _CategoryFilterRow(
-              selected: _categoryFilter,
-              onChange: (c) => setState(() => _categoryFilter = c),
-            ),
-            const SizedBox(height: AppDimens.paddingX10),
-            _RecordsList(expenses: analytics._scoped, venues: _data.venues),
           ],
         ),
       ),
@@ -625,6 +648,63 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
           ),
           margin: const EdgeInsets.all(AppDimens.paddingX16),
           duration: const Duration(seconds: 2),
+        ),
+      );
+  }
+
+  Future<void> _showExpenseDetails(_Expense expense) async {
+    final venueName = _data.venues
+        .firstWhere(
+          (v) => v.id == expense.venueId,
+          orElse: () => const _Venue('?', '—'),
+        )
+        .name;
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: LightColor.cardColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppDimens.radiusX20),
+        ),
+      ),
+      builder: (_) =>
+          _ExpenseDetailsSheet(expense: expense, venueName: venueName),
+    );
+    if (action == _ExpenseDetailsSheet.deleteAction && mounted) {
+      _deleteExpense(expense);
+    }
+  }
+
+  void _deleteExpense(_Expense expense) {
+    final index = _data.expenses.indexOf(expense);
+    if (index < 0) return;
+    setState(() => _data.expenses.removeAt(index));
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            'Expense deleted · ${_Fmt.npr(expense.amount)}',
+            style: FutsalTheme.getTextTheme(context).bodyTextMedium?.copyWith(
+              color: LightColor.whiteColor,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          backgroundColor: LightColor.redColor,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppDimens.radiusX12),
+          ),
+          margin: const EdgeInsets.all(AppDimens.paddingX16),
+          duration: const Duration(seconds: 4),
+          action: SnackBarAction(
+            label: 'Undo',
+            textColor: LightColor.whiteColor,
+            onPressed: () {
+              if (!mounted) return;
+              setState(() => _data.expenses.insert(index, expense));
+            },
+          ),
         ),
       );
   }
@@ -764,7 +844,10 @@ class _Chip extends StatelessWidget {
       color: Colors.transparent,
       borderRadius: BorderRadius.circular(AppDimens.radiusX20),
       child: InkWell(
-        onTap: onTap,
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onTap();
+        },
         borderRadius: BorderRadius.circular(AppDimens.radiusX20),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
@@ -860,13 +943,20 @@ class _HeroCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: AppDimens.paddingX12),
-          Text(
-            _Fmt.npr(analytics.total),
-            style: textTheme.bodyTextLarge?.copyWith(
-              fontSize: 26,
-              fontWeight: FontWeight.w800,
-              color: LightColor.primaryTextColor,
-              letterSpacing: -0.5,
+          // Count-up animation; re-animates from the previous total whenever
+          // the filtered total changes.
+          TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0, end: analytics.total.toDouble()),
+            duration: const Duration(milliseconds: 500),
+            curve: Curves.easeOutCubic,
+            builder: (_, value, __) => Text(
+              _Fmt.npr(value.round()),
+              style: textTheme.bodyTextLarge?.copyWith(
+                fontSize: 26,
+                fontWeight: FontWeight.w800,
+                color: LightColor.primaryTextColor,
+                letterSpacing: -0.5,
+              ),
             ),
           ),
           const SizedBox(height: 2),
@@ -879,11 +969,13 @@ class _HeroCard extends StatelessWidget {
           const SizedBox(height: AppDimens.paddingX14),
           SizedBox(
             height: 56,
-            child: CustomPaint(
-              size: Size.infinite,
-              painter: _SparklinePainter(
-                values: analytics.series.map((b) => b.value).toList(),
-                color: LightColor.redColor,
+            child: RepaintBoundary(
+              child: CustomPaint(
+                size: Size.infinite,
+                painter: _SparklinePainter(
+                  values: analytics.series.map((b) => b.value).toList(),
+                  color: LightColor.redColor,
+                ),
               ),
             ),
           ),
@@ -989,7 +1081,7 @@ class _SparklinePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_SparklinePainter old) =>
-      old.values != values || old.color != color;
+      !listEquals(old.values, values) || old.color != color;
 }
 
 // ─────────────────────────────────────────────
@@ -1143,7 +1235,8 @@ class _TrendCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
     final buckets = analytics.series;
-    final maxV = buckets.fold<int>(0, (a, b) => math.max(a, b.value));
+    final values = buckets.map((b) => b.value).toList(growable: false);
+    final maxV = values.fold<int>(0, math.max);
     final avg = buckets.isEmpty
         ? 0
         : (buckets.fold<int>(0, (a, b) => a + b.value) / buckets.length)
@@ -1177,13 +1270,24 @@ class _TrendCard extends StatelessWidget {
           const SizedBox(height: AppDimens.paddingX14),
           SizedBox(
             height: 140,
-            child: CustomPaint(
-              size: Size.infinite,
-              painter: _BarChartPainter(
-                values: buckets.map((b) => b.value).toList(),
-                color: LightColor.secondaryColor,
-                trackColor: LightColor.dividerColor,
-                maxV: maxV == 0 ? 1 : maxV,
+            // Key on the data so the grow-in animation restarts whenever the
+            // period/filter changes the series.
+            child: TweenAnimationBuilder<double>(
+              key: ValueKey(Object.hashAll(values)),
+              tween: Tween(begin: 0, end: 1),
+              duration: const Duration(milliseconds: 700),
+              curve: Curves.easeOutCubic,
+              builder: (_, t, __) => RepaintBoundary(
+                child: CustomPaint(
+                  size: Size.infinite,
+                  painter: _BarChartPainter(
+                    values: values,
+                    color: LightColor.secondaryColor,
+                    trackColor: LightColor.dividerColor,
+                    maxV: maxV == 0 ? 1 : maxV,
+                    progress: t,
+                  ),
+                ),
               ),
             ),
           ),
@@ -1239,12 +1343,16 @@ class _BarChartPainter extends CustomPainter {
     required this.color,
     required this.trackColor,
     required this.maxV,
+    this.progress = 1,
   });
 
   final List<int> values;
   final Color color;
   final Color trackColor;
   final int maxV;
+
+  /// 0→1 grow-in animation driven by a [TweenAnimationBuilder].
+  final double progress;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -1265,7 +1373,7 @@ class _BarChartPainter extends CustomPainter {
         ),
         trackPaint,
       );
-      final h = (values[i] / maxV) * size.height;
+      final h = (values[i] / maxV) * size.height * progress;
       if (h > 0) {
         canvas.drawRRect(
           RRect.fromRectAndRadius(
@@ -1280,7 +1388,10 @@ class _BarChartPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_BarChartPainter old) =>
-      old.values != values || old.maxV != maxV || old.color != color;
+      !listEquals(old.values, values) ||
+      old.maxV != maxV ||
+      old.color != color ||
+      old.progress != progress;
 }
 
 // ─────────────────────────────────────────────
@@ -1307,7 +1418,10 @@ class _CategoryCard extends StatelessWidget {
     final total = entries.fold<int>(0, (a, b) => a + b.value);
 
     if (entries.isEmpty) {
-      return const _EmptyMicro(text: 'No expenses for this range.');
+      return const _EmptyState(
+        title: 'Nothing to break down',
+        message: 'No expenses recorded for this range.',
+      );
     }
 
     return _Surface(
@@ -1319,12 +1433,27 @@ class _CategoryCard extends StatelessWidget {
               SizedBox(
                 width: 96,
                 height: 96,
-                child: CustomPaint(
-                  painter: _DonutPainter(
-                    slices: entries
-                        .map((e) => (e.key.color, e.value.toDouble()))
-                        .toList(),
-                    track: LightColor.dividerColor.withValues(alpha: 0.4),
+                // Sweep-in animation; restarts when the breakdown changes.
+                child: TweenAnimationBuilder<double>(
+                  key: ValueKey(
+                    Object.hashAll(
+                      entries.map((e) => Object.hash(e.key, e.value)),
+                    ),
+                  ),
+                  tween: Tween(begin: 0, end: 1),
+                  duration: const Duration(milliseconds: 700),
+                  curve: Curves.easeOutCubic,
+                  builder: (_, t, child) => RepaintBoundary(
+                    child: CustomPaint(
+                      painter: _DonutPainter(
+                        slices: entries
+                            .map((e) => (e.key.color, e.value.toDouble()))
+                            .toList(),
+                        track: LightColor.dividerColor.withValues(alpha: 0.4),
+                        progress: t,
+                      ),
+                      child: child,
+                    ),
                   ),
                   child: Center(
                     child: Column(
@@ -1543,9 +1672,12 @@ class _CategoryRow extends StatelessWidget {
 }
 
 class _DonutPainter extends CustomPainter {
-  _DonutPainter({required this.slices, required this.track});
+  _DonutPainter({required this.slices, required this.track, this.progress = 1});
   final List<(Color, double)> slices;
   final Color track;
+
+  /// 0→1 sweep-in animation driven by a [TweenAnimationBuilder].
+  final double progress;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -1565,7 +1697,7 @@ class _DonutPainter extends CustomPainter {
     if (total == 0) return;
     double start = -math.pi / 2;
     for (final (color, v) in slices) {
-      final sweep = (v / total) * math.pi * 2;
+      final sweep = (v / total) * math.pi * 2 * progress;
       if (sweep > 0) {
         canvas.drawArc(
           rect,
@@ -1584,7 +1716,8 @@ class _DonutPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_DonutPainter old) => old.slices != slices;
+  bool shouldRepaint(_DonutPainter old) =>
+      !listEquals(old.slices, slices) || old.progress != progress;
 }
 
 // ─────────────────────────────────────────────
@@ -1625,16 +1758,41 @@ class _CategoryFilterRow extends StatelessWidget {
   }
 }
 
-class _RecordsList extends StatelessWidget {
-  const _RecordsList({required this.expenses, required this.venues});
+class _RecordsSliver extends StatelessWidget {
+  const _RecordsSliver({
+    required this.expenses,
+    required this.venues,
+    required this.hasFilters,
+    required this.onTap,
+    required this.onAdd,
+    required this.onClearFilters,
+  });
+
   final List<_Expense> expenses;
   final List<_Venue> venues;
+  final bool hasFilters;
+  final ValueChanged<_Expense> onTap;
+  final VoidCallback onAdd;
+  final VoidCallback onClearFilters;
 
   @override
   Widget build(BuildContext context) {
     if (expenses.isEmpty) {
-      return const _EmptyMicro(text: 'No records in this range.');
+      return SliverPadding(
+        padding: const EdgeInsets.symmetric(horizontal: AppDimens.paddingX20),
+        sliver: SliverToBoxAdapter(
+          child: _EmptyState(
+            title: hasFilters ? 'No matching records' : 'No records yet',
+            message: hasFilters
+                ? 'Try a different period, venue or category.'
+                : 'Expenses you add will show up here.',
+            actionLabel: hasFilters ? 'Clear filters' : 'Add expense',
+            onAction: hasFilters ? onClearFilters : onAdd,
+          ),
+        ),
+      );
     }
+
     final byDay = <DateTime, List<_Expense>>{};
     for (final e in expenses) {
       final k = DateTime(e.date.year, e.date.month, e.date.day);
@@ -1642,28 +1800,54 @@ class _RecordsList extends StatelessWidget {
     }
     final days = byDay.keys.toList()..sort((a, b) => b.compareTo(a));
 
+    return SliverPadding(
+      padding: const EdgeInsets.symmetric(horizontal: AppDimens.paddingX20),
+      sliver: SliverList.separated(
+        itemCount: days.length,
+        separatorBuilder: (_, __) =>
+            const SizedBox(height: AppDimens.paddingX10),
+        itemBuilder: (_, i) => _DayGroupCard(
+          date: days[i],
+          expenses: byDay[days[i]]!,
+          venues: venues,
+          onTap: onTap,
+        ),
+      ),
+    );
+  }
+}
+
+class _DayGroupCard extends StatelessWidget {
+  const _DayGroupCard({
+    required this.date,
+    required this.expenses,
+    required this.venues,
+    required this.onTap,
+  });
+
+  final DateTime date;
+  final List<_Expense> expenses;
+  final List<_Venue> venues;
+  final ValueChanged<_Expense> onTap;
+
+  @override
+  Widget build(BuildContext context) {
     return _Surface(
-      padding: EdgeInsets.zero,
+      padding: const EdgeInsets.symmetric(vertical: AppDimens.paddingX4),
       child: Column(
         children: [
-          for (int d = 0; d < days.length; d++) ...[
-            _DateHeader(date: days[d], total: byDay[days[d]]!),
-            for (final e in byDay[days[d]]!)
-              _ExpenseTile(
-                expense: e,
-                venueName: venues
-                    .firstWhere(
-                      (v) => v.id == e.venueId,
-                      orElse: () => const _Venue('?', '—'),
-                    )
-                    .name,
-              ),
-            if (d < days.length - 1)
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: AppDimens.paddingX14),
-                child: Divider(height: 1, color: LightColor.dividerColor),
-              ),
-          ],
+          _DateHeader(date: date, expenses: expenses),
+          for (final e in expenses)
+            _ExpenseTile(
+              expense: e,
+              venueName: venues
+                  .firstWhere(
+                    (v) => v.id == e.venueId,
+                    orElse: () => const _Venue('?', '—'),
+                  )
+                  .name,
+              onTap: () => onTap(e),
+            ),
         ],
       ),
     );
@@ -1671,9 +1855,9 @@ class _RecordsList extends StatelessWidget {
 }
 
 class _DateHeader extends StatelessWidget {
-  const _DateHeader({required this.date, required this.total});
+  const _DateHeader({required this.date, required this.expenses});
   final DateTime date;
-  final List<_Expense> total;
+  final List<_Expense> expenses;
 
   static const _months = [
     'January',
@@ -1694,14 +1878,13 @@ class _DateHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
-    final sum = total.fold<int>(0, (a, e) => a + e.amount);
+    final sum = expenses.fold<int>(0, (a, e) => a + e.amount);
     final now = DateTime.now();
-    final isToday =
-        date.year == now.year && date.month == now.month && date.day == now.day;
-    final isYesterday =
-        date.year == now.year &&
-        date.month == now.month &&
-        date.day == now.day - 1;
+    final today = DateTime(now.year, now.month, now.day);
+    // Day-difference comparison handles month/year boundaries correctly.
+    final diff = today.difference(date).inDays;
+    final isToday = diff == 0;
+    final isYesterday = diff == 1;
     final label = isToday
         ? 'Today'
         : isYesterday
@@ -1739,93 +1922,101 @@ class _DateHeader extends StatelessWidget {
 }
 
 class _ExpenseTile extends StatelessWidget {
-  const _ExpenseTile({required this.expense, required this.venueName});
+  const _ExpenseTile({
+    required this.expense,
+    required this.venueName,
+    required this.onTap,
+  });
   final _Expense expense;
   final String venueName;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
-    return Padding(
-      padding: AppUtils().getPadding(
-        symmetricHorizontal: AppDimens.paddingX14,
-        symmetricVertical: AppDimens.paddingX10,
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: expense.category.color.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: AppUtils().getPadding(
+          symmetricHorizontal: AppDimens.paddingX14,
+          symmetricVertical: AppDimens.paddingX10,
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: expense.category.color.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+              ),
+              child: Icon(
+                expense.category.icon,
+                color: expense.category.color,
+                size: 18,
+              ),
             ),
-            child: Icon(
-              expense.category.icon,
-              color: expense.category.color,
-              size: 18,
-            ),
-          ),
-          const SizedBox(width: AppDimens.paddingX12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  expense.vendor,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: textTheme.bodyTextMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: LightColor.primaryTextColor,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Row(
-                  children: [
-                    Text(
-                      expense.category.label,
-                      style: textTheme.bodyTextSmall?.copyWith(
-                        color: expense.category.color,
-                        fontWeight: FontWeight.w600,
-                        fontSize: AppDimens.fontBodySubTitle,
-                      ),
+            const SizedBox(width: AppDimens.paddingX12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    expense.vendor,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: textTheme.bodyTextMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: LightColor.primaryTextColor,
                     ),
-                    const _Sep(),
-                    Flexible(
-                      child: Text(
-                        venueName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Row(
+                    children: [
+                      Text(
+                        expense.category.label,
+                        style: textTheme.bodyTextSmall?.copyWith(
+                          color: expense.category.color,
+                          fontWeight: FontWeight.w600,
+                          fontSize: AppDimens.fontBodySubTitle,
+                        ),
+                      ),
+                      const _Sep(),
+                      Flexible(
+                        child: Text(
+                          venueName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: textTheme.bodyTextSmall?.copyWith(
+                            color: LightColor.hintTextColor,
+                            fontSize: AppDimens.fontBodySubTitle,
+                          ),
+                        ),
+                      ),
+                      const _Sep(),
+                      Text(
+                        expense.method.label,
                         style: textTheme.bodyTextSmall?.copyWith(
                           color: LightColor.hintTextColor,
                           fontSize: AppDimens.fontBodySubTitle,
                         ),
                       ),
-                    ),
-                    const _Sep(),
-                    Text(
-                      expense.method.label,
-                      style: textTheme.bodyTextSmall?.copyWith(
-                        color: LightColor.hintTextColor,
-                        fontSize: AppDimens.fontBodySubTitle,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(width: AppDimens.paddingX10),
-          Text(
-            '- ${_Fmt.npr(expense.amount)}',
-            style: textTheme.bodyTextMedium?.copyWith(
-              fontWeight: FontWeight.w800,
-              color: LightColor.redColor,
+            const SizedBox(width: AppDimens.paddingX10),
+            Text(
+              '- ${_Fmt.npr(expense.amount)}',
+              style: textTheme.bodyTextMedium?.copyWith(
+                fontWeight: FontWeight.w800,
+                color: LightColor.redColor,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -1844,6 +2035,179 @@ class _Sep extends StatelessWidget {
           color: LightColor.hintTextColor,
           fontSize: AppDimens.fontBodySubTitle,
         ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+//  EXPENSE DETAILS SHEET
+// ─────────────────────────────────────────────
+
+class _ExpenseDetailsSheet extends StatelessWidget {
+  const _ExpenseDetailsSheet({required this.expense, required this.venueName});
+
+  static const deleteAction = 'delete';
+
+  final _Expense expense;
+  final String venueName;
+
+  String get _dateLabel {
+    final d = expense.date;
+    String two(int n) => n.toString().padLeft(2, '0');
+    return '${_shortDate(d)}, ${d.year} · ${two(d.hour)}:${two(d.minute)}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    final category = expense.category;
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(
+          AppDimens.paddingX20,
+          AppDimens.paddingX12,
+          AppDimens.paddingX20,
+          AppDimens.paddingX20,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: LightColor.dividerColor,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: AppDimens.paddingX16),
+            Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: category.color.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(AppDimens.radiusX12),
+                  ),
+                  child: Icon(category.icon, color: category.color, size: 20),
+                ),
+                const SizedBox(width: AppDimens.paddingX12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        expense.vendor,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: textTheme.bodyTextMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: LightColor.primaryTextColor,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        category.label,
+                        style: textTheme.bodyTextSmall?.copyWith(
+                          color: category.color,
+                          fontWeight: FontWeight.w600,
+                          fontSize: AppDimens.fontBodySubTitle,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: AppDimens.paddingX10),
+                Text(
+                  '- ${_Fmt.npr(expense.amount)}',
+                  style: textTheme.bodyTextMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: LightColor.redColor,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppDimens.paddingX14),
+            const Divider(height: 1, color: LightColor.dividerColor),
+            const SizedBox(height: AppDimens.paddingX6),
+            _DetailRow(label: 'Date', value: _dateLabel),
+            _DetailRow(label: 'Venue', value: venueName),
+            _DetailRow(label: 'Paid via', value: expense.method.label),
+            if (expense.note != null)
+              _DetailRow(label: 'Note', value: expense.note!),
+            const SizedBox(height: AppDimens.paddingX16),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => Navigator.of(context).pop(deleteAction),
+                icon: const Icon(Icons.delete_outline_rounded, size: 18),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: LightColor.redColor,
+                  side: BorderSide(
+                    color: LightColor.redColor.withValues(alpha: 0.4),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: AppDimens.paddingX12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppDimens.radiusX12),
+                  ),
+                ),
+                label: Text(
+                  'Delete expense',
+                  style: textTheme.bodyTextMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: LightColor.redColor,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DetailRow extends StatelessWidget {
+  const _DetailRow({required this.label, required this.value});
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppDimens.paddingX8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 72,
+            child: Text(
+              label,
+              style: textTheme.bodyTextSmall?.copyWith(
+                color: LightColor.hintTextColor,
+              ),
+            ),
+          ),
+          const SizedBox(width: AppDimens.paddingX10),
+          Expanded(
+            child: Text(
+              value,
+              style: textTheme.bodyTextSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: LightColor.primaryTextColor,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1873,12 +2237,7 @@ class _CreateExpensePageState extends State<_CreateExpensePage> {
   _PaymentMethod _method = _PaymentMethod.cash;
   bool _submitted = false;
 
-  @override
-  void initState() {
-    super.initState();
-    _amountCtrl.addListener(() => setState(() {}));
-    _vendorCtrl.addListener(() => setState(() {}));
-  }
+  static const _presets = [500, 1000, 2500, 5000, 10000];
 
   @override
   void dispose() {
@@ -1899,6 +2258,14 @@ class _CreateExpensePageState extends State<_CreateExpensePage> {
       (_amountInt ?? 0) > 0 &&
       _category != null &&
       _vendorCtrl.text.trim().isNotEmpty;
+
+  void _setAmount(int value) {
+    final text = _Fmt.group('$value');
+    _amountCtrl.value = TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
+    );
+  }
 
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
@@ -1921,6 +2288,7 @@ class _CreateExpensePageState extends State<_CreateExpensePage> {
   void _save() {
     setState(() => _submitted = true);
     if (!_canSave) return;
+    HapticFeedback.mediumImpact();
     final amount = _amountInt!;
     final vendor = _vendorCtrl.text.trim();
     final note = _noteCtrl.text.trim();
@@ -1946,15 +2314,19 @@ class _CreateExpensePageState extends State<_CreateExpensePage> {
       appBar: CustomAppBar(
         title: 'New expense',
         actions: [
-          TextButton(
-            onPressed: _canSave ? _save : null,
-            child: Text(
-              'Save',
-              style: textTheme.bodyTextMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-                color: _canSave
-                    ? LightColor.secondaryColor
-                    : LightColor.disabledTextColor,
+          // Rebuilds only this button while typing — not the whole form.
+          ListenableBuilder(
+            listenable: Listenable.merge([_amountCtrl, _vendorCtrl]),
+            builder: (context, _) => TextButton(
+              onPressed: _canSave ? _save : null,
+              child: Text(
+                'Save',
+                style: textTheme.bodyTextMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: _canSave
+                      ? LightColor.secondaryColor
+                      : LightColor.disabledTextColor,
+                ),
               ),
             ),
           ),
@@ -1982,10 +2354,33 @@ class _CreateExpensePageState extends State<_CreateExpensePage> {
             const SizedBox(height: AppDimens.paddingX18),
 
             _SectionLabel('Amount'),
-            _AmountCard(
-              controller: _amountCtrl,
-              focusNode: _amountFocus,
-              showError: _submitted && (_amountInt ?? 0) <= 0,
+            ValueListenableBuilder<TextEditingValue>(
+              valueListenable: _amountCtrl,
+              builder: (context, _, __) => Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _AmountCard(
+                    controller: _amountCtrl,
+                    focusNode: _amountFocus,
+                    showError: _submitted && (_amountInt ?? 0) <= 0,
+                  ),
+                  const SizedBox(height: AppDimens.paddingX10),
+                  // One-tap presets for common amounts.
+                  Wrap(
+                    spacing: AppDimens.paddingX8,
+                    runSpacing: AppDimens.paddingX8,
+                    children: _presets
+                        .map(
+                          (p) => _Chip(
+                            label: _Fmt.group('$p'),
+                            selected: _amountInt == p,
+                            onTap: () => _setAmount(p),
+                          ),
+                        )
+                        .toList(),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: AppDimens.paddingX18),
 
@@ -2140,15 +2535,18 @@ class _CreateExpensePageState extends State<_CreateExpensePage> {
             ),
             const SizedBox(height: AppDimens.paddingX24),
 
-            CustomButton(
-              text: _canSave
-                  ? 'Save expense · ${_Fmt.npr(_amountInt ?? 0)}'
-                  : 'Save expense',
-              icon: Icons.save_outlined,
-              onPressed: _canSave ? _save : null,
-              minHeight: AppDimens.sizeX54,
-              borderRadius: AppDimens.radiusX14,
-              fontSize: AppDimens.fontBodyTextMedium,
+            ListenableBuilder(
+              listenable: Listenable.merge([_amountCtrl, _vendorCtrl]),
+              builder: (context, _) => CustomButton(
+                text: _canSave
+                    ? 'Save expense · ${_Fmt.npr(_amountInt ?? 0)}'
+                    : 'Save expense',
+                icon: Icons.save_outlined,
+                onPressed: _canSave ? _save : null,
+                minHeight: AppDimens.sizeX54,
+                borderRadius: AppDimens.radiusX14,
+                fontSize: AppDimens.fontBodyTextMedium,
+              ),
             ),
           ],
         ),
@@ -2240,6 +2638,7 @@ class _AmountCard extends StatelessWidget {
                     focusNode: focusNode,
                     autofocus: true,
                     keyboardType: TextInputType.number,
+                    inputFormatters: [_ThousandsInputFormatter()],
                     textAlign: TextAlign.start,
                     cursorColor: LightColor.secondaryColor,
                     style: textTheme.bodyTextLarge?.copyWith(
@@ -2414,37 +2813,119 @@ class _SectionLabel extends StatelessWidget {
   }
 }
 
-class _EmptyMicro extends StatelessWidget {
-  const _EmptyMicro({required this.text});
-  final String text;
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({
+    required this.title,
+    required this.message,
+    this.actionLabel,
+    this.onAction,
+  });
+
+  final String title;
+  final String message;
+  final String? actionLabel;
+  final VoidCallback? onAction;
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
     return _Surface(
-      child: Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: AppDimens.paddingX10),
-          child: Text(
-            text,
-            style: FutsalTheme.getTextTheme(
-              context,
-            ).bodyTextSmall?.copyWith(color: LightColor.secondaryTextColor),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppDimens.paddingX20,
+        vertical: AppDimens.paddingX24,
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: LightColor.secondaryColor.withValues(alpha: 0.08),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.receipt_long_outlined,
+              size: 22,
+              color: LightColor.secondaryColor,
+            ),
           ),
-        ),
+          const SizedBox(height: AppDimens.paddingX12),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: textTheme.bodyTextMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: LightColor.primaryTextColor,
+            ),
+          ),
+          const SizedBox(height: AppDimens.paddingX4),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: textTheme.bodyTextSmall?.copyWith(
+              color: LightColor.secondaryTextColor,
+            ),
+          ),
+          if (actionLabel != null && onAction != null) ...[
+            const SizedBox(height: AppDimens.paddingX14),
+            OutlinedButton(
+              onPressed: onAction,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: LightColor.secondaryColor,
+                side: const BorderSide(color: LightColor.secondaryColor),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppDimens.paddingX16,
+                  vertical: AppDimens.paddingX8,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+                ),
+              ),
+              child: Text(
+                actionLabel!,
+                style: textTheme.bodyTextSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: LightColor.secondaryColor,
+                ),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
 }
 
 class _Fmt {
-  static String npr(int v) {
-    final neg = v < 0;
-    final s = v.abs().toString();
+  static String npr(int v) =>
+      '${v < 0 ? '-' : ''}NPR ${group(v.abs().toString())}';
+
+  /// Groups a digit-only string with thousands separators: 1234567 → 1,234,567.
+  static String group(String digits) {
     final buf = StringBuffer();
-    for (int i = 0; i < s.length; i++) {
-      if (i > 0 && (s.length - i) % 3 == 0) buf.write(',');
-      buf.write(s[i]);
+    for (int i = 0; i < digits.length; i++) {
+      if (i > 0 && (digits.length - i) % 3 == 0) buf.write(',');
+      buf.write(digits[i]);
     }
-    return '${neg ? '-' : ''}NPR ${buf.toString()}';
+    return buf.toString();
+  }
+}
+
+/// Live thousands-separator formatting for the amount field (max 9 digits).
+class _ThousandsInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    var digits = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
+    if (digits.length > 9) digits = digits.substring(0, 9);
+    if (digits.isEmpty) return TextEditingValue.empty;
+    final text = _Fmt.group(digits);
+    return TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
+    );
   }
 }
