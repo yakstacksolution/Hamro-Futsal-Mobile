@@ -68,6 +68,7 @@ dependencies:
   intl: ^0.20.2
   flutter_rating_bar: ^4.0.1
   geolocator: ^14.0.2
+  syncfusion_flutter_charts: ^33.2.10
 
 dev_dependencies:
   flutter_test:

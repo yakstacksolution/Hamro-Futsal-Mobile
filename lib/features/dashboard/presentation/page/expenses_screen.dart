@@ -1,6 +1,5 @@
 import 'dart:math' as math;
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
@@ -11,6 +10,8 @@ import 'package:hamro_footsall/core/widgets/custom_app_bar.dart';
 import 'package:hamro_footsall/core/widgets/custom_button.dart';
 import 'package:hamro_footsall/core/widgets/custom_dropdown_field.dart';
 import 'package:hamro_footsall/core/widgets/custom_text_field.dart';
+import 'package:syncfusion_flutter_charts/charts.dart';
+import 'package:syncfusion_flutter_charts/sparkcharts.dart';
 
 // ─────────────────────────────────────────────
 //  DOMAIN MODELS (demo)
@@ -970,12 +971,14 @@ class _HeroCard extends StatelessWidget {
           SizedBox(
             height: 56,
             child: RepaintBoundary(
-              child: CustomPaint(
-                size: Size.infinite,
-                painter: _SparklinePainter(
-                  values: analytics.series.map((b) => b.value).toList(),
-                  color: LightColor.redColor,
-                ),
+              child: SfSparkAreaChart(
+                data: analytics.series
+                    .map((b) => b.value)
+                    .toList(growable: false),
+                color: LightColor.redColor.withValues(alpha: 0.12),
+                borderColor: LightColor.redColor,
+                borderWidth: 2,
+                axisLineWidth: 0,
               ),
             ),
           ),
@@ -1030,58 +1033,6 @@ class _TrendPill extends StatelessWidget {
       ),
     );
   }
-}
-
-class _SparklinePainter extends CustomPainter {
-  _SparklinePainter({required this.values, required this.color});
-  final List<int> values;
-  final Color color;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (values.isEmpty) return;
-    final maxV = values.fold<int>(0, math.max);
-    if (maxV == 0) return;
-    final dx = values.length == 1 ? 0.0 : size.width / (values.length - 1);
-    final path = Path();
-    final fill = Path();
-    for (int i = 0; i < values.length; i++) {
-      final x = i * dx;
-      final y = size.height - (values[i] / maxV) * (size.height - 4) - 2;
-      if (i == 0) {
-        path.moveTo(x, y);
-        fill.moveTo(x, size.height);
-        fill.lineTo(x, y);
-      } else {
-        path.lineTo(x, y);
-        fill.lineTo(x, y);
-      }
-    }
-    fill.lineTo(size.width, size.height);
-    fill.close();
-    canvas.drawPath(
-      fill,
-      Paint()
-        ..shader = LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [color.withValues(alpha: 0.18), color.withValues(alpha: 0)],
-        ).createShader(Offset.zero & size),
-    );
-    canvas.drawPath(
-      path,
-      Paint()
-        ..color = color
-        ..strokeWidth = 2
-        ..style = PaintingStyle.stroke
-        ..strokeCap = StrokeCap.round
-        ..strokeJoin = StrokeJoin.round,
-    );
-  }
-
-  @override
-  bool shouldRepaint(_SparklinePainter old) =>
-      !listEquals(old.values, values) || old.color != color;
 }
 
 // ─────────────────────────────────────────────
@@ -1269,129 +1220,82 @@ class _TrendCard extends StatelessWidget {
           ),
           const SizedBox(height: AppDimens.paddingX14),
           SizedBox(
-            height: 140,
+            height: 170,
             // Key on the data so the grow-in animation restarts whenever the
             // period/filter changes the series.
-            child: TweenAnimationBuilder<double>(
-              key: ValueKey(Object.hashAll(values)),
-              tween: Tween(begin: 0, end: 1),
-              duration: const Duration(milliseconds: 700),
-              curve: Curves.easeOutCubic,
-              builder: (_, t, __) => RepaintBoundary(
-                child: CustomPaint(
-                  size: Size.infinite,
-                  painter: _BarChartPainter(
-                    values: values,
-                    color: LightColor.secondaryColor,
-                    trackColor: LightColor.dividerColor,
-                    maxV: maxV == 0 ? 1 : maxV,
-                    progress: t,
+            child: RepaintBoundary(
+              child: SfCartesianChart(
+                key: ValueKey(Object.hashAll(values)),
+                margin: EdgeInsets.zero,
+                plotAreaBorderWidth: 0,
+                primaryXAxis: CategoryAxis(
+                  arrangeByIndex: true,
+                  axisLine: const AxisLine(width: 0),
+                  majorTickLines: const MajorTickLines(size: 0),
+                  majorGridLines: const MajorGridLines(width: 0),
+                  labelStyle: const TextStyle(
+                    color: LightColor.hintTextColor,
+                    fontSize: AppDimens.fontBodySubTitle,
                   ),
+                  // Thin out labels on dense daily series; show all months.
+                  interval: buckets.length > 12
+                      ? (buckets.length / 4).ceilToDouble()
+                      : 1,
+                  labelIntersectAction: AxisLabelIntersectAction.hide,
                 ),
+                primaryYAxis: NumericAxis(
+                  isVisible: false,
+                  maximum: maxV == 0 ? 1 : null,
+                ),
+                tooltipBehavior: _tooltip(),
+                series: [
+                  ColumnSeries<_Bucket, String>(
+                    dataSource: buckets,
+                    xValueMapper: (b, _) => b.label,
+                    yValueMapper: (b, _) => b.value,
+                    color: LightColor.secondaryColor,
+                    width: 0.7,
+                    isTrackVisible: true,
+                    trackColor: LightColor.dividerColor.withValues(alpha: 0.4),
+                    trackBorderWidth: 0,
+                    borderRadius: const BorderRadius.all(Radius.circular(4)),
+                    animationDuration: 700,
+                  ),
+                ],
               ),
             ),
           ),
-          const SizedBox(height: AppDimens.paddingX10),
-          _AxisLabels(buckets: buckets),
         ],
       ),
     );
   }
-}
 
-class _AxisLabels extends StatelessWidget {
-  const _AxisLabels({required this.buckets});
-  final List<_Bucket> buckets;
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = FutsalTheme.getTextTheme(context);
-    if (buckets.isEmpty) return const SizedBox.shrink();
-
-    // For monthly buckets (year view), show all labels (12 max).
-    // For daily buckets, show first/middle/last to avoid clutter.
-    final showAll = buckets.length <= 12;
-    final indices = <int>[];
-    if (showAll) {
-      for (int i = 0; i < buckets.length; i++) {
-        indices.add(i);
-      }
-    } else {
-      indices.addAll([0, (buckets.length - 1) ~/ 2, buckets.length - 1]);
-    }
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: indices
-          .map(
-            (i) => Text(
-              buckets[i].label,
-              style: textTheme.bodyTextSmall?.copyWith(
-                color: LightColor.hintTextColor,
-                fontSize: AppDimens.fontBodySubTitle,
-              ),
+  TooltipBehavior _tooltip() {
+    return TooltipBehavior(
+      enable: true,
+      builder: (data, point, series, pointIndex, seriesIndex) {
+        final b = data as _Bucket;
+        return Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppDimens.paddingX10,
+            vertical: AppDimens.paddingX6,
+          ),
+          decoration: BoxDecoration(
+            color: LightColor.primaryTextColor,
+            borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+          ),
+          child: Text(
+            '${b.label} · ${_Fmt.npr(b.value)}',
+            style: const TextStyle(
+              color: LightColor.whiteColor,
+              fontSize: AppDimens.fontBodySubTitle,
+              fontWeight: FontWeight.w600,
             ),
-          )
-          .toList(),
+          ),
+        );
+      },
     );
   }
-}
-
-class _BarChartPainter extends CustomPainter {
-  _BarChartPainter({
-    required this.values,
-    required this.color,
-    required this.trackColor,
-    required this.maxV,
-    this.progress = 1,
-  });
-
-  final List<int> values;
-  final Color color;
-  final Color trackColor;
-  final int maxV;
-
-  /// 0→1 grow-in animation driven by a [TweenAnimationBuilder].
-  final double progress;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (values.isEmpty) return;
-    final n = values.length;
-    final gap = n > 31 ? 1.0 : 2.0;
-    final barW = (size.width - gap * (n - 1)) / n;
-    final radius = math.min(barW / 2, 4.0);
-    final trackPaint = Paint()..color = trackColor.withValues(alpha: 0.4);
-    final barPaint = Paint()..color = color;
-
-    for (int i = 0; i < n; i++) {
-      final x = i * (barW + gap);
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromLTWH(x, 0, barW, size.height),
-          Radius.circular(radius),
-        ),
-        trackPaint,
-      );
-      final h = (values[i] / maxV) * size.height * progress;
-      if (h > 0) {
-        canvas.drawRRect(
-          RRect.fromRectAndRadius(
-            Rect.fromLTWH(x, size.height - h, barW, h),
-            Radius.circular(radius),
-          ),
-          barPaint,
-        );
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(_BarChartPainter old) =>
-      !listEquals(old.values, values) ||
-      old.maxV != maxV ||
-      old.color != color ||
-      old.progress != progress;
 }
 
 // ─────────────────────────────────────────────
@@ -1431,50 +1335,53 @@ class _CategoryCard extends StatelessWidget {
           Row(
             children: [
               SizedBox(
-                width: 96,
-                height: 96,
-                // Sweep-in animation; restarts when the breakdown changes.
-                child: TweenAnimationBuilder<double>(
-                  key: ValueKey(
-                    Object.hashAll(
-                      entries.map((e) => Object.hash(e.key, e.value)),
-                    ),
-                  ),
-                  tween: Tween(begin: 0, end: 1),
-                  duration: const Duration(milliseconds: 700),
-                  curve: Curves.easeOutCubic,
-                  builder: (_, t, child) => RepaintBoundary(
-                    child: CustomPaint(
-                      painter: _DonutPainter(
-                        slices: entries
-                            .map((e) => (e.key.color, e.value.toDouble()))
-                            .toList(),
-                        track: LightColor.dividerColor.withValues(alpha: 0.4),
-                        progress: t,
+                width: 110,
+                height: 110,
+                // Key on the data so the sweep-in animation restarts whenever
+                // the breakdown changes.
+                child: RepaintBoundary(
+                  child: SfCircularChart(
+                    key: ValueKey(
+                      Object.hashAll(
+                        entries.map((e) => Object.hash(e.key, e.value)),
                       ),
-                      child: child,
                     ),
-                  ),
-                  child: Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          '${entries.length}',
-                          style: textTheme.bodyTextLarge?.copyWith(
-                            fontWeight: FontWeight.w800,
-                            color: LightColor.primaryTextColor,
-                          ),
+                    margin: EdgeInsets.zero,
+                    tooltipBehavior: _donutTooltip(total),
+                    annotations: [
+                      CircularChartAnnotation(
+                        widget: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              '${entries.length}',
+                              style: textTheme.bodyTextLarge?.copyWith(
+                                fontWeight: FontWeight.w800,
+                                color: LightColor.primaryTextColor,
+                              ),
+                            ),
+                            Text(
+                              'cats',
+                              style: textTheme.bodyTextSmall?.copyWith(
+                                fontSize: AppDimens.fontBodySubTitle,
+                                color: LightColor.hintTextColor,
+                              ),
+                            ),
+                          ],
                         ),
-                        Text(
-                          'cats',
-                          style: textTheme.bodyTextSmall?.copyWith(
-                            fontSize: AppDimens.fontBodySubTitle,
-                            color: LightColor.hintTextColor,
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
+                    series: [
+                      DoughnutSeries<MapEntry<_ExpenseCategory, int>, String>(
+                        dataSource: entries,
+                        xValueMapper: (e, _) => e.key.label,
+                        yValueMapper: (e, _) => e.value,
+                        pointColorMapper: (e, _) => e.key.color,
+                        innerRadius: '74%',
+                        radius: '100%',
+                        animationDuration: 700,
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -1525,6 +1432,34 @@ class _CategoryCard extends StatelessWidget {
             ),
         ],
       ),
+    );
+  }
+
+  TooltipBehavior _donutTooltip(int total) {
+    return TooltipBehavior(
+      enable: true,
+      builder: (data, point, series, pointIndex, seriesIndex) {
+        final e = data as MapEntry<_ExpenseCategory, int>;
+        final pct = total == 0 ? 0 : (e.value / total * 100).round();
+        return Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppDimens.paddingX10,
+            vertical: AppDimens.paddingX6,
+          ),
+          decoration: BoxDecoration(
+            color: LightColor.primaryTextColor,
+            borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+          ),
+          child: Text(
+            '${e.key.label} · ${_Fmt.npr(e.value)} ($pct%)',
+            style: const TextStyle(
+              color: LightColor.whiteColor,
+              fontSize: AppDimens.fontBodySubTitle,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -1669,55 +1604,6 @@ class _CategoryRow extends StatelessWidget {
       ),
     );
   }
-}
-
-class _DonutPainter extends CustomPainter {
-  _DonutPainter({required this.slices, required this.track, this.progress = 1});
-  final List<(Color, double)> slices;
-  final Color track;
-
-  /// 0→1 sweep-in animation driven by a [TweenAnimationBuilder].
-  final double progress;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = math.min(size.width, size.height) / 2;
-    const stroke = 12.0;
-    final rect = Rect.fromCircle(center: center, radius: radius - stroke / 2);
-    canvas.drawCircle(
-      center,
-      radius - stroke / 2,
-      Paint()
-        ..color = track
-        ..strokeWidth = stroke
-        ..style = PaintingStyle.stroke,
-    );
-    final total = slices.fold<double>(0, (a, b) => a + b.$2);
-    if (total == 0) return;
-    double start = -math.pi / 2;
-    for (final (color, v) in slices) {
-      final sweep = (v / total) * math.pi * 2 * progress;
-      if (sweep > 0) {
-        canvas.drawArc(
-          rect,
-          start,
-          sweep,
-          false,
-          Paint()
-            ..color = color
-            ..strokeWidth = stroke
-            ..strokeCap = StrokeCap.butt
-            ..style = PaintingStyle.stroke,
-        );
-        start += sweep;
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(_DonutPainter old) =>
-      !listEquals(old.slices, slices) || old.progress != progress;
 }
 
 // ─────────────────────────────────────────────
