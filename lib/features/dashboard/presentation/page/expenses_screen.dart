@@ -13,10 +13,6 @@ import 'package:hamro_footsall/core/widgets/custom_text_field.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 import 'package:syncfusion_flutter_charts/sparkcharts.dart';
 
-// ─────────────────────────────────────────────
-//  DOMAIN MODELS (demo)
-// ─────────────────────────────────────────────
-
 enum _Period { week, month, year, custom }
 
 extension on _Period {
@@ -418,8 +414,10 @@ class ExpensesScreen extends StatefulWidget {
   State<ExpensesScreen> createState() => _ExpensesScreenState();
 }
 
-class _ExpensesScreenState extends State<ExpensesScreen> {
+class _ExpensesScreenState extends State<ExpensesScreen>
+    with SingleTickerProviderStateMixin {
   late final _DemoData _data;
+  late final TabController _tabController;
   _Period _period = _Period.month;
   String? _venueId;
   _ExpenseCategory? _categoryFilter;
@@ -429,6 +427,13 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
   void initState() {
     super.initState();
     _data = _DemoData.generate();
+    _tabController = TabController(length: 3, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   _Range _resolvedRange() {
@@ -507,110 +512,119 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     return Scaffold(
       backgroundColor: LightColor.background,
       appBar: const CustomAppBar(title: 'Expenses'),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _openCreate,
-        backgroundColor: LightColor.secondaryColor,
-        foregroundColor: LightColor.whiteColor,
-        elevation: 2,
-        icon: const Icon(Icons.add_rounded, size: 18),
-        label: Text(
-          'Add expense',
-          style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
-            fontWeight: FontWeight.w700,
-            color: LightColor.whiteColor,
+      floatingActionButton: SizedBox(
+        height: 45,
+        child: FloatingActionButton.extended(
+          onPressed: _openCreate,
+          backgroundColor: LightColor.secondaryColor,
+          foregroundColor: LightColor.whiteColor,
+          elevation: 0,
+          extendedPadding: const EdgeInsets.symmetric(horizontal: 16),
+          shape: const StadiumBorder(),
+          icon: const Icon(Icons.add_rounded, size: 18),
+          label: Text(
+            'New Expense',
+            style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: LightColor.whiteColor,
+            ),
           ),
         ),
       ),
       body: SafeArea(
         top: false,
-        child: CustomScrollView(
-          physics: const BouncingScrollPhysics(),
-          slivers: [
-            SliverPadding(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Shared filters — pinned above the tabs so they apply everywhere.
+            Padding(
               padding: AppUtils().getPadding(
                 symmetricHorizontal: AppDimens.paddingX20,
                 top: AppDimens.paddingX4,
               ),
-              sliver: SliverToBoxAdapter(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _SubtitleLine(
-                      range: range,
-                      count: analytics.count,
-                      total: analytics.total,
-                    ),
-                    const SizedBox(height: AppDimens.paddingX14),
-                    _PeriodChips(
-                      period: _period,
-                      customRange: _customRange,
-                      onPeriod: (p) {
-                        if (p == _Period.custom) {
-                          _pickRange();
-                        } else {
-                          setState(() => _period = p);
-                        }
-                      },
-                      onEditCustom: _pickRange,
-                    ),
-                    const SizedBox(height: AppDimens.paddingX12),
-                    _VenueFilter(
-                      venues: _data.venues,
-                      selectedId: _venueId,
-                      onChange: (id) => setState(() => _venueId = id),
-                    ),
-                    const SizedBox(height: AppDimens.paddingX18),
-
-                    _SectionLabel('Total spend'),
-                    _HeroCard(analytics: analytics),
-                    const SizedBox(height: AppDimens.paddingX18),
-
-                    _SectionLabel('Snapshot'),
-                    _KpiGrid(analytics: analytics, venues: _data.venues),
-                    const SizedBox(height: AppDimens.paddingX18),
-
-                    _SectionLabel('Trend'),
-                    _TrendCard(analytics: analytics),
-                    const SizedBox(height: AppDimens.paddingX18),
-
-                    _SectionLabel('By category'),
-                    _CategoryCard(
-                      analytics: analytics,
-                      selectedCategory: _categoryFilter,
-                      onSelect: (c) => setState(() => _categoryFilter = c),
-                    ),
-                    const SizedBox(height: AppDimens.paddingX18),
-
-                    _SectionLabel(
-                      _categoryFilter == null
-                          ? 'Records'
-                          : 'Records · ${_categoryFilter!.label}',
-                    ),
-                    _CategoryFilterRow(
-                      selected: _categoryFilter,
-                      onChange: (c) => setState(() => _categoryFilter = c),
-                    ),
-                    const SizedBox(height: AppDimens.paddingX10),
-                  ],
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _SubtitleLine(
+                    range: range,
+                    count: analytics.count,
+                    total: analytics.total,
+                  ),
+                  const SizedBox(height: AppDimens.paddingX12),
+                  _PeriodChips(
+                    period: _period,
+                    customRange: _customRange,
+                    onPeriod: (p) {
+                      if (p == _Period.custom) {
+                        _pickRange();
+                      } else {
+                        setState(() => _period = p);
+                      }
+                    },
+                    onEditCustom: _pickRange,
+                  ),
+                  const SizedBox(height: AppDimens.paddingX10),
+                  _VenueFilter(
+                    venues: _data.venues,
+                    selectedId: _venueId,
+                    onChange: (id) => setState(() => _venueId = id),
+                  ),
+                  const SizedBox(height: AppDimens.paddingX10),
+                  // Category filter is shared — it scopes every tab
+                  // (totals, KPIs, charts and records) consistently.
+                  _CategoryFilterRow(
+                    selected: _categoryFilter,
+                    onChange: (c) => setState(() => _categoryFilter = c),
+                  ),
+                ],
               ),
             ),
-            // Records are grouped per day and built lazily — only the
-            // day-cards near the viewport are instantiated.
-            _RecordsSliver(
-              expenses: analytics._scoped,
-              venues: _data.venues,
-              hasFilters: _categoryFilter != null || _venueId != null,
-              onTap: _showExpenseDetails,
-              onAdd: _openCreate,
-              onClearFilters: () => setState(() {
-                _categoryFilter = null;
-                _venueId = null;
-              }),
+            const SizedBox(height: AppDimens.paddingX8),
+            TabBar(
+              controller: _tabController,
+              labelColor: LightColor.secondaryColor,
+              unselectedLabelColor: LightColor.secondaryTextColor,
+              indicatorColor: LightColor.secondaryColor,
+              indicatorSize: TabBarIndicatorSize.label,
+              dividerColor: LightColor.dividerColor,
+              labelStyle: FutsalTheme.getTextTheme(
+                context,
+              ).bodyTextSmall?.copyWith(fontWeight: FontWeight.w700),
+              unselectedLabelStyle: FutsalTheme.getTextTheme(
+                context,
+              ).bodyTextSmall?.copyWith(fontWeight: FontWeight.w500),
+              tabs: const [
+                Tab(text: 'Overview', height: 40),
+                Tab(text: 'Analytics', height: 40),
+                Tab(text: 'Records', height: 40),
+              ],
             ),
-            const SliverToBoxAdapter(
-              child: SizedBox(
-                height: AppDimens.paddingX50 + AppDimens.paddingX20,
+            // Breathing room between the tab bar and tab content.
+            const SizedBox(height: AppDimens.paddingX12),
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _OverviewTab(analytics: analytics, venues: _data.venues),
+                  _AnalyticsTab(
+                    analytics: analytics,
+                    selectedCategory: _categoryFilter,
+                    onSelectCategory: (c) =>
+                        setState(() => _categoryFilter = c),
+                  ),
+                  _RecordsTab(
+                    expenses: analytics._scoped,
+                    venues: _data.venues,
+                    categoryFilter: _categoryFilter,
+                    hasFilters: _categoryFilter != null || _venueId != null,
+                    onTap: _showExpenseDetails,
+                    onAdd: _openCreate,
+                    onClearFilters: () => setState(() {
+                      _categoryFilter = null;
+                      _venueId = null;
+                    }),
+                  ),
+                ],
               ),
             ),
           ],
@@ -708,6 +722,128 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
           ),
         ),
       );
+  }
+}
+
+// ─────────────────────────────────────────────
+//  TABS
+// ─────────────────────────────────────────────
+
+class _OverviewTab extends StatelessWidget {
+  const _OverviewTab({required this.analytics, required this.venues});
+  final _Analytics analytics;
+  final List<_Venue> venues;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      key: const PageStorageKey('expenses_overview'),
+      physics: const BouncingScrollPhysics(),
+      padding: AppUtils().getPadding(
+        symmetricHorizontal: AppDimens.paddingX20,
+        top: AppDimens.paddingX4,
+        bottom: AppDimens.paddingX50 + AppDimens.paddingX20,
+      ),
+      children: [
+        _SectionLabel('Total spend'),
+        _HeroCard(analytics: analytics),
+        const SizedBox(height: AppDimens.paddingX18),
+        _SectionLabel('Snapshot'),
+        _KpiGrid(analytics: analytics, venues: venues),
+      ],
+    );
+  }
+}
+
+class _AnalyticsTab extends StatelessWidget {
+  const _AnalyticsTab({
+    required this.analytics,
+    required this.selectedCategory,
+    required this.onSelectCategory,
+  });
+
+  final _Analytics analytics;
+  final _ExpenseCategory? selectedCategory;
+  final ValueChanged<_ExpenseCategory?> onSelectCategory;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      key: const PageStorageKey('expenses_analytics'),
+      physics: const BouncingScrollPhysics(),
+      padding: AppUtils().getPadding(
+        symmetricHorizontal: AppDimens.paddingX20,
+        top: AppDimens.paddingX4,
+        bottom: AppDimens.paddingX50 + AppDimens.paddingX20,
+      ),
+      children: [
+        _SectionLabel('Trend'),
+        _TrendCard(analytics: analytics),
+        const SizedBox(height: AppDimens.paddingX18),
+        _SectionLabel('By category'),
+        _CategoryCard(
+          analytics: analytics,
+          selectedCategory: selectedCategory,
+          onSelect: onSelectCategory,
+        ),
+      ],
+    );
+  }
+}
+
+class _RecordsTab extends StatelessWidget {
+  const _RecordsTab({
+    required this.expenses,
+    required this.venues,
+    required this.categoryFilter,
+    required this.hasFilters,
+    required this.onTap,
+    required this.onAdd,
+    required this.onClearFilters,
+  });
+
+  final List<_Expense> expenses;
+  final List<_Venue> venues;
+  final _ExpenseCategory? categoryFilter;
+  final bool hasFilters;
+  final ValueChanged<_Expense> onTap;
+  final VoidCallback onAdd;
+  final VoidCallback onClearFilters;
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomScrollView(
+      key: const PageStorageKey('expenses_records'),
+      physics: const BouncingScrollPhysics(),
+      slivers: [
+        SliverPadding(
+          padding: AppUtils().getPadding(
+            symmetricHorizontal: AppDimens.paddingX20,
+            top: AppDimens.paddingX4,
+          ),
+          sliver: SliverToBoxAdapter(
+            child: _SectionLabel(
+              categoryFilter == null
+                  ? 'Records'
+                  : 'Records · ${categoryFilter!.label}',
+            ),
+          ),
+        ),
+        // Records are grouped per day and built lazily — only the
+        // day-cards near the viewport are instantiated.
+        _RecordsSliver(
+          expenses: expenses,
+          venues: venues,
+          hasFilters: hasFilters,
+          onTap: onTap,
+          onAdd: onAdd,
+          onClearFilters: onClearFilters,
+        ),
+        const SliverToBoxAdapter(
+          child: SizedBox(height: AppDimens.paddingX50 + AppDimens.paddingX20),
+        ),
+      ],
+    );
   }
 }
 
