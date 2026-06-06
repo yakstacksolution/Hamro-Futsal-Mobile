@@ -10,7 +10,7 @@ import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/widgets/loading_widget.dart';
 import 'package:hamro_footsall/features/auth/data/repositories/authentication_repository_impl.dart';
 import 'package:hamro_footsall/features/expenses/presentation/pages/expenses_screen.dart';
-import 'package:hamro_footsall/features/dashboard/presentation/page/overview_screen.dart';
+import 'package:hamro_footsall/features/booking_overview/presentation/pages/booking_overview_screen.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/widgets/opponent_request_page.dart';
 import 'package:hamro_footsall/features/profile/data/model/profile_model.dart';
 import 'package:hamro_footsall/features/profile/presentation/pages/about_app_page.dart';
@@ -52,11 +52,11 @@ class _ProfilePageState extends State<ProfilePage> {
 
   late final List<_ProfileItem> _vendorItems = <_ProfileItem>[
     _ProfileItem(
-      title: 'Overview',
+      title: 'Booking Overview',
       icon: Icons.insights_rounded,
-      onTap: () => Navigator.of(
-        context,
-      ).push(MaterialPageRoute<void>(builder: (_) => OverviewScreen())),
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute<void>(builder: (_) => const BookingOverviewScreen()),
+      ),
     ),
     _ProfileItem(
       title: 'Expenses',
