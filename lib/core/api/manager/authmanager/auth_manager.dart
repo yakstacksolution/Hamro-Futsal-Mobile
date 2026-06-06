@@ -125,6 +125,18 @@ class AuthManager extends ServiceManager {
     return await _apiClient.getExpenseCategories();
   }
 
+  Future<Result> getDropdownVenueCourts() async {
+    return await _apiClient.getDropdownVenueCourts();
+  }
+
+  Future<Result> createExpense(dynamic data) async {
+    return await _apiClient.createExpense(data: data);
+  }
+
+  Future<Result> getExpenses() async {
+    return await _apiClient.getExpenses();
+  }
+
   Future<Result> getVenueHostedBy(int venueId) async {
     return await _apiClient.getVenueHostedBy(venueId: venueId);
   }

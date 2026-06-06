@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:hamro_footsall/core/utils/custom_image_view.dart';
 import 'package:hamro_footsall/features/expenses/data/model/expense_model.dart';
+import 'package:hamro_footsall/features/expenses/presentation/bloc/expenses_bloc/expenses_bloc.dart';
 
 /// Visual identity (icon + accent color) for each expense category.
 extension ExpenseCategoryUi on ExpenseCategory {
@@ -27,6 +30,69 @@ extension ExpenseCategoryUi on ExpenseCategory {
     ExpenseCategory.utilities => const Color(0xFFEF4444),
     ExpenseCategory.other => const Color(0xFF6B7280),
   };
+}
+
+class ExpenseCategoryIcon extends StatelessWidget {
+  const ExpenseCategoryIcon({
+    super.key,
+    required this.category,
+    this.categoryId,
+    this.boxSize = 40,
+    this.iconSize = 18,
+    this.radius = 6,
+  });
+
+  final ExpenseCategory category;
+
+  final String? categoryId;
+  final double boxSize;
+  final double iconSize;
+  final double radius;
+
+  @override
+  Widget build(BuildContext context) {
+    final categories = context.select<ExpensesBloc, List<ExpenseCategoryModel>>(
+      (bloc) => bloc.state.categories,
+    );
+    ExpenseCategoryModel? api;
+    for (final c in categories) {
+      if (!c.hasImage) continue;
+      if (categoryId != null ? c.id == categoryId : c.asEnum == category) {
+        api = c;
+        break;
+      }
+    }
+
+    final Widget child;
+    if (api == null) {
+      child = Icon(category.icon, color: category.color, size: iconSize);
+    } else if (api.isSvgImage) {
+      child = CustomImageView(
+        svgPath: api.image,
+        svgFromOnline: true,
+        height: iconSize + 2,
+        width: iconSize + 2,
+      );
+    } else {
+      child = CustomImageView(
+        url: api.image,
+        height: iconSize + 2,
+        width: iconSize + 2,
+        fit: BoxFit.contain,
+      );
+    }
+
+    return Container(
+      width: boxSize,
+      height: boxSize,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: category.color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(radius),
+      ),
+      child: child,
+    );
+  }
 }
 
 class ExpenseFmt {

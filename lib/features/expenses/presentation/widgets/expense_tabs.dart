@@ -50,8 +50,10 @@ class ExpenseAnalyticsTab extends StatelessWidget {
   });
 
   final ExpenseAnalytics analytics;
-  final ExpenseCategory? selectedCategory;
-  final ValueChanged<ExpenseCategory?> onSelectCategory;
+
+  /// Selected server category id.
+  final String? selectedCategory;
+  final ValueChanged<String?> onSelectCategory;
 
   @override
   Widget build(BuildContext context) {
@@ -78,13 +80,13 @@ class ExpenseAnalyticsTab extends StatelessWidget {
   }
 }
 
-/// "Show me the entries" — day-grouped, lazily-built records list.
 class ExpenseRecordsTab extends StatelessWidget {
   const ExpenseRecordsTab({
     super.key,
     required this.expenses,
     required this.venues,
-    required this.categoryFilter,
+    this.courts = const [],
+    required this.categoryLabel,
     required this.hasFilters,
     required this.onTap,
     required this.onAdd,
@@ -93,7 +95,9 @@ class ExpenseRecordsTab extends StatelessWidget {
 
   final List<ExpenseModel> expenses;
   final List<VenueModel> venues;
-  final ExpenseCategory? categoryFilter;
+  final List<CourtModel> courts;
+
+  final String? categoryLabel;
   final bool hasFilters;
   final ValueChanged<ExpenseModel> onTap;
   final VoidCallback onAdd;
@@ -112,15 +116,14 @@ class ExpenseRecordsTab extends StatelessWidget {
           ),
           sliver: SliverToBoxAdapter(
             child: ExpenseSectionLabel(
-              categoryFilter == null
-                  ? 'Records'
-                  : 'Records · ${categoryFilter!.label}',
+              categoryLabel == null ? 'Records' : 'Records · $categoryLabel',
             ),
           ),
         ),
         ExpenseRecordsSliver(
           expenses: expenses,
           venues: venues,
+          courts: courts,
           hasFilters: hasFilters,
           onTap: onTap,
           onAdd: onAdd,

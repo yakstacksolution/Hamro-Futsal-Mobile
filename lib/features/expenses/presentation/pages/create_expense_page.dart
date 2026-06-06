@@ -1,9 +1,11 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
+import 'package:hamro_footsall/core/utils/custom_image_view.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/widgets/custom_app_bar.dart';
 import 'package:hamro_footsall/core/widgets/custom_button.dart';
@@ -18,32 +20,81 @@ import 'package:hamro_footsall/features/expenses/presentation/widgets/expense_co
 import 'package:hamro_footsall/features/expenses/presentation/widgets/expense_filter_widgets.dart';
 import 'package:hamro_footsall/features/expenses/presentation/widgets/expense_form_widgets.dart';
 
+/// Create a new expense, or edit an existing one when [initial] is provided.
 class CreateExpensePage extends StatefulWidget {
   const CreateExpensePage({
     super.key,
     required this.venues,
     this.courts = const [],
+    this.initial,
   });
 
   final List<VenueModel> venues;
   final List<CourtModel> courts;
+
+  /// Expense being edited; null when creating.
+  final ExpenseModel? initial;
 
   @override
   State<CreateExpensePage> createState() => _CreateExpensePageState();
 }
 
 class _CreateExpensePageState extends State<CreateExpensePage> {
-  final _amountCtrl = TextEditingController();
-  final _vendorCtrl = TextEditingController();
-  final _noteCtrl = TextEditingController();
+  late final _amountCtrl = TextEditingController(
+    text: widget.initial == null
+        ? ''
+        : ExpenseFmt.group('${widget.initial!.amount}'),
+  );
+  late final _vendorCtrl = TextEditingController(
+    text: widget.initial?.vendor ?? '',
+  );
+  late final _noteCtrl = TextEditingController(text: widget.initial?.note ?? '');
   final _amountFocus = FocusNode();
 
   ExpenseCategoryModel? _category;
-  late VenueModel _venue = widget.venues.first;
-  CourtModel? _court;
-  DateTime _date = DateTime.now();
-  PaymentMethod _method = PaymentMethod.cash;
+  late VenueModel _venue = widget.initial == null
+      ? widget.venues.first
+      : widget.venues.firstWhere(
+          (v) => v.id == widget.initial!.venueId,
+          orElse: () => widget.venues.first,
+        );
+  late CourtModel? _court = widget.initial?.courtId == null
+      ? null
+      : widget.courts
+            .where((c) => c.id == widget.initial!.courtId)
+            .firstOrNull;
+  late DateTime _date = widget.initial?.date ?? DateTime.now();
+  late PaymentMethod _method = widget.initial?.method ?? PaymentMethod.cash;
+  PlatformFile? _document;
   bool _submitted = false;
+
+  bool get _isEdit => widget.initial != null;
+
+  @override
+  void initState() {
+    super.initState();
+    // Pre-select the API category matching the edited record — by server id
+    // first, then by the enum mapping as a fallback.
+    final initial = widget.initial;
+    if (initial != null) {
+      final categories = context.read<ExpensesBloc>().state.categories;
+      _category =
+          categories.where((c) => c.id == initial.categoryId).firstOrNull ??
+          categories.where((c) => c.asEnum == initial.category).firstOrNull;
+    }
+  }
+
+  /// Mirrors the backend rule: jpg,jpeg,png,webp,pdf,doc,docx · max 10 MB.
+  static const _documentExtensions = [
+    'jpg',
+    'jpeg',
+    'png',
+    'webp',
+    'pdf',
+    'doc',
+    'docx',
+  ];
+  static const _maxDocumentBytes = 10 * 1024 * 1024;
 
   static const _presets = [500, 1000, 2500, 5000, 10000];
 
@@ -90,6 +141,30 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
     if (picked != null) setState(() => _date = picked);
   }
 
+  /// Documents come from the device file browser only (no gallery), matching
+  /// the backend rule: image/pdf/doc, max 10 MB.
+  Future<void> _pickDocument() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: _documentExtensions,
+    );
+    final file = result?.files.singleOrNull;
+    if (file == null || !mounted) return;
+    if (file.path == null) return;
+    if (file.size > _maxDocumentBytes) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('Document must be smaller than 10 MB.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      return;
+    }
+    setState(() => _document = file);
+  }
+
   void _save() {
     setState(() => _submitted = true);
     if (!_canSave) return;
@@ -99,13 +174,14 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
       CreateExpenseEntity(
         date: _date,
         category: _category!.asEnum,
-        categoryId: _category!.id,
+        categoryDetail: _category,
         vendor: _vendorCtrl.text.trim(),
         amount: _amountInt!,
         venueId: _venue.id,
         method: _method,
         courtId: _court?.id,
         note: note.isEmpty ? null : note,
+        documentPath: _document?.path,
       ),
     );
   }
@@ -117,7 +193,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
     return Scaffold(
       backgroundColor: LightColor.background,
       appBar: CustomAppBar(
-        title: 'New expense',
+        title: _isEdit ? 'Edit expense' : 'New expense',
         actions: [
           ListenableBuilder(
             listenable: Listenable.merge([_amountCtrl, _vendorCtrl]),
@@ -237,7 +313,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
                         .map(
                           (c) => DropdownMenuItem<ExpenseCategoryModel>(
                             value: c,
-                            child: Text(c.name),
+                            child: _CategoryOption(category: c),
                           ),
                         )
                         .toList(),
@@ -380,6 +456,16 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
                 isRequired: false,
               ),
             ),
+            const SizedBox(height: AppDimens.paddingX18),
+
+            ExpenseSectionLabel('Document'),
+            ExpenseSurface(
+              child: _DocumentField(
+                document: _document,
+                onPick: _pickDocument,
+                onRemove: () => setState(() => _document = null),
+              ),
+            ),
           ],
         ),
       ),
@@ -417,8 +503,8 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
               width: double.infinity,
               child: CustomButton(
                 text: _canSave
-                    ? 'Save expense · ${ExpenseFmt.npr(_amountInt ?? 0)}'
-                    : 'Save expense',
+                    ? '${_isEdit ? 'Update' : 'Save'} expense · ${ExpenseFmt.npr(_amountInt ?? 0)}'
+                    : '${_isEdit ? 'Update' : 'Save'} expense',
                 icon: Icons.save_outlined,
                 onPressed: _canSave ? _save : null,
               ),
@@ -450,6 +536,181 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
       return 'Today, ${months[d.month - 1]} ${d.day}';
     }
     return '${days[d.weekday - 1]}, ${months[d.month - 1]} ${d.day}, ${d.year}';
+  }
+}
+
+/// Dropdown row for one API category: server icon (svg/raster) + title,
+/// falling back to the local enum icon when the server sent no image.
+class _CategoryOption extends StatelessWidget {
+  const _CategoryOption({required this.category});
+
+  final ExpenseCategoryModel category;
+
+  static const double _iconSize = 20;
+
+  @override
+  Widget build(BuildContext context) {
+    final Widget icon;
+    if (!category.hasImage) {
+      final fallback = category.asEnum;
+      icon = Icon(fallback.icon, size: _iconSize - 2, color: fallback.color);
+    } else if (category.isSvgImage) {
+      icon = CustomImageView(
+        svgPath: category.image,
+        svgFromOnline: true,
+        height: _iconSize,
+        width: _iconSize,
+      );
+    } else {
+      icon = CustomImageView(
+        url: category.image,
+        height: _iconSize,
+        width: _iconSize,
+        fit: BoxFit.contain,
+      );
+    }
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(width: _iconSize, height: _iconSize, child: icon),
+        const SizedBox(width: AppDimens.paddingX10),
+        Flexible(child: Text(category.name, overflow: TextOverflow.ellipsis)),
+      ],
+    );
+  }
+}
+
+/// Optional supporting document for the expense (receipt, invoice…).
+///
+/// Picks strictly from the device file browser — never the gallery — and
+/// only the types the backend accepts (image / PDF / Word, max 10 MB).
+class _DocumentField extends StatelessWidget {
+  const _DocumentField({
+    required this.document,
+    required this.onPick,
+    required this.onRemove,
+  });
+
+  final PlatformFile? document;
+  final VoidCallback onPick;
+  final VoidCallback onRemove;
+
+  IconData get _icon {
+    final ext = (document?.extension ?? '').toLowerCase();
+    if (ext == 'pdf') return Icons.picture_as_pdf_outlined;
+    if (ext == 'doc' || ext == 'docx') return Icons.description_outlined;
+    return Icons.image_outlined;
+  }
+
+  String get _size {
+    final bytes = document?.size ?? 0;
+    if (bytes >= 1024 * 1024) {
+      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+    }
+    return '${(bytes / 1024).ceil()} KB';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    final file = document;
+
+    if (file == null) {
+      return InkWell(
+        onTap: onPick,
+        borderRadius: BorderRadius.circular(AppDimens.radiusX12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(
+                  Icons.upload_file_rounded,
+                  size: 20,
+                  color: LightColor.secondaryColor,
+                ),
+                const SizedBox(width: AppDimens.paddingX10),
+                Expanded(
+                  child: Text(
+                    'Upload document',
+                    style: textTheme.bodyTextMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: LightColor.primaryTextColor,
+                    ),
+                  ),
+                ),
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  size: 20,
+                  color: LightColor.hintTextColor,
+                ),
+              ],
+            ),
+            const SizedBox(height: AppDimens.paddingX6),
+            Text(
+              'Only from device files — image (JPG, PNG, WebP), PDF or Word. '
+              'Max 10 MB. Gallery is not used here.',
+              style: textTheme.bodyTextSmall?.copyWith(
+                color: LightColor.hintTextColor,
+                fontSize: AppDimens.fontBodySubTitle,
+                height: 1.4,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Row(
+      children: [
+        Container(
+          width: 40,
+          height: 40,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: LightColor.secondaryColor.withValues(alpha: 0.10),
+            borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+          ),
+          child: Icon(_icon, size: 20, color: LightColor.secondaryColor),
+        ),
+        const SizedBox(width: AppDimens.paddingX12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                file.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: textTheme.bodyTextMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: LightColor.primaryTextColor,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                _size,
+                style: textTheme.bodyTextSmall?.copyWith(
+                  color: LightColor.hintTextColor,
+                  fontSize: AppDimens.fontBodySubTitle,
+                ),
+              ),
+            ],
+          ),
+        ),
+        IconButton(
+          visualDensity: VisualDensity.compact,
+          tooltip: 'Remove document',
+          onPressed: onRemove,
+          icon: const Icon(
+            Icons.close_rounded,
+            color: LightColor.iconGrey,
+            size: 18,
+          ),
+        ),
+      ],
+    );
   }
 }
 

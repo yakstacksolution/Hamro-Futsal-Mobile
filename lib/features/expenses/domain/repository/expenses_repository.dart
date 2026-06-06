@@ -10,6 +10,10 @@ abstract class ExpensesRepository {
   Future<Either<AppException, ExpenseModel>> addExpense(
     CreateExpenseEntity data,
   );
+  Future<Either<AppException, ExpenseModel>> updateExpense(
+    String id,
+    CreateExpenseEntity data,
+  );
   Future<Either<AppException, bool>> deleteExpense(String id);
   Future<Either<AppException, bool>> restoreExpense(ExpenseModel expense);
 }

@@ -1,23 +1,29 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
+import 'package:hamro_footsall/core/utils/custom_image_view.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/features/expenses/data/model/expense_model.dart';
 import 'package:hamro_footsall/features/expenses/presentation/utils/expense_ui_utils.dart';
 
-/// Bottom sheet showing an expense's full details with a delete action.
-/// Pops with [ExpenseDetailsSheet.deleteAction] when delete is tapped.
+/// Bottom sheet showing an expense's full details with edit and delete
+/// actions. Pops with [editAction] or [deleteAction] accordingly.
 class ExpenseDetailsSheet extends StatelessWidget {
   const ExpenseDetailsSheet({
     super.key,
     required this.expense,
     required this.venueName,
+    this.courtName,
   });
 
+  static const editAction = 'edit';
   static const deleteAction = 'delete';
 
   final ExpenseModel expense;
   final String venueName;
+  final String? courtName;
 
   String get _dateLabel {
     final d = expense.date;
@@ -30,113 +36,248 @@ class ExpenseDetailsSheet extends StatelessWidget {
     final textTheme = FutsalTheme.getTextTheme(context);
     final category = expense.category;
     return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(
-          AppDimens.paddingX20,
-          AppDimens.paddingX12,
-          AppDimens.paddingX20,
-          AppDimens.paddingX20,
+      child: ConstrainedBox(
+        // Documents make the sheet tall — cap and scroll instead of
+        // overflowing on small screens.
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * 0.85,
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: LightColor.dividerColor,
-                  borderRadius: BorderRadius.circular(2),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(
+            AppDimens.paddingX20,
+            AppDimens.paddingX12,
+            AppDimens.paddingX20,
+            AppDimens.paddingX20,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: LightColor.dividerColor,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: AppDimens.paddingX16),
-            Row(
-              children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: category.color.withValues(alpha: 0.10),
-                    borderRadius: BorderRadius.circular(AppDimens.radiusX12),
+              const SizedBox(height: AppDimens.paddingX16),
+              Row(
+                children: [
+                  // Server category image when available, local icon otherwise.
+                  ExpenseCategoryIcon(
+                    category: category,
+                    categoryId: expense.categoryId,
+                    boxSize: 44,
+                    iconSize: 20,
+                    radius: AppDimens.radiusX8,
                   ),
-                  child: Icon(category.icon, color: category.color, size: 20),
-                ),
-                const SizedBox(width: AppDimens.paddingX12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        expense.vendor,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: textTheme.bodyTextMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: LightColor.primaryTextColor,
+                  const SizedBox(width: AppDimens.paddingX12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          expense.vendor,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: textTheme.bodyTextMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: LightColor.primaryTextColor,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        category.label,
-                        style: textTheme.bodyTextSmall?.copyWith(
-                          color: category.color,
-                          fontWeight: FontWeight.w600,
-                          fontSize: AppDimens.fontBodySubTitle,
+                        const SizedBox(height: 2),
+                        Text(
+                          // Server category title when available.
+                          expense.categoryDetail?.name ?? category.label,
+                          style: textTheme.bodyTextSmall?.copyWith(
+                            color: category.color,
+                            fontWeight: FontWeight.w600,
+                            fontSize: AppDimens.fontBodySubTitle,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(width: AppDimens.paddingX10),
+                  const SizedBox(width: AppDimens.paddingX10),
+                  Text(
+                    '- ${ExpenseFmt.npr(expense.amount)}',
+                    style: textTheme.bodyTextMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: LightColor.redColor,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppDimens.paddingX14),
+              const Divider(height: 1, color: LightColor.dividerColor),
+              const SizedBox(height: AppDimens.paddingX6),
+              _DetailRow(label: 'Purpose', value: expense.vendor),
+              _DetailRow(label: 'Date', value: _dateLabel),
+              _DetailRow(
+                label: 'Venue',
+                value: courtName == null
+                    ? venueName
+                    : '$venueName · $courtName',
+              ),
+              _DetailRow(label: 'Paid via', value: expense.method.label),
+              _DetailRow(label: 'Note', value: expense.note ?? '—'),
+              if (expense.document != null) ...[
+                const SizedBox(height: AppDimens.paddingX8),
                 Text(
-                  '- ${ExpenseFmt.npr(expense.amount)}',
-                  style: textTheme.bodyTextMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: LightColor.redColor,
+                  'Document',
+                  style: textTheme.bodyTextSmall?.copyWith(
+                    color: LightColor.hintTextColor,
                   ),
                 ),
+                const SizedBox(height: AppDimens.paddingX8),
+                _DocumentPreview(document: expense.document!),
               ],
+              const SizedBox(height: AppDimens.paddingX16),
+              Row(
+                children: [
+                  Expanded(
+                    child: _SheetAction(
+                      label: 'Edit',
+                      icon: Icons.edit_outlined,
+                      color: LightColor.secondaryColor,
+                      onTap: () => Navigator.of(context).pop(editAction),
+                    ),
+                  ),
+                  const SizedBox(width: AppDimens.paddingX12),
+                  Expanded(
+                    child: _SheetAction(
+                      label: 'Delete',
+                      icon: Icons.delete_outline_rounded,
+                      color: LightColor.redColor,
+                      onTap: () => Navigator.of(context).pop(deleteAction),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Inline preview of the attached document: images render as a photo;
+/// PDFs / Word files render as a file row.
+class _DocumentPreview extends StatelessWidget {
+  const _DocumentPreview({required this.document});
+
+  final String document;
+
+  bool get _isImage {
+    final d = document.toLowerCase();
+    return d.endsWith('.jpg') ||
+        d.endsWith('.jpeg') ||
+        d.endsWith('.png') ||
+        d.endsWith('.webp');
+  }
+
+  bool get _isNetwork => document.toLowerCase().startsWith('http');
+
+  String get _fileName => document.split('/').last;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+
+    if (!_isImage) {
+      final lower = document.toLowerCase();
+      return Container(
+        padding: const EdgeInsets.all(AppDimens.paddingX12),
+        decoration: BoxDecoration(
+          color: LightColor.background,
+          borderRadius: BorderRadius.circular(AppDimens.radiusX12),
+          border: Border.all(color: LightColor.dividerColor),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              lower.endsWith('.pdf')
+                  ? Icons.picture_as_pdf_outlined
+                  : Icons.description_outlined,
+              size: 20,
+              color: LightColor.secondaryColor,
             ),
-            const SizedBox(height: AppDimens.paddingX14),
-            const Divider(height: 1, color: LightColor.dividerColor),
-            const SizedBox(height: AppDimens.paddingX6),
-            _DetailRow(label: 'Date', value: _dateLabel),
-            _DetailRow(label: 'Venue', value: venueName),
-            _DetailRow(label: 'Paid via', value: expense.method.label),
-            if (expense.note != null)
-              _DetailRow(label: 'Note', value: expense.note!),
-            const SizedBox(height: AppDimens.paddingX16),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: () => Navigator.of(context).pop(deleteAction),
-                icon: const Icon(Icons.delete_outline_rounded, size: 18),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: LightColor.redColor,
-                  side: BorderSide(
-                    color: LightColor.redColor.withValues(alpha: 0.4),
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                    vertical: AppDimens.paddingX12,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppDimens.radiusX12),
-                  ),
-                ),
-                label: Text(
-                  'Delete expense',
-                  style: textTheme.bodyTextMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: LightColor.redColor,
-                  ),
+            const SizedBox(width: AppDimens.paddingX10),
+            Expanded(
+              child: Text(
+                _fileName,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: textTheme.bodyTextSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: LightColor.primaryTextColor,
                 ),
               ),
             ),
           ],
         ),
+      );
+    }
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(AppDimens.radiusX12),
+      child: SizedBox(
+        width: double.infinity,
+        height: 160,
+        child: _isNetwork
+            ? CustomImageView(
+                url: document,
+                width: double.infinity,
+                height: 160,
+                fit: BoxFit.cover,
+              )
+            : CustomImageView(
+                file: File(document),
+                width: double.infinity,
+                height: 160,
+                fit: BoxFit.cover,
+              ),
+      ),
+    );
+  }
+}
+
+/// Outlined action button used by the sheet footer (Edit / Delete).
+class _SheetAction extends StatelessWidget {
+  const _SheetAction({
+    required this.label,
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton.icon(
+      onPressed: onTap,
+      icon: Icon(icon, size: 18),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: color,
+        side: BorderSide(color: color.withValues(alpha: 0.4)),
+        padding: const EdgeInsets.symmetric(vertical: AppDimens.paddingX12),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppDimens.radiusX12),
+        ),
+      ),
+      label: Text(
+        label,
+        style: FutsalTheme.getTextTheme(
+          context,
+        ).bodyTextMedium?.copyWith(fontWeight: FontWeight.w700, color: color),
       ),
     );
   }

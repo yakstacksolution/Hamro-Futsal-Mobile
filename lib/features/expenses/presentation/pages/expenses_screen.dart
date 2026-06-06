@@ -16,6 +16,7 @@ import 'package:hamro_footsall/features/expenses/presentation/utils/expense_ui_u
 import 'package:hamro_footsall/features/expenses/presentation/widgets/expense_details_sheet.dart';
 import 'package:hamro_footsall/features/expenses/presentation/widgets/expense_filter_widgets.dart';
 import 'package:hamro_footsall/features/expenses/presentation/widgets/expense_tabs.dart';
+import 'package:hamro_footsall/features/expenses/presentation/widgets/expenses_page_loading_widget.dart';
 
 class ExpensesScreen extends StatelessWidget {
   const ExpensesScreen({super.key});
@@ -23,11 +24,10 @@ class ExpensesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) =>
-          ExpensesBloc(ExpensesUseCase(ExpensesRepositoryImpl()))
-            ..add(const LoadVenueCourtsEvent())
-            ..add(const LoadExpenseCategoriesEvent())
-            ..add(const LoadExpensesEvent()),
+      create: (_) => ExpensesBloc(ExpensesUseCase(ExpensesRepositoryImpl()))
+        ..add(const LoadVenueCourtsEvent())
+        ..add(const LoadExpenseCategoriesEvent())
+        ..add(const LoadExpensesEvent()),
       child: const _ExpensesView(),
     );
   }
@@ -45,7 +45,9 @@ class _ExpensesViewState extends State<_ExpensesView>
   late final TabController _tabController;
   ExpensePeriod _period = ExpensePeriod.week;
   String? _venueId;
-  ExpenseCategory? _categoryFilter;
+
+  /// Selected server category id (from `/expense-categories`).
+  String? _categoryFilter;
   DateTimeRange? _customRange;
 
   @override
@@ -151,15 +153,21 @@ class _ExpensesViewState extends State<_ExpensesView>
       ),
       body: SafeArea(
         top: false,
-        child: BlocBuilder<ExpensesBloc, ExpensesState>(
+        child: BlocConsumer<ExpensesBloc, ExpensesState>(
+          // Mutation failures (e.g. create-expense API errors) only set
+          // errorMessage — surface them as a snack so they aren't silent.
+          listenWhen: (prev, curr) =>
+              curr.errorMessage != null &&
+              prev.errorMessage != curr.errorMessage,
+          listener: (context, state) => AppUtils().showSnackBar(
+            context,
+            MsgType.error,
+            state.errorMessage!,
+          ),
           builder: (context, state) {
             if (state.expensesStatus == ExpensesStatus.initial ||
                 state.expensesStatus == ExpensesStatus.loading) {
-              return const Center(
-                child: CircularProgressIndicator(
-                  color: LightColor.secondaryColor,
-                ),
-              );
+              return const ExpensesPageLoadingWidget();
             }
             if (state.expensesStatus == ExpensesStatus.failure &&
                 state.expenses.isEmpty) {
@@ -190,7 +198,6 @@ class _ExpensesViewState extends State<_ExpensesView>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Shared filters — pinned above the tabs so they apply everywhere.
         Padding(
           padding: AppUtils().getPadding(
             symmetricHorizontal: AppDimens.paddingX20,
@@ -224,9 +231,8 @@ class _ExpensesViewState extends State<_ExpensesView>
                 onChange: (id) => setState(() => _venueId = id),
               ),
               const SizedBox(height: AppDimens.paddingX10),
-              // Category filter is shared — it scopes every tab
-              // (totals, KPIs, charts and records) consistently.
               ExpenseCategoryFilterRow(
+                categories: state.categories,
                 selected: _categoryFilter,
                 onChange: (c) => setState(() => _categoryFilter = c),
               ),
@@ -253,8 +259,7 @@ class _ExpensesViewState extends State<_ExpensesView>
             Tab(text: 'Records', height: 40),
           ],
         ),
-        // Breathing room between the tab bar and tab content.
-        const SizedBox(height: AppDimens.paddingX12),
+         const SizedBox(height: AppDimens.paddingX12),
         Expanded(
           child: TabBarView(
             controller: _tabController,
@@ -268,7 +273,14 @@ class _ExpensesViewState extends State<_ExpensesView>
               ExpenseRecordsTab(
                 expenses: analytics.scoped,
                 venues: state.venues,
-                categoryFilter: _categoryFilter,
+                courts: state.courts,
+                categoryLabel: _categoryFilter == null
+                    ? null
+                    : state.categories
+                              .where((c) => c.id == _categoryFilter)
+                              .firstOrNull
+                              ?.name ??
+                          analytics.categoryName(_categoryFilter!),
                 hasFilters: _categoryFilter != null || _venueId != null,
                 onTap: _showExpenseDetails,
                 onAdd: _openCreate,
@@ -300,73 +312,89 @@ class _ExpensesViewState extends State<_ExpensesView>
     );
     if (created == null || !mounted) return;
     bloc.add(AddExpenseEvent(created));
-    _showSnack(
+    AppUtils().showSnackBar(
+      context,
+      MsgType.success,
       'Expense added · ${ExpenseFmt.npr(created.amount)}',
-      background: LightColor.secondaryColor,
     );
   }
 
   Future<void> _showExpenseDetails(ExpenseModel expense) async {
     final bloc = context.read<ExpensesBloc>();
-    final venueName = bloc.state.venues
-        .firstWhere(
-          (v) => v.id == expense.venueId,
-          orElse: () => const VenueModel(id: '?', name: '—'),
-        )
-        .name;
+    // Names come straight from the API response when present.
+    final venueName =
+        expense.venueName ??
+        bloc.state.venues
+            .firstWhere(
+              (v) => v.id == expense.venueId,
+              orElse: () => const VenueModel(id: '?', name: '—'),
+            )
+            .name;
+    final courtName =
+        expense.courtName ??
+        (expense.courtId == null
+            ? null
+            : bloc.state.courts
+                  .where((c) => c.id == expense.courtId)
+                  .firstOrNull
+                  ?.name);
     final action = await showModalBottomSheet<String>(
       context: context,
+      // The sheet can grow tall when a document image is attached.
+      isScrollControlled: true,
       backgroundColor: LightColor.cardColor,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
           top: Radius.circular(AppDimens.radiusX20),
         ),
       ),
-      builder: (_) =>
-          ExpenseDetailsSheet(expense: expense, venueName: venueName),
-    );
-    if (action == ExpenseDetailsSheet.deleteAction && mounted) {
-      bloc.add(DeleteExpenseEvent(expense));
-      _showSnack(
-        'Expense deleted · ${ExpenseFmt.npr(expense.amount)}',
-        background: LightColor.redColor,
-        action: SnackBarAction(
-          label: 'Undo',
-          textColor: LightColor.whiteColor,
-          onPressed: () => bloc.add(RestoreExpenseEvent(expense)),
+      // Share the bloc so the sheet can render the API category image.
+      builder: (_) => BlocProvider.value(
+        value: bloc,
+        child: ExpenseDetailsSheet(
+          expense: expense,
+          venueName: venueName,
+          courtName: courtName,
         ),
+      ),
+    );
+    if (!mounted) return;
+    if (action == ExpenseDetailsSheet.editAction) {
+      await _openEdit(expense);
+    } else if (action == ExpenseDetailsSheet.deleteAction) {
+      bloc.add(DeleteExpenseEvent(expense));
+      AppUtils().showSnackBar(
+        context,
+        MsgType.info,
+        'Expense deleted · ${ExpenseFmt.npr(expense.amount)}',
       );
     }
   }
 
-  void _showSnack(
-    String message, {
-    required Color background,
-    SnackBarAction? action,
-  }) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(
-            message,
-            style: FutsalTheme.getTextTheme(context).bodyTextMedium?.copyWith(
-              color: LightColor.whiteColor,
-              fontWeight: FontWeight.w500,
-            ),
+  /// Opens the create form prefilled with [expense] and applies the edits.
+  Future<void> _openEdit(ExpenseModel expense) async {
+    final bloc = context.read<ExpensesBloc>();
+    final venues = bloc.state.venues;
+    if (venues.isEmpty) return;
+    final updated = await Navigator.of(context).push<CreateExpenseEntity>(
+      MaterialPageRoute<CreateExpenseEntity>(
+        builder: (_) => BlocProvider.value(
+          value: bloc,
+          child: CreateExpensePage(
+            venues: venues,
+            courts: bloc.state.courts,
+            initial: expense,
           ),
-          backgroundColor: background,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppDimens.radiusX12),
-          ),
-          margin: const EdgeInsets.all(AppDimens.paddingX16),
-          duration: action == null
-              ? const Duration(seconds: 2)
-              : const Duration(seconds: 4),
-          action: action,
         ),
-      );
+      ),
+    );
+    if (updated == null || !mounted) return;
+    bloc.add(UpdateExpenseEvent(expense.id, updated));
+    AppUtils().showSnackBar(
+      context,
+      MsgType.success,
+      'Expense updated · ${ExpenseFmt.npr(updated.amount)}',
+    );
   }
 }
 

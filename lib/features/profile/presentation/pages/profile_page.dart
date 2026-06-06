@@ -11,7 +11,7 @@ import 'package:hamro_footsall/core/widgets/loading_widget.dart';
 import 'package:hamro_footsall/features/auth/data/repositories/authentication_repository_impl.dart';
 import 'package:hamro_footsall/features/expenses/presentation/pages/expenses_screen.dart';
 import 'package:hamro_footsall/features/booking_overview/presentation/pages/booking_overview_screen.dart';
-import 'package:hamro_footsall/features/dashboard/presentation/widgets/opponent_request_page.dart';
+import 'package:hamro_footsall/features/opponent_match/presentation/pages/opponent_match_screen.dart';
 import 'package:hamro_footsall/features/profile/data/model/profile_model.dart';
 import 'package:hamro_footsall/features/profile/presentation/pages/about_app_page.dart';
 import 'package:hamro_footsall/features/profile/presentation/pages/settings_page.dart';
@@ -41,7 +41,9 @@ class _ProfilePageState extends State<ProfilePage> {
       icon: Icons.sports_kabaddi_rounded,
       onTap: () => Navigator.of(
         context,
-      ).push(MaterialPageRoute<void>(builder: (_) => OpponentRequestScreen())),
+      ).push(
+        MaterialPageRoute<void>(builder: (_) => const OpponentMatchScreen()),
+      ),
     ),
     _ProfileItem(
       title: 'Transaction History',

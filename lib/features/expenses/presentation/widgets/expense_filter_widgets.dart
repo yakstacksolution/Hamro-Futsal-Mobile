@@ -206,21 +206,29 @@ class ExpenseVenueFilter extends StatelessWidget {
 class ExpenseCategoryFilterRow extends StatelessWidget {
   const ExpenseCategoryFilterRow({
     super.key,
+    required this.categories,
     required this.selected,
     required this.onChange,
   });
 
-  final ExpenseCategory? selected;
-  final ValueChanged<ExpenseCategory?> onChange;
+  /// Categories fetched from the `/expense-categories` API — the row renders
+  /// only what the server returns (no static fallback) and hides itself
+  /// while the list is empty.
+  final List<ExpenseCategoryModel> categories;
+
+  /// Selected server category id.
+  final String? selected;
+  final ValueChanged<String?> onChange;
 
   @override
   Widget build(BuildContext context) {
+    if (categories.isEmpty) return const SizedBox.shrink();
     return SizedBox(
       height: AppDimens.sizeX32,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
-        itemCount: ExpenseCategory.values.length + 1,
+        itemCount: categories.length + 1,
         separatorBuilder: (_, __) => const SizedBox(width: AppDimens.paddingX8),
         itemBuilder: (_, i) {
           if (i == 0) {
@@ -230,11 +238,13 @@ class ExpenseCategoryFilterRow extends StatelessWidget {
               onTap: () => onChange(null),
             );
           }
-          final c = ExpenseCategory.values[i - 1];
+          final c = categories[i - 1];
+          // Records are keyed by the server category id, so the chip
+          // filters by id directly.
           return ExpenseChip(
-            label: c.label,
-            selected: selected == c,
-            onTap: () => onChange(selected == c ? null : c),
+            label: c.name,
+            selected: selected == c.id,
+            onTap: () => onChange(selected == c.id ? null : c.id),
           );
         },
       ),

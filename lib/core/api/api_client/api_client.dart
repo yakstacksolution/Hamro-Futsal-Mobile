@@ -106,6 +106,18 @@ class ApiClient {
     return _get(url: '$_baseUrl/expense-categories');
   }
 
+  Future<Result> getDropdownVenueCourts() {
+    return _get(url: '$_baseUrl/auth/dropdown-venue-courts');
+  }
+
+  Future<Result> createExpense({required dynamic data}) {
+    return _post(url: '$_baseUrl/auth/expenses', data: data);
+  }
+
+  Future<Result> getExpenses() {
+    return _get(url: '$_baseUrl/auth/expenses');
+  }
+
   Future<Result> getVenueHostedBy({required int venueId}) {
     return _get(url: '$_baseUrl/hosted-by/2');
   }

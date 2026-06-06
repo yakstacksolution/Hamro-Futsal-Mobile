@@ -15,6 +15,7 @@ class ExpensesBloc extends Bloc<ExpensesEvent, ExpensesState> {
     on<LoadExpenseCategoriesEvent>(_onLoadCategories);
     on<LoadExpensesEvent>(_onLoadExpenses);
     on<AddExpenseEvent>(_onAdd);
+    on<UpdateExpenseEvent>(_onUpdate);
     on<DeleteExpenseEvent>(_onDelete);
     on<RestoreExpenseEvent>(_onRestore);
   }
@@ -67,19 +68,24 @@ class ExpensesBloc extends Bloc<ExpensesEvent, ExpensesState> {
     LoadExpensesEvent event,
     Emitter<ExpensesState> emit,
   ) async {
-    emit(
-      state.copyWith(
-        expensesStatus: ExpensesStatus.loading,
-        clearErrorMessage: true,
-      ),
-    );
+    if (!event.silent) {
+      emit(
+        state.copyWith(
+          expensesStatus: ExpensesStatus.loading,
+          clearErrorMessage: true,
+        ),
+      );
+    }
     final result = await useCase.getExpenses();
     result.fold(
       (failure) => emit(
-        state.copyWith(
-          expensesStatus: ExpensesStatus.failure,
-          errorMessage: failure.errorMessage,
-        ),
+        // A failed silent refresh keeps the current list on screen.
+        event.silent
+            ? state.copyWith(errorMessage: failure.errorMessage)
+            : state.copyWith(
+                expensesStatus: ExpensesStatus.failure,
+                errorMessage: failure.errorMessage,
+              ),
       ),
       (expenses) => emit(
         state.copyWith(
@@ -91,6 +97,9 @@ class ExpensesBloc extends Bloc<ExpensesEvent, ExpensesState> {
     );
   }
 
+  /// Creates the expense, then immediately reflects it in [ExpensesState]
+  /// so overview, analytics and records update at once — followed by a
+  /// silent refetch to reconcile with the server's canonical record.
   Future<void> _onAdd(
     AddExpenseEvent event,
     Emitter<ExpensesState> emit,
@@ -101,6 +110,33 @@ class ExpensesBloc extends Bloc<ExpensesEvent, ExpensesState> {
       (expense) {
         final expenses = [...state.expenses, expense]
           ..sort((a, b) => b.date.compareTo(a.date));
+        emit(
+          state.copyWith(
+            // Ensure the list is visible even if the very first load had
+            // failed before this create succeeded.
+            expensesStatus: ExpensesStatus.success,
+            expenses: expenses,
+            clearErrorMessage: true,
+          ),
+        );
+        // Background re-sync: replaces the optimistic entry with the
+        // server's version (real id, server-side category fields).
+        add(const LoadExpensesEvent(silent: true));
+      },
+    );
+  }
+
+  Future<void> _onUpdate(
+    UpdateExpenseEvent event,
+    Emitter<ExpensesState> emit,
+  ) async {
+    final result = await useCase.updateExpense(event.id, event.expense);
+    result.fold(
+      (failure) => emit(state.copyWith(errorMessage: failure.errorMessage)),
+      (updated) {
+        final expenses =
+            state.expenses.map((e) => e.id == updated.id ? updated : e).toList()
+              ..sort((a, b) => b.date.compareTo(a.date));
         emit(state.copyWith(expenses: expenses, clearErrorMessage: true));
       },
     );

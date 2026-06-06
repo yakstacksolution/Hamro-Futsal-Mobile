@@ -22,6 +22,11 @@ final class ExpensesUseCase {
     CreateExpenseEntity data,
   ) async => await repository.addExpense(data);
 
+  Future<Either<AppException, ExpenseModel>> updateExpense(
+    String id,
+    CreateExpenseEntity data,
+  ) async => await repository.updateExpense(id, data);
+
   Future<Either<AppException, bool>> deleteExpense(String id) async =>
       await repository.deleteExpense(id);
 

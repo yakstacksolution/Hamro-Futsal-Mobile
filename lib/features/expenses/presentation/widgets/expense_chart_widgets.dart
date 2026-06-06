@@ -132,8 +132,6 @@ class ExpenseTrendCard extends StatelessWidget {
   }
 }
 
-/// Category breakdown: doughnut chart + legend + tappable share rows that
-/// drive the shared category filter.
 class ExpenseCategoryCard extends StatelessWidget {
   const ExpenseCategoryCard({
     super.key,
@@ -143,8 +141,9 @@ class ExpenseCategoryCard extends StatelessWidget {
   });
 
   final ExpenseAnalytics analytics;
-  final ExpenseCategory? selectedCategory;
-  final ValueChanged<ExpenseCategory?> onSelect;
+
+  final String? selectedCategory;
+  final ValueChanged<String?> onSelect;
 
   @override
   Widget build(BuildContext context) {
@@ -169,8 +168,6 @@ class ExpenseCategoryCard extends StatelessWidget {
               SizedBox(
                 width: 110,
                 height: 110,
-                // Key on the data so the sweep-in animation restarts whenever
-                // the breakdown changes.
                 child: RepaintBoundary(
                   child: SfCircularChart(
                     key: ValueKey(
@@ -204,11 +201,12 @@ class ExpenseCategoryCard extends StatelessWidget {
                       ),
                     ],
                     series: [
-                      DoughnutSeries<MapEntry<ExpenseCategory, int>, String>(
+                      DoughnutSeries<MapEntry<String, int>, String>(
                         dataSource: entries,
-                        xValueMapper: (e, _) => e.key.label,
+                        xValueMapper: (e, _) => analytics.categoryName(e.key),
                         yValueMapper: (e, _) => e.value,
-                        pointColorMapper: (e, _) => e.key.color,
+                        pointColorMapper: (e, _) =>
+                            analytics.categoryEnumOf(e.key).color,
                         innerRadius: '74%',
                         radius: '100%',
                         animationDuration: 700,
@@ -228,8 +226,8 @@ class ExpenseCategoryCard extends StatelessWidget {
                           bottom: AppDimens.paddingX6,
                         ),
                         child: _LegendDot(
-                          color: e.key.color,
-                          label: e.key.label,
+                          color: analytics.categoryEnumOf(e.key).color,
+                          label: analytics.categoryName(e.key),
                           pct: total == 0 ? 0 : e.value / total,
                         ),
                       ),
@@ -255,7 +253,9 @@ class ExpenseCategoryCard extends StatelessWidget {
           const SizedBox(height: AppDimens.paddingX10),
           for (final e in entries)
             _CategoryRow(
-              category: e.key,
+              categoryId: e.key,
+              category: analytics.categoryEnumOf(e.key),
+              label: analytics.categoryName(e.key),
               amount: e.value,
               fraction: total == 0 ? 0 : e.value / total,
               isSelected: selectedCategory == e.key,
@@ -270,7 +270,7 @@ class ExpenseCategoryCard extends StatelessWidget {
     return TooltipBehavior(
       enable: true,
       builder: (data, point, series, pointIndex, seriesIndex) {
-        final e = data as MapEntry<ExpenseCategory, int>;
+        final e = data as MapEntry<String, int>;
         final pct = total == 0 ? 0 : (e.value / total * 100).round();
         return Container(
           padding: const EdgeInsets.symmetric(
@@ -282,7 +282,7 @@ class ExpenseCategoryCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(AppDimens.radiusX8),
           ),
           child: Text(
-            '${e.key.label} · ${ExpenseFmt.npr(e.value)} ($pct%)',
+            '${analytics.categoryName(e.key)} · ${ExpenseFmt.npr(e.value)} ($pct%)',
             style: const TextStyle(
               color: LightColor.whiteColor,
               fontSize: AppDimens.fontBodySubTitle,
@@ -343,14 +343,20 @@ class _LegendDot extends StatelessWidget {
 
 class _CategoryRow extends StatelessWidget {
   const _CategoryRow({
+    required this.categoryId,
     required this.category,
+    required this.label,
     required this.amount,
     required this.fraction,
     required this.isSelected,
     required this.onTap,
   });
 
+  final String categoryId;
+
   final ExpenseCategory category;
+
+  final String label;
   final int amount;
   final double fraction;
   final bool isSelected;
@@ -368,16 +374,14 @@ class _CategoryRow extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 8),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Container(
-                width: 32,
-                height: 32,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: category.color.withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(AppDimens.radiusX8),
-                ),
-                child: Icon(category.icon, color: category.color, size: 16),
+              ExpenseCategoryIcon(
+                category: category,
+                categoryId: categoryId,
+                boxSize: 38,
+                iconSize: 18,
+                radius: AppDimens.radiusX8,
               ),
               const SizedBox(width: AppDimens.paddingX10),
               Expanded(
@@ -387,7 +391,7 @@ class _CategoryRow extends StatelessWidget {
                     Row(
                       children: [
                         Text(
-                          category.label,
+                          label,
                           style: textTheme.bodyTextSmall?.copyWith(
                             fontWeight: FontWeight.w600,
                             color: LightColor.primaryTextColor,
@@ -403,7 +407,7 @@ class _CategoryRow extends StatelessWidget {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 5),
+                    const SizedBox(height: 8),
                     ClipRRect(
                       borderRadius: BorderRadius.circular(3),
                       child: Container(

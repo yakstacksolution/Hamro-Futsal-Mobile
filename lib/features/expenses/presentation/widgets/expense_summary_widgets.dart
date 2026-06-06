@@ -157,7 +157,10 @@ class ExpenseKpiGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final largestCat = analytics.largestCategory;
+    final largestCatId = analytics.largestCategoryId;
+    final largestCat = largestCatId == null
+        ? null
+        : analytics.categoryEnumOf(largestCatId);
     final largestVenueId = analytics.largestVenueId;
     final largestVenue = largestVenueId == null
         ? null
@@ -183,11 +186,16 @@ class ExpenseKpiGrid extends StatelessWidget {
       ),
       _Kpi(
         icon: largestCat?.icon ?? Icons.category_outlined,
+        // Server category image when available, local icon otherwise.
+        category: largestCat,
+        categoryId: largestCatId,
         label: 'Top category',
-        value: largestCat?.label ?? '—',
-        sub: largestCat == null
+        value: largestCatId == null
+            ? '—'
+            : analytics.categoryName(largestCatId),
+        sub: largestCatId == null
             ? 'No expenses yet'
-            : ExpenseFmt.npr(analytics.byCategory[largestCat] ?? 0),
+            : ExpenseFmt.npr(analytics.byCategory[largestCatId] ?? 0),
         accent: largestCat?.color ?? LightColor.iconGrey,
       ),
       _Kpi(
@@ -222,6 +230,8 @@ class _Kpi extends StatelessWidget {
     required this.value,
     required this.sub,
     required this.accent,
+    this.category,
+    this.categoryId,
   });
 
   final IconData icon;
@@ -229,6 +239,10 @@ class _Kpi extends StatelessWidget {
   final String value;
   final String sub;
   final Color accent;
+
+  /// When set, the tile glyph upgrades to the category's server image.
+  final ExpenseCategory? category;
+  final String? categoryId;
 
   @override
   Widget build(BuildContext context) {
@@ -238,16 +252,25 @@ class _Kpi extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 32,
-            height: 32,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: accent.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+          if (category != null)
+            ExpenseCategoryIcon(
+              category: category!,
+              categoryId: categoryId,
+              boxSize: 32,
+              iconSize: 16,
+              radius: AppDimens.radiusX8,
+            )
+          else
+            Container(
+              width: 32,
+              height: 32,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: accent.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+              ),
+              child: Icon(icon, size: 16, color: accent),
             ),
-            child: Icon(icon, size: 16, color: accent),
-          ),
           const SizedBox(height: AppDimens.paddingX10),
           Text(
             value,

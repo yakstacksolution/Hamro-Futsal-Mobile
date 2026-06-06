@@ -18,8 +18,15 @@ final class LoadExpenseCategoriesEvent extends ExpensesEvent {
 }
 
 /// Loads the expenses list (expenses API).
+///
+/// With [silent] the list is refreshed in the background — no loading
+/// spinner and no failure screen; used to re-sync after a mutation.
 final class LoadExpensesEvent extends ExpensesEvent {
-  const LoadExpensesEvent();
+  const LoadExpensesEvent({this.silent = false});
+  final bool silent;
+
+  @override
+  List<Object?> get props => [silent];
 }
 
 final class AddExpenseEvent extends ExpensesEvent {
@@ -28,6 +35,16 @@ final class AddExpenseEvent extends ExpensesEvent {
 
   @override
   List<Object?> get props => [expense];
+}
+
+/// Replaces the expense with [id] using the edited form values.
+final class UpdateExpenseEvent extends ExpensesEvent {
+  const UpdateExpenseEvent(this.id, this.expense);
+  final String id;
+  final CreateExpenseEntity expense;
+
+  @override
+  List<Object?> get props => [id, expense];
 }
 
 final class DeleteExpenseEvent extends ExpensesEvent {

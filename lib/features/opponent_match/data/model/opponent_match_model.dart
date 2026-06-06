@@ -1,0 +1,192 @@
+/// Match format offered when challenging an opponent.
+enum MatchFormat { fiveASide, sixASide, sevenASide }
+
+extension MatchFormatX on MatchFormat {
+  String get label => switch (this) {
+    MatchFormat.fiveASide => '5v5',
+    MatchFormat.sixASide => '6v6',
+    MatchFormat.sevenASide => '7v7',
+  };
+
+  /// Court fee tier per format until the backend provides real pricing.
+  int get courtFee => switch (this) {
+    MatchFormat.fiveASide => 1200,
+    MatchFormat.sixASide => 1500,
+    MatchFormat.sevenASide => 1800,
+  };
+}
+
+enum OpponentLevel { beginner, intermediate, advanced }
+
+extension OpponentLevelX on OpponentLevel {
+  String get label => switch (this) {
+    OpponentLevel.beginner => 'Beginner',
+    OpponentLevel.intermediate => 'Intermediate',
+    OpponentLevel.advanced => 'Advanced',
+  };
+}
+
+enum PlayerPosition { goalkeeper, defender, midfielder, forward }
+
+extension PlayerPositionX on PlayerPosition {
+  String get label => switch (this) {
+    PlayerPosition.goalkeeper => 'Goalkeeper',
+    PlayerPosition.defender => 'Defender',
+    PlayerPosition.midfielder => 'Midfielder',
+    PlayerPosition.forward => 'Forward',
+  };
+
+  String get abbr => switch (this) {
+    PlayerPosition.goalkeeper => 'GK',
+    PlayerPosition.defender => 'DF',
+    PlayerPosition.midfielder => 'MF',
+    PlayerPosition.forward => 'FW',
+  };
+}
+
+/// Lifecycle of an opponent request.
+enum RequestStatus { fresh, pending, accepted, rejected, sent, expired }
+
+extension RequestStatusX on RequestStatus {
+  String get label => switch (this) {
+    RequestStatus.fresh => 'New',
+    RequestStatus.pending => 'Pending',
+    RequestStatus.accepted => 'Accepted',
+    RequestStatus.rejected => 'Rejected',
+    RequestStatus.sent => 'Sent',
+    RequestStatus.expired => 'Expired',
+  };
+
+  /// Still actionable (can be accepted / rejected).
+  bool get isOpen => this == RequestStatus.fresh || this == RequestStatus.pending;
+
+  bool get isSettled => !isOpen;
+}
+
+/// How the court fee is divided between the two teams.
+enum SplitMode { even, custom }
+
+extension SplitModeX on SplitMode {
+  String get label => switch (this) {
+    SplitMode.even => 'Even',
+    SplitMode.custom => 'Custom %',
+  };
+}
+
+/// Basis for a custom split: a fixed team percentage or the match result.
+enum SplitBasis { teams, result }
+
+extension SplitBasisX on SplitBasis {
+  String get label => switch (this) {
+    SplitBasis.teams => 'By team',
+    SplitBasis.result => 'By result',
+  };
+}
+
+class PlayerModel {
+  const PlayerModel({required this.name, required this.position});
+
+  final String name;
+  final PlayerPosition position;
+}
+
+class TeamModel {
+  const TeamModel({
+    required this.id,
+    required this.name,
+    this.players = const [],
+  });
+
+  final String id;
+  final String name;
+  final List<PlayerModel> players;
+
+  TeamModel copyWith({String? name, List<PlayerModel>? players}) => TeamModel(
+    id: id,
+    name: name ?? this.name,
+    players: players ?? this.players,
+  );
+
+  String get initials {
+    final parts = name
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((p) => p.isNotEmpty)
+        .toList();
+    if (parts.isEmpty) return '?';
+    if (parts.length == 1) return parts.first.substring(0, 1).toUpperCase();
+    return (parts[0].substring(0, 1) + parts[1].substring(0, 1)).toUpperCase();
+  }
+
+  /// `2 FW · 1 GK` — roster mix in position order, skipping empty positions.
+  String get positionSummary {
+    final buf = <String>[];
+    for (final p in PlayerPosition.values) {
+      final n = players.where((player) => player.position == p).length;
+      if (n > 0) buf.add('$n ${p.abbr}');
+    }
+    return buf.join(' · ');
+  }
+}
+
+class OpponentRequestModel {
+  const OpponentRequestModel({
+    required this.id,
+    required this.team,
+    required this.dateTime,
+    required this.summary,
+    required this.status,
+    required this.venue,
+    required this.slot,
+    required this.totalFee,
+    required this.yourShare,
+    this.myPct,
+    this.createdAt,
+  });
+
+  final String id;
+  final String team;
+
+  /// Scheduled match date + kickoff time.
+  final DateTime dateTime;
+
+  /// One-line context shown under the team name (level, format, split…).
+  final String summary;
+  final RequestStatus status;
+  final String venue;
+  final String slot;
+  final int totalFee;
+  final int yourShare;
+
+  /// Your side's percentage; null when the split is result-based.
+  final int? myPct;
+
+  /// When set on a `fresh` request, drives the accept-window countdown.
+  final DateTime? createdAt;
+
+  OpponentRequestModel copyWith({RequestStatus? status}) =>
+      OpponentRequestModel(
+        id: id,
+        team: team,
+        dateTime: dateTime,
+        summary: summary,
+        status: status ?? this.status,
+        venue: venue,
+        slot: slot,
+        totalFee: totalFee,
+        yourShare: yourShare,
+        myPct: myPct,
+        createdAt: createdAt,
+      );
+
+  String get initials {
+    final parts = team
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((p) => p.isNotEmpty)
+        .toList();
+    if (parts.isEmpty) return '?';
+    if (parts.length == 1) return parts.first.substring(0, 1).toUpperCase();
+    return (parts[0].substring(0, 1) + parts[1].substring(0, 1)).toUpperCase();
+  }
+}
