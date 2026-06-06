@@ -6,7 +6,7 @@ import 'package:hamro_footsall/core/helper/venue_distance_helper.dart';
 import 'package:hamro_footsall/features/bookings/presentation/pages/bookings_page.dart';
 import 'package:hamro_footsall/features/courts/presentation/pages/venue_courts_list_page_widget.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/page/footsall_home_page.dart';
-import 'package:hamro_footsall/features/dashboard/presentation/page/messages_page.dart';
+import 'package:hamro_footsall/features/message/presentation/pages/messages_page.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/widgets/app_drawer.dart';
 import 'package:hamro_footsall/core/routers/app_router_params.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
