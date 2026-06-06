@@ -5,6 +5,7 @@ import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/features/message/data/data_source/message_data_source.dart';
 import 'package:hamro_footsall/features/message/data/model/message_model.dart';
+import 'package:hamro_footsall/features/message/presentation/pages/chat_page.dart';
 import 'package:hamro_footsall/features/message/presentation/widgets/message_card.dart';
 import 'package:hamro_footsall/features/message/presentation/widgets/message_empty_view.dart';
 import 'package:hamro_footsall/features/message/presentation/widgets/message_filter_chip.dart';
@@ -79,6 +80,20 @@ class _MessagesPageState extends State<MessagesPage> {
     });
   }
 
+  /// Opens the conversation thread; reading it clears the unread badge.
+  void _openChat(MessageModel item, {bool autofocusComposer = false}) {
+    _markRead(item.id);
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ChatPage(
+          conversation: item,
+          dataSource: _dataSource,
+          autofocusComposer: autofocusComposer,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final items = _visibleMessages;
@@ -128,8 +143,8 @@ class _MessagesPageState extends State<MessagesPage> {
                       const SizedBox(height: AppDimens.paddingX12),
                   itemBuilder: (_, i) => MessageCard(
                     item: items[i],
-                    onTap: () {},
-                    onReply: () {},
+                    onTap: () => _openChat(items[i]),
+                    onReply: () => _openChat(items[i], autofocusComposer: true),
                     onMarkRead: () => _markRead(items[i].id),
                   ),
                 ),

@@ -22,8 +22,18 @@ class MessageSearchField extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
 
-    return SizedBox(
+    return Container(
       height: 40,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+        boxShadow: const [
+          BoxShadow(
+            color: LightColor.shadowColor,
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
       child: TextField(
         controller: controller,
         onChanged: onChanged,
@@ -66,20 +76,18 @@ class MessageSearchField extends StatelessWidget {
             minHeight: 40,
           ),
           contentPadding: const EdgeInsets.symmetric(vertical: 10),
+          // Borderless — the rounded fill + soft shadow define the field.
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(AppDimens.radiusX10),
-            borderSide: const BorderSide(color: LightColor.dividerColor),
+            borderSide: BorderSide.none,
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(AppDimens.radiusX10),
-            borderSide: const BorderSide(color: LightColor.dividerColor),
+            borderSide: BorderSide.none,
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(AppDimens.radiusX10),
-            borderSide: const BorderSide(
-              color: LightColor.secondaryColor,
-              width: 1,
-            ),
+            borderSide: BorderSide.none,
           ),
         ),
       ),

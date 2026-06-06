@@ -1,7 +1,9 @@
+import 'package:hamro_footsall/features/message/data/model/chat_message_model.dart';
 import 'package:hamro_footsall/features/message/data/model/message_model.dart';
 
 abstract class MessageDataSource {
   Future<List<MessageModel>> fetchMessages();
+  Future<List<ChatMessageModel>> fetchChat(MessageModel conversation);
 }
 
 /// Local demo data source.
@@ -61,4 +63,55 @@ final class MessageLocalDataSourceImpl implements MessageDataSource {
       unreadCount: 1,
     ),
   ];
+
+  @override
+  Future<List<ChatMessageModel>> fetchChat(MessageModel conversation) async {
+    // Demo thread ending with the conversation's latest preview message.
+    final now = DateTime.now();
+    final yesterday = now.subtract(const Duration(days: 1));
+    DateTime at(DateTime d, int h, int m) =>
+        DateTime(d.year, d.month, d.day, h, m);
+
+    return [
+      ChatMessageModel(
+        id: 'c1',
+        text: 'Hi! Is the 7 PM slot still available tomorrow?',
+        sentAt: at(yesterday, 18, 42),
+        isMe: true,
+        seen: true,
+      ),
+      ChatMessageModel(
+        id: 'c2',
+        text: 'Hello! Yes, the 7–8 PM slot is open.',
+        sentAt: at(yesterday, 18, 50),
+        isMe: false,
+      ),
+      ChatMessageModel(
+        id: 'c3',
+        text: 'Great — we are 10 players, planning a 5v5.',
+        sentAt: at(yesterday, 18, 55),
+        isMe: true,
+        seen: true,
+      ),
+      ChatMessageModel(
+        id: 'c4',
+        text: 'Perfect, I can hold the court for you.',
+        sentAt: at(yesterday, 19, 2),
+        isMe: false,
+      ),
+      ChatMessageModel(
+        id: 'c5',
+        text: 'Booked it from the app just now. See you!',
+        sentAt: now.subtract(const Duration(hours: 2)),
+        isMe: true,
+        seen: true,
+      ),
+      ChatMessageModel(
+        id: 'c6',
+        text: conversation.message,
+        sentAt: now.subtract(const Duration(minutes: 5)),
+        isMe: false,
+      ),
+    ];
+  }
 }
