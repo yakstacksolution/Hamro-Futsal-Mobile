@@ -24,6 +24,31 @@ extension ExpenseCategoryLabel on ExpenseCategory {
   };
 }
 
+/// Category fetched from the `/expense-categories` endpoint.
+class ExpenseCategoryModel {
+  const ExpenseCategoryModel({required this.id, required this.name});
+
+  final String id;
+  final String name;
+
+  factory ExpenseCategoryModel.fromJson(Map<String, dynamic> json) =>
+      ExpenseCategoryModel(
+        id: (json['id'] ?? json['_id'] ?? json['uuid'] ?? '').toString(),
+        name: (json['name'] ?? json['title'] ?? json['label'] ?? '')
+            .toString()
+            .trim(),
+      );
+
+  Map<String, dynamic> toJson() => {'id': id, 'name': name};
+
+  /// Maps this category onto the local enum (by name) so existing
+  /// analytics/filter code keeps working; unknown names land in `other`.
+  ExpenseCategory get asEnum => ExpenseCategory.values.firstWhere(
+    (c) => c.label.toLowerCase() == name.toLowerCase(),
+    orElse: () => ExpenseCategory.other,
+  );
+}
+
 enum PaymentMethod { cash, online }
 
 extension PaymentMethodLabel on PaymentMethod {
@@ -45,6 +70,15 @@ class VenueModel {
   );
 
   Map<String, dynamic> toJson() => {'id': id, 'name': name};
+}
+
+/// Venues together with their courts, as returned by the single
+/// venue-court endpoint.
+class VenueCourtsModel {
+  const VenueCourtsModel({required this.venues, required this.courts});
+
+  final List<VenueModel> venues;
+  final List<CourtModel> courts;
 }
 
 class CourtModel {

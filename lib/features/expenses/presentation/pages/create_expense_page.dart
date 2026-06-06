@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
@@ -11,6 +12,7 @@ import 'package:hamro_footsall/core/widgets/custom_dropdown_field.dart';
 import 'package:hamro_footsall/core/widgets/custom_text_field.dart';
 import 'package:hamro_footsall/features/expenses/data/model/expense_model.dart';
 import 'package:hamro_footsall/features/expenses/domain/entities/expense_entities.dart';
+import 'package:hamro_footsall/features/expenses/presentation/bloc/expenses_bloc/expenses_bloc.dart';
 import 'package:hamro_footsall/features/expenses/presentation/utils/expense_ui_utils.dart';
 import 'package:hamro_footsall/features/expenses/presentation/widgets/expense_common.dart';
 import 'package:hamro_footsall/features/expenses/presentation/widgets/expense_filter_widgets.dart';
@@ -36,7 +38,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
   final _noteCtrl = TextEditingController();
   final _amountFocus = FocusNode();
 
-  ExpenseCategory? _category;
+  ExpenseCategoryModel? _category;
   late VenueModel _venue = widget.venues.first;
   CourtModel? _court;
   DateTime _date = DateTime.now();
@@ -96,7 +98,8 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
     Navigator.of(context).pop(
       CreateExpenseEntity(
         date: _date,
-        category: _category!,
+        category: _category!.asEnum,
+        categoryId: _category!.id,
         vendor: _vendorCtrl.text.trim(),
         amount: _amountInt!,
         venueId: _venue.id,
@@ -116,7 +119,6 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
       appBar: CustomAppBar(
         title: 'New expense',
         actions: [
-          // Rebuilds only this button while typing — not the whole form.
           ListenableBuilder(
             listenable: Listenable.merge([_amountCtrl, _vendorCtrl]),
             builder: (context, _) => TextButton(
@@ -156,19 +158,22 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
                     showError: _submitted && (_amountInt ?? 0) <= 0,
                   ),
                   const SizedBox(height: AppDimens.paddingX10),
-                  // One-tap presets for common amounts.
-                  Wrap(
-                    spacing: AppDimens.paddingX8,
-                    runSpacing: AppDimens.paddingX8,
-                    children: _presets
-                        .map(
-                          (p) => ExpenseChip(
+                  // One-tap presets for common amounts — equal-width chips
+                  // so all five always fit on a single row.
+                  Row(
+                    children: [
+                      for (final p in _presets) ...[
+                        if (p != _presets.first)
+                          const SizedBox(width: AppDimens.paddingX8),
+                        Expanded(
+                          child: ExpenseChip(
                             label: ExpenseFmt.group('$p'),
                             selected: _amountInt == p,
                             onTap: () => _setAmount(p),
                           ),
-                        )
-                        .toList(),
+                        ),
+                      ],
+                    ],
                   ),
                 ],
               ),
@@ -176,26 +181,69 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
             const SizedBox(height: AppDimens.paddingX18),
 
             ExpenseSectionLabel('Category'),
-            ExpenseSurface(
-              child: CustomDropdownField<ExpenseCategory>(
-                labelText: 'Category',
-                hintText: 'Select a category',
-                icon: Icons.category_outlined,
-                initialValue: _category,
-                autovalidateMode: _submitted
-                    ? AutovalidateMode.always
-                    : AutovalidateMode.disabled,
-                validator: (v) => v == null ? 'Pick a category' : null,
-                onChanged: (c) => setState(() => _category = c),
-                items: ExpenseCategory.values
-                    .map(
-                      (c) => DropdownMenuItem<ExpenseCategory>(
-                        value: c,
-                        child: Text(c.label),
+            // Categories are fetched from the expense-categories API; the
+            // dropdown follows the bloc so it stays in sync with the fetch.
+            BlocBuilder<ExpensesBloc, ExpensesState>(
+              buildWhen: (prev, curr) =>
+                  prev.categoriesStatus != curr.categoriesStatus ||
+                  prev.categories != curr.categories,
+              builder: (context, state) {
+                if (state.categoriesStatus == ExpensesStatus.initial ||
+                    state.categoriesStatus == ExpensesStatus.loading) {
+                  return const ExpenseSurface(
+                    child: _CategoryStatusRow(
+                      leading: SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: LightColor.secondaryColor,
+                        ),
                       ),
-                    )
-                    .toList(),
-              ),
+                      message: 'Loading categories…',
+                    ),
+                  );
+                }
+                // Only an actual API failure shows the retry row — a
+                // successful-but-empty response still renders the dropdown
+                // (with no items), mirroring the server state.
+                if (state.categoriesStatus == ExpensesStatus.failure) {
+                  return ExpenseSurface(
+                    child: _CategoryStatusRow(
+                      leading: const Icon(
+                        Icons.error_outline_rounded,
+                        size: 18,
+                        color: LightColor.redColor,
+                      ),
+                      message: 'Could not load categories.',
+                      onRetry: () => context.read<ExpensesBloc>().add(
+                        const LoadExpenseCategoriesEvent(),
+                      ),
+                    ),
+                  );
+                }
+                return ExpenseSurface(
+                  child: CustomDropdownField<ExpenseCategoryModel>(
+                    labelText: 'Category',
+                    hintText: 'Select a category',
+                    icon: Icons.category_outlined,
+                    initialValue: _category,
+                    autovalidateMode: _submitted
+                        ? AutovalidateMode.always
+                        : AutovalidateMode.disabled,
+                    validator: (v) => v == null ? 'Pick a category' : null,
+                    onChanged: (c) => setState(() => _category = c),
+                    items: state.categories
+                        .map(
+                          (c) => DropdownMenuItem<ExpenseCategoryModel>(
+                            value: c,
+                            child: Text(c.name),
+                          ),
+                        )
+                        .toList(),
+                  ),
+                );
+              },
             ),
             const SizedBox(height: AppDimens.paddingX18),
 
@@ -402,6 +450,50 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
       return 'Today, ${months[d.month - 1]} ${d.day}';
     }
     return '${days[d.weekday - 1]}, ${months[d.month - 1]} ${d.day}, ${d.year}';
+  }
+}
+
+/// Inline status row shown in place of the category dropdown while the
+/// categories API is loading or after it failed (with a retry action).
+class _CategoryStatusRow extends StatelessWidget {
+  const _CategoryStatusRow({
+    required this.leading,
+    required this.message,
+    this.onRetry,
+  });
+
+  final Widget leading;
+  final String message;
+  final VoidCallback? onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    return Row(
+      children: [
+        leading,
+        const SizedBox(width: AppDimens.paddingX10),
+        Expanded(
+          child: Text(
+            message,
+            style: textTheme.bodyTextSmall?.copyWith(
+              color: LightColor.secondaryTextColor,
+            ),
+          ),
+        ),
+        if (onRetry != null)
+          TextButton(
+            onPressed: onRetry,
+            child: Text(
+              'Retry',
+              style: textTheme.bodyTextSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: LightColor.secondaryColor,
+              ),
+            ),
+          ),
+      ],
+    );
   }
 }
 

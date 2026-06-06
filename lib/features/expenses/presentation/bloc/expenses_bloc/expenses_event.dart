@@ -7,6 +7,17 @@ sealed class ExpensesEvent extends Equatable {
   List<Object?> get props => [];
 }
 
+/// Loads venues and their courts (single venue-court API).
+final class LoadVenueCourtsEvent extends ExpensesEvent {
+  const LoadVenueCourtsEvent();
+}
+
+/// Loads expense categories (categories API).
+final class LoadExpenseCategoriesEvent extends ExpensesEvent {
+  const LoadExpenseCategoriesEvent();
+}
+
+/// Loads the expenses list (expenses API).
 final class LoadExpensesEvent extends ExpensesEvent {
   const LoadExpensesEvent();
 }

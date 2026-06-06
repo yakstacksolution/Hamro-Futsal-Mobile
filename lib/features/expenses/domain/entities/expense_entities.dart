@@ -9,6 +9,7 @@ class CreateExpenseEntity {
     required this.amount,
     required this.venueId,
     required this.method,
+    this.categoryId,
     this.courtId,
     this.note,
   });
@@ -19,6 +20,9 @@ class CreateExpenseEntity {
   final int amount;
   final String venueId;
   final PaymentMethod method;
+
+  /// Server-side id of the category picked from `/expense-categories`.
+  final String? categoryId;
   final String? courtId;
   final String? note;
 
@@ -37,6 +41,7 @@ class CreateExpenseEntity {
   Map<String, dynamic> toMap() => {
     'date': date.toIso8601String(),
     'category': category.name,
+    'category_id': categoryId,
     'vendor': vendor,
     'amount': amount,
     'venue_id': venueId,

@@ -9,11 +9,11 @@ final class ExpensesUseCase {
 
   final ExpensesRepository repository;
 
-  Future<Either<AppException, List<VenueModel>>> getVenues() async =>
-      await repository.getVenues();
+  Future<Either<AppException, VenueCourtsModel>> getVenueCourts() async =>
+      await repository.getVenueCourts();
 
-  Future<Either<AppException, List<CourtModel>>> getCourts() async =>
-      await repository.getCourts();
+  Future<Either<AppException, List<ExpenseCategoryModel>>>
+  getCategories() async => await repository.getCategories();
 
   Future<Either<AppException, List<ExpenseModel>>> getExpenses() async =>
       await repository.getExpenses();

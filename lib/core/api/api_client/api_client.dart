@@ -102,6 +102,10 @@ class ApiClient {
     return _get(url: '$_baseUrl/filters');
   }
 
+  Future<Result> getExpenseCategories() {
+    return _get(url: '$_baseUrl/expense-categories');
+  }
+
   Future<Result> getVenueHostedBy({required int venueId}) {
     return _get(url: '$_baseUrl/hosted-by/2');
   }

@@ -25,6 +25,8 @@ class ExpensesScreen extends StatelessWidget {
     return BlocProvider(
       create: (_) =>
           ExpensesBloc(ExpensesUseCase(ExpensesRepositoryImpl()))
+            ..add(const LoadVenueCourtsEvent())
+            ..add(const LoadExpenseCategoriesEvent())
             ..add(const LoadExpensesEvent()),
       child: const _ExpensesView(),
     );
@@ -151,20 +153,21 @@ class _ExpensesViewState extends State<_ExpensesView>
         top: false,
         child: BlocBuilder<ExpensesBloc, ExpensesState>(
           builder: (context, state) {
-            if (state.status == ExpensesStatus.initial ||
-                state.status == ExpensesStatus.loading) {
+            if (state.expensesStatus == ExpensesStatus.initial ||
+                state.expensesStatus == ExpensesStatus.loading) {
               return const Center(
                 child: CircularProgressIndicator(
                   color: LightColor.secondaryColor,
                 ),
               );
             }
-            if (state.status == ExpensesStatus.failure &&
+            if (state.expensesStatus == ExpensesStatus.failure &&
                 state.expenses.isEmpty) {
               return _LoadError(
                 message: state.errorMessage ?? 'Could not load expenses.',
-                onRetry: () =>
-                    context.read<ExpensesBloc>().add(const LoadExpensesEvent()),
+                onRetry: () => context.read<ExpensesBloc>()
+                  ..add(const LoadVenueCourtsEvent())
+                  ..add(const LoadExpensesEvent()),
               );
             }
             return _buildContent(context, state);
@@ -287,8 +290,12 @@ class _ExpensesViewState extends State<_ExpensesView>
     if (venues.isEmpty) return;
     final created = await Navigator.of(context).push<CreateExpenseEntity>(
       MaterialPageRoute<CreateExpenseEntity>(
-        builder: (_) =>
-            CreateExpensePage(venues: venues, courts: bloc.state.courts),
+        // Share the bloc with the new route so the category dropdown can
+        // read (and retry) the expense categories fetched from the API.
+        builder: (_) => BlocProvider.value(
+          value: bloc,
+          child: CreateExpensePage(venues: venues, courts: bloc.state.courts),
+        ),
       ),
     );
     if (created == null || !mounted) return;

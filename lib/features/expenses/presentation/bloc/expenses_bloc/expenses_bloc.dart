@@ -11,7 +11,9 @@ part 'expenses_state.dart';
 
 class ExpensesBloc extends Bloc<ExpensesEvent, ExpensesState> {
   ExpensesBloc(this.useCase) : super(const ExpensesState()) {
-    on<LoadExpensesEvent>(_onLoad);
+    on<LoadVenueCourtsEvent>(_onLoadVenueCourts);
+    on<LoadExpenseCategoriesEvent>(_onLoadCategories);
+    on<LoadExpensesEvent>(_onLoadExpenses);
     on<AddExpenseEvent>(_onAdd);
     on<DeleteExpenseEvent>(_onDelete);
     on<RestoreExpenseEvent>(_onRestore);
@@ -19,46 +21,71 @@ class ExpensesBloc extends Bloc<ExpensesEvent, ExpensesState> {
 
   final ExpensesUseCase useCase;
 
-  Future<void> _onLoad(
+  /// Venues and courts come from the single venue-court API.
+  Future<void> _onLoadVenueCourts(
+    LoadVenueCourtsEvent event,
+    Emitter<ExpensesState> emit,
+  ) async {
+    emit(state.copyWith(venueCourtsStatus: ExpensesStatus.loading));
+    final result = await useCase.getVenueCourts();
+    result.fold(
+      (failure) =>
+          emit(state.copyWith(venueCourtsStatus: ExpensesStatus.failure)),
+      (data) => emit(
+        state.copyWith(
+          venueCourtsStatus: ExpensesStatus.success,
+          venues: data.venues,
+          courts: data.courts,
+        ),
+      ),
+    );
+  }
+
+  /// Categories come from their own API; the create form reads them straight
+  /// from this state, so on failure the form offers a retry instead of
+  /// falling back to static values.
+  Future<void> _onLoadCategories(
+    LoadExpenseCategoriesEvent event,
+    Emitter<ExpensesState> emit,
+  ) async {
+    emit(state.copyWith(categoriesStatus: ExpensesStatus.loading));
+    final result = await useCase.getCategories();
+    result.fold(
+      (failure) =>
+          emit(state.copyWith(categoriesStatus: ExpensesStatus.failure)),
+      (categories) => emit(
+        state.copyWith(
+          categoriesStatus: ExpensesStatus.success,
+          categories: categories,
+        ),
+      ),
+    );
+  }
+
+  /// The expenses list comes from the expenses API.
+  Future<void> _onLoadExpenses(
     LoadExpensesEvent event,
     Emitter<ExpensesState> emit,
   ) async {
     emit(
-      state.copyWith(status: ExpensesStatus.loading, clearErrorMessage: true),
+      state.copyWith(
+        expensesStatus: ExpensesStatus.loading,
+        clearErrorMessage: true,
+      ),
     );
-    final venuesResult = await useCase.getVenues();
-    final courtsResult = await useCase.getCourts();
-    final expensesResult = await useCase.getExpenses();
-    venuesResult.fold(
+    final result = await useCase.getExpenses();
+    result.fold(
       (failure) => emit(
         state.copyWith(
-          status: ExpensesStatus.failure,
+          expensesStatus: ExpensesStatus.failure,
           errorMessage: failure.errorMessage,
         ),
       ),
-      (venues) => courtsResult.fold(
-        (failure) => emit(
-          state.copyWith(
-            status: ExpensesStatus.failure,
-            errorMessage: failure.errorMessage,
-          ),
-        ),
-        (courts) => expensesResult.fold(
-          (failure) => emit(
-            state.copyWith(
-              status: ExpensesStatus.failure,
-              errorMessage: failure.errorMessage,
-            ),
-          ),
-          (expenses) => emit(
-            state.copyWith(
-              status: ExpensesStatus.success,
-              venues: venues,
-              courts: courts,
-              expenses: expenses,
-              clearErrorMessage: true,
-            ),
-          ),
+      (expenses) => emit(
+        state.copyWith(
+          expensesStatus: ExpensesStatus.success,
+          expenses: expenses,
+          clearErrorMessage: true,
         ),
       ),
     );

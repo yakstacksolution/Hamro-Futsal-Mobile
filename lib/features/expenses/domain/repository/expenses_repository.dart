@@ -4,8 +4,8 @@ import 'package:hamro_footsall/features/expenses/data/model/expense_model.dart';
 import 'package:hamro_footsall/features/expenses/domain/entities/expense_entities.dart';
 
 abstract class ExpensesRepository {
-  Future<Either<AppException, List<VenueModel>>> getVenues();
-  Future<Either<AppException, List<CourtModel>>> getCourts();
+  Future<Either<AppException, VenueCourtsModel>> getVenueCourts();
+  Future<Either<AppException, List<ExpenseCategoryModel>>> getCategories();
   Future<Either<AppException, List<ExpenseModel>>> getExpenses();
   Future<Either<AppException, ExpenseModel>> addExpense(
     CreateExpenseEntity data,

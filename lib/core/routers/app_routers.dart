@@ -34,11 +34,6 @@ class AppRouters {
     return GoRouter(
       initialLocation: initialLocation,
       routes: <RouteBase>[
-        // GoRoute(
-        //   name: AppRouterParams.splash.name,
-        //   path: AppRouterParams.splash.path,
-        //   builder: (context, state) => const SplashScreen(),
-        // ),
         GoRoute(
           name: AppRouterParams.login.name,
           path: AppRouterParams.login.path,
