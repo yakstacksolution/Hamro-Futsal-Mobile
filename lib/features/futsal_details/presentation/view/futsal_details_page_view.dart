@@ -6,6 +6,7 @@ import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/utils/scroll_behavior.dart';
+import 'package:hamro_footsall/features/message/presentation/pages/chat_launcher.dart';
 import 'package:hamro_footsall/features/courts_details/presentation/page/court_details.dart';
 import 'package:hamro_footsall/features/courts_details/presentation/widget/court_amenities.dart';
 import 'package:hamro_footsall/features/courts_details/presentation/widget/court_booking_policies_section.dart';
@@ -201,6 +202,7 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
             if (hostedBy == null || !hostedBy.hasData) {
               return const SizedBox.shrink();
             }
+            final int? hostUserId = hostedBy.id;
             return CourtHostedBySection(
               hostName: hostedBy.name ?? '',
               hostSince: hostedBy.hostingSince ?? '-',
@@ -208,6 +210,14 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
               hostedCourts: hostedBy.courtCount ?? 0,
               hostedVenues: hostedBy.venueCount ?? 0,
               rating: hostedBy.rating ?? 0,
+              // Start a direct chat with the host (vendor) for this venue.
+              onMessage: hostUserId == null
+                  ? null
+                  : () => ChatLauncher.startDirect(
+                        context,
+                        vendorId: hostUserId,
+                        venueId: widget.publicVenue?.id,
+                      ),
             );
         }
       },
@@ -437,7 +447,10 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
                   physics: const BouncingScrollPhysics(),
                   slivers: [
                     SliverToBoxAdapter(
-                      child: DetailsImageGallery(images: _court.images),
+                      child: DetailsImageGallery(
+                        images: _court.images,
+                        venueId: widget.publicVenue?.id,
+                      ),
                     ),
                     SliverToBoxAdapter(
                       child: Container(

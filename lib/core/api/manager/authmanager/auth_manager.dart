@@ -121,6 +121,14 @@ class AuthManager extends ServiceManager {
     return await _apiClient.getCategoryFilter();
   }
 
+  Future<Result> getWishlist() async {
+    return await _apiClient.getWishlist();
+  }
+
+  Future<Result> toggleWishlist(int venueId) async {
+    return await _apiClient.toggleWishlist(venueId: venueId);
+  }
+
   Future<Result> getExpenseCategories() async {
     return await _apiClient.getExpenseCategories();
   }
@@ -135,6 +143,71 @@ class AuthManager extends ServiceManager {
 
   Future<Result> getExpenses() async {
     return await _apiClient.getExpenses();
+  }
+
+  Future<Result> getConversations({bool archived = false}) async {
+    return await _apiClient.getConversations(archived: archived);
+  }
+
+  Future<Result> startDirectConversation(Map<String, dynamic> data) async {
+    return await _apiClient.startDirectConversation(data: data);
+  }
+
+  Future<Result> createGroupConversation(Map<String, dynamic> data) async {
+    return await _apiClient.createGroupConversation(data: data);
+  }
+
+  Future<Result> getConversationDetails(int conversationId) async {
+    return await _apiClient.getConversationDetails(
+      conversationId: conversationId,
+    );
+  }
+
+  Future<Result> getConversationMessages(int conversationId) async {
+    return await _apiClient.getConversationMessages(
+      conversationId: conversationId,
+    );
+  }
+
+  Future<Result> sendConversationMessage(
+    int conversationId,
+    dynamic data,
+  ) async {
+    return await _apiClient.sendConversationMessage(
+      conversationId: conversationId,
+      data: data,
+    );
+  }
+
+  Future<Result> markConversationRead(int conversationId) async {
+    return await _apiClient.markConversationRead(
+      conversationId: conversationId,
+    );
+  }
+
+  Future<Result> sendConversationTyping(int conversationId, bool typing) async {
+    return await _apiClient.sendConversationTyping(
+      conversationId: conversationId,
+      typing: typing,
+    );
+  }
+
+  Future<Result> archiveConversation(int conversationId, bool archived) async {
+    return await _apiClient.archiveConversation(
+      conversationId: conversationId,
+      archived: archived,
+    );
+  }
+
+  Future<Result> muteConversation(int conversationId, bool muted) async {
+    return await _apiClient.muteConversation(
+      conversationId: conversationId,
+      muted: muted,
+    );
+  }
+
+  Future<Result> deleteChatMessage(int messageId) async {
+    return await _apiClient.deleteChatMessage(messageId: messageId);
   }
 
   Future<Result> getVenueHostedBy(int venueId) async {

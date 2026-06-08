@@ -20,6 +20,8 @@ import 'package:hamro_footsall/features/public/data/repositories/public_reposito
 import 'package:hamro_footsall/features/public/domain/usecase/get_public_venues_use_case.dart';
 import 'package:hamro_footsall/features/public/presentation/bloc/public_venue/public_venue_bloc.dart';
 import 'package:hamro_footsall/features/public/presentation/models/venue_filter.dart';
+import 'package:hamro_footsall/core/helper/wishlist_store.dart';
+import 'package:hamro_footsall/features/wishlist/domain/usecase/toggle_wishlist_use_case.dart';
 
 class FootsallHomePage extends StatelessWidget {
   const FootsallHomePage({super.key, this.filter = VenueFilter.empty});
@@ -337,8 +339,21 @@ class CourtCard extends StatefulWidget {
 }
 
 class _CourtCardState extends State<CourtCard> {
-  bool _saved = false;
   bool _isPressed = false;
+
+  /// Optimistically flips the shared heart state and persists with
+  /// `POST /venues/{venue}/wishlist`; reverts on failure.
+  Future<void> _toggleWishlist() async {
+    final int? venueId = widget.court.id;
+    if (venueId == null) return;
+    HapticFeedback.selectionClick();
+    final String? error = await ToggleWishlistUseCase(
+      PublicRepositoryImpl(),
+    )(venueId);
+    if (error != null && mounted) {
+      AppUtils().showSnackBar(context, MsgType.error, error);
+    }
+  }
 
   PublicListingVenueModel _courtWithDistance() {
     final double? latitude = widget.court.latitude;
@@ -405,34 +420,51 @@ class _CourtCardState extends State<CourtCard> {
                       Positioned(
                         top: 12,
                         right: 12,
-                        child: GestureDetector(
-                          onTap: () => setState(() => _saved = !_saved),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: BackdropFilter(
-                              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                              child: Container(
-                                height: AppDimens.sizeX36,
-                                width: AppDimens.sizeX36,
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.85),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: Colors.white.withValues(alpha: 0.6),
+                        // Heart state lives in the shared wishlist store, so
+                        // it stays in sync across home, wishlist and details.
+                        child: ValueListenableBuilder<Set<int>>(
+                          valueListenable: WishlistStore.instance.ids,
+                          builder: (context, ids, _) {
+                            final bool saved =
+                                widget.court.id != null &&
+                                ids.contains(widget.court.id);
+                            return GestureDetector(
+                              onTap: _toggleWishlist,
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: BackdropFilter(
+                                  filter: ImageFilter.blur(
+                                    sigmaX: 10,
+                                    sigmaY: 10,
+                                  ),
+                                  child: Container(
+                                    height: AppDimens.sizeX36,
+                                    width: AppDimens.sizeX36,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.85,
+                                      ),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: Colors.white.withValues(
+                                          alpha: 0.6,
+                                        ),
+                                      ),
+                                    ),
+                                    child: Icon(
+                                      saved
+                                          ? Icons.favorite_rounded
+                                          : Icons.favorite_border_rounded,
+                                      color: saved
+                                          ? LightColor.secondaryColor
+                                          : LightColor.secondaryTextColor,
+                                      size: AppDimens.sizeX22,
+                                    ),
                                   ),
                                 ),
-                                child: Icon(
-                                  _saved
-                                      ? Icons.favorite_rounded
-                                      : Icons.favorite_border_rounded,
-                                  color: _saved
-                                      ? LightColor.secondaryColor
-                                      : LightColor.secondaryTextColor,
-                                  size: AppDimens.sizeX22,
-                                ),
                               ),
-                            ),
-                          ),
+                            );
+                          },
                         ),
                       ),
                     ],

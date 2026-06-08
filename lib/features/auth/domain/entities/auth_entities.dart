@@ -50,7 +50,10 @@ class SignUpEntity extends Equatable {
       "full_name": fullName,
       "password": password,
       "password_confirmation": passwordConfirmation,
-      "account_type": accountType == "Footsall Vendor" ? "vendor" : "customer",
+      // UI label → backend value: Player → candidate, Footsall Vendor → vendor.
+      "account_type": accountType == "Footsall Vendor" ? "vendor" : "candidate",
+      // Identifies which client app the registration came from.
+      "client": "customer",
       "email": email,
       "terms_accepted": termAccepted,
     };

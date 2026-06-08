@@ -59,6 +59,10 @@ class UserData extends Equatable {
   final int? mainStep;
   final int? subStep;
 
+  /// Venue ids the user has wishlisted (`wishlists` on `/auth/me`) — drives
+  /// the heart state on venue cards.
+  final List<int> wishlistVenueIds;
+
   const UserData({
     required this.id,
     required this.fullName,
@@ -81,7 +85,21 @@ class UserData extends Equatable {
     this.futsalId,
     this.mainStep,
     this.subStep,
+    this.wishlistVenueIds = const <int>[],
   });
+
+  /// Accepts `[1, 2]` or `[{venue_id: 1}, ...]` / `[{id: 1}, ...]`.
+  static List<int> _parseWishlistIds(dynamic value) {
+    if (value is! List) return const <int>[];
+    return value
+        .map(
+          (dynamic item) => item is Map
+              ? _asInt(item['venue_id'] ?? item['id'])
+              : _asInt(item),
+        )
+        .whereType<int>()
+        .toList(growable: false);
+  }
 
   factory UserData.fromJson(Map<String, dynamic> json) {
     return UserData(
@@ -131,6 +149,7 @@ class UserData extends Equatable {
       subStep:
           _asInt(json['sub_step']) ??
           _asInt((json['vendor_onboarding_data'] as Map?)?['sub_step']),
+      wishlistVenueIds: _parseWishlistIds(json['wishlists']),
     );
   }
 
@@ -158,6 +177,7 @@ class UserData extends Equatable {
       'futsal_id': futsalId,
       'main_step': mainStep,
       'sub_step': subStep,
+      'wishlists': wishlistVenueIds,
     };
   }
 
@@ -184,6 +204,7 @@ class UserData extends Equatable {
     futsalId,
     mainStep,
     subStep,
+    wishlistVenueIds,
   ];
 
   UserData copyWith({
@@ -209,6 +230,7 @@ class UserData extends Equatable {
     int? futsalId,
     int? mainStep,
     int? subStep,
+    List<int>? wishlistVenueIds,
   }) {
     return UserData(
       id: id ?? this.id,
@@ -234,6 +256,7 @@ class UserData extends Equatable {
       futsalId: futsalId ?? this.futsalId,
       mainStep: mainStep ?? this.mainStep,
       subStep: subStep ?? this.subStep,
+      wishlistVenueIds: wishlistVenueIds ?? this.wishlistVenueIds,
     );
   }
 
@@ -261,6 +284,9 @@ class UserData extends Equatable {
       futsalId: other.futsalId,
       mainStep: other.mainStep,
       subStep: other.subStep,
+      wishlistVenueIds: other.wishlistVenueIds.isNotEmpty
+          ? other.wishlistVenueIds
+          : null,
     );
   }
 }

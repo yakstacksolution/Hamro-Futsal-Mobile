@@ -22,4 +22,11 @@ abstract class PublicRepository {
     VenueFilter? filter,
   });
   Future<Either<AppException, List<CategoryFilterModel>>> getCategoryFilter();
+
+  /// `GET /auth/wishlist` — same response shape as the venue listing.
+  Future<Either<AppException, PublicListingVenuePage>> getWishlist();
+
+  /// `POST /venues/{venue}/wishlist` — adds/removes the venue from the
+  /// signed-in user's wishlist.
+  Future<Either<AppException, bool>> toggleWishlist(int venueId);
 }

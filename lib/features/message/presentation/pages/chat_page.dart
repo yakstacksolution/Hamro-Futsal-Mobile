@@ -1,75 +1,60 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
+import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/custom_image_view.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
-import 'package:hamro_footsall/features/message/data/data_source/message_data_source.dart';
-import 'package:hamro_footsall/features/message/data/model/chat_message_model.dart';
-import 'package:hamro_footsall/features/message/data/model/message_model.dart';
+import 'package:hamro_footsall/core/widgets/custom_button.dart';
+import 'package:hamro_footsall/core/widgets/loading_widget.dart';
+import 'package:hamro_footsall/features/message/data/model/conversation_model.dart';
+import 'package:hamro_footsall/features/message/presentation/bloc/message_bloc/message_bloc.dart';
 import 'package:hamro_footsall/features/message/presentation/widgets/chat_bubble.dart';
 import 'package:hamro_footsall/features/message/presentation/widgets/chat_input_bar.dart';
 
-/// One conversation thread: contact header, date-grouped chat bubbles and
-/// the message composer.
+/// One conversation thread driven by [MessageBloc]: messages from
+/// `GET /conversations/{id}/messages`, sending via the multipart endpoint,
+/// typing broadcast and realtime updates via the socket service.
 class ChatPage extends StatefulWidget {
-  const ChatPage({
-    super.key,
-    required this.conversation,
-    this.dataSource,
-    this.autofocusComposer = false,
-  });
+  const ChatPage({super.key, required this.conversation});
 
-  final MessageModel conversation;
-  final MessageDataSource? dataSource;
-
-  /// Opens with the keyboard up (used by the list's "Reply" quick action).
-  final bool autofocusComposer;
+  final ConversationModel conversation;
 
   @override
   State<ChatPage> createState() => _ChatPageState();
 }
 
 class _ChatPageState extends State<ChatPage> {
-  late final MessageDataSource _dataSource =
-      widget.dataSource ?? MessageLocalDataSourceImpl();
   final _scrollCtrl = ScrollController();
-  late final _composerFocus = FocusNode();
-
-  List<ChatMessageModel> _messages = const [];
 
   @override
   void initState() {
     super.initState();
-    _dataSource.fetchChat(widget.conversation).then((messages) {
-      if (mounted) setState(() => _messages = messages);
-    });
-    if (widget.autofocusComposer) {
-      WidgetsBinding.instance.addPostFrameCallback(
-        (_) => _composerFocus.requestFocus(),
-      );
-    }
+    context.read<MessageBloc>().add(LoadChatEvent(widget.conversation.id));
   }
 
   @override
   void dispose() {
     _scrollCtrl.dispose();
-    _composerFocus.dispose();
     super.dispose();
   }
 
+  @override
+  void deactivate() {
+    // Leaving the thread: drop socket subscriptions and refresh the inbox.
+    // The bloc may already be closed when it was page-scoped (ChatLauncher).
+    final bloc = context.read<MessageBloc>();
+    if (!bloc.isClosed) bloc.add(const CloseChatEvent());
+    super.deactivate();
+  }
+
   void _send(String text) {
-    setState(() {
-      _messages = [
-        ..._messages,
-        ChatMessageModel(
-          id: 'c${DateTime.now().microsecondsSinceEpoch}',
-          text: text,
-          sentAt: DateTime.now(),
-          isMe: true,
-        ),
-      ];
-    });
-    // The list is reversed, so the newest message sits at offset 0.
+    context
+        .read<MessageBloc>()
+        .add(SendMessageEvent(widget.conversation.id, text));
+  }
+
+  void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollCtrl.hasClients) {
         _scrollCtrl.animateTo(
@@ -81,45 +66,165 @@ class _ChatPageState extends State<ChatPage> {
     });
   }
 
-  /// Thread entries (bubbles + day chips) in chronological order.
-  List<Widget> _buildEntries() {
-    final entries = <Widget>[];
-    DateTime? lastDay;
-    for (final m in _messages) {
-      final day = DateTime(m.sentAt.year, m.sentAt.month, m.sentAt.day);
-      if (lastDay == null || day != lastDay) {
-        entries.add(ChatDayChip(date: m.sentAt));
-        lastDay = day;
-      }
-      entries.add(ChatBubble(message: m));
-    }
-    return entries;
-  }
-
   @override
   Widget build(BuildContext context) {
-    final entries = _buildEntries().reversed.toList(growable: false);
-
     return Scaffold(
       backgroundColor: LightColor.background,
       appBar: _ChatAppBar(conversation: widget.conversation),
       body: SafeArea(
         top: false,
-        child: Column(
-          children: [
-            Expanded(
-              child: ListView.builder(
-                controller: _scrollCtrl,
-                reverse: true,
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(
-                  vertical: AppDimens.paddingX12,
+        child: BlocConsumer<MessageBloc, MessageState>(
+          listenWhen: (prev, curr) =>
+              curr.messages.length > prev.messages.length,
+          listener: (context, state) => _scrollToBottom(),
+          builder: (context, state) {
+            return Column(
+              children: [
+                Expanded(child: _thread(state)),
+                ChatInputBar(
+                  onSend: _send,
+                  sending: state.sending,
+                  onTypingChanged: (typing) => context
+                      .read<MessageBloc>()
+                      .add(SendTypingEvent(widget.conversation.id, typing)),
                 ),
-                itemCount: entries.length,
-                itemBuilder: (_, i) => entries[i],
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _thread(MessageState state) {
+    if (state.chatStatus == MessageStatus.initial ||
+        state.chatStatus == MessageStatus.loading) {
+      return const LoadingWidget(isTransparentBackground: true);
+    }
+    if (state.chatStatus == MessageStatus.failure) {
+      return _ThreadError(
+        message: state.errorMessage ?? 'Could not load messages.',
+        onRetry: () => context.read<MessageBloc>().add(
+          LoadChatEvent(widget.conversation.id),
+        ),
+      );
+    }
+    if (state.messages.isEmpty) {
+      return const _EmptyThread();
+    }
+
+    // Bubbles + day chips, newest at the bottom (reversed list keeps the
+    // viewport pinned there).
+    final entries = <Widget>[];
+    DateTime? lastDay;
+    for (final m in state.messages) {
+      final day = DateTime(m.createdAt.year, m.createdAt.month, m.createdAt.day);
+      if (lastDay == null || day != lastDay) {
+        entries.add(ChatDayChip(date: m.createdAt));
+        lastDay = day;
+      }
+      entries.add(
+        ChatBubble(
+          message: m,
+          isMe: m.isMine(state.currentUserId),
+          showSender: widget.conversation.isGroup,
+        ),
+      );
+    }
+    if (state.peerTyping) entries.add(const _TypingBubble());
+    final reversed = entries.reversed.toList(growable: false);
+
+    return ListView.builder(
+      controller: _scrollCtrl,
+      reverse: true,
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.symmetric(vertical: AppDimens.paddingX12),
+      itemCount: reversed.length,
+      itemBuilder: (_, i) => reversed[i],
+    );
+  }
+}
+
+/// Left-aligned "typing…" indicator bubble.
+class _TypingBubble extends StatelessWidget {
+  const _TypingBubble();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppDimens.paddingX16,
+        vertical: AppDimens.paddingX4,
+      ),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: LightColor.cardColor,
+            borderRadius: BorderRadius.circular(AppDimens.radiusX14),
+            boxShadow: const [
+              BoxShadow(
+                color: LightColor.shadowColor,
+                blurRadius: 6,
+                offset: Offset(0, 1),
+              ),
+            ],
+          ),
+          child: Text(
+            'typing…',
+            style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
+              color: LightColor.secondaryTextColor,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyThread extends StatelessWidget {
+  const _EmptyThread();
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    return Center(
+      child: Padding(
+        padding: AppUtils().getPadding(all: AppDimens.paddingX32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                color: LightColor.secondaryColor.withValues(alpha: 0.08),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.waving_hand_outlined,
+                size: 30,
+                color: LightColor.secondaryColor.withValues(alpha: 0.7),
               ),
             ),
-            ChatInputBar(onSend: _send, focusNode: _composerFocus),
+            const SizedBox(height: AppDimens.paddingX14),
+            Text(
+              'No messages yet',
+              style: textTheme.bodyTextMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: LightColor.primaryTextColor,
+              ),
+            ),
+            const SizedBox(height: AppDimens.paddingX6),
+            Text(
+              'Say hello and start the conversation.',
+              textAlign: TextAlign.center,
+              style: textTheme.bodyTextSmall?.copyWith(
+                color: LightColor.secondaryTextColor,
+              ),
+            ),
           ],
         ),
       ),
@@ -127,12 +232,52 @@ class _ChatPageState extends State<ChatPage> {
   }
 }
 
-/// Contact header: avatar with presence dot, name, activity line and the
-/// booking tag when relevant.
+class _ThreadError extends StatelessWidget {
+  const _ThreadError({required this.message, required this.onRetry});
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    return Center(
+      child: Padding(
+        padding: AppUtils().getPadding(all: AppDimens.paddingX32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.cloud_off_rounded,
+              size: 40,
+              color: LightColor.hintTextColor,
+            ),
+            const SizedBox(height: AppDimens.paddingX14),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: textTheme.bodyTextMedium?.copyWith(
+                color: LightColor.secondaryTextColor,
+              ),
+            ),
+            const SizedBox(height: AppDimens.paddingX18),
+            CustomButton(
+              text: 'Retry',
+              icon: Icons.refresh_rounded,
+              onPressed: onRetry,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Contact header: avatar, title and live subtitle (typing… / members).
 class _ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
   const _ChatAppBar({required this.conversation});
 
-  final MessageModel conversation;
+  final ConversationModel conversation;
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
@@ -159,101 +304,94 @@ class _ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
           color: LightColor.primaryTextColor,
         ),
       ),
-      title: Row(
-        children: [
-          Stack(
-            clipBehavior: Clip.none,
+      title: BlocBuilder<MessageBloc, MessageState>(
+        builder: (context, state) {
+          final title = conversation.displayTitle(state.currentUserId);
+          final avatar = conversation.displayAvatar(state.currentUserId);
+          final String subtitle;
+          if (state.peerTyping) {
+            subtitle = 'typing…';
+          } else if (conversation.isGroup) {
+            final n = conversation.participants.length;
+            subtitle = '$n ${n == 1 ? 'member' : 'members'}';
+          } else {
+            final role =
+                conversation.otherParticipant(state.currentUserId)?.role ?? '';
+            subtitle = role.isEmpty ? 'Direct message' : role;
+          }
+
+          return Row(
             children: [
-              ClipOval(
-                child: CustomImageView(
-                  url: conversation.avatarUrl,
+              if (conversation.isGroup || avatar.isEmpty)
+                Container(
                   width: 38,
                   height: 38,
-                  fit: BoxFit.cover,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: LightColor.secondaryColor.withValues(alpha: 0.10),
+                    shape: BoxShape.circle,
+                  ),
+                  child: conversation.isGroup
+                      ? const Icon(
+                          Icons.groups_2_outlined,
+                          size: 19,
+                          color: LightColor.secondaryColor,
+                        )
+                      : Text(
+                          title.isEmpty
+                              ? '?'
+                              : title.substring(0, 1).toUpperCase(),
+                          style: textTheme.bodyTextMedium?.copyWith(
+                            color: LightColor.secondaryColor,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                )
+              else
+                ClipOval(
+                  child: CustomImageView(
+                    url: avatar,
+                    width: 38,
+                    height: 38,
+                    fit: BoxFit.cover,
+                  ),
                 ),
-              ),
-              if (conversation.isActive)
-                Positioned(
-                  right: 0,
-                  bottom: 0,
-                  child: Container(
-                    width: 10,
-                    height: 10,
-                    decoration: BoxDecoration(
-                      color: LightColor.secondaryColor,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: LightColor.cardColor,
-                        width: 2,
+              const SizedBox(width: AppDimens.paddingX10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: textTheme.bodyTextMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: LightColor.primaryTextColor,
                       ),
                     ),
-                  ),
+                    const SizedBox(height: 1),
+                    Text(
+                      subtitle,
+                      style: textTheme.bodyTextSmall?.copyWith(
+                        fontSize: AppDimens.fontBodySubTitle,
+                        color: state.peerTyping
+                            ? LightColor.secondaryColor
+                            : LightColor.hintTextColor,
+                        fontWeight: FontWeight.w500,
+                        fontStyle: state.peerTyping
+                            ? FontStyle.italic
+                            : FontStyle.normal,
+                      ),
+                    ),
+                  ],
                 ),
+              ),
             ],
-          ),
-          const SizedBox(width: AppDimens.paddingX10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  conversation.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: textTheme.bodyTextMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: LightColor.primaryTextColor,
-                  ),
-                ),
-                const SizedBox(height: 1),
-                Text(
-                  conversation.isActive
-                      ? 'Active now'
-                      : 'Last seen ${conversation.time}',
-                  style: textTheme.bodyTextSmall?.copyWith(
-                    fontSize: AppDimens.fontBodySubTitle,
-                    color: conversation.isActive
-                        ? LightColor.secondaryColor
-                        : LightColor.hintTextColor,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+          );
+        },
       ),
-      actions: [
-        if (conversation.isBooking)
-          Container(
-            margin: const EdgeInsets.only(right: AppDimens.paddingX12),
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(
-              color: LightColor.secondaryColor.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(AppDimens.radiusX20),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(
-                  Icons.sports_soccer_rounded,
-                  size: 12,
-                  color: LightColor.secondaryColor,
-                ),
-                const SizedBox(width: 3),
-                Text(
-                  'Booking',
-                  style: textTheme.bodyTextSmall?.copyWith(
-                    color: LightColor.secondaryColor,
-                    fontWeight: FontWeight.w700,
-                    fontSize: AppDimens.fontBodySubTitle,
-                  ),
-                ),
-              ],
-            ),
-          ),
-      ],
     );
   }
 }

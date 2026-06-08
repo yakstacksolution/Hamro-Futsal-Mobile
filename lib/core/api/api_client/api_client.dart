@@ -102,6 +102,14 @@ class ApiClient {
     return _get(url: '$_baseUrl/filters');
   }
 
+  Future<Result> getWishlist() {
+    return _get(url: '$_baseUrl/auth/wishlist');
+  }
+
+  Future<Result> toggleWishlist({required int venueId}) {
+    return _post(url: '$_baseUrl/auth/venues/$venueId/wishlist');
+  }
+
   Future<Result> getExpenseCategories() {
     return _get(url: '$_baseUrl/expense-categories');
   }
@@ -116,6 +124,79 @@ class ApiClient {
 
   Future<Result> getExpenses() {
     return _get(url: '$_baseUrl/auth/expenses');
+  }
+
+  // ── Chat ──
+
+  Future<Result> getConversations({bool archived = false}) {
+    return _get(
+      url: '$_baseUrl/conversations',
+      query: <String, dynamic>{'archived': archived},
+    );
+  }
+
+  Future<Result> startDirectConversation({required Map<String, dynamic> data}) {
+    return _post(url: '$_baseUrl/conversations/direct', data: data);
+  }
+
+  Future<Result> createGroupConversation({required Map<String, dynamic> data}) {
+    return _post(url: '$_baseUrl/conversations/group', data: data);
+  }
+
+  Future<Result> getConversationDetails({required int conversationId}) {
+    return _get(url: '$_baseUrl/conversations/$conversationId');
+  }
+
+  Future<Result> getConversationMessages({required int conversationId}) {
+    return _get(url: '$_baseUrl/conversations/$conversationId/messages');
+  }
+
+  Future<Result> sendConversationMessage({
+    required int conversationId,
+    required dynamic data,
+  }) {
+    return _post(
+      url: '$_baseUrl/conversations/$conversationId/messages',
+      data: data,
+    );
+  }
+
+  Future<Result> markConversationRead({required int conversationId}) {
+    return _post(url: '$_baseUrl/conversations/$conversationId/read');
+  }
+
+  Future<Result> sendConversationTyping({
+    required int conversationId,
+    required bool typing,
+  }) {
+    return _post(
+      url:
+          '$_baseUrl/conversations/$conversationId/${typing ? 'typing' : 'stop-typing'}',
+    );
+  }
+
+  Future<Result> archiveConversation({
+    required int conversationId,
+    required bool archived,
+  }) {
+    return _post(
+      url:
+          '$_baseUrl/conversations/$conversationId/${archived ? 'archive' : 'unarchive'}',
+    );
+  }
+
+  Future<Result> muteConversation({
+    required int conversationId,
+    required bool muted,
+  }) {
+    return _post(
+      url:
+          '$_baseUrl/conversations/$conversationId/${muted ? 'mute' : 'unmute'}',
+    );
+  }
+
+  Future<Result> deleteChatMessage({required int messageId}) {
+    return _delete(url: '$_baseUrl/messages/$messageId');
   }
 
   Future<Result> getVenueHostedBy({required int venueId}) {

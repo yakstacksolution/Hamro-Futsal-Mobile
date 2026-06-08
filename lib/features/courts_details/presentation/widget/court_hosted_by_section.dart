@@ -16,6 +16,7 @@ class CourtHostedBySection extends StatelessWidget {
     this.avatarUrl,
     this.hostedVenues,
     this.responseRate,
+    this.onMessage,
   });
 
   final String hostName;
@@ -25,6 +26,10 @@ class CourtHostedBySection extends StatelessWidget {
   final String? avatarUrl;
   final int? hostedVenues;
   final double? responseRate;
+
+  /// Opens a direct chat with the host; the chat button is shown only when
+  /// this is provided.
+  final VoidCallback? onMessage;
 
   @override
   Widget build(BuildContext context) {
@@ -114,17 +119,22 @@ class CourtHostedBySection extends StatelessWidget {
                     ],
                   ),
                 ),
-                Container(
-                  width: AppDimens.sizeX42,
-                  height: AppDimens.sizeX42,
-                  decoration: BoxDecoration(
-                    color: LightColor.secondaryColor.withValues(alpha: 0.1),
+                // Message-the-host shortcut.
+                Material(
+                  color: LightColor.secondaryColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+                  child: InkWell(
                     borderRadius: BorderRadius.circular(AppDimens.radiusX8),
-                  ),
-                  child: const Icon(
-                    Icons.chat_bubble_outline_rounded,
-                    color: LightColor.secondaryColor,
-                    size: AppDimens.sizeX20,
+                    onTap: onMessage,
+                    child: const SizedBox(
+                      width: AppDimens.sizeX42,
+                      height: AppDimens.sizeX42,
+                      child: Icon(
+                        Icons.chat_bubble_outline_rounded,
+                        color: LightColor.secondaryColor,
+                        size: AppDimens.sizeX20,
+                      ),
+                    ),
                   ),
                 ),
               ],

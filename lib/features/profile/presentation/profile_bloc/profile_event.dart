@@ -41,3 +41,4 @@ final class UpdateProfileEvent extends ProfileEvent {
     profilePhoto,
   ];
 }
+

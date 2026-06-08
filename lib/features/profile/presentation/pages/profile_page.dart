@@ -7,8 +7,10 @@ import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/custom_image_view.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/widgets/custom_app_bar.dart';
 import 'package:hamro_footsall/core/widgets/loading_widget.dart';
 import 'package:hamro_footsall/features/auth/data/repositories/authentication_repository_impl.dart';
+import 'package:hamro_footsall/features/courts/presentation/pages/venue_courts_list_page_widget.dart';
 import 'package:hamro_footsall/features/expenses/presentation/pages/expenses_screen.dart';
 import 'package:hamro_footsall/features/booking_overview/presentation/pages/booking_overview_screen.dart';
 import 'package:hamro_footsall/features/opponent_match/presentation/pages/opponent_match_screen.dart';
@@ -54,6 +56,19 @@ class _ProfilePageState extends State<ProfilePage> {
 
   late final List<_ProfileItem> _vendorItems = <_ProfileItem>[
     _ProfileItem(
+      title: 'Your Venue',
+      icon: Icons.stadium_outlined,
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => Scaffold(
+            backgroundColor: LightColor.background,
+            appBar: const CustomAppBar(title: 'Your Venue'),
+            body: SafeArea(top: false, child: VenueCourtsListPage()),
+          ),
+        ),
+      ),
+    ),
+    _ProfileItem(
       title: 'Booking Overview',
       icon: Icons.insights_rounded,
       onTap: () => Navigator.of(context).push(
@@ -66,6 +81,15 @@ class _ProfilePageState extends State<ProfilePage> {
       onTap: () => Navigator.of(
         context,
       ).push(MaterialPageRoute<void>(builder: (_) => const ExpensesScreen())),
+    ),
+  ];
+
+  /// Candidates see a single upgrade entry instead of the vendor tools.
+  late final List<_ProfileItem> _candidateVendorItems = <_ProfileItem>[
+    _ProfileItem(
+      title: 'Upgrade to Vendor',
+      icon: Icons.storefront_outlined,
+      onTap: () => context.pushNamed(AppRouterParams.vendorStepper.name),
     ),
   ];
 
@@ -99,6 +123,9 @@ class _ProfilePageState extends State<ProfilePage> {
         final ProfileModel? profile = state.profile;
         final bool isLoading =
             state.status == ProfileStatus.loading && profile == null;
+        // Vendor tools (venue, booking overview, expenses) are hidden for
+        // candidates.
+        final bool isVendor = profile?.data.role == 'vendor';
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -128,7 +155,11 @@ class _ProfilePageState extends State<ProfilePage> {
                   const SizedBox(height: AppDimens.paddingX24),
                   _SectionGroup(label: 'General', items: _generalItems),
                   const SizedBox(height: AppDimens.paddingX20),
-                  _SectionGroup(label: 'Vendor', items: _vendorItems),
+                  // Vendors get their tools; candidates get the upgrade path.
+                  _SectionGroup(
+                    label: 'Vendor',
+                    items: isVendor ? _vendorItems : _candidateVendorItems,
+                  ),
                   const SizedBox(height: AppDimens.paddingX20),
                   _SectionGroup(label: 'Support', items: _supportItems),
                   const SizedBox(height: AppDimens.paddingX20),

@@ -7,6 +7,7 @@ import 'package:hamro_footsall/features/bookings/presentation/pages/bookings_pag
 import 'package:hamro_footsall/features/courts/presentation/pages/venue_courts_list_page_widget.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/page/footsall_home_page.dart';
 import 'package:hamro_footsall/features/message/presentation/pages/messages_page.dart';
+import 'package:hamro_footsall/features/wishlist/presentation/pages/wishlist_page.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/widgets/app_drawer.dart';
 import 'package:hamro_footsall/core/routers/app_router_params.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
@@ -181,6 +182,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         return const BookingsPage();
       case 3:
         return MessagesPage();
+      case 4:
+        return const WishlistPage();
 
       default:
         return ProfilePage();
@@ -266,9 +269,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     bottom: 0,
                     left: 0,
                     right: 0,
-                    child: CustomBottomNavigationBar(
-                      currentIndex: selectedNavIndex,
-                      onTap: _onBottomIconPressed,
+                    // Courts is vendor-only, Wishlist is candidate-only.
+                    child: BlocBuilder<ProfileBloc, ProfileState>(
+                      builder: (context, profileState) {
+                        final String role =
+                            profileState.profile?.data.role ?? '';
+                        return CustomBottomNavigationBar(
+                          currentIndex: selectedNavIndex,
+                          onTap: _onBottomIconPressed,
+                          showCourts: role == 'vendor',
+                          showWishlist: role == 'candidate',
+                        );
+                      },
                     ),
                   ),
                 ],

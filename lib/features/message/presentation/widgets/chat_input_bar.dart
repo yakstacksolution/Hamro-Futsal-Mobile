@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
@@ -5,9 +7,22 @@ import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 
 class ChatInputBar extends StatefulWidget {
-  const ChatInputBar({super.key, required this.onSend, this.focusNode});
+  const ChatInputBar({
+    super.key,
+    required this.onSend,
+    this.onTypingChanged,
+    this.sending = false,
+    this.focusNode,
+  });
 
   final ValueChanged<String> onSend;
+
+  /// Broadcast to the typing/stop-typing endpoints; called with `true` on the
+  /// first keystroke and `false` after a pause or send.
+  final ValueChanged<bool>? onTypingChanged;
+
+  /// Shows a spinner in the send button while the API call is in flight.
+  final bool sending;
   final FocusNode? focusNode;
 
   @override
@@ -16,19 +31,41 @@ class ChatInputBar extends StatefulWidget {
 
 class _ChatInputBarState extends State<ChatInputBar> {
   final _ctrl = TextEditingController();
+  Timer? _typingTimer;
+  bool _typingSent = false;
 
-  bool get _canSend => _ctrl.text.trim().isNotEmpty;
+  bool get _canSend => _ctrl.text.trim().isNotEmpty && !widget.sending;
 
   @override
   void dispose() {
+    _typingTimer?.cancel();
     _ctrl.dispose();
     super.dispose();
   }
 
+  void _onChanged(String _) {
+    setState(() {});
+    if (widget.onTypingChanged == null) return;
+    if (!_typingSent && _ctrl.text.trim().isNotEmpty) {
+      _typingSent = true;
+      widget.onTypingChanged!(true);
+    }
+    _typingTimer?.cancel();
+    _typingTimer = Timer(const Duration(seconds: 3), _stopTyping);
+  }
+
+  void _stopTyping() {
+    if (!_typingSent) return;
+    _typingSent = false;
+    widget.onTypingChanged?.call(false);
+  }
+
   void _send() {
     final text = _ctrl.text.trim();
-    if (text.isEmpty) return;
+    if (text.isEmpty || widget.sending) return;
     HapticFeedback.selectionClick();
+    _typingTimer?.cancel();
+    _stopTyping();
     widget.onSend(text);
     _ctrl.clear();
     setState(() {});
@@ -79,7 +116,7 @@ class _ChatInputBarState extends State<ChatInputBar> {
                       child: TextField(
                         controller: _ctrl,
                         focusNode: widget.focusNode,
-                        onChanged: (_) => setState(() {}),
+                        onChanged: _onChanged,
                         minLines: 1,
                         maxLines: 4,
                         textCapitalization: TextCapitalization.sentences,
@@ -148,13 +185,21 @@ class _ChatInputBarState extends State<ChatInputBar> {
                   child: InkWell(
                     customBorder: const CircleBorder(),
                     onTap: _canSend ? _send : null,
-                    child: Icon(
-                      Icons.send_rounded,
-                      size: 20,
-                      color: _canSend
-                          ? LightColor.whiteColor
-                          : LightColor.hintTextColor,
-                    ),
+                    child: widget.sending
+                        ? const Padding(
+                            padding: EdgeInsets.all(13),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: LightColor.secondaryColor,
+                            ),
+                          )
+                        : Icon(
+                            Icons.send_rounded,
+                            size: 20,
+                            color: _canSend
+                                ? LightColor.whiteColor
+                                : LightColor.hintTextColor,
+                          ),
                   ),
                 ),
               ),

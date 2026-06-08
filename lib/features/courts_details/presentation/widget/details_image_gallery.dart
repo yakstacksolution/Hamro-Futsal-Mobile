@@ -1,13 +1,25 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:hamro_footsall/core/helper/wishlist_store.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
+import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/custom_image_view.dart';
+import 'package:hamro_footsall/features/public/data/repositories/public_repository_impl.dart';
+import 'package:hamro_footsall/features/wishlist/domain/usecase/toggle_wishlist_use_case.dart';
 
 class DetailsImageGallery extends StatefulWidget {
-  const DetailsImageGallery({super.key, this.images = const <String>[]});
+  const DetailsImageGallery({
+    super.key,
+    this.images = const <String>[],
+    this.venueId,
+  });
 
   final List<String> images;
+
+  /// When set, the heart is wired to the wishlist API + shared store;
+  /// otherwise it stays a local-only toggle.
+  final int? venueId;
 
   @override
   State<DetailsImageGallery> createState() => _DetailsImageGalleryState();
@@ -22,6 +34,21 @@ class _DetailsImageGalleryState extends State<DetailsImageGallery> {
   void initState() {
     _imagePageController = PageController();
     super.initState();
+  }
+
+  Future<void> _toggleWishlist() async {
+    final int? venueId = widget.venueId;
+    HapticFeedback.lightImpact();
+    if (venueId == null) {
+      setState(() => _isSaved = !_isSaved);
+      return;
+    }
+    final String? error = await ToggleWishlistUseCase(
+      PublicRepositoryImpl(),
+    )(venueId);
+    if (error != null && mounted) {
+      AppUtils().showSnackBar(context, MsgType.error, error);
+    }
   }
 
   @override
@@ -90,16 +117,23 @@ class _DetailsImageGalleryState extends State<DetailsImageGallery> {
                   children: [
                     _glassButton(icon: Icons.share_outlined, onTap: () {}),
                     const SizedBox(width: 10),
-                    _glassButton(
-                      icon: _isSaved
-                          ? Icons.favorite_rounded
-                          : Icons.favorite_border_rounded,
-                      iconColor: _isSaved
-                          ? LightColor.secondaryColor
-                          : LightColor.whiteColor,
-                      onTap: () {
-                        HapticFeedback.lightImpact();
-                        setState(() => _isSaved = !_isSaved);
+                    // Heart follows the shared wishlist store when a venue id
+                    // is available.
+                    ValueListenableBuilder<Set<int>>(
+                      valueListenable: WishlistStore.instance.ids,
+                      builder: (context, ids, _) {
+                        final bool saved = widget.venueId != null
+                            ? ids.contains(widget.venueId)
+                            : _isSaved;
+                        return _glassButton(
+                          icon: saved
+                              ? Icons.favorite_rounded
+                              : Icons.favorite_border_rounded,
+                          iconColor: saved
+                              ? LightColor.secondaryColor
+                              : LightColor.whiteColor,
+                          onTap: _toggleWishlist,
+                        );
                       },
                     ),
                   ],

@@ -1,41 +1,46 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
-import 'package:hamro_footsall/features/message/data/data_source/message_data_source.dart';
-import 'package:hamro_footsall/features/message/data/model/message_model.dart';
+import 'package:hamro_footsall/core/widgets/custom_button.dart';
+import 'package:hamro_footsall/core/widgets/loading_widget.dart';
+import 'package:hamro_footsall/features/message/data/model/conversation_model.dart';
+import 'package:hamro_footsall/features/message/data/repositories/message_repository_impl.dart';
+import 'package:hamro_footsall/features/message/domain/usecase/message_usecase.dart';
+import 'package:hamro_footsall/features/message/presentation/bloc/message_bloc/message_bloc.dart';
 import 'package:hamro_footsall/features/message/presentation/pages/chat_page.dart';
 import 'package:hamro_footsall/features/message/presentation/widgets/message_card.dart';
 import 'package:hamro_footsall/features/message/presentation/widgets/message_empty_view.dart';
 import 'package:hamro_footsall/features/message/presentation/widgets/message_filter_chip.dart';
 import 'package:hamro_footsall/features/message/presentation/widgets/message_search_field.dart';
 
-class MessagesPage extends StatefulWidget {
-  const MessagesPage({super.key, this.dataSource});
-
-  final MessageDataSource? dataSource;
+class MessagesPage extends StatelessWidget {
+  const MessagesPage({super.key});
 
   @override
-  State<MessagesPage> createState() => _MessagesPageState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (_) =>
+          MessageBloc(MessageUseCase(MessageRepositoryImpl()))
+            ..add(const LoadConversationsEvent()),
+      child: const _MessagesView(),
+    );
+  }
 }
 
-class _MessagesPageState extends State<MessagesPage> {
-  late final MessageDataSource _dataSource =
-      widget.dataSource ?? MessageLocalDataSourceImpl();
-  final _searchCtrl = TextEditingController();
-
-  MessageFilter _selectedFilter = MessageFilter.all;
-  String _query = '';
-  List<MessageModel> _messages = const [];
+class _MessagesView extends StatefulWidget {
+  const _MessagesView();
 
   @override
-  void initState() {
-    super.initState();
-    _dataSource.fetchMessages().then((messages) {
-      if (mounted) setState(() => _messages = messages);
-    });
-  }
+  State<_MessagesView> createState() => _MessagesViewState();
+}
+
+class _MessagesViewState extends State<_MessagesView> {
+  final _searchCtrl = TextEditingController();
+  ConversationFilter _selectedFilter = ConversationFilter.all;
+  String _query = '';
 
   @override
   void dispose() {
@@ -43,52 +48,48 @@ class _MessagesPageState extends State<MessagesPage> {
     super.dispose();
   }
 
-  List<MessageModel> get _visibleMessages {
-    Iterable<MessageModel> filtered = _messages;
+  List<ConversationModel> _visible(MessageState state) {
+    Iterable<ConversationModel> filtered = state.conversations;
 
     filtered = switch (_selectedFilter) {
-      MessageFilter.all => filtered,
-      MessageFilter.unread => filtered.where((m) => m.isUnread),
-      MessageFilter.active => filtered.where((m) => m.isActive),
-      MessageFilter.bookings => filtered.where((m) => m.isBooking),
+      ConversationFilter.all => filtered,
+      ConversationFilter.unread => filtered.where((c) => c.isUnread),
+      ConversationFilter.direct => filtered.where((c) => !c.isGroup),
+      ConversationFilter.group => filtered.where((c) => c.isGroup),
     };
 
     if (_query.trim().isNotEmpty) {
       final q = _query.trim().toLowerCase();
       filtered = filtered.where(
-        (m) =>
-            m.name.toLowerCase().contains(q) ||
-            m.message.toLowerCase().contains(q),
+        (c) =>
+            c.displayTitle(state.currentUserId).toLowerCase().contains(q) ||
+            (c.lastMessage ?? '').toLowerCase().contains(q),
       );
     }
 
     return filtered.toList(growable: false);
   }
 
-  int _filterCount(MessageFilter filter) => switch (filter) {
-    MessageFilter.all => _messages.length,
-    MessageFilter.unread => _messages.where((m) => m.isUnread).length,
-    MessageFilter.active => _messages.where((m) => m.isActive).length,
-    MessageFilter.bookings => _messages.where((m) => m.isBooking).length,
-  };
+  int _filterCount(MessageState state, ConversationFilter filter) =>
+      switch (filter) {
+        ConversationFilter.all => state.conversations.length,
+        ConversationFilter.unread =>
+          state.conversations.where((c) => c.isUnread).length,
+        ConversationFilter.direct =>
+          state.conversations.where((c) => !c.isGroup).length,
+        ConversationFilter.group =>
+          state.conversations.where((c) => c.isGroup).length,
+      };
 
-  void _markRead(String id) {
-    setState(() {
-      _messages = _messages
-          .map((m) => m.id == id ? m.copyWith(unreadCount: 0) : m)
-          .toList(growable: false);
-    });
-  }
-
-  /// Opens the conversation thread; reading it clears the unread badge.
-  void _openChat(MessageModel item, {bool autofocusComposer = false}) {
-    _markRead(item.id);
+  /// Opens the thread; reading clears the unread badge (API + local).
+  void _openChat(ConversationModel conversation) {
+    final bloc = context.read<MessageBloc>();
+    bloc.add(MarkConversationReadEvent(conversation.id));
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => ChatPage(
-          conversation: item,
-          dataSource: _dataSource,
-          autofocusComposer: autofocusComposer,
+        builder: (_) => BlocProvider.value(
+          value: bloc,
+          child: ChatPage(conversation: conversation),
         ),
       ),
     );
@@ -96,64 +97,89 @@ class _MessagesPageState extends State<MessagesPage> {
 
   @override
   Widget build(BuildContext context) {
-    final items = _visibleMessages;
-    final int unreadTotal = _messages.fold<int>(
-      0,
-      (sum, m) => sum + m.unreadCount,
-    );
+    return BlocBuilder<MessageBloc, MessageState>(
+      builder: (context, state) {
+        final items = _visible(state);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _Header(conversationCount: _messages.length, unreadTotal: unreadTotal),
-        const SizedBox(height: AppDimens.paddingX16),
-        Padding(
-          padding: AppUtils().getPadding(
-            symmetricHorizontal: AppDimens.paddingX20,
-          ),
-          child: MessageSearchField(
-            controller: _searchCtrl,
-            query: _query,
-            onChanged: (value) => setState(() => _query = value),
-            onClear: () {
-              _searchCtrl.clear();
-              setState(() => _query = '');
-            },
-          ),
-        ),
-        const SizedBox(height: AppDimens.paddingX14),
-        _filterRow(),
-        const SizedBox(height: AppDimens.paddingX10),
-        Expanded(
-          child: items.isEmpty
-              ? MessageEmptyView(
-                  isFiltered:
-                      _selectedFilter != MessageFilter.all ||
-                      _query.trim().isNotEmpty,
-                )
-              : ListView.separated(
-                  physics: const BouncingScrollPhysics(),
-                  padding: AppUtils().getPadding(
-                    symmetricHorizontal: AppDimens.paddingX16,
-                    top: AppDimens.paddingX6,
-                    bottom: AppDimens.paddingX50,
-                  ),
-                  itemCount: items.length,
-                  separatorBuilder: (_, __) =>
-                      const SizedBox(height: AppDimens.paddingX12),
-                  itemBuilder: (_, i) => MessageCard(
-                    item: items[i],
-                    onTap: () => _openChat(items[i]),
-                    onReply: () => _openChat(items[i], autofocusComposer: true),
-                    onMarkRead: () => _markRead(items[i].id),
-                  ),
-                ),
-        ),
-      ],
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _Header(
+              conversationCount: state.conversations.length,
+              unreadTotal: state.unreadTotal,
+            ),
+            const SizedBox(height: AppDimens.paddingX16),
+            Padding(
+              padding: AppUtils().getPadding(
+                symmetricHorizontal: AppDimens.paddingX20,
+              ),
+              child: MessageSearchField(
+                controller: _searchCtrl,
+                query: _query,
+                onChanged: (value) => setState(() => _query = value),
+                onClear: () {
+                  _searchCtrl.clear();
+                  setState(() => _query = '');
+                },
+              ),
+            ),
+            const SizedBox(height: AppDimens.paddingX14),
+            _filterRow(state),
+            const SizedBox(height: AppDimens.paddingX10),
+            Expanded(child: _body(state, items)),
+          ],
+        );
+      },
     );
   }
 
-  Widget _filterRow() {
+  Widget _body(MessageState state, List<ConversationModel> items) {
+    if (state.conversationsStatus == MessageStatus.initial ||
+        state.conversationsStatus == MessageStatus.loading) {
+      return const LoadingWidget();
+    }
+    if (state.conversationsStatus == MessageStatus.failure &&
+        state.conversations.isEmpty) {
+      return _LoadError(
+        message: state.errorMessage ?? 'Could not load conversations.',
+        onRetry: () =>
+            context.read<MessageBloc>().add(const LoadConversationsEvent()),
+      );
+    }
+    if (items.isEmpty) {
+      return MessageEmptyView(
+        isFiltered:
+            _selectedFilter != ConversationFilter.all ||
+            _query.trim().isNotEmpty,
+      );
+    }
+    return RefreshIndicator(
+      color: LightColor.secondaryColor,
+      onRefresh: () async => context.read<MessageBloc>().add(
+        const LoadConversationsEvent(silent: true),
+      ),
+      child: ListView.separated(
+        physics: const BouncingScrollPhysics(
+          parent: AlwaysScrollableScrollPhysics(),
+        ),
+        padding: AppUtils().getPadding(
+          symmetricHorizontal: AppDimens.paddingX16,
+          top: AppDimens.paddingX6,
+          bottom: AppDimens.paddingX50,
+        ),
+        itemCount: items.length,
+        separatorBuilder: (_, __) =>
+            const SizedBox(height: AppDimens.paddingX12),
+        itemBuilder: (_, i) => MessageCard(
+          conversation: items[i],
+          currentUserId: context.read<MessageBloc>().state.currentUserId,
+          onTap: () => _openChat(items[i]),
+        ),
+      ),
+    );
+  }
+
+  Widget _filterRow(MessageState state) {
     return SizedBox(
       height: AppDimens.sizeX32,
       child: ListView.separated(
@@ -162,13 +188,13 @@ class _MessagesPageState extends State<MessagesPage> {
         padding: AppUtils().getPadding(
           symmetricHorizontal: AppDimens.paddingX20,
         ),
-        itemCount: MessageFilter.values.length,
+        itemCount: ConversationFilter.values.length,
         separatorBuilder: (_, __) => const SizedBox(width: AppDimens.paddingX8),
         itemBuilder: (context, index) {
-          final filter = MessageFilter.values[index];
+          final filter = ConversationFilter.values[index];
           return MessageFilterChip(
             label: filter.label,
-            count: _filterCount(filter),
+            count: _filterCount(state, filter),
             isSelected: _selectedFilter == filter,
             onTap: () {
               if (_selectedFilter == filter) return;
@@ -219,6 +245,47 @@ class _Header extends StatelessWidget {
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+class _LoadError extends StatelessWidget {
+  const _LoadError({required this.message, required this.onRetry});
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    return Center(
+      child: Padding(
+        padding: AppUtils().getPadding(all: AppDimens.paddingX32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.cloud_off_rounded,
+              size: 40,
+              color: LightColor.hintTextColor,
+            ),
+            const SizedBox(height: AppDimens.paddingX14),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: textTheme.bodyTextMedium?.copyWith(
+                color: LightColor.secondaryTextColor,
+              ),
+            ),
+            const SizedBox(height: AppDimens.paddingX18),
+            CustomButton(
+              text: 'Retry',
+              icon: Icons.refresh_rounded,
+              onPressed: onRetry,
+            ),
+          ],
+        ),
       ),
     );
   }

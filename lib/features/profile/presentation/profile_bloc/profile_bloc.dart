@@ -4,6 +4,7 @@ import 'package:bloc/bloc.dart';
 import 'package:dartz/dartz.dart';
 import 'package:equatable/equatable.dart';
 import 'package:hamro_footsall/core/helper/exception_helper.dart';
+import 'package:hamro_footsall/core/helper/wishlist_store.dart';
 import 'package:hamro_footsall/features/profile/data/model/profile_model.dart';
 import 'package:hamro_footsall/features/profile/domain/usecase/profile_usecase.dart';
 
@@ -37,6 +38,8 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
         ),
         (ProfileModel profile) {
           final ProfileModel merged = _mergeProfile(state.profile, profile);
+          // Seed the app-wide heart state from the profile's wishlist ids.
+          WishlistStore.instance.seed(merged.data.wishlistVenueIds);
           emit(
             state.copyWith(
               status: ProfileStatus.success,

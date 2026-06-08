@@ -9,10 +9,23 @@ class CustomBottomNavigationBar extends StatelessWidget {
     super.key,
     required this.currentIndex,
     required this.onTap,
+    this.showCourts = true,
+    this.showWishlist = false,
   });
 
   final int currentIndex;
   final ValueChanged<int> onTap;
+
+  /// Courts is a vendor-only tab — hidden for candidates. Tab indices stay
+  /// stable so the dashboard's index → page mapping is unaffected.
+  final bool showCourts;
+
+  /// Wishlist is a candidate-only tab — hidden for vendors.
+  final bool showWishlist;
+
+  /// Indices of the role-dependent entries in [_items].
+  static const int _courtsIndex = 1;
+  static const int _wishlistIndex = 4;
 
   static const List<_NavItem> _items = <_NavItem>[
     _NavItem(
@@ -35,11 +48,11 @@ class CustomBottomNavigationBar extends StatelessWidget {
       activeIcon: Icons.chat_bubble,
       label: 'Chat',
     ),
-    // _NavItem(
-    //   icon: Icons.bar_chart_outlined,
-    //   activeIcon: Icons.bar_chart,
-    //   label: 'Analytics',
-    // ),
+    _NavItem(
+      icon: Icons.favorite_outline_rounded,
+      activeIcon: Icons.favorite_rounded,
+      label: 'Wishlist',
+    ),
     _NavItem(
       icon: Icons.person_outline_rounded,
       activeIcon: Icons.person_rounded,
@@ -65,15 +78,16 @@ class CustomBottomNavigationBar extends StatelessWidget {
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: List<Widget>.generate(_items.length, (int index) {
-              final item = _items[index];
-              final isActive = currentIndex == index;
-              return _NavBarItem(
-                item: item,
-                isActive: isActive,
-                onTap: () => onTap(index),
-              );
-            }),
+            children: <Widget>[
+              for (int index = 0; index < _items.length; index++)
+                if ((showCourts || index != _courtsIndex) &&
+                    (showWishlist || index != _wishlistIndex))
+                  _NavBarItem(
+                    item: _items[index],
+                    isActive: currentIndex == index,
+                    onTap: () => onTap(index),
+                  ),
+            ],
           ),
         ),
       ),

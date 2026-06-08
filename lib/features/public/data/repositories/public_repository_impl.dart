@@ -219,6 +219,40 @@ final class PublicRepositoryImpl extends PublicRepository {
     }
   }
 
+  /// Wishlisted venues — same payload shape as the public venue listing, so
+  /// it reuses [PublicListingVenuePage] wholesale.
+  @override
+  Future<Either<AppException, PublicListingVenuePage>> getWishlist() async {
+    final response = await _remoteDataSource.getWishlist();
+    if (response.isError()) {
+      return left(ResponseHelper.error(response));
+    }
+
+    try {
+      final dynamic payload = response.getValue();
+      final Map<String, dynamic> json = payload is Map
+          ? Map<String, dynamic>.from(payload)
+          : <String, dynamic>{};
+      return right(PublicListingVenuePage.fromJson(json));
+    } catch (_) {
+      return left(
+        DefaultException(
+          errorMessage: 'Could not parse your wishlist from server.',
+          statusCode: 0,
+        ),
+      );
+    }
+  }
+
+  @override
+  Future<Either<AppException, bool>> toggleWishlist(int venueId) async {
+    final response = await _remoteDataSource.toggleWishlist(venueId);
+    if (response.isError()) {
+      return left(ResponseHelper.error(response));
+    }
+    return right(true);
+  }
+
   @override
   Future<Either<AppException, List<CategoryFilterModel>>>
   getCategoryFilter() async {
