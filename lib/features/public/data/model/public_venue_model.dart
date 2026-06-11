@@ -1,5 +1,36 @@
 import 'package:equatable/equatable.dart';
 
+final class CourtTypeModel extends Equatable {
+  const CourtTypeModel({
+    this.id,
+    this.name,
+    this.slug,
+  });
+
+  final int? id;
+  final String? name;
+  final String? slug;
+
+  factory CourtTypeModel.fromJson(Map<String, dynamic> json) {
+    return CourtTypeModel(
+      id: PublicListingVenueModel._parseInt(json['id']),
+      name: PublicListingVenueModel._parseString(json['name']),
+      slug: PublicListingVenueModel._parseString(json['slug']),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return <String, dynamic>{
+      'id': id,
+      'name': name,
+      'slug': slug,
+    };
+  }
+
+  @override
+  List<Object?> get props => <Object?>[id, name, slug];
+}
+
 final class VenueGalleryImageModel extends Equatable {
   const VenueGalleryImageModel({
     this.id,
@@ -51,11 +82,10 @@ final class PublicListingVenueModel extends Equatable {
     this.galleryImages,
     this.longitude,
     this.latitude,
-    this.courtType,
-    this.matchFormat,
-    this.maxPlayers,
-    this.openTime,
-    this.closeTime,
+    this.courtTypes,
+    this.maxPlayer,
+    this.minTime,
+    this.maxTime,
     this.distanceMeters,
   });
 
@@ -71,11 +101,10 @@ final class PublicListingVenueModel extends Equatable {
   final List<VenueGalleryImageModel>? galleryImages;
   final double? longitude;
   final double? latitude;
-  final String? courtType;
-  final String? matchFormat;
-  final int? maxPlayers;
-  final String? openTime;
-  final String? closeTime;
+  final List<CourtTypeModel>? courtTypes;
+  final int? maxPlayer;
+  final String? minTime;
+  final String? maxTime;
   final double? distanceMeters;
 
   factory PublicListingVenueModel.fromJson(Map<String, dynamic> json) {
@@ -92,20 +121,12 @@ final class PublicListingVenueModel extends Equatable {
       galleryImages: _parseGalleryImages(json['venue_gallery_images']),
       longitude: _parseDouble(json['longitude']),
       latitude: _parseDouble(json['latitude']),
-      courtType: _parseOptionText(
-        json['court_type'] ?? json['court_type_name'] ?? json['type'],
-      ),
-      matchFormat: _parseOptionText(
-        json['match_format'] ??
-            json['match_format_name'] ??
-            json['match_type'] ??
-            json['match_type_name'],
-      ),
-      maxPlayers: _parseInt(
+      courtTypes: _parseCourtTypes(json['court_types']),
+      maxPlayer: _parseInt(
         json['max_player'] ?? json['max_players'] ?? json['capacity'],
       ),
-      openTime: _parseString(json['open_time'] ?? json['opening_time']),
-      closeTime: _parseString(json['close_time'] ?? json['closing_time']),
+      minTime: _parseString(json['min_time'] ?? json['opening_time']),
+      maxTime: _parseString(json['max_time'] ?? json['closing_time']),
       distanceMeters: _parseDouble(
         json['distance_meters'] ?? json['distance_meter'] ?? json['distance'],
       ),
@@ -125,11 +146,10 @@ final class PublicListingVenueModel extends Equatable {
     List<VenueGalleryImageModel>? galleryImages,
     double? longitude,
     double? latitude,
-    String? courtType,
-    String? matchFormat,
-    int? maxPlayers,
-    String? openTime,
-    String? closeTime,
+    List<CourtTypeModel>? courtTypes,
+    int? maxPlayer,
+    String? minTime,
+    String? maxTime,
     double? distanceMeters,
   }) {
     return PublicListingVenueModel(
@@ -145,11 +165,10 @@ final class PublicListingVenueModel extends Equatable {
       galleryImages: galleryImages ?? this.galleryImages,
       longitude: longitude ?? this.longitude,
       latitude: latitude ?? this.latitude,
-      courtType: courtType ?? this.courtType,
-      matchFormat: matchFormat ?? this.matchFormat,
-      maxPlayers: maxPlayers ?? this.maxPlayers,
-      openTime: openTime ?? this.openTime,
-      closeTime: closeTime ?? this.closeTime,
+      courtTypes: courtTypes ?? this.courtTypes,
+      maxPlayer: maxPlayer ?? this.maxPlayer,
+      minTime: minTime ?? this.minTime,
+      maxTime: maxTime ?? this.maxTime,
       distanceMeters: distanceMeters ?? this.distanceMeters,
     );
   }
@@ -170,11 +189,10 @@ final class PublicListingVenueModel extends Equatable {
           .toList(growable: false),
       'longitude': longitude,
       'latitude': latitude,
-      'court_type': courtType,
-      'match_format': matchFormat,
-      'max_player': maxPlayers,
-      'open_time': openTime,
-      'close_time': closeTime,
+      'court_types': courtTypes?.map((type) => type.toJson()).toList(growable: false),
+      'max_player': maxPlayer,
+      'min_time': minTime,
+      'max_time': maxTime,
       'distance_meters': distanceMeters,
     };
   }
@@ -200,8 +218,13 @@ final class PublicListingVenueModel extends Equatable {
 
   static double? _parseDouble(dynamic value) {
     if (value == null) return null;
-    if (value is num) return value.toDouble();
-    return double.tryParse(value.toString());
+    final double? parsed = value is num
+        ? value.toDouble()
+        : double.tryParse(value.toString());
+    // `double.tryParse('NaN'/'Infinity')` succeeds — treat non-finite as null
+    // so callers see "no value" rather than a NaN that crashes math/widgets.
+    if (parsed == null || !parsed.isFinite) return null;
+    return parsed;
   }
 
   static int? _parseInt(dynamic value) {
@@ -215,6 +238,20 @@ final class PublicListingVenueModel extends Equatable {
     if (value is bool) return value;
     final String text = value?.toString().toLowerCase() ?? '';
     return text == 'true' || text == '1' || text == 'open';
+  }
+
+  static List<CourtTypeModel>? _parseCourtTypes(dynamic value) {
+    if (value is List) {
+      return value
+          .whereType<Map>()
+          .map(
+            (Map item) => CourtTypeModel.fromJson(
+              Map<String, dynamic>.from(item),
+            ),
+          )
+          .toList(growable: false);
+    }
+    return null;
   }
 
   static String? _parseOptionText(dynamic value) {
@@ -245,11 +282,10 @@ final class PublicListingVenueModel extends Equatable {
     galleryImages,
     longitude,
     latitude,
-    courtType,
-    matchFormat,
-    maxPlayers,
-    openTime,
-    closeTime,
+    courtTypes,
+    maxPlayer,
+    minTime,
+    maxTime,
     distanceMeters,
   ];
 }
@@ -262,15 +298,22 @@ final class PublicListingVenuePage extends Equatable {
     required this.page,
     required this.perPage,
     required this.total,
+    this.paginationMetaData = const <String, dynamic>{},
   });
 
   final List<PublicListingVenueModel> venues;
   final int page;
   final int perPage;
   final int total;
+  final Map<String, dynamic> paginationMetaData;
 
   /// Whether there is at least one more page to load after this one.
-  bool get hasMore => page * perPage < total;
+  bool get hasMore {
+    // Use has_more_pages from API if available, otherwise fall back to calculation
+    final bool? hasMorePages = PublicListingVenueModel._parseBool(paginationMetaData['has_more_pages']);
+    if (hasMorePages != null) return hasMorePages;
+    return page * perPage < total;
+  }
 
   factory PublicListingVenuePage.fromJson(Map<String, dynamic> json) {
     // Unwrap the `{status, message, data: {venues: [...]}}` envelope.
@@ -317,6 +360,7 @@ final class PublicListingVenuePage extends Equatable {
             meta['total'] ?? meta['total_count'] ?? items.length,
           ) ??
           items.length,
+      paginationMetaData: meta,
     );
   }
 
@@ -328,9 +372,10 @@ final class PublicListingVenuePage extends Equatable {
       'page': page,
       'per_page': perPage,
       'total': total,
+      'meta_data': paginationMetaData,
     };
   }
 
   @override
-  List<Object?> get props => <Object?>[venues, page, perPage, total];
+  List<Object?> get props => <Object?>[venues, page, perPage, total, paginationMetaData];
 }

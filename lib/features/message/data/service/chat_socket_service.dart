@@ -13,6 +13,11 @@ abstract class ChatSocketService {
   /// New incoming messages for [conversationId].
   Stream<ChatMessageModel> messages(int conversationId);
 
+  /// New messages across *all* of the signed-in user's conversations — used to
+  /// keep the inbox list's latest-message preview live even for threads that
+  /// aren't currently open. Emits messages from both sides.
+  Stream<ChatMessageModel> inbox();
+
   /// True while the other side is typing in [conversationId].
   Stream<bool> typing(int conversationId);
 
@@ -24,6 +29,9 @@ final class NoopChatSocketService implements ChatSocketService {
   @override
   Stream<ChatMessageModel> messages(int conversationId) =>
       const Stream.empty();
+
+  @override
+  Stream<ChatMessageModel> inbox() => const Stream.empty();
 
   @override
   Stream<bool> typing(int conversationId) => const Stream.empty();

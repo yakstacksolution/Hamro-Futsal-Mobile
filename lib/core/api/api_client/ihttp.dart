@@ -1,6 +1,6 @@
 class IHttp {
 
-  get({String? url, String? token}) {}
+  get({String? url, String? token, Map? query}) {}
 
   post({String? url, dynamic data, Map? query, String? token}) {}
 

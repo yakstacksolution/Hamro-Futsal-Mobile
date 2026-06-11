@@ -15,6 +15,9 @@ class DioHttp implements IHttp {
     _instance.dio.options = BaseOptions(
       connectTimeout: const Duration(milliseconds: 15000),
       receiveTimeout: const Duration(milliseconds: 20000),
+      // Encode list query params as `key[]=a&key[]=b` so array filters
+      // (category ids, time slots) are parsed correctly by the backend.
+      listFormat: ListFormat.multiCompatible,
     );
     _instance.dio.interceptors.add(LoggingInterceptor());
     return _instance;
@@ -28,10 +31,10 @@ class DioHttp implements IHttp {
   }
 
   @override
-  get({String? url, String? token}) async {
+  get({String? url, String? token, Map? query}) async {
     _applyHeaders(url: url, token: token);
     await addUserAgent();
-    return dio.get(url!);
+    return dio.get(url!, queryParameters: query as Map<String, dynamic>?);
   }
 
   @override

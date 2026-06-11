@@ -112,12 +112,12 @@ class _CourtsListScreenState extends State<CourtsListScreen>
         opacity: _fadeIn,
         child: BlocBuilder<PublicVenueBloc, PublicVenueState>(
           builder: (BuildContext context, PublicVenueState state) {
-            // Show the skeleton only when there is nothing to render yet —
-            // location-triggered refetches keep the current list on screen
-            // instead of flashing the loading state again.
+            // Show the loading skeleton on every fetch — first load, pull to
+            // refresh and filter changes — plus the pre-fetch idle state so the
+            // empty view never flashes before the first request resolves.
             final bool showSkeleton =
-                state.status == PublicVenueStatus.loading &&
-                state.venues.isEmpty;
+                state.status == PublicVenueStatus.loading ||
+                state.status == PublicVenueStatus.idle;
             return showSkeleton
                 ? const HomeBodyLoading()
                 : Padding(

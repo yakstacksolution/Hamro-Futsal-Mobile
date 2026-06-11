@@ -3,6 +3,7 @@ import 'package:hamro_footsall/core/helper/exception_helper.dart';
 import 'package:hamro_footsall/core/helper/response_helper.dart';
 import 'package:hamro_footsall/features/expenses/data/data_source/expenses_remote_data_source.dart';
 import 'package:hamro_footsall/features/expenses/data/model/expense_model.dart';
+import 'package:hamro_footsall/features/expenses/data/model/expense_report_model.dart';
 import 'package:hamro_footsall/features/expenses/domain/entities/expense_entities.dart';
 import 'package:hamro_footsall/features/expenses/domain/repository/expenses_repository.dart';
 
@@ -145,26 +146,20 @@ final class ExpensesRepositoryImpl extends ExpensesRepository {
   }
 
   @override
-  Future<Either<AppException, List<ExpenseModel>>> getExpenses() async {
-    final response = await _remoteDataSource.getExpenses();
+  Future<Either<AppException, ExpenseReport>> getExpenses(
+    Map<String, dynamic> query,
+  ) async {
+    final response = await _remoteDataSource.getExpenses(query: query);
     if (response.isError()) {
       return left(ResponseHelper.error(response));
     }
     try {
-      final items = _findList(
-        response.getValue(),
-        keys: const ['data', 'expenses', 'items', 'results'],
-        depth: 0,
-      );
+      final report = ExpenseReport.fromApi(response.getValue());
       _expenses
         ..clear()
-        ..addAll(
-          items.whereType<Map>().map(
-            (e) => ExpenseModel.fromApiJson(Map<String, dynamic>.from(e)),
-          ),
-        )
+        ..addAll(report.records)
         ..sort((a, b) => b.date.compareTo(a.date));
-      return right(List.unmodifiable(_expenses));
+      return right(report);
     } catch (_) {
       return left(
         DefaultException(

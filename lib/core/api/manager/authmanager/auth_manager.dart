@@ -141,8 +141,8 @@ class AuthManager extends ServiceManager {
     return await _apiClient.createExpense(data: data);
   }
 
-  Future<Result> getExpenses() async {
-    return await _apiClient.getExpenses();
+  Future<Result> getExpenses({Map<String, dynamic>? query}) async {
+    return await _apiClient.getExpenses(query: query);
   }
 
   Future<Result> getConversations({bool archived = false}) async {
@@ -304,5 +304,33 @@ class AuthManager extends ServiceManager {
 
   Future<Result> getFutsalBookings() async {
     return await _apiClient.getFutsalBookings();
+  }
+
+  Future<Result> getTeams() async {
+    return await _apiClient.getTeams();
+  }
+
+  Future<Result> getTeam(int teamId) async {
+    return await _apiClient.getTeam(teamId: teamId);
+  }
+
+  Future<Result> createTeam(Map<String, dynamic> data) async {
+    return await _apiClient.createTeam(data: data);
+  }
+
+  Future<Result> updateTeam(int teamId, Map<String, dynamic> data) async {
+    return await _apiClient.updateTeam(teamId: teamId, data: data);
+  }
+
+  Future<Result> deleteTeam(int teamId) async {
+    return await _apiClient.deleteTeam(teamId: teamId);
+  }
+
+  Future<Result> addTeamMember(int teamId, Map<String, dynamic> data) async {
+    return await _apiClient.addTeamMember(teamId: teamId, data: data);
+  }
+
+  Future<Result> removeTeamMember(int teamId, int memberId) async {
+    return await _apiClient.removeTeamMember(teamId: teamId, memberId: memberId);
   }
 }

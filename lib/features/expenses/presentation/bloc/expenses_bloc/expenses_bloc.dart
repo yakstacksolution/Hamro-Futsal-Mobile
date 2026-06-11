@@ -3,8 +3,10 @@ import 'dart:async';
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:hamro_footsall/features/expenses/data/model/expense_model.dart';
+import 'package:hamro_footsall/features/expenses/data/model/expense_report_model.dart';
 import 'package:hamro_footsall/features/expenses/domain/entities/expense_entities.dart';
 import 'package:hamro_footsall/features/expenses/domain/usecase/expenses_usecase.dart';
+import 'package:hamro_footsall/features/expenses/presentation/models/expense_filter.dart';
 
 part 'expenses_event.dart';
 part 'expenses_state.dart';
@@ -63,34 +65,49 @@ class ExpensesBloc extends Bloc<ExpensesEvent, ExpensesState> {
     );
   }
 
-  /// The expenses list comes from the expenses API.
+  /// The server-computed report (summary + analytics + records) comes from
+  /// the expenses API, scoped by the current [ExpenseFilter]. Changing a
+  /// filter re-dispatches this event with the new filter so the server
+  /// recomputes everything.
   Future<void> _onLoadExpenses(
     LoadExpensesEvent event,
     Emitter<ExpensesState> emit,
   ) async {
+    final filter = event.filter ?? state.filter;
     if (!event.silent) {
       emit(
         state.copyWith(
+          filter: filter,
           expensesStatus: ExpensesStatus.loading,
           clearErrorMessage: true,
         ),
       );
+    } else {
+      // Keep the current data on screen and flag the slim refresh bar; the
+      // chip selection updates instantly, the content cross-fades on arrival.
+      emit(state.copyWith(filter: filter, refreshing: true));
     }
-    final result = await useCase.getExpenses();
+    final result = await useCase.getExpenses(filter.toQuery());
     result.fold(
       (failure) => emit(
-        // A failed silent refresh keeps the current list on screen.
+        // A failed silent refresh keeps the current data on screen.
         event.silent
-            ? state.copyWith(errorMessage: failure.errorMessage)
+            ? state.copyWith(
+                refreshing: false,
+                errorMessage: failure.errorMessage,
+              )
             : state.copyWith(
                 expensesStatus: ExpensesStatus.failure,
                 errorMessage: failure.errorMessage,
               ),
       ),
-      (expenses) => emit(
+      (report) => emit(
         state.copyWith(
           expensesStatus: ExpensesStatus.success,
-          expenses: expenses,
+          refreshing: false,
+          report: report,
+          reportVersion: state.reportVersion + 1,
+          expenses: report.records,
           clearErrorMessage: true,
         ),
       ),

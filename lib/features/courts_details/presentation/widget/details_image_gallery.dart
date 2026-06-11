@@ -17,8 +17,6 @@ class DetailsImageGallery extends StatefulWidget {
 
   final List<String> images;
 
-  /// When set, the heart is wired to the wishlist API + shared store;
-  /// otherwise it stays a local-only toggle.
   final int? venueId;
 
   @override
@@ -43,9 +41,9 @@ class _DetailsImageGalleryState extends State<DetailsImageGallery> {
       setState(() => _isSaved = !_isSaved);
       return;
     }
-    final String? error = await ToggleWishlistUseCase(
-      PublicRepositoryImpl(),
-    )(venueId);
+    final String? error = await ToggleWishlistUseCase(PublicRepositoryImpl())(
+      venueId,
+    );
     if (error != null && mounted) {
       AppUtils().showSnackBar(context, MsgType.error, error);
     }
@@ -131,7 +129,7 @@ class _DetailsImageGalleryState extends State<DetailsImageGallery> {
                               : Icons.favorite_border_rounded,
                           iconColor: saved
                               ? LightColor.secondaryColor
-                              : LightColor.whiteColor,
+                              : LightColor.primaryTextColor,
                           onTap: _toggleWishlist,
                         );
                       },
@@ -221,7 +219,7 @@ class _DetailsImageGalleryState extends State<DetailsImageGallery> {
   Widget _glassButton({
     required IconData icon,
     required VoidCallback onTap,
-    Color iconColor = LightColor.whiteColor,
+    Color iconColor = LightColor.primaryTextColor,
   }) {
     return GestureDetector(
       onTap: onTap,
@@ -233,11 +231,20 @@ class _DetailsImageGalleryState extends State<DetailsImageGallery> {
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: LightColor.primaryTextColor.withValues(alpha: 0.25),
+              // Soft frosted cream background so the dark icons stay legible
+              // over any image without looking starkly white.
+              color: const Color(0xFFFBF8F1).withValues(alpha: 0.88),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                color: LightColor.whiteColor.withValues(alpha: 0.15),
+                color: LightColor.primaryTextColor.withValues(alpha: 0.08),
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: LightColor.primaryTextColor.withValues(alpha: 0.12),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
             child: Icon(icon, color: iconColor, size: 22),
           ),

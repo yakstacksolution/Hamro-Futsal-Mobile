@@ -6,7 +6,7 @@ import 'package:hamro_footsall/features/expenses/domain/entities/expense_entitie
 abstract class ExpensesRemoteDataSource {
   Future<Result> getExpenseCategories();
   Future<Result> getVenueCourts();
-  Future<Result> getExpenses();
+  Future<Result> getExpenses({Map<String, dynamic>? query});
   Future<Result> createExpense(CreateExpenseEntity data);
 }
 
@@ -20,8 +20,8 @@ final class ExpensesRemoteDataSourceImpl extends ExpensesRemoteDataSource {
       await Client.instance().getAuthManager().getDropdownVenueCourts();
 
   @override
-  Future<Result> getExpenses() async =>
-      await Client.instance().getAuthManager().getExpenses();
+  Future<Result> getExpenses({Map<String, dynamic>? query}) async =>
+      await Client.instance().getAuthManager().getExpenses(query: query);
 
   @override
   Future<Result> createExpense(CreateExpenseEntity data) async {

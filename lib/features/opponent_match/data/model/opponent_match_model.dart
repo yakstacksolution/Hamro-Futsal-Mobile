@@ -42,6 +42,30 @@ extension PlayerPositionX on PlayerPosition {
     PlayerPosition.midfielder => 'MF',
     PlayerPosition.forward => 'FW',
   };
+
+  /// Resolves a position from whatever the backend sends — a label
+  /// (`Goalkeeper`), an abbreviation (`GK`) or a numeric/string id
+  /// (`1`..`4`). Falls back to [PlayerPosition.midfielder] when unknown.
+  static PlayerPosition fromAny(dynamic value) {
+    if (value == null) return PlayerPosition.midfielder;
+    final raw = value.toString().trim().toLowerCase();
+    if (raw.isEmpty) return PlayerPosition.midfielder;
+    for (final p in PlayerPosition.values) {
+      if (raw == p.label.toLowerCase() ||
+          raw == p.abbr.toLowerCase() ||
+          raw == p.name.toLowerCase()) {
+        return p;
+      }
+    }
+    // Numeric ids, mirroring the label order: 1=GK, 2=DF, 3=MF, 4=FW.
+    return switch (raw) {
+      '1' => PlayerPosition.goalkeeper,
+      '2' => PlayerPosition.defender,
+      '3' => PlayerPosition.midfielder,
+      '4' => PlayerPosition.forward,
+      _ => PlayerPosition.midfielder,
+    };
+  }
 }
 
 /// Lifecycle of an opponent request.
@@ -84,10 +108,51 @@ extension SplitBasisX on SplitBasis {
 }
 
 class PlayerModel {
-  const PlayerModel({required this.name, required this.position});
+  const PlayerModel({
+    required this.name,
+    required this.position,
+    this.id = '',
+  });
 
+  /// Server-side team-member id (`teams/{team}/members/{member}`). Empty for
+  /// players built locally before they round-trip through the backend.
+  final String id;
   final String name;
   final PlayerPosition position;
+
+  /// A team member as returned inside a team payload. Tolerant of the member's
+  /// name living either directly on the row or nested under `user`.
+  factory PlayerModel.fromJson(Map<String, dynamic> json) {
+    final dynamic user = json['user'];
+    final userMap = user is Map ? Map<String, dynamic>.from(user) : null;
+    final name =
+        (json['name'] ??
+                json['member_name'] ??
+                userMap?['name'] ??
+                userMap?['full_name'] ??
+                json['user_name'] ??
+                '')
+            .toString()
+            .trim();
+
+    final dynamic position = json['position'];
+    final positionMap = position is Map
+        ? Map<String, dynamic>.from(position)
+        : null;
+    final positionValue =
+        positionMap?['name'] ??
+        positionMap?['label'] ??
+        positionMap?['id'] ??
+        json['position_name'] ??
+        json['position_id'] ??
+        position;
+
+    return PlayerModel(
+      id: (json['id'] ?? json['member_id'] ?? '').toString(),
+      name: name,
+      position: PlayerPositionX.fromAny(positionValue),
+    );
+  }
 }
 
 class TeamModel {
@@ -100,6 +165,27 @@ class TeamModel {
   final String id;
   final String name;
   final List<PlayerModel> players;
+
+  /// A team row from `GET /teams` (list) or `GET /teams/{team}` (single).
+  /// Members may arrive under `members`, `players` or `team_members`.
+  factory TeamModel.fromJson(Map<String, dynamic> json) {
+    final dynamic rawMembers =
+        json['members'] ?? json['players'] ?? json['team_members'];
+    final players = rawMembers is List
+        ? rawMembers
+              .whereType<Map>()
+              .map((m) => PlayerModel.fromJson(Map<String, dynamic>.from(m)))
+              .where((p) => p.name.isNotEmpty)
+              .toList(growable: false)
+        : const <PlayerModel>[];
+    return TeamModel(
+      id: (json['id'] ?? json['team_id'] ?? '').toString(),
+      name: (json['name'] ?? json['team_name'] ?? json['title'] ?? '')
+          .toString()
+          .trim(),
+      players: players,
+    );
+  }
 
   TeamModel copyWith({String? name, List<PlayerModel>? players}) => TeamModel(
     id: id,

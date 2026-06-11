@@ -1,38 +1,59 @@
+import 'package:hamro_footsall/core/api/api_client/result.dart';
+import 'package:hamro_footsall/core/api/client.dart';
 import 'package:hamro_footsall/features/opponent_match/data/model/opponent_match_model.dart';
 
+/// Team CRUD + member management, backed by the `/api/teams` endpoints.
+abstract class TeamRemoteDataSource {
+  Future<Result> getTeams();
+  Future<Result> getTeam(int teamId);
+  Future<Result> createTeam(Map<String, dynamic> data);
+  Future<Result> updateTeam(int teamId, Map<String, dynamic> data);
+  Future<Result> deleteTeam(int teamId);
+  Future<Result> addMember(int teamId, Map<String, dynamic> data);
+  Future<Result> removeMember(int teamId, int memberId);
+}
+
+final class TeamRemoteDataSourceImpl extends TeamRemoteDataSource {
+  @override
+  Future<Result> getTeams() async =>
+      await Client.instance().getAuthManager().getTeams();
+
+  @override
+  Future<Result> getTeam(int teamId) async =>
+      await Client.instance().getAuthManager().getTeam(teamId);
+
+  @override
+  Future<Result> createTeam(Map<String, dynamic> data) async =>
+      await Client.instance().getAuthManager().createTeam(data);
+
+  @override
+  Future<Result> updateTeam(int teamId, Map<String, dynamic> data) async =>
+      await Client.instance().getAuthManager().updateTeam(teamId, data);
+
+  @override
+  Future<Result> deleteTeam(int teamId) async =>
+      await Client.instance().getAuthManager().deleteTeam(teamId);
+
+  @override
+  Future<Result> addMember(int teamId, Map<String, dynamic> data) async =>
+      await Client.instance().getAuthManager().addTeamMember(teamId, data);
+
+  @override
+  Future<Result> removeMember(int teamId, int memberId) async =>
+      await Client.instance().getAuthManager().removeTeamMember(
+        teamId,
+        memberId,
+      );
+}
+
+/// Local demo source for the parts of the feature without a backend yet —
+/// venues and opponent requests.
 abstract class OpponentMatchDataSource {
-  Future<List<TeamModel>> fetchTeams();
   Future<List<String>> fetchVenues();
   Future<List<OpponentRequestModel>> fetchRequests();
 }
 
-/// Local demo data source.
-///
-/// Swap this with an API-backed implementation (mirroring
-/// `ExpensesRemoteDataSourceImpl`) once the backend endpoints are available —
-/// the repository and everything above it stay untouched.
 final class OpponentMatchLocalDataSourceImpl implements OpponentMatchDataSource {
-  @override
-  Future<List<TeamModel>> fetchTeams() async => const [
-    TeamModel(
-      id: 't1',
-      name: 'Kathmandu Strikers',
-      players: [
-        PlayerModel(name: 'Aayush Karki', position: PlayerPosition.forward),
-        PlayerModel(name: 'Niraj Shrestha', position: PlayerPosition.midfielder),
-        PlayerModel(name: 'Samir Tamang', position: PlayerPosition.defender),
-      ],
-    ),
-    TeamModel(
-      id: 't2',
-      name: 'Valley Five',
-      players: [
-        PlayerModel(name: 'Rohit Rai', position: PlayerPosition.goalkeeper),
-        PlayerModel(name: 'Bishal Maharjan', position: PlayerPosition.forward),
-      ],
-    ),
-  ];
-
   @override
   Future<List<String>> fetchVenues() async => const [
     'Green Turf Arena, Kathmandu',

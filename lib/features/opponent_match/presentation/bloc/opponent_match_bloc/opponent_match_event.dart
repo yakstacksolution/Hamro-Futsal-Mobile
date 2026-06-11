@@ -30,6 +30,34 @@ final class CreateTeamEvent extends OpponentMatchEvent {
   List<Object?> get props => [name];
 }
 
+/// Renames the team with [teamId].
+final class UpdateTeamEvent extends OpponentMatchEvent {
+  const UpdateTeamEvent(this.teamId, this.name);
+  final String teamId;
+  final String name;
+
+  @override
+  List<Object?> get props => [teamId, name];
+}
+
+/// Deletes the team with [teamId].
+final class DeleteTeamEvent extends OpponentMatchEvent {
+  const DeleteTeamEvent(this.teamId);
+  final String teamId;
+
+  @override
+  List<Object?> get props => [teamId];
+}
+
+/// Refreshes a single team (with its members) from the backend.
+final class LoadTeamEvent extends OpponentMatchEvent {
+  const LoadTeamEvent(this.teamId);
+  final String teamId;
+
+  @override
+  List<Object?> get props => [teamId];
+}
+
 /// Adds [player] to the team with [teamId].
 final class AddPlayerEvent extends OpponentMatchEvent {
   const AddPlayerEvent(this.teamId, this.player);
@@ -40,14 +68,14 @@ final class AddPlayerEvent extends OpponentMatchEvent {
   List<Object?> get props => [teamId, player];
 }
 
-/// Removes the player at [playerIndex] from the team with [teamId].
-final class RemovePlayerEvent extends OpponentMatchEvent {
-  const RemovePlayerEvent(this.teamId, this.playerIndex);
+/// Removes the member [memberId] from the team with [teamId].
+final class RemoveMemberEvent extends OpponentMatchEvent {
+  const RemoveMemberEvent(this.teamId, this.memberId);
   final String teamId;
-  final int playerIndex;
+  final String memberId;
 
   @override
-  List<Object?> get props => [teamId, playerIndex];
+  List<Object?> get props => [teamId, memberId];
 }
 
 final class SendOpponentRequestEvent extends OpponentMatchEvent {

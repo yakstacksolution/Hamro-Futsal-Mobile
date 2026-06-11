@@ -3,27 +3,32 @@ import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/features/expenses/data/model/expense_model.dart';
-import 'package:hamro_footsall/features/expenses/presentation/models/expense_analytics.dart';
+import 'package:hamro_footsall/features/expenses/data/model/expense_report_model.dart';
 import 'package:hamro_footsall/features/expenses/presentation/utils/expense_ui_utils.dart';
 import 'package:hamro_footsall/features/expenses/presentation/widgets/expense_common.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
-/// Daily/monthly spend column chart with tracks and tap tooltips.
+/// Hourly/daily/monthly spend column chart with tracks and tap tooltips,
+/// driven by the server-computed [ExpenseReport.trend].
 class ExpenseTrendCard extends StatelessWidget {
-  const ExpenseTrendCard({super.key, required this.analytics});
+  const ExpenseTrendCard({super.key, required this.report});
 
-  final ExpenseAnalytics analytics;
+  final ExpenseReport report;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
-    final buckets = analytics.series;
+    final buckets = report.trend.buckets;
     final values = buckets.map((b) => b.value).toList(growable: false);
     final maxV = values.fold<int>(0, (a, b) => a > b ? a : b);
-    final avg = buckets.isEmpty
-        ? 0
-        : (buckets.fold<int>(0, (a, b) => a + b.value) / buckets.length)
-              .round();
+    final avg = report.trend.avg;
+
+    if (buckets.isEmpty) {
+      return const ExpenseEmptyState(
+        title: 'No trend yet',
+        message: 'No expenses recorded for this range.',
+      );
+    }
 
     return ExpenseSurface(
       child: Column(
@@ -32,11 +37,7 @@ class ExpenseTrendCard extends StatelessWidget {
           Row(
             children: [
               Text(
-                switch (analytics.period) {
-                  ExpensePeriod.year => 'Monthly spend',
-                  ExpensePeriod.today => 'Hourly spend',
-                  _ => 'Daily spend',
-                },
+                report.trend.title,
                 style: textTheme.bodyTextMedium?.copyWith(
                   fontWeight: FontWeight.w700,
                   color: LightColor.primaryTextColor,
@@ -56,7 +57,7 @@ class ExpenseTrendCard extends StatelessWidget {
           SizedBox(
             height: 170,
             // Key on the data so the grow-in animation restarts whenever the
-            // period/filter changes the series.
+            // filter changes the series.
             child: RepaintBoundary(
               child: SfCartesianChart(
                 key: ValueKey(Object.hashAll(values)),
@@ -83,7 +84,7 @@ class ExpenseTrendCard extends StatelessWidget {
                 ),
                 tooltipBehavior: _tooltip(),
                 series: [
-                  ColumnSeries<ChartBucket, String>(
+                  ColumnSeries<ExpenseTrendBucket, String>(
                     dataSource: buckets,
                     xValueMapper: (b, _) => b.label,
                     yValueMapper: (b, _) => b.value,
@@ -108,7 +109,7 @@ class ExpenseTrendCard extends StatelessWidget {
     return TooltipBehavior(
       enable: true,
       builder: (data, point, series, pointIndex, seriesIndex) {
-        final b = data as ChartBucket;
+        final b = data as ExpenseTrendBucket;
         return Container(
           padding: const EdgeInsets.symmetric(
             horizontal: AppDimens.paddingX10,
@@ -135,12 +136,12 @@ class ExpenseTrendCard extends StatelessWidget {
 class ExpenseCategoryCard extends StatelessWidget {
   const ExpenseCategoryCard({
     super.key,
-    required this.analytics,
+    required this.report,
     required this.selectedCategory,
     required this.onSelect,
   });
 
-  final ExpenseAnalytics analytics;
+  final ExpenseReport report;
 
   final String? selectedCategory;
   final ValueChanged<String?> onSelect;
@@ -148,9 +149,7 @@ class ExpenseCategoryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
-    final entries = analytics.byCategory.entries.toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
-    final total = entries.fold<int>(0, (a, b) => a + b.value);
+    final entries = report.byCategory;
 
     if (entries.isEmpty) {
       return const ExpenseEmptyState(
@@ -172,11 +171,11 @@ class ExpenseCategoryCard extends StatelessWidget {
                   child: SfCircularChart(
                     key: ValueKey(
                       Object.hashAll(
-                        entries.map((e) => Object.hash(e.key, e.value)),
+                        entries.map((e) => Object.hash(e.id, e.amount)),
                       ),
                     ),
                     margin: EdgeInsets.zero,
-                    tooltipBehavior: _donutTooltip(total),
+                    tooltipBehavior: _donutTooltip(),
                     annotations: [
                       CircularChartAnnotation(
                         widget: Column(
@@ -201,12 +200,11 @@ class ExpenseCategoryCard extends StatelessWidget {
                       ),
                     ],
                     series: [
-                      DoughnutSeries<MapEntry<String, int>, String>(
+                      DoughnutSeries<ExpenseCategorySpend, String>(
                         dataSource: entries,
-                        xValueMapper: (e, _) => analytics.categoryName(e.key),
-                        yValueMapper: (e, _) => e.value,
-                        pointColorMapper: (e, _) =>
-                            analytics.categoryEnumOf(e.key).color,
+                        xValueMapper: (e, _) => e.title,
+                        yValueMapper: (e, _) => e.amount,
+                        pointColorMapper: (e, _) => e.asEnum.color,
                         innerRadius: '74%',
                         radius: '100%',
                         animationDuration: 700,
@@ -226,9 +224,9 @@ class ExpenseCategoryCard extends StatelessWidget {
                           bottom: AppDimens.paddingX6,
                         ),
                         child: _LegendDot(
-                          color: analytics.categoryEnumOf(e.key).color,
-                          label: analytics.categoryName(e.key),
-                          pct: total == 0 ? 0 : e.value / total,
+                          color: e.asEnum.color,
+                          label: e.title,
+                          pct: e.fraction,
                         ),
                       ),
                     if (entries.length > 4)
@@ -253,25 +251,24 @@ class ExpenseCategoryCard extends StatelessWidget {
           const SizedBox(height: AppDimens.paddingX10),
           for (final e in entries)
             _CategoryRow(
-              categoryId: e.key,
-              category: analytics.categoryEnumOf(e.key),
-              label: analytics.categoryName(e.key),
-              amount: e.value,
-              fraction: total == 0 ? 0 : e.value / total,
-              isSelected: selectedCategory == e.key,
-              onTap: () => onSelect(selectedCategory == e.key ? null : e.key),
+              categoryId: e.id,
+              category: e.asEnum,
+              label: e.title,
+              amount: e.amount,
+              fraction: e.fraction,
+              isSelected: selectedCategory == e.id,
+              onTap: () => onSelect(selectedCategory == e.id ? null : e.id),
             ),
         ],
       ),
     );
   }
 
-  TooltipBehavior _donutTooltip(int total) {
+  TooltipBehavior _donutTooltip() {
     return TooltipBehavior(
       enable: true,
       builder: (data, point, series, pointIndex, seriesIndex) {
-        final e = data as MapEntry<String, int>;
-        final pct = total == 0 ? 0 : (e.value / total * 100).round();
+        final e = data as ExpenseCategorySpend;
         return Container(
           padding: const EdgeInsets.symmetric(
             horizontal: AppDimens.paddingX10,
@@ -282,7 +279,8 @@ class ExpenseCategoryCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(AppDimens.radiusX8),
           ),
           child: Text(
-            '${analytics.categoryName(e.key)} · ${ExpenseFmt.npr(e.value)} ($pct%)',
+            '${e.title} · ${ExpenseFmt.npr(e.amount)} '
+            '(${e.percentage.toStringAsFixed(1)}%)',
             style: const TextStyle(
               color: LightColor.whiteColor,
               fontSize: AppDimens.fontBodySubTitle,
@@ -291,6 +289,73 @@ class ExpenseCategoryCard extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+/// Compact court-spend breakdown — name, amount and a percentage bar per
+/// court, from the server-computed [ExpenseReport.byCourt].
+class ExpenseCourtCard extends StatelessWidget {
+  const ExpenseCourtCard({super.key, required this.report});
+
+  final ExpenseReport report;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    final courts = report.byCourt;
+    if (courts.isEmpty) return const SizedBox.shrink();
+
+    return ExpenseSurface(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (final (i, c) in courts.indexed) ...[
+            if (i > 0) const SizedBox(height: AppDimens.paddingX12),
+            Row(
+              children: [
+                const Icon(
+                  Icons.stadium_outlined,
+                  size: 16,
+                  color: LightColor.secondaryColor,
+                ),
+                const SizedBox(width: AppDimens.paddingX8),
+                Expanded(
+                  child: Text(
+                    c.name.isEmpty ? '—' : c.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: textTheme.bodyTextSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: LightColor.primaryTextColor,
+                    ),
+                  ),
+                ),
+                Text(
+                  ExpenseFmt.npr(c.amount),
+                  style: textTheme.bodyTextSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: LightColor.primaryTextColor,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(3),
+              child: Container(
+                height: 5,
+                color: LightColor.dividerColor.withValues(alpha: 0.5),
+                child: FractionallySizedBox(
+                  alignment: Alignment.centerLeft,
+                  widthFactor: c.fraction.clamp(0.0, 1.0),
+                  child: Container(color: LightColor.secondaryColor),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }

@@ -90,19 +90,19 @@ class FutsalBusinessSection extends StatelessWidget {
           if (subsectionIndex == 1)
             VendorUploadSection(
               title: 'Gallery',
-              subtitle: 'Venue-level gallery images.',
+              subtitle: 'Drag to reorder. First image is the cover.',
               onPick: () => unawaited(_openGalleryLibrary(context)),
               actionLabel: 'Gallery',
               actionIcon: Icons.photo_library_rounded,
               previewAsImage: true,
               files: draft.gallery,
               onRemove: cubit.removeFutsalGalleryImage,
+              onReorder: cubit.reorderFutsalGalleryImages,
             ),
           if (subsectionIndex == 2)
             VendorUploadSection(
               title: 'Company documents',
-              subtitle:
-                  'Add registration, PAN, license, or supporting documents. ',
+              subtitle: 'PAN, license, registration, etc.',
               onPick: () => unawaited(_openDocumentLibrary(context)),
               actionLabel: 'Add',
               actionIcon: Icons.folder_copy_rounded,

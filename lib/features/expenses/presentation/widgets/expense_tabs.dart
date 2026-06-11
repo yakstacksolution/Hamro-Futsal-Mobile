@@ -2,22 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/features/expenses/data/model/expense_model.dart';
-import 'package:hamro_footsall/features/expenses/presentation/models/expense_analytics.dart';
+import 'package:hamro_footsall/features/expenses/data/model/expense_report_model.dart';
 import 'package:hamro_footsall/features/expenses/presentation/widgets/expense_chart_widgets.dart';
 import 'package:hamro_footsall/features/expenses/presentation/widgets/expense_common.dart';
 import 'package:hamro_footsall/features/expenses/presentation/widgets/expense_record_widgets.dart';
 import 'package:hamro_footsall/features/expenses/presentation/widgets/expense_summary_widgets.dart';
 
-/// "How am I doing?" — hero total + KPI snapshot.
+/// "How am I doing?" — hero total + KPI snapshot, straight from the
+/// server-computed [ExpenseReport.summary].
 class ExpenseOverviewTab extends StatelessWidget {
-  const ExpenseOverviewTab({
-    super.key,
-    required this.analytics,
-    required this.venues,
-  });
+  const ExpenseOverviewTab({super.key, required this.report});
 
-  final ExpenseAnalytics analytics;
-  final List<VenueModel> venues;
+  final ExpenseReport report;
 
   @override
   Widget build(BuildContext context) {
@@ -31,27 +27,28 @@ class ExpenseOverviewTab extends StatelessWidget {
       ),
       children: [
         ExpenseSectionLabel('Total spend'),
-        ExpenseHeroCard(analytics: analytics),
+        ExpenseHeroCard(report: report),
         const SizedBox(height: AppDimens.paddingX18),
         ExpenseSectionLabel('Snapshot'),
-        ExpenseKpiGrid(analytics: analytics, venues: venues),
+        ExpenseKpiGrid(report: report),
       ],
     );
   }
 }
 
-/// "Where is money going?" — trend chart + category breakdown.
+/// "Where is money going?" — trend chart + category breakdown, from the
+/// server-computed [ExpenseReport.trend] and [ExpenseReport.byCategory].
 class ExpenseAnalyticsTab extends StatelessWidget {
   const ExpenseAnalyticsTab({
     super.key,
-    required this.analytics,
+    required this.report,
     required this.selectedCategory,
     required this.onSelectCategory,
   });
 
-  final ExpenseAnalytics analytics;
+  final ExpenseReport report;
 
-  /// Selected server category id.
+  /// Selected server category id (client-side highlight only).
   final String? selectedCategory;
   final ValueChanged<String?> onSelectCategory;
 
@@ -67,14 +64,19 @@ class ExpenseAnalyticsTab extends StatelessWidget {
       ),
       children: [
         ExpenseSectionLabel('Trend'),
-        ExpenseTrendCard(analytics: analytics),
+        ExpenseTrendCard(report: report),
         const SizedBox(height: AppDimens.paddingX18),
         ExpenseSectionLabel('By category'),
         ExpenseCategoryCard(
-          analytics: analytics,
+          report: report,
           selectedCategory: selectedCategory,
           onSelect: onSelectCategory,
         ),
+        if (report.byCourt.isNotEmpty) ...[
+          const SizedBox(height: AppDimens.paddingX18),
+          ExpenseSectionLabel('By court'),
+          ExpenseCourtCard(report: report),
+        ],
       ],
     );
   }

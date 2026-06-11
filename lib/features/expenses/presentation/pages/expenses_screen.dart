@@ -11,8 +11,10 @@ import 'package:hamro_footsall/features/expenses/domain/entities/expense_entitie
 import 'package:hamro_footsall/features/expenses/domain/usecase/expenses_usecase.dart';
 import 'package:hamro_footsall/features/expenses/presentation/bloc/expenses_bloc/expenses_bloc.dart';
 import 'package:hamro_footsall/features/expenses/presentation/models/expense_analytics.dart';
+import 'package:hamro_footsall/features/expenses/presentation/models/expense_filter.dart';
 import 'package:hamro_footsall/features/expenses/presentation/pages/create_expense_page.dart';
 import 'package:hamro_footsall/features/expenses/presentation/utils/expense_ui_utils.dart';
+import 'package:hamro_footsall/features/expenses/presentation/widgets/expense_date_range_sheet.dart';
 import 'package:hamro_footsall/features/expenses/presentation/widgets/expense_details_sheet.dart';
 import 'package:hamro_footsall/features/expenses/presentation/widgets/expense_filter_widgets.dart';
 import 'package:hamro_footsall/features/expenses/presentation/widgets/expense_tabs.dart';
@@ -46,9 +48,29 @@ class _ExpensesViewState extends State<_ExpensesView>
   ExpensePeriod _period = ExpensePeriod.week;
   String? _venueId;
 
-  /// Selected server category id (from `/expense-categories`).
+  /// Cash / Online (null = all). Server-side `payment_method` filter.
+  PaymentMethod? _paymentMethod;
+
+  /// Selected server category id (from `/expense-categories`). Applied
+  /// client-side to the Records list — the API has no category filter.
   String? _categoryFilter;
   DateTimeRange? _customRange;
+
+  /// Builds the server query from the current chips and refetches so the
+  /// server recomputes the summary, analytics and records.
+  void _applyFilter() {
+    final f = ExpenseFilter(
+      period: _period,
+      customRange: _period == ExpensePeriod.custom && _customRange != null
+          ? (start: _customRange!.start, end: _customRange!.end)
+          : null,
+      venueId: _venueId,
+      paymentMethod: _paymentMethod,
+    );
+    // Silent: keep the chips and current data on screen while the server
+    // recomputes, instead of flashing the full-page loader on every tap.
+    context.read<ExpensesBloc>().add(LoadExpensesEvent(filter: f, silent: true));
+  }
 
   @override
   void initState() {
@@ -99,30 +121,18 @@ class _ExpensesViewState extends State<_ExpensesView>
   Future<void> _pickRange() async {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final picked = await showDateRangePicker(
-      context: context,
-      initialDateRange:
-          _customRange ??
-          DateTimeRange(
-            start: today.subtract(const Duration(days: 13)),
-            end: today,
-          ),
+    final picked = await ExpenseDateRangeSheet.show(
+      context,
+      initialRange: _customRange,
       firstDate: DateTime(today.year - 1, today.month, today.day),
       lastDate: today.add(const Duration(days: 30)),
-      builder: (ctx, child) => Theme(
-        data: Theme.of(ctx).copyWith(
-          colorScheme: Theme.of(
-            ctx,
-          ).colorScheme.copyWith(primary: LightColor.secondaryColor),
-        ),
-        child: child!,
-      ),
     );
     if (picked != null) {
       setState(() {
         _customRange = picked;
         _period = ExpensePeriod.custom;
       });
+      _applyFilter();
     }
   }
 
@@ -187,13 +197,20 @@ class _ExpensesViewState extends State<_ExpensesView>
 
   Widget _buildContent(BuildContext context, ExpensesState state) {
     final range = _resolvedRange();
-    final analytics = ExpenseAnalytics(
-      expenses: state.expenses,
-      period: _period,
-      range: range,
-      venueFilter: _venueId,
-      categoryFilter: _categoryFilter,
-    );
+    final report = state.report;
+
+    // Category is the only client-side filter (the API has no category
+    // param): it narrows the Records list and highlights the breakdown.
+    final records = _categoryFilter == null
+        ? state.expenses
+        : state.expenses
+              .where((e) => e.categoryId == _categoryFilter)
+              .toList();
+
+    final hasFilters =
+        _categoryFilter != null ||
+        _venueId != null ||
+        _paymentMethod != null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -208,8 +225,8 @@ class _ExpensesViewState extends State<_ExpensesView>
             children: [
               ExpenseContextLine(
                 range: range,
-                count: analytics.count,
-                total: analytics.total,
+                count: report.summary.entries,
+                total: report.summary.totalSpend,
               ),
               const SizedBox(height: AppDimens.paddingX12),
               ExpensePeriodChips(
@@ -220,6 +237,7 @@ class _ExpensesViewState extends State<_ExpensesView>
                     _pickRange();
                   } else {
                     setState(() => _period = p);
+                    _applyFilter();
                   }
                 },
                 onEditCustom: _pickRange,
@@ -228,7 +246,18 @@ class _ExpensesViewState extends State<_ExpensesView>
               ExpenseVenueFilter(
                 venues: state.venues,
                 selectedId: _venueId,
-                onChange: (id) => setState(() => _venueId = id),
+                onChange: (id) {
+                  setState(() => _venueId = id);
+                  _applyFilter();
+                },
+              ),
+              const SizedBox(height: AppDimens.paddingX10),
+              ExpensePaymentFilter(
+                selected: _paymentMethod,
+                onChange: (m) {
+                  setState(() => _paymentMethod = m);
+                  _applyFilter();
+                },
               ),
               const SizedBox(height: AppDimens.paddingX10),
               ExpenseCategoryFilterRow(
@@ -240,6 +269,20 @@ class _ExpensesViewState extends State<_ExpensesView>
           ),
         ),
         const SizedBox(height: AppDimens.paddingX8),
+        // Slim refresh bar — fades in during a silent filter refetch so the
+        // chips and current data stay put instead of flashing a full loader.
+        SizedBox(
+          height: 2,
+          child: AnimatedOpacity(
+            opacity: state.refreshing ? 1 : 0,
+            duration: const Duration(milliseconds: 200),
+            child: const LinearProgressIndicator(
+              minHeight: 2,
+              backgroundColor: Colors.transparent,
+              valueColor: AlwaysStoppedAnimation(LightColor.secondaryColor),
+            ),
+          ),
+        ),
         TabBar(
           controller: _tabController,
           labelColor: LightColor.secondaryColor,
@@ -259,40 +302,86 @@ class _ExpensesViewState extends State<_ExpensesView>
             Tab(text: 'Records', height: 40),
           ],
         ),
-         const SizedBox(height: AppDimens.paddingX12),
+        const SizedBox(height: AppDimens.paddingX12),
         Expanded(
           child: TabBarView(
             controller: _tabController,
             children: [
-              ExpenseOverviewTab(analytics: analytics, venues: state.venues),
-              ExpenseAnalyticsTab(
-                analytics: analytics,
-                selectedCategory: _categoryFilter,
-                onSelectCategory: (c) => setState(() => _categoryFilter = c),
+              // Each tab cross-fades when fresh data lands (keyed on
+              // reportVersion), so switching filters glides instead of jumping.
+              _fadeOnRefresh(
+                key: ValueKey('overview-${state.reportVersion}'),
+                child: ExpenseOverviewTab(report: report),
               ),
-              ExpenseRecordsTab(
-                expenses: analytics.scoped,
-                venues: state.venues,
-                courts: state.courts,
-                categoryLabel: _categoryFilter == null
-                    ? null
-                    : state.categories
-                              .where((c) => c.id == _categoryFilter)
-                              .firstOrNull
-                              ?.name ??
-                          analytics.categoryName(_categoryFilter!),
-                hasFilters: _categoryFilter != null || _venueId != null,
-                onTap: _showExpenseDetails,
-                onAdd: _openCreate,
-                onClearFilters: () => setState(() {
-                  _categoryFilter = null;
-                  _venueId = null;
-                }),
+              _fadeOnRefresh(
+                key: ValueKey('analytics-${state.reportVersion}'),
+                child: ExpenseAnalyticsTab(
+                  report: report,
+                  selectedCategory: _categoryFilter,
+                  onSelectCategory: (c) => setState(() => _categoryFilter = c),
+                ),
+              ),
+              _fadeOnRefresh(
+                // Also re-keyed on the client-side category filter.
+                key: ValueKey(
+                  'records-${state.reportVersion}-$_categoryFilter',
+                ),
+                child: ExpenseRecordsTab(
+                  expenses: records,
+                  venues: state.venues,
+                  courts: state.courts,
+                  categoryLabel: _categoryFilter == null
+                      ? null
+                      : state.categories
+                            .where((c) => c.id == _categoryFilter)
+                            .firstOrNull
+                            ?.name,
+                  hasFilters: hasFilters,
+                  onTap: _showExpenseDetails,
+                  onAdd: _openCreate,
+                  onClearFilters: () {
+                    setState(() {
+                      _categoryFilter = null;
+                      _venueId = null;
+                      _paymentMethod = null;
+                    });
+                    _applyFilter();
+                  },
+                ),
               ),
             ],
           ),
         ),
       ],
+    );
+  }
+
+  /// Cross-fades [child] whenever its [key] changes (i.e. when a new report
+  /// arrives or the category filter changes), with a slight upward drift for
+  /// a polished settle-in.
+  Widget _fadeOnRefresh({required Key key, required Widget child}) {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 300),
+      switchInCurve: Curves.easeOutCubic,
+      switchOutCurve: Curves.easeIn,
+      transitionBuilder: (c, anim) => FadeTransition(
+        opacity: anim,
+        child: SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(0, 0.02),
+            end: Offset.zero,
+          ).animate(anim),
+          child: c,
+        ),
+      ),
+      layoutBuilder: (currentChild, previousChildren) => Stack(
+        alignment: Alignment.topCenter,
+        children: [
+          ...previousChildren,
+          if (currentChild != null) currentChild,
+        ],
+      ),
+      child: KeyedSubtree(key: key, child: child),
     );
   }
 

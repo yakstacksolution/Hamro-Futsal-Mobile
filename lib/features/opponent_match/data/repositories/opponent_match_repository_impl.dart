@@ -1,38 +1,70 @@
 import 'package:dartz/dartz.dart';
 import 'package:hamro_footsall/core/helper/exception_helper.dart';
+import 'package:hamro_footsall/core/helper/response_helper.dart';
 import 'package:hamro_footsall/features/opponent_match/data/data_source/opponent_match_data_source.dart';
 import 'package:hamro_footsall/features/opponent_match/data/model/opponent_match_model.dart';
 import 'package:hamro_footsall/features/opponent_match/domain/entities/opponent_match_entities.dart';
 import 'package:hamro_footsall/features/opponent_match/domain/repository/opponent_match_repository.dart';
 
 final class OpponentMatchRepositoryImpl extends OpponentMatchRepository {
-  OpponentMatchRepositoryImpl({OpponentMatchDataSource? dataSource})
-    : _dataSource = dataSource ?? OpponentMatchLocalDataSourceImpl();
+  OpponentMatchRepositoryImpl({
+    OpponentMatchDataSource? dataSource,
+    TeamRemoteDataSource? teamDataSource,
+  }) : _dataSource = dataSource ?? OpponentMatchLocalDataSourceImpl(),
+       _teamDataSource = teamDataSource ?? TeamRemoteDataSourceImpl();
 
   final OpponentMatchDataSource _dataSource;
+  final TeamRemoteDataSource _teamDataSource;
 
-  /// In-memory working copies; the data source is read once and mutations are
-  /// applied here until a backend persists them.
   final List<TeamModel> _teams = [];
   final List<OpponentRequestModel> _requests = [];
-  bool _teamsLoaded = false;
   bool _requestsLoaded = false;
 
   AppException _error(String message) =>
       DefaultException(errorMessage: message, statusCode: 0);
 
+  int? _teamId(String id) => int.tryParse(id.trim());
+
   @override
   Future<Either<AppException, List<TeamModel>>> getTeams() async {
+    final response = await _teamDataSource.getTeams();
+    if (response.isError()) {
+      return left(ResponseHelper.error(response));
+    }
     try {
-      if (!_teamsLoaded) {
-        _teams
-          ..clear()
-          ..addAll(await _dataSource.fetchTeams());
-        _teamsLoaded = true;
-      }
+      final items = _findList(
+        response.getValue(),
+        keys: const ['data', 'teams', 'items', 'results'],
+        depth: 0,
+      );
+      _teams
+        ..clear()
+        ..addAll(
+          items.whereType<Map>().map(
+            (e) => TeamModel.fromJson(Map<String, dynamic>.from(e)),
+          ),
+        );
       return right(List.unmodifiable(_teams));
     } catch (_) {
-      return left(_error('Could not load your teams.'));
+      return left(_error('Could not parse your teams from server.'));
+    }
+  }
+
+  @override
+  Future<Either<AppException, TeamModel>> getTeam(String teamId) async {
+    final id = _teamId(teamId);
+    if (id == null) return left(_error('Invalid team.'));
+    final response = await _teamDataSource.getTeam(id);
+    if (response.isError()) {
+      return left(ResponseHelper.error(response));
+    }
+    try {
+      final team = TeamModel.fromJson(_unwrapTeam(response.getValue()));
+      final i = _teams.indexWhere((t) => t.id == team.id);
+      if (i >= 0) _teams[i] = team;
+      return right(team);
+    } catch (_) {
+      return left(_error('Could not parse the team from server.'));
     }
   }
 
@@ -64,40 +96,100 @@ final class OpponentMatchRepositoryImpl extends OpponentMatchRepository {
   Future<Either<AppException, List<TeamModel>>> createTeam(String name) async {
     final trimmed = name.trim();
     if (trimmed.isEmpty) return left(_error('Team name cannot be empty.'));
-    _teams.add(
-      TeamModel(
-        id: 't${DateTime.now().microsecondsSinceEpoch}',
-        name: trimmed,
-      ),
+    return _mutateThenReload(
+      () => _teamDataSource.createTeam({'name': trimmed}),
     );
-    return right(List.unmodifiable(_teams));
   }
 
   @override
-  Future<Either<AppException, List<TeamModel>>> addPlayer(
+  Future<Either<AppException, List<TeamModel>>> updateTeam(
+    String teamId,
+    String name,
+  ) async {
+    final id = _teamId(teamId);
+    if (id == null) return left(_error('Invalid team.'));
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) return left(_error('Team name cannot be empty.'));
+    return _mutateThenReload(
+      () => _teamDataSource.updateTeam(id, {'name': trimmed}),
+    );
+  }
+
+  @override
+  Future<Either<AppException, List<TeamModel>>> deleteTeam(
+    String teamId,
+  ) async {
+    final id = _teamId(teamId);
+    if (id == null) return left(_error('Invalid team.'));
+    return _mutateThenReload(() => _teamDataSource.deleteTeam(id));
+  }
+
+  @override
+  Future<Either<AppException, List<TeamModel>>> addMember(
     String teamId,
     PlayerModel player,
   ) async {
-    final i = _teams.indexWhere((t) => t.id == teamId);
-    if (i < 0) return left(_error('Team not found.'));
-    _teams[i] = _teams[i].copyWith(players: [..._teams[i].players, player]);
-    return right(List.unmodifiable(_teams));
+    final id = _teamId(teamId);
+    if (id == null) return left(_error('Invalid team.'));
+    final name = player.name.trim();
+    if (name.isEmpty) return left(_error('Player name cannot be empty.'));
+    // Backend resolves the user from the name; position is sent as its label.
+    return _mutateThenReload(
+      () => _teamDataSource.addMember(id, {
+        'name': name,
+        'position': player.position.label,
+      }),
+    );
   }
 
   @override
-  Future<Either<AppException, List<TeamModel>>> removePlayer(
+  Future<Either<AppException, List<TeamModel>>> removeMember(
     String teamId,
-    int playerIndex,
+    String memberId,
   ) async {
-    final i = _teams.indexWhere((t) => t.id == teamId);
-    if (i < 0) return left(_error('Team not found.'));
-    final players = [..._teams[i].players];
-    if (playerIndex < 0 || playerIndex >= players.length) {
-      return left(_error('Player not found.'));
+    final id = _teamId(teamId);
+    final member = _teamId(memberId);
+    if (id == null || member == null) return left(_error('Invalid member.'));
+    return _mutateThenReload(() => _teamDataSource.removeMember(id, member));
+  }
+
+
+  Future<Either<AppException, List<TeamModel>>> _mutateThenReload(
+    Future<dynamic> Function() action,
+  ) async {
+    final response = await action();
+    if (response.isError()) {
+      return left(ResponseHelper.error(response));
     }
-    players.removeAt(playerIndex);
-    _teams[i] = _teams[i].copyWith(players: players);
-    return right(List.unmodifiable(_teams));
+    return getTeams();
+  }
+
+  Map<String, dynamic> _unwrapTeam(dynamic payload) {
+    if (payload is Map) {
+      for (final key in const ['data', 'team']) {
+        final child = payload[key];
+        if (child is Map) return _unwrapTeam(child);
+      }
+      return Map<String, dynamic>.from(payload);
+    }
+    return <String, dynamic>{};
+  }
+
+  List<dynamic> _findList(
+    dynamic node, {
+    required List<String> keys,
+    required int depth,
+  }) {
+    if (node is List) return node;
+    if (node is Map && depth < 3) {
+      for (final key in keys) {
+        final dynamic child = node[key];
+        if (child == null) continue;
+        final found = _findList(child, keys: keys, depth: depth + 1);
+        if (found.isNotEmpty) return found;
+      }
+    }
+    return const [];
   }
 
   @override

@@ -8,7 +8,11 @@ import 'package:hamro_footsall/features/opponent_match/data/model/opponent_match
 
 /// Rounded, drag-handled shell shared by every bottom sheet in the feature.
 class OpponentSheetShell extends StatelessWidget {
-  const OpponentSheetShell({super.key, required this.title, required this.child});
+  const OpponentSheetShell({
+    super.key,
+    required this.title,
+    required this.child,
+  });
 
   final String title;
   final Widget child;
@@ -202,17 +206,29 @@ class ConfirmDeleteSheet extends StatelessWidget {
   }
 }
 
+/// Create or rename a team. Pass [initialName] to switch to edit mode.
 class CreateTeamSheet extends StatefulWidget {
-  const CreateTeamSheet({super.key, required this.onCreate});
+  const CreateTeamSheet({
+    super.key,
+    required this.onCreate,
+    this.initialName,
+    this.title = 'Create Team',
+    this.actionLabel = 'Create Team',
+    this.actionIcon = Icons.add_rounded,
+  });
 
   final ValueChanged<String> onCreate;
+  final String? initialName;
+  final String title;
+  final String actionLabel;
+  final IconData actionIcon;
 
   @override
   State<CreateTeamSheet> createState() => _CreateTeamSheetState();
 }
 
 class _CreateTeamSheetState extends State<CreateTeamSheet> {
-  final _teamCtrl = TextEditingController();
+  late final _teamCtrl = TextEditingController(text: widget.initialName ?? '');
 
   @override
   void dispose() {
@@ -222,8 +238,10 @@ class _CreateTeamSheetState extends State<CreateTeamSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final trimmed = _teamCtrl.text.trim();
+    final enabled = trimmed.isNotEmpty && trimmed != widget.initialName?.trim();
     return OpponentSheetShell(
-      title: 'Create Team',
+      title: widget.title,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -236,9 +254,9 @@ class _CreateTeamSheetState extends State<CreateTeamSheet> {
           ),
           const SizedBox(height: AppDimens.sizeX20),
           _PrimaryButton(
-            label: 'Create Team',
-            icon: Icons.add_rounded,
-            enabled: _teamCtrl.text.trim().isNotEmpty,
+            label: widget.actionLabel,
+            icon: widget.actionIcon,
+            enabled: enabled,
             onTap: () {
               final name = _teamCtrl.text.trim();
               if (name.isEmpty) return;
@@ -252,7 +270,11 @@ class _CreateTeamSheetState extends State<CreateTeamSheet> {
 }
 
 class AddPlayerSheet extends StatefulWidget {
-  const AddPlayerSheet({super.key, required this.teamName, required this.onAdd});
+  const AddPlayerSheet({
+    super.key,
+    required this.teamName,
+    required this.onAdd,
+  });
 
   final String teamName;
   final ValueChanged<PlayerModel> onAdd;

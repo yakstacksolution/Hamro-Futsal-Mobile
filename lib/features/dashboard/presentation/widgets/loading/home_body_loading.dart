@@ -9,10 +9,7 @@ class HomeBodyLoading extends StatelessWidget {
   final int itemCount;
 
   @override
-  Widget build(BuildContext context) {
-    // Mirrors the loaded list layout exactly: horizontal padding of 20 and a
-    // raw 22px top spacer (the content uses `SizedBox(height: sizeX22)`), so
-    // the skeleton cards line up with the real cards when content arrives.
+  Widget build(BuildContext context) { 
     return Padding(
       padding: AppUtils().getPadding(
         left: AppDimens.paddingX20,

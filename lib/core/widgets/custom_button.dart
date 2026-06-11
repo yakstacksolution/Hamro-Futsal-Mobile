@@ -53,7 +53,11 @@ class CustomButton extends StatelessWidget {
         borderColor ?? (isOutlined ? foregroundColor : null);
 
     final content = isLoading
-        ? SizedBox(width: 20, height: 20, child: LoadingWidget(isButtonLoading: true))
+        ? SizedBox(
+            width: 20,
+            height: 20,
+            child: LoadingWidget(isButtonLoading: true),
+          )
         : Row(
             mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,

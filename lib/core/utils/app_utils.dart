@@ -23,6 +23,16 @@ final class AppUtils {
     return _mediaQueryData.size.height - statusBar - bottomBar;
   }
 
+  /// Time-of-day greeting: "Good morning" (before noon), "Good afternoon"
+  /// (noon–5 PM) or "Good evening" (after 5 PM). Pass [now] to override the
+  /// clock (useful for tests).
+  String greeting({DateTime? now}) {
+    final hour = (now ?? DateTime.now()).hour;
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  }
+
   double getHorizontalSize(double px) {
     return (px * width) / _designWidth;
   }

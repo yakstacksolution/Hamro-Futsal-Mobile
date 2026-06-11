@@ -3,27 +3,25 @@ import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/features/expenses/data/model/expense_model.dart';
-import 'package:hamro_footsall/features/expenses/presentation/models/expense_analytics.dart';
+import 'package:hamro_footsall/features/expenses/data/model/expense_report_model.dart';
 import 'package:hamro_footsall/features/expenses/presentation/utils/expense_ui_utils.dart';
 import 'package:hamro_footsall/features/expenses/presentation/widgets/expense_common.dart';
 import 'package:syncfusion_flutter_charts/sparkcharts.dart';
 
-/// Total-spend hero card: animated count-up total, period-over-period trend
-/// pill and a sparkline of the current series.
+/// Total-spend hero card: animated count-up total, per-day/entries subtitle
+/// and a sparkline of the server-computed trend series.
 class ExpenseHeroCard extends StatelessWidget {
-  const ExpenseHeroCard({super.key, required this.analytics});
+  const ExpenseHeroCard({super.key, required this.report});
 
-  final ExpenseAnalytics analytics;
+  final ExpenseReport report;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
-    final delta = analytics.total - analytics.prevTotal;
-    final pct = analytics.prevTotal == 0
-        ? null
-        : (delta / analytics.prevTotal) * 100;
-    // For expenses, up = bad, down = good.
-    final up = delta > 0;
+    final summary = report.summary;
+    final spark = report.trend.buckets
+        .map((b) => b.value)
+        .toList(growable: false);
 
     return ExpenseSurface(
       child: Column(
@@ -53,15 +51,12 @@ class ExpenseHeroCard extends StatelessWidget {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              const Spacer(),
-              if (pct != null) ExpenseTrendPill(value: pct, up: up),
             ],
           ),
           const SizedBox(height: AppDimens.paddingX12),
-          // Count-up animation; re-animates from the previous total whenever
-          // the filtered total changes.
+          // Count-up animation; re-animates whenever the total changes.
           TweenAnimationBuilder<double>(
-            tween: Tween(begin: 0, end: analytics.total.toDouble()),
+            tween: Tween(begin: 0, end: summary.totalSpend.toDouble()),
             duration: const Duration(milliseconds: 500),
             curve: Curves.easeOutCubic,
             builder: (_, value, __) => Text(
@@ -76,26 +71,27 @@ class ExpenseHeroCard extends StatelessWidget {
           ),
           const SizedBox(height: 2),
           Text(
-            'vs ${ExpenseFmt.npr(analytics.prevTotal)} previous period',
+            '≈ ${ExpenseFmt.npr(summary.avgPerDay.round())} / day · '
+            '${summary.entries} ${summary.entries == 1 ? 'entry' : 'entries'}',
             style: textTheme.bodyTextSmall?.copyWith(
               color: LightColor.hintTextColor,
             ),
           ),
-          const SizedBox(height: AppDimens.paddingX14),
-          SizedBox(
-            height: 56,
-            child: RepaintBoundary(
-              child: SfSparkAreaChart(
-                data: analytics.series
-                    .map((b) => b.value)
-                    .toList(growable: false),
-                color: LightColor.redColor.withValues(alpha: 0.12),
-                borderColor: LightColor.redColor,
-                borderWidth: 2,
-                axisLineWidth: 0,
+          if (spark.isNotEmpty) ...[
+            const SizedBox(height: AppDimens.paddingX14),
+            SizedBox(
+              height: 56,
+              child: RepaintBoundary(
+                child: SfSparkAreaChart(
+                  data: spark,
+                  color: LightColor.redColor.withValues(alpha: 0.12),
+                  borderColor: LightColor.redColor,
+                  borderWidth: 2,
+                  axisLineWidth: 0,
+                ),
               ),
             ),
-          ),
+          ],
         ],
       ),
     );
@@ -144,67 +140,63 @@ class ExpenseTrendPill extends StatelessWidget {
   }
 }
 
-/// Four-up snapshot grid: avg/day, entries, top category and top venue.
+/// Four-up snapshot grid: avg/day, entries, top category and top venue —
+/// all from the server-computed [ExpenseReport.summary].
 class ExpenseKpiGrid extends StatelessWidget {
-  const ExpenseKpiGrid({
-    super.key,
-    required this.analytics,
-    required this.venues,
-  });
+  const ExpenseKpiGrid({super.key, required this.report});
 
-  final ExpenseAnalytics analytics;
-  final List<VenueModel> venues;
+  final ExpenseReport report;
 
   @override
   Widget build(BuildContext context) {
-    final largestCatId = analytics.largestCategoryId;
-    final largestCat = largestCatId == null
-        ? null
-        : analytics.categoryEnumOf(largestCatId);
-    final largestVenueId = analytics.largestVenueId;
-    final largestVenue = largestVenueId == null
-        ? null
-        : venues.firstWhere(
-            (v) => v.id == largestVenueId,
-            orElse: () => const VenueModel(id: '?', name: '—'),
-          );
+    final summary = report.summary;
+    final topCat = summary.topCategory;
+    final topVenue = summary.topVenue;
+
+    // Resolve the top category's enum (accent color / fallback icon) from the
+    // breakdown slice that shares its id.
+    ExpenseCategory? topCatEnum;
+    for (final c in report.byCategory) {
+      if (c.id == topCat?.id) {
+        topCatEnum = c.asEnum;
+        break;
+      }
+    }
 
     final items = <_Kpi>[
       _Kpi(
         icon: Icons.functions_rounded,
         label: 'Avg / day',
-        value: ExpenseFmt.npr(analytics.avgPerDay),
-        sub: '${analytics.range.days} days in range',
+        value: ExpenseFmt.npr(summary.avgPerDay.round()),
+        sub: 'Daily average',
         accent: LightColor.secondaryColor,
       ),
       _Kpi(
         icon: Icons.format_list_numbered_rounded,
         label: 'Entries',
-        value: '${analytics.count}',
-        sub: 'Avg ${ExpenseFmt.npr(analytics.avgPerEntry)} / entry',
+        value: '${summary.entries}',
+        sub: 'Avg ${ExpenseFmt.npr(summary.avgPerEntry)} / entry',
         accent: LightColor.blueColor,
       ),
       _Kpi(
-        icon: largestCat?.icon ?? Icons.category_outlined,
+        icon: topCatEnum?.icon ?? Icons.category_outlined,
         // Server category image when available, local icon otherwise.
-        category: largestCat,
-        categoryId: largestCatId,
+        category: topCatEnum,
+        categoryId: topCat?.id,
         label: 'Top category',
-        value: largestCatId == null
-            ? '—'
-            : analytics.categoryName(largestCatId),
-        sub: largestCatId == null
+        value: topCat?.name.isNotEmpty == true ? topCat!.name : '—',
+        sub: topCat == null
             ? 'No expenses yet'
-            : ExpenseFmt.npr(analytics.byCategory[largestCatId] ?? 0),
-        accent: largestCat?.color ?? LightColor.iconGrey,
+            : ExpenseFmt.npr(topCat.total),
+        accent: topCatEnum?.color ?? LightColor.iconGrey,
       ),
       _Kpi(
         icon: Icons.stadium_outlined,
         label: 'Top venue',
-        value: largestVenue?.name ?? '—',
-        sub: largestVenueId == null
+        value: topVenue?.name.isNotEmpty == true ? topVenue!.name : '—',
+        sub: topVenue == null
             ? 'No expenses yet'
-            : ExpenseFmt.npr(analytics.byVenue[largestVenueId] ?? 0),
+            : ExpenseFmt.npr(topVenue.total),
         accent: LightColor.warningColor,
       ),
     ];

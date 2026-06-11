@@ -11,6 +11,10 @@ final class ExpensesState extends Equatable {
     this.courts = const [],
     this.categories = const [],
     this.expenses = const [],
+    this.report = ExpenseReport.empty,
+    this.filter = const ExpenseFilter(),
+    this.refreshing = false,
+    this.reportVersion = 0,
     this.errorMessage,
   });
 
@@ -24,6 +28,20 @@ final class ExpensesState extends Equatable {
   final List<CourtModel> courts;
   final List<ExpenseCategoryModel> categories;
   final List<ExpenseModel> expenses;
+
+  /// Server-computed summary + analytics for the Overview/Analytics tabs.
+  final ExpenseReport report;
+
+  /// The active server-side filter (date_filter, venue, payment method).
+  final ExpenseFilter filter;
+
+  /// True while a silent filter refetch is in flight — drives the slim
+  /// refresh bar without tearing down the current data.
+  final bool refreshing;
+
+  /// Bumped on every successful load so the UI can cross-fade content
+  /// exactly when fresh data arrives (not when the filter chip is tapped).
+  final int reportVersion;
   final String? errorMessage;
 
   ExpensesState copyWith({
@@ -34,6 +52,10 @@ final class ExpensesState extends Equatable {
     List<CourtModel>? courts,
     List<ExpenseCategoryModel>? categories,
     List<ExpenseModel>? expenses,
+    ExpenseReport? report,
+    ExpenseFilter? filter,
+    bool? refreshing,
+    int? reportVersion,
     String? errorMessage,
     bool clearErrorMessage = false,
   }) {
@@ -45,6 +67,10 @@ final class ExpensesState extends Equatable {
       courts: courts ?? this.courts,
       categories: categories ?? this.categories,
       expenses: expenses ?? this.expenses,
+      report: report ?? this.report,
+      filter: filter ?? this.filter,
+      refreshing: refreshing ?? this.refreshing,
+      reportVersion: reportVersion ?? this.reportVersion,
       errorMessage: clearErrorMessage
           ? null
           : errorMessage ?? this.errorMessage,
@@ -60,6 +86,10 @@ final class ExpensesState extends Equatable {
     courts,
     categories,
     expenses,
+    report,
+    filter,
+    refreshing,
+    reportVersion,
     errorMessage,
   ];
 }

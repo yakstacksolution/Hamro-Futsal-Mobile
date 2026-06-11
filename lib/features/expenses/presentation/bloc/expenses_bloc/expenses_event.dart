@@ -17,16 +17,20 @@ final class LoadExpenseCategoriesEvent extends ExpensesEvent {
   const LoadExpenseCategoriesEvent();
 }
 
-/// Loads the expenses list (expenses API).
+/// Loads the expenses report (expenses API).
 ///
-/// With [silent] the list is refreshed in the background — no loading
+/// With [silent] the data is refreshed in the background — no loading
 /// spinner and no failure screen; used to re-sync after a mutation.
+///
+/// When [filter] is provided it becomes the active filter (and is persisted
+/// in state); otherwise the current state filter is reused.
 final class LoadExpensesEvent extends ExpensesEvent {
-  const LoadExpensesEvent({this.silent = false});
+  const LoadExpensesEvent({this.silent = false, this.filter});
   final bool silent;
+  final ExpenseFilter? filter;
 
   @override
-  List<Object?> get props => [silent];
+  List<Object?> get props => [silent, filter];
 }
 
 final class AddExpenseEvent extends ExpensesEvent {

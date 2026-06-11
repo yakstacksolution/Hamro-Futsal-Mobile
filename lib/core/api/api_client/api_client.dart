@@ -122,8 +122,8 @@ class ApiClient {
     return _post(url: '$_baseUrl/auth/expenses', data: data);
   }
 
-  Future<Result> getExpenses() {
-    return _get(url: '$_baseUrl/auth/expenses');
+  Future<Result> getExpenses({Map<String, dynamic>? query}) {
+    return _get(url: '$_baseUrl/auth/expenses', query: query);
   }
 
   // ── Chat ──
@@ -313,6 +313,45 @@ class ApiClient {
 
   Future<Result> getFutsalBookings() {
     return _get(url: '$_baseUrl/bookings/futsal-bookings');
+  }
+
+  // ── Opponent-match teams ──
+
+  Future<Result> getTeams() {
+    return _get(url: '$_baseUrl/auth/teams');
+  }
+
+  Future<Result> getTeam({required int teamId}) {
+    return _get(url: '$_baseUrl/auth/teams/$teamId');
+  }
+
+  Future<Result> createTeam({required Map<String, dynamic> data}) {
+    return _post(url: '$_baseUrl/auth/teams', data: data);
+  }
+
+  Future<Result> updateTeam({
+    required int teamId,
+    required Map<String, dynamic> data,
+  }) {
+    return _post(url: '$_baseUrl/auth/teams/$teamId/update', data: data);
+  }
+
+  Future<Result> deleteTeam({required int teamId}) {
+    return _delete(url: '$_baseUrl/auth/teams/$teamId');
+  }
+
+  Future<Result> addTeamMember({
+    required int teamId,
+    required Map<String, dynamic> data,
+  }) {
+    return _post(url: '$_baseUrl/auth/teams/$teamId/members', data: data);
+  }
+
+  Future<Result> removeTeamMember({
+    required int teamId,
+    required int memberId,
+  }) {
+    return _delete(url: '$_baseUrl/auth/teams/$teamId/members/$memberId');
   }
 
   Future<Result> _get({required String url, Map<String, dynamic>? query}) {

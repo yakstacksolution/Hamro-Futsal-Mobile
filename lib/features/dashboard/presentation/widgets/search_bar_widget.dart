@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:hamro_footsall/core/helper/recent_search_store.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
@@ -7,12 +8,17 @@ import 'package:hamro_footsall/core/utils/dimens.dart';
 
 class ExpandableFocusSearchBar extends StatefulWidget {
   final ValueChanged<String>? onChanged;
+
+  /// Fired when the user commits a search (keyboard "search", tapping a recent
+  /// entry, or clearing the field — which submits an empty string).
+  final ValueChanged<String>? onSubmitted;
   final VoidCallback? onFilterTap;
   final int filterCount;
 
   const ExpandableFocusSearchBar({
     super.key,
     this.onChanged,
+    this.onSubmitted,
     this.onFilterTap,
     this.filterCount = 0,
   });
@@ -32,15 +38,12 @@ class _ExpandableFocusSearchBarState extends State<ExpandableFocusSearchBar>
   late final AnimationController _expandController;
   late final Animation<double> _expandAnimation;
 
-  final List<String> _recentSearches = [
-    'Galaxy Futsal',
-    'Baneshwor Indoor',
-    'Near Lalitpur',
-  ];
+  final RecentSearchStore _recentStore = RecentSearchStore.instance;
 
   @override
   void initState() {
     super.initState();
+    _recentStore.load();
     _expandController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 350),
@@ -73,6 +76,29 @@ class _ExpandableFocusSearchBarState extends State<ExpandableFocusSearchBar>
     _focusNode.dispose();
     _expandController.dispose();
     super.dispose();
+  }
+
+  /// Commits a search: persists a non-empty term, syncs the field, dismisses
+  /// the keyboard and notifies the parent. An empty term resets the search.
+  void _submit(String raw) {
+    final String term = raw.trim();
+    if (term.isNotEmpty) {
+      _recentStore.add(term);
+      if (_controller.text != term) {
+        _controller.text = term;
+        _controller.selection = TextSelection.fromPosition(
+          TextPosition(offset: term.length),
+        );
+      }
+    }
+    _focusNode.unfocus();
+    widget.onSubmitted?.call(term);
+  }
+
+  void _clear() {
+    HapticFeedback.lightImpact();
+    _controller.clear();
+    widget.onSubmitted?.call('');
   }
 
   @override
@@ -128,6 +154,8 @@ class _ExpandableFocusSearchBarState extends State<ExpandableFocusSearchBar>
                 child: TextField(
                   controller: _controller,
                   focusNode: _focusNode,
+                  textInputAction: TextInputAction.search,
+                  onSubmitted: _submit,
                   cursorColor: LightColor.primaryTextColor,
                   cursorHeight: AppDimens.sizeX20,
                   cursorWidth: 1.5,
@@ -166,10 +194,7 @@ class _ExpandableFocusSearchBarState extends State<ExpandableFocusSearchBar>
               if (_hasText)
                 _buildIconButton(
                   Icons.close_rounded,
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    _controller.clear();
-                  },
+                  onTap: _clear,
                   color: LightColor.whiteColor,
                   bg: LightColor.greyBorderColor,
                 ),
@@ -222,71 +247,70 @@ class _ExpandableFocusSearchBarState extends State<ExpandableFocusSearchBar>
           ),
         ),
 
-        _recentSearches.isEmpty
-            ? SizedBox.shrink()
-            : SizeTransition(
-                sizeFactor: _expandAnimation,
-                axisAlignment: -1,
-                child: FadeTransition(
-                  opacity: _expandAnimation,
-                  child: Container(
-                    margin: AppUtils().getMargin(top: AppDimens.sizeX8),
-                    padding: AppUtils().getPadding(all: AppDimens.paddingX16),
-                    decoration: BoxDecoration(
-                      color: LightColor.cardColor,
-                      borderRadius: BorderRadius.circular(AppDimens.radiusX14),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.04),
-                          blurRadius: AppDimens.radiusX6,
-                          offset: const Offset(0, 6),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Recent Searches',
-                              style: FutsalTheme.getTextTheme(context)
-                                  .bodyTextMedium
-                                  ?.copyWith(
-                                    color: LightColor.secondaryTextColor,
-                                  ),
-                            ),
-                            GestureDetector(
-                              onTap: () {},
-                              child: Text(
-                                'Clear All',
-                                style: FutsalTheme.getTextTheme(context)
-                                    .bodyTextSmall
-                                    ?.copyWith(color: LightColor.redColor),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: AppDimens.sizeX12),
-                        ..._recentSearches.map((s) => _buildRecentItem(s)),
-                      ],
-                    ),
+        SizeTransition(
+          sizeFactor: _expandAnimation,
+          axisAlignment: -1,
+          child: FadeTransition(
+            opacity: _expandAnimation,
+            child: ValueListenableBuilder<List<String>>(
+              valueListenable: _recentStore.searches,
+              builder: (context, recents, _) {
+                if (recents.isEmpty) return const SizedBox.shrink();
+                return Container(
+                  margin: AppUtils().getMargin(top: AppDimens.sizeX8),
+                  padding: AppUtils().getPadding(all: AppDimens.paddingX16),
+                  decoration: BoxDecoration(
+                    color: LightColor.cardColor,
+                    borderRadius: BorderRadius.circular(AppDimens.radiusX14),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.04),
+                        blurRadius: AppDimens.radiusX6,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
                   ),
-                ),
-              ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Recent Searches',
+                            style: FutsalTheme.getTextTheme(context)
+                                .bodyTextMedium
+                                ?.copyWith(
+                                  color: LightColor.secondaryTextColor,
+                                ),
+                          ),
+                          GestureDetector(
+                            onTap: _recentStore.clear,
+                            child: Text(
+                              'Clear All',
+                              style: FutsalTheme.getTextTheme(context)
+                                  .bodyTextSmall
+                                  ?.copyWith(color: LightColor.redColor),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: AppDimens.sizeX12),
+                      ...recents.map((s) => _buildRecentItem(s)),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
       ],
     );
   }
 
   Widget _buildRecentItem(String text) {
     return GestureDetector(
-      onTap: () {
-        _controller.text = text;
-        _controller.selection = TextSelection.fromPosition(
-          TextPosition(offset: text.length),
-        );
-      },
+      onTap: () => _submit(text),
       child: Padding(
         padding: AppUtils().getPadding(vertical: AppDimens.sizeX10),
 
@@ -304,10 +328,20 @@ class _ExpandableFocusSearchBarState extends State<ExpandableFocusSearchBar>
                 style: FutsalTheme.getTextTheme(context).bodyTextSmall,
               ),
             ),
-            const Icon(
-              Icons.north_west_rounded,
-              color: LightColor.iconGrey,
-              size: AppDimens.sizeX14,
+            GestureDetector(
+              onTap: () {
+                HapticFeedback.lightImpact();
+                _recentStore.remove(text);
+              },
+              behavior: HitTestBehavior.opaque,
+              child: const Padding(
+                padding: EdgeInsets.all(AppDimens.sizeX4),
+                child: Icon(
+                  Icons.close_rounded,
+                  color: LightColor.iconGrey,
+                  size: AppDimens.sizeX16,
+                ),
+              ),
             ),
           ],
         ),

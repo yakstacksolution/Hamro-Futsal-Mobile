@@ -178,4 +178,38 @@ class ConversationModel {
     participants: participants,
     createdAt: createdAt,
   );
+
+  /// Returns a copy with [message] as the conversation's latest message —
+  /// refreshing the inbox preview line, the full detail and the timestamp.
+  /// Pass [incrementUnread] for messages from the other side that arrive while
+  /// the thread isn't open. The `You:` prefix is derived later from
+  /// [lastMessageDetail]'s sender, so this works for messages from either side.
+  ConversationModel withLatestMessage(
+    ChatMessageModel message, {
+    bool incrementUnread = false,
+  }) {
+    final body = message.body.trim();
+    final preview = body.isNotEmpty
+        ? body
+        : message.media.isNotEmpty
+        ? '📎 ${message.media.first.name}'
+        : lastMessage;
+
+    return ConversationModel(
+      id: id,
+      type: type,
+      title: title,
+      status: status,
+      venueId: venueId,
+      lastMessage: preview,
+      lastMessageDetail: message,
+      lastMessageAt: message.createdAt,
+      unreadCount: incrementUnread ? unreadCount + 1 : unreadCount,
+      isMuted: isMuted,
+      isPinned: isPinned,
+      isArchived: isArchived,
+      participants: participants,
+      createdAt: createdAt,
+    );
+  }
 }

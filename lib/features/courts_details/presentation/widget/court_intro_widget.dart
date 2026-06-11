@@ -17,8 +17,8 @@ class CourtIntroWidget extends StatelessWidget {
     return Padding(
       padding: AppUtils().getPadding(
         top: AppDimens.paddingX18,
-        left: AppDimens.paddingX20,
-        right: AppDimens.paddingX20,
+        left: AppDimens.paddingX16,
+        right: AppDimens.paddingX16,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -28,8 +28,6 @@ class CourtIntroWidget extends StatelessWidget {
           _buildTitleSection(context),
           const SizedBox(height: AppDimens.sizeX18),
           _buildLocationCard(context),
-          // const SizedBox(height: AppDimens.sizeX14),
-          // _buildDescriptionCard(context),
         ],
       ),
     );
@@ -64,7 +62,9 @@ class CourtIntroWidget extends StatelessWidget {
         Expanded(
           flex: 2,
           child: _chipTag(
-            '${court.openTime} - ${court.closeTime}',
+            court.openTime.isEmpty || court.closeTime.isEmpty
+                ? 'Contact for hours'
+                : '${court.openTime} - ${court.closeTime}',
             Icons.access_time_rounded,
             LightColor.secondaryColor,
             LightColor.secondarySoft,

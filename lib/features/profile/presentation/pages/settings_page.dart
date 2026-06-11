@@ -5,6 +5,7 @@ import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/widgets/custom_app_bar.dart';
 import 'package:hamro_footsall/core/widgets/custom_switch_widget.dart';
+import 'package:hamro_footsall/features/profile/presentation/controller/settings_controller.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -14,13 +15,13 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  bool _pushNotifications = true;
-  bool _bookingAlerts = true;
-  bool _promotionalEmails = false;
-  bool _opponentRequests = true;
-  bool _darkMode = false;
-  bool _biometricLogin = false;
-  String _language = 'English';
+  late final SettingsController _controller = SettingsController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,98 +30,119 @@ class _SettingsPageState extends State<SettingsPage> {
       appBar: const CustomAppBar(title: 'Settings'),
       body: SafeArea(
         top: false,
-        child: ListView(
-          physics: const BouncingScrollPhysics(),
-          padding: AppUtils().getPadding(
-            symmetricHorizontal: AppDimens.paddingX16,
-            top: AppDimens.paddingX12,
-            bottom: AppDimens.paddingX32,
+        // Only the preference list listens to the controller, so toggling a
+        // switch rebuilds this subtree rather than the whole Scaffold.
+        child: AnimatedBuilder(
+          animation: _controller,
+          builder: (context, _) => ListView.separated(
+            physics: const BouncingScrollPhysics(),
+            padding: AppUtils().getPadding(
+              symmetricHorizontal: AppDimens.paddingX16,
+              top: AppDimens.paddingX12,
+              bottom: AppDimens.paddingX32,
+            ),
+            itemCount: _sections.length,
+            separatorBuilder: (_, _) =>
+                const SizedBox(height: AppDimens.paddingX16),
+            itemBuilder: (context, index) => _SettingsSection(
+              section: _sections[index],
+            ),
           ),
-          children: [
-            _SettingsSection(
-              label: 'Account',
-              items: [
-                _SettingsItem.nav(
-                  icon: Icons.lock_outline_rounded,
-                  title: 'Change Password',
-                  subtitle: 'Keep your account secure',
-                  onTap: () {},
-                ),
-                _SettingsItem.toggle(
-                  icon: Icons.fingerprint_rounded,
-                  title: 'Biometric Login',
-                  subtitle: 'Use Face ID or fingerprint to sign in',
-                  value: _biometricLogin,
-                  onChanged: (v) => setState(() => _biometricLogin = v),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppDimens.paddingX16),
-            _SettingsSection(
-              label: 'Notifications',
-              items: [
-                _SettingsItem.toggle(
-                  icon: Icons.notifications_active_outlined,
-                  title: 'Push Notifications',
-                  subtitle: 'Receive updates on this device',
-                  value: _pushNotifications,
-                  onChanged: (v) => setState(() => _pushNotifications = v),
-                ),
-                _SettingsItem.toggle(
-                  icon: Icons.event_available_rounded,
-                  title: 'Booking Alerts',
-                  subtitle: 'Reminders before your matches start',
-                  value: _bookingAlerts,
-                  onChanged: (v) => setState(() => _bookingAlerts = v),
-                ),
-                _SettingsItem.toggle(
-                  icon: Icons.sports_kabaddi_rounded,
-                  title: 'Opponent Requests',
-                  subtitle: 'Notify me when someone wants to play',
-                  value: _opponentRequests,
-                  onChanged: (v) => setState(() => _opponentRequests = v),
-                ),
-                _SettingsItem.toggle(
-                  icon: Icons.mark_email_unread_outlined,
-                  title: 'Promotional Emails',
-                  subtitle: 'Occasional offers and updates by email',
-                  value: _promotionalEmails,
-                  onChanged: (v) => setState(() => _promotionalEmails = v),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppDimens.paddingX16),
-            _SettingsSection(
-              label: 'Preferences',
-              items: [
-                _SettingsItem.toggle(
-                  icon: Icons.dark_mode_outlined,
-                  title: 'Dark Mode',
-                  subtitle: 'Switch to a darker appearance',
-                  value: _darkMode,
-                  onChanged: (v) => setState(() => _darkMode = v),
-                ),
-                _SettingsItem.nav(
-                  icon: Icons.language_rounded,
-                  title: 'Language',
-                  subtitle: _language,
-                  onTap: _showLanguagePicker,
-                ),
-              ],
-            ),
-          ],
         ),
       ),
+    );
+  }
+
+  /// Declarative description of the whole page. Adding a row is a one-line
+  /// change here — no widget plumbing required.
+  List<_Section> get _sections => <_Section>[
+    _Section(
+      label: 'Account',
+      items: <_SettingsItem>[
+        _SettingsItem.nav(
+          icon: Icons.lock_outline_rounded,
+          title: 'Change Password',
+          subtitle: 'Keep your account secure',
+          onTap: () => _notImplemented('Change password'),
+        ),
+        _SettingsItem.toggle(
+          icon: Icons.fingerprint_rounded,
+          title: 'Biometric Login',
+          subtitle: 'Use Face ID or fingerprint to sign in',
+          value: _controller.biometricLogin,
+          onChanged: _controller.setBiometricLogin,
+        ),
+      ],
+    ),
+    _Section(
+      label: 'Notifications',
+      items: <_SettingsItem>[
+        _SettingsItem.toggle(
+          icon: Icons.notifications_active_outlined,
+          title: 'Push Notifications',
+          subtitle: 'Receive updates on this device',
+          value: _controller.pushNotifications,
+          onChanged: _controller.setPushNotifications,
+        ),
+        _SettingsItem.toggle(
+          icon: Icons.event_available_rounded,
+          title: 'Booking Alerts',
+          subtitle: 'Reminders before your matches start',
+          value: _controller.bookingAlerts,
+          onChanged: _controller.setBookingAlerts,
+        ),
+        _SettingsItem.toggle(
+          icon: Icons.sports_kabaddi_rounded,
+          title: 'Opponent Requests',
+          subtitle: 'Notify me when someone wants to play',
+          value: _controller.opponentRequests,
+          onChanged: _controller.setOpponentRequests,
+        ),
+        _SettingsItem.toggle(
+          icon: Icons.mark_email_unread_outlined,
+          title: 'Promotional Emails',
+          subtitle: 'Occasional offers and updates by email',
+          value: _controller.promotionalEmails,
+          onChanged: _controller.setPromotionalEmails,
+        ),
+      ],
+    ),
+    _Section(
+      label: 'Preferences',
+      items: <_SettingsItem>[
+        _SettingsItem.toggle(
+          icon: Icons.dark_mode_outlined,
+          title: 'Dark Mode',
+          subtitle: 'Switch to a darker appearance',
+          value: _controller.darkMode,
+          onChanged: _controller.setDarkMode,
+        ),
+        _SettingsItem.nav(
+          icon: Icons.language_rounded,
+          title: 'Language',
+          subtitle: 'App display language',
+          trailingValue: _controller.language,
+          onTap: _showLanguagePicker,
+        ),
+      ],
+    ),
+  ];
+
+  void _notImplemented(String feature) {
+    AppUtils().showSnackBar(
+      context,
+      MsgType.info,
+      '$feature is coming soon.',
     );
   }
 
   Future<void> _showLanguagePicker() async {
     final String? selected = await _showOptionSheet(
       title: 'Language',
-      options: const <String>['English', 'नेपाली', 'हिन्दी'],
-      current: _language,
+      options: SettingsController.languages,
+      current: _controller.language,
     );
-    if (selected != null) setState(() => _language = selected);
+    if (selected != null) _controller.setLanguage(selected);
   }
 
   Future<String?> _showOptionSheet({
@@ -210,14 +232,14 @@ class _SettingsPageState extends State<SettingsPage> {
 }
 
 class _SettingsSection extends StatelessWidget {
-  const _SettingsSection({required this.label, required this.items});
+  const _SettingsSection({required this.section});
 
-  final String label;
-  final List<_SettingsItem> items;
+  final _Section section;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
+    final items = section.items;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -230,14 +252,16 @@ class _SettingsSection extends StatelessWidget {
             AppDimens.paddingX8,
           ),
           child: Text(
-            label,
-            style: textTheme.bodyTextMedium?.copyWith(
+            section.label.toUpperCase(),
+            style: textTheme.bodyTextSmall?.copyWith(
               fontWeight: FontWeight.w600,
-              color: LightColor.primaryTextColor,
+              color: LightColor.secondaryTextColor,
+              fontSize: AppDimens.fontBodySubTitle,
+              letterSpacing: 0.8,
             ),
           ),
         ),
-        Container(
+        DecoratedBox(
           decoration: BoxDecoration(
             color: LightColor.cardColor,
             borderRadius: BorderRadius.circular(AppDimens.radiusX14),
@@ -340,23 +364,61 @@ class _SettingsRow extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: AppDimens.paddingX12),
-              if (isToggle)
-                CustomSwitchWidget(
-                  value: item.value ?? false,
-                  onChanged: item.onChanged,
-                )
-              else
-                const Icon(
-                  Icons.chevron_right_rounded,
-                  color: LightColor.iconGrey,
-                  size: AppDimens.sizeX20,
-                ),
+              _SettingsTrailing(item: item),
             ],
           ),
         ),
       ),
     );
   }
+}
+
+/// Trailing affordance for a row: a switch for toggles, otherwise an optional
+/// current-value label followed by a chevron.
+class _SettingsTrailing extends StatelessWidget {
+  const _SettingsTrailing({required this.item});
+
+  final _SettingsItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    if (item.kind == _ItemKind.toggle) {
+      return CustomSwitchWidget(
+        value: item.value ?? false,
+        onChanged: item.onChanged,
+      );
+    }
+
+    final textTheme = FutsalTheme.getTextTheme(context);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (item.trailingValue != null)
+          Padding(
+            padding: const EdgeInsets.only(right: AppDimens.paddingX6),
+            child: Text(
+              item.trailingValue!,
+              style: textTheme.bodyTextSmall?.copyWith(
+                color: LightColor.secondaryTextColor,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        const Icon(
+          Icons.chevron_right_rounded,
+          color: LightColor.iconGrey,
+          size: AppDimens.sizeX20,
+        ),
+      ],
+    );
+  }
+}
+
+class _Section {
+  const _Section({required this.label, required this.items});
+
+  final String label;
+  final List<_SettingsItem> items;
 }
 
 enum _ItemKind { nav, toggle }
@@ -367,6 +429,7 @@ class _SettingsItem {
     required this.icon,
     required this.title,
     this.subtitle,
+    this.trailingValue,
     this.onTap,
     this.value,
     this.onChanged,
@@ -376,12 +439,14 @@ class _SettingsItem {
     required IconData icon,
     required String title,
     String? subtitle,
+    String? trailingValue,
     required VoidCallback onTap,
   }) => _SettingsItem._(
     kind: _ItemKind.nav,
     icon: icon,
     title: title,
     subtitle: subtitle,
+    trailingValue: trailingValue,
     onTap: onTap,
   );
 
@@ -404,6 +469,7 @@ class _SettingsItem {
   final IconData icon;
   final String title;
   final String? subtitle;
+  final String? trailingValue;
   final VoidCallback? onTap;
   final bool? value;
   final ValueChanged<bool>? onChanged;

@@ -6,21 +6,29 @@ import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/features/opponent_match/data/model/opponent_match_model.dart';
 import 'package:hamro_footsall/features/opponent_match/presentation/widgets/opponent_common.dart';
 
+enum _TeamAction { edit, delete }
+
 /// One team with its roster.
 ///
-/// Header (initials avatar, name, roster mix) · flat divider-separated
-/// player rows · full-width "Add Player" footer action.
+/// Header (initials avatar, name, roster mix, options menu) · flat
+/// divider-separated player rows · full-width "Add Player" footer action.
 class OpponentTeamCard extends StatelessWidget {
   const OpponentTeamCard({
     super.key,
     required this.team,
     required this.onAddPlayer,
     required this.onDelPlayer,
+    required this.onEditTeam,
+    required this.onDeleteTeam,
   });
 
   final TeamModel team;
   final VoidCallback onAddPlayer;
-  final ValueChanged<int> onDelPlayer;
+
+  /// Receives the server member id of the player to remove.
+  final ValueChanged<String> onDelPlayer;
+  final VoidCallback onEditTeam;
+  final VoidCallback onDeleteTeam;
 
   @override
   Widget build(BuildContext context) {
@@ -84,6 +92,56 @@ class OpponentTeamCard extends StatelessWidget {
                     ],
                   ),
                 ),
+                PopupMenuButton<_TeamAction>(
+                  tooltip: 'Team options',
+                  icon: const Icon(
+                    Icons.more_vert_rounded,
+                    color: LightColor.iconGrey,
+                    size: AppDimens.sizeX20,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppDimens.radiusX12),
+                  ),
+                  onSelected: (action) => switch (action) {
+                    _TeamAction.edit => onEditTeam(),
+                    _TeamAction.delete => onDeleteTeam(),
+                  },
+                  itemBuilder: (_) => [
+                    PopupMenuItem(
+                      value: _TeamAction.edit,
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.edit_outlined,
+                            size: AppDimens.sizeX18,
+                            color: LightColor.secondaryTextColor,
+                          ),
+                          const SizedBox(width: AppDimens.paddingX12),
+                          Text('Rename team', style: textTheme.bodyTextMedium),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: _TeamAction.delete,
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.delete_outline_rounded,
+                            size: AppDimens.sizeX18,
+                            color: LightColor.redColor,
+                          ),
+                          const SizedBox(width: AppDimens.paddingX12),
+                          Text(
+                            'Delete team',
+                            style: textTheme.bodyTextMedium?.copyWith(
+                              color: LightColor.redColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
@@ -100,7 +158,7 @@ class OpponentTeamCard extends StatelessWidget {
                   if (i > 0) const _InsetDivider(indent: 58),
                   _PlayerRow(
                     player: team.players[i],
-                    onDelete: () => onDelPlayer(i),
+                    onDelete: () => onDelPlayer(team.players[i].id),
                   ),
                 ],
               );

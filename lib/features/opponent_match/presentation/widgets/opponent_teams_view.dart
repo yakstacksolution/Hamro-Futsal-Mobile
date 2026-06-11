@@ -10,10 +10,6 @@ import 'package:hamro_footsall/features/opponent_match/presentation/bloc/opponen
 import 'package:hamro_footsall/features/opponent_match/presentation/widgets/opponent_sheets.dart';
 import 'package:hamro_footsall/features/opponent_match/presentation/widgets/opponent_team_card.dart';
 
-/// "My Teams" tab — create teams and manage their rosters.
-///
-/// Kept deliberately separate from the request flow: build your squad here,
-/// then just pick it when sending a request.
 class OpponentTeamsView extends StatelessWidget {
   const OpponentTeamsView({super.key});
 
@@ -54,6 +50,49 @@ class OpponentTeamsView extends StatelessWidget {
     );
   }
 
+  void _openEditTeam(BuildContext context, TeamModel team) {
+    final bloc = context.read<OpponentMatchBloc>();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: LightColor.transparentColor,
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+        child: CreateTeamSheet(
+          title: 'Rename Team',
+          actionLabel: 'Save',
+          actionIcon: Icons.check_rounded,
+          initialName: team.name,
+          onCreate: (name) {
+            bloc.add(UpdateTeamEvent(team.id, name));
+            Navigator.pop(ctx);
+          },
+        ),
+      ),
+    );
+  }
+
+  void _confirmDeleteTeam(BuildContext context, TeamModel team) {
+    final bloc = context.read<OpponentMatchBloc>();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: LightColor.transparentColor,
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+        child: ConfirmDeleteSheet(
+          title: 'Delete team?',
+          message:
+              'This removes "${team.name}" and its players. This can\'t be undone.',
+          onConfirm: () {
+            bloc.add(DeleteTeamEvent(team.id));
+            Navigator.pop(ctx);
+          },
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<OpponentMatchBloc, OpponentMatchState>(
@@ -81,9 +120,11 @@ class OpponentTeamsView extends StatelessWidget {
               key: ValueKey(team.id),
               team: team,
               onAddPlayer: () => _openAddPlayer(context, team),
-              onDelPlayer: (playerIndex) => context
-                  .read<OpponentMatchBloc>()
-                  .add(RemovePlayerEvent(team.id, playerIndex)),
+              onDelPlayer: (memberId) => context.read<OpponentMatchBloc>().add(
+                RemoveMemberEvent(team.id, memberId),
+              ),
+              onEditTeam: () => _openEditTeam(context, team),
+              onDeleteTeam: () => _confirmDeleteTeam(context, team),
             );
           },
         );

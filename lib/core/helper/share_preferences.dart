@@ -5,6 +5,17 @@ import 'package:shared_preferences/shared_preferences.dart';
 class _AuthPreferenceKeys {
   static const tokenModel = 'token_model';
   static const isInitialViewOnboarding = 'is_initial_view_onboarding';
+  static const recentVenueSearches = 'recent_venue_searches';
+}
+
+class _SettingsPreferenceKeys {
+  static const pushNotifications = 'settings_push_notifications';
+  static const bookingAlerts = 'settings_booking_alerts';
+  static const opponentRequests = 'settings_opponent_requests';
+  static const promotionalEmails = 'settings_promotional_emails';
+  static const biometricLogin = 'settings_biometric_login';
+  static const darkMode = 'settings_dark_mode';
+  static const appLanguage = 'settings_app_language';
 }
 
 class AppSettings {
@@ -42,6 +53,55 @@ class AppSettings {
   bool get isInitialViewOnboarding =>
       _preferences.getBool(_AuthPreferenceKeys.isInitialViewOnboarding) ??
       false;
+
+  set recentVenueSearches(List<String> searches) => _preferences.setStringList(
+    _AuthPreferenceKeys.recentVenueSearches,
+    searches,
+  );
+
+  List<String> get recentVenueSearches =>
+      _preferences.getStringList(_AuthPreferenceKeys.recentVenueSearches);
+
+  // ---------------------------------------------------------------------------
+  // User-facing app settings. Each preference falls back to a sensible default
+  // when it has never been written, so the Settings page reflects opt-in
+  // notification behaviour out of the box.
+  // ---------------------------------------------------------------------------
+
+  set pushNotifications(bool val) =>
+      _preferences.setBool(_SettingsPreferenceKeys.pushNotifications, val);
+  bool get pushNotifications =>
+      _preferences.getBool(_SettingsPreferenceKeys.pushNotifications) ?? true;
+
+  set bookingAlerts(bool val) =>
+      _preferences.setBool(_SettingsPreferenceKeys.bookingAlerts, val);
+  bool get bookingAlerts =>
+      _preferences.getBool(_SettingsPreferenceKeys.bookingAlerts) ?? true;
+
+  set opponentRequests(bool val) =>
+      _preferences.setBool(_SettingsPreferenceKeys.opponentRequests, val);
+  bool get opponentRequests =>
+      _preferences.getBool(_SettingsPreferenceKeys.opponentRequests) ?? true;
+
+  set promotionalEmails(bool val) =>
+      _preferences.setBool(_SettingsPreferenceKeys.promotionalEmails, val);
+  bool get promotionalEmails =>
+      _preferences.getBool(_SettingsPreferenceKeys.promotionalEmails) ?? false;
+
+  set biometricLogin(bool val) =>
+      _preferences.setBool(_SettingsPreferenceKeys.biometricLogin, val);
+  bool get biometricLogin =>
+      _preferences.getBool(_SettingsPreferenceKeys.biometricLogin) ?? false;
+
+  set darkMode(bool val) =>
+      _preferences.setBool(_SettingsPreferenceKeys.darkMode, val);
+  bool get darkMode =>
+      _preferences.getBool(_SettingsPreferenceKeys.darkMode) ?? false;
+
+  set appLanguage(String val) =>
+      _preferences.setString(_SettingsPreferenceKeys.appLanguage, val);
+  String get appLanguage =>
+      _preferences.getString(_SettingsPreferenceKeys.appLanguage) ?? 'English';
 
   void logout() {
     _preferences.remove(_AuthPreferenceKeys.tokenModel);

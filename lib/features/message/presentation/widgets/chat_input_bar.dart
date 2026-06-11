@@ -16,12 +16,7 @@ class ChatInputBar extends StatefulWidget {
   });
 
   final ValueChanged<String> onSend;
-
-  /// Broadcast to the typing/stop-typing endpoints; called with `true` on the
-  /// first keystroke and `false` after a pause or send.
   final ValueChanged<bool>? onTypingChanged;
-
-  /// Shows a spinner in the send button while the API call is in flight.
   final bool sending;
   final FocusNode? focusNode;
 
@@ -45,28 +40,37 @@ class _ChatInputBarState extends State<ChatInputBar> {
 
   void _onChanged(String _) {
     setState(() {});
+
     if (widget.onTypingChanged == null) return;
+
     if (!_typingSent && _ctrl.text.trim().isNotEmpty) {
       _typingSent = true;
       widget.onTypingChanged!(true);
     }
+
     _typingTimer?.cancel();
     _typingTimer = Timer(const Duration(seconds: 3), _stopTyping);
   }
 
   void _stopTyping() {
     if (!_typingSent) return;
+
     _typingSent = false;
     widget.onTypingChanged?.call(false);
   }
 
   void _send() {
     final text = _ctrl.text.trim();
+
     if (text.isEmpty || widget.sending) return;
+
     HapticFeedback.selectionClick();
+
     _typingTimer?.cancel();
     _stopTyping();
+
     widget.onSend(text);
+
     _ctrl.clear();
     setState(() {});
   }
@@ -85,7 +89,7 @@ class _ChatInputBarState extends State<ChatInputBar> {
           AppDimens.paddingX12,
         ),
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Expanded(
               child: Container(
@@ -94,9 +98,9 @@ class _ChatInputBarState extends State<ChatInputBar> {
                   maxHeight: 118,
                 ),
                 decoration: BoxDecoration(
-                  color: LightColor.cardColor,
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(AppDimens.radiusX24),
-                  border: Border.all(color: LightColor.whiteColor, width: 1.5),
+                  border: Border.all(color: Colors.white, width: 1.5),
                   boxShadow: const [
                     BoxShadow(
                       color: LightColor.shadowColor,
@@ -106,12 +110,13 @@ class _ChatInputBarState extends State<ChatInputBar> {
                   ],
                 ),
                 child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     _PillIcon(
                       icon: Icons.emoji_emotions_outlined,
                       onTap: () {},
                     ),
+
                     Expanded(
                       child: TextField(
                         controller: _ctrl,
@@ -119,6 +124,7 @@ class _ChatInputBarState extends State<ChatInputBar> {
                         onChanged: _onChanged,
                         minLines: 1,
                         maxLines: 4,
+                        textAlignVertical: TextAlignVertical.center,
                         textCapitalization: TextCapitalization.sentences,
                         cursorColor: LightColor.secondaryColor,
                         style: textTheme.bodyTextSmall?.copyWith(
@@ -128,26 +134,32 @@ class _ChatInputBarState extends State<ChatInputBar> {
                           height: 1.4,
                         ),
                         decoration: InputDecoration(
+                          filled: true,
+                          fillColor: Colors.white,
                           isDense: true,
                           border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
                           focusedBorder: InputBorder.none,
-                          hintText: 'Message…',
+                          hintText: 'Type here',
                           hintStyle: textTheme.bodyTextSmall?.copyWith(
                             color: LightColor.hintTextColor,
                             fontSize: 13.5,
                           ),
                           contentPadding: const EdgeInsets.symmetric(
-                            vertical: 13,
+                            vertical: 12,
                           ),
                         ),
                       ),
                     ),
+
                     _PillIcon(icon: Icons.attach_file_rounded, onTap: () {}),
                   ],
                 ),
               ),
             ),
+
             const SizedBox(width: AppDimens.paddingX8),
+
             AnimatedScale(
               scale: _canSend ? 1 : 0.92,
               duration: const Duration(milliseconds: 150),

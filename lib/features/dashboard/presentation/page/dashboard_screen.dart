@@ -4,7 +4,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hamro_footsall/core/helper/venue_distance_helper.dart';
 import 'package:hamro_footsall/features/bookings/presentation/pages/bookings_page.dart';
-import 'package:hamro_footsall/features/courts/presentation/pages/venue_courts_list_page_widget.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/page/footsall_home_page.dart';
 import 'package:hamro_footsall/features/message/presentation/pages/messages_page.dart';
 import 'package:hamro_footsall/features/wishlist/presentation/pages/wishlist_page.dart';
@@ -73,8 +72,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
     );
     if (result != null) {
-      _venueFilterNotifier.value = _withCurrentLocation(result);
+      // The filter page rebuilds the filter from its own controls, so carry
+      // the active search term across the round trip.
+      _venueFilterNotifier.value = _withCurrentLocation(
+        result.copyWith(search: _venueFilterNotifier.value.search),
+      );
     }
+  }
+
+  void _onSearchSubmitted(String term) {
+    final String trimmed = term.trim();
+    _venueFilterNotifier.value = _withCurrentLocation(
+      _venueFilterNotifier.value.copyWith(
+        search: trimmed.isEmpty ? null : trimmed,
+        clearSearch: trimmed.isEmpty,
+      ),
+    );
   }
 
   void _onCategoryFilterChanged(Set<int> ids) {
@@ -150,7 +163,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: <Widget>[
           Text(
-            "Good morning, $firstName 👋",
+            "${appUtils.greeting()}, $firstName 👋",
             style: textTheme.bodyTextLarge?.copyWith(
               fontSize: AppDimens.fontBodyTextLarge,
               fontWeight: FontWeight.w600,
@@ -172,24 +185,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildCurrentTabSection(int selectedNavIndex) {
-    switch (selectedNavIndex) {
-      case 0:
-        return FootsallHomePage(filter: _venueFilterNotifier.value);
-      case 1:
-        return VenueCourtsListPage();
-      case 2:
-        return const BookingsPage();
-      case 3:
-        return MessagesPage();
-      case 4:
-        return const WishlistPage();
-
-      default:
-        return ProfilePage();
-    }
-  }
-
   @override
   void dispose() {
     VenueDistanceHelper.instance.position.removeListener(_syncVenueLocation);
@@ -201,6 +196,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       key: _scaffoldKey,
+      // Match the body's gradient origin so the top safe area (status bar)
+      // blends seamlessly into the content instead of showing a white band.
+      // The bottom nav bar paints its own white into the home-indicator strip,
+      // so the Scaffold no longer needs to be white.
+      backgroundColor: LightColor.background,
       body: BlocListener<ProfileBloc, ProfileState>(
         listener: (BuildContext context, ProfileState state) {
           final bool requiresVendorOnboarding =
@@ -230,6 +230,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           }
         },
         child: SafeArea(
+          bottom: false,
           child: AnimatedBuilder(
             animation: Listenable.merge(<Listenable>[
               _selectedNavIndexNotifier,
@@ -260,27 +261,61 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           end: Alignment.bottomCenter,
                         ),
                       ),
-                      child: selectedNavIndex == 0
-                          ? _homeAppBarSectionWidget(selectedNavIndex)
-                          : _contentSectionWidget(selectedNavIndex),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          // Home-only header (greeting, search, categories)
+                          // smoothly collapses/expands as you enter/leave Home.
+                          AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 280),
+                            switchInCurve: Curves.easeOutCubic,
+                            switchOutCurve: Curves.easeInCubic,
+                            transitionBuilder:
+                                (Widget child, Animation<double> anim) {
+                                  return FadeTransition(
+                                    opacity: anim,
+                                    child: SizeTransition(
+                                      sizeFactor: anim,
+                                      axisAlignment: -1,
+                                      child: child,
+                                    ),
+                                  );
+                                },
+                            child: selectedNavIndex == 0
+                                ? _homeHeader()
+                                : const SizedBox.shrink(
+                                    key: ValueKey<String>('no-home-header'),
+                                  ),
+                          ),
+                          // All tabs stay alive — switching is instant and
+                          // flicker-free (no rebuild / re-fetch / scroll reset).
+                          Expanded(
+                            child: IndexedStack(
+                              index: selectedNavIndex,
+                              sizing: StackFit.expand,
+                              children: <Widget>[
+                                FootsallHomePage(
+                                  filter: _venueFilterNotifier.value,
+                                ),
+                                const BookingsPage(),
+                                MessagesPage(),
+                                const WishlistPage(),
+                                ProfilePage(),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   Positioned(
                     bottom: 0,
                     left: 0,
                     right: 0,
-                    // Courts is vendor-only, Wishlist is candidate-only.
-                    child: BlocBuilder<ProfileBloc, ProfileState>(
-                      builder: (context, profileState) {
-                        final String role =
-                            profileState.profile?.data.role ?? '';
-                        return CustomBottomNavigationBar(
-                          currentIndex: selectedNavIndex,
-                          onTap: _onBottomIconPressed,
-                          showCourts: role == 'vendor',
-                          showWishlist: role == 'candidate',
-                        );
-                      },
+                    // Same tabs for every user type.
+                    child: CustomBottomNavigationBar(
+                      currentIndex: selectedNavIndex,
+                      onTap: _onBottomIconPressed,
                     ),
                   ),
                 ],
@@ -292,8 +327,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _homeAppBarSectionWidget(int selectedNavIndex) {
+  Widget _homeHeader() {
     return Column(
+      key: const ValueKey<String>('home-header'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         _appBar(),
@@ -305,6 +341,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: Column(
             children: [
               ExpandableFocusSearchBar(
+                onSubmitted: _onSearchSubmitted,
                 onFilterTap: _openVenueFilter,
                 filterCount: _venueFilterNotifier.value.activeCount,
               ),
@@ -316,15 +353,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ],
           ),
         ),
-        Expanded(child: _buildCurrentTabSection(selectedNavIndex)),
-      ],
-    );
-  }
-
-  Widget _contentSectionWidget(int selectedNavIndex) {
-    return Column(
-      children: <Widget>[
-        Expanded(child: _buildCurrentTabSection(selectedNavIndex)),
       ],
     );
   }

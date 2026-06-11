@@ -14,11 +14,14 @@ part 'opponent_match_state.dart';
 class OpponentMatchBloc extends Bloc<OpponentMatchEvent, OpponentMatchState> {
   OpponentMatchBloc(this.useCase) : super(const OpponentMatchState()) {
     on<LoadTeamsEvent>(_onLoadTeams);
+    on<LoadTeamEvent>(_onLoadTeam);
     on<LoadVenuesEvent>(_onLoadVenues);
     on<LoadOpponentRequestsEvent>(_onLoadRequests);
     on<CreateTeamEvent>(_onCreateTeam);
+    on<UpdateTeamEvent>(_onUpdateTeam);
+    on<DeleteTeamEvent>(_onDeleteTeam);
     on<AddPlayerEvent>(_onAddPlayer);
-    on<RemovePlayerEvent>(_onRemovePlayer);
+    on<RemoveMemberEvent>(_onRemoveMember);
     on<SendOpponentRequestEvent>(_onSendRequest);
     on<UpdateRequestStatusEvent>(_onUpdateStatus);
     on<DeleteOpponentRequestEvent>(_onDeleteRequest);
@@ -91,6 +94,23 @@ class OpponentMatchBloc extends Bloc<OpponentMatchEvent, OpponentMatchState> {
     );
   }
 
+  Future<void> _onLoadTeam(
+    LoadTeamEvent event,
+    Emitter<OpponentMatchState> emit,
+  ) async {
+    final result = await useCase.getTeam(event.teamId);
+    result.fold(
+      (failure) => emit(state.copyWith(errorMessage: failure.errorMessage)),
+      (team) {
+        final teams = [
+          for (final t in state.teams)
+            if (t.id == team.id) team else t,
+        ];
+        emit(state.copyWith(teams: teams, clearErrorMessage: true));
+      },
+    );
+  }
+
   Future<void> _onCreateTeam(
     CreateTeamEvent event,
     Emitter<OpponentMatchState> emit,
@@ -98,19 +118,33 @@ class OpponentMatchBloc extends Bloc<OpponentMatchEvent, OpponentMatchState> {
     _applyTeams(await useCase.createTeam(event.name), emit);
   }
 
+  Future<void> _onUpdateTeam(
+    UpdateTeamEvent event,
+    Emitter<OpponentMatchState> emit,
+  ) async {
+    _applyTeams(await useCase.updateTeam(event.teamId, event.name), emit);
+  }
+
+  Future<void> _onDeleteTeam(
+    DeleteTeamEvent event,
+    Emitter<OpponentMatchState> emit,
+  ) async {
+    _applyTeams(await useCase.deleteTeam(event.teamId), emit);
+  }
+
   Future<void> _onAddPlayer(
     AddPlayerEvent event,
     Emitter<OpponentMatchState> emit,
   ) async {
-    _applyTeams(await useCase.addPlayer(event.teamId, event.player), emit);
+    _applyTeams(await useCase.addMember(event.teamId, event.player), emit);
   }
 
-  Future<void> _onRemovePlayer(
-    RemovePlayerEvent event,
+  Future<void> _onRemoveMember(
+    RemoveMemberEvent event,
     Emitter<OpponentMatchState> emit,
   ) async {
     _applyTeams(
-      await useCase.removePlayer(event.teamId, event.playerIndex),
+      await useCase.removeMember(event.teamId, event.memberId),
       emit,
     );
   }

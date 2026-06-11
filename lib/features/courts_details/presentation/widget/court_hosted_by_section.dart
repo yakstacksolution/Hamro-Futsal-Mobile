@@ -27,8 +27,7 @@ class CourtHostedBySection extends StatelessWidget {
   final int? hostedVenues;
   final double? responseRate;
 
-  /// Opens a direct chat with the host; the chat button is shown only when
-  /// this is provided.
+
   final VoidCallback? onMessage;
 
   @override
@@ -39,8 +38,8 @@ class CourtHostedBySection extends StatelessWidget {
     return Padding(
       padding: AppUtils().getPadding(
         top: AppDimens.paddingX12,
-        left: AppDimens.paddingX20,
-        right: AppDimens.paddingX20,
+        left: AppDimens.paddingX16,
+        right: AppDimens.paddingX16,
       ),
       child: Container(
         padding: AppUtils().getPadding(all: AppDimens.paddingX16),

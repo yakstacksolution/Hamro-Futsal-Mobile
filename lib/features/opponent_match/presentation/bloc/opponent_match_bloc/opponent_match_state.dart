@@ -12,9 +12,7 @@ final class OpponentMatchState extends Equatable {
     this.requests = const [],
     this.errorMessage,
   });
-
-  /// Teams, venues and requests come from independent sources — each fetch
-  /// tracks its own status so a failure in one never blocks the others.
+ 
   final OpponentMatchStatus teamsStatus;
   final OpponentMatchStatus venuesStatus;
   final OpponentMatchStatus requestsStatus;

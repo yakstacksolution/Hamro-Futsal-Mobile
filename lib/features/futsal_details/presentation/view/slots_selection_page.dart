@@ -5,6 +5,7 @@ import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/utils/scroll_behavior.dart';
+import 'package:hamro_footsall/core/widgets/custom_button.dart';
 import 'package:hamro_footsall/features/courts_details/presentation/page/court_details.dart';
 import 'package:hamro_footsall/features/futsal_details/data/model/time_slot_model.dart';
 import 'package:hamro_footsall/features/futsal_details/data/model/venue_court_item_model.dart';
@@ -471,58 +472,20 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
                       ),
                       SizedBox(width: AppDimens.sizeX10),
                       Expanded(
-                        child: GestureDetector(
-                          onTap: hasSelection
+                        child: CustomButton(
+                          text: hasSelection ? 'Book Now' : 'Select Slot',
+                          onPressed: hasSelection
                               ? () => HapticFeedback.mediumImpact()
                               : null,
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 260),
-                            height: AppDimens.sizeX46,
-                            decoration: BoxDecoration(
-                              gradient: hasSelection
-                                  ? const LinearGradient(
-                                      colors: <Color>[
-                                        LightColor.secondaryColor,
-                                        LightColor.secondaryDark,
-                                      ],
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                    )
-                                  : null,
-                              color: hasSelection
-                                  ? null
-                                  : LightColor.dividerColor,
-                              borderRadius: BorderRadius.circular(
-                                AppDimens.radiusX10,
-                              ),
-                              boxShadow: hasSelection
-                                  ? <BoxShadow>[
-                                      BoxShadow(
-                                        color: LightColor.secondaryColor
-                                            .withValues(alpha: 0.35),
-                                        blurRadius: AppDimens.sizeX20,
-                                        offset: const Offset(
-                                          0,
-                                          AppDimens.sizeX8,
-                                        ),
-                                      ),
-                                    ]
-                                  : null,
-                            ),
-                            child: Center(
-                              child: Text(
-                                hasSelection ? 'Book Now' : 'Select Slot',
-                                style: FutsalTheme.getTextTheme(context)
-                                    .bodyTextLarge
-                                    ?.copyWith(
-                                      color: hasSelection
-                                          ? LightColor.inverseTextColor
-                                          : LightColor.hintTextColor,
-                                      fontWeight: FontWeight.w800,
-                                    ),
-                              ),
-                            ),
-                          ),
+                          backgroundColor: hasSelection
+                              ? LightColor.secondaryColor
+                              : LightColor.dividerColor,
+                          foregroundColor: hasSelection
+                              ? LightColor.inverseTextColor
+                              : LightColor.hintTextColor,
+                          minHeight: AppDimens.sizeX46,
+                          borderRadius: AppDimens.radiusX10,
+                          fontWeight: FontWeight.w800,
                         ),
                       ),
                     ],

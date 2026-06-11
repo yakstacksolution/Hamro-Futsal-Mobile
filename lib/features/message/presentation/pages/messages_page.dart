@@ -8,6 +8,7 @@ import 'package:hamro_footsall/core/widgets/custom_button.dart';
 import 'package:hamro_footsall/core/widgets/loading_widget.dart';
 import 'package:hamro_footsall/features/message/data/model/conversation_model.dart';
 import 'package:hamro_footsall/features/message/data/repositories/message_repository_impl.dart';
+import 'package:hamro_footsall/features/message/data/service/reverb_chat_socket_service.dart';
 import 'package:hamro_footsall/features/message/domain/usecase/message_usecase.dart';
 import 'package:hamro_footsall/features/message/presentation/bloc/message_bloc/message_bloc.dart';
 import 'package:hamro_footsall/features/message/presentation/pages/chat_page.dart';
@@ -23,7 +24,10 @@ class MessagesPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) =>
-          MessageBloc(MessageUseCase(MessageRepositoryImpl()))
+          MessageBloc(
+              MessageUseCase(MessageRepositoryImpl()),
+              socketService: ReverbChatSocketService.instance,
+            )
             ..add(const LoadConversationsEvent()),
       child: const _MessagesView(),
     );

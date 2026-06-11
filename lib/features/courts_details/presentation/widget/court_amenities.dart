@@ -13,8 +13,7 @@ class CourtAmenitiesSection extends StatelessWidget {
 
   final List<String> features;
 
-  /// Optional feature → category override (e.g. 'Parking' → 'Amenities').
-  /// Falls back to the built-in categories when not provided.
+ 
   final Map<String, String>? categories;
 
   @override
@@ -22,8 +21,8 @@ class CourtAmenitiesSection extends StatelessWidget {
     return Padding(
       padding: AppUtils().getPadding(
         top: AppDimens.paddingX12,
-        left: AppDimens.paddingX20,
-        right: AppDimens.paddingX20,
+        left: AppDimens.paddingX16,
+        right: AppDimens.paddingX16,
       ),
       child: Container(
         padding: AppUtils().getPadding(all: AppDimens.paddingX16),

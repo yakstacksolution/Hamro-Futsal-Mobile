@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/features/message/data/repositories/message_repository_impl.dart';
+import 'package:hamro_footsall/features/message/data/service/reverb_chat_socket_service.dart';
 import 'package:hamro_footsall/features/message/domain/usecase/message_usecase.dart';
 import 'package:hamro_footsall/features/message/presentation/bloc/message_bloc/message_bloc.dart';
 import 'package:hamro_footsall/features/message/presentation/pages/chat_page.dart';
@@ -44,7 +45,10 @@ class ChatLauncher {
       (conversation) => Navigator.of(context).push(
         MaterialPageRoute<void>(
           builder: (_) => BlocProvider(
-            create: (_) => MessageBloc(useCase),
+            create: (_) => MessageBloc(
+              useCase,
+              socketService: ReverbChatSocketService.instance,
+            ),
             child: ChatPage(conversation: conversation),
           ),
         ),

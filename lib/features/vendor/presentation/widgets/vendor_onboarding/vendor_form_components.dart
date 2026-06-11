@@ -552,6 +552,7 @@ class VendorUploadSection extends StatelessWidget {
     required this.files,
     required this.onRemove,
     this.onReplace,
+    this.onReorder,
     this.actionLabel = 'Upload',
     this.actionIcon = Icons.upload_rounded,
     this.previewAsImage = false,
@@ -563,6 +564,9 @@ class VendorUploadSection extends StatelessWidget {
   final List<UploadRef> files;
   final ValueChanged<UploadRef>? onRemove;
   final ValueChanged<UploadRef>? onReplace;
+
+  /// When provided (and there are 2+ files), the list becomes drag-to-reorder.
+  final void Function(int oldIndex, int newIndex)? onReorder;
   final String actionLabel;
   final IconData actionIcon;
   final bool previewAsImage;
@@ -662,23 +666,7 @@ class VendorUploadSection extends StatelessWidget {
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 220),
             child: hasFiles
-                ? Column(
-                    key: const ValueKey<String>('upload_files'),
-                    children: files
-                        .map(
-                          (UploadRef file) => VendorUploadItem(
-                            file: file,
-                            previewAsImage: previewAsImage,
-                            onRemove: onRemove == null
-                                ? null
-                                : () => onRemove!(file),
-                            onReplace: onReplace == null
-                                ? null
-                                : () => onReplace!(file),
-                          ),
-                        )
-                        .toList(),
-                  )
+                ? _buildFileList(context)
                 : Container(
                     key: const ValueKey<String>('upload_empty'),
                     width: double.infinity,
@@ -739,6 +727,254 @@ class VendorUploadSection extends StatelessWidget {
       ),
     );
   }
+
+  Widget _buildFileList(BuildContext context) {
+    // Image galleries: big hero (first image) + a horizontal strip of small,
+    // drag-to-reorder thumbnails below it.
+    if (previewAsImage) {
+      return _buildImageHeroLayout(context);
+    }
+
+    // Documents / non-image files: vertical list, drag-to-reorder when 2+.
+    final bool canReorder = onReorder != null && files.length > 1;
+    if (!canReorder) {
+      return Column(
+        key: const ValueKey<String>('upload_files'),
+        children: files
+            .map(
+              (UploadRef file) => VendorUploadItem(
+                file: file,
+                previewAsImage: previewAsImage,
+                forceFileLayout: true,
+                onRemove: onRemove == null ? null : () => onRemove!(file),
+                onReplace: onReplace == null ? null : () => onReplace!(file),
+              ),
+            )
+            .toList(),
+      );
+    }
+
+    return ReorderableListView.builder(
+      key: const ValueKey<String>('upload_files_reorderable'),
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      buildDefaultDragHandles: false,
+      itemCount: files.length,
+      onReorder: onReorder!,
+      itemBuilder: (BuildContext context, int index) {
+        final UploadRef file = files[index];
+        return Row(
+          key: ObjectKey(file),
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: <Widget>[
+            ReorderableDragStartListener(
+              index: index,
+              child: Padding(
+                padding: AppUtils().getPadding(right: AppDimens.sizeX6),
+                child: Icon(
+                  Icons.drag_indicator_rounded,
+                  color: LightColor.secondaryTextColor,
+                  size: AppDimens.sizeX22,
+                ),
+              ),
+            ),
+            Expanded(
+              child: VendorUploadItem(
+                file: file,
+                previewAsImage: previewAsImage,
+                forceFileLayout: true,
+                onRemove: onRemove == null ? null : () => onRemove!(file),
+                onReplace: onReplace == null ? null : () => onReplace!(file),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _confirmRemove(BuildContext context, UploadRef file) async {
+    if (onRemove == null) return;
+    final bool confirmed = await showDeleteDialog(
+      context: context,
+      title: 'Delete File?',
+      message: 'Are you sure you want to remove "${file.name}"?',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      icon: Icons.delete_outline_rounded,
+      confirmColor: LightColor.redColor,
+    );
+    if (confirmed) onRemove!(file);
+  }
+
+  Widget _buildImageHeroLayout(BuildContext context) {
+    final UploadRef hero = files.first;
+    final bool canReorder = onReorder != null && files.length > 1;
+
+    return Column(
+      key: const ValueKey<String>('upload_hero'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        // ── Large hero (first image) ──
+        ClipRRect(
+          borderRadius: BorderRadius.circular(AppDimens.radiusX14),
+          child: Stack(
+            children: <Widget>[
+              AspectRatio(
+                aspectRatio: 16 / 9,
+                child: _UploadImageView(file: hero),
+              ),
+              if (onRemove != null)
+                Positioned(
+                  top: AppDimens.sizeX8,
+                  right: AppDimens.sizeX8,
+                  child: _ThumbDeleteButton(
+                    onTap: () => unawaited(_confirmRemove(context, hero)),
+                  ),
+                ),
+            ],
+          ),
+        ),
+
+        // ── Horizontal thumbnail strip (all images) ──
+        if (files.length > 1) ...<Widget>[
+          const SizedBox(height: AppDimens.sizeX12),
+          SizedBox(
+            height: AppDimens.sizeX80,
+            child: canReorder
+                ? ReorderableListView.builder(
+                    key: const ValueKey<String>('upload_thumbs_reorderable'),
+                    scrollDirection: Axis.horizontal,
+                    buildDefaultDragHandles: false,
+                    itemCount: files.length,
+                    onReorder: onReorder!,
+                    itemBuilder: (BuildContext context, int index) {
+                      final UploadRef file = files[index];
+                      return ReorderableDragStartListener(
+                        key: ObjectKey(file),
+                        index: index,
+                        child: _buildThumb(context, file, index),
+                      );
+                    },
+                  )
+                : ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: files.length,
+                    itemBuilder: (BuildContext context, int index) =>
+                        _buildThumb(context, files[index], index),
+                  ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildThumb(BuildContext context, UploadRef file, int index) {
+    final bool isCover = index == 0;
+    return Container(
+      width: AppDimens.sizeX80,
+      margin: AppUtils().getMargin(right: AppDimens.sizeX10),
+      child: Stack(
+        children: <Widget>[
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(AppDimens.radiusX12),
+                border: Border.all(
+                  color: isCover
+                      ? LightColor.secondaryColor
+                      : LightColor.greyBorderColor,
+                  width: isCover ? 2 : 1,
+                ),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(AppDimens.radiusX12),
+                child: _UploadImageView(file: file),
+              ),
+            ),
+          ),
+          if (onRemove != null)
+            Positioned(
+              top: AppDimens.sizeX4,
+              right: AppDimens.sizeX4,
+              child: _ThumbDeleteButton(
+                small: true,
+                onTap: () => unawaited(_confirmRemove(context, file)),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Resolves an [UploadRef] to its image (network or local file) and renders it
+/// cover-fit. Mirrors [VendorUploadItem]'s image resolution.
+class _UploadImageView extends StatelessWidget {
+  const _UploadImageView({required this.file});
+
+  final UploadRef file;
+
+  String get _rawImageSource => (file.remoteUrl ?? '').trim();
+
+  bool get _isNetwork {
+    final String source = _resolveMediaUrl(_rawImageSource).toLowerCase();
+    return source.startsWith('http://') || source.startsWith('https://');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_rawImageSource.isEmpty) {
+      return const ColoredBox(
+        color: LightColor.background,
+        child: Center(
+          child: Icon(
+            Icons.image_not_supported_rounded,
+            color: LightColor.secondaryTextColor,
+            size: AppDimens.sizeX22,
+          ),
+        ),
+      );
+    }
+    return _isNetwork
+        ? _NetworkUploadPreview(urls: _resolveMediaUrlCandidates(_rawImageSource))
+        : CustomImageView(
+            file: File(_rawImageSource),
+            fit: BoxFit.cover,
+            width: double.infinity,
+            height: double.infinity,
+          );
+  }
+}
+
+/// Simple red remove icon used on hero / thumbnail previews.
+class _ThumbDeleteButton extends StatelessWidget {
+  const _ThumbDeleteButton({required this.onTap, this.small = false});
+
+  final VoidCallback onTap;
+  final bool small;
+
+  @override
+  Widget build(BuildContext context) {
+    final double size = small ? AppDimens.sizeX22 : AppDimens.sizeX28;
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        width: size,
+        height: size,
+        decoration: const BoxDecoration(
+          color: LightColor.whiteColor,
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          Icons.close_rounded,
+          color: LightColor.redColor,
+          size: small ? AppDimens.sizeX14 : AppDimens.sizeX18,
+        ),
+      ),
+    );
+  }
 }
 
 class VendorUploadItem extends StatelessWidget {
@@ -746,12 +982,17 @@ class VendorUploadItem extends StatelessWidget {
     super.key,
     required this.file,
     this.previewAsImage = false,
+    this.forceFileLayout = false,
     this.onRemove,
     this.onReplace,
   });
 
   final UploadRef file;
   final bool previewAsImage;
+
+  /// Forces the compact file-row (list) layout even for image files —
+  /// used for the company-documents list.
+  final bool forceFileLayout;
   final VoidCallback? onRemove;
   final VoidCallback? onReplace;
 
@@ -759,7 +1000,15 @@ class VendorUploadItem extends StatelessWidget {
       file.verificationStatus == UploadVerificationStatus.rejected;
 
   bool get _isImageFile {
+    if (forceFileLayout) return false;
     if (previewAsImage && _rawImageSource.isNotEmpty) return true;
+    return _hasImageContent;
+  }
+
+  /// Whether the file is an image (by extension), regardless of layout mode —
+  /// drives the document-row thumbnail.
+  bool get _hasImageContent {
+    if (_rawImageSource.isEmpty) return false;
     final String path = _pathWithoutQuery(_rawImageSource).toLowerCase();
     return path.endsWith('.png') ||
         path.endsWith('.jpg') ||
@@ -925,15 +1174,18 @@ class VendorUploadItem extends StatelessWidget {
               Container(
                 width: AppDimens.sizeX44,
                 height: AppDimens.sizeX44,
+                clipBehavior: Clip.antiAlias,
                 decoration: BoxDecoration(
                   color: LightColor.background,
                   borderRadius: BorderRadius.circular(AppDimens.radiusX12),
                 ),
-                child: const Icon(
-                  Icons.insert_drive_file_rounded,
-                  color: LightColor.secondaryColor,
-                  size: AppDimens.sizeX22,
-                ),
+                child: _hasImageContent
+                    ? _UploadImageView(file: file)
+                    : const Icon(
+                        Icons.insert_drive_file_rounded,
+                        color: LightColor.secondaryColor,
+                        size: AppDimens.sizeX22,
+                      ),
               ),
               const SizedBox(width: AppDimens.sizeX12),
               Expanded(
@@ -982,19 +1234,6 @@ class VendorUploadItem extends StatelessWidget {
                             status: file.verificationStatus,
                           ),
                         ],
-                        const SizedBox(width: AppDimens.sizeX8),
-                        Expanded(
-                          child: Text(
-                            file.remoteUrl ?? '',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: FutsalTheme.getTextTheme(context)
-                                .bodyTextSmall
-                                ?.copyWith(
-                                  color: LightColor.secondaryTextColor,
-                                ),
-                          ),
-                        ),
                       ],
                     ),
                   ],

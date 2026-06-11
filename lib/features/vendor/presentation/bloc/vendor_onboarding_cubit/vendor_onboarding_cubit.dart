@@ -1506,6 +1506,47 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     );
   }
 
+  /// Moves an item within a list, applying the index adjustment
+  /// `ReorderableListView` expects when dragging downward.
+  List<T> _reorderList<T>(List<T> source, int oldIndex, int newIndex) {
+    if (oldIndex < 0 || oldIndex >= source.length) return source;
+    final List<T> list = List<T>.of(source);
+    int target = newIndex > oldIndex ? newIndex - 1 : newIndex;
+    if (target < 0) target = 0;
+    if (target > list.length - 1) target = list.length - 1;
+    final T item = list.removeAt(oldIndex);
+    list.insert(target, item);
+    return list;
+  }
+
+  /// Reorders the futsal gallery (the cover image is the first entry, so the
+  /// order users drag into is the order shown on the listing). Keeps the
+  /// parallel selected-image list in sync.
+  void reorderFutsalGalleryImages(int oldIndex, int newIndex) {
+    updateFutsal(
+      state.futsal.copyWith(
+        gallery: _reorderList(state.futsal.gallery, oldIndex, newIndex),
+        selectedGalleryImages: _reorderList(
+          state.futsal.selectedGalleryImages,
+          oldIndex,
+          newIndex,
+        ),
+      ),
+    );
+  }
+
+  void reorderCompanyDocuments(int oldIndex, int newIndex) {
+    updateFutsal(
+      state.futsal.copyWith(
+        companyDocuments: _reorderList(
+          state.futsal.companyDocuments,
+          oldIndex,
+          newIndex,
+        ),
+      ),
+    );
+  }
+
   void setCourtPaymentQr(UploadRef file) {
     final CourtDraft? court = state.activeCourt;
     if (court == null) return;

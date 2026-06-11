@@ -1,6 +1,7 @@
 import 'package:dartz/dartz.dart';
 import 'package:hamro_footsall/core/helper/exception_helper.dart';
 import 'package:hamro_footsall/features/expenses/data/model/expense_model.dart';
+import 'package:hamro_footsall/features/expenses/data/model/expense_report_model.dart';
 import 'package:hamro_footsall/features/expenses/domain/entities/expense_entities.dart';
 import 'package:hamro_footsall/features/expenses/domain/repository/expenses_repository.dart';
 
@@ -15,8 +16,9 @@ final class ExpensesUseCase {
   Future<Either<AppException, List<ExpenseCategoryModel>>>
   getCategories() async => await repository.getCategories();
 
-  Future<Either<AppException, List<ExpenseModel>>> getExpenses() async =>
-      await repository.getExpenses();
+  Future<Either<AppException, ExpenseReport>> getExpenses(
+    Map<String, dynamic> query,
+  ) async => await repository.getExpenses(query);
 
   Future<Either<AppException, ExpenseModel>> addExpense(
     CreateExpenseEntity data,

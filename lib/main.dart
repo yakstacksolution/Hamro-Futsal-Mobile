@@ -53,7 +53,6 @@ class _MyAppState extends State<MyApp> {
     return MaterialApp.router(
       title: 'Hamro Futsal',
       debugShowCheckedModeBanner: false,
-      // theme: AppTheme.lightTheme,
       theme: FutsalTheme.setTheme(context),
       themeMode: ThemeMode.light,
       localizationsDelegates: const [

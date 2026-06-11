@@ -18,6 +18,7 @@ class VenueFilter extends Equatable {
     this.courtTypeId,
     this.minRating,
     this.timeSlots = const <String>{},
+    this.search,
   });
 
   final double? latitude;
@@ -29,6 +30,10 @@ class VenueFilter extends Equatable {
   final int? matchTypeId;
   final int? courtTypeId;
   final double? minRating;
+
+  /// Free-text venue-name search, sent to the list API and used as a
+  /// client-side fallback. `null`/empty means no text constraint.
+  final String? search;
 
   /// Preferred play windows, e.g. `{'06:00-08:00', '17:00-19:00'}`.
   final Set<String> timeSlots;
@@ -45,7 +50,8 @@ class VenueFilter extends Equatable {
       matchTypeId == null &&
       courtTypeId == null &&
       minRating == null &&
-      timeSlots.isEmpty;
+      timeSlots.isEmpty &&
+      (search == null || search!.trim().isEmpty);
 
   /// Number of active filter dimensions — drives the badge on the filter
   /// button.
@@ -71,12 +77,14 @@ class VenueFilter extends Equatable {
     int? courtTypeId,
     double? minRating,
     Set<String>? timeSlots,
+    String? search,
     bool clearLocation = false,
     bool clearRadius = false,
     bool clearPrice = false,
     bool clearMatchTypeId = false,
     bool clearCourtTypeId = false,
     bool clearMinRating = false,
+    bool clearSearch = false,
   }) {
     return VenueFilter(
       latitude: clearLocation ? null : latitude ?? this.latitude,
@@ -89,6 +97,7 @@ class VenueFilter extends Equatable {
       courtTypeId: clearCourtTypeId ? null : courtTypeId ?? this.courtTypeId,
       minRating: clearMinRating ? null : minRating ?? this.minRating,
       timeSlots: timeSlots ?? this.timeSlots,
+      search: clearSearch ? null : search ?? this.search,
     );
   }
 
@@ -116,6 +125,8 @@ class VenueFilter extends Equatable {
     if (timeSlots.isNotEmpty) {
       payload['time_slot'] = timeSlots.toList(growable: false);
     }
+    final String? term = search?.trim();
+    if (term != null && term.isNotEmpty) payload['search'] = term;
 
     return payload;
   }
@@ -126,8 +137,14 @@ class VenueFilter extends Equatable {
     if (minPrice != null && (price == null || price < minPrice!)) return false;
     if (maxPrice != null && (price == null || price > maxPrice!)) return false;
 
+    final String? term = search?.trim();
+    if (term != null && term.isNotEmpty) {
+      final String name = venue.name?.toLowerCase() ?? '';
+      if (!name.contains(term.toLowerCase())) return false;
+    }
+
     // ID-based filters, rating and time-slot availability are applied by the
-    // venue list API. The local pass only keeps price fallback behavior for
+    // venue list API. The local pass keeps price + name fallbacks for
     // already-loaded data.
 
     return true;
@@ -157,5 +174,6 @@ class VenueFilter extends Equatable {
     courtTypeId,
     minRating,
     timeSlots,
+    search,
   ];
 }

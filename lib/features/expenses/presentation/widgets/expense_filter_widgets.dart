@@ -203,6 +203,50 @@ class ExpenseVenueFilter extends StatelessWidget {
   }
 }
 
+/// Cash / Online payment-method filter — maps to the `payment_method` query
+/// param. `null` = all methods.
+class ExpensePaymentFilter extends StatelessWidget {
+  const ExpensePaymentFilter({
+    super.key,
+    required this.selected,
+    required this.onChange,
+  });
+
+  final PaymentMethod? selected;
+  final ValueChanged<PaymentMethod?> onChange;
+
+  @override
+  Widget build(BuildContext context) {
+    const options = <(String, PaymentMethod?)>[
+      ('All methods', null),
+      ('Cash', PaymentMethod.cash),
+      ('Online', PaymentMethod.online),
+    ];
+    return SizedBox(
+      height: AppDimens.sizeX32,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        itemCount: options.length,
+        separatorBuilder: (_, __) => const SizedBox(width: AppDimens.paddingX8),
+        itemBuilder: (_, i) {
+          final (label, value) = options[i];
+          return ExpenseChip(
+            label: label,
+            selected: selected == value,
+            icon: value == null
+                ? null
+                : value == PaymentMethod.cash
+                ? Icons.payments_outlined
+                : Icons.credit_card_outlined,
+            onTap: () => onChange(value),
+          );
+        },
+      ),
+    );
+  }
+}
+
 class ExpenseCategoryFilterRow extends StatelessWidget {
   const ExpenseCategoryFilterRow({
     super.key,

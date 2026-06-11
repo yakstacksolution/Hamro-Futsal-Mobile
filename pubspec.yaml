@@ -69,7 +69,7 @@ dependencies:
   flutter_rating_bar: ^4.0.1
   geolocator: ^14.0.2
   syncfusion_flutter_charts: ^33.2.10
-
+  dart_pusher_channels: ^1.2.5
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -95,6 +95,7 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - assets/icons/
+    - assets/icon/
     - assets/logo/
     - .env
     - assets/images/

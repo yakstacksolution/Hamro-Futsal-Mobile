@@ -41,9 +41,7 @@ class _ProfilePageState extends State<ProfilePage> {
     _ProfileItem(
       title: 'Opponent Requests',
       icon: Icons.sports_kabaddi_rounded,
-      onTap: () => Navigator.of(
-        context,
-      ).push(
+      onTap: () => Navigator.of(context).push(
         MaterialPageRoute<void>(builder: (_) => const OpponentMatchScreen()),
       ),
     ),
@@ -56,13 +54,13 @@ class _ProfilePageState extends State<ProfilePage> {
 
   late final List<_ProfileItem> _vendorItems = <_ProfileItem>[
     _ProfileItem(
-      title: 'Your Venue',
+      title: 'Your Venues',
       icon: Icons.stadium_outlined,
       onTap: () => Navigator.of(context).push(
         MaterialPageRoute<void>(
           builder: (_) => Scaffold(
             backgroundColor: LightColor.background,
-            appBar: const CustomAppBar(title: 'Your Venue'),
+            appBar: const CustomAppBar(title: 'Your Venues'),
             body: SafeArea(top: false, child: VenueCourtsListPage()),
           ),
         ),

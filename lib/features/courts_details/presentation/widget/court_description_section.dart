@@ -20,8 +20,6 @@ class CourtDescriptionSection extends StatefulWidget {
   final String subtitle;
   final IconData icon;
 
-  /// How many text lines stay visible before the content collapses behind
-  /// the "Read more" toggle.
   final int collapsedLines;
 
   @override
@@ -69,8 +67,8 @@ class _CourtDescriptionSectionState extends State<CourtDescriptionSection> {
     return Padding(
       padding: AppUtils().getPadding(
         top: AppDimens.paddingX12,
-        left: AppDimens.paddingX20,
-        right: AppDimens.paddingX20,
+        left: AppDimens.paddingX16,
+        right: AppDimens.paddingX16,
       ),
       child: Container(
         width: double.infinity,

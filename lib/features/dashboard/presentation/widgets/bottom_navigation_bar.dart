@@ -2,60 +2,44 @@ import 'package:flutter/material.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
+import 'package:hamro_footsall/core/utils/custom_image_view.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/utils/image_constants.dart';
 
 class CustomBottomNavigationBar extends StatelessWidget {
   const CustomBottomNavigationBar({
     super.key,
     required this.currentIndex,
     required this.onTap,
-    this.showCourts = true,
-    this.showWishlist = false,
   });
 
   final int currentIndex;
   final ValueChanged<int> onTap;
-
-  /// Courts is a vendor-only tab — hidden for candidates. Tab indices stay
-  /// stable so the dashboard's index → page mapping is unaffected.
-  final bool showCourts;
-
-  /// Wishlist is a candidate-only tab — hidden for vendors.
-  final bool showWishlist;
-
-  /// Indices of the role-dependent entries in [_items].
-  static const int _courtsIndex = 1;
-  static const int _wishlistIndex = 4;
-
+ 
   static const List<_NavItem> _items = <_NavItem>[
     _NavItem(
-      icon: Icons.home_outlined,
-      activeIcon: Icons.home_rounded,
+      icon: ImageConstants.navHome,
+      activeIcon: ImageConstants.navHomeFill,
       label: 'Home',
     ),
     _NavItem(
-      icon: Icons.sports_soccer_outlined,
-      activeIcon: Icons.sports_soccer,
-      label: 'Courts',
-    ),
-    _NavItem(
-      icon: Icons.calendar_month_outlined,
-      activeIcon: Icons.calendar_month,
+      icon: ImageConstants.navBooking,
+      activeIcon: ImageConstants.navBookingFill,
       label: 'Bookings',
     ),
     _NavItem(
-      icon: Icons.chat_bubble_outline,
-      activeIcon: Icons.chat_bubble,
+      icon: ImageConstants.navMessage,
+      activeIcon: ImageConstants.navMessageFill,
       label: 'Chat',
     ),
     _NavItem(
-      icon: Icons.favorite_outline_rounded,
-      activeIcon: Icons.favorite_rounded,
+      icon: ImageConstants.navHeart,
+      activeIcon: ImageConstants.navHeartFill,
       label: 'Wishlist',
     ),
     _NavItem(
-      icon: Icons.person_outline_rounded,
-      activeIcon: Icons.person_rounded,
+      icon: ImageConstants.navProfile,
+      activeIcon: ImageConstants.navProfileFill,
       label: 'Profile',
     ),
   ];
@@ -80,13 +64,11 @@ class CustomBottomNavigationBar extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: <Widget>[
               for (int index = 0; index < _items.length; index++)
-                if ((showCourts || index != _courtsIndex) &&
-                    (showWishlist || index != _wishlistIndex))
-                  _NavBarItem(
-                    item: _items[index],
-                    isActive: currentIndex == index,
-                    onTap: () => onTap(index),
-                  ),
+                _NavBarItem(
+                  item: _items[index],
+                  isActive: currentIndex == index,
+                  onTap: () => onTap(index),
+                ),
             ],
           ),
         ),
@@ -167,9 +149,13 @@ class _NavBarItemState extends State<_NavBarItem>
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              Icon(
-                widget.isActive ? widget.item.activeIcon : widget.item.icon,
-                size: AppDimens.sizeX20,
+              CustomImageView(
+                imagePath : widget.isActive
+                    ? widget.item.activeIcon
+                    : widget.item.icon,
+                width: AppDimens.sizeX20,
+                height: AppDimens.sizeX20,
+                fit: BoxFit.contain,
                 color: widget.isActive
                     ? LightColor.whiteColor
                     : LightColor.secondaryTextColor,
@@ -208,7 +194,10 @@ class _NavItem {
     required this.label,
   });
 
-  final IconData icon;
-  final IconData activeIcon;
+  /// Asset path for the inactive (outline) icon.
+  final String icon;
+
+  /// Asset path for the active (filled) icon.
+  final String activeIcon;
   final String label;
 }

@@ -73,9 +73,22 @@ class ApiCallWrapper {
               data: payload,
             );
             isTokenFreshApiCalling = false;
-            TokenModel newTokenModel = TokenModel.fromJson(
+            final TokenModel newTokenModel = _parseRefreshedToken(
               await refreshResponse.data,
             );
+
+            // If the refresh response does not carry a usable access token,
+            // never persist it — doing so would overwrite the stored
+            // credentials with nulls and silently log the user out on the
+            // next app launch. Treat it as a failed refresh instead.
+            if (newTokenModel.accessToken == null ||
+                newTokenModel.accessToken!.trim().isEmpty) {
+              await revokeAuthFromApp();
+              return Result.error(
+                DataError('Session expired. Please log in again.', 401, null),
+              );
+            }
+
             AppSettings().token = newTokenModel;
             isTokenPrinted = false;
             printTokenDetails(newTokenModel.accessToken);
@@ -142,7 +155,7 @@ class ApiCallWrapper {
     dynamic response;
     switch (method) {
       case HttpVerb.get:
-        response = await _iHttp.get(url: url, token: token);
+        response = await _iHttp.get(url: url, token: token, query: query);
         break;
       case HttpVerb.post:
         response = await _iHttp.post(
@@ -169,6 +182,32 @@ class ApiCallWrapper {
     isTokenFreshApiCalling = false;
     numberOfRetry = 0;
     await Client.revokeAuth!();
+  }
+
+  /// Parses the `/auth/refresh-token` response into a [TokenModel].
+  ///
+  /// The backend wraps successful payloads in a `data` envelope
+  /// (`{"data": {"access_token": ...}}`), exactly like the login response.
+  /// We unwrap it here and fall back to the top-level map so both shapes work,
+  /// and tolerate the `expires_in`/`expired_in` and `access_token`/`token`
+  /// key variants used elsewhere in the auth layer.
+  TokenModel _parseRefreshedToken(dynamic payload) {
+    Map<String, dynamic> data = {};
+    if (payload is Map) {
+      final Map<String, dynamic> map = Map<String, dynamic>.from(payload);
+      final dynamic inner = map['data'];
+      data = inner is Map ? Map<String, dynamic>.from(inner) : map;
+    }
+
+    final dynamic expires = data['expires_in'] ?? data['expired_in'];
+    return TokenModel(
+      tokenType: data['token_type'] as String?,
+      expiredIn: expires is int
+          ? expires
+          : int.tryParse(expires?.toString() ?? ''),
+      accessToken: (data['access_token'] ?? data['token']) as String?,
+      refreshToken: data['refresh_token'] as String?,
+    );
   }
 
   DataError _getErrorData(error) {

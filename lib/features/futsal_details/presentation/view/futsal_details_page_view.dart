@@ -6,6 +6,7 @@ import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/utils/scroll_behavior.dart';
+import 'package:hamro_footsall/core/widgets/custom_button.dart';
 import 'package:hamro_footsall/features/message/presentation/pages/chat_launcher.dart';
 import 'package:hamro_footsall/features/courts_details/presentation/page/court_details.dart';
 import 'package:hamro_footsall/features/courts_details/presentation/widget/court_amenities.dart';
@@ -13,6 +14,7 @@ import 'package:hamro_footsall/features/courts_details/presentation/widget/court
 import 'package:hamro_footsall/features/courts_details/presentation/widget/court_description_section.dart';
 import 'package:hamro_footsall/features/courts_details/presentation/widget/court_hosted_by_section.dart';
 import 'package:hamro_footsall/features/courts_details/presentation/widget/court_intro_widget.dart';
+import 'package:hamro_footsall/features/courts_details/presentation/widget/court_location_map_section.dart';
 import 'package:hamro_footsall/features/courts_details/presentation/widget/court_reviews_section.dart';
 import 'package:hamro_footsall/features/courts_details/presentation/widget/court_rules_section.dart';
 import 'package:hamro_footsall/features/courts_details/presentation/widget/details_image_gallery.dart';
@@ -111,11 +113,14 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
     final String exactLocation = exactLocationText.isEmpty
         ? address
         : exactLocationText;
-    final String courtType = (venue.courtType ?? '').trim().isEmpty
-        ? 'Not specified'
-        : venue.courtType!.trim();
-    final String matchFormat = (venue.matchFormat ?? '').trim();
-    final int maxPlayers = venue.maxPlayers ?? 0;
+    // Get court type from the court_types array
+    final String courtType = (venue.courtTypes?.isNotEmpty ?? false)
+        ? venue.courtTypes!.first.name ?? 'Not specified'
+        : 'Not specified';
+
+    final int maxPlayers = venue.maxPlayer ?? 0;
+    final String openTime = (venue.minTime ?? '').trim();
+    final String closeTime = (venue.maxTime ?? '').trim();
 
     return CourtDetailModel(
       name: venue.name ?? '',
@@ -127,11 +132,7 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
       images: images,
       isOpen: venue.isOpen ?? false,
       distance: _formatDistanceMeters(venue.distanceMeters),
-      features: <String>[
-        courtType,
-        if (matchFormat.isNotEmpty) matchFormat,
-        if (maxPlayers > 0) '$maxPlayers Players',
-      ],
+      features: <String>[courtType, if (maxPlayers > 0) '$maxPlayers Players'],
       description: '',
       hostedByName: '',
       hostedByAvatar: '',
@@ -141,10 +142,10 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
       policies: const <String>[],
       rules: const <String>[],
       reviews: const <ReviewModel>[],
-      openTime: (venue.openTime ?? '').trim(),
-      closeTime: (venue.closeTime ?? '').trim(),
+      openTime: openTime,
+      closeTime: closeTime,
       courtType: courtType,
-      surfaceType: matchFormat,
+      surfaceType: '',
       maxPlayers: maxPlayers,
     );
   }
@@ -177,7 +178,6 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
   Widget _buildHostedBySection() {
     final HostedByBloc? bloc = _hostedByBloc;
 
-    // No venue id to fetch with — fall back to the data already on the court.
     if (bloc == null) {
       return CourtHostedBySection(
         hostName: _court.hostedByName,
@@ -210,14 +210,13 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
               hostedCourts: hostedBy.courtCount ?? 0,
               hostedVenues: hostedBy.venueCount ?? 0,
               rating: hostedBy.rating ?? 0,
-              // Start a direct chat with the host (vendor) for this venue.
               onMessage: hostUserId == null
                   ? null
                   : () => ChatLauncher.startDirect(
-                        context,
-                        vendorId: hostUserId,
-                        venueId: widget.publicVenue?.id,
-                      ),
+                      context,
+                      vendorId: hostUserId,
+                      venueId: widget.publicVenue?.id,
+                    ),
             );
         }
       },
@@ -227,7 +226,6 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
   Widget _buildDescriptionSection() {
     final VenueDescriptionBloc? bloc = _venueDescriptionBloc;
 
-    // No venue id to fetch with — fall back to the data already on the court.
     if (bloc == null) {
       return CourtDescriptionSection(description: _court.description);
     }
@@ -248,7 +246,6 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
   Widget _buildAmenitiesSection() {
     final VenueAmenitiesFacilitiesBloc? bloc = _venueAmenitiesFacilitiesBloc;
 
-    // No venue id to fetch with — fall back to the data already on the court.
     if (bloc == null) {
       return CourtAmenitiesSection(features: _court.features);
     }
@@ -269,8 +266,7 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
         return CourtAmenitiesSection(
           features: <String>[...data.amenities, ...data.facilities],
           categories: <String, String>{
-            for (final String amenity in data.amenities)
-              amenity: 'Amenities',
+            for (final String amenity in data.amenities) amenity: 'Amenities',
             for (final String facility in data.facilities)
               facility: 'Facilities',
           },
@@ -282,7 +278,6 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
   Widget _buildPolicySection() {
     final VenueDescriptionBloc? bloc = _venueDescriptionBloc;
 
-    // No venue id to fetch with — fall back to the data already on the court.
     if (bloc == null) {
       return CourtBookingPoliciesSection(policies: _court.policies);
     }
@@ -331,7 +326,6 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
     return SlideTransition(
       position: _bottomBarSlide,
       child: Container(
-        padding: AppUtils().getPadding(all: AppDimens.paddingX12),
         decoration: BoxDecoration(
           color: LightColor.cardColor,
           borderRadius: BorderRadius.only(
@@ -349,80 +343,59 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
             ),
           ],
         ),
-        child: Row(
-          children: <Widget>[
-            Expanded(
-              child: Padding(
-                padding: AppUtils().getPadding(left: AppDimens.paddingX6),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: <Widget>[
-                    Text(
-                      _court.price,
-                      style: FutsalTheme.getTextTheme(context).headingSmall
-                          ?.copyWith(
-                            color: LightColor.primaryTextColor,
-                            fontWeight: FontWeight.w900,
-                          ),
-                    ),
-                    SizedBox(width: AppDimens.sizeX4),
-                    Padding(
-                      padding: AppUtils().getPadding(
-                        bottom: AppDimens.paddingX2,
-                      ),
-                      child: Text(
-                        '/ hour',
-                        style: FutsalTheme.getTextTheme(context).bodyTextSmall
-                            ?.copyWith(
-                              color: LightColor.hintTextColor,
-                              fontWeight: FontWeight.w500,
-                            ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            SizedBox(width: AppDimens.sizeX10),
-            Expanded(
-              child: GestureDetector(
-                onTap: _openSlotsSelection,
-                child: Container(
-                  height: AppDimens.sizeX46,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: <Color>[
-                        LightColor.secondaryColor,
-                        LightColor.secondaryDark,
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(AppDimens.radiusX10),
-                    boxShadow: <BoxShadow>[
-                      BoxShadow(
-                        color: LightColor.secondaryColor.withValues(
-                          alpha: 0.35,
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: AppUtils().getPadding(all: AppDimens.paddingX12),
+            child: Row(
+              children: <Widget>[
+                Expanded(
+                  child: Padding(
+                    padding: AppUtils().getPadding(left: AppDimens.paddingX6),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: <Widget>[
+                        Text(
+                          _court.price,
+                          style: FutsalTheme.getTextTheme(context).headingSmall
+                              ?.copyWith(
+                                color: LightColor.primaryTextColor,
+                                fontWeight: FontWeight.w900,
+                              ),
                         ),
-                        blurRadius: AppDimens.sizeX20,
-                        offset: const Offset(0, AppDimens.sizeX8),
-                      ),
-                    ],
-                  ),
-                  child: Center(
-                    child: Text(
-                      'Book Now',
-                      style: FutsalTheme.getTextTheme(context).bodyTextLarge
-                          ?.copyWith(
-                            color: LightColor.inverseTextColor,
-                            fontWeight: FontWeight.w800,
+                        SizedBox(width: AppDimens.sizeX4),
+                        Padding(
+                          padding: AppUtils().getPadding(
+                            bottom: AppDimens.paddingX2,
                           ),
+                          child: Text(
+                            '/ hour',
+                            style: FutsalTheme.getTextTheme(context)
+                                .bodyTextSmall
+                                ?.copyWith(
+                                  color: LightColor.hintTextColor,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
-              ),
+                SizedBox(width: AppDimens.sizeX10),
+                Expanded(
+                  child: CustomButton(
+                    text: 'Book Now',
+                    onPressed: _openSlotsSelection,
+                    backgroundColor: LightColor.secondaryColor,
+                    minHeight: AppDimens.sizeX46,
+                    borderRadius: AppDimens.radiusX10,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -440,7 +413,7 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
           backgroundColor: LightColor.background,
           body: SafeArea(
             top: false,
-            bottom: true,
+            bottom: false,
             child: Stack(
               children: [
                 CustomScrollView(
@@ -490,17 +463,17 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
 
                             _buildDescriptionSection(),
 
-                            // _buildHeaderInfo(),
                             _buildAmenitiesSection(),
 
-                            // // Divider
-                            // Padding(
-                            //   padding: const EdgeInsets.symmetric(horizontal: 20),
-                            //   child: Divider(
-                            //     color: LightColor.dividerColor,
-                            //     height: 40,
-                            //   ),
-                            // ),
+                            CourtLocationMapSection(
+                              latitude: widget.publicVenue?.latitude,
+                              longitude: widget.publicVenue?.longitude,
+                              venueName: _court.name,
+                              address: _court.address.trim().isEmpty
+                                  ? _court.location
+                                  : _court.address,
+                            ),
+
                             _buildPolicySection(),
                             _buildRulesSection(),
                             // Hide the reviews section until the venue has
@@ -533,7 +506,6 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
                   ],
                 ),
 
-                // ── Bottom booking bar ──
                 Positioned(
                   bottom: 0,
                   left: 0,
