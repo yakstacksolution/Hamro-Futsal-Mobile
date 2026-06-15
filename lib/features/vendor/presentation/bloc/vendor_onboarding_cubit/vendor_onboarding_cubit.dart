@@ -1604,6 +1604,24 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     );
   }
 
+  /// Swaps a rejected company document for a freshly picked one. Only
+  /// rejected documents can be replaced — pending/approved are locked.
+  void replaceCompanyDocument(UploadRef oldFile, UploadRef newFile) {
+    if (oldFile.verificationStatus != UploadVerificationStatus.rejected) {
+      return;
+    }
+    updateFutsal(
+      state.futsal.copyWith(
+        companyDocuments: state.futsal.companyDocuments
+            .map(
+              (UploadRef item) =>
+                  item.remoteUrl == oldFile.remoteUrl ? newFile : item,
+            )
+            .toList(),
+      ),
+    );
+  }
+
   void removeCourtPaymentQr() {
     final CourtDraft? court = state.activeCourt;
     if (court == null) return;

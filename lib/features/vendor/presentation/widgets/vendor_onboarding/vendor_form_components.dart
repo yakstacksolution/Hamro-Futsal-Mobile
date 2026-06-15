@@ -556,6 +556,7 @@ class VendorUploadSection extends StatelessWidget {
     this.actionLabel = 'Upload',
     this.actionIcon = Icons.upload_rounded,
     this.previewAsImage = false,
+    this.asGrid = false,
   });
 
   final String title;
@@ -570,6 +571,11 @@ class VendorUploadSection extends StatelessWidget {
   final String actionLabel;
   final IconData actionIcon;
   final bool previewAsImage;
+
+  /// Renders the files as a two-column grid of document tiles whose actions
+  /// follow the verification status: rejected → replace + remove, fresh
+  /// (not yet reviewed) → remove, pending/approved → locked (no actions).
+  final bool asGrid;
 
   @override
   Widget build(BuildContext context) {
@@ -638,24 +644,14 @@ class VendorUploadSection extends StatelessWidget {
                   ),
                   child: Padding(
                     padding: AppUtils().getPadding(
-                      horizontal: AppDimens.sizeX10,
+                      horizontal: AppDimens.sizeX12,
                       vertical: AppDimens.sizeX6,
                     ),
-
-                    child: Row(
-                      children: [
-                        Icon(
-                          actionIcon,
-                          size: AppDimens.sizeX18,
-                          color: LightColor.whiteColor,
-                        ),
-                        const SizedBox(width: AppDimens.sizeX6),
-                        Text(
-                          actionLabel,
-                          style: FutsalTheme.getTextTheme(context).bodyTextSmall
-                              ?.copyWith(color: LightColor.whiteColor),
-                        ),
-                      ],
+                    child: Text(
+                      actionLabel,
+                      style: FutsalTheme.getTextTheme(
+                        context,
+                      ).bodyTextSmall?.copyWith(color: LightColor.whiteColor),
                     ),
                   ),
                 ),
@@ -733,6 +729,33 @@ class VendorUploadSection extends StatelessWidget {
     // drag-to-reorder thumbnails below it.
     if (previewAsImage) {
       return _buildImageHeroLayout(context);
+    }
+
+    // Documents as a two-column grid of status-aware tiles.
+    if (asGrid) {
+      return GridView.builder(
+        key: const ValueKey<String>('upload_files_grid'),
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        padding: EdgeInsets.zero,
+        itemCount: files.length,
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: AppDimens.sizeX10,
+          mainAxisSpacing: AppDimens.sizeX10,
+          mainAxisExtent: AppDimens.sizeX160,
+        ),
+        itemBuilder: (BuildContext context, int index) {
+          final UploadRef file = files[index];
+          return _DocumentGridTile(
+            file: file,
+            onRemove: onRemove == null
+                ? null
+                : () => unawaited(_confirmRemove(context, file)),
+            onReplace: onReplace == null ? null : () => onReplace!(file),
+          );
+        },
+      );
     }
 
     // Documents / non-image files: vertical list, drag-to-reorder when 2+.
@@ -908,8 +931,6 @@ class VendorUploadSection extends StatelessWidget {
   }
 }
 
-/// Resolves an [UploadRef] to its image (network or local file) and renders it
-/// cover-fit. Mirrors [VendorUploadItem]'s image resolution.
 class _UploadImageView extends StatelessWidget {
   const _UploadImageView({required this.file});
 
@@ -937,7 +958,12 @@ class _UploadImageView extends StatelessWidget {
       );
     }
     return _isNetwork
-        ? _NetworkUploadPreview(urls: _resolveMediaUrlCandidates(_rawImageSource))
+        ? CustomImageView(
+            url: _resolveMediaUrl(_rawImageSource),
+            fit: BoxFit.cover,
+            width: double.infinity,
+            height: double.infinity,
+          )
         : CustomImageView(
             file: File(_rawImageSource),
             fit: BoxFit.cover,
@@ -972,6 +998,159 @@ class _ThumbDeleteButton extends StatelessWidget {
           color: LightColor.redColor,
           size: small ? AppDimens.sizeX14 : AppDimens.sizeX18,
         ),
+      ),
+    );
+  }
+}
+
+class _DocumentGridTile extends StatelessWidget {
+  const _DocumentGridTile({
+    required this.file,
+    required this.onRemove,
+    required this.onReplace,
+  });
+
+  final UploadRef file;
+  final VoidCallback? onRemove;
+  final VoidCallback? onReplace;
+
+  bool get _isRejected =>
+      file.verificationStatus == UploadVerificationStatus.rejected;
+
+  bool get _isFresh => file.verificationStatus == UploadVerificationStatus.none;
+
+  bool get _hasImageContent {
+    final String source = (file.remoteUrl ?? '').trim();
+    if (source.isEmpty) return false;
+    final String path = _pathWithoutQuery(source).toLowerCase();
+    return path.endsWith('.png') ||
+        path.endsWith('.jpg') ||
+        path.endsWith('.jpeg') ||
+        path.endsWith('.webp') ||
+        path.endsWith('.gif');
+  }
+
+  /// Small white circular badge holding the corner status icon.
+  Widget _cornerBadge({required Widget child, String? tooltip}) {
+    final Widget badge = Container(
+      width: AppDimens.sizeX22,
+      height: AppDimens.sizeX22,
+      decoration: const BoxDecoration(
+        color: LightColor.whiteColor,
+        shape: BoxShape.circle,
+      ),
+      child: child,
+    );
+    if (tooltip == null) return badge;
+    return Tooltip(message: tooltip, child: badge);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bool canRemove = onRemove != null && (_isRejected || _isFresh);
+    final bool canReplace = onReplace != null && _isRejected;
+    final UploadVerificationStatus status = file.verificationStatus;
+
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: LightColor.whiteColor,
+        borderRadius: BorderRadius.circular(AppDimens.radiusX12),
+        border: Border.all(
+          color: _isRejected ? LightColor.redColor : LightColor.greyBorderColor,
+          width: _isRejected ? 1.2 : 1,
+        ),
+        boxShadow: <BoxShadow>[
+          BoxShadow(
+            color: LightColor.shadowColor,
+            blurRadius: AppDimens.radiusX10,
+            offset: const Offset(0, AppDimens.sizeX4),
+          ),
+        ],
+      ),
+      // Full-bleed preview; status lives in a single corner indicator.
+      child: Stack(
+        fit: StackFit.expand,
+        children: <Widget>[
+          _hasImageContent
+              ? _UploadImageView(file: file)
+              : Container(
+                  color: LightColor.background,
+                  alignment: Alignment.center,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      const Icon(
+                        Icons.insert_drive_file_rounded,
+                        color: LightColor.secondaryColor,
+                        size: AppDimens.sizeX28,
+                      ),
+                      const SizedBox(height: AppDimens.sizeX6),
+                      Text(
+                        file.name.split('.').last.toUpperCase(),
+                        style: FutsalTheme.getTextTheme(context).bodyTextSmall
+                            ?.copyWith(
+                              color: LightColor.secondaryTextColor,
+                              fontSize: AppDimens.fontBodySubTitle,
+                              fontWeight: FontWeight.w700,
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+          Positioned(
+            top: AppDimens.sizeX6,
+            right: AppDimens.sizeX6,
+            child: switch (status) {
+              UploadVerificationStatus.pending => _cornerBadge(
+                tooltip: 'Under review',
+                child: const Icon(
+                  Icons.hourglass_top_rounded,
+                  color: LightColor.warningColor,
+                  size: AppDimens.sizeX14,
+                ),
+              ),
+              UploadVerificationStatus.approved => _cornerBadge(
+                tooltip: 'Approved',
+                child: const Icon(
+                  Icons.check_circle_rounded,
+                  color: LightColor.successColor,
+                  size: AppDimens.sizeX16,
+                ),
+              ),
+              _ =>
+                canRemove
+                    ? _ThumbDeleteButton(small: true, onTap: onRemove!)
+                    : const SizedBox.shrink(),
+            },
+          ),
+          // Rejected documents stay updatable — replace action bottom-right.
+          if (canReplace)
+            Positioned(
+              bottom: AppDimens.sizeX6,
+              right: AppDimens.sizeX6,
+              child: Tooltip(
+                message: 'Replace this rejected document',
+                child: InkWell(
+                  onTap: onReplace,
+                  borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+                  child: Container(
+                    width: AppDimens.sizeX28,
+                    height: AppDimens.sizeX28,
+                    decoration: BoxDecoration(
+                      color: LightColor.redLightColor,
+                      borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+                    ),
+                    child: const Icon(
+                      Icons.cached_rounded,
+                      color: LightColor.redColor,
+                      size: AppDimens.sizeX16,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -1023,9 +1202,6 @@ class VendorUploadItem extends StatelessWidget {
   }
 
   String get _imageSource => _resolveMediaUrl(_rawImageSource);
-
-  List<String> get _mediaUrlCandidates =>
-      _resolveMediaUrlCandidates(_rawImageSource);
 
   bool get _isNetworkImage {
     final String source = _imageSource.toLowerCase();
@@ -1081,7 +1257,12 @@ class VendorUploadItem extends StatelessWidget {
             AspectRatio(
               aspectRatio: 16 / 9,
               child: _isNetworkImage
-                  ? _NetworkUploadPreview(urls: _mediaUrlCandidates)
+                  ? CustomImageView(
+                      url: _imageSource,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      height: double.infinity,
+                    )
                   : CustomImageView(
                       file: File(_rawImageSource),
                       fit: BoxFit.cover,
@@ -1477,70 +1658,6 @@ class _BadgePalette {
   final IconData icon;
   final Color foreground;
   final Color background;
-}
-
-class _NetworkUploadPreview extends StatefulWidget {
-  const _NetworkUploadPreview({required this.urls});
-
-  final List<String> urls;
-
-  @override
-  State<_NetworkUploadPreview> createState() => _NetworkUploadPreviewState();
-}
-
-class _NetworkUploadPreviewState extends State<_NetworkUploadPreview> {
-  int _urlIndex = 0;
-
-  @override
-  void didUpdateWidget(covariant _NetworkUploadPreview oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.urls.join('|') != widget.urls.join('|')) {
-      _urlIndex = 0;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (widget.urls.isEmpty) return const SizedBox.shrink();
-
-    final String url = widget.urls[_urlIndex];
-    return Image.network(
-      key: ValueKey<String>(url),
-      url,
-      fit: BoxFit.cover,
-      width: double.infinity,
-      height: double.infinity,
-      errorBuilder: (_, __, ___) {
-        if (_urlIndex < widget.urls.length - 1) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (!mounted) return;
-            setState(() => _urlIndex += 1);
-          });
-        }
-        return Container(
-          color: LightColor.inputFillColor,
-          alignment: Alignment.center,
-          child: const Icon(
-            Icons.broken_image_rounded,
-            color: LightColor.secondaryTextColor,
-            size: AppDimens.sizeX28,
-          ),
-        );
-      },
-      loadingBuilder: (context, child, loadingProgress) {
-        if (loadingProgress == null) return child;
-        return Container(
-          color: LightColor.inputFillColor,
-          alignment: Alignment.center,
-          child: const SizedBox(
-            width: AppDimens.sizeX22,
-            height: AppDimens.sizeX22,
-            child: LoadingWidget(),
-          ),
-        );
-      },
-    );
-  }
 }
 
 String _pathWithoutQuery(String value) {

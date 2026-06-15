@@ -4,6 +4,7 @@ import 'package:hamro_footsall/core/api/client.dart';
 abstract class ProfileRemoteDataSource {
   Future<Result> getProfile();
   Future<Result> updateProfile(Map<String, dynamic> data);
+  Future<Result> updateNotificationPreferences(Map<String, dynamic> data);
 }
 
 final class ProfileDataSourceImpl extends ProfileRemoteDataSource {
@@ -14,4 +15,11 @@ final class ProfileDataSourceImpl extends ProfileRemoteDataSource {
   @override
   Future<Result> updateProfile(Map<String, dynamic> data) async =>
       await Client.instance().getAuthManager().updateProfile(data);
+
+  @override
+  Future<Result> updateNotificationPreferences(
+    Map<String, dynamic> data,
+  ) async => await Client.instance()
+      .getAuthManager()
+      .updateNotificationPreferences(data);
 }

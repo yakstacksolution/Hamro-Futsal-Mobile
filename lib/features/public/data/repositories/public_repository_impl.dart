@@ -3,6 +3,8 @@ import 'package:hamro_footsall/core/helper/exception_helper.dart';
 import 'package:hamro_footsall/core/helper/response_helper.dart';
 import 'package:hamro_footsall/features/public/data/model/category_filter_model.dart';
 import 'package:hamro_footsall/features/public/data/data_source/public_remote_data_source.dart';
+import 'package:hamro_footsall/features/public/data/model/public_faq_model.dart';
+import 'package:hamro_footsall/features/public/data/model/public_help_model.dart';
 import 'package:hamro_footsall/features/public/data/model/public_option_model.dart';
 import 'package:hamro_footsall/features/public/data/model/public_package_model.dart';
 import 'package:hamro_footsall/features/public/data/model/public_service_model.dart';
@@ -73,6 +75,72 @@ final class PublicRepositoryImpl extends PublicRepository {
       return left(
         DefaultException(
           errorMessage: 'Could not parse public packages from server.',
+          statusCode: 0,
+        ),
+      );
+    }
+  }
+
+  @override
+  Future<Either<AppException, List<PublicFaqModel>>> getFaqs() async {
+    final response = await _remoteDataSource.getFaqs();
+    if (response.isError()) {
+      return left(ResponseHelper.error(response));
+    }
+
+    try {
+      final List<dynamic> items = _extractList(
+        payload: response.getValue(),
+        key: 'faqs',
+        alternateKeys: const <String>['faq'],
+      );
+      return right(
+        items
+            .whereType<Map>()
+            .map(
+              (Map item) =>
+                  PublicFaqModel.fromJson(Map<String, dynamic>.from(item)),
+            )
+            .where((PublicFaqModel faq) => faq.question.isNotEmpty)
+            .toList(),
+      );
+    } catch (_) {
+      return left(
+        DefaultException(
+          errorMessage: 'Could not parse FAQs from server.',
+          statusCode: 0,
+        ),
+      );
+    }
+  }
+
+  @override
+  Future<Either<AppException, List<PublicHelpModel>>> getHelps() async {
+    final response = await _remoteDataSource.getHelps();
+    if (response.isError()) {
+      return left(ResponseHelper.error(response));
+    }
+
+    try {
+      final List<dynamic> items = _extractList(
+        payload: response.getValue(),
+        key: 'helps',
+        alternateKeys: const <String>['help', 'help_topics'],
+      );
+      return right(
+        items
+            .whereType<Map>()
+            .map(
+              (Map item) =>
+                  PublicHelpModel.fromJson(Map<String, dynamic>.from(item)),
+            )
+            .where((PublicHelpModel help) => help.title.isNotEmpty)
+            .toList(),
+      );
+    } catch (_) {
+      return left(
+        DefaultException(
+          errorMessage: 'Could not parse help topics from server.',
           statusCode: 0,
         ),
       );
@@ -396,6 +464,8 @@ final class PublicRepositoryImpl extends PublicRepository {
     if (payload is Map<String, dynamic>) {
       final dynamic direct = _valueForKeys(payload, key, alternateKeys);
       if (direct is List) return direct;
+      // A single object response (e.g. `data.help`) is treated as one item.
+      if (direct is Map) return <dynamic>[direct];
 
       final dynamic data =
           payload['data'] ?? payload['items'] ?? payload['results'];
@@ -406,6 +476,7 @@ final class PublicRepositoryImpl extends PublicRepository {
             data['items'] ??
             data['results'];
         if (nested is List) return nested;
+        if (nested is Map) return <dynamic>[nested];
       }
     }
 

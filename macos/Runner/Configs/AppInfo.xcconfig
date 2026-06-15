@@ -8,7 +8,7 @@
 PRODUCT_NAME = hamro_footsall
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.example.hamroFootsall
+PRODUCT_BUNDLE_IDENTIFIER = com.yakstack.hamrofootsall
 
 // The copyright displayed in application information
-PRODUCT_COPYRIGHT = Copyright © 2026 com.example. All rights reserved.
+PRODUCT_COPYRIGHT = Copyright © 2026 Yak Stack Solution. All rights reserved.

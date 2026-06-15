@@ -3,6 +3,7 @@ import 'package:hamro_footsall/core/api/client.dart';
 
 abstract class AuthRemoteDataSource {
   Future<Result> signIn(Map<String, dynamic> signInData);
+  Future<Result> signInWithGoogle(Map<String, dynamic> googleData);
   Future<Result> signUp(Map<String, dynamic> signUpData);
   Future<Result> verifyOtp(Map<String, dynamic> otpData);
   Future<Result> resendOtp(Map<String, dynamic> resendOtpData);
@@ -29,6 +30,10 @@ final class AuthenticationDataSourceImpl extends AuthRemoteDataSource {
   @override
   Future<Result> signIn(Map<String, dynamic> signInData) async =>
       await Client.instance().getAuthManager().login(signInData);
+
+  @override
+  Future<Result> signInWithGoogle(Map<String, dynamic> googleData) async =>
+      await Client.instance().getAuthManager().googleLogin(googleData);
 
   @override
   Future<Result> signUp(Map<String, dynamic> signUpData) async =>

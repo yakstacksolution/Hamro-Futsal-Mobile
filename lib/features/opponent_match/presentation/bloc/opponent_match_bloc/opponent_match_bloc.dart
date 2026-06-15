@@ -16,11 +16,14 @@ class OpponentMatchBloc extends Bloc<OpponentMatchEvent, OpponentMatchState> {
     on<LoadTeamsEvent>(_onLoadTeams);
     on<LoadTeamEvent>(_onLoadTeam);
     on<LoadVenuesEvent>(_onLoadVenues);
+    on<LoadPositionsEvent>(_onLoadPositions);
+    on<LoadOpponentLevelsEvent>(_onLoadOpponentLevels);
     on<LoadOpponentRequestsEvent>(_onLoadRequests);
     on<CreateTeamEvent>(_onCreateTeam);
     on<UpdateTeamEvent>(_onUpdateTeam);
     on<DeleteTeamEvent>(_onDeleteTeam);
     on<AddPlayerEvent>(_onAddPlayer);
+    on<UpdateMemberEvent>(_onUpdateMember);
     on<RemoveMemberEvent>(_onRemoveMember);
     on<SendOpponentRequestEvent>(_onSendRequest);
     on<UpdateRequestStatusEvent>(_onUpdateStatus);
@@ -64,6 +67,27 @@ class OpponentMatchBloc extends Bloc<OpponentMatchEvent, OpponentMatchState> {
         ),
       ),
     );
+  }
+
+  /// Positions and levels are lookups with static fallbacks in the UI, so a
+  /// failed fetch is silent — the chips simply keep the default options.
+  Future<void> _onLoadPositions(
+    LoadPositionsEvent event,
+    Emitter<OpponentMatchState> emit,
+  ) async {
+    final result = await useCase.getPositions();
+    result.fold(
+      (_) {},
+      (positions) => emit(state.copyWith(positions: positions)),
+    );
+  }
+
+  Future<void> _onLoadOpponentLevels(
+    LoadOpponentLevelsEvent event,
+    Emitter<OpponentMatchState> emit,
+  ) async {
+    final result = await useCase.getOpponentLevels();
+    result.fold((_) {}, (levels) => emit(state.copyWith(levels: levels)));
   }
 
   Future<void> _onLoadRequests(
@@ -137,6 +161,13 @@ class OpponentMatchBloc extends Bloc<OpponentMatchEvent, OpponentMatchState> {
     Emitter<OpponentMatchState> emit,
   ) async {
     _applyTeams(await useCase.addMember(event.teamId, event.player), emit);
+  }
+
+  Future<void> _onUpdateMember(
+    UpdateMemberEvent event,
+    Emitter<OpponentMatchState> emit,
+  ) async {
+    _applyTeams(await useCase.updateMember(event.teamId, event.player), emit);
   }
 
   Future<void> _onRemoveMember(

@@ -116,47 +116,177 @@ class ExpenseContextLine extends StatelessWidget {
   }
 }
 
-class ExpensePeriodChips extends StatelessWidget {
-  const ExpensePeriodChips({
+/// Time-period + payment-method dropdowns side by side in a single row.
+///
+/// The left dropdown drives the `date_filter` query
+/// (today / week / month / year / custom) and the right one the
+/// `payment_method` query (`null` = all methods).
+class ExpenseFilterDropdownRow extends StatelessWidget {
+  const ExpenseFilterDropdownRow({
     super.key,
     required this.period,
     required this.customRange,
     required this.onPeriod,
     required this.onEditCustom,
+    required this.paymentMethod,
+    required this.onPaymentMethod,
   });
 
   final ExpensePeriod period;
   final DateTimeRange? customRange;
   final ValueChanged<ExpensePeriod> onPeriod;
   final VoidCallback onEditCustom;
+  final PaymentMethod? paymentMethod;
+  final ValueChanged<PaymentMethod?> onPaymentMethod;
 
   @override
   Widget build(BuildContext context) {
-    // Single horizontally scrollable row, same pattern as the venue filter.
-    return SizedBox(
-      height: AppDimens.sizeX32,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        itemCount: ExpensePeriod.values.length,
-        separatorBuilder: (_, __) => const SizedBox(width: AppDimens.paddingX8),
-        itemBuilder: (_, i) {
-          final p = ExpensePeriod.values[i];
-          return ExpenseChip(
-            label: p == ExpensePeriod.custom && customRange != null
-                ? '${customRange!.duration.inDays + 1}d'
-                : p.label,
-            selected: period == p,
-            icon: p == ExpensePeriod.custom ? Icons.date_range_outlined : null,
-            onTap: () {
+    final periodLabel = period == ExpensePeriod.custom && customRange != null
+        ? 'Custom · ${customRange!.duration.inDays + 1}d'
+        : period.label;
+    return Row(
+      children: [
+        Expanded(
+          child: ExpenseFilterDropdown(
+            icon: Icons.calendar_today_outlined,
+            label: periodLabel,
+            options: [
+              for (final p in ExpensePeriod.values) (p.label, p == period),
+            ],
+            onSelect: (i) {
+              final p = ExpensePeriod.values[i];
+              // Re-picking Custom re-opens the date-range editor.
               if (p == ExpensePeriod.custom && period == ExpensePeriod.custom) {
                 onEditCustom();
               } else {
                 onPeriod(p);
               }
             },
-          );
-        },
+          ),
+        ),
+        const SizedBox(width: AppDimens.paddingX8),
+        Expanded(
+          child: ExpenseFilterDropdown(
+            icon: switch (paymentMethod) {
+              PaymentMethod.cash => Icons.payments_outlined,
+              PaymentMethod.online => Icons.credit_card_outlined,
+              null => Icons.account_balance_wallet_outlined,
+            },
+            label: paymentMethod?.label ?? 'All methods',
+            active: paymentMethod != null,
+            options: [
+              ('All methods', paymentMethod == null),
+              for (final m in PaymentMethod.values)
+                (m.label, m == paymentMethod),
+            ],
+            onSelect: (i) =>
+                onPaymentMethod(i == 0 ? null : PaymentMethod.values[i - 1]),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Compact dropdown button matching the [ExpenseChip] look. Options are
+/// `(label, selected)` pairs; [onSelect] receives the tapped index.
+class ExpenseFilterDropdown extends StatelessWidget {
+  const ExpenseFilterDropdown({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.options,
+    required this.onSelect,
+    this.active = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final List<(String, bool)> options;
+  final ValueChanged<int> onSelect;
+
+  /// Tints the button like a selected chip when a narrowing value is chosen.
+  final bool active;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    final fg = active ? LightColor.whiteColor : LightColor.secondaryTextColor;
+    return PopupMenuButton<int>(
+      onSelected: (i) {
+        HapticFeedback.selectionClick();
+        onSelect(i);
+      },
+      position: PopupMenuPosition.under,
+      color: LightColor.cardColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppDimens.radiusX12),
+      ),
+      constraints: const BoxConstraints(minWidth: AppDimens.sizeX160),
+      itemBuilder: (_) => [
+        for (var i = 0; i < options.length; i++)
+          PopupMenuItem<int>(
+            value: i,
+            height: AppDimens.sizeX40,
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    options[i].$1,
+                    style: textTheme.bodyTextSmall?.copyWith(
+                      color: options[i].$2
+                          ? LightColor.secondaryColor
+                          : LightColor.primaryTextColor,
+                      fontWeight: options[i].$2
+                          ? FontWeight.w700
+                          : FontWeight.w500,
+                    ),
+                  ),
+                ),
+                if (options[i].$2)
+                  const Icon(
+                    Icons.check_rounded,
+                    size: 16,
+                    color: LightColor.secondaryColor,
+                  ),
+              ],
+            ),
+          ),
+      ],
+      // Mirror the [ExpenseChip] look so the row sits flush with the venue
+      // and category chip rows below it.
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        height: AppDimens.sizeX32,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+        decoration: BoxDecoration(
+          color: active ? LightColor.secondaryColor : Colors.transparent,
+          borderRadius: BorderRadius.circular(AppDimens.radiusX20),
+          border: Border.all(
+            color: active
+                ? LightColor.secondaryColor
+                : LightColor.dividerColor,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 12, color: fg),
+            const SizedBox(width: 4),
+            Expanded(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: textTheme.bodyTextSmall?.copyWith(
+                  color: fg,
+                  fontWeight: active ? FontWeight.w600 : FontWeight.w500,
+                  fontSize: AppDimens.fontBodySubTitle,
+                ),
+              ),
+            ),
+            Icon(Icons.keyboard_arrow_down_rounded, size: 16, color: fg),
+          ],
+        ),
       ),
     );
   }
@@ -196,50 +326,6 @@ class ExpenseVenueFilter extends StatelessWidget {
             label: v.name,
             selected: selectedId == v.id,
             onTap: () => onChange(v.id),
-          );
-        },
-      ),
-    );
-  }
-}
-
-/// Cash / Online payment-method filter — maps to the `payment_method` query
-/// param. `null` = all methods.
-class ExpensePaymentFilter extends StatelessWidget {
-  const ExpensePaymentFilter({
-    super.key,
-    required this.selected,
-    required this.onChange,
-  });
-
-  final PaymentMethod? selected;
-  final ValueChanged<PaymentMethod?> onChange;
-
-  @override
-  Widget build(BuildContext context) {
-    const options = <(String, PaymentMethod?)>[
-      ('All methods', null),
-      ('Cash', PaymentMethod.cash),
-      ('Online', PaymentMethod.online),
-    ];
-    return SizedBox(
-      height: AppDimens.sizeX32,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        itemCount: options.length,
-        separatorBuilder: (_, __) => const SizedBox(width: AppDimens.paddingX8),
-        itemBuilder: (_, i) {
-          final (label, value) = options[i];
-          return ExpenseChip(
-            label: label,
-            selected: selected == value,
-            icon: value == null
-                ? null
-                : value == PaymentMethod.cash
-                ? Icons.payments_outlined
-                : Icons.credit_card_outlined,
-            onTap: () => onChange(value),
           );
         },
       ),

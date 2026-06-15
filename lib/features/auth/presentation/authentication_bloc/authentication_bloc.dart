@@ -1,8 +1,11 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:bloc/bloc.dart';
 import 'package:dartz/dartz.dart';
 import 'package:equatable/equatable.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:hamro_footsall/core/helper/exception_helper.dart';
 import 'package:hamro_footsall/features/auth/data/model/token_model.dart';
 import 'package:hamro_footsall/features/auth/domain/entities/auth_entities.dart';
@@ -15,6 +18,7 @@ class AuthenticationBloc
   final AuthUseCase authUseCase;
   AuthenticationBloc(this.authUseCase) : super(const AuthenticationState()) {
     on<LoginEvent>(_onLogin);
+    on<GoogleLoginEvent>(_onGoogleLogin);
     on<RegisterEvent>(_onRegister);
     on<OtpVerificationEvent>(_onOtpVerification);
     on<ResendOtpEvent>(_onResendOtp);
@@ -62,6 +66,97 @@ class AuthenticationBloc
         state.copyWith(
           loginStatus: AuthStatus.failure,
           errorMessage: error.toString(),
+          clearErrorData: true,
+        ),
+      );
+    }
+  }
+
+  Future<void> _onGoogleLogin(
+    GoogleLoginEvent event,
+    Emitter<AuthenticationState> emit,
+  ) async {
+    try {
+      emit(
+        state.copyWith(
+          googleLoginStatus: AuthStatus.loading,
+          clearErrorMessage: true,
+          clearErrorData: true,
+          clearSuccessMessage: true,
+        ),
+      );
+      final String? serverClientId = dotenv.env['GOOGLE_SERVER_CLIENT_ID'];
+
+      final String? iosClientId = dotenv.env['GOOGLE_IOS_CLIENT_ID'];
+
+      if (Platform.isAndroid &&
+          (serverClientId == null || serverClientId.isEmpty)) {
+        emit(
+          state.copyWith(
+            googleLoginStatus: AuthStatus.failure,
+            errorMessage:
+                'Google sign-in is not configured. Missing GOOGLE_SERVER_CLIENT_ID.',
+          ),
+        );
+        return;
+      }
+
+      final GoogleSignIn googleSignIn = GoogleSignIn(
+        scopes: const <String>['email', 'profile'],
+        serverClientId: (serverClientId != null && serverClientId.isNotEmpty)
+            ? serverClientId
+            : null,
+        clientId:
+            (Platform.isIOS && iosClientId != null && iosClientId.isNotEmpty)
+            ? iosClientId
+            : null,
+      );
+
+      await googleSignIn.signOut();
+      final GoogleSignInAccount? account = await googleSignIn.signIn();
+      if (account == null) {
+        emit(state.copyWith(googleLoginStatus: AuthStatus.initial));
+        return;
+      }
+
+      final GoogleSignInAuthentication auth = await account.authentication;
+
+      if ((auth.idToken ?? '').isEmpty) {
+        emit(
+          state.copyWith(
+            googleLoginStatus: AuthStatus.failure,
+            errorMessage: 'Could not get Google credentials. Please try again.',
+          ),
+        );
+        return;
+      }
+
+      final Either<AppException, TokenModel> response = await authUseCase
+          .signInWithGoogle(GoogleSignInEntity(idToken: auth.idToken));
+      response.fold(
+        (AppException failure) {
+          emit(
+            state.copyWith(
+              googleLoginStatus: AuthStatus.failure,
+              errorMessage: failure.errorMessage,
+              googleLoginErrorData: failure.data,
+            ),
+          );
+        },
+        (TokenModel token) => emit(
+          state.copyWith(
+            googleLoginStatus: AuthStatus.success,
+            successMessage: 'Login successful',
+            clearErrorMessage: true,
+            clearErrorData: true,
+          ),
+        ),
+      );
+    } catch (error) {
+      emit(
+        state.copyWith(
+          googleLoginStatus: AuthStatus.failure,
+          errorMessage: 'Google sign-in failed. Please try again.',
           clearErrorData: true,
         ),
       );

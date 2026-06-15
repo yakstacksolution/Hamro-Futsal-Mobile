@@ -140,8 +140,6 @@ class ExpenseTrendPill extends StatelessWidget {
   }
 }
 
-/// Four-up snapshot grid: avg/day, entries, top category and top venue —
-/// all from the server-computed [ExpenseReport.summary].
 class ExpenseKpiGrid extends StatelessWidget {
   const ExpenseKpiGrid({super.key, required this.report});
 
@@ -153,8 +151,6 @@ class ExpenseKpiGrid extends StatelessWidget {
     final topCat = summary.topCategory;
     final topVenue = summary.topVenue;
 
-    // Resolve the top category's enum (accent color / fallback icon) from the
-    // breakdown slice that shares its id.
     ExpenseCategory? topCatEnum;
     for (final c in report.byCategory) {
       if (c.id == topCat?.id) {
@@ -180,14 +176,11 @@ class ExpenseKpiGrid extends StatelessWidget {
       ),
       _Kpi(
         icon: topCatEnum?.icon ?? Icons.category_outlined,
-        // Server category image when available, local icon otherwise.
         category: topCatEnum,
         categoryId: topCat?.id,
         label: 'Top category',
         value: topCat?.name.isNotEmpty == true ? topCat!.name : '—',
-        sub: topCat == null
-            ? 'No expenses yet'
-            : ExpenseFmt.npr(topCat.total),
+        sub: topCat == null ? 'No expenses yet' : ExpenseFmt.npr(topCat.total),
         accent: topCatEnum?.color ?? LightColor.iconGrey,
       ),
       _Kpi(
@@ -201,16 +194,23 @@ class ExpenseKpiGrid extends StatelessWidget {
       ),
     ];
 
-    return LayoutBuilder(
-      builder: (context, c) {
-        const spacing = AppDimens.paddingX10;
-        final w = (c.maxWidth - spacing) / 2;
-        return Wrap(
-          spacing: spacing,
-          runSpacing: spacing,
-          children: items.map((k) => SizedBox(width: w, child: k)).toList(),
-        );
-      },
+    // Fixed tile extent (scaled with the user's text size) keeps all four
+    // tiles the same height — unlike a Wrap, where a subtitle wrapping to a
+    // second line makes one tile taller than its row neighbour.
+    final tileExtent = 72 + MediaQuery.textScalerOf(context).scale(48);
+
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      padding: EdgeInsets.zero,
+      itemCount: items.length,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: AppDimens.paddingX10,
+        mainAxisSpacing: AppDimens.paddingX10,
+        mainAxisExtent: tileExtent,
+      ),
+      itemBuilder: (_, i) => items[i],
     );
   }
 }
@@ -232,7 +232,6 @@ class _Kpi extends StatelessWidget {
   final String sub;
   final Color accent;
 
-  /// When set, the tile glyph upgrades to the category's server image.
   final ExpenseCategory? category;
   final String? categoryId;
 
@@ -241,52 +240,60 @@ class _Kpi extends StatelessWidget {
     final textTheme = FutsalTheme.getTextTheme(context);
     return ExpenseSurface(
       padding: const EdgeInsets.all(AppDimens.paddingX12),
+
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (category != null)
-            ExpenseCategoryIcon(
-              category: category!,
-              categoryId: categoryId,
-              boxSize: 32,
-              iconSize: 16,
-              radius: AppDimens.radiusX8,
-            )
-          else
-            Container(
-              width: 32,
-              height: 32,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: accent.withValues(alpha: 0.10),
-                borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+          Row(
+            children: [
+              if (category != null)
+                ExpenseCategoryIcon(
+                  category: category!,
+                  categoryId: categoryId,
+                  boxSize: 32,
+                  iconSize: 16,
+                  radius: AppDimens.radiusX8,
+                )
+              else
+                Container(
+                  width: 32,
+                  height: 32,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: accent.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+                  ),
+                  child: Icon(icon, size: 16, color: accent),
+                ),
+              const SizedBox(width: AppDimens.paddingX8),
+              Expanded(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: textTheme.bodySubTitle?.copyWith(
+                    color: LightColor.secondaryTextColor,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
-              child: Icon(icon, size: 16, color: accent),
-            ),
-          const SizedBox(height: AppDimens.paddingX10),
+            ],
+          ),
+          const Spacer(),
           Text(
             value,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: textTheme.bodyTextLarge?.copyWith(
+            style: textTheme.bodyTextMedium?.copyWith(
               fontWeight: FontWeight.w800,
               color: LightColor.primaryTextColor,
               letterSpacing: -0.3,
             ),
           ),
-          const SizedBox(height: 1),
-          Text(
-            label,
-            style: textTheme.bodyTextSmall?.copyWith(
-              color: LightColor.secondaryTextColor,
-              fontWeight: FontWeight.w600,
-              fontSize: AppDimens.fontBodySubTitle,
-            ),
-          ),
           const SizedBox(height: 4),
           Text(
             sub,
-            maxLines: 2,
+            maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: textTheme.bodyTextSmall?.copyWith(
               color: LightColor.hintTextColor,

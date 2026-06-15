@@ -2,6 +2,8 @@ import 'package:dartz/dartz.dart';
 import 'package:hamro_footsall/core/helper/exception_helper.dart';
 import 'package:hamro_footsall/features/public/data/model/public_package_model.dart';
 import 'package:hamro_footsall/features/public/data/model/category_filter_model.dart';
+import 'package:hamro_footsall/features/public/data/model/public_faq_model.dart';
+import 'package:hamro_footsall/features/public/data/model/public_help_model.dart';
 import 'package:hamro_footsall/features/public/data/model/public_option_model.dart';
 import 'package:hamro_footsall/features/public/data/model/public_service_model.dart';
 import 'package:hamro_footsall/features/public/data/model/public_template_model.dart';
@@ -29,4 +31,10 @@ abstract class PublicRepository {
   /// `POST /venues/{venue}/wishlist` — adds/removes the venue from the
   /// signed-in user's wishlist.
   Future<Either<AppException, bool>> toggleWishlist(int venueId);
+
+  /// `GET /faqs` — public frequently-asked questions.
+  Future<Either<AppException, List<PublicFaqModel>>> getFaqs();
+
+  /// `GET /helps` — public help topics.
+  Future<Either<AppException, List<PublicHelpModel>>> getHelps();
 }

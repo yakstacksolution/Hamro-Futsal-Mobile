@@ -69,30 +69,26 @@ class _DeleteDialog extends StatelessWidget {
                 color: confirmColor.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(AppDimens.radiusX14),
               ),
-              child: Icon(
-                icon,
-                size: AppDimens.sizeX28,
-                color: confirmColor,
-              ),
+              child: Icon(icon, size: AppDimens.sizeX28, color: confirmColor),
             ),
             const SizedBox(height: AppDimens.sizeX16),
             Text(
               title,
               textAlign: TextAlign.center,
               style: FutsalTheme.getTextTheme(context).bodyTextLarge?.copyWith(
-                    color: LightColor.primaryTextColor,
-                    fontWeight: FontWeight.w800,
-                  ),
+                color: LightColor.primaryTextColor,
+                fontWeight: FontWeight.w800,
+              ),
             ),
             const SizedBox(height: AppDimens.sizeX8),
             Text(
               message,
               textAlign: TextAlign.center,
               style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
-                    color: LightColor.secondaryTextColor,
-                    fontWeight: FontWeight.w500,
-                    height: 1.5,
-                  ),
+                color: LightColor.secondaryTextColor,
+                fontWeight: FontWeight.w500,
+                height: 1.5,
+              ),
             ),
             const SizedBox(height: AppDimens.sizeX24),
             Row(

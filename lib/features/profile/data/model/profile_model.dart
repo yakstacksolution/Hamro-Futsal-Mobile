@@ -36,6 +36,63 @@ class ProfileModel extends Equatable {
   }
 }
 
+/// The four `/auth/notification-preferences` flags, served back on `/auth/me`.
+class NotificationPreferences extends Equatable {
+  const NotificationPreferences({
+    this.pushNotification = true,
+    this.bookingAlert = true,
+    this.opponentRequest = true,
+    this.promotionalEmails = false,
+  });
+
+  final bool pushNotification;
+  final bool bookingAlert;
+  final bool opponentRequest;
+  final bool promotionalEmails;
+
+  /// API booleans arrive as true/false, 0/1 or "0"/"1" depending on the
+  /// serializer — accept them all.
+  static bool _flag(dynamic value, bool fallback) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    if (value is String) {
+      final v = value.trim().toLowerCase();
+      if (v == '1' || v == 'true') return true;
+      if (v == '0' || v == 'false') return false;
+    }
+    return fallback;
+  }
+
+  /// Tolerates the flags living nested under `notification_preferences` or
+  /// directly on the `/auth/me` user row.
+  factory NotificationPreferences.fromUserJson(Map<String, dynamic> json) {
+    final dynamic nested = json['notification_preferences'];
+    final Map source = nested is Map ? nested : json;
+    return NotificationPreferences(
+      pushNotification: _flag(source['enable_push_notification'], true),
+      bookingAlert: _flag(source['enable_booking_alert'], true),
+      opponentRequest: _flag(source['enable_opponent_request'], true),
+      promotionalEmails: _flag(source['enable_promotional_emails'], false),
+    );
+  }
+
+  /// Payload shape for `POST /auth/notification-preferences`.
+  Map<String, dynamic> toJson() => {
+    'enable_push_notification': pushNotification,
+    'enable_booking_alert': bookingAlert,
+    'enable_opponent_request': opponentRequest,
+    'enable_promotional_emails': promotionalEmails,
+  };
+
+  @override
+  List<Object?> get props => [
+    pushNotification,
+    bookingAlert,
+    opponentRequest,
+    promotionalEmails,
+  ];
+}
+
 class UserData extends Equatable {
   final int id;
   final String fullName;
@@ -63,6 +120,9 @@ class UserData extends Equatable {
   /// the heart state on venue cards.
   final List<int> wishlistVenueIds;
 
+  /// Notification flags from `/auth/me`, edited on the Settings page.
+  final NotificationPreferences notificationPreferences;
+
   const UserData({
     required this.id,
     required this.fullName,
@@ -86,6 +146,7 @@ class UserData extends Equatable {
     this.mainStep,
     this.subStep,
     this.wishlistVenueIds = const <int>[],
+    this.notificationPreferences = const NotificationPreferences(),
   });
 
   /// Accepts `[1, 2]` or `[{venue_id: 1}, ...]` / `[{id: 1}, ...]`.
@@ -150,6 +211,7 @@ class UserData extends Equatable {
           _asInt(json['sub_step']) ??
           _asInt((json['vendor_onboarding_data'] as Map?)?['sub_step']),
       wishlistVenueIds: _parseWishlistIds(json['wishlists']),
+      notificationPreferences: NotificationPreferences.fromUserJson(json),
     );
   }
 
@@ -178,6 +240,7 @@ class UserData extends Equatable {
       'main_step': mainStep,
       'sub_step': subStep,
       'wishlists': wishlistVenueIds,
+      'notification_preferences': notificationPreferences.toJson(),
     };
   }
 
@@ -205,6 +268,7 @@ class UserData extends Equatable {
     mainStep,
     subStep,
     wishlistVenueIds,
+    notificationPreferences,
   ];
 
   UserData copyWith({
@@ -231,6 +295,7 @@ class UserData extends Equatable {
     int? mainStep,
     int? subStep,
     List<int>? wishlistVenueIds,
+    NotificationPreferences? notificationPreferences,
   }) {
     return UserData(
       id: id ?? this.id,
@@ -257,6 +322,8 @@ class UserData extends Equatable {
       mainStep: mainStep ?? this.mainStep,
       subStep: subStep ?? this.subStep,
       wishlistVenueIds: wishlistVenueIds ?? this.wishlistVenueIds,
+      notificationPreferences:
+          notificationPreferences ?? this.notificationPreferences,
     );
   }
 

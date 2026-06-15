@@ -58,6 +58,10 @@ class VendorMediaLibrarySheet extends StatefulWidget {
 
 class _VendorMediaLibrarySheetState extends State<VendorMediaLibrarySheet> {
   final Set<String> _selectedPaths = <String>{};
+
+  /// Paths of initially selected files whose verification status is locked
+  /// (pending/approved) — their selection cannot be toggled or removed.
+  final Set<String> _lockedPaths = <String>{};
   _LibraryFilter _filter = _LibraryFilter.all;
   bool _isAdding = false;
   bool _isCapturing = false;
@@ -67,6 +71,12 @@ class _VendorMediaLibrarySheetState extends State<VendorMediaLibrarySheet> {
     super.initState();
     _selectedPaths.addAll(
       widget.initiallySelected.map((UploadRef item) => item.remoteUrl ?? ''),
+    );
+    _lockedPaths.addAll(
+      widget.initiallySelected
+          .where((UploadRef item) => item.verificationStatus.isLocked)
+          .map((UploadRef item) => item.remoteUrl ?? '')
+          .where((String path) => path.isNotEmpty),
     );
   }
 
@@ -149,10 +159,14 @@ class _VendorMediaLibrarySheetState extends State<VendorMediaLibrarySheet> {
                           final bool isSelected = _selectedPaths.contains(
                             item.remoteUrl ?? '',
                           );
+                          final bool isLocked = _lockedPaths.contains(
+                            item.remoteUrl ?? '',
+                          );
 
                           return _CompactMediaCard(
                             item: item,
                             isSelected: isSelected,
+                            isLocked: isLocked,
                             onTap: () => _toggleSelection(item),
                             onRemove: () => _removeItem(item),
                           );
@@ -187,10 +201,12 @@ class _VendorMediaLibrarySheetState extends State<VendorMediaLibrarySheet> {
   }
 
   void _toggleSelection(UploadRef item) {
+    // Locked (pending/approved) selections cannot be toggled off.
+    if (_lockedPaths.contains(item.remoteUrl ?? '')) return;
     setState(() {
       if (!widget.allowMultiple) {
         _selectedPaths
-          ..clear()
+          ..removeWhere((String path) => !_lockedPaths.contains(path))
           ..add(item.remoteUrl ?? '');
         return;
       }
@@ -250,6 +266,8 @@ class _VendorMediaLibrarySheetState extends State<VendorMediaLibrarySheet> {
   }
 
   Future<void> _removeItem(UploadRef item) async {
+    // A locked file is attached to a section under review — keep it.
+    if (_lockedPaths.contains(item.remoteUrl ?? '')) return;
     final bool confirmed = await showConfirmDialog(
       context: context,
       title: 'Remove from media library?',
@@ -654,10 +672,15 @@ class _CompactMediaCard extends StatelessWidget {
     required this.isSelected,
     required this.onTap,
     required this.onRemove,
+    this.isLocked = false,
   });
 
   final UploadRef item;
   final bool isSelected;
+
+  /// Attached to a section as pending/approved — selection can't be toggled
+  /// and the file can't be removed from the library.
+  final bool isLocked;
   final VoidCallback onTap;
   final VoidCallback onRemove;
 
@@ -668,7 +691,7 @@ class _CompactMediaCard extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: onTap,
+        onTap: isLocked ? null : onTap,
         borderRadius: BorderRadius.circular(4),
         child: Ink(
           decoration: BoxDecoration(
@@ -715,71 +738,114 @@ class _CompactMediaCard extends StatelessWidget {
                     Positioned(
                       top: 4,
                       right: 4,
-                      child: Row(
-                        children: <Widget>[
-                          GestureDetector(
-                            onTap: onTap,
-                            child: Container(
-                              width: 20,
-                              height: 20,
-                              decoration: BoxDecoration(
-                                color: isSelected
-                                    ? LightColor.secondaryColor
-                                    : Colors.white.withValues(alpha: 0.96),
-                                borderRadius: BorderRadius.circular(999),
-                                border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.95),
-                                  width: 1.2,
-                                ),
-                                boxShadow: <BoxShadow>[
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.08),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 2),
+                      child: isLocked
+                          ? Tooltip(
+                              message:
+                                  'Locked while under review — this selection cannot be changed.',
+                              child: Container(
+                                width: 20,
+                                height: 20,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.96),
+                                  borderRadius: BorderRadius.circular(999),
+                                  border: Border.all(
+                                    color: Colors.white.withValues(alpha: 0.95),
+                                    width: 1.2,
                                   ),
-                                ],
-                              ),
-                              child: Icon(
-                                isSelected
-                                    ? Icons.check_rounded
-                                    : Icons.circle_outlined,
-                                size: 12,
-                                color: isSelected
-                                    ? Colors.white
-                                    : LightColor.secondaryTextColor,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 3),
-                          GestureDetector(
-                            onTap: onRemove,
-                            child: Container(
-                              width: 20,
-                              height: 20,
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.96),
-                                borderRadius: BorderRadius.circular(999),
-                                border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.95),
-                                  width: 1.2,
+                                  boxShadow: <BoxShadow>[
+                                    BoxShadow(
+                                      color: Colors.black.withValues(
+                                        alpha: 0.08,
+                                      ),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
                                 ),
-                                boxShadow: <BoxShadow>[
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.08),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 2),
+                                child: const Icon(
+                                  Icons.lock_outline_rounded,
+                                  size: 12,
+                                  color: LightColor.secondaryTextColor,
+                                ),
+                              ),
+                            )
+                          : Row(
+                              children: <Widget>[
+                                GestureDetector(
+                                  onTap: onTap,
+                                  child: Container(
+                                    width: 20,
+                                    height: 20,
+                                    decoration: BoxDecoration(
+                                      color: isSelected
+                                          ? LightColor.secondaryColor
+                                          : Colors.white.withValues(
+                                              alpha: 0.96,
+                                            ),
+                                      borderRadius: BorderRadius.circular(999),
+                                      border: Border.all(
+                                        color: Colors.white.withValues(
+                                          alpha: 0.95,
+                                        ),
+                                        width: 1.2,
+                                      ),
+                                      boxShadow: <BoxShadow>[
+                                        BoxShadow(
+                                          color: Colors.black.withValues(
+                                            alpha: 0.08,
+                                          ),
+                                          blurRadius: 8,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Icon(
+                                      isSelected
+                                          ? Icons.check_rounded
+                                          : Icons.circle_outlined,
+                                      size: 12,
+                                      color: isSelected
+                                          ? Colors.white
+                                          : LightColor.secondaryTextColor,
+                                    ),
                                   ),
-                                ],
-                              ),
-                              child: const Icon(
-                                Icons.delete_outline_rounded,
-                                size: 12,
-                                color: LightColor.redColor,
-                              ),
+                                ),
+                                const SizedBox(width: 3),
+                                GestureDetector(
+                                  onTap: onRemove,
+                                  child: Container(
+                                    width: 20,
+                                    height: 20,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.96,
+                                      ),
+                                      borderRadius: BorderRadius.circular(999),
+                                      border: Border.all(
+                                        color: Colors.white.withValues(
+                                          alpha: 0.95,
+                                        ),
+                                        width: 1.2,
+                                      ),
+                                      boxShadow: <BoxShadow>[
+                                        BoxShadow(
+                                          color: Colors.black.withValues(
+                                            alpha: 0.08,
+                                          ),
+                                          blurRadius: 8,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
+                                    child: const Icon(
+                                      Icons.delete_outline_rounded,
+                                      size: 12,
+                                      color: LightColor.redColor,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                        ],
-                      ),
                     ),
                     if (isSelected)
                       Positioned.fill(

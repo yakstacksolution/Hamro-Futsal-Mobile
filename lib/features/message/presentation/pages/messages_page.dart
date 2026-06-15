@@ -6,6 +6,7 @@ import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/widgets/custom_button.dart';
 import 'package:hamro_footsall/core/widgets/loading_widget.dart';
+import 'package:hamro_footsall/features/dashboard/presentation/page/dashboard_screen.dart';
 import 'package:hamro_footsall/features/message/data/model/conversation_model.dart';
 import 'package:hamro_footsall/features/message/data/repositories/message_repository_impl.dart';
 import 'package:hamro_footsall/features/message/data/service/reverb_chat_socket_service.dart';
@@ -47,9 +48,29 @@ class _MessagesViewState extends State<_MessagesView> {
   String _query = '';
 
   @override
+  void initState() {
+    super.initState();
+    // Tabs stay alive inside the dashboard's IndexedStack, so a fetch that
+    // failed while offline would otherwise show a stale error forever.
+    // Re-fetch automatically whenever this tab becomes visible again.
+    DashboardScreen.selectedNavIndex.addListener(_retryFailedFetchOnTabVisible);
+  }
+
+  @override
   void dispose() {
+    DashboardScreen.selectedNavIndex.removeListener(
+      _retryFailedFetchOnTabVisible,
+    );
     _searchCtrl.dispose();
     super.dispose();
+  }
+
+  void _retryFailedFetchOnTabVisible() {
+    if (!mounted || DashboardScreen.selectedNavIndex.value != 2) return;
+    final MessageBloc bloc = context.read<MessageBloc>();
+    if (bloc.state.conversationsStatus == MessageStatus.failure) {
+      bloc.add(const LoadConversationsEvent());
+    }
   }
 
   List<ConversationModel> _visible(MessageState state) {

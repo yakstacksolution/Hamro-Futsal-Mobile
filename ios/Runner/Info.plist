@@ -53,5 +53,18 @@
 		<true/>
 		<key>UIStatusBarHidden</key>
 		<false/>
+		<!-- Google Sign-In OAuth callback. This is the REVERSED_CLIENT_ID from
+		     ios/Runner/GoogleService-Info.plist. -->
+		<key>CFBundleURLTypes</key>
+		<array>
+			<dict>
+				<key>CFBundleTypeRole</key>
+				<string>Editor</string>
+				<key>CFBundleURLSchemes</key>
+				<array>
+					<string>com.googleusercontent.apps.900384285987-u7o5d5le64975lme0v2fo19d3p461693</string>
+				</array>
+			</dict>
+		</array>
 	</dict>
 </plist>

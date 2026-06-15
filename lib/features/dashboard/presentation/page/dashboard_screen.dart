@@ -17,7 +17,6 @@ import 'package:hamro_footsall/features/dashboard/presentation/widgets/bottom_na
 import 'package:hamro_footsall/features/dashboard/presentation/widgets/category_filter_widget.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/widgets/search_bar_widget.dart';
 import 'package:hamro_footsall/features/public/presentation/models/venue_filter.dart';
-import 'package:hamro_footsall/features/public/presentation/pages/venue_filter_page.dart';
 import 'package:hamro_footsall/features/profile/presentation/profile_bloc/profile_bloc.dart';
 import 'package:hamro_footsall/features/profile/presentation/pages/profile_page.dart';
 
@@ -65,11 +64,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _openVenueFilter() async {
-    final VenueFilter? result = await Navigator.of(context).push<VenueFilter>(
-      MaterialPageRoute<VenueFilter>(
-        builder: (_) =>
-            VenueFilterPage(initialFilter: _venueFilterNotifier.value),
-      ),
+    final VenueFilter? result = await context.pushNamed<VenueFilter>(
+      AppRouterParams.venueFilter.name,
+      extra: _venueFilterNotifier.value,
     );
     if (result != null) {
       // The filter page rebuilds the filter from its own controls, so carry

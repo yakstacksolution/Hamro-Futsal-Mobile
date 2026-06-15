@@ -10,20 +10,8 @@ import 'package:hamro_footsall/features/opponent_match/data/repositories/opponen
 import 'package:hamro_footsall/features/opponent_match/domain/usecase/opponent_match_usecase.dart';
 import 'package:hamro_footsall/features/opponent_match/presentation/bloc/opponent_match_bloc/opponent_match_bloc.dart';
 import 'package:hamro_footsall/features/opponent_match/presentation/pages/create_opponent_request_page.dart';
-import 'package:hamro_footsall/features/opponent_match/presentation/widgets/opponent_common.dart';
 import 'package:hamro_footsall/features/opponent_match/presentation/widgets/opponent_requests_view.dart';
 import 'package:hamro_footsall/features/opponent_match/presentation/widgets/opponent_teams_view.dart';
-
-/// Requests come first — sending one is the primary action (via the FAB);
-/// team management lives on its own tab.
-enum _OpponentTab { requests, teams }
-
-extension on _OpponentTab {
-  String get label => switch (this) {
-    _OpponentTab.requests => 'Requests',
-    _OpponentTab.teams => 'My Teams',
-  };
-}
 
 class OpponentMatchScreen extends StatelessWidget {
   const OpponentMatchScreen({super.key});
@@ -37,6 +25,8 @@ class OpponentMatchScreen extends StatelessWidget {
             )
             ..add(const LoadTeamsEvent())
             ..add(const LoadVenuesEvent())
+            ..add(const LoadPositionsEvent())
+            ..add(const LoadOpponentLevelsEvent())
             ..add(const LoadOpponentRequestsEvent()),
       child: const _OpponentMatchView(),
     );
@@ -50,15 +40,35 @@ class _OpponentMatchView extends StatefulWidget {
   State<_OpponentMatchView> createState() => _OpponentMatchViewState();
 }
 
-class _OpponentMatchViewState extends State<_OpponentMatchView> {
-  _OpponentTab _tab = _OpponentTab.requests;
+class _OpponentMatchViewState extends State<_OpponentMatchView>
+    with SingleTickerProviderStateMixin {
+  // Requests come first — sending one is the primary action (via the FAB);
+  // team management lives on its own tab.
+  late final TabController _tabCtrl;
   RequestFilter _requestFilter = RequestFilter.all;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabCtrl = TabController(length: 2, vsync: this)
+      // Rebuild so the subtitle and tab badges track the active tab,
+      // including swipes on the TabBarView.
+      ..addListener(() {
+        if (mounted) setState(() {});
+      });
+  }
+
+  @override
+  void dispose() {
+    _tabCtrl.dispose();
+    super.dispose();
+  }
 
   Future<void> _openCreateRequest() async {
     final bloc = context.read<OpponentMatchBloc>();
     // Sending a request needs a team — steer the user to create one first.
     if (bloc.state.teams.isEmpty) {
-      setState(() => _tab = _OpponentTab.teams);
+      _tabCtrl.animateTo(1);
       _showSnack('Create a team first, then send a request.');
       return;
     }
@@ -73,10 +83,9 @@ class _OpponentMatchViewState extends State<_OpponentMatchView> {
       ),
     );
     if (sent != true || !mounted) return;
-    setState(() {
-      _tab = _OpponentTab.requests;
-      _requestFilter = RequestFilter.settled;
-    });
+    // The request I just sent lands in "My Requests" as pending.
+    setState(() => _requestFilter = RequestFilter.mine);
+    _tabCtrl.animateTo(0);
     _showSnack('Request sent successfully');
   }
 
@@ -107,7 +116,7 @@ class _OpponentMatchViewState extends State<_OpponentMatchView> {
   }
 
   String _subtitle(OpponentMatchState state) {
-    if (_tab == _OpponentTab.teams) {
+    if (_tabCtrl.index == 1) {
       final total = state.teams.length;
       return '$total ${total == 1 ? 'team' : 'teams'}';
     }
@@ -115,6 +124,104 @@ class _OpponentMatchViewState extends State<_OpponentMatchView> {
     final open = state.openRequestCount;
     return '$total ${total == 1 ? 'request' : 'requests'}'
         '${open > 0 ? ' · $open open' : ''}';
+  }
+
+  /// Segmented pill tab bar: a soft rounded track with a sliding filled
+  /// indicator and a live count badge inside each tab.
+  Widget _tabBar(OpponentMatchState state) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    return Padding(
+      padding: AppUtils().getPadding(symmetricHorizontal: AppDimens.paddingX20),
+      child: Container(
+        height: AppDimens.sizeX46,
+        padding: AppUtils().getPadding(all: AppDimens.paddingX4),
+        decoration: BoxDecoration(
+          color: LightColor.cardColor,
+          borderRadius: BorderRadius.circular(AppDimens.radiusX12),
+          border: Border.all(color: LightColor.dividerColor),
+        ),
+        child: TabBar(
+          controller: _tabCtrl,
+          indicator: BoxDecoration(
+            color: LightColor.secondaryColor,
+            borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+            boxShadow: [
+              BoxShadow(
+                color: LightColor.secondaryColor.withValues(alpha: 0.3),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          indicatorSize: TabBarIndicatorSize.tab,
+          dividerColor: Colors.transparent,
+          splashBorderRadius: BorderRadius.circular(AppDimens.radiusX10),
+          overlayColor: WidgetStateProperty.all(Colors.transparent),
+          labelColor: LightColor.whiteColor,
+          unselectedLabelColor: LightColor.secondaryTextColor,
+          labelStyle: textTheme.bodyTextSmall?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+          unselectedLabelStyle: textTheme.bodyTextSmall?.copyWith(
+            fontWeight: FontWeight.w500,
+          ),
+          tabs: [
+            _tabItem(
+              label: 'Requests',
+              count: state.requests.length,
+              selected: _tabCtrl.index == 0,
+            ),
+            _tabItem(
+              label: 'My Teams',
+              count: state.teams.length,
+              selected: _tabCtrl.index == 1,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _tabItem({
+    required String label,
+    required int count,
+    required bool selected,
+  }) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    return Tab(
+      height: AppDimens.sizeX36,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(label),
+          const SizedBox(width: AppDimens.paddingX6),
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOut,
+            padding: AppUtils().getPadding(
+              symmetricHorizontal: AppDimens.paddingX6,
+              symmetricVertical: AppDimens.paddingX2,
+            ),
+            decoration: BoxDecoration(
+              color: selected
+                  ? LightColor.whiteColor.withValues(alpha: 0.22)
+                  : LightColor.dividerColor.withValues(alpha: 0.6),
+              borderRadius: BorderRadius.circular(AppDimens.radiusX20),
+            ),
+            child: Text(
+              '$count',
+              style: textTheme.bodyTextSmall?.copyWith(
+                fontSize: AppDimens.fontBodySubTitle,
+                fontWeight: FontWeight.w700,
+                color: selected
+                    ? LightColor.whiteColor
+                    : LightColor.secondaryTextColor,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -169,50 +276,20 @@ class _OpponentMatchViewState extends State<_OpponentMatchView> {
                   ),
                 ),
                 const SizedBox(height: AppDimens.paddingX12),
-                SizedBox(
-                  height: AppDimens.sizeX32,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    physics: const BouncingScrollPhysics(),
-                    padding: AppUtils().getPadding(
-                      symmetricHorizontal: AppDimens.paddingX20,
-                    ),
-                    itemCount: _OpponentTab.values.length,
-                    separatorBuilder: (_, __) =>
-                        const SizedBox(width: AppDimens.paddingX8),
-                    itemBuilder: (context, index) {
-                      final tab = _OpponentTab.values[index];
-                      return OpponentCountChip(
-                        label: tab.label,
-                        count: tab == _OpponentTab.requests
-                            ? state.requests.length
-                            : state.teams.length,
-                        isSelected: tab == _tab,
-                        filled: true,
-                        onTap: () {
-                          if (_tab != tab) setState(() => _tab = tab);
-                        },
-                      );
-                    },
-                  ),
-                ),
+                _tabBar(state),
                 const SizedBox(height: AppDimens.paddingX10),
                 Expanded(
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 220),
-                    switchInCurve: Curves.easeOut,
-                    child: _tab == _OpponentTab.requests
-                        ? _RequestsTabBody(
-                            key: const ValueKey('requests'),
-                            state: state,
-                            filter: _requestFilter,
-                            onFilter: (f) =>
-                                setState(() => _requestFilter = f),
-                          )
-                        : _TeamsTabBody(
-                            key: const ValueKey('teams'),
-                            state: state,
-                          ),
+                  child: TabBarView(
+                    controller: _tabCtrl,
+                    physics: const BouncingScrollPhysics(),
+                    children: [
+                      _RequestsTabBody(
+                        state: state,
+                        filter: _requestFilter,
+                        onFilter: (f) => setState(() => _requestFilter = f),
+                      ),
+                      _TeamsTabBody(state: state),
+                    ],
                   ),
                 ),
               ],
@@ -227,7 +304,6 @@ class _OpponentMatchViewState extends State<_OpponentMatchView> {
 /// Requests tab wrapper: spinner / retry around [OpponentRequestsView].
 class _RequestsTabBody extends StatelessWidget {
   const _RequestsTabBody({
-    super.key,
     required this.state,
     required this.filter,
     required this.onFilter,
@@ -260,7 +336,7 @@ class _RequestsTabBody extends StatelessWidget {
 
 /// Teams tab wrapper: spinner / retry around [OpponentTeamsView].
 class _TeamsTabBody extends StatelessWidget {
-  const _TeamsTabBody({super.key, required this.state});
+  const _TeamsTabBody({required this.state});
 
   final OpponentMatchState state;
 

@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import 'package:hamro_footsall/core/routers/app_router_params.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/features/bookings/data/model/booking_model.dart';
 import 'package:hamro_footsall/features/bookings/presentation/bloc/booking_bloc/booking_bloc.dart';
-import 'package:hamro_footsall/features/bookings/presentation/pages/booking_details_page.dart';
 import 'package:hamro_footsall/features/bookings/presentation/widgets/booking_shared_widgets.dart';
 
 class FutsalBookingsTab extends StatelessWidget {
@@ -63,11 +64,10 @@ class FutsalBookingsTab extends StatelessWidget {
           itemBuilder: (_, i) => BookingCard(
             booking: items[i],
             showPlayer: true,
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) =>
-                    BookingDetailsPage(booking: items[i], isFutsalView: true),
-              ),
+            onTap: () => context.pushNamed(
+              AppRouterParams.bookingDetails.name,
+              queryParameters: <String, String>{'futsal': 'true'},
+              extra: items[i],
             ),
           ),
         );

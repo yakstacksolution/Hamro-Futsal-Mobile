@@ -26,6 +26,21 @@ final class ProfileRepositoryImpl extends ProfileRepository {
     return _toProfileResult(response);
   }
 
+  @override
+  Future<Either<AppException, bool>> updateNotificationPreferences(
+    NotificationPreferences preferences,
+  ) async {
+    final response = await _remoteDataSource.updateNotificationPreferences(
+      preferences.toJson(),
+    );
+    if (response.isError()) {
+      final AppException error = ResponseHelper.error(response);
+      // A 204 No Content reply still means the preferences were saved.
+      if (error.statusCode != 204) return left(error);
+    }
+    return right(true);
+  }
+
   Either<AppException, ProfileModel> _toProfileResult(Result response) {
     if (response.isError()) {
       return left(ResponseHelper.error(response));

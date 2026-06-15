@@ -5,6 +5,7 @@ import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/widgets/custom_button.dart';
+import 'package:hamro_footsall/features/dashboard/presentation/page/dashboard_screen.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/page/footsall_home_page.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/widgets/loading/home_body_loading.dart';
 import 'package:hamro_footsall/features/public/data/model/public_venue_model.dart';
@@ -35,6 +36,23 @@ class _WishlistPageState extends State<WishlistPage> {
   void initState() {
     super.initState();
     _fetch();
+    // Tabs stay alive inside the dashboard's IndexedStack, so a fetch that
+    // failed while offline would otherwise show a stale error forever.
+    // Re-fetch automatically whenever this tab becomes visible again.
+    DashboardScreen.selectedNavIndex.addListener(_retryFailedFetchOnTabVisible);
+  }
+
+  @override
+  void dispose() {
+    DashboardScreen.selectedNavIndex.removeListener(
+      _retryFailedFetchOnTabVisible,
+    );
+    super.dispose();
+  }
+
+  void _retryFailedFetchOnTabVisible() {
+    if (!mounted || DashboardScreen.selectedNavIndex.value != 3) return;
+    if (_error != null && !_loading) _fetch();
   }
 
   Future<void> _fetch() async {

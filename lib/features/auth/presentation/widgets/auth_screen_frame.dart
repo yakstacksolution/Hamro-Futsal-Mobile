@@ -122,6 +122,10 @@ class AuthScreenFrame extends StatelessWidget {
                                 ),
                               ],
                             ),
+                            if (footer != null) ...<Widget>[
+                              const SizedBox(height: AppDimens.sizeX10),
+                              footer!,
+                            ],
                             const SizedBox(height: AppDimens.sizeX10),
                           ],
                         ),

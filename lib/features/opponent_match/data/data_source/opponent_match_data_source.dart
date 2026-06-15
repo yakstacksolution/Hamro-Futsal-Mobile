@@ -3,6 +3,7 @@ import 'package:hamro_footsall/core/api/client.dart';
 import 'package:hamro_footsall/features/opponent_match/data/model/opponent_match_model.dart';
 
 /// Team CRUD + member management, backed by the `/api/teams` endpoints.
+/// Also serves the `/positions` and `/opponent-levels` lookups.
 abstract class TeamRemoteDataSource {
   Future<Result> getTeams();
   Future<Result> getTeam(int teamId);
@@ -10,13 +11,24 @@ abstract class TeamRemoteDataSource {
   Future<Result> updateTeam(int teamId, Map<String, dynamic> data);
   Future<Result> deleteTeam(int teamId);
   Future<Result> addMember(int teamId, Map<String, dynamic> data);
+  Future<Result> updateMember(int teamId, int memberId, Map<String, dynamic> data);
   Future<Result> removeMember(int teamId, int memberId);
+  Future<Result> getPositions();
+  Future<Result> getOpponentLevels();
 }
 
 final class TeamRemoteDataSourceImpl extends TeamRemoteDataSource {
   @override
   Future<Result> getTeams() async =>
       await Client.instance().getAuthManager().getTeams();
+
+  @override
+  Future<Result> getPositions() async =>
+      await Client.instance().getAuthManager().getPlayerPositions();
+
+  @override
+  Future<Result> getOpponentLevels() async =>
+      await Client.instance().getAuthManager().getOpponentLevels();
 
   @override
   Future<Result> getTeam(int teamId) async =>
@@ -37,6 +49,17 @@ final class TeamRemoteDataSourceImpl extends TeamRemoteDataSource {
   @override
   Future<Result> addMember(int teamId, Map<String, dynamic> data) async =>
       await Client.instance().getAuthManager().addTeamMember(teamId, data);
+
+  @override
+  Future<Result> updateMember(
+    int teamId,
+    int memberId,
+    Map<String, dynamic> data,
+  ) async => await Client.instance().getAuthManager().updateTeamMember(
+    teamId,
+    memberId,
+    data,
+  );
 
   @override
   Future<Result> removeMember(int teamId, int memberId) async =>

@@ -5,6 +5,7 @@ import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/widgets/custom_button.dart';
+import 'package:hamro_footsall/core/widgets/custom_delete_dialog.dart';
 import 'package:hamro_footsall/features/opponent_match/data/model/opponent_match_model.dart';
 import 'package:hamro_footsall/features/opponent_match/presentation/bloc/opponent_match_bloc/opponent_match_bloc.dart';
 import 'package:hamro_footsall/features/opponent_match/presentation/widgets/opponent_sheets.dart';
@@ -41,8 +42,34 @@ class OpponentTeamsView extends StatelessWidget {
         padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
         child: AddPlayerSheet(
           teamName: team.name,
+          positions: bloc.state.positions.isEmpty
+              ? PlayerPositionModel.defaults
+              : bloc.state.positions,
           onAdd: (player) {
             bloc.add(AddPlayerEvent(team.id, player));
+            Navigator.pop(ctx);
+          },
+        ),
+      ),
+    );
+  }
+
+  void _openEditPlayer(BuildContext context, TeamModel team, PlayerModel player) {
+    final bloc = context.read<OpponentMatchBloc>();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: LightColor.transparentColor,
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+        child: AddPlayerSheet(
+          teamName: team.name,
+          positions: bloc.state.positions.isEmpty
+              ? PlayerPositionModel.defaults
+              : bloc.state.positions,
+          initialPlayer: player,
+          onAdd: (updated) {
+            bloc.add(UpdateMemberEvent(team.id, updated));
             Navigator.pop(ctx);
           },
         ),
@@ -72,25 +99,39 @@ class OpponentTeamsView extends StatelessWidget {
     );
   }
 
-  void _confirmDeleteTeam(BuildContext context, TeamModel team) {
+  Future<void> _confirmDeleteTeam(BuildContext context, TeamModel team) async {
     final bloc = context.read<OpponentMatchBloc>();
-    showModalBottomSheet(
+    final bool confirmed = await showDeleteDialog(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: LightColor.transparentColor,
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
-        child: ConfirmDeleteSheet(
-          title: 'Delete team?',
-          message:
-              'This removes "${team.name}" and its players. This can\'t be undone.',
-          onConfirm: () {
-            bloc.add(DeleteTeamEvent(team.id));
-            Navigator.pop(ctx);
-          },
-        ),
-      ),
+      title: 'Delete team?',
+      message:
+          'This removes "${team.name}" and its players. This can\'t be undone.',
     );
+    if (confirmed) bloc.add(DeleteTeamEvent(team.id));
+  }
+
+  Future<void> _confirmRemoveMember(
+    BuildContext context,
+    TeamModel team,
+    String memberId,
+  ) async {
+    final bloc = context.read<OpponentMatchBloc>();
+    String playerName = 'this player';
+    for (final PlayerModel player in team.players) {
+      if (player.id == memberId) {
+        playerName = player.name;
+        break;
+      }
+    }
+    final bool confirmed = await showDeleteDialog(
+      context: context,
+      title: 'Remove player?',
+      message:
+          'This removes "$playerName" from "${team.name}". This can\'t be undone.',
+      confirmText: 'Remove',
+      icon: Icons.person_remove_outlined,
+    );
+    if (confirmed) bloc.add(RemoveMemberEvent(team.id, memberId));
   }
 
   @override
@@ -120,9 +161,9 @@ class OpponentTeamsView extends StatelessWidget {
               key: ValueKey(team.id),
               team: team,
               onAddPlayer: () => _openAddPlayer(context, team),
-              onDelPlayer: (memberId) => context.read<OpponentMatchBloc>().add(
-                RemoveMemberEvent(team.id, memberId),
-              ),
+              onDelPlayer: (memberId) =>
+                  _confirmRemoveMember(context, team, memberId),
+              onEditPlayer: (player) => _openEditPlayer(context, team, player),
               onEditTeam: () => _openEditTeam(context, team),
               onDeleteTeam: () => _confirmDeleteTeam(context, team),
             );
@@ -143,17 +184,17 @@ class _NewTeamButton extends StatelessWidget {
     final textTheme = FutsalTheme.getTextTheme(context);
     return Material(
       color: Colors.transparent,
-      borderRadius: BorderRadius.circular(AppDimens.radiusX14),
+      borderRadius: BorderRadius.circular(AppDimens.radiusX10),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(AppDimens.radiusX14),
+        borderRadius: BorderRadius.circular(AppDimens.radiusX10),
         child: Container(
           width: double.infinity,
           padding: AppUtils().getPadding(
             symmetricVertical: AppDimens.paddingX14,
           ),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppDimens.radiusX14),
+            borderRadius: BorderRadius.circular(AppDimens.radiusX10),
             border: Border.all(
               color: LightColor.secondaryColor.withValues(alpha: 0.45),
             ),

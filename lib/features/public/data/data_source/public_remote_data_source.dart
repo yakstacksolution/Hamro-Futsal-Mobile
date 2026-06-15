@@ -14,6 +14,8 @@ abstract class PublicRemoteDataSource {
   Future<Result> getCategoryFilter();
   Future<Result> getWishlist();
   Future<Result> toggleWishlist(int venueId);
+  Future<Result> getFaqs();
+  Future<Result> getHelps();
 }
 
 final class PublicRemoteDataSourceImpl extends PublicRemoteDataSource {
@@ -67,4 +69,12 @@ final class PublicRemoteDataSourceImpl extends PublicRemoteDataSource {
   @override
   Future<Result> toggleWishlist(int venueId) async =>
       await Client.instance().getAuthManager().toggleWishlist(venueId);
+
+  @override
+  Future<Result> getFaqs() async =>
+      await Client.instance().getAuthManager().getFaqs();
+
+  @override
+  Future<Result> getHelps() async =>
+      await Client.instance().getAuthManager().getHelps();
 }

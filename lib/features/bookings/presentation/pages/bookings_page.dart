@@ -8,6 +8,7 @@ import 'package:hamro_footsall/features/bookings/data/model/booking_model.dart';
 import 'package:hamro_footsall/features/bookings/data/repositories/booking_repository_impl.dart';
 import 'package:hamro_footsall/features/bookings/domain/usecase/get_bookings_use_case.dart';
 import 'package:hamro_footsall/features/bookings/presentation/bloc/booking_bloc/booking_bloc.dart';
+import 'package:hamro_footsall/features/dashboard/presentation/page/dashboard_screen.dart';
 import 'package:hamro_footsall/features/bookings/presentation/widgets/futsal_bookings_tab.dart';
 import 'package:hamro_footsall/features/bookings/presentation/widgets/my_bookings_tab.dart';
 
@@ -58,12 +59,33 @@ class _BookingsViewState extends State<_BookingsView>
     );
 
     _tabAnim = CurvedAnimation(parent: _tabAnimCtrl, curve: Curves.easeInOut);
+
+    // Tabs stay alive inside the dashboard's IndexedStack, so a fetch that
+    // failed while offline would otherwise show a stale error forever.
+    // Re-fetch automatically whenever this tab becomes visible again.
+    DashboardScreen.selectedNavIndex.addListener(
+      _retryFailedFetchesOnTabVisible,
+    );
   }
 
   @override
   void dispose() {
+    DashboardScreen.selectedNavIndex.removeListener(
+      _retryFailedFetchesOnTabVisible,
+    );
     _tabAnimCtrl.dispose();
     super.dispose();
+  }
+
+  void _retryFailedFetchesOnTabVisible() {
+    if (!mounted || DashboardScreen.selectedNavIndex.value != 1) return;
+    final BookingBloc bloc = context.read<BookingBloc>();
+    if (bloc.state.myBookingsStatus == BookingLoadStatus.failure) {
+      bloc.add(const FetchMyBookingsEvent());
+    }
+    if (bloc.state.futsalBookingsStatus == BookingLoadStatus.failure) {
+      bloc.add(const FetchFutsalBookingsEvent());
+    }
   }
 
   void _onTabSelected(int index) {

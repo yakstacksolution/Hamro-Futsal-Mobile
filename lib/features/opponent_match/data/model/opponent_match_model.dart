@@ -68,6 +68,90 @@ extension PlayerPositionX on PlayerPosition {
   }
 }
 
+/// A player position as served by `GET /positions`:
+/// `{id: 1, title: Goalkeeper, slug: goalkeeper}` under `data.positions`.
+class PlayerPositionModel {
+  const PlayerPositionModel({
+    required this.id,
+    required this.name,
+    this.slug = '',
+  });
+
+  final String id;
+
+  /// Display name — the API's `title`.
+  final String name;
+
+  /// Stable machine key — the API's `slug` (e.g. `goalkeeper`).
+  final String slug;
+
+  factory PlayerPositionModel.fromJson(Map<String, dynamic> json) {
+    return PlayerPositionModel(
+      id: (json['id'] ?? json['position_id'] ?? '').toString(),
+      name: (json['title'] ?? json['name'] ?? json['label'] ?? '')
+          .toString()
+          .trim(),
+      slug: (json['slug'] ?? '').toString().trim(),
+    );
+  }
+
+  /// Static fallback mirroring [PlayerPosition], used until (or in case)
+  /// the API list arrives.
+  static List<PlayerPositionModel> get defaults => PlayerPosition.values
+      .map((p) => PlayerPositionModel(id: '', name: p.label, slug: p.name))
+      .toList(growable: false);
+
+  /// Name-based equality so a default selection still matches the API row
+  /// that replaces it.
+  @override
+  bool operator ==(Object other) =>
+      other is PlayerPositionModel &&
+      other.name.toLowerCase() == name.toLowerCase();
+
+  @override
+  int get hashCode => name.toLowerCase().hashCode;
+}
+
+/// An opponent level as served by `GET /opponent-levels` — same shape as
+/// positions: `{id, title, slug}` under `data.opponent_levels`.
+class OpponentLevelModel {
+  const OpponentLevelModel({required this.id, required this.name, this.slug = ''});
+
+  final String id;
+
+  /// Display name — the API's `title`.
+  final String name;
+
+  /// Stable machine key — the API's `slug`.
+  final String slug;
+
+  factory OpponentLevelModel.fromJson(Map<String, dynamic> json) {
+    return OpponentLevelModel(
+      id: (json['id'] ?? json['level_id'] ?? '').toString(),
+      name: (json['title'] ?? json['name'] ?? json['label'] ?? '')
+          .toString()
+          .trim(),
+      slug: (json['slug'] ?? '').toString().trim(),
+    );
+  }
+
+  /// Static fallback mirroring [OpponentLevel], used until (or in case)
+  /// the API list arrives.
+  static List<OpponentLevelModel> get defaults => OpponentLevel.values
+      .map((l) => OpponentLevelModel(id: '', name: l.label, slug: l.name))
+      .toList(growable: false);
+
+  /// Name-based equality so a default selection still matches the API row
+  /// that replaces it.
+  @override
+  bool operator ==(Object other) =>
+      other is OpponentLevelModel &&
+      other.name.toLowerCase() == name.toLowerCase();
+
+  @override
+  int get hashCode => name.toLowerCase().hashCode;
+}
+
 /// Lifecycle of an opponent request.
 enum RequestStatus { fresh, pending, accepted, rejected, sent, expired }
 
@@ -112,6 +196,8 @@ class PlayerModel {
     required this.name,
     required this.position,
     this.id = '',
+    this.positionName = '',
+    this.positionId = '',
   });
 
   /// Server-side team-member id (`teams/{team}/members/{member}`). Empty for
@@ -119,6 +205,16 @@ class PlayerModel {
   final String id;
   final String name;
   final PlayerPosition position;
+
+  /// Raw position name from the `/positions` API — this exact value is sent
+  /// back when storing/updating the player. Falls back to [position]'s label
+  /// when empty.
+  final String positionName;
+
+  /// The `/positions` row id, sent to the API as `position_id` when storing
+  /// the player. Falls back to [position]'s 1-based id (1=GK … 4=FW) when
+  /// empty.
+  final String positionId;
 
   /// A team member as returned inside a team payload. Tolerant of the member's
   /// name living either directly on the row or nested under `user`.
@@ -140,8 +236,10 @@ class PlayerModel {
         ? Map<String, dynamic>.from(position)
         : null;
     final positionValue =
+        positionMap?['title'] ??
         positionMap?['name'] ??
         positionMap?['label'] ??
+        positionMap?['slug'] ??
         positionMap?['id'] ??
         json['position_name'] ??
         json['position_id'] ??
@@ -151,6 +249,8 @@ class PlayerModel {
       id: (json['id'] ?? json['member_id'] ?? '').toString(),
       name: name,
       position: PlayerPositionX.fromAny(positionValue),
+      positionName: positionValue is String ? positionValue.trim() : '',
+      positionId: (positionMap?['id'] ?? json['position_id'] ?? '').toString(),
     );
   }
 }

@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import 'package:hamro_footsall/core/routers/app_router_params.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/features/bookings/data/model/booking_model.dart';
 import 'package:hamro_footsall/features/bookings/presentation/bloc/booking_bloc/booking_bloc.dart';
-import 'package:hamro_footsall/features/bookings/presentation/pages/booking_details_page.dart';
 import 'package:hamro_footsall/features/bookings/presentation/widgets/booking_shared_widgets.dart';
 
 class MyBookingsTab extends StatelessWidget {
@@ -58,10 +59,9 @@ class MyBookingsTab extends StatelessWidget {
               const SizedBox(height: AppDimens.paddingX10),
           itemBuilder: (_, i) => BookingCard(
             booking: items[i],
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => BookingDetailsPage(booking: items[i]),
-              ),
+            onTap: () => context.pushNamed(
+              AppRouterParams.bookingDetails.name,
+              extra: items[i],
             ),
           ),
         );

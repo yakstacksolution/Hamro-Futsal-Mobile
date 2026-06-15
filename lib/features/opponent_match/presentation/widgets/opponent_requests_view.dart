@@ -6,24 +6,29 @@ import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/widgets/custom_delete_dialog.dart';
 import 'package:hamro_footsall/features/opponent_match/data/model/opponent_match_model.dart';
 import 'package:hamro_footsall/features/opponent_match/presentation/bloc/opponent_match_bloc/opponent_match_bloc.dart';
 import 'package:hamro_footsall/features/opponent_match/presentation/utils/opponent_ui_utils.dart';
 import 'package:hamro_footsall/features/opponent_match/presentation/widgets/opponent_common.dart';
-import 'package:hamro_footsall/features/opponent_match/presentation/widgets/opponent_sheets.dart';
 
 /// How long a `New` incoming request stays acceptable.
 const Duration kAcceptWindow = Duration(minutes: 20);
 
-enum RequestFilter { all, open, settled }
+enum RequestFilter { all, open, mine, settled }
 
 extension RequestFilterX on RequestFilter {
   String get label => switch (this) {
     RequestFilter.all => 'All',
     RequestFilter.open => 'Open',
+    RequestFilter.mine => 'My Requests',
     RequestFilter.settled => 'Settled',
   };
 }
+
+/// Requests I sent live under "My Requests"; they stay pending until the
+/// opponent replies and can be removed at any time.
+bool _isMine(OpponentRequestModel r) => r.status == RequestStatus.sent;
 
 /// Requests tab: filter chips + request cards.
 class OpponentRequestsView extends StatelessWidget {
@@ -41,16 +46,22 @@ class OpponentRequestsView extends StatelessWidget {
         RequestFilter.all => requests,
         RequestFilter.open =>
           requests.where((r) => r.status.isOpen).toList(),
-        RequestFilter.settled =>
-          requests.where((r) => r.status.isSettled).toList(),
+        RequestFilter.mine => requests.where(_isMine).toList(),
+        // Sent requests have their own tab now, so settled is only the
+        // requests that reached a final state.
+        RequestFilter.settled => requests
+            .where((r) => r.status.isSettled && !_isMine(r))
+            .toList(),
       };
 
   int _count(List<OpponentRequestModel> requests, RequestFilter f) =>
       switch (f) {
         RequestFilter.all => requests.length,
         RequestFilter.open => requests.where((r) => r.status.isOpen).length,
-        RequestFilter.settled =>
-          requests.where((r) => r.status.isSettled).length,
+        RequestFilter.mine => requests.where(_isMine).length,
+        RequestFilter.settled => requests
+            .where((r) => r.status.isSettled && !_isMine(r))
+            .length,
       };
 
   @override
@@ -110,12 +121,6 @@ class OpponentRequestsView extends StatelessWidget {
                               RequestStatus.accepted,
                             ),
                           ),
-                          onReject: () => bloc.add(
-                            UpdateRequestStatusEvent(
-                              request,
-                              RequestStatus.rejected,
-                            ),
-                          ),
                           onDelete: () =>
                               bloc.add(DeleteOpponentRequestEvent(request)),
                           onExpire: () {
@@ -144,14 +149,12 @@ class OpponentRequestCard extends StatefulWidget {
     super.key,
     required this.request,
     required this.onAccept,
-    required this.onReject,
     required this.onDelete,
     required this.onExpire,
   });
 
   final OpponentRequestModel request;
   final VoidCallback onAccept;
-  final VoidCallback onReject;
   final VoidCallback onDelete;
   final VoidCallback onExpire;
 
@@ -225,20 +228,15 @@ class _OpponentRequestCardState extends State<OpponentRequestCard> {
     return '$m:$s';
   }
 
-  void _confirmDelete(BuildContext context) {
-    showModalBottomSheet(
+  Future<void> _confirmDelete(BuildContext context) async {
+    final bool confirmed = await showDeleteDialog(
       context: context,
-      backgroundColor: LightColor.transparentColor,
-      builder: (ctx) => ConfirmDeleteSheet(
-        title: 'Remove request?',
-        message:
-            'This will remove the request from ${widget.request.team}. You can\'t undo this.',
-        onConfirm: () {
-          Navigator.pop(ctx);
-          widget.onDelete();
-        },
-      ),
+      title: 'Remove request?',
+      message:
+          'This will remove the request from ${widget.request.team}. You can\'t undo this.',
+      confirmText: 'Remove',
     );
+    if (confirmed) widget.onDelete();
   }
 
   @override
@@ -272,15 +270,19 @@ class _OpponentRequestCardState extends State<OpponentRequestCard> {
             borderRadius: BorderRadius.circular(AppDimens.radiusX14),
             border: Border.all(
               color: emphasised
-                  ? LightColor.secondaryColor.withValues(alpha: 0.18)
+                  ? LightColor.secondaryColor.withValues(alpha: 0.35)
                   : LightColor.dividerColor,
               width: 1,
             ),
-            boxShadow: const [
+            // Fresh requests glow softly in the brand green — same accent
+            // language as the segmented tab bar indicator.
+            boxShadow: [
               BoxShadow(
-                color: LightColor.shadowColor,
+                color: emphasised
+                    ? LightColor.secondaryColor.withValues(alpha: 0.12)
+                    : LightColor.shadowColor,
                 blurRadius: 10,
-                offset: Offset(0, 2),
+                offset: const Offset(0, 2),
               ),
             ],
           ),
@@ -300,8 +302,20 @@ class _OpponentRequestCardState extends State<OpponentRequestCard> {
                     height: 44,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: LightColor.secondaryColor.withValues(alpha: 0.10),
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          LightColor.secondaryColor.withValues(alpha: 0.18),
+                          LightColor.secondaryColor.withValues(alpha: 0.06),
+                        ],
+                      ),
                       borderRadius: BorderRadius.circular(AppDimens.radiusX12),
+                      border: Border.all(
+                        color: LightColor.secondaryColor.withValues(
+                          alpha: 0.12,
+                        ),
+                      ),
                     ),
                     child: Text(
                       request.initials,
@@ -375,52 +389,57 @@ class _OpponentRequestCardState extends State<OpponentRequestCard> {
                 emphasised: true,
               ),
               const SizedBox(height: AppDimens.paddingX12),
-              const Divider(
-                height: 1,
-                thickness: 1,
-                color: LightColor.dividerColor,
-              ),
-              if (isExpired)
+              if (isExpired) ...[
+                const Divider(
+                  height: 1,
+                  thickness: 1,
+                  color: LightColor.dividerColor,
+                ),
                 const _FooterNote(
                   icon: Icons.hourglass_disabled_rounded,
-                  label: 'Accept window expired',
+                  label: 'Closed — accept window expired',
+                ),
+              ] else if (request.status.isOpen)
+                // Incoming requests are accept-only: letting the countdown
+                // run out closes the request automatically.
+                Padding(
+                  padding: const EdgeInsets.only(bottom: AppDimens.paddingX6),
+                  child: _ActionButton(
+                    icon: Icons.check_rounded,
+                    label: 'Accept',
+                    foreground: LightColor.whiteColor,
+                    background: LightColor.secondaryColor,
+                    glow: true,
+                    onTap: widget.onAccept,
+                  ),
                 )
-              else if (request.status.isOpen)
-                Row(
-                  children: [
-                    Expanded(
-                      child: _QuickAction(
-                        icon: Icons.close_rounded,
-                        label: 'Reject',
-                        onTap: widget.onReject,
-                      ),
-                    ),
-                    Container(
-                      width: 1,
-                      height: 18,
-                      color: LightColor.dividerColor,
-                    ),
-                    Expanded(
-                      child: _QuickAction(
-                        icon: Icons.check_circle_outline_rounded,
-                        label: 'Accept',
-                        emphasised: true,
-                        onTap: widget.onAccept,
-                      ),
-                    ),
-                  ],
+              else if (request.status == RequestStatus.sent)
+                // My request: still waiting on the opponent — removable.
+                Padding(
+                  padding: const EdgeInsets.only(bottom: AppDimens.paddingX6),
+                  child: _ActionButton(
+                    icon: Icons.delete_outline_rounded,
+                    label: 'Remove Request',
+                    foreground: LightColor.redColor,
+                    background: LightColor.redLightColor,
+                    onTap: () => _confirmDelete(context),
+                  ),
                 )
-              else
+              else ...[
+                const Divider(
+                  height: 1,
+                  thickness: 1,
+                  color: LightColor.dividerColor,
+                ),
                 _FooterNote(
                   icon: switch (request.status) {
                     RequestStatus.accepted => Icons.check_circle_rounded,
                     RequestStatus.rejected => Icons.cancel_outlined,
                     _ => Icons.outgoing_mail,
                   },
-                  label: request.status == RequestStatus.sent
-                      ? 'Awaiting reply'
-                      : request.status.label,
+                  label: request.status.label,
                 ),
+              ],
             ],
           ),
         ),
@@ -554,47 +573,65 @@ class _InfoMini extends StatelessWidget {
   }
 }
 
-class _QuickAction extends StatelessWidget {
-  const _QuickAction({
+/// Tinted (Reject) or filled (Accept) pill action at the foot of an open
+/// request card. [glow] adds the same soft brand shadow as the tab indicator.
+class _ActionButton extends StatelessWidget {
+  const _ActionButton({
     required this.icon,
     required this.label,
+    required this.foreground,
+    required this.background,
     required this.onTap,
-    this.emphasised = false,
+    this.glow = false,
   });
 
   final IconData icon;
   final String label;
-  final VoidCallback? onTap;
-  final bool emphasised;
+  final Color foreground;
+  final Color background;
+  final VoidCallback onTap;
+  final bool glow;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
-    final bool enabled = onTap != null;
-    final Color color = !enabled
-        ? LightColor.disabledTextColor
-        : (emphasised
-              ? LightColor.secondaryColor
-              : LightColor.secondaryTextColor);
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(AppDimens.radiusX8),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: AppDimens.sizeX16, color: color),
-            const SizedBox(width: AppDimens.paddingX6),
-            Text(
-              label,
-              style: textTheme.bodyTextSmall?.copyWith(
-                color: color,
-                fontWeight: emphasised ? FontWeight.w600 : FontWeight.w500,
-              ),
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+        boxShadow: glow
+            ? [
+                BoxShadow(
+                  color: background.withValues(alpha: 0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ]
+            : null,
+      ),
+      child: Material(
+        color: background,
+        borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+          child: Container(
+            height: AppDimens.sizeX40,
+            alignment: Alignment.center,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, size: AppDimens.sizeX16, color: foreground),
+                const SizedBox(width: AppDimens.paddingX6),
+                Text(
+                  label,
+                  style: textTheme.bodyTextSmall?.copyWith(
+                    color: foreground,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -618,9 +655,13 @@ class _EmptyRequests extends StatelessWidget {
         'Nothing to act on',
         'Open requests will appear here.',
       ),
+      RequestFilter.mine => (
+        'No requests sent',
+        'Requests you send to opponents will appear here while they wait for a reply.',
+      ),
       RequestFilter.settled => (
         'No settled requests',
-        'Accepted, rejected and sent requests will show here.',
+        'Accepted, rejected and closed requests will show here.',
       ),
     };
 

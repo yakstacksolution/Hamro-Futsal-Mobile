@@ -121,3 +121,21 @@ class ResendOtpEntity extends Equatable {
     };
   }
 }
+
+/// Tokens from the Google sign-in flow, exchanged with the backend for the
+/// app's own session token.
+class GoogleSignInEntity extends Equatable {
+  final String? idToken;
+  final String? accessToken;
+
+  const GoogleSignInEntity({this.idToken, this.accessToken});
+
+  @override
+  List<Object?> get props => [idToken, accessToken];
+
+  Map<String, dynamic> toMap() {
+    return <String, dynamic>{
+      "id_token": idToken,
+    };
+  }
+}

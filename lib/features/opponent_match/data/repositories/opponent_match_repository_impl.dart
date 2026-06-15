@@ -69,6 +69,55 @@ final class OpponentMatchRepositoryImpl extends OpponentMatchRepository {
   }
 
   @override
+  Future<Either<AppException, List<PlayerPositionModel>>> getPositions() async {
+    final response = await _teamDataSource.getPositions();
+    if (response.isError()) {
+      return left(ResponseHelper.error(response));
+    }
+    try {
+      final items = _findList(
+        response.getValue(),
+        keys: const ['data', 'positions', 'items', 'results'],
+        depth: 0,
+      );
+      final positions = items
+          .whereType<Map>()
+          .map(
+            (e) => PlayerPositionModel.fromJson(Map<String, dynamic>.from(e)),
+          )
+          .where((p) => p.name.isNotEmpty)
+          .toList(growable: false);
+      return right(positions);
+    } catch (_) {
+      return left(_error('Could not parse player positions from server.'));
+    }
+  }
+
+  @override
+  Future<Either<AppException, List<OpponentLevelModel>>>
+  getOpponentLevels() async {
+    final response = await _teamDataSource.getOpponentLevels();
+    if (response.isError()) {
+      return left(ResponseHelper.error(response));
+    }
+    try {
+      final items = _findList(
+        response.getValue(),
+        keys: const ['data', 'levels', 'opponent_levels', 'items', 'results'],
+        depth: 0,
+      );
+      final levels = items
+          .whereType<Map>()
+          .map((e) => OpponentLevelModel.fromJson(Map<String, dynamic>.from(e)))
+          .where((l) => l.name.isNotEmpty)
+          .toList(growable: false);
+      return right(levels);
+    } catch (_) {
+      return left(_error('Could not parse opponent levels from server.'));
+    }
+  }
+
+  @override
   Future<Either<AppException, List<String>>> getVenues() async {
     try {
       return right(await _dataSource.fetchVenues());
@@ -133,11 +182,37 @@ final class OpponentMatchRepositoryImpl extends OpponentMatchRepository {
     if (id == null) return left(_error('Invalid team.'));
     final name = player.name.trim();
     if (name.isEmpty) return left(_error('Player name cannot be empty.'));
-    // Backend resolves the user from the name; position is sent as its label.
+    // The backend stores the position by its `/positions` row id; when the
+    // selection came from the static fallback list (no id yet) derive the
+    // 1-based id from the enum (1=GK … 4=FW).
+    final int positionId =
+        int.tryParse(player.positionId.trim()) ?? player.position.index + 1;
     return _mutateThenReload(
       () => _teamDataSource.addMember(id, {
         'name': name,
-        'position': player.position.label,
+        'position_id': positionId,
+      }),
+    );
+  }
+
+  @override
+  Future<Either<AppException, List<TeamModel>>> updateMember(
+    String teamId,
+    PlayerModel player,
+  ) async {
+    final id = _teamId(teamId);
+    final member = _teamId(player.id);
+    if (id == null || member == null) return left(_error('Invalid member.'));
+    final name = player.name.trim();
+    if (name.isEmpty) return left(_error('Player name cannot be empty.'));
+    // Same payload shape as addMember: the position travels as its
+    // `/positions` row id (enum-derived 1-based id as fallback).
+    final int positionId =
+        int.tryParse(player.positionId.trim()) ?? player.position.index + 1;
+    return _mutateThenReload(
+      () => _teamDataSource.updateMember(id, member, {
+        'name': name,
+        'position_id': positionId,
       }),
     );
   }
@@ -159,7 +234,11 @@ final class OpponentMatchRepositoryImpl extends OpponentMatchRepository {
   ) async {
     final response = await action();
     if (response.isError()) {
-      return left(ResponseHelper.error(response));
+      final AppException error = ResponseHelper.error(response);
+      // DELETE endpoints (`teams/{team}`, `teams/{team}/members/{member}`)
+      // reply 204 No Content on success, which the logging interceptor
+      // surfaces as an error — treat it as a successful mutation.
+      if (error.statusCode != 204) return left(error);
     }
     return getTeams();
   }

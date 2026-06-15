@@ -18,6 +18,7 @@ class OpponentTeamCard extends StatelessWidget {
     required this.team,
     required this.onAddPlayer,
     required this.onDelPlayer,
+    required this.onEditPlayer,
     required this.onEditTeam,
     required this.onDeleteTeam,
   });
@@ -27,6 +28,9 @@ class OpponentTeamCard extends StatelessWidget {
 
   /// Receives the server member id of the player to remove.
   final ValueChanged<String> onDelPlayer;
+
+  /// Receives the player whose name/position should be edited.
+  final ValueChanged<PlayerModel> onEditPlayer;
   final VoidCallback onEditTeam;
   final VoidCallback onDeleteTeam;
 
@@ -51,8 +55,18 @@ class OpponentTeamCard extends StatelessWidget {
                   height: 44,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: LightColor.secondaryColor.withValues(alpha: 0.10),
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        LightColor.secondaryColor.withValues(alpha: 0.18),
+                        LightColor.secondaryColor.withValues(alpha: 0.06),
+                      ],
+                    ),
                     borderRadius: BorderRadius.circular(AppDimens.radiusX12),
+                    border: Border.all(
+                      color: LightColor.secondaryColor.withValues(alpha: 0.12),
+                    ),
                   ),
                   child: Text(
                     team.initials,
@@ -92,55 +106,10 @@ class OpponentTeamCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                PopupMenuButton<_TeamAction>(
+                _CardOptionsMenu(
                   tooltip: 'Team options',
-                  icon: const Icon(
-                    Icons.more_vert_rounded,
-                    color: LightColor.iconGrey,
-                    size: AppDimens.sizeX20,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppDimens.radiusX12),
-                  ),
-                  onSelected: (action) => switch (action) {
-                    _TeamAction.edit => onEditTeam(),
-                    _TeamAction.delete => onDeleteTeam(),
-                  },
-                  itemBuilder: (_) => [
-                    PopupMenuItem(
-                      value: _TeamAction.edit,
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.edit_outlined,
-                            size: AppDimens.sizeX18,
-                            color: LightColor.secondaryTextColor,
-                          ),
-                          const SizedBox(width: AppDimens.paddingX12),
-                          Text('Rename team', style: textTheme.bodyTextMedium),
-                        ],
-                      ),
-                    ),
-                    PopupMenuItem(
-                      value: _TeamAction.delete,
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.delete_outline_rounded,
-                            size: AppDimens.sizeX18,
-                            color: LightColor.redColor,
-                          ),
-                          const SizedBox(width: AppDimens.paddingX12),
-                          Text(
-                            'Delete team',
-                            style: textTheme.bodyTextMedium?.copyWith(
-                              color: LightColor.redColor,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                  onUpdate: onEditTeam,
+                  onDelete: onDeleteTeam,
                 ),
               ],
             ),
@@ -158,6 +127,7 @@ class OpponentTeamCard extends StatelessWidget {
                   if (i > 0) const _InsetDivider(indent: 58),
                   _PlayerRow(
                     player: team.players[i],
+                    onEdit: () => onEditPlayer(team.players[i]),
                     onDelete: () => onDelPlayer(team.players[i].id),
                   ),
                 ],
@@ -172,7 +142,13 @@ class OpponentTeamCard extends StatelessWidget {
             borderRadius: const BorderRadius.vertical(
               bottom: Radius.circular(AppDimens.radiusX14),
             ),
-            child: Padding(
+            child: Ink(
+              decoration: BoxDecoration(
+                color: LightColor.secondaryColor.withValues(alpha: 0.05),
+                borderRadius: const BorderRadius.vertical(
+                  bottom: Radius.circular(AppDimens.radiusX14),
+                ),
+              ),
               padding: const EdgeInsets.symmetric(
                 vertical: AppDimens.paddingX12,
               ),
@@ -202,10 +178,104 @@ class OpponentTeamCard extends StatelessWidget {
   }
 }
 
+/// Compact three-dot options menu shared by the team header and each player
+/// row — short "Update" / "Delete" entries on a small surface.
+class _CardOptionsMenu extends StatelessWidget {
+  const _CardOptionsMenu({
+    required this.tooltip,
+    required this.onUpdate,
+    required this.onDelete,
+  });
+
+  final String tooltip;
+  final VoidCallback onUpdate;
+  final VoidCallback onDelete;
+
+  PopupMenuItem<_TeamAction> _item(
+    BuildContext context, {
+    required _TeamAction value,
+    required IconData icon,
+    required String label,
+    required Color color,
+  }) {
+    return PopupMenuItem(
+      value: value,
+      height: AppDimens.sizeX40,
+      padding: AppUtils().getPadding(
+        symmetricHorizontal: AppDimens.paddingX14,
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: AppDimens.sizeX16, color: color),
+          const SizedBox(width: AppDimens.paddingX10),
+          Text(
+            label,
+            style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
+              color: value == _TeamAction.delete
+                  ? LightColor.redColor
+                  : LightColor.primaryTextColor,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<_TeamAction>(
+      tooltip: tooltip,
+      icon: const Icon(
+        Icons.more_vert_rounded,
+        color: LightColor.iconGrey,
+        size: AppDimens.sizeX18,
+      ),
+      padding: EdgeInsets.zero,
+      // Plain card surface — avoids Material 3's tinted default so the menu
+      // matches the app's white cards.
+      color: LightColor.cardColor,
+      surfaceTintColor: LightColor.transparentColor,
+      elevation: 10,
+      position: PopupMenuPosition.under,
+      constraints: const BoxConstraints(minWidth: AppDimens.sizeX120),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+        side: const BorderSide(color: LightColor.dividerColor),
+      ),
+      onSelected: (action) => switch (action) {
+        _TeamAction.edit => onUpdate(),
+        _TeamAction.delete => onDelete(),
+      },
+      itemBuilder: (_) => [
+        _item(
+          context,
+          value: _TeamAction.edit,
+          icon: Icons.edit_outlined,
+          label: 'Update',
+          color: LightColor.secondaryColor,
+        ),
+        _item(
+          context,
+          value: _TeamAction.delete,
+          icon: Icons.delete_outline_rounded,
+          label: 'Delete',
+          color: LightColor.redColor,
+        ),
+      ],
+    );
+  }
+}
+
 class _PlayerRow extends StatelessWidget {
-  const _PlayerRow({required this.player, required this.onDelete});
+  const _PlayerRow({
+    required this.player,
+    required this.onEdit,
+    required this.onDelete,
+  });
 
   final PlayerModel player;
+  final VoidCallback onEdit;
   final VoidCallback onDelete;
 
   @override
@@ -242,29 +312,35 @@ class _PlayerRow extends StatelessWidget {
               player.name,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: textTheme.bodyTextMedium?.copyWith(
+              style: textTheme.bodyTextSmall?.copyWith(
                 fontWeight: FontWeight.w600,
                 color: LightColor.primaryTextColor,
               ),
             ),
           ),
-          Text(
-            player.position.label,
-            style: textTheme.bodyTextSmall?.copyWith(
-              color: LightColor.hintTextColor,
-              fontSize: AppDimens.fontBodySubTitle,
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppDimens.paddingX6,
+              vertical: AppDimens.paddingX2,
+            ),
+            decoration: BoxDecoration(
+              color: LightColor.secondaryColor.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(AppDimens.radiusX20),
+            ),
+            child: Text(
+              player.position.label,
+              style: textTheme.bodyTextSmall?.copyWith(
+                color: LightColor.secondaryColor,
+                fontSize: AppDimens.fontBodyMiniSubTitle,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
           const SizedBox(width: AppDimens.paddingX4),
-          IconButton(
-            visualDensity: VisualDensity.compact,
-            tooltip: 'Remove player',
-            onPressed: onDelete,
-            icon: const Icon(
-              Icons.close_rounded,
-              color: LightColor.iconGrey,
-              size: AppDimens.sizeX18,
-            ),
+          _CardOptionsMenu(
+            tooltip: 'Player options',
+            onUpdate: onEdit,
+            onDelete: onDelete,
           ),
         ],
       ),

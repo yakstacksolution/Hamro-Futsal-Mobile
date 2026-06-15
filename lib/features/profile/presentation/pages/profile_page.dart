@@ -7,16 +7,10 @@ import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/custom_image_view.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
-import 'package:hamro_footsall/core/widgets/custom_app_bar.dart';
 import 'package:hamro_footsall/core/widgets/loading_widget.dart';
 import 'package:hamro_footsall/features/auth/data/repositories/authentication_repository_impl.dart';
-import 'package:hamro_footsall/features/courts/presentation/pages/venue_courts_list_page_widget.dart';
-import 'package:hamro_footsall/features/expenses/presentation/pages/expenses_screen.dart';
-import 'package:hamro_footsall/features/booking_overview/presentation/pages/booking_overview_screen.dart';
-import 'package:hamro_footsall/features/opponent_match/presentation/pages/opponent_match_screen.dart';
+import 'package:hamro_footsall/features/dashboard/presentation/page/dashboard_screen.dart';
 import 'package:hamro_footsall/features/profile/data/model/profile_model.dart';
-import 'package:hamro_footsall/features/profile/presentation/pages/about_app_page.dart';
-import 'package:hamro_footsall/features/profile/presentation/pages/settings_page.dart';
 import 'package:hamro_footsall/features/profile/presentation/profile_bloc/profile_bloc.dart';
 import 'package:hamro_footsall/features/profile/presentation/widgets/profile_details_page.dart';
 
@@ -34,16 +28,12 @@ class _ProfilePageState extends State<ProfilePage> {
     _ProfileItem(
       title: 'Settings',
       icon: Icons.settings_outlined,
-      onTap: () => Navigator.of(
-        context,
-      ).push(MaterialPageRoute<void>(builder: (_) => const SettingsPage())),
+      onTap: () => context.pushNamed(AppRouterParams.settings.name),
     ),
     _ProfileItem(
       title: 'Opponent Requests',
       icon: Icons.sports_kabaddi_rounded,
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute<void>(builder: (_) => const OpponentMatchScreen()),
-      ),
+      onTap: () => context.pushNamed(AppRouterParams.opponentMatch.name),
     ),
     _ProfileItem(
       title: 'Transaction History',
@@ -56,29 +46,17 @@ class _ProfilePageState extends State<ProfilePage> {
     _ProfileItem(
       title: 'Your Venues',
       icon: Icons.stadium_outlined,
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute<void>(
-          builder: (_) => Scaffold(
-            backgroundColor: LightColor.background,
-            appBar: const CustomAppBar(title: 'Your Venues'),
-            body: SafeArea(top: false, child: VenueCourtsListPage()),
-          ),
-        ),
-      ),
+      onTap: () => context.pushNamed(AppRouterParams.yourVenues.name),
     ),
     _ProfileItem(
       title: 'Booking Overview',
       icon: Icons.insights_rounded,
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute<void>(builder: (_) => const BookingOverviewScreen()),
-      ),
+      onTap: () => context.pushNamed(AppRouterParams.bookingOverview.name),
     ),
     _ProfileItem(
       title: 'Expenses',
       icon: Icons.account_balance_wallet_outlined,
-      onTap: () => Navigator.of(
-        context,
-      ).push(MaterialPageRoute<void>(builder: (_) => const ExpensesScreen())),
+      onTap: () => context.pushNamed(AppRouterParams.expenses.name),
     ),
   ];
 
@@ -95,16 +73,42 @@ class _ProfilePageState extends State<ProfilePage> {
     _ProfileItem(
       title: 'Help & FAQ',
       icon: Icons.help_outline_rounded,
-      onTap: () {},
+      onTap: () => context.pushNamed(AppRouterParams.helpFaq.name),
     ),
     _ProfileItem(
       title: 'About App',
       icon: Icons.info_outline_rounded,
-      onTap: () => Navigator.of(
-        context,
-      ).push(MaterialPageRoute<void>(builder: (_) => const AboutAppPage())),
+      onTap: () => context.pushNamed(AppRouterParams.aboutApp.name),
     ),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    // Tabs stay alive inside the dashboard's IndexedStack, so a fetch that
+    // failed while offline would otherwise show a stale error forever.
+    // Re-fetch automatically whenever this tab becomes visible again.
+    DashboardScreen.selectedNavIndex.addListener(_retryFailedFetchOnTabVisible);
+  }
+
+  @override
+  void dispose() {
+    DashboardScreen.selectedNavIndex.removeListener(
+      _retryFailedFetchOnTabVisible,
+    );
+    super.dispose();
+  }
+
+  void _retryFailedFetchOnTabVisible() {
+    if (!mounted || DashboardScreen.selectedNavIndex.value != 4) return;
+    final ProfileBloc bloc = context.read<ProfileBloc>();
+    // Only the initial profile load can leave the page without data; an
+    // update failure keeps the loaded profile, so don't refetch for it.
+    if (bloc.state.profile == null &&
+        bloc.state.status != ProfileStatus.loading) {
+      bloc.add(const FetchProfileEvent());
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -121,8 +125,7 @@ class _ProfilePageState extends State<ProfilePage> {
         final ProfileModel? profile = state.profile;
         final bool isLoading =
             state.status == ProfileStatus.loading && profile == null;
-        // Vendor tools (venue, booking overview, expenses) are hidden for
-        // candidates.
+
         final bool isVendor = profile?.data.role == 'vendor';
 
         return Column(
@@ -153,7 +156,6 @@ class _ProfilePageState extends State<ProfilePage> {
                   const SizedBox(height: AppDimens.paddingX24),
                   _SectionGroup(label: 'General', items: _generalItems),
                   const SizedBox(height: AppDimens.paddingX20),
-                  // Vendors get their tools; candidates get the upgrade path.
                   _SectionGroup(
                     label: 'Vendor',
                     items: isVendor ? _vendorItems : _candidateVendorItems,

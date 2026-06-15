@@ -3,6 +3,7 @@ import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/widgets/custom_button.dart';
 import 'package:hamro_footsall/core/widgets/custom_text_field.dart';
 import 'package:hamro_footsall/features/opponent_match/data/model/opponent_match_model.dart';
 
@@ -59,7 +60,7 @@ class OpponentSheetShell extends StatelessWidget {
                   title,
                   style: FutsalTheme.getTextTheme(context).bodyTextLarge
                       ?.copyWith(
-                        fontSize: AppDimens.fontHeadingSmall,
+                        fontSize: AppDimens.fontBodyTextLarge,
                         fontWeight: FontWeight.w700,
                         color: LightColor.primaryTextColor,
                       ),
@@ -157,55 +158,6 @@ class VenuePickerSheet extends StatelessWidget {
   }
 }
 
-class ConfirmDeleteSheet extends StatelessWidget {
-  const ConfirmDeleteSheet({
-    super.key,
-    required this.title,
-    required this.message,
-    required this.onConfirm,
-  });
-
-  final String title;
-  final String message;
-  final VoidCallback onConfirm;
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = FutsalTheme.getTextTheme(context);
-    return OpponentSheetShell(
-      title: title,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            message,
-            style: textTheme.bodyTextSmall?.copyWith(
-              color: LightColor.secondaryTextColor,
-              height: 1.5,
-            ),
-          ),
-          const SizedBox(height: AppDimens.paddingX20),
-          Row(
-            children: [
-              Expanded(
-                child: _SecondaryButton(
-                  label: 'Cancel',
-                  onTap: () => Navigator.pop(context),
-                ),
-              ),
-              const SizedBox(width: AppDimens.paddingX12),
-              Expanded(
-                child: _DangerButton(label: 'Remove', onTap: onConfirm),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 /// Create or rename a team. Pass [initialName] to switch to edit mode.
 class CreateTeamSheet extends StatefulWidget {
   const CreateTeamSheet({
@@ -253,15 +205,18 @@ class _CreateTeamSheetState extends State<CreateTeamSheet> {
             onChanged: (_) => setState(() {}),
           ),
           const SizedBox(height: AppDimens.sizeX20),
-          _PrimaryButton(
-            label: widget.actionLabel,
+          CustomButton(
+            text: widget.actionLabel,
             icon: widget.actionIcon,
-            enabled: enabled,
-            onTap: () {
-              final name = _teamCtrl.text.trim();
-              if (name.isEmpty) return;
-              widget.onCreate(name);
-            },
+            minHeight: AppDimens.sizeX44,
+            backgroundColor: LightColor.buttonColor,
+            onPressed: enabled
+                ? () {
+                    final name = _teamCtrl.text.trim();
+                    if (name.isEmpty) return;
+                    widget.onCreate(name);
+                  }
+                : null,
           ),
         ],
       ),
@@ -269,23 +224,59 @@ class _CreateTeamSheetState extends State<CreateTeamSheet> {
   }
 }
 
+/// Add a player to the roster, or — when [initialPlayer] is set — edit an
+/// existing member's name/position (`teams/{team}/members/{member}/update`).
 class AddPlayerSheet extends StatefulWidget {
   const AddPlayerSheet({
     super.key,
     required this.teamName,
+    required this.positions,
     required this.onAdd,
+    this.initialPlayer,
   });
 
   final String teamName;
+
+  /// Positions from the `/positions` API (caller falls back to
+  /// [PlayerPositionModel.defaults] when the fetch hasn't landed).
+  final List<PlayerPositionModel> positions;
   final ValueChanged<PlayerModel> onAdd;
+
+  /// When set, the sheet opens in edit mode prefilled with this member; the
+  /// model passed to [onAdd] keeps its member id.
+  final PlayerModel? initialPlayer;
 
   @override
   State<AddPlayerSheet> createState() => _AddPlayerSheetState();
 }
 
 class _AddPlayerSheetState extends State<AddPlayerSheet> {
-  final _nameCtrl = TextEditingController();
-  PlayerPosition? _position;
+  late final _nameCtrl = TextEditingController(
+    text: widget.initialPlayer?.name ?? '',
+  );
+  PlayerPositionModel? _position;
+
+  bool get _isEdit => widget.initialPlayer != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final initial = widget.initialPlayer;
+    if (initial == null) return;
+    // Preselect the member's current position — by API row id first, then by
+    // name (covers the static fallback list, which has no ids).
+    final String currentName = initial.positionName.trim().isNotEmpty
+        ? initial.positionName.trim()
+        : initial.position.label;
+    for (final p in widget.positions) {
+      final bool sameId =
+          p.id.isNotEmpty && p.id == initial.positionId.trim();
+      if (sameId || p.name.toLowerCase() == currentName.toLowerCase()) {
+        _position = p;
+        break;
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -296,7 +287,7 @@ class _AddPlayerSheetState extends State<AddPlayerSheet> {
   @override
   Widget build(BuildContext context) {
     return OpponentSheetShell(
-      title: 'Add Player',
+      title: _isEdit ? 'Edit Player' : 'Add Player',
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -323,7 +314,7 @@ class _AddPlayerSheetState extends State<AddPlayerSheet> {
             mainAxisSpacing: AppDimens.sizeX8,
             crossAxisSpacing: AppDimens.sizeX8,
             childAspectRatio: 3.2,
-            children: PlayerPosition.values.map((p) {
+            children: widget.positions.map((p) {
               final active = _position == p;
               final textTheme = FutsalTheme.getTextTheme(context);
               return GestureDetector(
@@ -343,7 +334,7 @@ class _AddPlayerSheetState extends State<AddPlayerSheet> {
                     ),
                   ),
                   child: Text(
-                    p.label,
+                    p.name,
                     style: textTheme.bodyTextSmall?.copyWith(
                       fontWeight: FontWeight.w500,
                       color: active
@@ -356,16 +347,30 @@ class _AddPlayerSheetState extends State<AddPlayerSheet> {
             }).toList(),
           ),
           const SizedBox(height: AppDimens.sizeX20),
-          _PrimaryButton(
-            label: 'Add Player',
-            icon: Icons.person_add_outlined,
-            enabled: _nameCtrl.text.trim().isNotEmpty && _position != null,
-            onTap: () {
-              final name = _nameCtrl.text.trim();
-              final position = _position;
-              if (name.isEmpty || position == null) return;
-              widget.onAdd(PlayerModel(name: name, position: position));
-            },
+          CustomButton(
+            text: _isEdit ? 'Save Changes' : 'Add Player',
+            icon: _isEdit ? Icons.check_rounded : Icons.person_add_outlined,
+            minHeight: AppDimens.sizeX44,
+            backgroundColor: LightColor.buttonColor,
+            onPressed: _nameCtrl.text.trim().isNotEmpty && _position != null
+                ? () {
+                    final name = _nameCtrl.text.trim();
+                    final position = _position;
+                    if (name.isEmpty || position == null) return;
+                    widget.onAdd(
+                      PlayerModel(
+                        // Editing keeps the member id so the update hits
+                        // the right `members/{member}/update` row.
+                        id: widget.initialPlayer?.id ?? '',
+                        name: name,
+                        // Local display enum; the API row id is what gets stored.
+                        position: PlayerPositionX.fromAny(position.name),
+                        positionName: position.name,
+                        positionId: position.id,
+                      ),
+                    );
+                  }
+                : null,
           ),
         ],
       ),
@@ -401,121 +406,4 @@ class _SheetInput extends StatelessWidget {
   }
 }
 
-class _PrimaryButton extends StatelessWidget {
-  const _PrimaryButton({
-    required this.label,
-    required this.icon,
-    required this.onTap,
-    this.enabled = true,
-  });
 
-  final String label;
-  final IconData icon;
-  final VoidCallback onTap;
-  final bool enabled;
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = FutsalTheme.getTextTheme(context);
-    return AnimatedOpacity(
-      duration: const Duration(milliseconds: 150),
-      opacity: enabled ? 1.0 : .45,
-      child: Material(
-        color: LightColor.secondaryColor,
-        borderRadius: BorderRadius.circular(AppDimens.radiusX14),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(AppDimens.radiusX14),
-          onTap: enabled ? onTap : null,
-          child: Container(
-            height: AppDimens.sizeX54,
-            alignment: Alignment.center,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  icon,
-                  color: LightColor.whiteColor,
-                  size: AppDimens.sizeX18,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  label,
-                  style: textTheme.bodyTextMedium?.copyWith(
-                    color: LightColor.whiteColor,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SecondaryButton extends StatelessWidget {
-  const _SecondaryButton({required this.label, required this.onTap});
-
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = FutsalTheme.getTextTheme(context);
-    return Material(
-      color: LightColor.background,
-      borderRadius: BorderRadius.circular(AppDimens.radiusX12),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(AppDimens.radiusX12),
-        onTap: onTap,
-        child: Container(
-          height: AppDimens.sizeX46,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppDimens.radiusX12),
-            border: Border.all(color: LightColor.dividerColor),
-          ),
-          child: Text(
-            label,
-            style: textTheme.bodyTextMedium?.copyWith(
-              color: LightColor.primaryTextColor,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _DangerButton extends StatelessWidget {
-  const _DangerButton({required this.label, required this.onTap});
-
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = FutsalTheme.getTextTheme(context);
-    return Material(
-      color: LightColor.redColor,
-      borderRadius: BorderRadius.circular(AppDimens.radiusX12),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(AppDimens.radiusX12),
-        onTap: onTap,
-        child: Container(
-          height: AppDimens.sizeX46,
-          alignment: Alignment.center,
-          child: Text(
-            label,
-            style: textTheme.bodyTextMedium?.copyWith(
-              color: LightColor.whiteColor,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}

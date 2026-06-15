@@ -183,7 +183,6 @@ class BookingSparklinePainter extends CustomPainter {
       old.values != values || old.color != color;
 }
 
-/// Two-column KPI snapshot grid.
 class BookingKpiGrid extends StatelessWidget {
   const BookingKpiGrid({super.key, required this.analytics});
 
@@ -320,7 +319,6 @@ class _Kpi extends StatelessWidget {
   }
 }
 
-/// Net profit + margin strip.
 class BookingProfitCard extends StatelessWidget {
   const BookingProfitCard({super.key, required this.analytics});
 

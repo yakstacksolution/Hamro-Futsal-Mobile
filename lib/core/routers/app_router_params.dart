@@ -53,6 +53,66 @@ class AppRouterParams {
     name: 'vendorStepper',
     path: '/dashboard/vendor-stepper',
   );
+
+  static const RouteConfig helpFaq = RouteConfig(
+    name: 'helpFaq',
+    path: '/dashboard/help-faq',
+  );
+
+  static const RouteConfig settings = RouteConfig(
+    name: 'settings',
+    path: '/dashboard/settings',
+  );
+
+  static const RouteConfig changePassword = RouteConfig(
+    name: 'changePassword',
+    path: '/dashboard/settings/change-password',
+  );
+
+  static const RouteConfig aboutApp = RouteConfig(
+    name: 'aboutApp',
+    path: '/dashboard/about-app',
+  );
+
+  static const RouteConfig opponentMatch = RouteConfig(
+    name: 'opponentMatch',
+    path: '/dashboard/opponent-match',
+  );
+
+  static const RouteConfig bookingOverview = RouteConfig(
+    name: 'bookingOverview',
+    path: '/dashboard/booking-overview',
+  );
+
+  static const RouteConfig expenses = RouteConfig(
+    name: 'expenses',
+    path: '/dashboard/expenses',
+  );
+
+  static const RouteConfig yourVenues = RouteConfig(
+    name: 'yourVenues',
+    path: '/dashboard/your-venues',
+  );
+
+  static const RouteConfig bookingDetails = RouteConfig(
+    name: 'bookingDetails',
+    path: '/dashboard/booking-details',
+  );
+
+  static const RouteConfig courtLocationMap = RouteConfig(
+    name: 'courtLocationMap',
+    path: '/dashboard/court-location-map',
+  );
+
+  static const RouteConfig slotsSelection = RouteConfig(
+    name: 'slotsSelection',
+    path: '/dashboard/slots-selection',
+  );
+
+  static const RouteConfig venueFilter = RouteConfig(
+    name: 'venueFilter',
+    path: '/dashboard/venue-filter',
+  );
 }
 
 class RouteConfig {

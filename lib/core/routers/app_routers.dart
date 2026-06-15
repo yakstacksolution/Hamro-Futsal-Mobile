@@ -2,7 +2,26 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hamro_footsall/core/routers/app_router_params.dart';
+import 'package:hamro_footsall/core/theme/app_colors.dart';
+import 'package:hamro_footsall/core/widgets/custom_app_bar.dart';
 import 'package:hamro_footsall/features/auth/data/repositories/authentication_repository_impl.dart';
+import 'package:hamro_footsall/features/booking_overview/presentation/pages/booking_overview_screen.dart';
+import 'package:hamro_footsall/features/bookings/data/model/booking_model.dart';
+import 'package:hamro_footsall/features/bookings/presentation/pages/booking_details_page.dart';
+import 'package:hamro_footsall/features/change_password/data/repositories/change_password_repository_impl.dart';
+import 'package:hamro_footsall/features/change_password/domain/usecase/change_password_usecase.dart';
+import 'package:hamro_footsall/features/change_password/presentation/bloc/change_password_bloc/change_password_bloc.dart';
+import 'package:hamro_footsall/features/change_password/presentation/pages/change_password_page.dart';
+import 'package:hamro_footsall/features/courts/presentation/pages/venue_courts_list_page_widget.dart';
+import 'package:hamro_footsall/features/courts_details/presentation/page/court_details.dart';
+import 'package:hamro_footsall/features/courts_details/presentation/page/court_location_map_page.dart';
+import 'package:hamro_footsall/features/expenses/presentation/pages/expenses_screen.dart';
+import 'package:hamro_footsall/features/futsal_details/presentation/view/slots_selection_page.dart';
+import 'package:hamro_footsall/features/opponent_match/presentation/pages/opponent_match_screen.dart';
+import 'package:hamro_footsall/features/profile/presentation/pages/about_app_page.dart';
+import 'package:hamro_footsall/features/profile/presentation/pages/settings_page.dart';
+import 'package:hamro_footsall/features/public/presentation/models/venue_filter.dart';
+import 'package:hamro_footsall/features/public/presentation/pages/venue_filter_page.dart';
 import 'package:hamro_footsall/features/auth/presentation/forgot_password_screen.dart';
 import 'package:hamro_footsall/features/auth/presentation/authentication_bloc/authentication_bloc.dart';
 import 'package:hamro_footsall/features/auth/presentation/login_screen.dart';
@@ -15,6 +34,7 @@ import 'package:hamro_footsall/features/public/data/model/public_venue_model.dar
 import 'package:hamro_footsall/features/public/data/repositories/public_repository_impl.dart';
 import 'package:hamro_footsall/features/public/domain/usecase/get_public_templates_use_case.dart';
 import 'package:hamro_footsall/features/public/presentation/bloc/public_templates/public_templates_bloc.dart';
+import 'package:hamro_footsall/features/public/presentation/pages/help_faq_page.dart';
 import 'package:hamro_footsall/features/profile/data/repositories/profile_repository_impl.dart';
 import 'package:hamro_footsall/features/profile/data/model/profile_model.dart';
 import 'package:hamro_footsall/features/profile/domain/usecase/profile_usecase.dart';
@@ -30,9 +50,13 @@ import 'package:hamro_footsall/features/vendor/presentation/pages/stepper_logic_
 class AppRouters {
   AppRouters._();
 
-  static GoRouter router(String initialLocation) {
+  static GoRouter router(
+    String initialLocation, {
+    List<NavigatorObserver> observers = const <NavigatorObserver>[],
+  }) {
     return GoRouter(
       initialLocation: initialLocation,
+      observers: observers,
       routes: <RouteBase>[
         GoRoute(
           name: AppRouterParams.login.name,
@@ -152,6 +176,98 @@ class AppRouters {
                   ProfileDetailsPage(user: state.extra as UserData?),
             ),
           ],
+        ),
+
+        GoRoute(
+          name: AppRouterParams.helpFaq.name,
+          path: AppRouterParams.helpFaq.path,
+          builder: (context, state) => const HelpFaqPage(),
+        ),
+
+        GoRoute(
+          name: AppRouterParams.settings.name,
+          path: AppRouterParams.settings.path,
+          builder: (context, state) => const SettingsPage(),
+        ),
+
+        GoRoute(
+          name: AppRouterParams.changePassword.name,
+          path: AppRouterParams.changePassword.path,
+          builder: (context, state) => BlocProvider<ChangePasswordBloc>(
+            create: (_) => ChangePasswordBloc(
+              ChangePasswordUseCase(ChangePasswordRepositoryImpl()),
+            ),
+            child: const ChangePasswordPage(),
+          ),
+        ),
+
+        GoRoute(
+          name: AppRouterParams.aboutApp.name,
+          path: AppRouterParams.aboutApp.path,
+          builder: (context, state) => const AboutAppPage(),
+        ),
+
+        GoRoute(
+          name: AppRouterParams.opponentMatch.name,
+          path: AppRouterParams.opponentMatch.path,
+          builder: (context, state) => const OpponentMatchScreen(),
+        ),
+
+        GoRoute(
+          name: AppRouterParams.bookingOverview.name,
+          path: AppRouterParams.bookingOverview.path,
+          builder: (context, state) => const BookingOverviewScreen(),
+        ),
+
+        GoRoute(
+          name: AppRouterParams.expenses.name,
+          path: AppRouterParams.expenses.path,
+          builder: (context, state) => const ExpensesScreen(),
+        ),
+
+        GoRoute(
+          name: AppRouterParams.yourVenues.name,
+          path: AppRouterParams.yourVenues.path,
+          builder: (context, state) => Scaffold(
+            backgroundColor: LightColor.background,
+            appBar: const CustomAppBar(title: 'Your Venues'),
+            body: const SafeArea(top: false, child: VenueCourtsListPage()),
+          ),
+        ),
+
+        GoRoute(
+          name: AppRouterParams.bookingDetails.name,
+          path: AppRouterParams.bookingDetails.path,
+          builder: (context, state) => BookingDetailsPage(
+            booking: state.extra as BookingModel,
+            isFutsalView: state.queryParameters['futsal'] == 'true',
+          ),
+        ),
+
+        GoRoute(
+          name: AppRouterParams.courtLocationMap.name,
+          path: AppRouterParams.courtLocationMap.path,
+          builder: (context, state) => CourtLocationMapPage(
+            latitude: double.parse(state.queryParameters['lat']!),
+            longitude: double.parse(state.queryParameters['lng']!),
+            venueName: state.queryParameters['name'],
+            address: state.queryParameters['address'],
+          ),
+        ),
+
+        GoRoute(
+          name: AppRouterParams.slotsSelection.name,
+          path: AppRouterParams.slotsSelection.path,
+          builder: (context, state) =>
+              SlotsSelectionPage(court: state.extra as CourtDetailModel),
+        ),
+
+        GoRoute(
+          name: AppRouterParams.venueFilter.name,
+          path: AppRouterParams.venueFilter.path,
+          builder: (context, state) => VenueFilterPage(
+            initialFilter: (state.extra as VenueFilter?) ?? VenueFilter.empty,
+          ),
         ),
 
         GoRoute(

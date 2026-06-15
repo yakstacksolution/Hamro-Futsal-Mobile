@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 
+import 'package:hamro_footsall/core/routers/app_router_params.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
-import 'package:hamro_footsall/features/courts_details/presentation/page/court_location_map_page.dart';
 
 class CourtLocationMapSection extends StatelessWidget {
   const CourtLocationMapSection({
@@ -36,15 +37,14 @@ class CourtLocationMapSection extends StatelessWidget {
 
   void _openFullMap(BuildContext context) {
     if (!_hasCoordinates) return;
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => CourtLocationMapPage(
-          latitude: latitude!,
-          longitude: longitude!,
-          venueName: venueName,
-          address: address,
-        ),
-      ),
+    context.pushNamed(
+      AppRouterParams.courtLocationMap.name,
+      queryParameters: <String, String>{
+        'lat': latitude!.toString(),
+        'lng': longitude!.toString(),
+        if (venueName != null) 'name': venueName!,
+        if (address != null) 'address': address!,
+      },
     );
   }
 

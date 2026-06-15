@@ -197,12 +197,31 @@ class OpponentCountChip extends StatelessWidget {
               ),
               if (count > 0) ...[
                 const SizedBox(width: AppDimens.paddingX6),
-                Text(
-                  count.toString(),
-                  style: textTheme.bodyTextSmall?.copyWith(
-                    color: fg.withValues(alpha: 0.7),
-                    fontWeight: FontWeight.w500,
-                    fontSize: AppDimens.fontBodySubTitle,
+                // Mirrors the count badges in the segmented tab bar above.
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  curve: Curves.easeOut,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppDimens.paddingX6,
+                    vertical: 1,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? (filled
+                              ? LightColor.whiteColor.withValues(alpha: 0.22)
+                              : LightColor.secondaryColor.withValues(
+                                  alpha: 0.14,
+                                ))
+                        : LightColor.dividerColor.withValues(alpha: 0.6),
+                    borderRadius: BorderRadius.circular(AppDimens.radiusX20),
+                  ),
+                  child: Text(
+                    count.toString(),
+                    style: textTheme.bodyTextSmall?.copyWith(
+                      color: fg,
+                      fontWeight: FontWeight.w700,
+                      fontSize: AppDimens.fontBodySubTitle,
+                    ),
                   ),
                 ),
               ],
@@ -298,23 +317,33 @@ class OpponentStatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (Color fg, Color bg) = switch (status) {
+    // A request I sent stays "Pending" until the opponent replies; a timed
+    // out request reads as "Closed".
+    final (Color fg, Color bg, String label) = switch (status) {
       RequestStatus.accepted => (
         LightColor.successColor,
         LightColor.secondaryColor.withValues(alpha: 0.10),
+        status.label,
       ),
-      RequestStatus.rejected => (LightColor.redColor, LightColor.redLightColor),
-      RequestStatus.pending => (
+      RequestStatus.rejected => (
+        LightColor.redColor,
+        LightColor.redLightColor,
+        status.label,
+      ),
+      RequestStatus.pending || RequestStatus.sent => (
         LightColor.warningColor,
         LightColor.warningLightColor,
+        'Pending',
       ),
-      RequestStatus.sent || RequestStatus.fresh => (
+      RequestStatus.fresh => (
         LightColor.secondaryColor,
         LightColor.secondaryColor.withValues(alpha: 0.10),
+        status.label,
       ),
       RequestStatus.expired => (
         LightColor.hintTextColor,
         LightColor.dividerColor,
+        'Closed',
       ),
     };
     return Container(
@@ -324,7 +353,7 @@ class OpponentStatusBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppDimens.radiusX20),
       ),
       child: Text(
-        status.label,
+        label,
         style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
           fontSize: AppDimens.fontBodySubTitle,
           fontWeight: FontWeight.w600,

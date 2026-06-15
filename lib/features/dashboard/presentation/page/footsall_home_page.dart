@@ -13,12 +13,14 @@ import 'package:hamro_footsall/core/utils/custom_image_view.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/utils/image_constants.dart';
 import 'package:hamro_footsall/core/widgets/loading_widget.dart';
+import 'package:hamro_footsall/features/dashboard/presentation/page/dashboard_screen.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/widgets/loading/home_body_loading.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/widgets/venue_status_widget.dart';
 import 'package:hamro_footsall/features/public/data/model/public_venue_model.dart';
 import 'package:hamro_footsall/features/public/data/repositories/public_repository_impl.dart';
 import 'package:hamro_footsall/features/public/domain/usecase/get_public_venues_use_case.dart';
 import 'package:hamro_footsall/features/public/presentation/bloc/public_venue/public_venue_bloc.dart';
+import 'package:hamro_footsall/features/profile/presentation/profile_bloc/profile_bloc.dart';
 import 'package:hamro_footsall/features/public/presentation/models/venue_filter.dart';
 import 'package:hamro_footsall/core/helper/wishlist_store.dart';
 import 'package:hamro_footsall/features/wishlist/domain/usecase/toggle_wishlist_use_case.dart';
@@ -65,8 +67,20 @@ class _CourtsListScreenState extends State<CourtsListScreen>
     )..add(FetchPublicVenuesEvent(filter: widget.filter));
     _scrollController.addListener(_onScroll);
 
+    // Tabs stay alive inside the dashboard's IndexedStack, so a fetch that
+    // failed while offline would otherwise show a stale error forever.
+    // Re-fetch automatically whenever this tab becomes visible again.
+    DashboardScreen.selectedNavIndex.addListener(_retryFailedFetchOnTabVisible);
+
     // Resolve the device position early so venue cards can show distances.
     VenueDistanceHelper.instance.ensurePosition();
+  }
+
+  void _retryFailedFetchOnTabVisible() {
+    if (!mounted || DashboardScreen.selectedNavIndex.value != 0) return;
+    if (_publicVenueBloc.state.status == PublicVenueStatus.failure) {
+      _publicVenueBloc.add(FetchPublicVenuesEvent(filter: widget.filter));
+    }
   }
 
   @override
@@ -79,6 +93,9 @@ class _CourtsListScreenState extends State<CourtsListScreen>
 
   @override
   void dispose() {
+    DashboardScreen.selectedNavIndex.removeListener(
+      _retryFailedFetchOnTabVisible,
+    );
     _scrollController
       ..removeListener(_onScroll)
       ..dispose();
@@ -97,6 +114,9 @@ class _CourtsListScreenState extends State<CourtsListScreen>
   }
 
   Future<void> _refresh() async {
+    // Refresh the profile alongside the venues so the dashboard greeting and
+    // vendor-onboarding state stay current.
+    context.read<ProfileBloc>().add(const FetchProfileEvent());
     _publicVenueBloc.add(FetchPublicVenuesEvent(filter: widget.filter));
     await _publicVenueBloc.stream.firstWhere(
       (PublicVenueState state) => state.status != PublicVenueStatus.loading,

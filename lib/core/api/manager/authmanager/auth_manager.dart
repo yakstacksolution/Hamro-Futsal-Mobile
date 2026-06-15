@@ -33,6 +33,10 @@ class AuthManager extends ServiceManager {
     return await _apiClient.login(data: data);
   }
 
+  Future<Result> googleLogin(Map<String, dynamic> data) async {
+    return await _apiClient.googleLogin(data: data);
+  }
+
   Future<Result> register(data) async {
     return await _apiClient.register(data: data);
   }
@@ -51,6 +55,18 @@ class AuthManager extends ServiceManager {
 
   Future<Result> getProfile() async {
     return await _apiClient.getProfile();
+  }
+
+  Future<Result> updateNotificationPreferences(
+    Map<String, dynamic> data,
+  ) async {
+    return await _apiClient.updateNotificationPreferences(data: data);
+  }
+
+  /// Authenticated password change (Settings) — distinct from the
+  /// forgot-password reset flow's `changePassword`.
+  Future<Result> updatePassword(Map<String, dynamic> data) async {
+    return await _apiClient.updatePassword(data: data);
   }
 
   Future<Result> getUserDetails() async {
@@ -83,6 +99,14 @@ class AuthManager extends ServiceManager {
 
   Future<Result> getPublicServices() async {
     return await _apiClient.getPublicServices();
+  }
+
+  Future<Result> getFaqs() async {
+    return await _apiClient.getFaqs();
+  }
+
+  Future<Result> getHelps() async {
+    return await _apiClient.getHelps();
   }
 
   Future<Result> getPublicPackages() async {
@@ -310,6 +334,14 @@ class AuthManager extends ServiceManager {
     return await _apiClient.getTeams();
   }
 
+  Future<Result> getPlayerPositions() async {
+    return await _apiClient.getPlayerPositions();
+  }
+
+  Future<Result> getOpponentLevels() async {
+    return await _apiClient.getOpponentLevels();
+  }
+
   Future<Result> getTeam(int teamId) async {
     return await _apiClient.getTeam(teamId: teamId);
   }
@@ -328,6 +360,18 @@ class AuthManager extends ServiceManager {
 
   Future<Result> addTeamMember(int teamId, Map<String, dynamic> data) async {
     return await _apiClient.addTeamMember(teamId: teamId, data: data);
+  }
+
+  Future<Result> updateTeamMember(
+    int teamId,
+    int memberId,
+    Map<String, dynamic> data,
+  ) async {
+    return await _apiClient.updateTeamMember(
+      teamId: teamId,
+      memberId: memberId,
+      data: data,
+    );
   }
 
   Future<Result> removeTeamMember(int teamId, int memberId) async {

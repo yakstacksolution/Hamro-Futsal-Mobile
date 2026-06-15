@@ -70,6 +70,12 @@ dependencies:
   geolocator: ^14.0.2
   syncfusion_flutter_charts: ^33.2.10
   dart_pusher_channels: ^1.2.5
+  google_sign_in: ^6.2.2
+  firebase_core: ^4.10.0
+  firebase_messaging: ^16.3.0
+  firebase_auth: ^6.5.2
+  firebase_analytics: ^12.4.2
+  firebase_crashlytics: ^5.2.3
 dev_dependencies:
   flutter_test:
     sdk: flutter

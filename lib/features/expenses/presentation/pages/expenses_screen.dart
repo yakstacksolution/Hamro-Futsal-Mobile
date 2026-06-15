@@ -229,7 +229,7 @@ class _ExpensesViewState extends State<_ExpensesView>
                 total: report.summary.totalSpend,
               ),
               const SizedBox(height: AppDimens.paddingX12),
-              ExpensePeriodChips(
+              ExpenseFilterDropdownRow(
                 period: _period,
                 customRange: _customRange,
                 onPeriod: (p) {
@@ -241,6 +241,11 @@ class _ExpensesViewState extends State<_ExpensesView>
                   }
                 },
                 onEditCustom: _pickRange,
+                paymentMethod: _paymentMethod,
+                onPaymentMethod: (m) {
+                  setState(() => _paymentMethod = m);
+                  _applyFilter();
+                },
               ),
               const SizedBox(height: AppDimens.paddingX10),
               ExpenseVenueFilter(
@@ -248,14 +253,6 @@ class _ExpensesViewState extends State<_ExpensesView>
                 selectedId: _venueId,
                 onChange: (id) {
                   setState(() => _venueId = id);
-                  _applyFilter();
-                },
-              ),
-              const SizedBox(height: AppDimens.paddingX10),
-              ExpensePaymentFilter(
-                selected: _paymentMethod,
-                onChange: (m) {
-                  setState(() => _paymentMethod = m);
                   _applyFilter();
                 },
               ),

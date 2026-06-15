@@ -35,6 +35,21 @@ class ApiClient {
     return _get(url: '$_baseUrl/auth/me');
   }
 
+  Future<Result> updateNotificationPreferences({
+    required Map<String, dynamic> data,
+  }) {
+    return _post(url: '$_baseUrl/auth/notification-preferences', data: data);
+  }
+
+  /// Exchanges a Google id token for the app's own session token.
+  Future<Result> googleLogin({required Map<String, dynamic> data}) {
+    return _post(url: '$_baseUrl/auth/google-login', data: data);
+  }
+
+  Future<Result> updatePassword({required Map<String, dynamic> data}) {
+    return _put(url: '$_baseUrl/auth/password', data: data);
+  }
+
   Future<Result> forgotPassword({required Map<String, dynamic> data}) {
     return _post(url: '$_baseUrl/auth/forgot-password', data: data);
   }
@@ -73,6 +88,14 @@ class ApiClient {
 
   Future<Result> getCourtTypes() {
     return _get(url: '$_baseUrl/court-types');
+  }
+
+  Future<Result> getFaqs() {
+    return _get(url: '$_baseUrl/faqs');
+  }
+
+  Future<Result> getHelps() {
+    return _get(url: '$_baseUrl/helps');
   }
 
   Future<Result> getMatchFormats() {
@@ -321,6 +344,14 @@ class ApiClient {
     return _get(url: '$_baseUrl/auth/teams');
   }
 
+  Future<Result> getPlayerPositions() {
+    return _get(url: '$_baseUrl/positions');
+  }
+
+  Future<Result> getOpponentLevels() {
+    return _get(url: '$_baseUrl/opponent-levels');
+  }
+
   Future<Result> getTeam({required int teamId}) {
     return _get(url: '$_baseUrl/auth/teams/$teamId');
   }
@@ -345,6 +376,17 @@ class ApiClient {
     required Map<String, dynamic> data,
   }) {
     return _post(url: '$_baseUrl/auth/teams/$teamId/members', data: data);
+  }
+
+  Future<Result> updateTeamMember({
+    required int teamId,
+    required int memberId,
+    required Map<String, dynamic> data,
+  }) {
+    return _post(
+      url: '$_baseUrl/auth/teams/$teamId/members/$memberId/update',
+      data: data,
+    );
   }
 
   Future<Result> removeTeamMember({

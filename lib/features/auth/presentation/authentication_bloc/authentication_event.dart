@@ -22,6 +22,12 @@ final class LoginEvent extends AuthenticationEvent {
   List<Object> get props => [email, password, rememberMe];
 }
 
+/// Runs the Google account picker and exchanges the Google tokens for the
+/// app session via `POST /auth/google`.
+final class GoogleLoginEvent extends AuthenticationEvent {
+  const GoogleLoginEvent();
+}
+
 final class RegisterEvent extends AuthenticationEvent {
   final String fullName;
   final String email;

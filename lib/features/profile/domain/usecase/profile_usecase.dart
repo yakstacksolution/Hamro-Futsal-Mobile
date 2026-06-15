@@ -14,4 +14,8 @@ final class ProfileUseCase {
   Future<Either<AppException, ProfileModel>> updateProfile(
     Map<String, dynamic> data,
   ) async => await repository.updateProfile(data);
+
+  Future<Either<AppException, bool>> updateNotificationPreferences(
+    NotificationPreferences preferences,
+  ) async => await repository.updateNotificationPreferences(preferences);
 }

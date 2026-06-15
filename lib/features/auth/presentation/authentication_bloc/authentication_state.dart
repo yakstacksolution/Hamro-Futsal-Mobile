@@ -4,10 +4,12 @@ enum AuthStatus { initial, loading, success, failure }
 
 class AuthenticationState extends Equatable {
   final AuthStatus loginStatus;
+  final AuthStatus googleLoginStatus;
   final AuthStatus registrationStatus;
   final String successMessage;
   final String? errorMessage;
   final dynamic loginErrorData;
+  final dynamic googleLoginErrorData;
   final dynamic registrationErrorData;
   final dynamic otpVerificationData;
   final bool obscurePassword;
@@ -17,8 +19,10 @@ class AuthenticationState extends Equatable {
 
   const AuthenticationState({
     this.loginStatus = AuthStatus.initial,
+    this.googleLoginStatus = AuthStatus.initial,
     this.errorMessage,
     this.loginErrorData,
+    this.googleLoginErrorData,
     this.registrationErrorData,
     this.otpVerificationData,
     this.obscurePassword = true,
@@ -31,8 +35,10 @@ class AuthenticationState extends Equatable {
 
   AuthenticationState copyWith({
     AuthStatus? loginStatus,
+    AuthStatus? googleLoginStatus,
     String? errorMessage,
     dynamic loginErrorData,
+    dynamic googleLoginErrorData,
     dynamic registrationErrorData,
     dynamic otpVerificationData,
     bool? obscurePassword,
@@ -47,12 +53,16 @@ class AuthenticationState extends Equatable {
   }) {
     return AuthenticationState(
       loginStatus: loginStatus ?? this.loginStatus,
+      googleLoginStatus: googleLoginStatus ?? this.googleLoginStatus,
       errorMessage: clearErrorMessage
           ? null
           : errorMessage ?? this.errorMessage,
       loginErrorData: clearErrorData
           ? null
           : loginErrorData ?? this.loginErrorData,
+      googleLoginErrorData: clearErrorData
+          ? null
+          : googleLoginErrorData ?? this.googleLoginErrorData,
       registrationErrorData: clearErrorData
           ? null
           : registrationErrorData ?? this.registrationErrorData,
@@ -74,8 +84,10 @@ class AuthenticationState extends Equatable {
   @override
   List<Object?> get props => [
     loginStatus,
+    googleLoginStatus,
     errorMessage,
     loginErrorData,
+    googleLoginErrorData,
     obscurePassword,
     registrationStatus,
     registrationErrorData,

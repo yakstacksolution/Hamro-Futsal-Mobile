@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:hamro_footsall/core/routers/app_router_params.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
@@ -18,7 +20,18 @@ class _SettingsPageState extends State<SettingsPage> {
   late final SettingsController _controller = SettingsController();
 
   @override
+  void initState() {
+    super.initState();
+    // A failed notification-preference sync reverts the switch; tell the
+    // user why it snapped back.
+    _controller.onError = (String message) {
+      if (mounted) AppUtils().showSnackBar(context, MsgType.error, message);
+    };
+  }
+
+  @override
   void dispose() {
+    _controller.onError = null;
     _controller.dispose();
     super.dispose();
   }
@@ -44,9 +57,8 @@ class _SettingsPageState extends State<SettingsPage> {
             itemCount: _sections.length,
             separatorBuilder: (_, _) =>
                 const SizedBox(height: AppDimens.paddingX16),
-            itemBuilder: (context, index) => _SettingsSection(
-              section: _sections[index],
-            ),
+            itemBuilder: (context, index) =>
+                _SettingsSection(section: _sections[index]),
           ),
         ),
       ),
@@ -63,7 +75,7 @@ class _SettingsPageState extends State<SettingsPage> {
           icon: Icons.lock_outline_rounded,
           title: 'Change Password',
           subtitle: 'Keep your account secure',
-          onTap: () => _notImplemented('Change password'),
+          onTap: () => context.pushNamed(AppRouterParams.changePassword.name),
         ),
         _SettingsItem.toggle(
           icon: Icons.fingerprint_rounded,
@@ -127,14 +139,6 @@ class _SettingsPageState extends State<SettingsPage> {
       ],
     ),
   ];
-
-  void _notImplemented(String feature) {
-    AppUtils().showSnackBar(
-      context,
-      MsgType.info,
-      '$feature is coming soon.',
-    );
-  }
 
   Future<void> _showLanguagePicker() async {
     final String? selected = await _showOptionSheet(
@@ -321,6 +325,7 @@ class _SettingsRow extends StatelessWidget {
             vertical: AppDimens.paddingX12,
           ),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
                 width: 40,
@@ -345,14 +350,14 @@ class _SettingsRow extends StatelessWidget {
                     Text(
                       item.title,
                       style: textTheme.bodyTextMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
                         color: LightColor.primaryTextColor,
                       ),
                     ),
                     if (item.subtitle != null) ...[
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 2),
                       Text(
                         item.subtitle!,
+                        maxLines: 2,
                         style: textTheme.bodyTextSmall?.copyWith(
                           color: LightColor.secondaryTextColor,
                           fontWeight: FontWeight.w400,

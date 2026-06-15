@@ -10,6 +10,10 @@ final class AuthUseCase {
   Future<Either<AppException, TokenModel>> signIn(SignInEntity params) async =>
       await repository.signIn(params.toMap());
 
+  Future<Either<AppException, TokenModel>> signInWithGoogle(
+    GoogleSignInEntity params,
+  ) async => await repository.signInWithGoogle(params.toMap());
+
   Future<Either<AppException, TokenModel>> signUp(
     SignUpEntity signUpData,
   ) async => await repository.signUp(signUpData.toMap());

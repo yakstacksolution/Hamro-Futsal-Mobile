@@ -7,4 +7,7 @@ abstract class ProfileRepository {
   Future<Either<AppException, ProfileModel>> updateProfile(
     Map<String, dynamic> data,
   );
+  Future<Either<AppException, bool>> updateNotificationPreferences(
+    NotificationPreferences preferences,
+  );
 }

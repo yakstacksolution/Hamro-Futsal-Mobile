@@ -1,3 +1,8 @@
+import 'dart:ui';
+
+import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -12,6 +17,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+
+  FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+  PlatformDispatcher.instance.onError = (error, stack) {
+    FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+    return true;
+  };
+
   final SharedPreferences preferences = await SharedPreferences.getInstance();
   await AppSettings().init(SharedPreferencesWrapper(preferences));
   final bool hasLoggedIn =
@@ -40,7 +53,12 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
-    _router = AppRouters.router(widget.initialLocation);
+    _router = AppRouters.router(
+      widget.initialLocation,
+      observers: <NavigatorObserver>[
+        FirebaseAnalyticsObserver(analytics: FirebaseAnalytics.instance),
+      ],
+    );
   }
 
   @override

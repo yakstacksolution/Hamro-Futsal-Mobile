@@ -37,7 +37,10 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
 
   TeamModel? _team;
   MatchFormat _format = MatchFormat.fiveASide;
-  OpponentLevel _level = OpponentLevel.intermediate;
+
+  /// Selected opponent level from `/opponent-levels`; defaults to the first
+  /// fetched level (see [_resolveLevel]) until the user picks one.
+  OpponentLevelModel? _level;
   DateTime _date = DateTime.now();
   TimeOfDay _time = const TimeOfDay(hour: 18, minute: 0);
   String? _venue;
@@ -105,11 +108,22 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
     );
   }
 
+  /// Levels come from the API; until they land (or if the fetch failed) the
+  /// static defaults keep the picker usable.
+  List<OpponentLevelModel> _levelOptions(OpponentMatchState state) =>
+      state.levels.isEmpty ? OpponentLevelModel.defaults : state.levels;
+
+  /// The active selection — the user's pick, or the first option.
+  OpponentLevelModel _resolveLevel(List<OpponentLevelModel> levels) =>
+      _level ?? levels.first;
+
   void _send(String? venue) {
     setState(() => _submitted = true);
     final team = _team;
     if (team == null || venue == null) return;
     HapticFeedback.mediumImpact();
+    final state = context.read<OpponentMatchBloc>().state;
+    final level = _resolveLevel(_levelOptions(state));
     final cost = _cost;
     final dateTime = DateTime(
       _date.year,
@@ -124,7 +138,7 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
           team: team.name,
           dateTime: dateTime,
           summary:
-              '${_level.label} · ${_format.label} · '
+              '${level.name} · ${_format.label} · '
               '${team.players.length} players · ${cost.shareSummary}',
           venue: venue,
           slot: OpponentFmt.slot(_time),
@@ -212,7 +226,7 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
                       const SizedBox(height: AppDimens.paddingX14),
                       const OpponentFieldLabel('Opponent Level'),
                       Row(
-                        children: OpponentLevel.values
+                        children: _levelOptions(state)
                             .map(
                               (l) => Expanded(
                                 child: Padding(
@@ -220,8 +234,10 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
                                     right: AppDimens.paddingX6,
                                   ),
                                   child: OpponentPillChip(
-                                    label: l.label,
-                                    active: _level == l,
+                                    label: l.name,
+                                    active:
+                                        _resolveLevel(_levelOptions(state)) ==
+                                        l,
                                     compact: true,
                                     onTap: () => setState(() => _level = l),
                                   ),

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import 'package:hamro_footsall/core/routers/app_router_params.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
@@ -27,7 +29,6 @@ import 'package:hamro_footsall/features/futsal_details/domain/usecase/get_venue_
 import 'package:hamro_footsall/features/futsal_details/presentation/bloc/hosted_by/hosted_by_bloc.dart';
 import 'package:hamro_footsall/features/futsal_details/presentation/bloc/venue_amenities_facilities/venue_amenities_facilities_bloc.dart';
 import 'package:hamro_footsall/features/futsal_details/presentation/bloc/venue_description/venue_description_bloc.dart';
-import 'package:hamro_footsall/features/futsal_details/presentation/view/slots_selection_page.dart';
 import 'package:hamro_footsall/features/futsal_details/presentation/widgets/loading/hosted_by_section_loading.dart';
 import 'package:hamro_footsall/features/public/data/model/public_venue_model.dart';
 
@@ -168,11 +169,7 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
 
   void _openSlotsSelection() {
     HapticFeedback.mediumImpact();
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (BuildContext context) => SlotsSelectionPage(court: _court),
-      ),
-    );
+    context.pushNamed(AppRouterParams.slotsSelection.name, extra: _court);
   }
 
   Widget _buildHostedBySection() {

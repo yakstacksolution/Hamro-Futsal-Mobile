@@ -63,6 +63,18 @@ final class AuthenticationRepositoryImpl extends AuthRepository {
   }
 
   @override
+  Future<Either<AppException, TokenModel>> signInWithGoogle(data) async {
+    final response = await _remoteDataSource.signInWithGoogle(data);
+    if (response.isError()) {
+      return left(ResponseHelper.error(response));
+    }
+
+    final TokenModel tokenModel = _parseTokenModel(response.getValue());
+    AppSettings().token = tokenModel;
+    return right(tokenModel);
+  }
+
+  @override
   Future<Either<AppException, TokenModel>> signUp(data) async {
     final response = await _remoteDataSource.signUp(data);
     if (response.isError()) {

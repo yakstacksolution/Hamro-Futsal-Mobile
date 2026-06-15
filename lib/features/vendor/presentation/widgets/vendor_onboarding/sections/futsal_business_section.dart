@@ -58,6 +58,19 @@ class FutsalBusinessSection extends StatelessWidget {
     cubit.addCompanyDocuments(picked);
   }
 
+  Future<void> _replaceDocument(BuildContext context, UploadRef target) async {
+    final List<UploadRef>? picked = await showVendorMediaLibrarySheet(
+      context: context,
+      cubit: cubit,
+      allowedExtensions: const <String>['pdf', 'jpg', 'jpeg', 'png'],
+      allowMultiple: false,
+      title: 'Replace document',
+      subtitle: 'Pick a corrected file to replace "${target.name}".',
+    );
+    if (picked == null || picked.isEmpty) return;
+    cubit.replaceCompanyDocument(target, picked.first);
+  }
+
   @override
   Widget build(BuildContext context) {
     final _BusinessSectionMeta meta = _sectionMeta(subsectionIndex);
@@ -78,7 +91,6 @@ class FutsalBusinessSection extends StatelessWidget {
               subtitle: 'Primary business thumbnail for the futsal listing.',
               onPick: () => unawaited(_openCoverLibrary(context)),
               actionLabel: 'Gallery',
-              actionIcon: Icons.photo_library_rounded,
               previewAsImage: true,
               files: draft.coverImage == null
                   ? const <UploadRef>[]
@@ -93,7 +105,6 @@ class FutsalBusinessSection extends StatelessWidget {
               subtitle: 'Drag to reorder. First image is the cover.',
               onPick: () => unawaited(_openGalleryLibrary(context)),
               actionLabel: 'Gallery',
-              actionIcon: Icons.photo_library_rounded,
               previewAsImage: true,
               files: draft.gallery,
               onRemove: cubit.removeFutsalGalleryImage,
@@ -103,11 +114,15 @@ class FutsalBusinessSection extends StatelessWidget {
             VendorUploadSection(
               title: 'Company documents',
               subtitle: 'PAN, license, registration, etc.',
-              onPick: () => unawaited(_openDocumentLibrary(context)),
-              actionLabel: 'Add',
-              actionIcon: Icons.folder_copy_rounded,
+              onPick: () {
+                unawaited(_openDocumentLibrary(context));
+              },
+              actionLabel: 'Add new',
+              asGrid: true,
               files: draft.companyDocuments,
               onRemove: cubit.removeCompanyDocument,
+              onReplace: (UploadRef file) =>
+                  unawaited(_replaceDocument(context, file)),
             ),
         ],
       ),

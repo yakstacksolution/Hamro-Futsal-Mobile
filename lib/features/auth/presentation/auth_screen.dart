@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hamro_footsall/core/routers/app_router_params.dart';
+import 'package:hamro_footsall/core/theme/app_colors.dart';
+import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
+import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/features/auth/presentation/authentication_bloc/authentication_bloc.dart';
 import 'package:hamro_footsall/features/auth/presentation/widgets/auth_screen_frame.dart';
 import 'package:hamro_footsall/features/auth/presentation/widgets/login_form.dart';
@@ -200,11 +204,14 @@ class _AuthScreenState extends State<AuthScreen> {
     return BlocConsumer<AuthenticationBloc, AuthenticationState>(
       listenWhen: (AuthenticationState previous, AuthenticationState current) =>
           previous.loginStatus != current.loginStatus ||
+          previous.googleLoginStatus != current.googleLoginStatus ||
           previous.registrationStatus != current.registrationStatus,
       listener: (BuildContext context, AuthenticationState state) {
         final Map<String, dynamic>? errorData =
             state.loginErrorData is Map<String, dynamic>
             ? state.loginErrorData as Map<String, dynamic>
+            : state.googleLoginErrorData is Map<String, dynamic>
+            ? state.googleLoginErrorData as Map<String, dynamic>
             : state.registrationErrorData is Map<String, dynamic>
             ? state.registrationErrorData as Map<String, dynamic>
             : null;
@@ -214,6 +221,7 @@ class _AuthScreenState extends State<AuthScreen> {
         // context.goNamed(AppRouterParams.dashboard.name);
         // return;
         if ((state.loginStatus == AuthStatus.failure ||
+                state.googleLoginStatus == AuthStatus.failure ||
                 state.registrationStatus == AuthStatus.failure) &&
             (state.errorMessage != null || errorData != null)) {
           AppUtils().showSnackBar(
@@ -228,6 +236,17 @@ class _AuthScreenState extends State<AuthScreen> {
               extra: (errorData!['email'] as String).trim(),
             );
           }
+        }
+
+        if (state.googleLoginStatus == AuthStatus.success &&
+            state.successMessage.isNotEmpty) {
+          AppUtils().showSnackBar(
+            context,
+            MsgType.success,
+            state.successMessage,
+          );
+          context.goNamed(AppRouterParams.dashboard.name);
+          return;
         }
 
         if ((state.loginStatus == AuthStatus.success ||
@@ -256,6 +275,8 @@ class _AuthScreenState extends State<AuthScreen> {
         }
       },
       builder: (BuildContext context, AuthenticationState state) {
+        final bool isGoogleSubmitting =
+            state.googleLoginStatus == AuthStatus.loading;
         final bool isSubmitting =
             state.loginStatus == AuthStatus.loading ||
             state.registrationStatus == AuthStatus.loading;
@@ -281,6 +302,7 @@ class _AuthScreenState extends State<AuthScreen> {
               isLoading:
                   state.loginStatus == AuthStatus.loading ||
                   state.registrationStatus == AuthStatus.loading,
+              // Google sign-in tracks its own loading state via the footer.
               isRotate: isLogin,
               title: isLogin ? 'Welcome Back' : 'Create Your Account',
               subtitle: isLogin
@@ -293,13 +315,24 @@ class _AuthScreenState extends State<AuthScreen> {
               headerIcon: isLogin
                   ? Icons.sports_soccer_rounded
                   : Icons.person_add_alt_1_rounded,
-              primaryButtonEnabled: !isAnimating && !isSubmitting,
+              primaryButtonEnabled:
+                  !isAnimating && !isSubmitting && !isGoogleSubmitting,
               onPrimaryTap: _submit,
               secondaryPrefixText: isLogin
                   ? 'New to Footsall App?'
                   : 'Already have an account?',
               secondaryActionText: isLogin ? 'Create account' : 'Sign in',
               onSecondaryTap: _toggleMode,
+              footer: isLogin
+                  ? _GoogleLoginSection(
+                      enabled:
+                          !isAnimating && !isSubmitting && !isGoogleSubmitting,
+                      isLoading: isGoogleSubmitting,
+                      onTap: () => context.read<AuthenticationBloc>().add(
+                        const GoogleLoginEvent(),
+                      ),
+                    )
+                  : null,
               formFields: <Widget>[
                 AnimatedSize(
                   duration: const Duration(milliseconds: 420),
@@ -443,6 +476,92 @@ class _AuthScreenState extends State<AuthScreen> {
           },
         );
       },
+    );
+  }
+}
+
+/// "or" divider + "Continue with Google" button shown under the login form.
+class _GoogleLoginSection extends StatelessWidget {
+  const _GoogleLoginSection({
+    required this.enabled,
+    required this.onTap,
+    this.isLoading = false,
+  });
+
+  final bool enabled;
+  final bool isLoading;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        Row(
+          children: <Widget>[
+            const Expanded(
+              child: Divider(height: 1, color: LightColor.dividerColor),
+            ),
+            Padding(
+              padding: AppUtils().getPadding(
+                symmetricHorizontal: AppDimens.paddingX12,
+              ),
+              child: Text(
+                'or',
+                style: textTheme.bodyTextSmall?.copyWith(
+                  color: LightColor.secondaryTextColor,
+                ),
+              ),
+            ),
+            const Expanded(
+              child: Divider(height: 1, color: LightColor.dividerColor),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppDimens.sizeX14),
+        Material(
+          color: LightColor.whiteColor,
+          borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+          child: InkWell(
+            onTap: enabled ? onTap : null,
+            borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+            child: Container(
+              height: AppDimens.sizeX44,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+                border: Border.all(color: LightColor.greyBorderColor),
+              ),
+              child: isLoading
+                  ? const SizedBox(
+                      width: AppDimens.sizeX18,
+                      height: AppDimens.sizeX18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: <Widget>[
+                        SvgPicture.asset(
+                          'assets/icons/google_logo.svg',
+                          width: AppDimens.sizeX18,
+                          height: AppDimens.sizeX18,
+                        ),
+                        const SizedBox(width: AppDimens.paddingX10),
+                        Text(
+                          'Continue with Google',
+                          style: textTheme.bodyTextSmall?.copyWith(
+                            color: LightColor.primaryTextColor,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
