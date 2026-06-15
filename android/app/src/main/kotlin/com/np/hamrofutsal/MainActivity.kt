@@ -1,4 +1,4 @@
-package com.example.hamro_footsall
+package com.np.hamrofutsal
 
 import io.flutter.embedding.android.FlutterActivity
 

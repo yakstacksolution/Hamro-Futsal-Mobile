@@ -1,4 +1,4 @@
-package com.example.hamro_footsall.ui.splash
+package com.np.hamrofutsal.ui.splash
 
 import android.content.Intent
 import android.content.SharedPreferences
@@ -61,8 +61,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.hamro_footsall.MainActivity
-import com.example.hamro_footsall.R
+import com.np.hamrofutsal.MainActivity
+import com.np.hamrofutsal.R
 import kotlin.math.PI
 import kotlin.math.sin
 import kotlinx.coroutines.delay
