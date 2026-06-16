@@ -31,9 +31,29 @@ class CompactDateTimeSelector extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
+        _sectionLabel(context, Icons.calendar_today_rounded, 'Select date'),
+        const SizedBox(height: AppDimens.sizeX8),
         SizedBox(height: AppDimens.sizeX56, child: _buildDateStrip(context)),
+        const SizedBox(height: AppDimens.sizeX14),
+        _sectionLabel(context, Icons.schedule_rounded, 'Select time'),
         const SizedBox(height: AppDimens.sizeX10),
         _buildTimeSlots(context),
+      ],
+    );
+  }
+
+  Widget _sectionLabel(BuildContext context, IconData icon, String label) {
+    return Row(
+      children: <Widget>[
+        Icon(icon, size: AppDimens.sizeX14, color: LightColor.secondaryColor),
+        const SizedBox(width: AppDimens.sizeX6),
+        Text(
+          label,
+          style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
+            color: LightColor.primaryTextColor,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
       ],
     );
   }

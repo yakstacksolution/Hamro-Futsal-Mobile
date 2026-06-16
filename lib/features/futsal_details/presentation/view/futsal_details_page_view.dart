@@ -169,7 +169,45 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
 
   void _openSlotsSelection() {
     HapticFeedback.mediumImpact();
-    context.pushNamed(AppRouterParams.slotsSelection.name, extra: _court);
+    context.pushNamed(
+      AppRouterParams.slotsSelection.name,
+      extra: _courtForSlotsSelection(),
+    );
+  }
+
+  CourtDetailModel _courtForSlotsSelection() {
+    final int hostedCourts =
+        _hostedByBloc?.state.hostedBy?.courtCount ?? _court.hostedCourts;
+    if (hostedCourts <= 0 || hostedCourts == _court.hostedCourts) {
+      return _court;
+    }
+
+    return CourtDetailModel(
+      name: _court.name,
+      location: _court.location,
+      address: _court.address,
+      price: _court.price,
+      rating: _court.rating,
+      reviewCount: _court.reviewCount,
+      images: _court.images,
+      isOpen: _court.isOpen,
+      distance: _court.distance,
+      features: _court.features,
+      description: _court.description,
+      hostedByName: _court.hostedByName,
+      hostedByAvatar: _court.hostedByAvatar,
+      hostedSince: _court.hostedSince,
+      hostedCourts: hostedCourts,
+      responseRate: _court.responseRate,
+      policies: _court.policies,
+      rules: _court.rules,
+      reviews: _court.reviews,
+      openTime: _court.openTime,
+      closeTime: _court.closeTime,
+      courtType: _court.courtType,
+      surfaceType: _court.surfaceType,
+      maxPlayers: _court.maxPlayers,
+    );
   }
 
   Widget _buildHostedBySection() {

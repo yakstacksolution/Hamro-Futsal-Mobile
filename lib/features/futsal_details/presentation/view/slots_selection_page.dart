@@ -7,8 +7,10 @@ import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/utils/scroll_behavior.dart';
 import 'package:hamro_footsall/core/widgets/custom_button.dart';
 import 'package:hamro_footsall/features/courts_details/presentation/page/court_details.dart';
+import 'package:hamro_footsall/features/futsal_details/data/model/booking_recurrence.dart';
 import 'package:hamro_footsall/features/futsal_details/data/model/time_slot_model.dart';
 import 'package:hamro_footsall/features/futsal_details/data/model/venue_court_item_model.dart';
+import 'package:hamro_footsall/features/futsal_details/presentation/widgets/booking_options.dart';
 import 'package:hamro_footsall/features/futsal_details/presentation/widgets/compact_date_time_selector.dart';
 import 'package:hamro_footsall/features/futsal_details/presentation/widgets/court_slot_card.dart';
 
@@ -27,6 +29,11 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
   late final Animation<Offset> _bottomBarSlide;
   final ValueNotifier<int> _selectedDateIndexNotifier = ValueNotifier<int>(0);
   final ValueNotifier<int> _selectedSlotIndexNotifier = ValueNotifier<int>(-1);
+  final ValueNotifier<BookingMode> _bookingModeNotifier =
+      ValueNotifier<BookingMode>(BookingMode.single);
+  final ValueNotifier<BookingRecurrence> _recurrenceNotifier =
+      ValueNotifier<BookingRecurrence>(BookingRecurrence.oneMonth);
+  final ValueNotifier<int> _selectedCourtIndexNotifier = ValueNotifier<int>(0);
 
   late final List<DateTime> _dates;
   final List<List<TimeSlotModel>> _timeSlotsByDate = [];
@@ -78,7 +85,7 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
     final String venueImage = widget.court.images.isNotEmpty
         ? widget.court.images.first
         : '';
-    _courts = <VenueCourtItemModel>[
+    final List<VenueCourtItemModel> availableCourts = <VenueCourtItemModel>[
       VenueCourtItemModel(
         name: 'Court A',
         image: venueImage,
@@ -177,6 +184,12 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
         ],
       ),
     ];
+    final int hostedCourtCount = widget.court.hostedCourts;
+    final int visibleCourtCount = hostedCourtCount > 0
+        ? hostedCourtCount.clamp(1, availableCourts.length)
+        : availableCourts.length;
+    _courts = availableCourts.take(visibleCourtCount).toList(growable: false);
+    _selectedCourtIndexNotifier.value = 0;
 
     Future.delayed(const Duration(milliseconds: 300), () {
       if (mounted) _bottomBarController.forward();
@@ -188,6 +201,9 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
     _bottomBarController.dispose();
     _selectedDateIndexNotifier.dispose();
     _selectedSlotIndexNotifier.dispose();
+    _bookingModeNotifier.dispose();
+    _recurrenceNotifier.dispose();
+    _selectedCourtIndexNotifier.dispose();
     super.dispose();
   }
 
@@ -213,6 +229,58 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
       'Dec',
     ];
     return months[date.month - 1];
+  }
+
+  /// Weekly session dates for the current selection, or just the single
+  /// selected date when in single-session mode.
+  List<DateTime> _sessionDatesFor(int dateIndex) {
+    final DateTime start = _dates[dateIndex];
+    if (_bookingModeNotifier.value == BookingMode.single) {
+      return <DateTime>[start];
+    }
+    return _recurrenceNotifier.value.datesFrom(start);
+  }
+
+  /// Compact card with the recurring toggle + (when on) duration chips.
+  Widget _buildBookingTypeSection() {
+    return Padding(
+      padding: AppUtils().getPadding(
+        top: AppDimens.paddingX12,
+        left: AppDimens.paddingX20,
+        right: AppDimens.paddingX20,
+      ),
+      child: AnimatedBuilder(
+        animation: Listenable.merge(<Listenable>[
+          _bookingModeNotifier,
+          _recurrenceNotifier,
+          _selectedDateIndexNotifier,
+          _selectedSlotIndexNotifier,
+          _selectedCourtIndexNotifier,
+        ]),
+        builder: (BuildContext context, _) {
+          final int dateIndex = _selectedDateIndexNotifier.value;
+          final int slotIndex = _selectedSlotIndexNotifier.value;
+          final VenueCourtItemModel selectedCourt =
+              _courts[_selectedCourtIndexNotifier.value];
+          final String? selectedTime = slotIndex >= 0
+              ? _timeSlotsByDate[dateIndex][slotIndex].time
+              : null;
+          return BookingTypeCard(
+            mode: _bookingModeNotifier.value,
+            startDate: _dates[dateIndex],
+            recurrence: _recurrenceNotifier.value,
+            selectedTime: selectedTime,
+            selectedCourt: selectedCourt,
+            onModeChanged: (BookingMode value) {
+              _bookingModeNotifier.value = value;
+            },
+            onRecurrenceChanged: (BookingRecurrence value) {
+              _recurrenceNotifier.value = value;
+            },
+          );
+        },
+      ),
+    );
   }
 
   Widget _buildDateTimeSection() {
@@ -265,7 +333,7 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
   Widget _buildCourtsSection() {
     return Padding(
       padding: AppUtils().getPadding(
-        top: AppDimens.paddingX20,
+        top: AppDimens.paddingX30,
         left: AppDimens.paddingX20,
         right: AppDimens.paddingX20,
       ),
@@ -280,7 +348,7 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
                   style: FutsalTheme.getTextTheme(context).bodyTextLarge
                       ?.copyWith(
                         color: LightColor.primaryTextColor,
-                        fontWeight: FontWeight.w800,
+                        // fontWeight: FontWeight.w800,
                       ),
                 ),
               ),
@@ -291,7 +359,7 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
                 ),
                 decoration: BoxDecoration(
                   color: LightColor.secondarySoft,
-                  borderRadius: BorderRadius.circular(AppDimens.radiusX50),
+                  borderRadius: BorderRadius.circular(AppDimens.radiusX10),
                 ),
                 child: Text(
                   '${_courts.length} courts',
@@ -305,32 +373,47 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
             ],
           ),
           const SizedBox(height: AppDimens.sizeX12),
-          ValueListenableBuilder<int>(
-            valueListenable: _selectedDateIndexNotifier,
-            builder: (BuildContext context, int dateIndex, _) {
-              return ValueListenableBuilder<int>(
-                valueListenable: _selectedSlotIndexNotifier,
-                builder: (BuildContext context, int slotIndex, __) {
-                  final DateTime selectedDate = _dates[dateIndex];
-                  final bool hasSlot = slotIndex >= 0;
-                  final String? selectedTime = hasSlot
-                      ? _timeSlotsByDate[dateIndex][slotIndex].time
-                      : null;
-                  final String? slotLabel = hasSlot
-                      ? '${_dayName(selectedDate)}, ${selectedDate.day} ${_monthName(selectedDate)} · $selectedTime'
-                      : null;
+          AnimatedBuilder(
+            animation: Listenable.merge(<Listenable>[
+              _selectedDateIndexNotifier,
+              _selectedSlotIndexNotifier,
+              _bookingModeNotifier,
+              _recurrenceNotifier,
+              _selectedCourtIndexNotifier,
+            ]),
+            builder: (BuildContext context, _) {
+              final int dateIndex = _selectedDateIndexNotifier.value;
+              final int slotIndex = _selectedSlotIndexNotifier.value;
+              final int courtIndex = _selectedCourtIndexNotifier.value;
+              final DateTime selectedDate = _dates[dateIndex];
+              final bool hasSlot = slotIndex >= 0;
+              final bool recurring =
+                  _bookingModeNotifier.value == BookingMode.recurring;
+              final String? selectedTime = hasSlot
+                  ? _timeSlotsByDate[dateIndex][slotIndex].time
+                  : null;
+              final String? slotLabel = hasSlot
+                  ? '${_dayName(selectedDate)}, ${selectedDate.day} ${_monthName(selectedDate)} · $selectedTime'
+                  : null;
+              final List<DateTime> sessionDates = recurring
+                  ? _sessionDatesFor(dateIndex)
+                  : <DateTime>[];
 
-                  return ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: _courts.length,
-                    itemBuilder: (BuildContext context, int i) {
-                      return CourtSlotCard(
-                        court: _courts[i],
-                        selectedDate: selectedDate,
-                        selectedTime: selectedTime,
-                        slotLabel: slotLabel,
-                      );
+              return ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: _courts.length,
+                itemBuilder: (BuildContext context, int i) {
+                  return CourtSlotCard(
+                    court: _courts[i],
+                    selectedDate: selectedDate,
+                    selectedTime: selectedTime,
+                    slotLabel: slotLabel,
+                    recurringDates: sessionDates,
+                    selected: courtIndex == i,
+                    onTap: () {
+                      HapticFeedback.selectionClick();
+                      _selectedCourtIndexNotifier.value = i;
                     },
                   );
                 },
@@ -343,22 +426,58 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
   }
 
   Widget _buildBottomBar() {
-    return SlideTransition(
-      position: _bottomBarSlide,
-      child: ValueListenableBuilder<int>(
-        valueListenable: _selectedDateIndexNotifier,
-        builder: (BuildContext context, int selectedDateIndex, _) {
-          return ValueListenableBuilder<int>(
-            valueListenable: _selectedSlotIndexNotifier,
-            builder: (BuildContext context, int selectedSlotIndex, __) {
+    return SizedBox(
+      height: 122,
+      child: SlideTransition(
+        position: _bottomBarSlide,
+        child: AnimatedBuilder(
+          animation: Listenable.merge(<Listenable>[
+            _selectedDateIndexNotifier,
+            _selectedSlotIndexNotifier,
+            _bookingModeNotifier,
+            _recurrenceNotifier,
+            _selectedCourtIndexNotifier,
+          ]),
+          builder: (BuildContext context, _) {
+            {
+              final int selectedDateIndex = _selectedDateIndexNotifier.value;
+              final int selectedSlotIndex = _selectedSlotIndexNotifier.value;
               final bool hasSelection = selectedSlotIndex >= 0;
+              final bool recurring =
+                  _bookingModeNotifier.value == BookingMode.recurring;
+              final int sessions = recurring
+                  ? _recurrenceNotifier.value.sessions
+                  : 1;
               final String? selectedTime = hasSelection
                   ? _timeSlotsByDate[selectedDateIndex][selectedSlotIndex].time
                   : null;
               final DateTime selectedDate = _dates[selectedDateIndex];
+              final VenueCourtItemModel court =
+                  _courts[_selectedCourtIndexNotifier.value];
+              final List<DateTime> sessionDates = recurring
+                  ? _sessionDatesFor(selectedDateIndex)
+                  : <DateTime>[selectedDate];
+              final double price = hasSelection
+                  ? sessionDates.fold<double>(
+                      0,
+                      (double sum, DateTime d) =>
+                          sum + court.priceFor(d, selectedTime),
+                    )
+                  : court.minPrice;
+              final String priceText = 'Rs ${price.toStringAsFixed(0)}';
+              final String priceUnit = !hasSelection
+                  ? '/ hour'
+                  : recurring
+                  ? 'total · $sessions sessions'
+                  : '/ hour';
               final String selectedLabel = hasSelection
-                  ? '${_dayName(selectedDate)}, ${selectedDate.day} ${_monthName(selectedDate)} · $selectedTime'
+                  ? recurring
+                        ? '${court.name} · Every ${_dayName(selectedDate)} · $selectedTime'
+                        : '${court.name} · ${_dayName(selectedDate)}, ${selectedDate.day} ${_monthName(selectedDate)} · $selectedTime'
                   : 'Select a time slot to continue';
+              final String buttonText = !hasSelection
+                  ? 'Select Slot'
+                  : 'Book Now';
 
               return Container(
                 padding: AppUtils().getPadding(all: AppDimens.paddingX12),
@@ -395,27 +514,30 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: <Widget>[
                                   Text(
-                                    widget.court.price,
+                                    priceText,
                                     style: FutsalTheme.getTextTheme(context)
-                                        .headingSmall
+                                        .bodyTextLarge
                                         ?.copyWith(
                                           color: LightColor.primaryTextColor,
-                                          fontWeight: FontWeight.w900,
                                         ),
                                   ),
                                   SizedBox(width: AppDimens.sizeX4),
-                                  Padding(
-                                    padding: AppUtils().getPadding(
-                                      bottom: AppDimens.paddingX2,
-                                    ),
-                                    child: Text(
-                                      '/ hour',
-                                      style: FutsalTheme.getTextTheme(context)
-                                          .bodyTextSmall
-                                          ?.copyWith(
-                                            color: LightColor.hintTextColor,
-                                            fontWeight: FontWeight.w500,
-                                          ),
+                                  Flexible(
+                                    child: Padding(
+                                      padding: AppUtils().getPadding(
+                                        bottom: AppDimens.paddingX2,
+                                      ),
+                                      child: Text(
+                                        priceUnit,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: FutsalTheme.getTextTheme(context)
+                                            .bodyTextSmall
+                                            ?.copyWith(
+                                              color: LightColor.hintTextColor,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -426,7 +548,7 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
                               duration: const Duration(milliseconds: 220),
                               padding: AppUtils().getPadding(
                                 horizontal: AppDimens.paddingX10,
-                                vertical: AppDimens.paddingX4,
+                                vertical: AppDimens.paddingX2,
                               ),
                               decoration: BoxDecoration(
                                 color: hasSelection
@@ -470,10 +592,12 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
                           ],
                         ),
                       ),
-                      SizedBox(width: AppDimens.sizeX10),
-                      Expanded(
+                      SizedBox(width: AppDimens.sizeX12),
+                      SizedBox(
+                        width: AppDimens.sizeX116,
+                        height: AppDimens.sizeX46,
                         child: CustomButton(
-                          text: hasSelection ? 'Book Now' : 'Select Slot',
+                          text: buttonText,
                           onPressed: hasSelection
                               ? () => HapticFeedback.mediumImpact()
                               : null,
@@ -483,18 +607,16 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
                           foregroundColor: hasSelection
                               ? LightColor.inverseTextColor
                               : LightColor.hintTextColor,
-                          minHeight: AppDimens.sizeX46,
-                          borderRadius: AppDimens.radiusX10,
-                          fontWeight: FontWeight.w800,
+                          minWidth: AppDimens.sizeX120,
                         ),
                       ),
                     ],
                   ),
                 ),
               );
-            },
-          );
-        },
+            }
+          },
+        ),
       ),
     );
   }
@@ -531,13 +653,14 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               _buildDateTimeSection(),
+              _buildBookingTypeSection(),
               _buildCourtsSection(),
               const SizedBox(height: AppDimens.sizeX20),
             ],
           ),
         ),
 
-        bottomNavigationBar: SizedBox(height: 128, child: _buildBottomBar()),
+        bottomNavigationBar: _buildBottomBar(),
       ),
     );
   }
