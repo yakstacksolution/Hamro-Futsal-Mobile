@@ -32,11 +32,11 @@ class CompactDateTimeSelector extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         _sectionLabel(context, Icons.calendar_today_rounded, 'Select date'),
-        const SizedBox(height: AppDimens.sizeX8),
+        const SizedBox(height: AppDimens.sizeX12),
         SizedBox(height: AppDimens.sizeX56, child: _buildDateStrip(context)),
-        const SizedBox(height: AppDimens.sizeX14),
-        _sectionLabel(context, Icons.schedule_rounded, 'Select time'),
-        const SizedBox(height: AppDimens.sizeX10),
+        const SizedBox(height: AppDimens.sizeX18),
+        _sectionLabel(context, Icons.schedule_rounded, 'Choose Preferred Time'),
+        const SizedBox(height: AppDimens.sizeX12),
         _buildTimeSlots(context),
       ],
     );
@@ -45,13 +45,13 @@ class CompactDateTimeSelector extends StatelessWidget {
   Widget _sectionLabel(BuildContext context, IconData icon, String label) {
     return Row(
       children: <Widget>[
-        Icon(icon, size: AppDimens.sizeX14, color: LightColor.secondaryColor),
+        Icon(icon, size: AppDimens.sizeX16, color: LightColor.secondaryColor),
         const SizedBox(width: AppDimens.sizeX6),
         Text(
           label,
           style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
             color: LightColor.primaryTextColor,
-            fontWeight: FontWeight.w800,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ],
@@ -69,7 +69,6 @@ class CompactDateTimeSelector extends StatelessWidget {
         final DateTime date = dates[i];
         final bool selected = selectedDateIndex == i;
         final bool today = _isToday(date);
-
         return GestureDetector(
           onTap: () {
             HapticFeedback.selectionClick();
@@ -77,8 +76,8 @@ class CompactDateTimeSelector extends StatelessWidget {
           },
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 250),
-            width: AppDimens.sizeX48,
-            margin: AppUtils().getMargin(right: AppDimens.marginX8),
+            width: AppDimens.sizeX50,
+            margin: AppUtils().getMargin(right: AppDimens.marginX10),
             decoration: BoxDecoration(
               color: selected
                   ? LightColor.secondaryColor
@@ -119,20 +118,30 @@ class CompactDateTimeSelector extends StatelessWidget {
 
   Widget _buildTimeSlots(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
+    final bool hasTimeRanges = timeSlots.any(_hasTimeRange);
 
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 4,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
         mainAxisSpacing: AppDimens.sizeX8,
-        crossAxisSpacing: AppDimens.sizeX8,
-        mainAxisExtent: AppDimens.sizeX32,
+        crossAxisSpacing: AppDimens.sizeX4,
+        mainAxisExtent: hasTimeRanges ? AppDimens.sizeX30 : AppDimens.sizeX32,
       ),
       itemCount: timeSlots.length,
       itemBuilder: (BuildContext context, int i) {
         final TimeSlotModel slot = timeSlots[i];
         final bool selected = selectedSlotIndex == i;
+        final TextStyle? labelStyle = textTheme.bodyMiniSubTitle?.copyWith(
+          color: selected
+              ? LightColor.whiteColor
+              : slot.isAvailable
+              ? LightColor.primaryTextColor
+              : LightColor.hintTextColor,
+          fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+          decoration: slot.isAvailable ? null : TextDecoration.lineThrough,
+        );
 
         return GestureDetector(
           onTap: slot.isAvailable
@@ -152,18 +161,15 @@ class CompactDateTimeSelector extends StatelessWidget {
               borderRadius: BorderRadius.circular(AppDimens.radiusX50),
             ),
             child: Center(
-              child: Text(
-                slot.time,
-                style: textTheme.bodySubTitle?.copyWith(
-                  color: selected
-                      ? LightColor.whiteColor
-                      : slot.isAvailable
-                      ? LightColor.primaryTextColor
-                      : LightColor.hintTextColor,
-                  fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-                  decoration: slot.isAvailable
-                      ? null
-                      : TextDecoration.lineThrough,
+              child: Padding(
+                padding: AppUtils().getPadding(horizontal: AppDimens.paddingX6),
+                child: Text(
+                  _timeRangeLabel(slot),
+                  maxLines: 1,
+                  overflow: TextOverflow.fade,
+                  softWrap: false,
+                  textAlign: TextAlign.center,
+                  style: labelStyle,
                 ),
               ),
             ),
@@ -191,5 +197,31 @@ class CompactDateTimeSelector extends StatelessWidget {
       'Sun',
     ];
     return days[date.weekday - 1];
+  }
+
+  bool _hasTimeRange(TimeSlotModel slot) {
+    return slot.endTime != null || RegExp(r'\s+[-–]\s+').hasMatch(slot.time);
+  }
+
+  String _timeRangeLabel(TimeSlotModel slot) {
+    final List<String> parts = slot.time
+        .split(RegExp(r'\s+[-–]\s+'))
+        .map((String part) => part.trim())
+        .where((String part) => part.isNotEmpty)
+        .toList(growable: false);
+    if (parts.length >= 2) {
+      return '${_formatMeridiem(parts.first)} - ${_formatMeridiem(parts.sublist(1).join(' - '))}';
+    }
+    final String? endTime = slot.endTime?.trim();
+    if (endTime != null && endTime.isNotEmpty && endTime != slot.time.trim()) {
+      return '${_formatMeridiem(slot.time.trim())} - ${_formatMeridiem(endTime)}';
+    }
+    return _formatMeridiem(slot.time.trim());
+  }
+
+  String _formatMeridiem(String value) {
+    return value
+        .replaceAll(RegExp(r'\bAM\b', caseSensitive: false), 'Am')
+        .replaceAll(RegExp(r'\bPM\b', caseSensitive: false), 'Pm');
   }
 }

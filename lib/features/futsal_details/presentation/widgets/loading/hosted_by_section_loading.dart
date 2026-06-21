@@ -3,9 +3,6 @@ import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:shimmer/shimmer.dart';
 
-/// Shimmer skeleton that mirrors [CourtHostedBySection] exactly — same outer
-/// padding, card padding, and inner layout — so the section doesn't jump when
-/// the real data arrives.
 class HostedBySectionLoading extends StatelessWidget {
   const HostedBySectionLoading({super.key});
 

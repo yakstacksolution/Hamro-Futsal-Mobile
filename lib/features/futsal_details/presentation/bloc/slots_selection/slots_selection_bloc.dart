@@ -1,0 +1,400 @@
+import 'dart:async';
+
+import 'package:bloc/bloc.dart';
+import 'package:dartz/dartz.dart';
+import 'package:equatable/equatable.dart';
+import 'package:hamro_footsall/core/helper/exception_helper.dart';
+import 'package:hamro_footsall/features/courts_details/presentation/page/court_details.dart';
+import 'package:hamro_footsall/features/futsal_details/data/model/available_courts_model.dart';
+import 'package:hamro_footsall/features/futsal_details/data/model/booking_recurrence.dart';
+import 'package:hamro_footsall/features/futsal_details/data/model/time_slot_model.dart';
+import 'package:hamro_footsall/features/futsal_details/data/model/venue_court_item_model.dart';
+import 'package:hamro_footsall/features/futsal_details/domain/usecase/get_available_courts_use_case.dart';
+import 'package:hamro_footsall/features/futsal_details/domain/usecase/get_venue_slots_use_case.dart';
+
+part 'slots_selection_event.dart';
+part 'slots_selection_state.dart';
+
+class SlotsSelectionBloc
+    extends Bloc<SlotsSelectionEvent, SlotsSelectionState> {
+  SlotsSelectionBloc(
+    this._getAvailableCourtsUseCase,
+    this._getVenueSlotsUseCase,
+  ) : super(const SlotsSelectionState()) {
+    on<InitializeSlotsSelectionEvent>(_onInitialize);
+    on<SelectSlotsDateEvent>(_onSelectDate);
+    on<SelectSlotsTimeEvent>(_onSelectTime);
+    on<SelectSlotsCourtEvent>(_onSelectCourt);
+    on<ChangeSlotsBookingModeEvent>(_onChangeBookingMode);
+    on<ChangeSlotsRecurrenceEvent>(_onChangeRecurrence);
+    on<RefreshSlotsAvailabilityEvent>(_onRefresh);
+  }
+
+  final GetAvailableCourtsUseCase _getAvailableCourtsUseCase;
+  final GetVenueSlotsUseCase _getVenueSlotsUseCase;
+  CourtDetailModel? _sourceCourt;
+  int _slotsRequestSerial = 0;
+  int _courtsRequestSerial = 0;
+
+  FutureOr<void> _onInitialize(
+    InitializeSlotsSelectionEvent event,
+    Emitter<SlotsSelectionState> emit,
+  ) async {
+    _sourceCourt = event.court;
+    final SlotsSelectionState next = state.copyWith(
+      venueId: event.court.venueId,
+      dates: List<DateTime>.generate(
+        14,
+        (int i) => _dateOnly(DateTime.now().add(Duration(days: i))),
+      ),
+      selectedDateIndex: 0,
+      selectedSlotIndex: -1,
+      selectedCourtIndex: -1,
+      timeSlots: const <TimeSlotModel>[],
+      courts: const <VenueCourtItemModel>[],
+      bookingMode: BookingMode.single,
+      recurrence: BookingRecurrence.oneMonth,
+      fallbackPrice: _priceFromText(event.court.price) ?? 0,
+      status: SlotsSelectionStatus.loading,
+      clearError: true,
+    );
+    emit(next);
+    await _fetchSlotsAndCourts(emit, next);
+  }
+
+  FutureOr<void> _onSelectDate(
+    SelectSlotsDateEvent event,
+    Emitter<SlotsSelectionState> emit,
+  ) async {
+    if (event.index < 0 || event.index >= state.dates.length) return;
+
+    final SlotsSelectionState next = state.copyWith(
+      selectedDateIndex: event.index,
+      selectedSlotIndex: -1,
+      selectedCourtIndex: -1,
+      timeSlots: const <TimeSlotModel>[],
+      courts: const <VenueCourtItemModel>[],
+      status: SlotsSelectionStatus.loading,
+      clearError: true,
+    );
+    emit(next);
+    await _fetchSlotsAndCourts(emit, next);
+  }
+
+  FutureOr<void> _onSelectTime(
+    SelectSlotsTimeEvent event,
+    Emitter<SlotsSelectionState> emit,
+  ) async {
+    if (event.index >= state.timeSlots.length) return;
+    if (event.index >= 0 && !state.timeSlots[event.index].isAvailable) return;
+
+    if (event.index < 0) {
+      emit(
+        state.copyWith(
+          selectedSlotIndex: -1,
+          selectedCourtIndex: -1,
+          courts: const <VenueCourtItemModel>[],
+          status: SlotsSelectionStatus.success,
+          clearError: true,
+        ),
+      );
+      return;
+    }
+
+    final SlotsSelectionState next = state.copyWith(
+      selectedSlotIndex: event.index,
+      selectedCourtIndex: -1,
+      courts: const <VenueCourtItemModel>[],
+      status: SlotsSelectionStatus.loading,
+      clearError: true,
+    );
+    emit(next);
+    await _fetchAvailableCourts(emit, next);
+  }
+
+  void _onSelectCourt(
+    SelectSlotsCourtEvent event,
+    Emitter<SlotsSelectionState> emit,
+  ) {
+    if (event.index < 0 || event.index >= state.courts.length) return;
+    if (!state.courts[event.index].isAvailable) return;
+    emit(state.copyWith(selectedCourtIndex: event.index));
+  }
+
+  void _onChangeBookingMode(
+    ChangeSlotsBookingModeEvent event,
+    Emitter<SlotsSelectionState> emit,
+  ) {
+    emit(state.copyWith(bookingMode: event.mode));
+  }
+
+  void _onChangeRecurrence(
+    ChangeSlotsRecurrenceEvent event,
+    Emitter<SlotsSelectionState> emit,
+  ) {
+    emit(state.copyWith(recurrence: event.recurrence));
+  }
+
+  FutureOr<void> _onRefresh(
+    RefreshSlotsAvailabilityEvent event,
+    Emitter<SlotsSelectionState> emit,
+  ) async {
+    final SlotsSelectionState next = state.copyWith(
+      status: SlotsSelectionStatus.loading,
+      clearError: true,
+    );
+    emit(next);
+    if (next.hasSlotSelection) {
+      await _fetchAvailableCourts(emit, next);
+    } else {
+      await _fetchSlotsAndCourts(emit, next);
+    }
+  }
+
+  /// Loads the date's time slots and the available courts for that date in one
+  /// pass. Used on page open and whenever the date changes — the courts call
+  /// runs without a slot filter so the server returns courts for "now".
+  Future<void> _fetchSlotsAndCourts(
+    Emitter<SlotsSelectionState> emit,
+    SlotsSelectionState current,
+  ) async {
+    await _fetchVenueSlots(emit, current, markSuccess: false);
+    if (state.status == SlotsSelectionStatus.failure || emit.isDone) return;
+    await _fetchAvailableCourts(emit, state);
+  }
+
+  Future<void> _fetchVenueSlots(
+    Emitter<SlotsSelectionState> emit,
+    SlotsSelectionState current, {
+    bool markSuccess = true,
+  }) async {
+    final int? venueId = current.venueId ?? _sourceCourt?.venueId;
+    if (venueId == null || venueId <= 0) {
+      emit(
+        current.copyWith(
+          status: SlotsSelectionStatus.failure,
+          errorMessage: 'Venue id is missing for slot availability.',
+        ),
+      );
+      return;
+    }
+
+    final int requestId = ++_slotsRequestSerial;
+    final Either<AppException, List<TimeSlotModel>> response =
+        await _getVenueSlotsUseCase(
+          venueId: venueId,
+          date: _formatApiDate(current.selectedDate),
+        );
+
+    if (requestId != _slotsRequestSerial || emit.isDone) return;
+
+    response.fold(
+      (AppException failure) => emit(
+        current.copyWith(
+          status: SlotsSelectionStatus.failure,
+          errorMessage: failure.errorMessage,
+        ),
+      ),
+      (List<TimeSlotModel> timeSlots) {
+        emit(
+          current.copyWith(
+            status: markSuccess
+                ? SlotsSelectionStatus.success
+                : SlotsSelectionStatus.loading,
+            timeSlots: timeSlots,
+            selectedSlotIndex: _safeSlotIndex(
+              current.selectedSlotIndex,
+              timeSlots,
+            ),
+            selectedCourtIndex: -1,
+            courts: const <VenueCourtItemModel>[],
+            clearError: true,
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _fetchAvailableCourts(
+    Emitter<SlotsSelectionState> emit,
+    SlotsSelectionState current,
+  ) async {
+    final int? venueId = current.venueId ?? _sourceCourt?.venueId;
+    final String? slotTime = current.selectedSlotApiTime;
+    if (venueId == null || venueId <= 0) {
+      emit(
+        current.copyWith(
+          status: SlotsSelectionStatus.failure,
+          errorMessage: 'Venue id is missing for court availability.',
+        ),
+      );
+      return;
+    }
+
+    final int requestId = ++_courtsRequestSerial;
+    final Either<AppException, AvailableCourtsModel> response =
+        await _getAvailableCourtsUseCase(
+          venueId: venueId,
+          selectDate: _formatApiDate(current.selectedDate),
+          // Null when no slot is picked yet (page open / date change); the
+          // server then returns courts for the current time.
+          slotTime: slotTime,
+        );
+
+    if (requestId != _courtsRequestSerial || emit.isDone) return;
+
+    response.fold(
+      (AppException failure) => emit(
+        current.copyWith(
+          status: SlotsSelectionStatus.failure,
+          errorMessage: failure.errorMessage,
+        ),
+      ),
+      (AvailableCourtsModel availability) {
+        final List<VenueCourtItemModel> courts = availability.courts
+            .map(_withCourtDefaults)
+            .toList(growable: false);
+        final int selectedCourtIndex = _selectedCourtIndexAfterFetch(
+          previous: current.selectedCourt,
+          courts: courts,
+        );
+
+        emit(
+          current.copyWith(
+            status: SlotsSelectionStatus.success,
+            courts: courts,
+            selectedCourtIndex: selectedCourtIndex,
+            clearError: true,
+          ),
+        );
+      },
+    );
+  }
+
+  VenueCourtItemModel _withCourtDefaults(VenueCourtItemModel court) {
+    final CourtDetailModel? source = _sourceCourt;
+    if (source == null) return court;
+
+    final String fallbackImage = source.images.isEmpty
+        ? ''
+        : source.images.first;
+    final List<CourtPriceRule> fallbackPrices = _fallbackPriceRules(source);
+    final bool hasServerPrice = court.priceList.any(
+      (CourtPriceRule rule) => rule.price > 0,
+    );
+
+    return court.copyWith(
+      venueId: court.venueId ?? source.venueId,
+      image: court.image.trim().isEmpty ? fallbackImage : court.image,
+      maxPlayers: court.maxPlayers > 0 ? court.maxPlayers : source.maxPlayers,
+      courtType: court.courtType.trim().isEmpty
+          ? source.courtType
+          : court.courtType,
+      priceList: hasServerPrice ? court.priceList : fallbackPrices,
+    );
+  }
+
+  List<CourtPriceRule> _fallbackPriceRules(CourtDetailModel source) {
+    final double price = _priceFromText(source.price) ?? 0;
+    return <CourtPriceRule>[
+      CourtPriceRule(
+        label: 'Standard',
+        timeRange: 'All day',
+        startHour: 0,
+        endHour: 24,
+        price: price,
+      ),
+    ];
+  }
+
+  int _selectedCourtIndexAfterFetch({
+    required VenueCourtItemModel? previous,
+    required List<VenueCourtItemModel> courts,
+  }) {
+    if (courts.isEmpty) return -1;
+    if (previous?.id != null) {
+      final int byId = courts.indexWhere(
+        (VenueCourtItemModel court) =>
+            court.id == previous!.id && court.isAvailable,
+      );
+      if (byId >= 0) return byId;
+    }
+    return courts.indexWhere((VenueCourtItemModel court) => court.isAvailable);
+  }
+}
+
+int _safeSlotIndex(int index, List<TimeSlotModel> slots) {
+  if (index < 0 || index >= slots.length) return -1;
+  return slots[index].isAvailable ? index : -1;
+}
+
+DateTime _dateOnly(DateTime value) =>
+    DateTime(value.year, value.month, value.day);
+
+String _formatApiDate(DateTime date) {
+  return '${date.year.toString().padLeft(4, '0')}-'
+      '${date.month.toString().padLeft(2, '0')}-'
+      '${date.day.toString().padLeft(2, '0')}';
+}
+
+String? _apiTimeFromDisplay(String? value) {
+  if (value == null || value.trim().isEmpty) return null;
+  final String text = value.trim();
+  final RegExpMatch? meridiemMatch = RegExp(
+    r'^(\d{1,2})(?::(\d{1,2}))?\s*([AP]M)$',
+    caseSensitive: false,
+  ).firstMatch(text);
+  if (meridiemMatch != null) {
+    int hour = int.tryParse(meridiemMatch.group(1) ?? '') ?? 0;
+    final int minute = int.tryParse(meridiemMatch.group(2) ?? '0') ?? 0;
+    final String suffix = meridiemMatch.group(3)!.toUpperCase();
+    if (suffix == 'PM' && hour != 12) hour += 12;
+    if (suffix == 'AM' && hour == 12) hour = 0;
+    return '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
+  }
+  final RegExpMatch? match = RegExp(
+    r'^(\d{1,2})(?::(\d{1,2}))?',
+  ).firstMatch(text);
+  if (match == null) return text;
+  final int hour = int.tryParse(match.group(1) ?? '') ?? 0;
+  final int minute = int.tryParse(match.group(2) ?? '0') ?? 0;
+  return '${hour.clamp(0, 23).toString().padLeft(2, '0')}:${minute.clamp(0, 59).toString().padLeft(2, '0')}';
+}
+
+double? _priceFromText(String value) {
+  final String normalized = value.replaceAll(',', '');
+  final RegExpMatch? match = RegExp(r'(\d+(?:\.\d+)?)').firstMatch(normalized);
+  if (match == null) return null;
+  return double.tryParse(match.group(1) ?? '');
+}
+
+String _dayName(DateTime date) {
+  const List<String> days = <String>[
+    'Mon',
+    'Tue',
+    'Wed',
+    'Thu',
+    'Fri',
+    'Sat',
+    'Sun',
+  ];
+  return days[date.weekday - 1];
+}
+
+String _monthName(DateTime date) {
+  const List<String> months = <String>[
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
+  return months[date.month - 1];
+}

@@ -40,6 +40,8 @@ class CourtSlotCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
+    final bool isAvailable = court.isAvailable;
+    final bool isSelected = selected && isAvailable;
     final bool hasSlot = selectedTime != null;
     final List<DateTime> sessionDates = recurringDates ?? <DateTime>[];
     final bool isRecurring = sessionDates.length > 1;
@@ -52,7 +54,7 @@ class CourtSlotCard extends StatelessWidget {
         : price;
 
     return GestureDetector(
-      onTap: onTap,
+      onTap: isAvailable ? onTap : null,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         curve: Curves.easeOutCubic,
@@ -60,19 +62,25 @@ class CourtSlotCard extends StatelessWidget {
         margin: AppUtils().getMargin(bottom: AppDimens.marginX12),
         padding: AppUtils().getPadding(all: AppDimens.paddingX12),
         decoration: BoxDecoration(
-          color: selected ? const Color(0xffF4FBF9) : LightColor.cardColor,
+          color: isSelected
+              ? const Color(0xffF4FBF9)
+              : isAvailable
+              ? LightColor.cardColor
+              : LightColor.inputFillColor,
           borderRadius: BorderRadius.circular(AppDimens.radiusX12),
           border: Border.all(
-            color: selected
+            color: isSelected
                 ? LightColor.secondaryColor
                 : LightColor.dividerColor.withValues(alpha: 0.6),
-            width: selected ? 0.5 : 1,
+            width: isSelected ? 0.5 : 1,
           ),
           boxShadow: <BoxShadow>[
             BoxShadow(
-              color: selected
+              color: isSelected
                   ? LightColor.secondaryColor.withValues(alpha: 0.12)
-                  : LightColor.shadowColor.withValues(alpha: 0.05),
+                  : isAvailable
+                  ? LightColor.shadowColor.withValues(alpha: 0.05)
+                  : Colors.transparent,
               blurRadius: AppDimens.sizeX14,
               offset: const Offset(0, AppDimens.sizeX4),
             ),
@@ -80,12 +88,15 @@ class CourtSlotCard extends StatelessWidget {
         ),
         child: Row(
           children: <Widget>[
-            CustomImageView(
-              url: court.image,
-              width: AppDimens.sizeX68,
-              height: AppDimens.sizeX68,
-              fit: BoxFit.cover,
-              radius: BorderRadius.circular(AppDimens.radiusX10),
+            Opacity(
+              opacity: isAvailable ? 1 : 0.55,
+              child: CustomImageView(
+                url: court.image,
+                width: AppDimens.sizeX68,
+                height: AppDimens.sizeX68,
+                fit: BoxFit.cover,
+                radius: BorderRadius.circular(AppDimens.radiusX10),
+              ),
             ),
             const SizedBox(width: AppDimens.sizeX12),
             Expanded(
@@ -98,7 +109,9 @@ class CourtSlotCard extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: textTheme.bodyTextLarge?.copyWith(
-                      color: LightColor.primaryTextColor,
+                      color: isAvailable
+                          ? LightColor.primaryTextColor
+                          : LightColor.hintTextColor,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
@@ -115,6 +128,12 @@ class CourtSlotCard extends StatelessWidget {
                         icon: Icons.groups_rounded,
                         label: '${court.maxPlayers} players',
                       ),
+                      if (!isAvailable)
+                        _MetaChip(
+                          icon: _statusIcon(court.status),
+                          label: court.unavailableReasonLabel ?? court.status.label,
+                          muted: true,
+                        ),
                     ],
                   ),
                 ],
@@ -125,14 +144,16 @@ class CourtSlotCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.end,
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
-                _buildRadio(),
+                _buildRadio(isSelected: isSelected, isAvailable: isAvailable),
                 const SizedBox(height: AppDimens.sizeX8),
                 Text(
                   hasSlot
                       ? 'Rs ${totalPrice.toStringAsFixed(0)}'
                       : 'from Rs ${price.toStringAsFixed(0)}',
                   style: textTheme.bodyTextLarge?.copyWith(
-                    color: LightColor.secondaryColor,
+                    color: isAvailable
+                        ? LightColor.secondaryColor
+                        : LightColor.hintTextColor,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
@@ -153,24 +174,40 @@ class CourtSlotCard extends StatelessWidget {
     );
   }
 
-  Widget _buildRadio() {
+  IconData _statusIcon(CourtAvailabilityStatus status) {
+    return switch (status) {
+      CourtAvailabilityStatus.booked => Icons.event_busy_rounded,
+      CourtAvailabilityStatus.unavailable => Icons.block_rounded,
+      CourtAvailabilityStatus.available => Icons.check_circle_rounded,
+    };
+  }
+
+  Widget _buildRadio({required bool isSelected, required bool isAvailable}) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       width: AppDimens.sizeX22,
       height: AppDimens.sizeX22,
       decoration: BoxDecoration(
-        color: selected ? LightColor.secondaryColor : Colors.transparent,
+        color: isSelected ? LightColor.secondaryColor : Colors.transparent,
         shape: BoxShape.circle,
         border: Border.all(
-          color: selected ? LightColor.secondaryColor : LightColor.dividerColor,
+          color: isSelected
+              ? LightColor.secondaryColor
+              : LightColor.dividerColor,
           width: 1.5,
         ),
       ),
-      child: selected
+      child: isSelected
           ? const Icon(
               Icons.check_rounded,
               size: AppDimens.sizeX14,
               color: Colors.white,
+            )
+          : !isAvailable
+          ? const Icon(
+              Icons.close_rounded,
+              size: AppDimens.sizeX14,
+              color: LightColor.hintTextColor,
             )
           : null,
     );
@@ -178,10 +215,15 @@ class CourtSlotCard extends StatelessWidget {
 }
 
 class _MetaChip extends StatelessWidget {
-  const _MetaChip({required this.icon, required this.label});
+  const _MetaChip({
+    required this.icon,
+    required this.label,
+    this.muted = false,
+  });
 
   final IconData icon;
   final String label;
+  final bool muted;
 
   @override
   Widget build(BuildContext context) {
@@ -191,7 +233,9 @@ class _MetaChip extends StatelessWidget {
         vertical: AppDimens.paddingX4,
       ),
       decoration: BoxDecoration(
-        color: LightColor.inputFillColor,
+        color: muted
+            ? LightColor.dividerColor.withValues(alpha: 0.55)
+            : LightColor.inputFillColor,
         borderRadius: BorderRadius.circular(AppDimens.radiusX50),
       ),
       child: Row(
@@ -202,7 +246,9 @@ class _MetaChip extends StatelessWidget {
           Text(
             label,
             style: FutsalTheme.getTextTheme(context).bodyMiniSubTitle?.copyWith(
-              color: LightColor.secondaryTextColor,
+              color: muted
+                  ? LightColor.hintTextColor
+                  : LightColor.secondaryTextColor,
               fontWeight: FontWeight.w600,
             ),
           ),

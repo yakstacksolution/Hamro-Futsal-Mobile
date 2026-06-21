@@ -179,7 +179,7 @@ class BookingTypeCard extends StatelessWidget {
                                         ? LightColor.secondaryColor
                                         : LightColor.inputFillColor,
                                     borderRadius: BorderRadius.circular(
-                                      AppDimens.radiusX8,
+                                      AppDimens.radiusX6,
                                     ),
                                   ),
                                   child: Text(
@@ -390,14 +390,6 @@ class _RecurringPriceSheet extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(width: AppDimens.sizeX10),
-              Text(
-                'Rs ${total.toStringAsFixed(0)}',
-                style: textTheme.bodyTextLarge?.copyWith(
-                  color: LightColor.secondaryColor,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
             ],
           ),
           const SizedBox(height: AppDimens.sizeX14),
@@ -432,6 +424,30 @@ class _RecurringPriceSheet extends StatelessWidget {
                 );
               },
             ),
+          ),
+          const SizedBox(height: AppDimens.sizeX14),
+          const Divider(height: 1, color: LightColor.dividerColor),
+          const SizedBox(height: AppDimens.sizeX12),
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: Text(
+                  'Total · ${dates.length} sessions',
+                  style: textTheme.bodyTextMedium?.copyWith(
+                    color: LightColor.primaryTextColor,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppDimens.sizeX10),
+              Text(
+                'Rs ${total.toStringAsFixed(0)}',
+                style: textTheme.bodyTextLarge?.copyWith(
+                  color: LightColor.secondaryColor,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
           ),
         ],
       ),

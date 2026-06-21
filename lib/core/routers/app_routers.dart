@@ -17,6 +17,10 @@ import 'package:hamro_footsall/features/courts_details/presentation/page/court_d
 import 'package:hamro_footsall/features/courts_details/presentation/page/court_location_map_page.dart';
 import 'package:hamro_footsall/features/expenses/presentation/pages/expenses_screen.dart';
 import 'package:hamro_footsall/features/futsal_details/presentation/view/slots_selection_page.dart';
+import 'package:hamro_footsall/features/futsal_details/data/repositories/futsal_details_repository_impl.dart';
+import 'package:hamro_footsall/features/futsal_details/domain/usecase/get_available_courts_use_case.dart';
+import 'package:hamro_footsall/features/futsal_details/domain/usecase/get_venue_slots_use_case.dart';
+import 'package:hamro_footsall/features/futsal_details/presentation/bloc/slots_selection/slots_selection_bloc.dart';
 import 'package:hamro_footsall/features/opponent_match/presentation/pages/opponent_match_screen.dart';
 import 'package:hamro_footsall/features/profile/presentation/pages/about_app_page.dart';
 import 'package:hamro_footsall/features/profile/presentation/pages/settings_page.dart';
@@ -258,8 +262,18 @@ class AppRouters {
         GoRoute(
           name: AppRouterParams.slotsSelection.name,
           path: AppRouterParams.slotsSelection.path,
-          builder: (context, state) =>
-              SlotsSelectionPage(court: state.extra as CourtDetailModel),
+          builder: (context, state) {
+            final CourtDetailModel court = state.extra as CourtDetailModel;
+            final FutsalDetailsRepositoryImpl repository =
+                FutsalDetailsRepositoryImpl();
+            return BlocProvider<SlotsSelectionBloc>(
+              create: (_) => SlotsSelectionBloc(
+                GetAvailableCourtsUseCase(repository),
+                GetVenueSlotsUseCase(repository),
+              )..add(InitializeSlotsSelectionEvent(court: court)),
+              child: SlotsSelectionPage(court: court),
+            );
+          },
         ),
 
         GoRoute(

@@ -2,7 +2,9 @@ import 'package:dartz/dartz.dart';
 import 'package:hamro_footsall/core/helper/exception_helper.dart';
 import 'package:hamro_footsall/core/helper/response_helper.dart';
 import 'package:hamro_footsall/features/futsal_details/data/data_source/futsal_details_remote_data_source.dart';
+import 'package:hamro_footsall/features/futsal_details/data/model/available_courts_model.dart';
 import 'package:hamro_footsall/features/futsal_details/data/model/hosted_by_model.dart';
+import 'package:hamro_footsall/features/futsal_details/data/model/time_slot_model.dart';
 import 'package:hamro_footsall/features/futsal_details/data/model/venue_amenities_facilities_model.dart';
 import 'package:hamro_footsall/features/futsal_details/data/model/venue_description_model.dart';
 import 'package:hamro_footsall/features/futsal_details/domain/repository/futsal_details_repository.dart';
@@ -87,7 +89,60 @@ final class FutsalDetailsRepositoryImpl extends FutsalDetailsRepository {
     }
   }
 
-  /// The payload map may arrive directly or nested under `data`.
+  @override
+  Future<Either<AppException, AvailableCourtsModel>> getAvailableCourts({
+    required int venueId,
+    required String selectDate,
+    String? slotTime,
+  }) async {
+    final response = await _remoteDataSource.getAvailableCourts(
+      venueId: venueId,
+      selectDate: selectDate,
+      slotTime: slotTime,
+    );
+    if (response.isError()) {
+      return left(ResponseHelper.error(response));
+    }
+
+    try {
+      return right(AvailableCourtsModel.fromResponse(response.getValue()));
+    } catch (_) {
+      return left(
+        DefaultException(
+          errorMessage: 'Could not parse available courts from server.',
+          statusCode: 0,
+        ),
+      );
+    }
+  }
+
+  @override
+  Future<Either<AppException, List<TimeSlotModel>>> getVenueSlots({
+    required int venueId,
+    required String date,
+  }) async {
+    final response = await _remoteDataSource.getVenueSlots(
+      venueId: venueId,
+      date: date,
+    );
+    if (response.isError()) {
+      return left(ResponseHelper.error(response));
+    }
+
+    try {
+      return right(
+        AvailableCourtsModel.fromResponse(response.getValue()).timeSlots,
+      );
+    } catch (_) {
+      return left(
+        DefaultException(
+          errorMessage: 'Could not parse venue slots from server.',
+          statusCode: 0,
+        ),
+      );
+    }
+  }
+
   Map<String, dynamic> _extractDataMap(dynamic payload) {
     if (payload is! Map) return <String, dynamic>{};
 
@@ -97,8 +152,6 @@ final class FutsalDetailsRepositoryImpl extends FutsalDetailsRepository {
     return map;
   }
 
-  /// The host payload may arrive directly, or nested under `data`,
-  /// `hosted_by`, or `host`.
   Map<String, dynamic> _extractHostedBy(dynamic payload) {
     if (payload is! Map) return <String, dynamic>{};
 

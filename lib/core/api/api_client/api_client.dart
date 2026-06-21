@@ -234,6 +234,29 @@ class ApiClient {
     return _get(url: '$_baseUrl/venue-amenities-facilities/$venueId');
   }
 
+  Future<Result> getAvailableCourts({
+    required int venueId,
+    required String selectDate,
+    String? slotTime,
+  }) {
+    return _get(
+      url: '$_baseUrl/available-courts',
+      query: <String, dynamic>{
+        'venue_id': venueId,
+        'select_date': selectDate,
+        if (slotTime != null && slotTime.trim().isNotEmpty)
+          'slot_time': slotTime,
+      },
+    );
+  }
+
+  Future<Result> getVenueSlots({required int venueId, required String date}) {
+    return _get(
+      url: '$_baseUrl/venue-slots',
+      query: <String, dynamic>{'venue_id': venueId, 'date': date},
+    );
+  }
+
   Future<Result> getVenueCourt() {
     return _get(url: '$_baseUrl/auth/get-venue-courts');
   }

@@ -124,6 +124,7 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
     final String closeTime = (venue.maxTime ?? '').trim();
 
     return CourtDetailModel(
+      venueId: venue.id,
       name: venue.name ?? '',
       location: address,
       address: exactLocation,
@@ -183,6 +184,7 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
     }
 
     return CourtDetailModel(
+      venueId: _court.venueId ?? widget.publicVenue?.id,
       name: _court.name,
       location: _court.location,
       address: _court.address,

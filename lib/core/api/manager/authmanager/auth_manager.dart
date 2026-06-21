@@ -246,6 +246,25 @@ class AuthManager extends ServiceManager {
     return await _apiClient.getVenueAmenitiesFacilities(venueId: venueId);
   }
 
+  Future<Result> getAvailableCourts({
+    required int venueId,
+    required String selectDate,
+    String? slotTime,
+  }) async {
+    return await _apiClient.getAvailableCourts(
+      venueId: venueId,
+      selectDate: selectDate,
+      slotTime: slotTime,
+    );
+  }
+
+  Future<Result> getVenueSlots({
+    required int venueId,
+    required String date,
+  }) async {
+    return await _apiClient.getVenueSlots(venueId: venueId, date: date);
+  }
+
   Future<Result> getVenueCourt() async {
     return await _apiClient.getVenueCourt();
   }
@@ -375,6 +394,9 @@ class AuthManager extends ServiceManager {
   }
 
   Future<Result> removeTeamMember(int teamId, int memberId) async {
-    return await _apiClient.removeTeamMember(teamId: teamId, memberId: memberId);
+    return await _apiClient.removeTeamMember(
+      teamId: teamId,
+      memberId: memberId,
+    );
   }
 }

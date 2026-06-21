@@ -5,6 +5,12 @@ abstract class FutsalDetailsRemoteDataSource {
   Future<Result> getHostedBy({required int venueId});
   Future<Result> getVenueDescription({required int venueId});
   Future<Result> getVenueAmenitiesFacilities({required int venueId});
+  Future<Result> getAvailableCourts({
+    required int venueId,
+    required String selectDate,
+    String? slotTime,
+  });
+  Future<Result> getVenueSlots({required int venueId, required String date});
 }
 
 final class FutsalDetailsRemoteDataSourceImpl
@@ -22,4 +28,24 @@ final class FutsalDetailsRemoteDataSourceImpl
       await Client.instance().getAuthManager().getVenueAmenitiesFacilities(
         venueId,
       );
+
+  @override
+  Future<Result> getAvailableCourts({
+    required int venueId,
+    required String selectDate,
+    String? slotTime,
+  }) async => await Client.instance().getAuthManager().getAvailableCourts(
+    venueId: venueId,
+    selectDate: selectDate,
+    slotTime: slotTime,
+  );
+
+  @override
+  Future<Result> getVenueSlots({
+    required int venueId,
+    required String date,
+  }) async => await Client.instance().getAuthManager().getVenueSlots(
+    venueId: venueId,
+    date: date,
+  );
 }

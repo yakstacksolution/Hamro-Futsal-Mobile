@@ -15,6 +15,7 @@ import 'package:hamro_footsall/features/courts_details/presentation/widget/detai
 import 'package:hamro_footsall/features/futsal_details/data/model/time_slot_model.dart';
 
 class CourtDetailModel {
+  final int? venueId;
   final String name;
   final String location;
   final String address;
@@ -41,6 +42,7 @@ class CourtDetailModel {
   final int maxPlayers;
 
   const CourtDetailModel({
+    this.venueId,
     required this.name,
     required this.location,
     required this.address,

@@ -15,9 +15,35 @@ class CourtPriceRule {
   final double price;
 }
 
+enum CourtAvailabilityStatus {
+  available,
+  unavailable,
+  booked;
+
+  String get apiValue {
+    return switch (this) {
+      CourtAvailabilityStatus.available => 'available',
+      CourtAvailabilityStatus.unavailable => 'unavailable',
+      CourtAvailabilityStatus.booked => 'booked',
+    };
+  }
+
+  String get label {
+    return switch (this) {
+      CourtAvailabilityStatus.available => 'Available',
+      CourtAvailabilityStatus.unavailable => 'Unavailable',
+      CourtAvailabilityStatus.booked => 'Booked',
+    };
+  }
+
+  bool get canSelect => this == CourtAvailabilityStatus.available;
+}
+
 /// A court shown in the courts list of the slot selection page.
 class VenueCourtItemModel {
   const VenueCourtItemModel({
+    this.id,
+    this.venueId,
     required this.name,
     required this.image,
     required this.maxPlayers,
@@ -25,17 +51,89 @@ class VenueCourtItemModel {
     required this.courtType,
     required this.priceList,
     this.weekendSurcharge = 0,
+    this.status = CourtAvailabilityStatus.available,
+    this.availabilityReason,
+    this.startTime,
+    this.endTime,
   });
 
+  final int? id;
+  final int? venueId;
   final String name;
   final String image;
   final int maxPlayers;
   final String matchType;
   final String courtType;
   final List<CourtPriceRule> priceList;
+  final CourtAvailabilityStatus status;
+  final String? availabilityReason;
+  final String? startTime;
+  final String? endTime;
 
   /// Extra amount added on Saturdays (weekend in Nepal).
   final double weekendSurcharge;
+
+  bool get isAvailable => status.canSelect;
+
+  /// Friendly text for why this court can't be booked, derived from the
+  /// server's [availabilityReason]. Falls back to the status label, and is
+  /// null when the court is available.
+  String? get unavailableReasonLabel {
+    if (isAvailable) return null;
+    final String? reason = availabilityReason?.trim();
+    if (reason == null || reason.isEmpty) return status.label;
+    switch (reason.toLowerCase().replaceAll(RegExp(r'[\s-]+'), '_')) {
+      case 'booked_or_closed':
+        return 'Booked / Closed';
+      case 'booked':
+      case 'reserved':
+        return 'Booked';
+      case 'closed':
+        return 'Closed';
+      case 'fully_booked':
+        return 'Fully booked';
+      case 'blocked':
+        return 'Blocked';
+      case 'unavailable':
+        return 'Unavailable';
+      default:
+        final String spaced = reason.replaceAll(RegExp(r'[_-]+'), ' ').trim();
+        if (spaced.isEmpty) return status.label;
+        return spaced[0].toUpperCase() + spaced.substring(1);
+    }
+  }
+
+  VenueCourtItemModel copyWith({
+    int? id,
+    int? venueId,
+    String? name,
+    String? image,
+    int? maxPlayers,
+    String? matchType,
+    String? courtType,
+    List<CourtPriceRule>? priceList,
+    double? weekendSurcharge,
+    CourtAvailabilityStatus? status,
+    String? availabilityReason,
+    String? startTime,
+    String? endTime,
+  }) {
+    return VenueCourtItemModel(
+      id: id ?? this.id,
+      venueId: venueId ?? this.venueId,
+      name: name ?? this.name,
+      image: image ?? this.image,
+      maxPlayers: maxPlayers ?? this.maxPlayers,
+      matchType: matchType ?? this.matchType,
+      courtType: courtType ?? this.courtType,
+      priceList: priceList ?? this.priceList,
+      weekendSurcharge: weekendSurcharge ?? this.weekendSurcharge,
+      status: status ?? this.status,
+      availabilityReason: availabilityReason ?? this.availabilityReason,
+      startTime: startTime ?? this.startTime,
+      endTime: endTime ?? this.endTime,
+    );
+  }
 
   /// The rule whose window contains [slotTime] (e.g. '7:00 AM'),
   /// or null when nothing matches.
