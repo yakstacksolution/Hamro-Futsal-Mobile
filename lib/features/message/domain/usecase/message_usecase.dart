@@ -1,6 +1,9 @@
+import 'dart:typed_data';
+
 import 'package:dartz/dartz.dart';
 import 'package:hamro_footsall/core/helper/exception_helper.dart';
 import 'package:hamro_footsall/features/message/data/model/chat_message_model.dart';
+import 'package:hamro_footsall/features/message/data/model/chat_send_request.dart';
 import 'package:hamro_footsall/features/message/data/model/conversation_model.dart';
 import 'package:hamro_footsall/features/message/domain/repository/message_repository.dart';
 
@@ -23,19 +26,46 @@ final class MessageUseCase {
     venueId: venueId,
   );
 
+  Future<Either<AppException, ConversationModel>> createGroupConversation({
+    required String title,
+    required List<int> participantIds,
+    int? venueId,
+  }) async => await repository.createGroupConversation(
+    title: title,
+    participantIds: participantIds,
+    venueId: venueId,
+  );
+
+  Future<Either<AppException, ConversationModel>> addConversationParticipants(
+    int conversationId,
+    List<int> participantIds,
+  ) async => await repository.addConversationParticipants(
+    conversationId,
+    participantIds,
+  );
+
+  Future<Either<AppException, ConversationModel>> getConversationDetails(
+    int conversationId,
+  ) async => await repository.getConversationDetails(conversationId);
+
+  Future<Either<AppException, bool>> getUserPresence(int userId) async =>
+      await repository.getUserPresence(userId);
+
+  Future<Either<AppException, bool>> setPresence(bool online) async =>
+      await repository.setPresence(online);
+
+  Future<Either<AppException, bool>> sendPresenceHeartbeat(
+    String socketId,
+  ) async => await repository.sendPresenceHeartbeat(socketId);
+
   Future<Either<AppException, List<ChatMessageModel>>> getMessages(
     int conversationId,
   ) async => await repository.getMessages(conversationId);
 
   Future<Either<AppException, ChatMessageModel>> sendMessage(
     int conversationId, {
-    required String body,
-    int? replyToMessageId,
-  }) async => await repository.sendMessage(
-    conversationId,
-    body: body,
-    replyToMessageId: replyToMessageId,
-  );
+    required ChatSendRequest request,
+  }) async => await repository.sendMessage(conversationId, request: request);
 
   Future<Either<AppException, bool>> markRead(int conversationId) async =>
       await repository.markRead(conversationId);
@@ -55,6 +85,21 @@ final class MessageUseCase {
     bool muted,
   ) async => await repository.setMuted(conversationId, muted);
 
+  Future<Either<AppException, bool>> setParticipantBlocked(
+    int conversationId,
+    int userId,
+    bool blocked, {
+    String? reason,
+  }) async => await repository.setParticipantBlocked(
+    conversationId,
+    userId,
+    blocked,
+    reason: reason,
+  );
+
   Future<Either<AppException, bool>> deleteMessage(int messageId) async =>
       await repository.deleteMessage(messageId);
+
+  Future<Either<AppException, Uint8List>> getMediaBytes(int mediaId) async =>
+      await repository.getMediaBytes(mediaId);
 }

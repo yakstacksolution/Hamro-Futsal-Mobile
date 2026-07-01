@@ -64,6 +64,7 @@ class BookingTypeCard extends StatelessWidget {
     required this.startDate,
     required this.selectedCourt,
     this.selectedTime,
+    this.isCheckingAvailability = false,
   });
 
   final BookingMode mode;
@@ -73,6 +74,10 @@ class BookingTypeCard extends StatelessWidget {
   final DateTime startDate;
   final VenueCourtItemModel selectedCourt;
   final String? selectedTime;
+
+  /// While the `/bookings/recurring-availability` call is in flight we show a
+  /// spinner on the duration boxes (instead of a separate section below).
+  final bool isCheckingAvailability;
 
   @override
   Widget build(BuildContext context) {
@@ -159,16 +164,20 @@ class BookingTypeCard extends StatelessWidget {
                           BookingRecurrence option,
                         ) {
                           final bool selected = option == recurrence;
+                          final bool showSpinner =
+                              isCheckingAvailability && selected;
                           return Expanded(
                             child: Padding(
                               padding: AppUtils().getPadding(
                                 right: AppDimens.paddingX6,
                               ),
                               child: GestureDetector(
-                                onTap: () {
-                                  HapticFeedback.selectionClick();
-                                  onRecurrenceChanged(option);
-                                },
+                                onTap: isCheckingAvailability
+                                    ? null
+                                    : () {
+                                        HapticFeedback.selectionClick();
+                                        onRecurrenceChanged(option);
+                                      },
                                 child: AnimatedContainer(
                                   duration: const Duration(milliseconds: 200),
                                   padding: AppUtils().getPadding(
@@ -182,16 +191,32 @@ class BookingTypeCard extends StatelessWidget {
                                       AppDimens.radiusX6,
                                     ),
                                   ),
-                                  child: Text(
-                                    option.label,
-                                    textAlign: TextAlign.center,
-                                    style: textTheme.bodyMiniSubTitle?.copyWith(
-                                      color: selected
-                                          ? LightColor.whiteColor
-                                          : LightColor.primaryTextColor,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
+                                  child: showSpinner
+                                      ? const Center(
+                                          child: SizedBox(
+                                            width: AppDimens.sizeX12,
+                                            height: AppDimens.sizeX12,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 1.5,
+                                              valueColor:
+                                                  AlwaysStoppedAnimation<Color>(
+                                                    LightColor.whiteColor,
+                                                  ),
+                                            ),
+                                          ),
+                                        )
+                                      : Text(
+                                          option.label,
+                                          textAlign: TextAlign.center,
+                                          style: textTheme.bodyMiniSubTitle
+                                              ?.copyWith(
+                                                color: selected
+                                                    ? LightColor.whiteColor
+                                                    : LightColor
+                                                          .primaryTextColor,
+                                                fontWeight: FontWeight.w700,
+                                              ),
+                                        ),
                                 ),
                               ),
                             ),

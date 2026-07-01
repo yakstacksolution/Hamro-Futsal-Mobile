@@ -2,6 +2,8 @@ part of 'slots_selection_bloc.dart';
 
 enum SlotsSelectionStatus { idle, loading, success, failure }
 
+enum RecurringCheckStatus { idle, loading, success, failure }
+
 final class SlotsSelectionState extends Equatable {
   const SlotsSelectionState({
     this.status = SlotsSelectionStatus.idle,
@@ -16,6 +18,9 @@ final class SlotsSelectionState extends Equatable {
     this.recurrence = BookingRecurrence.oneMonth,
     this.fallbackPrice = 0,
     this.errorMessage,
+    this.recurringCheckStatus = RecurringCheckStatus.idle,
+    this.recurringAvailability,
+    this.recurringAvailabilityError,
   });
 
   final SlotsSelectionStatus status;
@@ -30,6 +35,9 @@ final class SlotsSelectionState extends Equatable {
   final BookingRecurrence recurrence;
   final double fallbackPrice;
   final String? errorMessage;
+  final RecurringCheckStatus recurringCheckStatus;
+  final RecurringAvailabilityModel? recurringAvailability;
+  final String? recurringAvailabilityError;
 
   int get safeSelectedDateIndex {
     if (dates.isEmpty) return 0;
@@ -64,6 +72,12 @@ final class SlotsSelectionState extends Equatable {
     final TimeSlotModel? slot = selectedSlot;
     if (slot == null) return null;
     return slot.apiTime ?? _apiTimeFromDisplay(slot.time);
+  }
+
+  String? get selectedSlotApiEndTime {
+    final TimeSlotModel? slot = selectedSlot;
+    if (slot == null) return null;
+    return slot.apiEndTime ?? _apiTimeFromDisplay(slot.endTime);
   }
 
   bool get isLoading => status == SlotsSelectionStatus.loading;
@@ -125,6 +139,34 @@ final class SlotsSelectionState extends Equatable {
     return selectedCourt == null ? 'Unavailable' : 'Book Now';
   }
 
+  /// Snapshot of the current selection for the booking checkout page.
+  /// Null until a slot and an available court are both chosen.
+  BookingDraft? get bookingDraft {
+    final VenueCourtItemModel? court = selectedCourt;
+    if (court == null || !hasSlotSelection) return null;
+    final String time = selectedTime ?? '';
+    return BookingDraft(
+      venueId: venueId,
+      courtId: court.id,
+      courtName: court.name,
+      courtImage: court.image,
+      matchType: court.matchType,
+      courtType: court.courtType,
+      maxPlayers: court.maxPlayers,
+      selectedDate: selectedDate,
+      selectedTime: time,
+      apiTime: selectedSlotApiTime,
+      apiEndTime: selectedSlotApiEndTime,
+      endTime: selectedSlot?.endTime ?? court.endTime,
+      isRecurring: isRecurring,
+      recurrenceLabel: isRecurring ? recurrence.label : null,
+      sessions: sessions,
+      sessionDates: sessionDates,
+      pricePerSession: court.priceFor(selectedDate, time),
+      subtotal: selectedPrice,
+    );
+  }
+
   SlotsSelectionState copyWith({
     SlotsSelectionStatus? status,
     int? venueId,
@@ -139,6 +181,11 @@ final class SlotsSelectionState extends Equatable {
     double? fallbackPrice,
     String? errorMessage,
     bool clearError = false,
+    RecurringCheckStatus? recurringCheckStatus,
+    RecurringAvailabilityModel? recurringAvailability,
+    String? recurringAvailabilityError,
+    bool clearRecurring = false,
+    bool clearRecurringError = false,
   }) {
     return SlotsSelectionState(
       status: status ?? this.status,
@@ -153,6 +200,15 @@ final class SlotsSelectionState extends Equatable {
       recurrence: recurrence ?? this.recurrence,
       fallbackPrice: fallbackPrice ?? this.fallbackPrice,
       errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
+      recurringCheckStatus: clearRecurring
+          ? RecurringCheckStatus.idle
+          : recurringCheckStatus ?? this.recurringCheckStatus,
+      recurringAvailability: clearRecurring
+          ? null
+          : recurringAvailability ?? this.recurringAvailability,
+      recurringAvailabilityError: clearRecurring || clearRecurringError
+          ? null
+          : recurringAvailabilityError ?? this.recurringAvailabilityError,
     );
   }
 
@@ -170,5 +226,8 @@ final class SlotsSelectionState extends Equatable {
     recurrence,
     fallbackPrice,
     errorMessage,
+    recurringCheckStatus,
+    recurringAvailability,
+    recurringAvailabilityError,
   ];
 }

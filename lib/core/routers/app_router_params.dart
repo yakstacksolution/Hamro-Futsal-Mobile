@@ -113,6 +113,11 @@ class AppRouterParams {
     name: 'venueFilter',
     path: '/dashboard/venue-filter',
   );
+
+  static const RouteConfig bookingCheckout = RouteConfig(
+    name: 'bookingCheckout',
+    path: '/dashboard/booking-checkout',
+  );
 }
 
 class RouteConfig {

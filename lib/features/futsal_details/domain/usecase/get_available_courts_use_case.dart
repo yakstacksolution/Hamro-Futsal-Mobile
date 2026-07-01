@@ -8,13 +8,15 @@ final class GetAvailableCourtsUseCase {
 
   final FutsalDetailsRepository repository;
 
-  Future<Either<AppException, AvailableCourtsModel>> call({
+  Future<Either<AppException, AvailableCourtsModel>> getAvailableCourts({
     required int venueId,
     required String selectDate,
-    String? slotTime,
+    String? slotStartTime,
+    String? slotEndTime,
   }) async => await repository.getAvailableCourts(
     venueId: venueId,
     selectDate: selectDate,
-    slotTime: slotTime,
+    slotStartTime: slotStartTime,
+    slotEndTime: slotEndTime,
   );
 }

@@ -159,21 +159,7 @@ TimeSlotModel? _timeSlotFromAny(dynamic value) {
   final int? availableCourts = _asInt(
     map['available_courts'] ?? map['availableCourts'],
   );
-  final bool booked = _asBool(map['is_booked'] ?? map['booked']) ?? false;
-  final bool unavailable =
-      _asBool(map['is_unavailable'] ?? map['isUnavailable']) ?? false;
-  final bool fullyBooked =
-      _asBool(map['is_fully_booked'] ?? map['isFullyBooked']) ?? false;
-  final bool explicitAvailable =
-      _asBool(
-        map['is_available'] ??
-            map['isAvailable'] ??
-            map['available'] ??
-            map['status'],
-      ) ??
-      (availableCourts == null ? true : availableCourts > 0);
-  final bool available =
-      explicitAvailable && !booked && !unavailable && !fullyBooked;
+  final SlotStatus status = _slotStatusFromMap(map, availableCourts);
   final String displayTime = endDisplay == null || endDisplay == startDisplay
       ? startDisplay
       : '$startDisplay - $endDisplay';
@@ -184,16 +170,41 @@ TimeSlotModel? _timeSlotFromAny(dynamic value) {
     apiTime: apiTime,
     endTime: endDisplay,
     apiEndTime: apiEndTime,
-    isAvailable: available,
     price: _asString(map['price'] ?? map['amount'] ?? map['rate']),
     totalCourts: _asInt(map['total_courts'] ?? map['totalCourts']),
     availableCourts: availableCourts,
     bookedCourts: _asInt(map['booked_courts'] ?? map['bookedCourts']),
-    status: _asString(map['status']),
-    isBooked: booked,
-    isUnavailable: unavailable,
-    isFullyBooked: fullyBooked,
+    status: status,
   );
+}
+
+/// Resolves a slot's [SlotStatus]. The server's `status` string is
+/// authoritative (e.g. a slot can be `available` even with zero available
+/// courts); only when it is missing do we fall back to boolean flags and counts.
+SlotStatus _slotStatusFromMap(Map<String, dynamic> map, int? availableCourts) {
+  final dynamic rawStatus =
+      map['status'] ?? map['slot_status'] ?? map['slotStatus'];
+  if (rawStatus != null) return SlotStatus.fromApi(rawStatus);
+
+  if (_asBool(map['is_booked'] ?? map['booked']) == true) {
+    return SlotStatus.booked;
+  }
+  if (_asBool(map['is_fully_booked'] ?? map['isFullyBooked']) == true) {
+    return SlotStatus.booked;
+  }
+  if (_asBool(map['is_unavailable'] ?? map['isUnavailable']) == true) {
+    return SlotStatus.unavailable;
+  }
+  final bool? explicit = _asBool(
+    map['is_available'] ?? map['isAvailable'] ?? map['available'],
+  );
+  if (explicit != null) {
+    return explicit ? SlotStatus.available : SlotStatus.unavailable;
+  }
+  if (availableCourts != null) {
+    return availableCourts > 0 ? SlotStatus.available : SlotStatus.unavailable;
+  }
+  return SlotStatus.available;
 }
 
 List<VenueCourtItemModel> _parseCourts(dynamic value) {
@@ -219,15 +230,8 @@ VenueCourtItemModel _courtFromJson(Map<String, dynamic> json) {
   final String? endTime = _displayTimeFromAny(
     json['end_time'] ?? json['endTime'] ?? matchingSlotMap['end_time'],
   );
-  final String? availabilityReason = _asString(
-    json['availability_reason'] ?? json['availabilityReason'],
-  );
-  final CourtAvailabilityStatus status = _courtStatusFromJson(
+  final SlotStatus status = SlotStatus.fromApi(
     json['availability_status'] ?? json['availabilityStatus'] ?? json['status'],
-    isAvailable: _asBool(
-      json['is_available'] ?? json['isAvailable'] ?? json['available'],
-    ),
-    availabilityReason: availabilityReason,
   );
 
   return VenueCourtItemModel(
@@ -251,44 +255,10 @@ VenueCourtItemModel _courtFromJson(Map<String, dynamic> json) {
         ) ??
         0,
     status: status,
-    availabilityReason: availabilityReason,
     startTime: startTime,
     endTime: endTime,
     priceList: priceList,
   );
-}
-
-CourtAvailabilityStatus _courtStatusFromJson(
-  dynamic value, {
-  bool? isAvailable,
-  String? availabilityReason,
-}) {
-  final String status = value?.toString().trim().toLowerCase() ?? '';
-  final String normalized = status.replaceAll(RegExp(r'[\s-]+'), '_');
-  final String reason =
-      availabilityReason?.toLowerCase().replaceAll(RegExp(r'[\s-]+'), '_') ?? '';
-
-  // `availability_status` is authoritative. When it explicitly says the court
-  // is available we trust it and ignore `availability_reason` (the server may
-  // still attach a stale reason such as `booked_or_closed`).
-  if (normalized == 'available') return CourtAvailabilityStatus.available;
-
-  if (normalized.contains('booked')) return CourtAvailabilityStatus.booked;
-  if (normalized.contains('unavailable') ||
-      normalized.contains('closed') ||
-      normalized.contains('blocked')) {
-    return CourtAvailabilityStatus.unavailable;
-  }
-
-  // No explicit status string: fall back to the boolean flag, then the reason.
-  if (isAvailable == true) return CourtAvailabilityStatus.available;
-  if (isAvailable == false) {
-    return reason.contains('book') || reason.contains('reserv')
-        ? CourtAvailabilityStatus.booked
-        : CourtAvailabilityStatus.unavailable;
-  }
-
-  return CourtAvailabilityStatus.available;
 }
 
 List<CourtPriceRule> _priceRulesFromJson(Map<String, dynamic> json) {

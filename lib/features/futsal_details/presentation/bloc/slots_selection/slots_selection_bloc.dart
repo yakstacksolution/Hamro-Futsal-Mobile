@@ -3,12 +3,18 @@ import 'dart:async';
 import 'package:bloc/bloc.dart';
 import 'package:dartz/dartz.dart';
 import 'package:equatable/equatable.dart';
+import 'package:flutter/foundation.dart';
 import 'package:hamro_footsall/core/helper/exception_helper.dart';
 import 'package:hamro_footsall/features/courts_details/presentation/page/court_details.dart';
 import 'package:hamro_footsall/features/futsal_details/data/model/available_courts_model.dart';
+import 'package:hamro_footsall/features/futsal_details/data/model/booking_draft.dart';
 import 'package:hamro_footsall/features/futsal_details/data/model/booking_recurrence.dart';
+import 'package:hamro_footsall/features/futsal_details/data/model/recurring_availability_model.dart';
 import 'package:hamro_footsall/features/futsal_details/data/model/time_slot_model.dart';
 import 'package:hamro_footsall/features/futsal_details/data/model/venue_court_item_model.dart';
+import 'package:hamro_footsall/features/futsal_details/data/service/reverb_slot_socket_service.dart';
+import 'package:hamro_footsall/features/futsal_details/data/service/slot_socket_service.dart';
+import 'package:hamro_footsall/features/futsal_details/domain/usecase/check_recurring_availability_use_case.dart';
 import 'package:hamro_footsall/features/futsal_details/domain/usecase/get_available_courts_use_case.dart';
 import 'package:hamro_footsall/features/futsal_details/domain/usecase/get_venue_slots_use_case.dart';
 
@@ -20,7 +26,10 @@ class SlotsSelectionBloc
   SlotsSelectionBloc(
     this._getAvailableCourtsUseCase,
     this._getVenueSlotsUseCase,
-  ) : super(const SlotsSelectionState()) {
+    this._checkRecurringAvailabilityUseCase, {
+    SlotSocketService? socketService,
+  }) : _socketService = socketService ?? ReverbSlotSocketService.instance,
+       super(const SlotsSelectionState()) {
     on<InitializeSlotsSelectionEvent>(_onInitialize);
     on<SelectSlotsDateEvent>(_onSelectDate);
     on<SelectSlotsTimeEvent>(_onSelectTime);
@@ -28,13 +37,23 @@ class SlotsSelectionBloc
     on<ChangeSlotsBookingModeEvent>(_onChangeBookingMode);
     on<ChangeSlotsRecurrenceEvent>(_onChangeRecurrence);
     on<RefreshSlotsAvailabilityEvent>(_onRefresh);
+    on<SlotsRealtimeRefreshRequested>(_onRealtimeRefresh);
+    on<CheckRecurringAvailabilityRequested>(_onCheckRecurringAvailability);
   }
 
   final GetAvailableCourtsUseCase _getAvailableCourtsUseCase;
   final GetVenueSlotsUseCase _getVenueSlotsUseCase;
+  final CheckRecurringAvailabilityUseCase _checkRecurringAvailabilityUseCase;
+  final SlotSocketService _socketService;
   CourtDetailModel? _sourceCourt;
   int _slotsRequestSerial = 0;
   int _courtsRequestSerial = 0;
+  int _recurringRequestSerial = 0;
+
+  /// Live slot-availability wiring for the current venue.
+  StreamSubscription<SlotAvailabilityUpdate>? _availabilitySub;
+  Timer? _availabilityDebounce;
+  int? _subscribedVenueId;
 
   FutureOr<void> _onInitialize(
     InitializeSlotsSelectionEvent event,
@@ -59,7 +78,52 @@ class SlotsSelectionBloc
       clearError: true,
     );
     emit(next);
+    _listenToAvailability(event.court.venueId);
     await _fetchSlotsAndCourts(emit, next);
+  }
+
+  /// Subscribes (once per venue) to the `venue.{venueId}.slots` Reverb channel.
+  void _listenToAvailability(int? venueId) {
+    if (venueId == null || venueId <= 0) return;
+    if (_availabilitySub != null && venueId == _subscribedVenueId) return;
+    _availabilitySub?.cancel();
+    _subscribedVenueId = venueId;
+    _availabilitySub = _socketService
+        .venueSlots(venueId)
+        .listen(_onAvailabilityPush);
+  }
+
+  /// Debounces bursts of broadcasts into a single silent refresh, and ignores
+  /// updates that target a day other than the one currently on screen.
+  void _onAvailabilityPush(SlotAvailabilityUpdate update) {
+    if (update.date != null &&
+        update.date != _formatApiDate(state.selectedDate)) {
+      return;
+    }
+    _availabilityDebounce?.cancel();
+    _availabilityDebounce = Timer(const Duration(milliseconds: 450), () {
+      if (!isClosed) add(const SlotsRealtimeRefreshRequested());
+    });
+  }
+
+  /// Silent refresh triggered by the socket: re-pulls authoritative
+  /// availability without flipping to a loading spinner, preserving the user's
+  /// current selection.
+  Future<void> _onRealtimeRefresh(
+    SlotsRealtimeRefreshRequested event,
+    Emitter<SlotsSelectionState> emit,
+  ) async {
+    // Don't interfere with an in-flight user-driven load.
+    if (state.status == SlotsSelectionStatus.loading) return;
+
+    final SlotsSelectionState current = state;
+    if (current.hasSlotSelection) {
+      await _fetchAvailableCourts(emit, current, silent: true);
+    } else {
+      await _fetchVenueSlots(emit, current, markSuccess: true, silent: true);
+      if (emit.isDone) return;
+      await _fetchAvailableCourts(emit, state, silent: true);
+    }
   }
 
   FutureOr<void> _onSelectDate(
@@ -112,27 +176,98 @@ class SlotsSelectionBloc
     await _fetchAvailableCourts(emit, next);
   }
 
-  void _onSelectCourt(
+  Future<void> _onSelectCourt(
     SelectSlotsCourtEvent event,
     Emitter<SlotsSelectionState> emit,
-  ) {
+  ) async {
     if (event.index < 0 || event.index >= state.courts.length) return;
     if (!state.courts[event.index].isAvailable) return;
     emit(state.copyWith(selectedCourtIndex: event.index));
+    await _fetchRecurringAvailability(emit, state);
   }
 
-  void _onChangeBookingMode(
+  Future<void> _onChangeBookingMode(
     ChangeSlotsBookingModeEvent event,
     Emitter<SlotsSelectionState> emit,
-  ) {
+  ) async {
     emit(state.copyWith(bookingMode: event.mode));
+    if (event.mode == BookingMode.recurring) {
+      await _fetchRecurringAvailability(emit, state);
+    } else {
+      // Single booking: drop any recurring-availability result.
+      emit(state.copyWith(clearRecurring: true));
+    }
   }
 
-  void _onChangeRecurrence(
+  Future<void> _onChangeRecurrence(
     ChangeSlotsRecurrenceEvent event,
     Emitter<SlotsSelectionState> emit,
-  ) {
+  ) async {
     emit(state.copyWith(recurrence: event.recurrence));
+    await _fetchRecurringAvailability(emit, state);
+  }
+
+  Future<void> _onCheckRecurringAvailability(
+    CheckRecurringAvailabilityRequested event,
+    Emitter<SlotsSelectionState> emit,
+  ) async {
+    await _fetchRecurringAvailability(emit, state);
+  }
+
+  /// Hits `/bookings/recurring-availability` for the selected court, slot and
+  /// recurrence. No-op unless a recurring booking with a slot and court is set.
+  Future<void> _fetchRecurringAvailability(
+    Emitter<SlotsSelectionState> emit,
+    SlotsSelectionState current,
+  ) async {
+    if (!current.isRecurring ||
+        !current.hasSlotSelection ||
+        current.selectedCourt == null) {
+      return;
+    }
+
+    final int? venueId = current.venueId ?? _sourceCourt?.venueId;
+    final int? courtId = current.selectedCourt?.id;
+    final String? startTime = current.selectedSlotApiTime;
+    if (venueId == null || courtId == null || startTime == null) return;
+
+    final int requestId = ++_recurringRequestSerial;
+    emit(
+      current.copyWith(
+        recurringCheckStatus: RecurringCheckStatus.loading,
+        clearRecurringError: true,
+      ),
+    );
+
+    final Either<AppException, RecurringAvailabilityModel> response =
+        await _checkRecurringAvailabilityUseCase.checkRecurringAvailability(
+          venueId: venueId,
+          courtId: courtId,
+          bookingDate: _formatApiDate(current.selectedDate),
+          slotStartTime: startTime,
+          slotEndTime: current.selectedSlotApiEndTime,
+          recurringDates: current.sessionDates
+              .map(_formatApiDate)
+              .toList(growable: false),
+        );
+
+    if (requestId != _recurringRequestSerial || emit.isDone) return;
+
+    response.fold(
+      (AppException failure) => emit(
+        state.copyWith(
+          recurringCheckStatus: RecurringCheckStatus.failure,
+          recurringAvailabilityError: failure.errorMessage,
+        ),
+      ),
+      (RecurringAvailabilityModel result) => emit(
+        state.copyWith(
+          recurringCheckStatus: RecurringCheckStatus.success,
+          recurringAvailability: result,
+          clearRecurringError: true,
+        ),
+      ),
+    );
   }
 
   FutureOr<void> _onRefresh(
@@ -167,15 +302,18 @@ class SlotsSelectionBloc
     Emitter<SlotsSelectionState> emit,
     SlotsSelectionState current, {
     bool markSuccess = true,
+    bool silent = false,
   }) async {
     final int? venueId = current.venueId ?? _sourceCourt?.venueId;
     if (venueId == null || venueId <= 0) {
-      emit(
-        current.copyWith(
-          status: SlotsSelectionStatus.failure,
-          errorMessage: 'Venue id is missing for slot availability.',
-        ),
-      );
+      if (!silent) {
+        emit(
+          current.copyWith(
+            status: SlotsSelectionStatus.failure,
+            errorMessage: 'Venue id is missing for slot availability.',
+          ),
+        );
+      }
       return;
     }
 
@@ -189,12 +327,20 @@ class SlotsSelectionBloc
     if (requestId != _slotsRequestSerial || emit.isDone) return;
 
     response.fold(
-      (AppException failure) => emit(
-        current.copyWith(
-          status: SlotsSelectionStatus.failure,
-          errorMessage: failure.errorMessage,
-        ),
-      ),
+      (AppException failure) {
+        // A background (socket-driven) refresh must not blow away the screen
+        // on a transient error; keep the last-known data.
+        if (silent) {
+          debugPrint('Silent slots refresh failed: ${failure.errorMessage}');
+          return;
+        }
+        emit(
+          current.copyWith(
+            status: SlotsSelectionStatus.failure,
+            errorMessage: failure.errorMessage,
+          ),
+        );
+      },
       (List<TimeSlotModel> timeSlots) {
         emit(
           current.copyWith(
@@ -217,39 +363,49 @@ class SlotsSelectionBloc
 
   Future<void> _fetchAvailableCourts(
     Emitter<SlotsSelectionState> emit,
-    SlotsSelectionState current,
-  ) async {
+    SlotsSelectionState current, {
+    bool silent = false,
+  }) async {
     final int? venueId = current.venueId ?? _sourceCourt?.venueId;
-    final String? slotTime = current.selectedSlotApiTime;
+    final String? slotStartTime = current.selectedSlotApiTime;
+    final String? slotEndTime = current.selectedSlotApiEndTime;
     if (venueId == null || venueId <= 0) {
-      emit(
-        current.copyWith(
-          status: SlotsSelectionStatus.failure,
-          errorMessage: 'Venue id is missing for court availability.',
-        ),
-      );
+      if (!silent) {
+        emit(
+          current.copyWith(
+            status: SlotsSelectionStatus.failure,
+            errorMessage: 'Venue id is missing for court availability.',
+          ),
+        );
+      }
       return;
     }
 
     final int requestId = ++_courtsRequestSerial;
     final Either<AppException, AvailableCourtsModel> response =
-        await _getAvailableCourtsUseCase(
+        await _getAvailableCourtsUseCase.getAvailableCourts(
           venueId: venueId,
           selectDate: _formatApiDate(current.selectedDate),
-          // Null when no slot is picked yet (page open / date change); the
-          // server then returns courts for the current time.
-          slotTime: slotTime,
+
+          slotStartTime: slotStartTime,
+          slotEndTime: slotEndTime,
         );
 
     if (requestId != _courtsRequestSerial || emit.isDone) return;
 
     response.fold(
-      (AppException failure) => emit(
-        current.copyWith(
-          status: SlotsSelectionStatus.failure,
-          errorMessage: failure.errorMessage,
-        ),
-      ),
+      (AppException failure) {
+        if (silent) {
+          debugPrint('Silent courts refresh failed: ${failure.errorMessage}');
+          return;
+        }
+        emit(
+          current.copyWith(
+            status: SlotsSelectionStatus.failure,
+            errorMessage: failure.errorMessage,
+          ),
+        );
+      },
       (AvailableCourtsModel availability) {
         final List<VenueCourtItemModel> courts = availability.courts
             .map(_withCourtDefaults)
@@ -320,6 +476,14 @@ class SlotsSelectionBloc
       if (byId >= 0) return byId;
     }
     return courts.indexWhere((VenueCourtItemModel court) => court.isAvailable);
+  }
+
+  @override
+  Future<void> close() {
+    _availabilityDebounce?.cancel();
+    _availabilitySub?.cancel();
+    // The Reverb connection is shared app-wide; don't dispose it here.
+    return super.close();
   }
 }
 

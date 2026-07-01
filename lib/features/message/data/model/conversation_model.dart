@@ -1,7 +1,7 @@
 import 'package:hamro_footsall/features/message/data/model/chat_message_model.dart';
 
 /// Client-side filter chips on the conversations list.
-enum ConversationFilter { all, unread, direct, group }
+enum ConversationFilter { all, unread, direct, group, archived }
 
 extension ConversationFilterX on ConversationFilter {
   String get label => switch (this) {
@@ -9,6 +9,7 @@ extension ConversationFilterX on ConversationFilter {
     ConversationFilter.unread => 'Unread',
     ConversationFilter.direct => 'Direct',
     ConversationFilter.group => 'Groups',
+    ConversationFilter.archived => 'Archived',
   };
 }
 
@@ -18,17 +19,36 @@ class ParticipantModel {
     required this.id,
     required this.userId,
     required this.name,
+    String? email,
     this.role = '',
     this.avatarUrl = '',
     this.isBlocked = false,
-  });
+    this.isOnline = false,
+    this.lastSeenAt,
+    this.joinedAt,
+    this.leftAt,
+    this.isMuted = false,
+    this.isPinned = false,
+    this.isArchived = false,
+    this.unreadCount = 0,
+  }) : _email = email;
 
   final int id;
   final int userId;
   final String name;
+  final String? _email;
+  String get email => _email ?? '';
   final String role;
   final String avatarUrl;
   final bool isBlocked;
+  final bool isOnline;
+  final DateTime? lastSeenAt;
+  final DateTime? joinedAt;
+  final DateTime? leftAt;
+  final bool isMuted;
+  final bool isPinned;
+  final bool isArchived;
+  final int unreadCount;
 
   factory ParticipantModel.fromJson(Map<String, dynamic> json) {
     final dynamic avatar = json['avatar'];
@@ -36,14 +56,57 @@ class ParticipantModel {
       id: int.tryParse(json['id']?.toString() ?? '') ?? 0,
       userId: int.tryParse(json['user_id']?.toString() ?? '') ?? 0,
       name: (json['name'] ?? '').toString(),
+      email: (json['email'] ?? json['user']?['email'] ?? '').toString(),
       role: (json['role'] ?? '').toString(),
       avatarUrl: avatar is Map ? (avatar['url'] ?? '').toString() : '',
       isBlocked: json['is_blocked'] == true,
+      isOnline: _asBool(json['is_online']),
+      lastSeenAt: DateTime.tryParse(json['last_seen_at']?.toString() ?? ''),
+      joinedAt: DateTime.tryParse(json['joined_at']?.toString() ?? ''),
+      leftAt: DateTime.tryParse(json['left_at']?.toString() ?? ''),
+      isMuted: json['is_muted'] == true,
+      isPinned: json['is_pinned'] == true,
+      isArchived: json['is_archived'] == true,
+      unreadCount: int.tryParse(json['unread_count']?.toString() ?? '') ?? 0,
     );
   }
+
+  ParticipantModel copyWith({
+    bool? isBlocked,
+    bool? isOnline,
+    DateTime? lastSeenAt,
+  }) => ParticipantModel(
+    id: id,
+    userId: userId,
+    name: name,
+    email: email,
+    role: role,
+    avatarUrl: avatarUrl,
+    isBlocked: isBlocked ?? this.isBlocked,
+    isOnline: isOnline ?? this.isOnline,
+    lastSeenAt: lastSeenAt ?? this.lastSeenAt,
+    joinedAt: joinedAt,
+    leftAt: leftAt,
+    isMuted: isMuted,
+    isPinned: isPinned,
+    isArchived: isArchived,
+    unreadCount: unreadCount,
+  );
 }
 
-/// `ConversationResource` from `GET /conversations`.
+class ConversationVenueModel {
+  const ConversationVenueModel({required this.id, required this.name});
+
+  final int id;
+  final String name;
+
+  factory ConversationVenueModel.fromJson(Map<String, dynamic> json) =>
+      ConversationVenueModel(
+        id: int.tryParse(json['id']?.toString() ?? '') ?? 0,
+        name: (json['name'] ?? '').toString(),
+      );
+}
+
 class ConversationModel {
   const ConversationModel({
     required this.id,
@@ -51,6 +114,9 @@ class ConversationModel {
     this.title,
     this.status = '',
     this.venueId,
+    this.venue,
+    this.conversationableType,
+    this.conversationableId,
     this.lastMessage,
     this.lastMessageDetail,
     this.lastMessageAt,
@@ -64,16 +130,16 @@ class ConversationModel {
 
   final int id;
 
-  /// `direct` | `group`.
   final String type;
   final String? title;
   final String status;
   final int? venueId;
+  final ConversationVenueModel? venue;
+  final String? conversationableType;
+  final int? conversationableId;
 
-  /// Preview text of the latest message (its body, or an attachment label).
   final String? lastMessage;
 
-  /// The latest message in full — the API sends a nested MessageResource.
   final ChatMessageModel? lastMessageDetail;
   final DateTime? lastMessageAt;
   final int unreadCount;
@@ -103,6 +169,12 @@ class ConversationModel {
 
   String displayAvatar(int currentUserId) =>
       isGroup ? '' : (otherParticipant(currentUserId)?.avatarUrl ?? '');
+
+  bool isPeerOnline(int currentUserId) =>
+      !isGroup && (otherParticipant(currentUserId)?.isOnline ?? false);
+
+  DateTime? peerLastSeenAt(int currentUserId) =>
+      isGroup ? null : otherParticipant(currentUserId)?.lastSeenAt;
 
   /// Inbox preview line, prefixed with `You:` when the latest message was
   /// sent by the signed-in user.
@@ -140,6 +212,15 @@ class ConversationModel {
       title: json['title']?.toString(),
       status: (json['status'] ?? '').toString(),
       venueId: int.tryParse(json['venue_id']?.toString() ?? ''),
+      venue: json['venue'] is Map
+          ? ConversationVenueModel.fromJson(
+              Map<String, dynamic>.from(json['venue'] as Map),
+            )
+          : null,
+      conversationableType: json['conversationable_type']?.toString(),
+      conversationableId: int.tryParse(
+        json['conversationable_id']?.toString() ?? '',
+      ),
       lastMessage: lastMessage,
       lastMessageDetail: lastDetail,
       lastMessageAt: DateTime.tryParse(
@@ -162,20 +243,29 @@ class ConversationModel {
     );
   }
 
-  ConversationModel copyWith({int? unreadCount}) => ConversationModel(
+  ConversationModel copyWith({
+    int? unreadCount,
+    bool? isMuted,
+    bool? isPinned,
+    bool? isArchived,
+    List<ParticipantModel>? participants,
+  }) => ConversationModel(
     id: id,
     type: type,
     title: title,
     status: status,
     venueId: venueId,
+    venue: venue,
+    conversationableType: conversationableType,
+    conversationableId: conversationableId,
     lastMessage: lastMessage,
     lastMessageDetail: lastMessageDetail,
     lastMessageAt: lastMessageAt,
     unreadCount: unreadCount ?? this.unreadCount,
-    isMuted: isMuted,
-    isPinned: isPinned,
-    isArchived: isArchived,
-    participants: participants,
+    isMuted: isMuted ?? this.isMuted,
+    isPinned: isPinned ?? this.isPinned,
+    isArchived: isArchived ?? this.isArchived,
+    participants: participants ?? this.participants,
     createdAt: createdAt,
   );
 
@@ -201,6 +291,9 @@ class ConversationModel {
       title: title,
       status: status,
       venueId: venueId,
+      venue: venue,
+      conversationableType: conversationableType,
+      conversationableId: conversationableId,
       lastMessage: preview,
       lastMessageDetail: message,
       lastMessageAt: message.createdAt,
@@ -213,3 +306,9 @@ class ConversationModel {
     );
   }
 }
+
+bool _asBool(dynamic value) =>
+    value == true ||
+    value == 1 ||
+    value?.toString().toLowerCase() == 'true' ||
+    value?.toString() == '1';

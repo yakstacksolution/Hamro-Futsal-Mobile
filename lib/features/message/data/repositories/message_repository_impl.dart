@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:dartz/dartz.dart';
 import 'package:hamro_footsall/core/api/api_client/result.dart';
 import 'package:hamro_footsall/core/helper/exception_helper.dart';
@@ -5,6 +7,7 @@ import 'package:hamro_footsall/core/helper/response_helper.dart';
 import 'package:hamro_footsall/core/helper/share_preferences.dart';
 import 'package:hamro_footsall/features/message/data/data_source/message_remote_data_source.dart';
 import 'package:hamro_footsall/features/message/data/model/chat_message_model.dart';
+import 'package:hamro_footsall/features/message/data/model/chat_send_request.dart';
 import 'package:hamro_footsall/features/message/data/model/conversation_model.dart';
 import 'package:hamro_footsall/features/message/domain/repository/message_repository.dart';
 import 'package:jwt_decode/jwt_decode.dart';
@@ -106,6 +109,108 @@ final class MessageRepositoryImpl extends MessageRepository {
   }
 
   @override
+  Future<Either<AppException, ConversationModel>> createGroupConversation({
+    required String title,
+    required List<int> participantIds,
+    int? venueId,
+  }) async {
+    final response = await _remoteDataSource.createGroupConversation(
+      title: title,
+      participantIds: participantIds,
+      venueId: venueId,
+    );
+    if (response.isError()) return left(ResponseHelper.error(response));
+    try {
+      return right(
+        ConversationModel.fromJson(_findObject(response.getValue())!),
+      );
+    } catch (_) {
+      return left(_parseError('the group conversation'));
+    }
+  }
+
+  @override
+  Future<Either<AppException, ConversationModel>> addConversationParticipants(
+    int conversationId,
+    List<int> participantIds,
+  ) async {
+    final response = await _remoteDataSource.addConversationParticipants(
+      conversationId,
+      participantIds,
+    );
+    if (response.isError()) return left(ResponseHelper.error(response));
+    try {
+      return right(
+        ConversationModel.fromJson(_findObject(response.getValue())!),
+      );
+    } catch (_) {
+      // Some APIs return only a success message, so fetch the updated group.
+      return getConversationDetails(conversationId);
+    }
+  }
+
+  @override
+  Future<Either<AppException, ConversationModel>> getConversationDetails(
+    int conversationId,
+  ) async {
+    final response = await _remoteDataSource.getConversationDetails(
+      conversationId,
+    );
+    if (response.isError()) return left(ResponseHelper.error(response));
+    try {
+      return right(
+        ConversationModel.fromJson(_findObject(response.getValue())!),
+      );
+    } catch (_) {
+      return left(_parseError('the conversation'));
+    }
+  }
+
+  @override
+  Future<Either<AppException, bool>> getUserPresence(int userId) async {
+    final response = await _remoteDataSource.getUserPresence(userId);
+    if (response.isError()) return left(ResponseHelper.error(response));
+
+    dynamic value = response.getValue();
+    for (var depth = 0; depth < 3 && value is Map; depth++) {
+      final map = Map<String, dynamic>.from(value);
+      for (final key in const ['is_online', 'online', 'isOnline']) {
+        if (map.containsKey(key)) {
+          final raw = map[key];
+          return right(
+            raw == true ||
+                raw == 1 ||
+                raw?.toString().toLowerCase() == 'true' ||
+                raw?.toString() == '1' ||
+                raw?.toString().toLowerCase() == 'online',
+          );
+        }
+      }
+      value = map['data'] ?? map['presence'] ?? map['status'];
+    }
+    if (value is String) {
+      return right(value.toLowerCase() == 'online');
+    }
+    return left(_parseError('user presence'));
+  }
+
+  @override
+  Future<Either<AppException, bool>> setPresence(bool online) async {
+    final response = await _remoteDataSource.setPresence(online);
+    if (response.isError()) return left(ResponseHelper.error(response));
+    return right(true);
+  }
+
+  @override
+  Future<Either<AppException, bool>> sendPresenceHeartbeat(
+    String socketId,
+  ) async {
+    final response = await _remoteDataSource.sendPresenceHeartbeat(socketId);
+    if (response.isError()) return left(ResponseHelper.error(response));
+    return right(true);
+  }
+
+  @override
   Future<Either<AppException, List<ChatMessageModel>>> getMessages(
     int conversationId,
   ) async {
@@ -129,13 +234,11 @@ final class MessageRepositoryImpl extends MessageRepository {
   @override
   Future<Either<AppException, ChatMessageModel>> sendMessage(
     int conversationId, {
-    required String body,
-    int? replyToMessageId,
+    required ChatSendRequest request,
   }) async {
     final response = await _remoteDataSource.sendMessage(
       conversationId,
-      body: body,
-      replyToMessageId: replyToMessageId,
+      request: request,
     );
     if (response.isError()) {
       return left(ResponseHelper.error(response));
@@ -178,6 +281,28 @@ final class MessageRepositoryImpl extends MessageRepository {
       _action(_remoteDataSource.setMuted(conversationId, muted));
 
   @override
+  Future<Either<AppException, bool>> setParticipantBlocked(
+    int conversationId,
+    int userId,
+    bool blocked, {
+    String? reason,
+  }) => _action(
+    _remoteDataSource.setParticipantBlocked(
+      conversationId,
+      userId,
+      blocked,
+      reason: reason,
+    ),
+  );
+
+  @override
   Future<Either<AppException, bool>> deleteMessage(int messageId) =>
       _action(_remoteDataSource.deleteMessage(messageId));
+
+  @override
+  Future<Either<AppException, Uint8List>> getMediaBytes(int mediaId) async {
+    final response = await _remoteDataSource.getMediaBytes(mediaId);
+    if (response.isError()) return left(ResponseHelper.error(response));
+    return right(response.getValue()!);
+  }
 }

@@ -133,12 +133,9 @@ class CompactDateTimeSelector extends StatelessWidget {
       itemBuilder: (BuildContext context, int i) {
         final TimeSlotModel slot = timeSlots[i];
         final bool selected = selectedSlotIndex == i;
+        final _SlotPalette palette = _paletteFor(slot.status, selected);
         final TextStyle? labelStyle = textTheme.bodyMiniSubTitle?.copyWith(
-          color: selected
-              ? LightColor.whiteColor
-              : slot.isAvailable
-              ? LightColor.primaryTextColor
-              : LightColor.hintTextColor,
+          color: palette.foreground,
           fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
           decoration: slot.isAvailable ? null : TextDecoration.lineThrough,
         );
@@ -153,12 +150,11 @@ class CompactDateTimeSelector extends StatelessWidget {
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             decoration: BoxDecoration(
-              color: selected
-                  ? LightColor.secondaryColor
-                  : slot.isAvailable
-                  ? LightColor.secondaryLightMedium.withValues(alpha: 0.5)
-                  : LightColor.dividerColor,
+              color: palette.background,
               borderRadius: BorderRadius.circular(AppDimens.radiusX50),
+              border: palette.border == null
+                  ? null
+                  : Border.all(color: palette.border!),
             ),
             child: Center(
               child: Padding(
@@ -177,6 +173,36 @@ class CompactDateTimeSelector extends StatelessWidget {
         );
       },
     );
+  }
+
+  /// Background / foreground colours for a slot pill based on its [SlotStatus].
+  /// A selected slot always uses the primary highlight regardless of status.
+  _SlotPalette _paletteFor(SlotStatus status, bool selected) {
+    if (selected) {
+      return const _SlotPalette(
+        background: LightColor.secondaryColor,
+        foreground: LightColor.whiteColor,
+      );
+    }
+    return switch (status) {
+      SlotStatus.available => _SlotPalette(
+        background: LightColor.secondaryLightMedium.withValues(alpha: 0.5),
+        foreground: LightColor.primaryTextColor,
+      ),
+      SlotStatus.booked => _SlotPalette(
+        background: LightColor.redLightColor.withValues(alpha: 0.35),
+        foreground: LightColor.redColor,
+      ),
+      SlotStatus.closed => _SlotPalette(
+        background: LightColor.warningLightColor.withValues(alpha: 0.45),
+        foreground: LightColor.hintTextColor,
+        border: LightColor.warningColor.withValues(alpha: 0.4),
+      ),
+      SlotStatus.unavailable => const _SlotPalette(
+        background: LightColor.dividerColor,
+        foreground: LightColor.hintTextColor,
+      ),
+    };
   }
 
   bool _isToday(DateTime date) {
@@ -224,4 +250,17 @@ class CompactDateTimeSelector extends StatelessWidget {
         .replaceAll(RegExp(r'\bAM\b', caseSensitive: false), 'Am')
         .replaceAll(RegExp(r'\bPM\b', caseSensitive: false), 'Pm');
   }
+}
+
+/// Resolved colours for a single time-slot pill.
+class _SlotPalette {
+  const _SlotPalette({
+    required this.background,
+    required this.foreground,
+    this.border,
+  });
+
+  final Color background;
+  final Color foreground;
+  final Color? border;
 }

@@ -48,7 +48,7 @@ final class VenueGalleryImageModel extends Equatable {
     return VenueGalleryImageModel(
       id: PublicListingVenueModel._parseInt(json['id']),
       mediaId: PublicListingVenueModel._parseInt(json['media_id']),
-      imageUrl: (json['image_url'] ?? '').toString(),
+      imageUrl: PublicListingVenueModel._parseString(json['image_url']),
       sortOrder: PublicListingVenueModel._parseInt(json['sort_order']),
     );
   }
@@ -298,6 +298,7 @@ final class PublicListingVenuePage extends Equatable {
     required this.page,
     required this.perPage,
     required this.total,
+    this.lastPage,
     this.paginationMetaData = const <String, dynamic>{},
   });
 
@@ -305,13 +306,17 @@ final class PublicListingVenuePage extends Equatable {
   final int page;
   final int perPage;
   final int total;
+
+  /// Last page number from the API (`pagination.last_page`); null if absent.
+  final int? lastPage;
   final Map<String, dynamic> paginationMetaData;
 
   /// Whether there is at least one more page to load after this one.
   bool get hasMore {
-    // Use has_more_pages from API if available, otherwise fall back to calculation
+    // Prefer the API's explicit signal, then last_page, then a size estimate.
     final bool? hasMorePages = PublicListingVenueModel._parseBool(paginationMetaData['has_more_pages']);
     if (hasMorePages != null) return hasMorePages;
+    if (lastPage != null) return page < lastPage!;
     return page * perPage < total;
   }
 
@@ -360,6 +365,9 @@ final class PublicListingVenuePage extends Equatable {
             meta['total'] ?? meta['total_count'] ?? items.length,
           ) ??
           items.length,
+      lastPage: PublicListingVenueModel._parseInt(
+        meta['last_page'] ?? meta['lastPage'],
+      ),
       paginationMetaData: meta,
     );
   }
@@ -372,10 +380,12 @@ final class PublicListingVenuePage extends Equatable {
       'page': page,
       'per_page': perPage,
       'total': total,
+      'last_page': lastPage,
       'meta_data': paginationMetaData,
     };
   }
 
   @override
-  List<Object?> get props => <Object?>[venues, page, perPage, total, paginationMetaData];
+  List<Object?> get props =>
+      <Object?>[venues, page, perPage, total, lastPage, paginationMetaData];
 }

@@ -46,7 +46,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void initState() {
     super.initState();
-    VenueDistanceHelper.instance.position.addListener(_syncVenueLocation);
+    // Venue cards listen to the position notifier directly for their distance
+    // labels. Do not copy each GPS update into the API filter here: the helper
+    // can publish both a cached fix and a fresh fix during startup, which
+    // otherwise rebuilds the home page and fetches /venues once per fix.
     VenueDistanceHelper.instance.ensurePosition();
   }
 
@@ -102,12 +105,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       latitude: position.latitude,
       longitude: position.longitude,
       radius: filter.radius ?? 10,
-    );
-  }
-
-  void _syncVenueLocation() {
-    _venueFilterNotifier.value = _withCurrentLocation(
-      _venueFilterNotifier.value,
     );
   }
 
@@ -184,7 +181,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   void dispose() {
-    VenueDistanceHelper.instance.position.removeListener(_syncVenueLocation);
     _venueFilterNotifier.dispose();
     super.dispose();
   }

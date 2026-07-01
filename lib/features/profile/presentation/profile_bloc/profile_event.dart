@@ -20,6 +20,7 @@ final class UpdateProfileEvent extends ProfileEvent {
     this.gender,
     this.address,
     this.profilePhoto,
+    this.profilePhotoUrl,
   });
 
   final String? fullName;
@@ -29,6 +30,7 @@ final class UpdateProfileEvent extends ProfileEvent {
   final String? gender;
   final String? address;
   final String? profilePhoto;
+  final String? profilePhotoUrl;
 
   @override
   List<Object?> get props => <Object?>[
@@ -39,6 +41,6 @@ final class UpdateProfileEvent extends ProfileEvent {
     gender,
     address,
     profilePhoto,
+    profilePhotoUrl,
   ];
 }
-

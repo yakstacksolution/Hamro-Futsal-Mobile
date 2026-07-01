@@ -9,9 +9,12 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hamro_footsall/core/api/client.dart';
+import 'package:hamro_footsall/core/helper/fcm_helper.dart';
 import 'package:hamro_footsall/core/helper/share_preferences.dart';
 import 'package:hamro_footsall/core/routers/app_router_params.dart';
 import 'package:hamro_footsall/core/routers/app_routers.dart';
+import 'package:hamro_footsall/core/routers/notification_redirection.dart';
+import 'package:hamro_footsall/core/routers/root_navigator_key.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -30,6 +33,11 @@ void main() async {
   final bool hasLoggedIn =
       AppSettings().tokenModel.accessToken?.trim().isNotEmpty ?? false;
   await dotenv.load(fileName: ".env");
+
+  await FcmHelper().init();
+  if (hasLoggedIn) {
+    await FcmHelper().syncTokenAfterLogin();
+  }
 
   final String initialLocation = hasLoggedIn
       ? AppRouterParams.dashboard.path
@@ -55,9 +63,14 @@ class _MyAppState extends State<MyApp> {
     super.initState();
     _router = AppRouters.router(
       widget.initialLocation,
-      observers: <NavigatorObserver>[
-        FirebaseAnalyticsObserver(analytics: FirebaseAnalytics.instance),
-      ],
+      observers: Firebase.apps.isEmpty
+          ? const <NavigatorObserver>[]
+          : <NavigatorObserver>[
+              FirebaseAnalyticsObserver(analytics: FirebaseAnalytics.instance),
+            ],
+    );
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => flushPendingNotificationNavigation(),
     );
   }
 

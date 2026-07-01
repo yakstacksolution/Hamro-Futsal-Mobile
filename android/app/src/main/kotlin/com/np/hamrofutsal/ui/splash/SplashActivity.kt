@@ -72,6 +72,17 @@ class SplashActivity : ComponentActivity() {
         override fun onCreate(savedInstanceState: Bundle?) {
                 super.onCreate(savedInstanceState)
                 configureSplashWindow()
+
+                // A notification tap re-enters through this launcher activity.
+                // When that happens, skip the splash animation and hand off to
+                // Flutter immediately so the FCM extras reach the already-running
+                // (single) MainActivity via onNewIntent, instead of restarting the
+                // app from the splash screen.
+                if (isLaunchedFromNotification(intent)) {
+                        openFlutter(resolveDestination())
+                        return
+                }
+
                 setContent {
                         SplashScreen(
                                 accessTokenProvider = { getAccessToken() },
@@ -79,6 +90,29 @@ class SplashActivity : ComponentActivity() {
                                 onNavigate = { destination -> openFlutter(destination) },
                         )
                 }
+        }
+
+        private fun resolveDestination(): SplashDestination {
+                return if (!getAccessToken().isNullOrBlank()) {
+                        SplashDestination.Dashboard
+                } else {
+                        SplashDestination.Login
+                }
+        }
+
+        private fun isLaunchedFromNotification(source: Intent?): Boolean {
+                val extras = source?.extras ?: return false
+                val keys =
+                        listOf(
+                                "type",
+                                "payload",
+                                "conversation_id",
+                                "conversationId",
+                                "booking_id",
+                                "google.message_id",
+                                "gcm.message_id",
+                        )
+                return keys.any { extras.containsKey(it) && extras.get(it) != null }
         }
 
         private fun configureSplashWindow() {
@@ -108,11 +142,22 @@ class SplashActivity : ComponentActivity() {
                                 SplashDestination.Login -> "/login"
                         }
 
-                val intent =
+                // Notification taps launch this native splash first because it
+                // owns the LAUNCHER intent filter. Preserve the original FCM
+                // extras/action/data when handing off to Flutter; otherwise
+                // FirebaseMessaging.getInitialMessage() sees no message and the
+                // app stops at the dashboard.
+                val sourceIntent = intent
+                val flutterIntent =
                         Intent(this, MainActivity::class.java).apply {
+                                sourceIntent.extras?.let(::putExtras)
+                                action = sourceIntent.action
+                                data = sourceIntent.data
+                                clipData = sourceIntent.clipData
+                                sourceIntent.categories?.forEach(::addCategory)
                                 putExtra("native_route_hint", targetRoute)
                         }
-                startActivity(intent)
+                startActivity(flutterIntent)
                 finish()
         }
 

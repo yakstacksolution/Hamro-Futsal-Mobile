@@ -41,7 +41,11 @@ class ApiClient {
     return _post(url: '$_baseUrl/auth/notification-preferences', data: data);
   }
 
-  /// Exchanges a Google id token for the app's own session token.
+  /// Registers/updates the device's FCM token for push notifications.
+  Future<Result> updateFcmToken({required Map<String, dynamic> data}) {
+    return _post(url: '$_baseUrl/auth/fcm-token', data: data);
+  }
+
   Future<Result> googleLogin({required Map<String, dynamic> data}) {
     return _post(url: '$_baseUrl/auth/google-login', data: data);
   }
@@ -149,8 +153,6 @@ class ApiClient {
     return _get(url: '$_baseUrl/auth/expenses', query: query);
   }
 
-  // ── Chat ──
-
   Future<Result> getConversations({bool archived = false}) {
     return _get(
       url: '$_baseUrl/conversations',
@@ -166,8 +168,33 @@ class ApiClient {
     return _post(url: '$_baseUrl/conversations/group', data: data);
   }
 
+  Future<Result> addConversationParticipants({
+    required int conversationId,
+    required List<int> participantIds,
+  }) {
+    return _post(
+      url: '$_baseUrl/conversations/$conversationId/participants',
+      data: <String, dynamic>{'participant_ids': participantIds},
+    );
+  }
+
   Future<Result> getConversationDetails({required int conversationId}) {
     return _get(url: '$_baseUrl/conversations/$conversationId');
+  }
+
+  Future<Result> getUserPresence({required int userId}) {
+    return _get(url: '$_baseUrl/presence/$userId');
+  }
+
+  Future<Result> setPresence({required bool online}) {
+    return _post(url: '$_baseUrl/presence/${online ? 'online' : 'offline'}');
+  }
+
+  Future<Result> sendPresenceHeartbeat({required String socketId}) {
+    return _post(
+      url: '$_baseUrl/presence/heartbeat',
+      data: <String, dynamic>{'socket_id': socketId},
+    );
   }
 
   Future<Result> getConversationMessages({required int conversationId}) {
@@ -218,6 +245,30 @@ class ApiClient {
     );
   }
 
+  Future<Result> blockConversationParticipant({
+    required int conversationId,
+    required int userId,
+    String? reason,
+  }) {
+    return _post(
+      url: '$_baseUrl/conversations/$conversationId/block',
+      data: <String, dynamic>{
+        'blocked_user_id': userId,
+        if (reason != null && reason.trim().isNotEmpty) 'reason': reason.trim(),
+      },
+    );
+  }
+
+  Future<Result> unblockConversationParticipant({
+    required int conversationId,
+    required int userId,
+  }) {
+    return _post(
+      url: '$_baseUrl/conversations/$conversationId/unblock',
+      data: <String, dynamic>{'blocked_user_id': userId},
+    );
+  }
+
   Future<Result> deleteChatMessage({required int messageId}) {
     return _delete(url: '$_baseUrl/messages/$messageId');
   }
@@ -237,15 +288,18 @@ class ApiClient {
   Future<Result> getAvailableCourts({
     required int venueId,
     required String selectDate,
-    String? slotTime,
+    String? slotStartTime,
+    String? slotEndTime,
   }) {
     return _get(
       url: '$_baseUrl/available-courts',
       query: <String, dynamic>{
         'venue_id': venueId,
         'select_date': selectDate,
-        if (slotTime != null && slotTime.trim().isNotEmpty)
-          'slot_time': slotTime,
+        if (slotStartTime != null && slotStartTime.trim().isNotEmpty)
+          'slot_start_time': slotStartTime,
+        if (slotEndTime != null && slotEndTime.trim().isNotEmpty)
+          'slot_end_time': slotEndTime,
       },
     );
   }
@@ -255,6 +309,34 @@ class ApiClient {
       url: '$_baseUrl/venue-slots',
       query: <String, dynamic>{'venue_id': venueId, 'date': date},
     );
+  }
+
+  Future<Result> getCourtPaymentQr({required int courtId}) {
+    return _get(url: '$_baseUrl/courts/$courtId/payment-qr');
+  }
+
+  Future<Result> createBooking({required dynamic data}) {
+    return _post(url: '$_baseUrl/bookings', data: data);
+  }
+
+  Future<Result> getRecurringAvailability({required dynamic data}) {
+    return _post(url: '$_baseUrl/bookings/recurring-availability', data: data);
+  }
+
+  Future<Result> createBookingHold({required dynamic data}) {
+    return _post(url: '$_baseUrl/booking-holds', data: data);
+  }
+
+  Future<Result> releaseBookingHold({required String holdToken}) {
+    return _delete(url: '$_baseUrl/booking-holds/$holdToken');
+  }
+
+  Future<Result> getActiveCoupons() {
+    return _get(url: '$_baseUrl/coupons/active');
+  }
+
+  Future<Result> applyCoupon({required Map<String, dynamic> data}) {
+    return _post(url: '$_baseUrl/bookings/apply-coupon', data: data);
   }
 
   Future<Result> getVenueCourt() {

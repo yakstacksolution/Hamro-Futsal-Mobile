@@ -9,9 +9,15 @@ final class MessageState extends Equatable {
     this.conversations = const [],
     this.chatStatus = MessageStatus.initial,
     this.activeConversationId,
+    this.activeConversation,
     this.messages = const [],
     this.sending = false,
     this.peerTyping = false,
+    this.showingArchived = false,
+    this.groupCreating = false,
+    this.createdGroup,
+    this.actionBusy = false,
+    this.actionMessage,
     this.errorMessage,
   });
 
@@ -23,15 +29,20 @@ final class MessageState extends Equatable {
   /// Thread of the conversation currently open in [activeConversationId].
   final MessageStatus chatStatus;
   final int? activeConversationId;
+  final ConversationModel? activeConversation;
   final List<ChatMessageModel> messages;
   final bool sending;
 
   /// True while the other side is typing (realtime).
   final bool peerTyping;
+  final bool showingArchived;
+  final bool groupCreating;
+  final ConversationModel? createdGroup;
+  final bool actionBusy;
+  final String? actionMessage;
   final String? errorMessage;
 
-  int get unreadTotal =>
-      conversations.fold(0, (sum, c) => sum + c.unreadCount);
+  int get unreadTotal => conversations.fold(0, (sum, c) => sum + c.unreadCount);
 
   MessageState copyWith({
     int? currentUserId,
@@ -39,10 +50,18 @@ final class MessageState extends Equatable {
     List<ConversationModel>? conversations,
     MessageStatus? chatStatus,
     int? activeConversationId,
+    ConversationModel? activeConversation,
     bool clearActiveConversation = false,
     List<ChatMessageModel>? messages,
     bool? sending,
     bool? peerTyping,
+    bool? showingArchived,
+    bool? groupCreating,
+    ConversationModel? createdGroup,
+    bool clearCreatedGroup = false,
+    bool? actionBusy,
+    String? actionMessage,
+    bool clearActionMessage = false,
     String? errorMessage,
     bool clearErrorMessage = false,
   }) {
@@ -54,9 +73,21 @@ final class MessageState extends Equatable {
       activeConversationId: clearActiveConversation
           ? null
           : activeConversationId ?? this.activeConversationId,
+      activeConversation: clearActiveConversation
+          ? null
+          : activeConversation ?? this.activeConversation,
       messages: messages ?? this.messages,
       sending: sending ?? this.sending,
       peerTyping: peerTyping ?? this.peerTyping,
+      showingArchived: showingArchived ?? this.showingArchived,
+      groupCreating: groupCreating ?? this.groupCreating,
+      createdGroup: clearCreatedGroup
+          ? null
+          : createdGroup ?? this.createdGroup,
+      actionBusy: actionBusy ?? this.actionBusy,
+      actionMessage: clearActionMessage
+          ? null
+          : actionMessage ?? this.actionMessage,
       errorMessage: clearErrorMessage
           ? null
           : errorMessage ?? this.errorMessage,
@@ -70,9 +101,15 @@ final class MessageState extends Equatable {
     conversations,
     chatStatus,
     activeConversationId,
+    activeConversation,
     messages,
     sending,
     peerTyping,
+    showingArchived,
+    groupCreating,
+    createdGroup,
+    actionBusy,
+    actionMessage,
     errorMessage,
   ];
 }

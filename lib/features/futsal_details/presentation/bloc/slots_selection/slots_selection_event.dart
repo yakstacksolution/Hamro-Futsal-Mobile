@@ -64,3 +64,14 @@ final class ChangeSlotsRecurrenceEvent extends SlotsSelectionEvent {
 final class RefreshSlotsAvailabilityEvent extends SlotsSelectionEvent {
   const RefreshSlotsAvailabilityEvent();
 }
+
+/// Internal event fired when the Reverb `venue.{venueId}.slots` channel reports
+/// an availability change. Triggers a silent re-fetch of the current view
+/// (no loading spinner) so live bookings by others are reflected immediately.
+final class SlotsRealtimeRefreshRequested extends SlotsSelectionEvent {
+  const SlotsRealtimeRefreshRequested();
+}
+
+final class CheckRecurringAvailabilityRequested extends SlotsSelectionEvent {
+  const CheckRecurringAvailabilityRequested();
+}

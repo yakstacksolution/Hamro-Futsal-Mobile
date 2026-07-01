@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hamro_footsall/core/routers/app_router_params.dart';
+import 'package:hamro_footsall/core/routers/root_navigator_key.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/widgets/custom_app_bar.dart';
 import 'package:hamro_footsall/features/auth/data/repositories/authentication_repository_impl.dart';
@@ -16,10 +17,23 @@ import 'package:hamro_footsall/features/courts/presentation/pages/venue_courts_l
 import 'package:hamro_footsall/features/courts_details/presentation/page/court_details.dart';
 import 'package:hamro_footsall/features/courts_details/presentation/page/court_location_map_page.dart';
 import 'package:hamro_footsall/features/expenses/presentation/pages/expenses_screen.dart';
+import 'package:hamro_footsall/features/coupons/data/repositories/coupon_repository_impl.dart';
+import 'package:hamro_footsall/features/coupons/domain/usecase/apply_coupon_use_case.dart';
+import 'package:hamro_footsall/features/coupons/domain/usecase/get_active_coupons_use_case.dart';
+import 'package:hamro_footsall/features/coupons/presentation/bloc/coupon_bloc.dart';
+import 'package:hamro_footsall/features/futsal_details/data/model/booking_draft.dart';
+import 'package:hamro_footsall/features/futsal_details/presentation/view/booking_checkout_page.dart';
 import 'package:hamro_footsall/features/futsal_details/presentation/view/slots_selection_page.dart';
 import 'package:hamro_footsall/features/futsal_details/data/repositories/futsal_details_repository_impl.dart';
+import 'package:hamro_footsall/features/futsal_details/domain/usecase/booking_hold_use_case.dart';
+import 'package:hamro_footsall/features/futsal_details/domain/usecase/check_recurring_availability_use_case.dart';
+import 'package:hamro_footsall/features/futsal_details/domain/usecase/create_booking_use_case.dart';
 import 'package:hamro_footsall/features/futsal_details/domain/usecase/get_available_courts_use_case.dart';
+import 'package:hamro_footsall/features/futsal_details/domain/usecase/get_court_payment_qr_use_case.dart';
 import 'package:hamro_footsall/features/futsal_details/domain/usecase/get_venue_slots_use_case.dart';
+import 'package:hamro_footsall/features/futsal_details/presentation/bloc/booking_hold/booking_hold_bloc.dart';
+import 'package:hamro_footsall/features/futsal_details/presentation/bloc/create_booking/create_booking_bloc.dart';
+import 'package:hamro_footsall/features/futsal_details/presentation/bloc/payment_qr/payment_qr_bloc.dart';
 import 'package:hamro_footsall/features/futsal_details/presentation/bloc/slots_selection/slots_selection_bloc.dart';
 import 'package:hamro_footsall/features/opponent_match/presentation/pages/opponent_match_screen.dart';
 import 'package:hamro_footsall/features/profile/presentation/pages/about_app_page.dart';
@@ -54,11 +68,16 @@ import 'package:hamro_footsall/features/vendor/presentation/pages/stepper_logic_
 class AppRouters {
   AppRouters._();
 
+  /// The active [GoRouter], exposed so navigation triggered from outside the
+  /// widget tree (e.g. FCM notification taps) can push named routes.
+  static GoRouter? instance;
+
   static GoRouter router(
     String initialLocation, {
     List<NavigatorObserver> observers = const <NavigatorObserver>[],
   }) {
-    return GoRouter(
+    final GoRouter router = GoRouter(
+      navigatorKey: RootNavigatorKey.key,
       initialLocation: initialLocation,
       observers: observers,
       routes: <RouteBase>[
@@ -270,6 +289,7 @@ class AppRouters {
               create: (_) => SlotsSelectionBloc(
                 GetAvailableCourtsUseCase(repository),
                 GetVenueSlotsUseCase(repository),
+                CheckRecurringAvailabilityUseCase(repository),
               )..add(InitializeSlotsSelectionEvent(court: court)),
               child: SlotsSelectionPage(court: court),
             );
@@ -282,6 +302,48 @@ class AppRouters {
           builder: (context, state) => VenueFilterPage(
             initialFilter: (state.extra as VenueFilter?) ?? VenueFilter.empty,
           ),
+        ),
+
+        GoRoute(
+          name: AppRouterParams.bookingCheckout.name,
+          path: AppRouterParams.bookingCheckout.path,
+          builder: (context, state) {
+            final BookingDraft draft = state.extra as BookingDraft;
+            final CouponRepositoryImpl couponRepository =
+                CouponRepositoryImpl();
+            final FutsalDetailsRepositoryImpl futsalRepository =
+                FutsalDetailsRepositoryImpl();
+            return MultiBlocProvider(
+              providers: <BlocProvider>[
+                BlocProvider<CouponBloc>(
+                  create: (_) => CouponBloc(
+                    GetActiveCouponsUseCase(couponRepository),
+                    ApplyCouponUseCase(couponRepository),
+                  )..add(const LoadActiveCouponsEvent()),
+                ),
+                BlocProvider<PaymentQrBloc>(
+                  create: (_) {
+                    final PaymentQrBloc bloc = PaymentQrBloc(
+                      GetCourtPaymentQrUseCase(futsalRepository),
+                    );
+                    if (draft.courtId != null) {
+                      bloc.add(LoadPaymentQrEvent(draft.courtId!));
+                    }
+                    return bloc;
+                  },
+                ),
+                BlocProvider<CreateBookingBloc>(
+                  create: (_) =>
+                      CreateBookingBloc(CreateBookingUseCase(futsalRepository)),
+                ),
+                BlocProvider<BookingHoldBloc>(
+                  create: (_) =>
+                      BookingHoldBloc(BookingHoldUseCase(futsalRepository)),
+                ),
+              ],
+              child: BookingCheckoutPage(draft: draft),
+            );
+          },
         ),
 
         GoRoute(
@@ -327,5 +389,7 @@ class AppRouters {
         ),
       ],
     );
+    instance = router;
+    return router;
   }
 }

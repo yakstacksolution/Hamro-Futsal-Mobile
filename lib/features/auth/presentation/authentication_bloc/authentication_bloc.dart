@@ -7,6 +7,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:hamro_footsall/core/helper/exception_helper.dart';
+import 'package:hamro_footsall/core/helper/fcm_helper.dart';
 import 'package:hamro_footsall/features/auth/data/model/token_model.dart';
 import 'package:hamro_footsall/features/auth/domain/entities/auth_entities.dart';
 import 'package:hamro_footsall/features/auth/domain/usecase/authentication_usecase.dart';
@@ -52,14 +53,17 @@ class AuthenticationBloc
             ),
           );
         },
-        (TokenModel token) => emit(
-          state.copyWith(
-            loginStatus: AuthStatus.success,
-            successMessage: 'Login successful',
-            clearErrorMessage: true,
-            clearErrorData: true,
-          ),
-        ),
+        (TokenModel token) {
+          unawaited(FcmHelper().syncTokenAfterLogin());
+          emit(
+            state.copyWith(
+              loginStatus: AuthStatus.success,
+              successMessage: 'Login successful',
+              clearErrorMessage: true,
+              clearErrorData: true,
+            ),
+          );
+        },
       );
     } catch (error) {
       emit(
@@ -143,14 +147,17 @@ class AuthenticationBloc
             ),
           );
         },
-        (TokenModel token) => emit(
-          state.copyWith(
-            googleLoginStatus: AuthStatus.success,
-            successMessage: 'Login successful',
-            clearErrorMessage: true,
-            clearErrorData: true,
-          ),
-        ),
+        (TokenModel token) {
+          unawaited(FcmHelper().syncTokenAfterLogin());
+          emit(
+            state.copyWith(
+              googleLoginStatus: AuthStatus.success,
+              successMessage: 'Login successful',
+              clearErrorMessage: true,
+              clearErrorData: true,
+            ),
+          );
+        },
       );
     } catch (error) {
       emit(
@@ -250,14 +257,17 @@ class AuthenticationBloc
             errorMessage: failure.errorMessage,
           ),
         ),
-        (Map<String, dynamic> data) => emit(
-          state.copyWith(
-            otpVerificationStatus: AuthStatus.success,
-            otpVerificationData: data,
-            successMessage: 'OTP verified successfully',
-            clearErrorMessage: true,
-          ),
-        ),
+        (Map<String, dynamic> data) {
+          unawaited(FcmHelper().syncTokenAfterLogin());
+          emit(
+            state.copyWith(
+              otpVerificationStatus: AuthStatus.success,
+              otpVerificationData: data,
+              successMessage: 'OTP verified successfully',
+              clearErrorMessage: true,
+            ),
+          );
+        },
       );
     } catch (error) {
       emit(
@@ -354,14 +364,18 @@ class AuthenticationBloc
             errorMessage: failure.errorMessage,
           ),
         ),
-        (_) => emit(
-          state.copyWith(
-            logoutStatus: AuthStatus.success,
-            successMessage: 'Logout successful',
-            clearErrorMessage: true,
-            clearErrorData: true,
-          ),
-        ),
+        (_) {
+          // Forget the last pushed token so the next login re-registers it.
+          FcmHelper().reset();
+          emit(
+            state.copyWith(
+              logoutStatus: AuthStatus.success,
+              successMessage: 'Logout successful',
+              clearErrorMessage: true,
+              clearErrorData: true,
+            ),
+          );
+        },
       );
     } catch (error) {
       emit(

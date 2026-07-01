@@ -4,8 +4,6 @@ import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 
-/// Empty state for the messages list — copy adapts to whether a
-/// filter/search is active.
 class MessageEmptyView extends StatelessWidget {
   const MessageEmptyView({super.key, required this.isFiltered});
 

@@ -11,6 +11,7 @@ import 'package:hamro_footsall/features/public/data/repositories/public_reposito
 import 'package:hamro_footsall/features/public/domain/usecase/get_court_options_use_case.dart';
 import 'package:hamro_footsall/features/public/presentation/bloc/public_court_options/public_court_options_bloc.dart';
 import 'package:hamro_footsall/features/public/presentation/models/venue_filter.dart';
+import 'package:shimmer/shimmer.dart';
 
 class VenueFilterPage extends StatelessWidget {
   const VenueFilterPage({super.key, this.initialFilter = VenueFilter.empty});
@@ -278,6 +279,7 @@ class _VenueFilterViewState extends State<_VenueFilterView> {
                 isEmpty: matchTypeOptions.isEmpty,
                 emptyMessage: 'No match formats available.',
                 errorMessage: optionsState.errorMessage,
+                loading: const _PillRowLoading(),
                 child: Wrap(
                   spacing: AppDimens.paddingX8,
                   runSpacing: AppDimens.paddingX8,
@@ -301,6 +303,7 @@ class _VenueFilterViewState extends State<_VenueFilterView> {
                 isEmpty: courtTypeOptions.isEmpty,
                 emptyMessage: 'No court types available.',
                 errorMessage: optionsState.errorMessage,
+                loading: const _CourtTypeRowLoading(),
                 child: _CourtTypeGrid(
                   options: courtTypeOptions,
                   selectedId: _courtTypeId,
@@ -395,6 +398,7 @@ class _OptionStateView extends StatelessWidget {
     required this.isEmpty,
     required this.emptyMessage,
     required this.child,
+    required this.loading,
     this.errorMessage,
   });
 
@@ -403,23 +407,14 @@ class _OptionStateView extends StatelessWidget {
   final String emptyMessage;
   final String? errorMessage;
   final Widget child;
+  final Widget loading;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
     if (status == PublicCourtOptionsStatus.loading ||
         status == PublicCourtOptionsStatus.idle) {
-      return Align(
-        alignment: Alignment.centerLeft,
-        child: SizedBox(
-          width: AppDimens.sizeX18,
-          height: AppDimens.sizeX18,
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-            color: LightColor.secondaryColor,
-          ),
-        ),
-      );
+      return loading;
     }
 
     if (status == PublicCourtOptionsStatus.failure && isEmpty) {
@@ -443,6 +438,82 @@ class _OptionStateView extends StatelessWidget {
     }
 
     return child;
+  }
+}
+
+/// Single shimmer row of pill placeholders for the Match Type section.
+class _PillRowLoading extends StatelessWidget {
+  const _PillRowLoading();
+
+  @override
+  Widget build(BuildContext context) {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey.shade300,
+      highlightColor: Colors.grey.shade100,
+      child: Row(
+        children: const <Widget>[
+          _SkeletonBlock(width: AppDimens.sizeX70, height: AppDimens.sizeX38),
+          SizedBox(width: AppDimens.paddingX8),
+          _SkeletonBlock(width: AppDimens.sizeX90, height: AppDimens.sizeX38),
+          SizedBox(width: AppDimens.paddingX8),
+          _SkeletonBlock(width: AppDimens.sizeX60, height: AppDimens.sizeX38),
+        ],
+      ),
+    );
+  }
+}
+
+/// Single shimmer row of two card placeholders for the Court Type section.
+class _CourtTypeRowLoading extends StatelessWidget {
+  const _CourtTypeRowLoading();
+
+  @override
+  Widget build(BuildContext context) {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey.shade300,
+      highlightColor: Colors.grey.shade100,
+      child: Row(
+        children: const <Widget>[
+          Expanded(
+            child: _SkeletonBlock(
+              height: AppDimens.sizeX50,
+              radius: AppDimens.radiusX8,
+            ),
+          ),
+          SizedBox(width: AppDimens.paddingX10),
+          Expanded(
+            child: _SkeletonBlock(
+              height: AppDimens.sizeX50,
+              radius: AppDimens.radiusX8,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SkeletonBlock extends StatelessWidget {
+  const _SkeletonBlock({
+    required this.height,
+    this.width,
+    this.radius = AppDimens.radiusX6,
+  });
+
+  final double height;
+  final double? width;
+  final double radius;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(radius),
+      ),
+    );
   }
 }
 

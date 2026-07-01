@@ -15,18 +15,25 @@ class MessageFmt {
     'Dec',
   ];
 
-  /// `Just now` · `5m` · `2h` · `Yesterday` · `4 Jun`.
+  /// Compact relative time for the conversation list:
+  /// `now` · `5 min ago` · `2 hr ago` · `3 day ago` · `4 Jun`.
   static String friendly(DateTime? d) {
     if (d == null) return '';
     final now = DateTime.now();
     final diff = now.difference(d);
-    if (diff.inMinutes < 1) return 'Just now';
-    if (diff.inMinutes < 60) return '${diff.inMinutes}m';
-    if (diff.inHours < 24 && now.day == d.day) return '${diff.inHours}h';
+
+    // Avoid negative values if the client and server clocks differ slightly.
+    if (diff.isNegative || diff.inSeconds < 60) return 'now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes} min ago';
+    if (diff.inHours < 24) return '${diff.inHours} hr ago';
+
     final today = DateTime(now.year, now.month, now.day);
     final day = DateTime(d.year, d.month, d.day);
-    if (today.difference(day).inDays == 1) return 'Yesterday';
-    return '${d.day} ${_months[d.month - 1]}';
+    final days = today.difference(day).inDays;
+    if (days < 7) return '$days day ago';
+
+    final date = '${d.day} ${_months[d.month - 1]}';
+    return d.year == now.year ? date : '$date ${d.year}';
   }
 
   /// `6:30 PM`.

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
@@ -17,6 +19,7 @@ import 'package:hamro_footsall/features/message/presentation/widgets/message_car
 import 'package:hamro_footsall/features/message/presentation/widgets/message_empty_view.dart';
 import 'package:hamro_footsall/features/message/presentation/widgets/message_filter_chip.dart';
 import 'package:hamro_footsall/features/message/presentation/widgets/message_search_field.dart';
+import 'package:hamro_footsall/features/message/presentation/widgets/group_conversation_sheet.dart';
 
 class MessagesPage extends StatelessWidget {
   const MessagesPage({super.key});
@@ -24,12 +27,10 @@ class MessagesPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) =>
-          MessageBloc(
-              MessageUseCase(MessageRepositoryImpl()),
-              socketService: ReverbChatSocketService.instance,
-            )
-            ..add(const LoadConversationsEvent()),
+      create: (_) => MessageBloc(
+        MessageUseCase(MessageRepositoryImpl()),
+        socketService: ReverbChatSocketService.instance,
+      )..add(const LoadConversationsEvent()),
       child: const _MessagesView(),
     );
   }
@@ -42,34 +43,127 @@ class _MessagesView extends StatefulWidget {
   State<_MessagesView> createState() => _MessagesViewState();
 }
 
-class _MessagesViewState extends State<_MessagesView> {
+class _MessagesViewState extends State<_MessagesView>
+    with WidgetsBindingObserver {
   final _searchCtrl = TextEditingController();
+  late final MessageBloc _bloc;
   ConversationFilter _selectedFilter = ConversationFilter.all;
   String _query = '';
+  Timer? _heartbeatTimer;
+  Timer? _presenceRefreshTimer;
+  bool _appActive = true;
+  bool? _reportedOnline;
 
   @override
   void initState() {
     super.initState();
-    // Tabs stay alive inside the dashboard's IndexedStack, so a fetch that
-    // failed while offline would otherwise show a stale error forever.
-    // Re-fetch automatically whenever this tab becomes visible again.
-    DashboardScreen.selectedNavIndex.addListener(_retryFailedFetchOnTabVisible);
+    _bloc = context.read<MessageBloc>();
+    WidgetsBinding.instance.addObserver(this);
+    DashboardScreen.selectedNavIndex.addListener(_handleNavigationChanged);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _syncOwnPresence();
+    });
   }
 
   @override
   void dispose() {
-    DashboardScreen.selectedNavIndex.removeListener(
-      _retryFailedFetchOnTabVisible,
-    );
+    WidgetsBinding.instance.removeObserver(this);
+    DashboardScreen.selectedNavIndex.removeListener(_handleNavigationChanged);
+    _stopHeartbeat();
+    _stopPresenceRefresh();
+    unawaited(_setOwnPresence(false));
     _searchCtrl.dispose();
     super.dispose();
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _appActive = state == AppLifecycleState.resumed;
+    _syncOwnPresence();
+    if (!_appActive || !mounted) return;
+    _bloc.add(
+      LoadConversationsEvent(
+        silent: _bloc.state.conversations.isNotEmpty,
+        archived: _bloc.state.showingArchived,
+      ),
+    );
+  }
+
+  void _handleNavigationChanged() {
+    _syncOwnPresence();
+    _retryFailedFetchOnTabVisible();
+  }
+
+  void _syncOwnPresence() {
+    final shouldBeOnline =
+        mounted && _appActive && DashboardScreen.selectedNavIndex.value == 2;
+    if (_reportedOnline == shouldBeOnline) return;
+    _reportedOnline = shouldBeOnline;
+    if (shouldBeOnline) {
+      _startHeartbeat();
+      _startPresenceRefresh();
+    } else {
+      _stopHeartbeat();
+      _stopPresenceRefresh();
+      unawaited(_setOwnPresence(false));
+    }
+  }
+
+  void _startHeartbeat() {
+    if (_heartbeatTimer?.isActive ?? false) return;
+    unawaited(_sendHeartbeat());
+    _heartbeatTimer = Timer.periodic(
+      const Duration(seconds: 30),
+      (_) => unawaited(_sendHeartbeat()),
+    );
+  }
+
+  void _stopHeartbeat() {
+    _heartbeatTimer?.cancel();
+    _heartbeatTimer = null;
+  }
+
+  void _startPresenceRefresh() {
+    if (_presenceRefreshTimer?.isActive ?? false) return;
+    _presenceRefreshTimer = Timer.periodic(const Duration(seconds: 15), (_) {
+      if (!mounted ||
+          !_appActive ||
+          DashboardScreen.selectedNavIndex.value != 2) {
+        return;
+      }
+      _bloc.add(
+        LoadConversationsEvent(
+          silent: true,
+          archived: _bloc.state.showingArchived,
+        ),
+      );
+    });
+  }
+
+  void _stopPresenceRefresh() {
+    _presenceRefreshTimer?.cancel();
+    _presenceRefreshTimer = null;
+  }
+
+  Future<void> _sendHeartbeat() async {
+    if (!_appActive || DashboardScreen.selectedNavIndex.value != 2) return;
+    final socketId = ReverbChatSocketService.instance.socketId?.trim();
+    if (socketId == null || socketId.isEmpty) return;
+    await _bloc.useCase.sendPresenceHeartbeat(socketId);
+  }
+
+  Future<void> _setOwnPresence(bool online) async {
+    final result = await _bloc.useCase.setPresence(online);
+    result.fold((_) {
+      // Permit a later lifecycle/tab event to retry a failed presence update.
+      if (_reportedOnline == online) _reportedOnline = null;
+    }, (_) {});
+  }
+
   void _retryFailedFetchOnTabVisible() {
     if (!mounted || DashboardScreen.selectedNavIndex.value != 2) return;
-    final MessageBloc bloc = context.read<MessageBloc>();
-    if (bloc.state.conversationsStatus == MessageStatus.failure) {
-      bloc.add(const LoadConversationsEvent());
+    if (_bloc.state.conversationsStatus == MessageStatus.failure) {
+      _bloc.add(LoadConversationsEvent(archived: _bloc.state.showingArchived));
     }
   }
 
@@ -81,6 +175,7 @@ class _MessagesViewState extends State<_MessagesView> {
       ConversationFilter.unread => filtered.where((c) => c.isUnread),
       ConversationFilter.direct => filtered.where((c) => !c.isGroup),
       ConversationFilter.group => filtered.where((c) => c.isGroup),
+      ConversationFilter.archived => filtered,
     };
 
     if (_query.trim().isNotEmpty) {
@@ -104,12 +199,43 @@ class _MessagesViewState extends State<_MessagesView> {
           state.conversations.where((c) => !c.isGroup).length,
         ConversationFilter.group =>
           state.conversations.where((c) => c.isGroup).length,
+        ConversationFilter.archived =>
+          state.showingArchived ? state.conversations.length : 0,
       };
 
-  /// Opens the thread; reading clears the unread badge (API + local).
+  Future<void> _createGroup() async {
+    final bloc = context.read<MessageBloc>();
+    final draft = await showGroupConversationSheet(
+      context: context,
+      currentUserId: bloc.state.currentUserId,
+      participants: bloc.state.conversations.expand(
+        (conversation) => conversation.participants,
+      ),
+    );
+    if (draft == null || !mounted) return;
+    bloc.add(
+      CreateGroupConversationEvent(
+        title: draft.title,
+        participantIds: draft.participantIds,
+        venueId: draft.venueId,
+      ),
+    );
+  }
+
+  void _selectFilter(ConversationFilter filter) {
+    if (_selectedFilter == filter) return;
+    final wasArchived = _selectedFilter == ConversationFilter.archived;
+    final showArchived = filter == ConversationFilter.archived;
+    setState(() => _selectedFilter = filter);
+    if (wasArchived != showArchived) {
+      context.read<MessageBloc>().add(
+        LoadConversationsEvent(archived: showArchived),
+      );
+    }
+  }
+
   void _openChat(ConversationModel conversation) {
     final bloc = context.read<MessageBloc>();
-    bloc.add(MarkConversationReadEvent(conversation.id));
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => BlocProvider.value(
@@ -122,7 +248,31 @@ class _MessagesViewState extends State<_MessagesView> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<MessageBloc, MessageState>(
+    return BlocConsumer<MessageBloc, MessageState>(
+      listenWhen: (previous, current) =>
+          previous.createdGroup != current.createdGroup ||
+          (previous.groupCreating &&
+              current.errorMessage != previous.errorMessage),
+      listener: (context, state) {
+        final bloc = context.read<MessageBloc>();
+        final created = state.createdGroup;
+        if (created != null) {
+          bloc.add(const ClearCreatedGroupEvent());
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => BlocProvider.value(
+                value: bloc,
+                child: ChatPage(conversation: created),
+              ),
+            ),
+          );
+          return;
+        }
+        if (state.errorMessage != null) {
+          AppUtils().showSnackBar(context, MsgType.error, state.errorMessage!);
+          bloc.add(const ClearMessageActionEvent());
+        }
+      },
       builder: (context, state) {
         final items = _visible(state);
 
@@ -132,6 +282,9 @@ class _MessagesViewState extends State<_MessagesView> {
             _Header(
               conversationCount: state.conversations.length,
               unreadTotal: state.unreadTotal,
+              showCreateGroup: !state.showingArchived,
+              isCreatingGroup: state.groupCreating,
+              onCreateGroup: _createGroup,
             ),
             const SizedBox(height: AppDimens.paddingX16),
             Padding(
@@ -167,8 +320,9 @@ class _MessagesViewState extends State<_MessagesView> {
         state.conversations.isEmpty) {
       return _LoadError(
         message: state.errorMessage ?? 'Could not load conversations.',
-        onRetry: () =>
-            context.read<MessageBloc>().add(const LoadConversationsEvent()),
+        onRetry: () => context.read<MessageBloc>().add(
+          LoadConversationsEvent(archived: state.showingArchived),
+        ),
       );
     }
     if (items.isEmpty) {
@@ -181,7 +335,7 @@ class _MessagesViewState extends State<_MessagesView> {
     return RefreshIndicator(
       color: LightColor.secondaryColor,
       onRefresh: () async => context.read<MessageBloc>().add(
-        const LoadConversationsEvent(silent: true),
+        LoadConversationsEvent(silent: true, archived: state.showingArchived),
       ),
       child: ListView.separated(
         physics: const BouncingScrollPhysics(
@@ -190,7 +344,7 @@ class _MessagesViewState extends State<_MessagesView> {
         padding: AppUtils().getPadding(
           symmetricHorizontal: AppDimens.paddingX16,
           top: AppDimens.paddingX6,
-          bottom: AppDimens.paddingX50,
+          bottom: state.showingArchived ? AppDimens.paddingX50 : 110,
         ),
         itemCount: items.length,
         separatorBuilder: (_, __) =>
@@ -221,10 +375,7 @@ class _MessagesViewState extends State<_MessagesView> {
             label: filter.label,
             count: _filterCount(state, filter),
             isSelected: _selectedFilter == filter,
-            onTap: () {
-              if (_selectedFilter == filter) return;
-              setState(() => _selectedFilter = filter);
-            },
+            onTap: () => _selectFilter(filter),
           );
         },
       ),
@@ -233,10 +384,19 @@ class _MessagesViewState extends State<_MessagesView> {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.conversationCount, required this.unreadTotal});
+  const _Header({
+    required this.conversationCount,
+    required this.unreadTotal,
+    required this.showCreateGroup,
+    required this.isCreatingGroup,
+    required this.onCreateGroup,
+  });
 
   final int conversationCount;
   final int unreadTotal;
+  final bool showCreateGroup;
+  final bool isCreatingGroup;
+  final VoidCallback onCreateGroup;
 
   @override
   Widget build(BuildContext context) {
@@ -245,30 +405,57 @@ class _Header extends StatelessWidget {
     return Padding(
       padding: AppUtils().getPadding(
         left: AppDimens.paddingX20,
-        right: AppDimens.paddingX20,
+        right: AppDimens.paddingX10,
         top: AppDimens.paddingX24,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Text(
-            'Messages',
-            style: textTheme.bodyTextLarge?.copyWith(
-              fontSize: AppDimens.fontHeadingSmall,
-              fontWeight: FontWeight.w700,
-              color: LightColor.primaryTextColor,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Messages',
+                  style: textTheme.bodyTextLarge?.copyWith(
+                    fontSize: AppDimens.fontHeadingSmall,
+                    fontWeight: FontWeight.w700,
+                    color: LightColor.primaryTextColor,
+                  ),
+                ),
+                if (conversationCount > 0) ...[
+                  const SizedBox(height: AppDimens.paddingX4),
+                  Text(
+                    '$conversationCount conversations'
+                    '${unreadTotal > 0 ? ' · $unreadTotal unread' : ''}',
+                    style: textTheme.bodyTextSmall?.copyWith(
+                      color: LightColor.secondaryTextColor,
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
-          if (conversationCount > 0) ...[
-            const SizedBox(height: AppDimens.paddingX4),
-            Text(
-              '$conversationCount conversations'
-              '${unreadTotal > 0 ? ' · $unreadTotal unread' : ''}',
-              style: textTheme.bodyTextSmall?.copyWith(
-                color: LightColor.secondaryTextColor,
+          if (showCreateGroup)
+            TextButton.icon(
+              onPressed: isCreatingGroup ? null : onCreateGroup,
+              icon: isCreatingGroup
+                  ? const SizedBox.square(
+                      dimension: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.group_add_rounded, size: 14),
+              label: Text(
+                isCreatingGroup ? 'Creating...' : 'Create group',
+                style: textTheme.bodyTextSmall?.copyWith(
+                  color: LightColor.secondaryColor,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              style: TextButton.styleFrom(
+                foregroundColor: LightColor.secondaryColor,
               ),
             ),
-          ],
         ],
       ),
     );

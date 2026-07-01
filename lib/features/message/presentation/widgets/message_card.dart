@@ -23,6 +23,7 @@ class MessageCard extends StatelessWidget {
     final textTheme = FutsalTheme.getTextTheme(context);
     final bool isUnread = conversation.isUnread;
     final title = conversation.displayTitle(currentUserId);
+    final isOnline = conversation.isPeerOnline(currentUserId);
 
     return Material(
       color: LightColor.cardColor,
@@ -56,6 +57,7 @@ class MessageCard extends StatelessWidget {
                 title: title,
                 url: conversation.displayAvatar(currentUserId),
                 isGroup: conversation.isGroup,
+                isOnline: isOnline,
               ),
               const SizedBox(width: AppDimens.paddingX12),
               Expanded(
@@ -97,6 +99,9 @@ class MessageCard extends StatelessWidget {
                         if (conversation.isGroup) ...[
                           const SizedBox(width: AppDimens.paddingX6),
                           const _GroupTag(),
+                        ] else ...[
+                          const SizedBox(width: AppDimens.paddingX6),
+                          _PresenceLabel(isOnline: isOnline),
                         ],
                       ],
                     ),
@@ -154,48 +159,90 @@ class _Avatar extends StatelessWidget {
     required this.title,
     required this.url,
     required this.isGroup,
+    required this.isOnline,
   });
 
   final String title;
   final String url;
   final bool isGroup;
+  final bool isOnline;
 
   @override
   Widget build(BuildContext context) {
     if (isGroup || url.isEmpty) {
-      return Container(
-        width: 46,
-        height: 46,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: LightColor.secondaryColor.withValues(alpha: 0.10),
-          shape: BoxShape.circle,
+      return _withPresence(
+        Container(
+          width: 46,
+          height: 46,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: LightColor.secondaryColor.withValues(alpha: 0.10),
+            shape: BoxShape.circle,
+          ),
+          child: isGroup
+              ? const Icon(
+                  Icons.groups_2_outlined,
+                  size: 22,
+                  color: LightColor.secondaryColor,
+                )
+              : Text(
+                  title.isEmpty ? '?' : title.substring(0, 1).toUpperCase(),
+                  style: FutsalTheme.getTextTheme(context).bodyTextMedium
+                      ?.copyWith(
+                        color: LightColor.secondaryColor,
+                        fontWeight: FontWeight.w800,
+                      ),
+                ),
         ),
-        child: isGroup
-            ? const Icon(
-                Icons.groups_2_outlined,
-                size: 22,
-                color: LightColor.secondaryColor,
-              )
-            : Text(
-                title.isEmpty ? '?' : title.substring(0, 1).toUpperCase(),
-                style: FutsalTheme.getTextTheme(context).bodyTextMedium
-                    ?.copyWith(
-                      color: LightColor.secondaryColor,
-                      fontWeight: FontWeight.w800,
-                    ),
-              ),
       );
     }
-    return ClipOval(
-      child: CustomImageView(
-        url: url,
-        width: 46,
-        height: 46,
-        fit: BoxFit.cover,
+    return _withPresence(
+      ClipOval(
+        child: CustomImageView(
+          url: url,
+          width: 46,
+          height: 46,
+          fit: BoxFit.cover,
+        ),
       ),
     );
   }
+
+  Widget _withPresence(Widget avatar) => Stack(
+    clipBehavior: Clip.none,
+    children: [
+      avatar,
+      if (!isGroup)
+        Positioned(
+          right: 0,
+          bottom: 0,
+          child: Container(
+            width: 12,
+            height: 12,
+            decoration: BoxDecoration(
+              color: isOnline ? Colors.green : Colors.grey,
+              shape: BoxShape.circle,
+              border: Border.all(color: LightColor.cardColor, width: 2),
+            ),
+          ),
+        ),
+    ],
+  );
+}
+
+class _PresenceLabel extends StatelessWidget {
+  const _PresenceLabel({required this.isOnline});
+  final bool isOnline;
+
+  @override
+  Widget build(BuildContext context) => Text(
+    isOnline ? 'Online' : 'Offline',
+    style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
+      color: isOnline ? Colors.green : LightColor.hintTextColor,
+      fontSize: AppDimens.fontBodySubTitle,
+      fontWeight: FontWeight.w500,
+    ),
+  );
 }
 
 class _GroupTag extends StatelessWidget {

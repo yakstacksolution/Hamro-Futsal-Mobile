@@ -209,20 +209,20 @@ class _CourtDetailPageState extends State<CourtDetailPage>
 
     for (int d = 0; d < 14; d++) {
       _timeSlotsByDate.add([
-        TimeSlotModel(time: '6:00 AM', isAvailable: d != 0),
+        TimeSlotModel(time: '6:00 AM', status: _mockStatus(d != 0)),
         const TimeSlotModel(time: '7:00 AM'),
-        TimeSlotModel(time: '8:00 AM', isAvailable: d % 2 == 0),
+        TimeSlotModel(time: '8:00 AM', status: _mockStatus(d % 2 == 0)),
         const TimeSlotModel(time: '9:00 AM'),
-        TimeSlotModel(time: '10:00 AM', isAvailable: d % 3 != 0),
-        const TimeSlotModel(time: '11:00 AM', isAvailable: false),
-        const TimeSlotModel(time: '12:00 PM', isAvailable: false),
+        TimeSlotModel(time: '10:00 AM', status: _mockStatus(d % 3 != 0)),
+        const TimeSlotModel(time: '11:00 AM', status: SlotStatus.booked),
+        const TimeSlotModel(time: '12:00 PM', status: SlotStatus.closed),
         const TimeSlotModel(time: '1:00 PM'),
-        TimeSlotModel(time: '2:00 PM', isAvailable: d != 1),
+        TimeSlotModel(time: '2:00 PM', status: _mockStatus(d != 1)),
         const TimeSlotModel(time: '3:00 PM'),
         const TimeSlotModel(time: '4:00 PM'),
-        TimeSlotModel(time: '5:00 PM', isAvailable: d % 2 != 0),
+        TimeSlotModel(time: '5:00 PM', status: _mockStatus(d % 2 != 0)),
         const TimeSlotModel(time: '6:00 PM'),
-        TimeSlotModel(time: '7:00 PM', isAvailable: d != 2),
+        TimeSlotModel(time: '7:00 PM', status: _mockStatus(d != 2)),
         const TimeSlotModel(time: '8:00 PM'),
         const TimeSlotModel(time: '9:00 PM'),
       ]);
@@ -238,6 +238,9 @@ class _CourtDetailPageState extends State<CourtDetailPage>
     _bottomBarController.dispose();
     super.dispose();
   }
+
+  SlotStatus _mockStatus(bool available) =>
+      available ? SlotStatus.available : SlotStatus.unavailable;
 
   String _dayName(DateTime date) {
     const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];

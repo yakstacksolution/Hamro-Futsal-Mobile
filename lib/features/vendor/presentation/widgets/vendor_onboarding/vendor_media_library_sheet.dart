@@ -70,13 +70,12 @@ class _VendorMediaLibrarySheetState extends State<VendorMediaLibrarySheet> {
   void initState() {
     super.initState();
     _selectedPaths.addAll(
-      widget.initiallySelected.map((UploadRef item) => item.remoteUrl ?? ''),
+      widget.initiallySelected.map((UploadRef item) => item.storageKey),
     );
     _lockedPaths.addAll(
       widget.initiallySelected
           .where((UploadRef item) => item.verificationStatus.isLocked)
-          .map((UploadRef item) => item.remoteUrl ?? '')
-          .where((String path) => path.isNotEmpty),
+          .map((UploadRef item) => item.storageKey),
     );
   }
 
@@ -157,10 +156,10 @@ class _VendorMediaLibrarySheetState extends State<VendorMediaLibrarySheet> {
                         itemBuilder: (BuildContext context, int index) {
                           final UploadRef item = library[index];
                           final bool isSelected = _selectedPaths.contains(
-                            item.remoteUrl ?? '',
+                            item.storageKey,
                           );
                           final bool isLocked = _lockedPaths.contains(
-                            item.remoteUrl ?? '',
+                            item.storageKey,
                           );
 
                           return _CompactMediaCard(
@@ -202,17 +201,17 @@ class _VendorMediaLibrarySheetState extends State<VendorMediaLibrarySheet> {
 
   void _toggleSelection(UploadRef item) {
     // Locked (pending/approved) selections cannot be toggled off.
-    if (_lockedPaths.contains(item.remoteUrl ?? '')) return;
+    if (_lockedPaths.contains(item.storageKey)) return;
     setState(() {
       if (!widget.allowMultiple) {
         _selectedPaths
           ..removeWhere((String path) => !_lockedPaths.contains(path))
-          ..add(item.remoteUrl ?? '');
+          ..add(item.storageKey);
         return;
       }
 
-      if (!_selectedPaths.add(item.remoteUrl ?? '')) {
-        _selectedPaths.remove(item.remoteUrl ?? '');
+      if (!_selectedPaths.add(item.storageKey)) {
+        _selectedPaths.remove(item.storageKey);
       }
     });
   }
@@ -225,10 +224,10 @@ class _VendorMediaLibrarySheetState extends State<VendorMediaLibrarySheet> {
       setState(() {
         if (!widget.allowMultiple) {
           _selectedPaths
-            ..clear()
-            ..add(ref.remoteUrl ?? '');
+            ..removeWhere((String path) => !_lockedPaths.contains(path))
+            ..add(ref.storageKey);
         } else {
-          _selectedPaths.add(ref.remoteUrl ?? '');
+          _selectedPaths.add(ref.storageKey);
         }
       });
     }
@@ -252,12 +251,10 @@ class _VendorMediaLibrarySheetState extends State<VendorMediaLibrarySheet> {
       setState(() {
         if (!widget.allowMultiple) {
           _selectedPaths
-            ..clear()
-            ..add(files.first.remoteUrl ?? '');
+            ..removeWhere((String path) => !_lockedPaths.contains(path))
+            ..add(files.first.storageKey);
         } else {
-          _selectedPaths.addAll(
-            files.map((UploadRef item) => item.remoteUrl ?? ''),
-          );
+          _selectedPaths.addAll(files.map((UploadRef item) => item.storageKey));
         }
       });
     }
@@ -267,7 +264,7 @@ class _VendorMediaLibrarySheetState extends State<VendorMediaLibrarySheet> {
 
   Future<void> _removeItem(UploadRef item) async {
     // A locked file is attached to a section under review — keep it.
-    if (_lockedPaths.contains(item.remoteUrl ?? '')) return;
+    if (_lockedPaths.contains(item.storageKey)) return;
     final bool confirmed = await showConfirmDialog(
       context: context,
       title: 'Remove from media library?',
@@ -280,15 +277,13 @@ class _VendorMediaLibrarySheetState extends State<VendorMediaLibrarySheet> {
     if (!confirmed) return;
 
     widget.cubit.removeMediaLibraryItem(item);
-    setState(() => _selectedPaths.remove(item.remoteUrl ?? ''));
+    setState(() => _selectedPaths.remove(item.storageKey));
   }
 
   void _submitSelection() {
     final List<UploadRef> allItems = widget.cubit.state.mediaLibrary;
     final List<UploadRef> selected = allItems
-        .where(
-          (UploadRef item) => _selectedPaths.contains(item.remoteUrl ?? ''),
-        )
+        .where((UploadRef item) => _selectedPaths.contains(item.storageKey))
         .toList();
 
     Navigator.of(context).pop(selected);

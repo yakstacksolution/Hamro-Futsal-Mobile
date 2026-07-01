@@ -1,3 +1,5 @@
+import 'package:hamro_footsall/features/futsal_details/data/model/time_slot_model.dart';
+
 /// A single pricing window of a court (e.g. Morning 6 AM – 12 PM → Rs 1000).
 class CourtPriceRule {
   const CourtPriceRule({
@@ -15,30 +17,6 @@ class CourtPriceRule {
   final double price;
 }
 
-enum CourtAvailabilityStatus {
-  available,
-  unavailable,
-  booked;
-
-  String get apiValue {
-    return switch (this) {
-      CourtAvailabilityStatus.available => 'available',
-      CourtAvailabilityStatus.unavailable => 'unavailable',
-      CourtAvailabilityStatus.booked => 'booked',
-    };
-  }
-
-  String get label {
-    return switch (this) {
-      CourtAvailabilityStatus.available => 'Available',
-      CourtAvailabilityStatus.unavailable => 'Unavailable',
-      CourtAvailabilityStatus.booked => 'Booked',
-    };
-  }
-
-  bool get canSelect => this == CourtAvailabilityStatus.available;
-}
-
 /// A court shown in the courts list of the slot selection page.
 class VenueCourtItemModel {
   const VenueCourtItemModel({
@@ -51,8 +29,7 @@ class VenueCourtItemModel {
     required this.courtType,
     required this.priceList,
     this.weekendSurcharge = 0,
-    this.status = CourtAvailabilityStatus.available,
-    this.availabilityReason,
+    this.status = SlotStatus.available,
     this.startTime,
     this.endTime,
   });
@@ -65,8 +42,10 @@ class VenueCourtItemModel {
   final String matchType;
   final String courtType;
   final List<CourtPriceRule> priceList;
-  final CourtAvailabilityStatus status;
-  final String? availabilityReason;
+
+  /// Availability of the court for the selected slot, from the server's
+  /// `availability_status` field.
+  final SlotStatus status;
   final String? startTime;
   final String? endTime;
 
@@ -74,34 +53,6 @@ class VenueCourtItemModel {
   final double weekendSurcharge;
 
   bool get isAvailable => status.canSelect;
-
-  /// Friendly text for why this court can't be booked, derived from the
-  /// server's [availabilityReason]. Falls back to the status label, and is
-  /// null when the court is available.
-  String? get unavailableReasonLabel {
-    if (isAvailable) return null;
-    final String? reason = availabilityReason?.trim();
-    if (reason == null || reason.isEmpty) return status.label;
-    switch (reason.toLowerCase().replaceAll(RegExp(r'[\s-]+'), '_')) {
-      case 'booked_or_closed':
-        return 'Booked / Closed';
-      case 'booked':
-      case 'reserved':
-        return 'Booked';
-      case 'closed':
-        return 'Closed';
-      case 'fully_booked':
-        return 'Fully booked';
-      case 'blocked':
-        return 'Blocked';
-      case 'unavailable':
-        return 'Unavailable';
-      default:
-        final String spaced = reason.replaceAll(RegExp(r'[_-]+'), ' ').trim();
-        if (spaced.isEmpty) return status.label;
-        return spaced[0].toUpperCase() + spaced.substring(1);
-    }
-  }
 
   VenueCourtItemModel copyWith({
     int? id,
@@ -113,8 +64,7 @@ class VenueCourtItemModel {
     String? courtType,
     List<CourtPriceRule>? priceList,
     double? weekendSurcharge,
-    CourtAvailabilityStatus? status,
-    String? availabilityReason,
+    SlotStatus? status,
     String? startTime,
     String? endTime,
   }) {
@@ -129,7 +79,6 @@ class VenueCourtItemModel {
       priceList: priceList ?? this.priceList,
       weekendSurcharge: weekendSurcharge ?? this.weekendSurcharge,
       status: status ?? this.status,
-      availabilityReason: availabilityReason ?? this.availabilityReason,
       startTime: startTime ?? this.startTime,
       endTime: endTime ?? this.endTime,
     );

@@ -7,6 +7,7 @@ import 'package:hamro_footsall/core/helper/exception_helper.dart';
 import 'package:hamro_footsall/core/helper/wishlist_store.dart';
 import 'package:hamro_footsall/features/profile/data/model/profile_model.dart';
 import 'package:hamro_footsall/features/profile/domain/usecase/profile_usecase.dart';
+import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_drafts.dart';
 
 part 'profile_event.dart';
 part 'profile_state.dart';
@@ -64,10 +65,16 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     UpdateProfileEvent event,
     Emitter<ProfileState> emit,
   ) async {
+    final ProfileModel? previousProfile = state.profile;
+    final String? previousProfileImage = state.profileImage;
+    final String? previewUrl = _nonEmpty(event.profilePhotoUrl);
+
     try {
       emit(
         state.copyWith(
           status: ProfileStatus.updating,
+          profile: _withPreviewPhoto(state.profile, event, previewUrl),
+          profileImage: previewUrl,
           clearErrorMessage: true,
           clearSuccessMessage: true,
         ),
@@ -81,16 +88,23 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
         (AppException failure) => emit(
           state.copyWith(
             status: ProfileStatus.failure,
+            profile: previousProfile,
+            profileImage: previousProfileImage,
+            clearProfileImage: previousProfileImage == null,
             errorMessage: failure.errorMessage,
           ),
         ),
         (ProfileModel profile) {
-          final ProfileModel merged = _mergeProfile(state.profile, profile);
+          final ProfileModel merged = _withPreviewPhoto(
+            _mergeProfile(state.profile, profile),
+            event,
+            previewUrl,
+          )!;
           emit(
             state.copyWith(
               status: ProfileStatus.updateSuccess,
               profile: merged,
-              profileImage: merged.data.profilePhoto?.remoteUrl,
+              profileImage: previewUrl ?? merged.data.profilePhoto?.remoteUrl,
               successMessage: profile.message.isNotEmpty
                   ? profile.message
                   : 'Profile updated successfully.',
@@ -103,6 +117,9 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
       emit(
         state.copyWith(
           status: ProfileStatus.failure,
+          profile: previousProfile,
+          profileImage: previousProfileImage,
+          clearProfileImage: previousProfileImage == null,
           errorMessage: error.toString(),
         ),
       );
@@ -112,6 +129,32 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
   ProfileModel _mergeProfile(ProfileModel? existing, ProfileModel incoming) {
     if (existing == null) return incoming;
     return incoming.copyWith(data: existing.data.mergeWith(incoming.data));
+  }
+
+  ProfileModel? _withPreviewPhoto(
+    ProfileModel? profile,
+    UpdateProfileEvent event,
+    String? previewUrl,
+  ) {
+    if (profile == null || previewUrl == null) return profile;
+
+    final UploadRef? currentPhoto = profile.data.profilePhoto;
+    return profile.copyWith(
+      data: profile.data.copyWith(
+        profilePhoto: UploadRef(
+          name: currentPhoto?.name ?? '',
+          id: int.tryParse(event.profilePhoto ?? ''),
+          remoteUrl: previewUrl,
+          verificationStatus:
+              currentPhoto?.verificationStatus ?? UploadVerificationStatus.none,
+        ),
+      ),
+    );
+  }
+
+  String? _nonEmpty(String? value) {
+    final String normalized = value?.trim() ?? '';
+    return normalized.isEmpty ? null : normalized;
   }
 
   Map<String, dynamic> _buildUpdatePayload(UpdateProfileEvent event) {
@@ -132,5 +175,3 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     };
   }
 }
-
- 

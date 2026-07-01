@@ -3,7 +3,6 @@ import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 
-/// Conversation search box with an inline clear action.
 class MessageSearchField extends StatelessWidget {
   const MessageSearchField({
     super.key,

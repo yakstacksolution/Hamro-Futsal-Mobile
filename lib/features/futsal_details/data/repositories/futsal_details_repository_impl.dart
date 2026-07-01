@@ -3,7 +3,12 @@ import 'package:hamro_footsall/core/helper/exception_helper.dart';
 import 'package:hamro_footsall/core/helper/response_helper.dart';
 import 'package:hamro_footsall/features/futsal_details/data/data_source/futsal_details_remote_data_source.dart';
 import 'package:hamro_footsall/features/futsal_details/data/model/available_courts_model.dart';
+import 'package:hamro_footsall/features/futsal_details/data/model/booking_hold_model.dart';
+import 'package:hamro_footsall/features/futsal_details/data/model/booking_result_model.dart';
+import 'package:hamro_footsall/features/futsal_details/data/model/create_booking_request.dart';
 import 'package:hamro_footsall/features/futsal_details/data/model/hosted_by_model.dart';
+import 'package:hamro_footsall/features/futsal_details/data/model/payment_qr_model.dart';
+import 'package:hamro_footsall/features/futsal_details/data/model/recurring_availability_model.dart';
 import 'package:hamro_footsall/features/futsal_details/data/model/time_slot_model.dart';
 import 'package:hamro_footsall/features/futsal_details/data/model/venue_amenities_facilities_model.dart';
 import 'package:hamro_footsall/features/futsal_details/data/model/venue_description_model.dart';
@@ -93,12 +98,14 @@ final class FutsalDetailsRepositoryImpl extends FutsalDetailsRepository {
   Future<Either<AppException, AvailableCourtsModel>> getAvailableCourts({
     required int venueId,
     required String selectDate,
-    String? slotTime,
+    String? slotStartTime,
+    String? slotEndTime,
   }) async {
     final response = await _remoteDataSource.getAvailableCourts(
       venueId: venueId,
       selectDate: selectDate,
-      slotTime: slotTime,
+      slotStartTime: slotStartTime,
+      slotEndTime: slotEndTime,
     );
     if (response.isError()) {
       return left(ResponseHelper.error(response));
@@ -141,6 +148,132 @@ final class FutsalDetailsRepositoryImpl extends FutsalDetailsRepository {
         ),
       );
     }
+  }
+
+  @override
+  Future<Either<AppException, PaymentQrModel>> getCourtPaymentQr({
+    required int courtId,
+  }) async {
+    final response = await _remoteDataSource.getCourtPaymentQr(
+      courtId: courtId,
+    );
+    if (response.isError()) {
+      return left(ResponseHelper.error(response));
+    }
+
+    try {
+      return right(PaymentQrModel.fromResponse(response.getValue()));
+    } catch (_) {
+      return left(
+        DefaultException(
+          errorMessage: 'Could not parse payment QR from server.',
+          statusCode: 0,
+        ),
+      );
+    }
+  }
+
+  @override
+  Future<Either<AppException, BookingResultModel>> createBooking(
+    CreateBookingRequest request,
+  ) async {
+    final response = await _remoteDataSource.createBooking(request);
+    if (response.isError()) {
+      return left(ResponseHelper.error(response));
+    }
+
+    try {
+      return right(BookingResultModel.fromResponse(response.getValue()));
+    } catch (_) {
+      // Booking succeeded even if the response body couldn't be parsed.
+      return right(const BookingResultModel());
+    }
+  }
+
+  @override
+  Future<Either<AppException, RecurringAvailabilityModel>>
+  checkRecurringAvailability({
+    required int? venueId,
+    required int? courtId,
+    required String bookingDate,
+    required String slotStartTime,
+    String? slotEndTime,
+    List<String> recurringDates = const <String>[],
+  }) async {
+    final response = await _remoteDataSource.getRecurringAvailability(
+      data: <String, dynamic>{
+        'booking_date': bookingDate,
+        'venue_id': venueId,
+        'court_id': courtId,
+        'slot_start_time': slotStartTime,
+        'slot_end_time': slotEndTime,
+        'recurring_booking_dates': recurringDates,
+      },
+    );
+    if (response.isError()) {
+      return left(ResponseHelper.error(response));
+    }
+
+    try {
+      return right(
+        RecurringAvailabilityModel.fromResponse(response.getValue()),
+      );
+    } catch (_) {
+      return left(
+        DefaultException(
+          errorMessage: 'Could not check availability. Please try again.',
+          statusCode: 0,
+        ),
+      );
+    }
+  }
+
+  @override
+  Future<Either<AppException, BookingHoldModel>> createBookingHold({
+    required int? venueId,
+    required int? courtId,
+    required String bookingDate,
+    required String startTime,
+    required String endTime,
+    List<String> bookingDates = const <String>[],
+  }) async {
+    final response = await _remoteDataSource.createBookingHold(
+      data: <String, dynamic>{
+        'venue_id': venueId,
+        'court_id': courtId,
+        'booking_date': bookingDate,
+        'start_time': startTime,
+        'end_time': endTime,
+        'booking_dates': bookingDates,
+      },
+    );
+    if (response.isError()) {
+      return left(ResponseHelper.error(response));
+    }
+
+    try {
+      return right(BookingHoldModel.fromResponse(response.getValue()));
+    } catch (_) {
+      return left(
+        DefaultException(
+          errorMessage: 'Could not hold this slot. Please try again.',
+          statusCode: 0,
+        ),
+      );
+    }
+  }
+
+  @override
+  Future<Either<AppException, Unit>> releaseBookingHold({
+    required String holdToken,
+  }) async {
+    final response = await _remoteDataSource.releaseBookingHold(
+      holdToken: holdToken,
+    );
+    if (response.isError()) {
+      return left(ResponseHelper.error(response));
+    }
+    return right(unit);
   }
 
   Map<String, dynamic> _extractDataMap(dynamic payload) {

@@ -60,10 +60,10 @@ class CustomBottomSheet extends StatelessWidget {
     final AppUtils appUtils = AppUtils();
     final textTheme = FutsalTheme.getTextTheme(context);
 
+    final borderRadius = BorderRadius.vertical(top: Radius.circular(radius));
     Widget content = Container(
       decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(radius)),
+        borderRadius: borderRadius,
         boxShadow: <BoxShadow>[
           BoxShadow(
             color: LightColor.shadowColor.withValues(alpha: 0.14),
@@ -72,47 +72,54 @@ class CustomBottomSheet extends StatelessWidget {
           ),
         ],
       ),
-      padding:
-          padding ??
-          appUtils.getPadding(
-            left: AppDimens.paddingX18,
-            top: AppDimens.paddingX12,
-            right: AppDimens.paddingX18,
-            bottom:
-                AppDimens.paddingX18 +
-                mediaQuery.viewInsets.bottom +
-                mediaQuery.padding.bottom,
-          ),
-      child: DefaultTextStyle(
-        style:
-            textTheme.bodyTextMedium?.copyWith(
-              color: LightColor.primaryTextColor,
-            ) ??
-            Theme.of(context).textTheme.bodyMedium ??
-            const TextStyle(),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            if (showDragHandle)
-              Container(
-                margin: appUtils.getMargin(bottom: AppDimens.marginX12),
-                alignment: Alignment.center,
-                child: Container(
-                  width: AppDimens.sizeX44,
-                  height: AppDimens.sizeX4,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: <Color>[
-                        LightColor.dividerColor,
-                        LightColor.secondaryLight,
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                ),
+      child: Material(
+        color: backgroundColor,
+        borderRadius: borderRadius,
+        clipBehavior: Clip.antiAlias,
+        child: Padding(
+          padding:
+              padding ??
+              appUtils.getPadding(
+                left: AppDimens.paddingX18,
+                top: AppDimens.paddingX12,
+                right: AppDimens.paddingX18,
+                bottom:
+                    AppDimens.paddingX18 +
+                    mediaQuery.viewInsets.bottom +
+                    mediaQuery.padding.bottom,
               ),
-            Flexible(child: child),
-          ],
+          child: DefaultTextStyle(
+            style:
+                textTheme.bodyTextMedium?.copyWith(
+                  color: LightColor.primaryTextColor,
+                ) ??
+                Theme.of(context).textTheme.bodyMedium ??
+                const TextStyle(),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                if (showDragHandle)
+                  Container(
+                    margin: appUtils.getMargin(bottom: AppDimens.marginX12),
+                    alignment: Alignment.center,
+                    child: Container(
+                      width: AppDimens.sizeX44,
+                      height: AppDimens.sizeX4,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: <Color>[
+                            LightColor.dividerColor,
+                            LightColor.secondaryLight,
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
+                  ),
+                Flexible(child: child),
+              ],
+            ),
+          ),
         ),
       ),
     );

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import 'package:hamro_footsall/core/routers/app_router_params.dart';
+import 'package:hamro_footsall/core/socket/reverb_connection.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
@@ -9,6 +12,7 @@ import 'package:hamro_footsall/core/utils/scroll_behavior.dart';
 import 'package:hamro_footsall/core/widgets/custom_button.dart';
 import 'package:hamro_footsall/features/courts_details/presentation/page/court_details.dart';
 import 'package:hamro_footsall/features/futsal_details/data/model/booking_recurrence.dart';
+import 'package:hamro_footsall/features/futsal_details/data/model/recurring_availability_model.dart';
 import 'package:hamro_footsall/features/futsal_details/data/model/venue_court_item_model.dart';
 import 'package:hamro_footsall/features/futsal_details/presentation/bloc/slots_selection/slots_selection_bloc.dart';
 import 'package:hamro_footsall/features/futsal_details/presentation/widgets/booking_options.dart';
@@ -27,13 +31,19 @@ class SlotsSelectionPage extends StatefulWidget {
 }
 
 class _SlotsSelectionPageState extends State<SlotsSelectionPage>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   late final AnimationController _bottomBarController;
   late final Animation<Offset> _bottomBarSlide;
 
   @override
   void initState() {
     super.initState();
+
+    // Establish the shared Reverb socket as soon as the page opens so the
+    // `venue.{venueId}.slots` channel (subscribed by SlotsSelectionBloc on init)
+    // has a live connection to receive realtime availability updates.
+    WidgetsBinding.instance.addObserver(this);
+    ReverbConnection.instance.connect();
 
     _bottomBarController = AnimationController(
       vsync: this,
@@ -53,7 +63,20 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed || !mounted) return;
+    // Coming back to the foreground: make sure the socket is alive again and
+    // pull a fresh availability snapshot in case broadcasts were missed while
+    // the app was backgrounded.
+    ReverbConnection.instance.connect();
+    context.read<SlotsSelectionBloc>().add(
+      const SlotsRealtimeRefreshRequested(),
+    );
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _bottomBarController.dispose();
     super.dispose();
   }
@@ -76,6 +99,8 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
             recurrence: state.recurrence,
             selectedTime: state.selectedTime,
             selectedCourt: selectedCourt,
+            isCheckingAvailability:
+                state.recurringCheckStatus == RecurringCheckStatus.loading,
             onModeChanged: (BookingMode value) {
               context.read<SlotsSelectionBloc>().add(
                 ChangeSlotsBookingModeEvent(value),
@@ -87,6 +112,59 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
               );
             },
           ),
+        );
+      },
+    );
+  }
+
+  /// Shows the `/bookings/recurring-availability` result for the chosen court,
+  /// date(s) and slot. Only visible for recurring bookings with a court picked.
+  Widget _buildRecurringAvailabilitySection() {
+    return BlocBuilder<SlotsSelectionBloc, SlotsSelectionState>(
+      builder: (BuildContext context, SlotsSelectionState state) {
+        if (!state.isRecurring ||
+            state.selectedCourt == null ||
+            state.recurringCheckStatus == RecurringCheckStatus.idle) {
+          return const SizedBox.shrink();
+        }
+
+        Widget child;
+        switch (state.recurringCheckStatus) {
+          case RecurringCheckStatus.idle:
+          case RecurringCheckStatus.loading:
+            // Loading is shown inline on the duration boxes, not here.
+            child = const SizedBox.shrink();
+          case RecurringCheckStatus.failure:
+            child = _AvailabilityMessage(
+              title: 'Availability check failed',
+              message:
+                  state.recurringAvailabilityError ??
+                  'Could not check availability for the selected dates.',
+              onRetry: () {
+                context.read<SlotsSelectionBloc>().add(
+                  const CheckRecurringAvailabilityRequested(),
+                );
+              },
+            );
+          case RecurringCheckStatus.success:
+            final RecurringAvailabilityModel? model =
+                state.recurringAvailability;
+            // Only surface the availability card when something is actually
+            // unavailable (all_available == false) and we have sessions to show.
+            if (model != null && model.hasSessions && !model.allAvailable) {
+              child = _RecurringAvailabilityResult(model: model);
+            } else {
+              child = const SizedBox.shrink();
+            }
+        }
+
+        return Padding(
+          padding: AppUtils().getPadding(
+            top: AppDimens.paddingX12,
+            left: AppDimens.paddingX20,
+            right: AppDimens.paddingX20,
+          ),
+          child: child,
         );
       },
     );
@@ -386,7 +464,15 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
                       child: CustomButton(
                         text: state.buttonText,
                         onPressed: canBook
-                            ? () => HapticFeedback.mediumImpact()
+                            ? () {
+                                HapticFeedback.mediumImpact();
+                                final draft = state.bookingDraft;
+                                if (draft == null) return;
+                                context.pushNamed(
+                                  AppRouterParams.bookingCheckout.name,
+                                  extra: draft,
+                                );
+                              }
                             : null,
                         backgroundColor: canBook
                             ? LightColor.secondaryColor
@@ -440,6 +526,7 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
             children: <Widget>[
               _buildDateTimeSection(),
               _buildBookingTypeSection(),
+              _buildRecurringAvailabilitySection(),
               _buildCourtsSection(),
               const SizedBox(height: AppDimens.sizeX20),
             ],
@@ -511,4 +598,152 @@ class _AvailabilityMessage extends StatelessWidget {
       ),
     );
   }
+}
+
+class _RecurringAvailabilityResult extends StatelessWidget {
+  const _RecurringAvailabilityResult({required this.model});
+
+  final RecurringAvailabilityModel model;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    final bool allOk = model.allAvailable;
+    final bool single = model.totalCount == 1;
+    final Color accent = allOk
+        ? LightColor.secondaryColor
+        : LightColor.redColor;
+
+    final String summary = single
+        ? (allOk ? 'Slot is available' : 'Slot is not available')
+        : '${model.availableCount} of ${model.totalCount} dates available';
+
+    return Container(
+      width: double.infinity,
+      padding: AppUtils().getPadding(all: AppDimens.paddingX12),
+      decoration: BoxDecoration(
+        color: LightColor.cardColor,
+        borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+        border: Border.all(color: accent.withValues(alpha: 0.4)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Icon(
+                allOk
+                    ? Icons.check_circle_rounded
+                    : Icons.warning_amber_rounded,
+                color: accent,
+                size: AppDimens.sizeX20,
+              ),
+              const SizedBox(width: AppDimens.sizeX8),
+              Expanded(
+                child: Text(
+                  summary,
+                  style: textTheme.bodyTextSmall?.copyWith(
+                    color: LightColor.primaryTextColor,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (model.totalCount > 1) ...<Widget>[
+            const SizedBox(height: AppDimens.sizeX10),
+            ...model.sessions.map(
+              (AvailabilitySession s) => Padding(
+                padding: AppUtils().getPadding(bottom: AppDimens.paddingX8),
+                child: _RecurringAvailabilityRow(session: s),
+              ),
+            ),
+          ],
+          if (!allOk) ...<Widget>[
+            const SizedBox(height: AppDimens.sizeX2),
+            Text(
+              single
+                  ? 'Please pick another date or time.'
+                  : 'Some dates are taken. Adjust your selection to continue.',
+              style: textTheme.bodyMiniSubTitle?.copyWith(
+                color: LightColor.hintTextColor,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _RecurringAvailabilityRow extends StatelessWidget {
+  const _RecurringAvailabilityRow({required this.session});
+
+  final AvailabilitySession session;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    final bool ok = session.isAvailable;
+    final Color color = ok ? LightColor.secondaryColor : LightColor.redColor;
+    final String label = session.dateTime != null
+        ? _dateLabel(session.dateTime!)
+        : session.date;
+
+    return Row(
+      children: <Widget>[
+        Icon(
+          ok ? Icons.check_circle_outline_rounded : Icons.cancel_outlined,
+          size: AppDimens.sizeX16,
+          color: color,
+        ),
+        const SizedBox(width: AppDimens.sizeX8),
+        Expanded(
+          child: Text(
+            label,
+            style: textTheme.bodyTextSmall?.copyWith(
+              color: LightColor.primaryTextColor,
+              fontWeight: FontWeight.w600,
+              decoration: ok ? null : TextDecoration.lineThrough,
+            ),
+          ),
+        ),
+        Text(
+          session.status.label,
+          style: textTheme.bodyMiniSubTitle?.copyWith(
+            color: color,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+String _dateLabel(DateTime date) {
+  const List<String> months = <String>[
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
+  const List<String> days = <String>[
+    'Mon',
+    'Tue',
+    'Wed',
+    'Thu',
+    'Fri',
+    'Sat',
+    'Sun',
+  ];
+  return '${days[date.weekday - 1]}, ${date.day} ${months[date.month - 1]}';
 }

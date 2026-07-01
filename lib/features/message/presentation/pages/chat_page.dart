@@ -1,20 +1,27 @@
+import 'dart:async';
+import 'dart:typed_data';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
+import 'package:hamro_footsall/core/helper/venue_distance_helper.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/custom_image_view.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/widgets/custom_button.dart';
+import 'package:hamro_footsall/core/widgets/custom_bottom_sheet.dart';
+import 'package:hamro_footsall/core/widgets/custom_delete_dialog.dart';
 import 'package:hamro_footsall/core/widgets/loading_widget.dart';
+import 'package:hamro_footsall/features/message/data/model/chat_message_model.dart';
+import 'package:hamro_footsall/features/message/data/model/chat_send_request.dart';
 import 'package:hamro_footsall/features/message/data/model/conversation_model.dart';
 import 'package:hamro_footsall/features/message/presentation/bloc/message_bloc/message_bloc.dart';
 import 'package:hamro_footsall/features/message/presentation/widgets/chat_bubble.dart';
 import 'package:hamro_footsall/features/message/presentation/widgets/chat_input_bar.dart';
+import 'package:hamro_footsall/features/message/presentation/widgets/group_conversation_sheet.dart';
 
-/// One conversation thread driven by [MessageBloc]: messages from
-/// `GET /conversations/{id}/messages`, sending via the multipart endpoint,
-/// typing broadcast and realtime updates via the socket service.
 class ChatPage extends StatefulWidget {
   const ChatPage({super.key, required this.conversation});
 
@@ -24,34 +31,329 @@ class ChatPage extends StatefulWidget {
   State<ChatPage> createState() => _ChatPageState();
 }
 
-class _ChatPageState extends State<ChatPage> {
+class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
   final _scrollCtrl = ScrollController();
+  late final MessageBloc _bloc;
+  final List<PlatformFile> _attachments = <PlatformFile>[];
+  ChatMessageModel? _replyingTo;
+  Timer? _presenceTimer;
+  bool? _peerOnline;
 
   @override
   void initState() {
     super.initState();
-    context.read<MessageBloc>().add(LoadChatEvent(widget.conversation.id));
+    WidgetsBinding.instance.addObserver(this);
+    _bloc = context.read<MessageBloc>();
+    _bloc.add(
+      LoadChatEvent(widget.conversation.id, conversation: widget.conversation),
+    );
+    _refreshPresence();
+    if (!widget.conversation.isGroup) {
+      _presenceTimer = Timer.periodic(
+        const Duration(seconds: 30),
+        (_) => _refreshPresence(),
+      );
+    }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    if (!_bloc.isClosed) {
+      _bloc.add(SendTypingEvent(widget.conversation.id, false));
+    }
+    if (!_bloc.isClosed) _bloc.add(const CloseChatEvent());
+    _presenceTimer?.cancel();
     _scrollCtrl.dispose();
     super.dispose();
   }
 
   @override
-  void deactivate() {
-    // Leaving the thread: drop socket subscriptions and refresh the inbox.
-    // The bloc may already be closed when it was page-scoped (ChatLauncher).
-    final bloc = context.read<MessageBloc>();
-    if (!bloc.isClosed) bloc.add(const CloseChatEvent());
-    super.deactivate();
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (_bloc.isClosed) return;
+    if (state == AppLifecycleState.resumed) {
+      _bloc.add(
+        LoadChatEvent(
+          widget.conversation.id,
+          conversation: widget.conversation,
+        ),
+      );
+      _refreshPresence();
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.detached) {
+      _bloc.add(SendTypingEvent(widget.conversation.id, false));
+    }
+  }
+
+  Future<void> _refreshPresence() async {
+    if (widget.conversation.isGroup || _bloc.isClosed) return;
+    final participant = widget.conversation.otherParticipant(
+      _bloc.state.currentUserId,
+    );
+    if (participant == null || participant.userId <= 0) return;
+
+    final result = await _bloc.useCase.getUserPresence(participant.userId);
+    if (!mounted) return;
+    result.fold((_) {}, (online) {
+      if (_peerOnline != online) setState(() => _peerOnline = online);
+    });
   }
 
   void _send(String text) {
-    context
-        .read<MessageBloc>()
-        .add(SendMessageEvent(widget.conversation.id, text));
+    final request = ChatSendRequest(
+      body: text,
+      filePaths: _attachments
+          .map((file) => file.path)
+          .whereType<String>()
+          .toList(growable: false),
+      replyToMessageId: _replyingTo?.id,
+    );
+    if (!request.isValid) return;
+    _bloc.add(SendMessageEvent(widget.conversation.id, request));
+    setState(() {
+      _attachments.clear();
+      _replyingTo = null;
+    });
+  }
+
+  Future<void> _pickAttachments() async {
+    final result = await FilePicker.platform.pickFiles(
+      allowMultiple: true,
+      withData: false,
+    );
+    if (result == null || !mounted) return;
+    final accepted = result.files
+        .where(
+          (file) =>
+              file.path != null &&
+              file.size <= ChatSendRequest.maxFileBytes &&
+              ChatSendRequest.allowedExtensions.contains(
+                ChatSendRequest.extensionOf(file.name),
+              ),
+        )
+        .toList(growable: false);
+    final availableSlots = ChatSendRequest.maxFiles - _attachments.length;
+    final exceededLimit = accepted.length > availableSlots;
+    setState(() {
+      final knownPaths = _attachments.map((file) => file.path).toSet();
+      for (final file in accepted) {
+        if (_attachments.length >= ChatSendRequest.maxFiles) break;
+        if (knownPaths.add(file.path)) _attachments.add(file);
+      }
+    });
+    if (accepted.length != result.files.length) {
+      AppUtils().showSnackBar(
+        context,
+        MsgType.error,
+        'Choose JPG, JPEG, PNG, PDF, DOC or DOCX files up to 10 MB.',
+      );
+    }
+    if (exceededLimit) {
+      AppUtils().showSnackBar(
+        context,
+        MsgType.info,
+        'A message can contain at most 5 files.',
+      );
+    }
+  }
+
+  Future<void> _showAddMenu() async {
+    final action = await showAppBottomSheet<String>(
+      context: context,
+      builder: (sheetContext) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            leading: const Icon(Icons.attach_file_rounded),
+            title: const Text('Attach files'),
+            onTap: () => Navigator.of(sheetContext).pop('files'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.location_on_outlined),
+            title: const Text('Share current location'),
+            onTap: () => Navigator.of(sheetContext).pop('location'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted) return;
+    if (action == 'files') {
+      await _pickAttachments();
+    } else if (action == 'location') {
+      await _shareLocation();
+    }
+  }
+
+  Future<void> _shareLocation() async {
+    await VenueDistanceHelper.instance.ensurePosition();
+    if (!mounted) return;
+    final position = VenueDistanceHelper.instance.position.value;
+    if (position == null) {
+      AppUtils().showSnackBar(
+        context,
+        MsgType.error,
+        'Location is unavailable. Check location permission and services.',
+      );
+      return;
+    }
+    _bloc.add(
+      SendMessageEvent(
+        widget.conversation.id,
+        ChatSendRequest(
+          body: 'Shared location',
+          type: 'location',
+          metadata: <String, dynamic>{
+            'latitude': position.latitude,
+            'longitude': position.longitude,
+          },
+          replyToMessageId: _replyingTo?.id,
+        ),
+      ),
+    );
+    setState(() => _replyingTo = null);
+  }
+
+  Future<void> _showMessageActions(ChatMessageModel message) async {
+    final action = await showAppBottomSheet<String>(
+      context: context,
+      builder: (sheetContext) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            leading: const Icon(Icons.reply_rounded),
+            title: const Text('Reply'),
+            onTap: () => Navigator.of(sheetContext).pop('reply'),
+          ),
+          if (message.isMine(_bloc.state.currentUserId))
+            ListTile(
+              leading: const Icon(Icons.delete_outline_rounded),
+              title: const Text('Delete message'),
+              textColor: Colors.redAccent,
+              iconColor: Colors.redAccent,
+              onTap: () => Navigator.of(sheetContext).pop('delete'),
+            ),
+        ],
+      ),
+    );
+    if (!mounted) return;
+    if (action == 'reply') {
+      setState(() => _replyingTo = message);
+    } else if (action == 'delete') {
+      final confirmed = await showDeleteDialog(
+        context: context,
+        title: 'Delete message?',
+        message:
+            'This message will be permanently removed from the conversation.',
+        confirmText: 'Delete',
+      );
+      if (confirmed && mounted) {
+        _bloc.add(DeleteMessageEvent(message.id));
+      }
+    }
+  }
+
+  /// Fetches the authed bytes for an attachment for inline rendering; returns
+  /// null on failure so the bubble can fall back to a file chip.
+  Future<Uint8List?> _loadMediaBytes(ChatMediaModel media) async {
+    final result = await _bloc.useCase.getMediaBytes(media.id);
+    return result.fold((_) => null, (bytes) => bytes);
+  }
+
+  Future<void> _openMedia(ChatMediaModel media) async {
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+    final result = await _bloc.useCase.getMediaBytes(media.id);
+    if (!mounted) return;
+    Navigator.of(context).pop();
+    await result.fold(
+      (failure) async =>
+          AppUtils().showSnackBar(context, MsgType.error, failure.errorMessage),
+      (bytes) async {
+        if (media.isImage) {
+          await _showImage(bytes);
+        } else {
+          await FilePicker.platform.saveFile(
+            dialogTitle: 'Save ${media.name}',
+            fileName: media.name,
+            bytes: bytes,
+          );
+        }
+      },
+    );
+  }
+
+  Future<void> _showImage(Uint8List bytes) => showDialog<void>(
+    context: context,
+    builder: (dialogContext) => Dialog(
+      backgroundColor: Colors.black,
+      child: Stack(
+        children: [
+          InteractiveViewer(child: Center(child: Image.memory(bytes))),
+          Positioned(
+            right: 4,
+            top: 4,
+            child: IconButton(
+              color: Colors.white,
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              icon: const Icon(Icons.close_rounded),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+
+  Future<void> _showConversationActions() async {
+    final state = _bloc.state;
+    final conversation = state.activeConversation ?? widget.conversation;
+    final action = await showAppBottomSheet<_ConversationAction>(
+      context: context,
+      builder: (_) => _ConversationActions(
+        conversation: conversation,
+        currentUserId: state.currentUserId,
+      ),
+    );
+    if (!mounted || action == null) return;
+    switch (action.type) {
+      case _ConversationActionType.mute:
+        _bloc.add(
+          SetConversationMutedEvent(conversation.id, !conversation.isMuted),
+        );
+      case _ConversationActionType.archive:
+        _bloc.add(
+          SetConversationArchivedEvent(
+            conversation.id,
+            !conversation.isArchived,
+          ),
+        );
+      case _ConversationActionType.block:
+        final participant = action.participant!;
+        _bloc.add(
+          SetParticipantBlockedEvent(
+            conversationId: conversation.id,
+            userId: participant.userId,
+            blocked: !participant.isBlocked,
+          ),
+        );
+      case _ConversationActionType.addMembers:
+        final existingIds =
+            conversation.participants
+                .map((participant) => participant.userId)
+                .toSet()
+              ..add(state.currentUserId);
+        final ids = await showAddGroupMembersSheet(
+          context: context,
+          excludedUserIds: existingIds,
+          participants: state.conversations.expand((item) => item.participants),
+        );
+        if (ids != null && ids.isNotEmpty && mounted) {
+          _bloc.add(AddGroupMembersEvent(conversation.id, ids));
+        }
+    }
   }
 
   void _scrollToBottom() {
@@ -70,23 +372,75 @@ class _ChatPageState extends State<ChatPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: LightColor.background,
-      appBar: _ChatAppBar(conversation: widget.conversation),
+      appBar: _ChatAppBar(
+        conversation: widget.conversation,
+        peerOnline: _peerOnline,
+        onActions: _showConversationActions,
+      ),
       body: SafeArea(
         top: false,
         child: BlocConsumer<MessageBloc, MessageState>(
           listenWhen: (prev, curr) =>
-              curr.messages.length > prev.messages.length,
-          listener: (context, state) => _scrollToBottom(),
+              curr.messages.length > prev.messages.length ||
+              curr.actionMessage != prev.actionMessage ||
+              (prev.actionBusy &&
+                  !curr.actionBusy &&
+                  curr.errorMessage != prev.errorMessage) ||
+              (prev.sending &&
+                  !curr.sending &&
+                  curr.errorMessage != prev.errorMessage),
+          listener: (context, state) {
+            _scrollToBottom();
+            if (state.actionMessage != null) {
+              AppUtils().showSnackBar(
+                context,
+                MsgType.success,
+                state.actionMessage!,
+              );
+              _bloc.add(const ClearMessageActionEvent());
+            } else if (!state.actionBusy && state.errorMessage != null) {
+              AppUtils().showSnackBar(
+                context,
+                MsgType.error,
+                state.errorMessage!,
+              );
+              _bloc.add(const ClearMessageActionEvent());
+            }
+          },
           builder: (context, state) {
+            final active = state.activeConversation ?? widget.conversation;
+            final blocked = active.participants.any(
+              (participant) =>
+                  participant.userId != state.currentUserId &&
+                  participant.isBlocked,
+            );
             return Column(
               children: [
                 Expanded(child: _thread(state)),
+                if (blocked)
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
+                    child: Text(
+                      'You blocked this user. Unblock them to send messages.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.redAccent),
+                    ),
+                  ),
                 ChatInputBar(
                   onSend: _send,
                   sending: state.sending,
-                  onTypingChanged: (typing) => context
-                      .read<MessageBloc>()
-                      .add(SendTypingEvent(widget.conversation.id, typing)),
+                  onTypingChanged: (typing) => _bloc.add(
+                    SendTypingEvent(widget.conversation.id, typing),
+                  ),
+                  onAttach: _showAddMenu,
+                  attachmentNames: _attachments
+                      .map((file) => file.name)
+                      .toList(growable: false),
+                  onRemoveAttachment: (index) =>
+                      setState(() => _attachments.removeAt(index)),
+                  replyingTo: _replyingTo,
+                  onCancelReply: () => setState(() => _replyingTo = null),
+                  enabled: !blocked,
                 ),
               ],
             );
@@ -105,7 +459,10 @@ class _ChatPageState extends State<ChatPage> {
       return _ThreadError(
         message: state.errorMessage ?? 'Could not load messages.',
         onRetry: () => context.read<MessageBloc>().add(
-          LoadChatEvent(widget.conversation.id),
+          LoadChatEvent(
+            widget.conversation.id,
+            conversation: widget.conversation,
+          ),
         ),
       );
     }
@@ -118,7 +475,11 @@ class _ChatPageState extends State<ChatPage> {
     final entries = <Widget>[];
     DateTime? lastDay;
     for (final m in state.messages) {
-      final day = DateTime(m.createdAt.year, m.createdAt.month, m.createdAt.day);
+      final day = DateTime(
+        m.createdAt.year,
+        m.createdAt.month,
+        m.createdAt.day,
+      );
       if (lastDay == null || day != lastDay) {
         entries.add(ChatDayChip(date: m.createdAt));
         lastDay = day;
@@ -128,6 +489,9 @@ class _ChatPageState extends State<ChatPage> {
           message: m,
           isMe: m.isMine(state.currentUserId),
           showSender: widget.conversation.isGroup,
+          onLongPress: () => _showMessageActions(m),
+          onMediaTap: _openMedia,
+          mediaBytesLoader: _loadMediaBytes,
         ),
       );
     }
@@ -275,9 +639,15 @@ class _ThreadError extends StatelessWidget {
 
 /// Contact header: avatar, title and live subtitle (typing… / members).
 class _ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
-  const _ChatAppBar({required this.conversation});
+  const _ChatAppBar({
+    required this.conversation,
+    required this.peerOnline,
+    required this.onActions,
+  });
 
   final ConversationModel conversation;
+  final bool? peerOnline;
+  final VoidCallback onActions;
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
@@ -304,25 +674,35 @@ class _ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
           color: LightColor.primaryTextColor,
         ),
       ),
+      actions: [
+        IconButton(
+          tooltip: 'Conversation settings',
+          onPressed: onActions,
+          icon: const Icon(Icons.more_vert_rounded),
+        ),
+      ],
       title: BlocBuilder<MessageBloc, MessageState>(
         builder: (context, state) {
-          final title = conversation.displayTitle(state.currentUserId);
-          final avatar = conversation.displayAvatar(state.currentUserId);
+          final active = state.activeConversation ?? conversation;
+          final title = active.displayTitle(state.currentUserId);
+          final avatar = active.displayAvatar(state.currentUserId);
           final String subtitle;
           if (state.peerTyping) {
             subtitle = 'typing…';
-          } else if (conversation.isGroup) {
-            final n = conversation.participants.length;
+          } else if (active.isGroup) {
+            final n = active.participants.length;
             subtitle = '$n ${n == 1 ? 'member' : 'members'}';
           } else {
-            final role =
-                conversation.otherParticipant(state.currentUserId)?.role ?? '';
-            subtitle = role.isEmpty ? 'Direct message' : role;
+            subtitle = switch (peerOnline) {
+              true => 'Online',
+              false => 'Offline',
+              null => 'Checking presence…',
+            };
           }
 
           return Row(
             children: [
-              if (conversation.isGroup || avatar.isEmpty)
+              if (active.isGroup || avatar.isEmpty)
                 Container(
                   width: 38,
                   height: 38,
@@ -331,7 +711,7 @@ class _ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
                     color: LightColor.secondaryColor.withValues(alpha: 0.10),
                     shape: BoxShape.circle,
                   ),
-                  child: conversation.isGroup
+                  child: active.isGroup
                       ? const Icon(
                           Icons.groups_2_outlined,
                           size: 19,
@@ -392,6 +772,114 @@ class _ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
           );
         },
       ),
+    );
+  }
+}
+
+enum _ConversationActionType { mute, archive, block, addMembers }
+
+final class _ConversationAction {
+  const _ConversationAction(this.type, [this.participant]);
+
+  final _ConversationActionType type;
+  final ParticipantModel? participant;
+}
+
+class _ConversationActions extends StatelessWidget {
+  const _ConversationActions({
+    required this.conversation,
+    required this.currentUserId,
+  });
+
+  final ConversationModel conversation;
+  final int currentUserId;
+
+  @override
+  Widget build(BuildContext context) {
+    final participants = conversation.participants
+        .where((participant) => participant.userId != currentUserId)
+        .toList(growable: false);
+    return ListView(
+      shrinkWrap: true,
+      children: [
+        if (conversation.isGroup)
+          ListTile(
+            leading: const Icon(Icons.person_add_alt_1_rounded),
+            title: const Text('Add members'),
+            onTap: () => Navigator.of(context).pop(
+              const _ConversationAction(_ConversationActionType.addMembers),
+            ),
+          ),
+        ListTile(
+          leading: Icon(
+            conversation.isMuted
+                ? Icons.volume_up_outlined
+                : Icons.volume_off_outlined,
+          ),
+          title: Text(conversation.isMuted ? 'Unmute' : 'Mute'),
+          onTap: () => Navigator.of(
+            context,
+          ).pop(const _ConversationAction(_ConversationActionType.mute)),
+        ),
+        ListTile(
+          leading: Icon(
+            conversation.isArchived
+                ? Icons.unarchive_outlined
+                : Icons.archive_outlined,
+          ),
+          title: Text(conversation.isArchived ? 'Unarchive' : 'Archive'),
+          onTap: () => Navigator.of(
+            context,
+          ).pop(const _ConversationAction(_ConversationActionType.archive)),
+        ),
+        if (participants.isNotEmpty) ...[
+          const Divider(),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            child: Text(
+              'Participants',
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
+          for (final participant in participants)
+            ListTile(
+              contentPadding: EdgeInsets.symmetric(horizontal: 16),
+
+              leading: CircleAvatar(
+                child: Text(
+                  participant.name.isEmpty
+                      ? '?'
+                      : participant.name.substring(0, 1).toUpperCase(),
+                ),
+              ),
+              title: Text(
+                participant.name,
+                style: FutsalTheme.getTextTheme(context).bodyTextSmall,
+              ),
+
+              subtitle: participant.role.isEmpty
+                  ? null
+                  : Text(
+                      participant.role,
+                      style: FutsalTheme.getTextTheme(
+                        context,
+                      ).bodySubTitle?.copyWith(fontWeight: FontWeight.w400),
+                    ),
+              titleAlignment: ListTileTitleAlignment.center,
+              trailing: InkWell(
+                onTap: participant.userId <= 0
+                    ? null
+                    : () => Navigator.of(context).pop(
+                        _ConversationAction(
+                          _ConversationActionType.block,
+                          participant,
+                        ),
+                      ),
+                child: Text(participant.isBlocked ? 'Unblock' : 'Block'),
+              ),
+            ),
+        ],
+      ],
     );
   }
 }

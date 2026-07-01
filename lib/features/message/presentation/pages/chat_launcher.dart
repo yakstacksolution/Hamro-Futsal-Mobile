@@ -7,20 +7,19 @@ import 'package:hamro_footsall/features/message/data/service/reverb_chat_socket_
 import 'package:hamro_footsall/features/message/domain/usecase/message_usecase.dart';
 import 'package:hamro_footsall/features/message/presentation/bloc/message_bloc/message_bloc.dart';
 import 'package:hamro_footsall/features/message/presentation/pages/chat_page.dart';
-
-/// Entry point for starting a chat from outside the inbox (e.g. the futsal
-/// details "Hosted by" section).
+ 
 class ChatLauncher {
   const ChatLauncher._();
 
-  /// Starts (or reuses — the backend returns the existing conversation) a
-  /// direct chat with [vendorId] via `POST /conversations/direct`, then opens
-  /// the thread. Shows a blocking spinner while the conversation is created.
+  static final Set<String> _opening = <String>{};
+ 
   static Future<void> startDirect(
     BuildContext context, {
     required int vendorId,
     int? venueId,
   }) async {
+    final key = '$vendorId:${venueId ?? 0}';
+    if (!_opening.add(key)) return;
     final useCase = MessageUseCase(MessageRepositoryImpl());
 
     showDialog<void>(
@@ -35,6 +34,7 @@ class ChatLauncher {
       vendorId: vendorId,
       venueId: venueId,
     );
+    _opening.remove(key);
 
     if (!context.mounted) return;
     Navigator.of(context).pop(); // dismiss the spinner

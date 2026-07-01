@@ -578,10 +578,17 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
   }
 
   void removeMediaLibraryItem(UploadRef file) {
+    final UploadRef? stored = state.mediaLibrary
+        .where((UploadRef item) => item.storageKey == file.storageKey)
+        .firstOrNull;
+    if (stored?.verificationStatus.isLocked ??
+        file.verificationStatus.isLocked) {
+      return;
+    }
     _emitUpdated(
       state.copyWith(
         mediaLibrary: state.mediaLibrary
-            .where((UploadRef item) => item.remoteUrl != file.remoteUrl)
+            .where((UploadRef item) => item.storageKey != file.storageKey)
             .toList(),
       ),
     );
@@ -1594,11 +1601,17 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
   }
 
   void removeCompanyDocument(UploadRef file) {
-    if (file.verificationStatus.isLocked) return;
+    final UploadRef? stored = state.futsal.companyDocuments
+        .where((UploadRef item) => item.storageKey == file.storageKey)
+        .firstOrNull;
+    if (stored?.verificationStatus.isLocked ??
+        file.verificationStatus.isLocked) {
+      return;
+    }
     updateFutsal(
       state.futsal.copyWith(
         companyDocuments: state.futsal.companyDocuments
-            .where((UploadRef item) => item.remoteUrl != file.remoteUrl)
+            .where((UploadRef item) => item.storageKey != file.storageKey)
             .toList(),
       ),
     );
@@ -1607,7 +1620,10 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
   /// Swaps a rejected company document for a freshly picked one. Only
   /// rejected documents can be replaced — pending/approved are locked.
   void replaceCompanyDocument(UploadRef oldFile, UploadRef newFile) {
-    if (oldFile.verificationStatus != UploadVerificationStatus.rejected) {
+    final UploadRef? stored = state.futsal.companyDocuments
+        .where((UploadRef item) => item.storageKey == oldFile.storageKey)
+        .firstOrNull;
+    if (stored?.verificationStatus != UploadVerificationStatus.rejected) {
       return;
     }
     updateFutsal(
@@ -1615,7 +1631,7 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
         companyDocuments: state.futsal.companyDocuments
             .map(
               (UploadRef item) =>
-                  item.remoteUrl == oldFile.remoteUrl ? newFile : item,
+                  item.storageKey == oldFile.storageKey ? newFile : item,
             )
             .toList(),
       ),
@@ -2376,10 +2392,14 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     List<UploadRef> additions,
   ) {
     final Map<String, UploadRef> byPath = <String, UploadRef>{
-      for (final UploadRef item in current) item.remoteUrl ?? '': item,
+      for (final UploadRef item in current) item.storageKey: item,
     };
     for (final UploadRef item in additions) {
-      byPath[item.remoteUrl ?? ''] = item;
+      final String key = item.storageKey;
+      final UploadRef? existing = byPath[key];
+      // Never let a picker result overwrite server-reviewed metadata.
+      if (existing?.verificationStatus.isLocked ?? false) continue;
+      byPath[key] = item;
     }
     return byPath.values.toList();
   }

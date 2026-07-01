@@ -4,6 +4,7 @@ import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/custom_image_view.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/features/futsal_details/data/model/time_slot_model.dart';
 import 'package:hamro_footsall/features/futsal_details/data/model/venue_court_item_model.dart';
 
 /// Compact, selectable court row: thumbnail, name + meta, price for the
@@ -131,7 +132,7 @@ class CourtSlotCard extends StatelessWidget {
                       if (!isAvailable)
                         _MetaChip(
                           icon: _statusIcon(court.status),
-                          label: court.unavailableReasonLabel ?? court.status.label,
+                          label: court.status.label,
                           muted: true,
                         ),
                     ],
@@ -174,11 +175,12 @@ class CourtSlotCard extends StatelessWidget {
     );
   }
 
-  IconData _statusIcon(CourtAvailabilityStatus status) {
+  IconData _statusIcon(SlotStatus status) {
     return switch (status) {
-      CourtAvailabilityStatus.booked => Icons.event_busy_rounded,
-      CourtAvailabilityStatus.unavailable => Icons.block_rounded,
-      CourtAvailabilityStatus.available => Icons.check_circle_rounded,
+      SlotStatus.booked => Icons.event_busy_rounded,
+      SlotStatus.closed => Icons.lock_clock_rounded,
+      SlotStatus.unavailable => Icons.block_rounded,
+      SlotStatus.available => Icons.check_circle_rounded,
     };
   }
 

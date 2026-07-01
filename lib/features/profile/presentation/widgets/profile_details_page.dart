@@ -171,6 +171,7 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
       gender: _selectedGender,
       address: _addressController.text.trim(),
       profilePhoto: _avatarMediaId?.toString(),
+      profilePhotoUrl: _avatarMediaId == null ? null : _avatarUrl,
     );
   }
 
@@ -208,6 +209,7 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
             if (state.status == ProfileStatus.failure &&
                 state.errorMessage != null) {
               _isPhotoOnlyUpdate = false;
+              setState(() => _avatarUrl = state.profileImage);
               AppUtils().showSnackBar(
                 context,
                 MsgType.error,

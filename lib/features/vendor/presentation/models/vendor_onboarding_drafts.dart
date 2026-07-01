@@ -49,6 +49,14 @@ class UploadRef {
   final String? remoteUrl;
   final UploadVerificationStatus verificationStatus;
 
+  /// Stable identity for selection and mutation before and after upload.
+  String get storageKey {
+    if (id != null) return 'id:$id';
+    final String url = (remoteUrl ?? '').trim();
+    if (url.isNotEmpty) return 'url:$url';
+    return 'name:$name';
+  }
+
   UploadRef copyWith({
     String? name,
     String? localPath,

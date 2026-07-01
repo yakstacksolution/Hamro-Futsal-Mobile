@@ -63,6 +63,10 @@ class AuthManager extends ServiceManager {
     return await _apiClient.updateNotificationPreferences(data: data);
   }
 
+  Future<Result> updateFcmToken(Map<String, dynamic> data) async {
+    return await _apiClient.updateFcmToken(data: data);
+  }
+
   /// Authenticated password change (Settings) — distinct from the
   /// forgot-password reset flow's `changePassword`.
   Future<Result> updatePassword(Map<String, dynamic> data) async {
@@ -181,10 +185,32 @@ class AuthManager extends ServiceManager {
     return await _apiClient.createGroupConversation(data: data);
   }
 
+  Future<Result> addConversationParticipants(
+    int conversationId,
+    List<int> participantIds,
+  ) async {
+    return await _apiClient.addConversationParticipants(
+      conversationId: conversationId,
+      participantIds: participantIds,
+    );
+  }
+
   Future<Result> getConversationDetails(int conversationId) async {
     return await _apiClient.getConversationDetails(
       conversationId: conversationId,
     );
+  }
+
+  Future<Result> getUserPresence(int userId) async {
+    return await _apiClient.getUserPresence(userId: userId);
+  }
+
+  Future<Result> setPresence(bool online) async {
+    return await _apiClient.setPresence(online: online);
+  }
+
+  Future<Result> sendPresenceHeartbeat(String socketId) async {
+    return await _apiClient.sendPresenceHeartbeat(socketId: socketId);
   }
 
   Future<Result> getConversationMessages(int conversationId) async {
@@ -230,6 +256,28 @@ class AuthManager extends ServiceManager {
     );
   }
 
+  Future<Result> blockConversationParticipant(
+    int conversationId,
+    int userId, {
+    String? reason,
+  }) async {
+    return await _apiClient.blockConversationParticipant(
+      conversationId: conversationId,
+      userId: userId,
+      reason: reason,
+    );
+  }
+
+  Future<Result> unblockConversationParticipant(
+    int conversationId,
+    int userId,
+  ) async {
+    return await _apiClient.unblockConversationParticipant(
+      conversationId: conversationId,
+      userId: userId,
+    );
+  }
+
   Future<Result> deleteChatMessage(int messageId) async {
     return await _apiClient.deleteChatMessage(messageId: messageId);
   }
@@ -249,12 +297,14 @@ class AuthManager extends ServiceManager {
   Future<Result> getAvailableCourts({
     required int venueId,
     required String selectDate,
-    String? slotTime,
+    String? slotStartTime,
+    String? slotEndTime,
   }) async {
     return await _apiClient.getAvailableCourts(
       venueId: venueId,
       selectDate: selectDate,
-      slotTime: slotTime,
+      slotStartTime: slotStartTime,
+      slotEndTime: slotEndTime,
     );
   }
 
@@ -263,6 +313,34 @@ class AuthManager extends ServiceManager {
     required String date,
   }) async {
     return await _apiClient.getVenueSlots(venueId: venueId, date: date);
+  }
+
+  Future<Result> getCourtPaymentQr({required int courtId}) async {
+    return await _apiClient.getCourtPaymentQr(courtId: courtId);
+  }
+
+  Future<Result> createBooking(dynamic data) async {
+    return await _apiClient.createBooking(data: data);
+  }
+
+  Future<Result> getRecurringAvailability(dynamic data) async {
+    return await _apiClient.getRecurringAvailability(data: data);
+  }
+
+  Future<Result> createBookingHold(dynamic data) async {
+    return await _apiClient.createBookingHold(data: data);
+  }
+
+  Future<Result> releaseBookingHold(String holdToken) async {
+    return await _apiClient.releaseBookingHold(holdToken: holdToken);
+  }
+
+  Future<Result> getActiveCoupons() async {
+    return await _apiClient.getActiveCoupons();
+  }
+
+  Future<Result> applyCoupon({required Map<String, dynamic> data}) async {
+    return await _apiClient.applyCoupon(data: data);
   }
 
   Future<Result> getVenueCourt() async {
