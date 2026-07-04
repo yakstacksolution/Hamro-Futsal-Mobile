@@ -10,15 +10,13 @@ abstract class FutsalDetailsRemoteDataSource {
   Future<Result> getAvailableCourts({
     required int venueId,
     required String selectDate,
-        String? slotStartTime,
+    String? slotStartTime,
     String? slotEndTime,
   });
   Future<Result> getVenueSlots({required int venueId, required String date});
   Future<Result> getCourtPaymentQr({required int courtId});
   Future<Result> createBooking(CreateBookingRequest request);
-  Future<Result> getRecurringAvailability({
-    required Map<String, dynamic> data,
-  });
+  Future<Result> getRecurringAvailability({required Map<String, dynamic> data});
   Future<Result> createBookingHold({required Map<String, dynamic> data});
   Future<Result> releaseBookingHold({required String holdToken});
 }
@@ -49,7 +47,7 @@ final class FutsalDetailsRemoteDataSourceImpl
     venueId: venueId,
     selectDate: selectDate,
     slotStartTime: slotStartTime,
-    slotEndTime: slotEndTime
+    slotEndTime: slotEndTime,
   );
 
   @override

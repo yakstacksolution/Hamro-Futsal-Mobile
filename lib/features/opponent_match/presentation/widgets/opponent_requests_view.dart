@@ -11,6 +11,7 @@ import 'package:hamro_footsall/features/opponent_match/data/model/opponent_match
 import 'package:hamro_footsall/features/opponent_match/presentation/bloc/opponent_match_bloc/opponent_match_bloc.dart';
 import 'package:hamro_footsall/features/opponent_match/presentation/utils/opponent_ui_utils.dart';
 import 'package:hamro_footsall/features/opponent_match/presentation/widgets/opponent_common.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 /// How long a `New` incoming request stays acceptable.
 const Duration kAcceptWindow = Duration(minutes: 20);
@@ -44,14 +45,12 @@ class OpponentRequestsView extends StatelessWidget {
   List<OpponentRequestModel> _filtered(List<OpponentRequestModel> requests) =>
       switch (filter) {
         RequestFilter.all => requests,
-        RequestFilter.open =>
-          requests.where((r) => r.status.isOpen).toList(),
+        RequestFilter.open => requests.where((r) => r.status.isOpen).toList(),
         RequestFilter.mine => requests.where(_isMine).toList(),
         // Sent requests have their own tab now, so settled is only the
         // requests that reached a final state.
-        RequestFilter.settled => requests
-            .where((r) => r.status.isSettled && !_isMine(r))
-            .toList(),
+        RequestFilter.settled =>
+          requests.where((r) => r.status.isSettled && !_isMine(r)).toList(),
       };
 
   int _count(List<OpponentRequestModel> requests, RequestFilter f) =>
@@ -59,9 +58,8 @@ class OpponentRequestsView extends StatelessWidget {
         RequestFilter.all => requests.length,
         RequestFilter.open => requests.where((r) => r.status.isOpen).length,
         RequestFilter.mine => requests.where(_isMine).length,
-        RequestFilter.settled => requests
-            .where((r) => r.status.isSettled && !_isMine(r))
-            .length,
+        RequestFilter.settled =>
+          requests.where((r) => r.status.isSettled && !_isMine(r)).length,
       };
 
   @override
@@ -231,10 +229,10 @@ class _OpponentRequestCardState extends State<OpponentRequestCard> {
   Future<void> _confirmDelete(BuildContext context) async {
     final bool confirmed = await showDeleteDialog(
       context: context,
-      title: 'Remove request?',
+      title: StringConstants.removeRequest,
       message:
           'This will remove the request from ${widget.request.team}. You can\'t undo this.',
-      confirmText: 'Remove',
+      confirmText: StringConstants.remove,
     );
     if (confirmed) widget.onDelete();
   }
@@ -397,7 +395,7 @@ class _OpponentRequestCardState extends State<OpponentRequestCard> {
                 ),
                 const _FooterNote(
                   icon: Icons.hourglass_disabled_rounded,
-                  label: 'Closed — accept window expired',
+                  label: StringConstants.closedAcceptWindowExpired,
                 ),
               ] else if (request.status.isOpen)
                 // Incoming requests are accept-only: letting the countdown
@@ -406,7 +404,7 @@ class _OpponentRequestCardState extends State<OpponentRequestCard> {
                   padding: const EdgeInsets.only(bottom: AppDimens.paddingX6),
                   child: _ActionButton(
                     icon: Icons.check_rounded,
-                    label: 'Accept',
+                    label: StringConstants.accept,
                     foreground: LightColor.whiteColor,
                     background: LightColor.secondaryColor,
                     glow: true,
@@ -419,7 +417,7 @@ class _OpponentRequestCardState extends State<OpponentRequestCard> {
                   padding: const EdgeInsets.only(bottom: AppDimens.paddingX6),
                   child: _ActionButton(
                     icon: Icons.delete_outline_rounded,
-                    label: 'Remove Request',
+                    label: StringConstants.removeRequestAction,
                     foreground: LightColor.redColor,
                     background: LightColor.redLightColor,
                     onTap: () => _confirmDelete(context),
@@ -507,7 +505,7 @@ class _CountdownPill extends StatelessWidget {
           ),
           const SizedBox(width: AppDimens.paddingX6),
           Text(
-            'Accept within',
+            StringConstants.acceptWithin,
             style: textTheme.bodyTextSmall?.copyWith(
               color: fg,
               fontWeight: FontWeight.w500,

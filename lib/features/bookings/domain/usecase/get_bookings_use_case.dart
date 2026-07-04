@@ -11,6 +11,9 @@ final class GetBookingsUseCase {
   Future<Either<AppException, List<BookingModel>>> getMyBookings() =>
       _repository.getMyBookings();
 
+  Future<Either<AppException, BookingModel>> getBookingDetails(int bookingId) =>
+      _repository.getBookingDetails(bookingId);
+
   Future<Either<AppException, List<BookingModel>>> getFutsalBookings() =>
       _repository.getFutsalBookings();
 }

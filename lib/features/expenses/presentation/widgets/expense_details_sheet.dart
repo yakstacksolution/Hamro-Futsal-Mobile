@@ -7,6 +7,7 @@ import 'package:hamro_footsall/core/utils/custom_image_view.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/features/expenses/data/model/expense_model.dart';
 import 'package:hamro_footsall/features/expenses/presentation/utils/expense_ui_utils.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 /// Bottom sheet showing an expense's full details with edit and delete
 /// actions. Pops with [editAction] or [deleteAction] accordingly.
@@ -114,20 +115,26 @@ class ExpenseDetailsSheet extends StatelessWidget {
               const SizedBox(height: AppDimens.paddingX14),
               const Divider(height: 1, color: LightColor.dividerColor),
               const SizedBox(height: AppDimens.paddingX6),
-              _DetailRow(label: 'Purpose', value: expense.vendor),
-              _DetailRow(label: 'Date', value: _dateLabel),
+              _DetailRow(label: StringConstants.purpose, value: expense.vendor),
+              _DetailRow(label: StringConstants.date, value: _dateLabel),
               _DetailRow(
-                label: 'Venue',
+                label: StringConstants.venue,
                 value: courtName == null
                     ? venueName
                     : '$venueName · $courtName',
               ),
-              _DetailRow(label: 'Paid via', value: expense.method.label),
-              _DetailRow(label: 'Note', value: expense.note ?? '—'),
+              _DetailRow(
+                label: StringConstants.paidVia,
+                value: expense.method.label,
+              ),
+              _DetailRow(
+                label: StringConstants.note,
+                value: expense.note ?? '—',
+              ),
               if (expense.document != null) ...[
                 const SizedBox(height: AppDimens.paddingX8),
                 Text(
-                  'Document',
+                  StringConstants.document,
                   style: textTheme.bodyTextSmall?.copyWith(
                     color: LightColor.hintTextColor,
                   ),
@@ -140,7 +147,7 @@ class ExpenseDetailsSheet extends StatelessWidget {
                 children: [
                   Expanded(
                     child: _SheetAction(
-                      label: 'Edit',
+                      label: StringConstants.edit,
                       icon: Icons.edit_outlined,
                       color: LightColor.secondaryColor,
                       onTap: () => Navigator.of(context).pop(editAction),
@@ -149,7 +156,7 @@ class ExpenseDetailsSheet extends StatelessWidget {
                   const SizedBox(width: AppDimens.paddingX12),
                   Expanded(
                     child: _SheetAction(
-                      label: 'Delete',
+                      label: StringConstants.delete,
                       icon: Icons.delete_outline_rounded,
                       color: LightColor.redColor,
                       onTap: () => Navigator.of(context).pop(deleteAction),

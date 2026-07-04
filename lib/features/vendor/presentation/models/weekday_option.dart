@@ -22,7 +22,8 @@ class WeekdayOption {
   final String name;
 
   /// Capitalized short label for display, e.g. `Sun`.
-  String get label => key.isEmpty ? key : key[0].toUpperCase() + key.substring(1);
+  String get label =>
+      key.isEmpty ? key : key[0].toUpperCase() + key.substring(1);
 
   static const List<WeekdayOption> values = <WeekdayOption>[
     WeekdayOption(id: 1, key: 'sun', name: 'Sunday'),

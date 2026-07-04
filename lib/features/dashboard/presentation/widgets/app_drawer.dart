@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hamro_footsall/core/routers/app_router_params.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/features/profile/presentation/widgets/profile_header_background.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class DashboardUser {
   const DashboardUser({
@@ -34,23 +35,35 @@ class AppDrawer extends StatelessWidget {
     _DrawerNavConfig(
       index: 0,
       icon: Icons.add_business_rounded,
-      label: 'Add Footsall Court',
+      label: StringConstants.addFootsallCourt,
     ),
   ];
 
   static const List<_DrawerNavConfig> _managementItems = <_DrawerNavConfig>[
-    _DrawerNavConfig(icon: Icons.discount_rounded, label: 'Discounts'),
-    _DrawerNavConfig(icon: Icons.category_rounded, label: 'Categories'),
+    _DrawerNavConfig(
+      icon: Icons.discount_rounded,
+      label: StringConstants.discounts,
+    ),
+    _DrawerNavConfig(
+      icon: Icons.category_rounded,
+      label: StringConstants.categories,
+    ),
   ];
 
   static const List<_DrawerNavConfig> _settingsItems = <_DrawerNavConfig>[
-    _DrawerNavConfig(icon: Icons.store_rounded, label: 'Store Settings'),
+    _DrawerNavConfig(
+      icon: Icons.store_rounded,
+      label: StringConstants.storeSettings,
+    ),
     _DrawerNavConfig(
       icon: Icons.notifications_rounded,
-      label: 'Notifications',
+      label: StringConstants.notifications,
       badge: '3',
     ),
-    _DrawerNavConfig(icon: Icons.help_outline_rounded, label: 'Help & Support'),
+    _DrawerNavConfig(
+      icon: Icons.help_outline_rounded,
+      label: StringConstants.helpAndSupport,
+    ),
   ];
 
   String get _displayName {
@@ -278,7 +291,9 @@ class _DrawerNavItem extends StatelessWidget {
                   : Colors.transparent,
               borderRadius: BorderRadius.circular(14),
               border: isActive
-                  ? Border.all(color: LightColor.secondaryColor.withValues(alpha: 0.2))
+                  ? Border.all(
+                      color: LightColor.secondaryColor.withValues(alpha: 0.2),
+                    )
                   : null,
             ),
             child: Row(
@@ -296,7 +311,9 @@ class _DrawerNavItem extends StatelessWidget {
                   child: Icon(
                     icon,
                     size: 18,
-                    color: isActive ? LightColor.secondaryColor : LightColor.secondaryTextColor,
+                    color: isActive
+                        ? LightColor.secondaryColor
+                        : LightColor.secondaryTextColor,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -389,7 +406,7 @@ class _DrawerFooter extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Text(
-                      'Connected',
+                      StringConstants.connected,
                       style: theme.textTheme.bodySmall?.copyWith(
                         fontWeight: FontWeight.w700,
                         color: LightColor.primaryTextColor,
@@ -441,7 +458,7 @@ class _DrawerFooter extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    'Sign Out',
+                    StringConstants.signOut,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: LightColor.redColor,
                       fontWeight: FontWeight.w700,

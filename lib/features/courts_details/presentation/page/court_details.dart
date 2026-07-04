@@ -13,6 +13,7 @@ import 'package:hamro_footsall/features/courts_details/presentation/widget/court
 import 'package:hamro_footsall/features/courts_details/presentation/widget/court_time_slot.dart';
 import 'package:hamro_footsall/features/courts_details/presentation/widget/details_image_gallery.dart';
 import 'package:hamro_footsall/features/futsal_details/data/model/time_slot_model.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class CourtDetailModel {
   final int? venueId;
@@ -331,7 +332,7 @@ class _CourtDetailPageState extends State<CourtDetailPage>
                                 bottom: AppDimens.paddingX2,
                               ),
                               child: Text(
-                                '/ hour',
+                                StringConstants.perHourSuffix,
                                 style: FutsalTheme.getTextTheme(context)
                                     .bodyTextSmall
                                     ?.copyWith(

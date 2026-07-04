@@ -20,6 +20,7 @@ import 'package:hamro_footsall/features/futsal_details/presentation/widgets/comp
 import 'package:hamro_footsall/features/futsal_details/presentation/widgets/court_slot_card.dart';
 import 'package:hamro_footsall/features/futsal_details/presentation/widgets/loading/available_courts_loading.dart';
 import 'package:hamro_footsall/features/futsal_details/presentation/widgets/loading/selection_time_loading.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class SlotsSelectionPage extends StatefulWidget {
   const SlotsSelectionPage({super.key, required this.court});
@@ -39,9 +40,6 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
   void initState() {
     super.initState();
 
-    // Establish the shared Reverb socket as soon as the page opens so the
-    // `venue.{venueId}.slots` channel (subscribed by SlotsSelectionBloc on init)
-    // has a live connection to receive realtime availability updates.
     WidgetsBinding.instance.addObserver(this);
     ReverbConnection.instance.connect();
 
@@ -65,9 +63,6 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state != AppLifecycleState.resumed || !mounted) return;
-    // Coming back to the foreground: make sure the socket is alive again and
-    // pull a fresh availability snapshot in case broadcasts were missed while
-    // the app was backgrounded.
     ReverbConnection.instance.connect();
     context.read<SlotsSelectionBloc>().add(
       const SlotsRealtimeRefreshRequested(),
@@ -117,8 +112,6 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
     );
   }
 
-  /// Shows the `/bookings/recurring-availability` result for the chosen court,
-  /// date(s) and slot. Only visible for recurring bookings with a court picked.
   Widget _buildRecurringAvailabilitySection() {
     return BlocBuilder<SlotsSelectionBloc, SlotsSelectionState>(
       builder: (BuildContext context, SlotsSelectionState state) {
@@ -136,7 +129,7 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
             child = const SizedBox.shrink();
           case RecurringCheckStatus.failure:
             child = _AvailabilityMessage(
-              title: 'Availability check failed',
+              title: StringConstants.availabilityCheckFailed,
               message:
                   state.recurringAvailabilityError ??
                   'Could not check availability for the selected dates.',
@@ -195,6 +188,10 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
+                if (state.otherViewers > 0) ...<Widget>[
+                  _LiveViewersBadge(count: state.otherViewers),
+                  const SizedBox(height: AppDimens.sizeX10),
+                ],
                 CompactDateTimeSelector(
                   dates: state.dates,
                   timeSlots: state.timeSlots,
@@ -217,7 +214,7 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
                     state.timeSlots.isEmpty) ...<Widget>[
                   const SizedBox(height: AppDimens.sizeX12),
                   _AvailabilityMessage(
-                    title: 'Slots unavailable',
+                    title: StringConstants.slotsUnavailable,
                     message:
                         state.errorMessage ??
                         'Could not load slots for this date.',
@@ -231,8 +228,8 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
                     state.timeSlots.isEmpty) ...<Widget>[
                   const SizedBox(height: AppDimens.sizeX12),
                   const _AvailabilityMessage(
-                    title: 'No slots found',
-                    message: 'No time slots are available for this date.',
+                    title: StringConstants.noSlotsFound,
+                    message: StringConstants.noTimeSlotsAreAvailableForThisDate,
                   ),
                 ],
               ],
@@ -259,7 +256,7 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
                 children: <Widget>[
                   Expanded(
                     child: Text(
-                      'Available Courts',
+                      StringConstants.availableCourts,
                       style: FutsalTheme.getTextTheme(context).bodyTextMedium
                           ?.copyWith(color: LightColor.primaryTextColor),
                     ),
@@ -288,7 +285,7 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
                 const AvailableCourtsLoading()
               else if (state.courts.isEmpty)
                 _AvailabilityMessage(
-                  title: 'No courts available',
+                  title: StringConstants.noCourtsAvailable,
                   message: state.hasSlotSelection
                       ? 'No courts are available for this date and time.'
                       : 'No courts are available for this date.',
@@ -512,7 +509,7 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
             ),
           ),
           title: Text(
-            'Select Date & Time',
+            StringConstants.selectDateAndTime,
             style: FutsalTheme.getTextTheme(context).bodyTextLarge?.copyWith(
               color: LightColor.primaryTextColor,
               fontWeight: FontWeight.w800,
@@ -533,6 +530,51 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
           ),
         ),
         bottomNavigationBar: _buildBottomBar(),
+      ),
+    );
+  }
+}
+
+/// "N others viewing" chip fed by the booking presence channel roster —
+/// nudges the user that slots on this date may get taken in real time.
+class _LiveViewersBadge extends StatelessWidget {
+  const _LiveViewersBadge({required this.count});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: AppUtils().getPadding(
+        horizontal: AppDimens.paddingX10,
+        vertical: AppDimens.paddingX4,
+      ),
+      decoration: BoxDecoration(
+        color: LightColor.secondarySoft,
+        borderRadius: BorderRadius.circular(AppDimens.radiusX50),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Container(
+            width: AppDimens.sizeX8,
+            height: AppDimens.sizeX8,
+            decoration: const BoxDecoration(
+              color: LightColor.secondaryColor,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: AppDimens.sizeX6),
+          Text(
+            count == 1
+                ? '1 other person viewing this date'
+                : '$count others viewing this date',
+            style: FutsalTheme.getTextTheme(context).bodyMiniSubTitle?.copyWith(
+              color: LightColor.secondaryColor,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -592,7 +634,10 @@ class _AvailabilityMessage extends StatelessWidget {
           ),
           if (onRetry != null) ...<Widget>[
             const SizedBox(width: AppDimens.sizeX8),
-            TextButton(onPressed: onRetry, child: const Text('Retry')),
+            TextButton(
+              onPressed: onRetry,
+              child: const Text(StringConstants.retry),
+            ),
           ],
         ],
       ),

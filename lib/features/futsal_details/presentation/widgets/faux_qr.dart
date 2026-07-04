@@ -69,7 +69,13 @@ class _FauxQrPainter extends CustomPainter {
     return topLeft || topRight || bottomLeft;
   }
 
-  void _drawFinder(Canvas canvas, double left, double top, double cell, Paint dark) {
+  void _drawFinder(
+    Canvas canvas,
+    double left,
+    double top,
+    double cell,
+    Paint dark,
+  ) {
     final Paint light = Paint()..color = LightColor.whiteColor;
     // Outer 7x7 dark square.
     canvas.drawRRect(

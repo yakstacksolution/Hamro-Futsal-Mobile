@@ -3,6 +3,7 @@ import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class CourtReviewItem {
   const CourtReviewItem({
@@ -47,7 +48,7 @@ class CourtReviewsSection extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  'Reviews',
+                  StringConstants.reviews,
                   style: textTheme.headingSubTitle?.copyWith(
                     color: LightColor.primaryTextColor,
                     fontWeight: FontWeight.w800,

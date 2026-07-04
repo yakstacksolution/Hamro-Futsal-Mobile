@@ -348,9 +348,7 @@ Map<String, dynamic> courtSlotPricingBody(
 /// Maps the draft discount type (`Flat`/`Percent`) to the backend value
 /// (`flat` / `percentage`).
 String _discountTypeApiValue(String discountType) {
-  return discountType.trim().toLowerCase() == 'percent'
-      ? 'percentage'
-      : 'flat';
+  return discountType.trim().toLowerCase() == 'percent' ? 'percentage' : 'flat';
 }
 
 /// Converts a stored time string (12-hour display, e.g. `06 : 00 AM`) into the
@@ -391,9 +389,7 @@ List<Map<String, dynamic>> _slotBodies(
           if (includeScheduleId && int.tryParse(item.id) != null)
             'slot_schedule_id': int.parse(item.id),
           'label': item.label.trim(),
-          'days': item.days
-              .map((String day) => day.toLowerCase())
-              .toList(),
+          'days': item.days.map((String day) => day.toLowerCase()).toList(),
           'start_time': _toApiTime(item.startTime),
           'end_time': _toApiTime(item.endTime),
           'price': item.price,

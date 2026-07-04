@@ -115,7 +115,11 @@ class PlayerPositionModel {
 /// An opponent level as served by `GET /opponent-levels` — same shape as
 /// positions: `{id, title, slug}` under `data.opponent_levels`.
 class OpponentLevelModel {
-  const OpponentLevelModel({required this.id, required this.name, this.slug = ''});
+  const OpponentLevelModel({
+    required this.id,
+    required this.name,
+    this.slug = '',
+  });
 
   final String id;
 
@@ -166,7 +170,8 @@ extension RequestStatusX on RequestStatus {
   };
 
   /// Still actionable (can be accepted / rejected).
-  bool get isOpen => this == RequestStatus.fresh || this == RequestStatus.pending;
+  bool get isOpen =>
+      this == RequestStatus.fresh || this == RequestStatus.pending;
 
   bool get isSettled => !isOpen;
 }

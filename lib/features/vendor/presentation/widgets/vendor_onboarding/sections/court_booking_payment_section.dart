@@ -8,6 +8,7 @@ import 'package:hamro_footsall/features/media/presentation/widgets/media_library
 import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_cubit.dart';
 import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_models.dart';
 import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/vendor_form_components.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class CourtBookingPaymentSection extends StatelessWidget {
   const CourtBookingPaymentSection({
@@ -59,8 +60,8 @@ class CourtBookingPaymentSection extends StatelessWidget {
             ),
           if (subsectionIndex == 1)
             VendorUploadSection(
-              title: 'Payment QR',
-              subtitle: 'Upload the QR used to collect advance payment.',
+              title: StringConstants.paymentQr,
+              subtitle: StringConstants.uploadTheQrUsedToCollectAdvancePayment,
               onPick: () => unawaited(_openPaymentQrLibrary(context)),
               actionLabel: 'Gallery',
               actionIcon: Icons.qr_code_2_rounded,
@@ -79,18 +80,18 @@ class CourtBookingPaymentSection extends StatelessWidget {
   _CourtPaymentSectionMeta _sectionMeta(int index) {
     return switch (index) {
       0 => const _CourtPaymentSectionMeta(
-        title: 'Advance Payment',
-        subtitle: 'Requirement and collection amount',
+        title: StringConstants.advancePayment,
+        subtitle: StringConstants.requirementAndCollectionAmount,
         icon: Icons.payments_rounded,
       ),
       1 => const _CourtPaymentSectionMeta(
-        title: 'Payment QR',
-        subtitle: 'Upload the QR used to collect advance payments',
+        title: StringConstants.paymentQr,
+        subtitle: StringConstants.uploadTheQrUsedToCollectAdvancePayments,
         icon: Icons.qr_code_2_rounded,
       ),
       _ => const _CourtPaymentSectionMeta(
-        title: 'Booking and Payment',
-        subtitle: 'Manage booking and payment settings',
+        title: StringConstants.bookingAndPaymentTitle,
+        subtitle: StringConstants.manageBookingAndPaymentSettings,
         icon: Icons.account_balance_wallet_rounded,
       ),
     };
@@ -207,7 +208,7 @@ class _AdvancePaymentToggleSectionState
             children: <Widget>[
               Expanded(
                 child: Text(
-                  'Advance payment required',
+                  StringConstants.advancePaymentRequired,
                   style: textTheme.bodyTextMedium?.copyWith(
                     color: LightColor.primaryTextColor,
                     fontWeight: FontWeight.w500,
@@ -224,7 +225,7 @@ class _AdvancePaymentToggleSectionState
         if (court.advancePaymentRequired) ...<Widget>[
           const SizedBox(height: AppDimens.sizeX16),
           Text(
-            'Advance payment type',
+            StringConstants.advancePaymentType,
             style: textTheme.bodyTextSmall?.copyWith(
               color: LightColor.primaryTextColor,
               fontWeight: FontWeight.w600,
@@ -283,7 +284,7 @@ class _AdvanceTypeSelector extends StatelessWidget {
         children: <Widget>[
           Expanded(
             child: _AdvanceTypeOption(
-              label: 'Flat',
+              label: StringConstants.flat,
               icon: Icons.attach_money_rounded,
               isSelected: selected == AdvancePaymentType.flat,
               onTap: () => onSelected(AdvancePaymentType.flat),
@@ -292,7 +293,7 @@ class _AdvanceTypeSelector extends StatelessWidget {
           const SizedBox(width: AppDimens.sizeX4),
           Expanded(
             child: _AdvanceTypeOption(
-              label: 'Percentage',
+              label: StringConstants.percentage,
               icon: Icons.percent_rounded,
               isSelected: selected == AdvancePaymentType.percentage,
               onTap: () => onSelected(AdvancePaymentType.percentage),

@@ -1,14 +1,9 @@
+import 'dart:async';
+
 import 'package:dart_pusher_channels/dart_pusher_channels.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-/// The single, app-wide **Laravel Reverb** (Pusher protocol) websocket
-/// connection. Every realtime feature — chat messages, typing/read receipts,
-/// and slot availability — multiplexes its channels over this one socket
-/// instead of opening a connection per service.
-///
-/// Backed by `dart_pusher_channels` (pure Dart, so it can target a self-hosted
-/// Reverb host/port). Reads the shared `REVERB_*` values from `.env`.
 final class ReverbConnection {
   ReverbConnection._();
 
@@ -25,20 +20,15 @@ final class ReverbConnection {
   PusherChannelsClient? _client;
   bool _initialised = false;
 
-  /// Every channel created through this connection, kept so they can all be
-  /// (re)subscribed whenever the socket (re)connects.
   final Map<String, Channel> _channels = <String, Channel>{};
 
-  /// The current Pusher/Reverb connection id (used by the presence heartbeat).
+  final Map<String, List<StreamSubscription<dynamic>>> _eventSubs =
+      <String, List<StreamSubscription<dynamic>>>{};
+
   String? get socketId => _client?.socketId;
 
-  /// True when the required env is present; otherwise realtime is disabled and
-  /// channel getters return null (callers stay silent).
   bool get isEnabled => _appKey.isNotEmpty && _host.isNotEmpty;
 
-  /// Eagerly opens the shared socket. Safe to call repeatedly — it is a no-op
-  /// once the connection has been initialised. Channels registered later (or
-  /// already registered) subscribe as soon as the connection is established.
   void connect() => _ensureConnected();
 
   void _ensureConnected() {
@@ -70,6 +60,7 @@ final class ReverbConnection {
     // (Re)subscribe every registered channel on each (re)connect — this also
     // transparently covers automatic reconnects.
     client.onConnectionEstablished.listen((_) {
+      debugPrint('Reverb: connected (socketId=${client.socketId})');
       for (final channel in _channels.values) {
         channel.subscribeIfNotUnsubscribed();
       }
@@ -100,9 +91,76 @@ final class ReverbConnection {
       authorizationDelegate: authorizationDelegate,
     );
     _channels[name] = channel;
-    channel.bindToAll().listen(onEvent);
-    channel.subscribeIfNotUnsubscribed();
+    _eventSubs[name] = <StreamSubscription<dynamic>>[
+      channel.bindToAll().listen(onEvent),
+      ..._debugWatch(channel),
+    ];
+    channel.subscribe();
     return channel;
+  }
+
+  /// Returns the presence channel named [name], creating, binding [onEvent]
+  /// and subscribing it exactly once. Returns null when realtime is disabled.
+  ///
+  /// Presence channels are typically scoped to what the user is currently
+  /// looking at (e.g. one venue + date) — call [unsubscribe] when leaving so
+  /// the user drops out of the channel's member roster.
+  PresenceChannel? presenceChannel(
+    String name, {
+    required EndpointAuthorizableChannelTokenAuthorizationDelegate<
+      PresenceChannelAuthorizationData
+    >
+    authorizationDelegate,
+    required void Function(PusherChannelsReadEvent event) onEvent,
+  }) {
+    _ensureConnected();
+    final client = _client;
+    if (client == null) return null;
+
+    final existing = _channels[name];
+    if (existing is PresenceChannel) return existing;
+
+    final channel = client.presenceChannel(
+      name,
+      authorizationDelegate: authorizationDelegate,
+    );
+    _channels[name] = channel;
+    _eventSubs[name] = <StreamSubscription<dynamic>>[
+      channel.bindToAll().listen(onEvent),
+      ..._debugWatch(channel),
+    ];
+    // Plain subscribe (not subscribeIfNotUnsubscribed): re-joining a channel
+    // that was intentionally left must clear its `unsubscribed` status.
+    channel.subscribe();
+    return channel;
+  }
+
+  /// Leaves the channel named [name] and stops routing its events. Safe to
+  /// call for channels that were never registered.
+  void unsubscribe(String name) {
+    for (final sub in _eventSubs.remove(name) ?? const []) {
+      sub.cancel();
+    }
+    _channels.remove(name)?.unsubscribe();
+    debugPrint('Reverb: left channel $name');
+  }
+
+  /// Debug-only visibility into a channel's subscription lifecycle —
+  /// authorization failures against `/broadcasting/auth` are otherwise
+  /// swallowed silently by the pusher client.
+  List<StreamSubscription<dynamic>> _debugWatch(Channel channel) {
+    if (!kDebugMode) return const [];
+    return <StreamSubscription<dynamic>>[
+      channel.whenSubscriptionSucceeded().listen(
+        (_) => debugPrint('Reverb: subscribed to ${channel.name}'),
+      ),
+      channel.onSubscriptionError().listen(
+        (event) => debugPrint(
+          'Reverb: SUBSCRIPTION ERROR on ${channel.name} — '
+          '${event.data} (check /broadcasting/auth + routes/channels.php)',
+        ),
+      ),
+    ];
   }
 
   /// Returns the public channel named [name], creating, binding [onEvent] and
@@ -120,8 +178,11 @@ final class ReverbConnection {
 
     final channel = client.publicChannel(name);
     _channels[name] = channel;
-    channel.bindToAll().listen(onEvent);
-    channel.subscribeIfNotUnsubscribed();
+    _eventSubs[name] = <StreamSubscription<dynamic>>[
+      channel.bindToAll().listen(onEvent),
+      ..._debugWatch(channel),
+    ];
+    channel.subscribe();
     return channel;
   }
 }

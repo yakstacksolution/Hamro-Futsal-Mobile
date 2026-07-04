@@ -1,4 +1,3 @@
-
 import 'package:hamro_footsall/features/courts_details/presentation/page/court_details.dart';
 
 class FutsalDetailsModel {

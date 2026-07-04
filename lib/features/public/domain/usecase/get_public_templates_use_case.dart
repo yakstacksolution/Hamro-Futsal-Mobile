@@ -8,6 +8,6 @@ final class GetPublicTemplatesUseCase {
 
   final PublicRepository repository;
 
-  Future<Either<AppException, List<PublicTemplateModel>>> getTemplates() async =>
-      await repository.getTemplates();
+  Future<Either<AppException, List<PublicTemplateModel>>>
+  getTemplates() async => await repository.getTemplates();
 }

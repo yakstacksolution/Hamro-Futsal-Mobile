@@ -181,7 +181,9 @@ CourtDraft _courtFromJson(Map<String, dynamic> json) {
   final dynamic amenitiesRaw = json['amenities'] ?? json['court_amenities'];
   final dynamic facilitiesRaw = json['facilities'] ?? json['court_facilities'];
   final List<CourtTagDetail> amenityDetails = _tagDetailsFromAny(amenitiesRaw);
-  final List<CourtTagDetail> facilityDetails = _tagDetailsFromAny(facilitiesRaw);
+  final List<CourtTagDetail> facilityDetails = _tagDetailsFromAny(
+    facilitiesRaw,
+  );
 
   final dynamic paymentQrMedia = json['payment_qr_media'] ?? json['payment_qr'];
   final UploadRef? paymentQr = paymentQrMedia is Map
@@ -381,7 +383,9 @@ Set<int> _idSetFromAny(dynamic value) {
   return items
       .map((dynamic item) {
         if (item is Map) {
-          return _asInt(item['id'] ?? item['amenity_id'] ?? item['facility_id']);
+          return _asInt(
+            item['id'] ?? item['amenity_id'] ?? item['facility_id'],
+          );
         }
         return _asInt(item);
       })
@@ -535,8 +539,10 @@ List<SlotPricingDraft> _slotsFromResponse(dynamic schedules, dynamic pricings) {
   return pricingList
       .whereType<Map>()
       .map(
-        (Map item) =>
-            _slotFromMaps(const <String, dynamic>{}, Map<String, dynamic>.from(item)),
+        (Map item) => _slotFromMaps(
+          const <String, dynamic>{},
+          Map<String, dynamic>.from(item),
+        ),
       )
       .toList(growable: false);
 }

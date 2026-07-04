@@ -7,6 +7,7 @@ import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/widgets/custom_text_field.dart';
 import 'package:hamro_footsall/features/auth/presentation/widgets/auth_screen_frame.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -35,21 +36,21 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return AuthScreenFrame(
-      title: 'Forgot Password',
-      subtitle: 'Enter your email and we will send you an OTP code.',
+      title: StringConstants.forgotPassword,
+      subtitle: StringConstants.enterYourEmailAndWeWillSendYouAnOtpCode,
       headerIcon: Icons.lock_reset_rounded,
       primaryButtonLabel: 'Send OTP',
       primaryButtonEnabled: _isEmailValid,
       onPrimaryTap: _submit,
-      secondaryPrefixText: 'Remember password?',
-      secondaryActionText: 'Back to sign in',
+      secondaryPrefixText: StringConstants.rememberPassword,
+      secondaryActionText: StringConstants.backToSignIn,
       onSecondaryTap: () => context.goNamed(AppRouterParams.login.name),
       formFields: <Widget>[
         const SizedBox(height: AppDimens.sizeX12),
         CustomTextField(
           keyboardType: TextInputType.emailAddress,
-          labelText: 'Email Address',
-          hintText: 'you@example.com',
+          labelText: StringConstants.emailAddress,
+          hintText: StringConstants.youExampleCom,
           icon: Icons.alternate_email_rounded,
           onChanged: (String value) {
             setState(() {
@@ -77,7 +78,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               const SizedBox(width: AppDimens.sizeX8),
               Expanded(
                 child: Text(
-                  'We will send a verification code to this email.',
+                  StringConstants.weWillSendAVerificationCodeToThisEmail,
                   style: FutsalTheme.getTextTheme(context).bodyTextSmall
                       ?.copyWith(color: LightColor.secondaryTextColor),
                 ),

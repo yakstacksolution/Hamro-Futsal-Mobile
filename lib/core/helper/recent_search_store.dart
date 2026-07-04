@@ -20,7 +20,9 @@ class RecentSearchStore {
 
   /// Hydrates from local storage. Safe to call repeatedly.
   void load() {
-    searches.value = List<String>.unmodifiable(AppSettings().recentVenueSearches);
+    searches.value = List<String>.unmodifiable(
+      AppSettings().recentVenueSearches,
+    );
   }
 
   /// Records [term] as the most recent search, de-duplicating

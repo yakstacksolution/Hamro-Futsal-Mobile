@@ -10,6 +10,7 @@ import 'package:hamro_footsall/core/widgets/custom_bottom_sheet.dart';
 import 'package:hamro_footsall/core/widgets/custom_button.dart';
 import 'package:hamro_footsall/core/widgets/custom_text_field.dart';
 import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_cubit.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class VendorBottomActionBar extends StatelessWidget {
   const VendorBottomActionBar({
@@ -73,7 +74,7 @@ class VendorBottomActionBar extends StatelessWidget {
                   if (hasPrevious) ...<Widget>[
                     _SecondaryActionButton(
                       icon: Icons.arrow_back_ios,
-                      label: 'Back',
+                      label: StringConstants.back,
                       onTap: canInteract ? onPrevious : null,
                     ),
                     const SizedBox(width: AppDimens.sizeX12),
@@ -83,8 +84,8 @@ class VendorBottomActionBar extends StatelessWidget {
                       label: nextLabel,
                       onTap: canInteract
                           ? () => isAddFirstCourt
-                              ? _showAddCourtSheet(context)
-                              : onNext()
+                                ? _showAddCourtSheet(context)
+                                : onNext()
                           : null,
                       isLoading: isSubmitting,
                     ),
@@ -236,7 +237,7 @@ class _AddCourtSheetState extends State<_AddCourtSheet> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         Text(
-          'Add First Court',
+          StringConstants.addFirstCourt,
           style: FutsalTheme.getTextTheme(context).bodyTextLarge?.copyWith(
             color: LightColor.primaryTextColor,
             fontWeight: FontWeight.w800,
@@ -255,8 +256,8 @@ class _AddCourtSheetState extends State<_AddCourtSheet> {
         CustomTextField(
           controller: _nameController,
           focusNode: _focusNode,
-          labelText: 'Court Name',
-          hintText: 'e.g. Court A, Main Field',
+          labelText: StringConstants.courtNameTitleCase,
+          hintText: StringConstants.eGCourtAMainField,
           icon: Icons.sports_soccer_rounded,
           textInputAction: TextInputAction.done,
         ),
@@ -265,7 +266,7 @@ class _AddCourtSheetState extends State<_AddCourtSheet> {
           children: <Widget>[
             Expanded(
               child: CustomButton(
-                text: 'Cancel',
+                text: StringConstants.cancel,
                 isOutlined: true,
                 backgroundColor: Colors.white,
                 foregroundColor: LightColor.secondaryColor,
@@ -277,7 +278,7 @@ class _AddCourtSheetState extends State<_AddCourtSheet> {
             const SizedBox(width: AppDimens.sizeX14),
             Expanded(
               child: CustomButton(
-                text: 'Add Court',
+                text: StringConstants.addCourt,
                 minHeight: AppDimens.sizeX46,
                 onPressed: _submit,
               ),

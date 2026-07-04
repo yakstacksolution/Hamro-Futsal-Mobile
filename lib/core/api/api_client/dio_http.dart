@@ -57,10 +57,7 @@ class DioHttp implements IHttp {
     } else if (data != null) {
       return dio.post(url!, data: data);
     } else if (query != null) {
-      return dio.post(
-        url!,
-        queryParameters: query as Map<String, dynamic>?,
-      );
+      return dio.post(url!, queryParameters: query as Map<String, dynamic>?);
     } else {
       return dio.post(url!, data: data);
     }

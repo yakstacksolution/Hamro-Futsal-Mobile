@@ -45,6 +45,7 @@ class VenueCourtBloc extends Bloc<VenueCourtEvent, VenueCourtState> {
         phone: venue.phone,
         status: venue.status,
         courts: courts,
+        imageUrl: venue.imageUrl,
       );
     }).toList();
 
@@ -73,6 +74,7 @@ class VenueCourtBloc extends Bloc<VenueCourtEvent, VenueCourtState> {
         phone: venue.phone,
         status: venue.status,
         courts: courts,
+        imageUrl: venue.imageUrl,
       );
     }).toList();
 

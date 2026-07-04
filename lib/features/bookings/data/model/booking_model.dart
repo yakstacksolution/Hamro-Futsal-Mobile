@@ -11,9 +11,31 @@ class BookingModel extends Equatable {
     required this.endTime,
     required this.status,
     required this.amount,
+    this.venueId,
+    this.courtId,
     this.playerName,
     this.playerPhone,
+    this.playerEmail,
     this.futsalAddress,
+    this.seriesParentId,
+    this.isRecurring = false,
+    this.isSeriesAnchor = false,
+    this.recurrenceType,
+    this.recurrenceStartDate,
+    this.recurrenceEndDate,
+    this.slotCount = 1,
+    this.pricePerSlot = 0,
+    this.subtotal = 0,
+    this.discountAmount = 0,
+    this.taxAmount = 0,
+    this.advanceAmount = 0,
+    this.payableNow = 0,
+    this.balanceDueLater = 0,
+    this.paymentStatus,
+    this.notes,
+    this.coupon,
+    this.payment,
+    this.bookingSlots = const <BookingSlotModel>[],
   });
 
   final int id;
@@ -25,46 +47,178 @@ class BookingModel extends Equatable {
   final String endTime;
   final BookingStatus status;
   final double amount;
+  final int? venueId;
+  final int? courtId;
   final String? playerName;
   final String? playerPhone;
+  final String? playerEmail;
   final String? futsalAddress;
+  final int? seriesParentId;
+  final bool isRecurring;
+  final bool isSeriesAnchor;
+  final String? recurrenceType;
+  final DateTime? recurrenceStartDate;
+  final DateTime? recurrenceEndDate;
+  final int slotCount;
+  final double pricePerSlot;
+  final double subtotal;
+  final double discountAmount;
+  final double taxAmount;
+  final double advanceAmount;
+  final double payableNow;
+  final double balanceDueLater;
+  final String? paymentStatus;
+  final String? notes;
+  final BookingCouponModel? coupon;
+  final BookingPaymentModel? payment;
+  final List<BookingSlotModel> bookingSlots;
+
+  String get displayStartTime => _displayTime(startTime);
+  String get displayEndTime => _displayTime(endTime);
+
+  String get displayTimeRange {
+    if (displayStartTime.isEmpty) return '';
+    if (displayEndTime.isEmpty) return displayStartTime;
+    return '$displayStartTime – $displayEndTime';
+  }
 
   factory BookingModel.fromJson(Map<String, dynamic> json) {
+    final Map<String, dynamic> court = _mapOf(
+      json['court'] ?? json['venue_court'],
+    );
+    final Map<String, dynamic> venue = _mapOf(
+      json['venue'] ?? json['futsal'] ?? court['venue'] ?? court['futsal'],
+    );
+    final Map<String, dynamic> player = _mapOf(
+      json['user'] ?? json['player'] ?? json['customer'] ?? json['booked_by'],
+    );
+    final Map<String, dynamic> slot = _mapOf(
+      json['slot'] ?? json['time_slot'] ?? json['slot_schedule'],
+    );
+    final Map<String, dynamic> totals = _mapOf(
+      json['price_details'] ?? json['payment'] ?? json['quote'],
+    );
+    final Map<String, dynamic> coupon = _mapOf(json['coupon']);
+    final Map<String, dynamic> payment = _mapOf(json['payment']);
+    final List<BookingSlotModel> bookingSlots = _mapList(
+      json['booking_slots'],
+    ).map(BookingSlotModel.fromJson).toList(growable: false);
+
     return BookingModel(
-      id: _asInt(json['id']) ?? 0,
-      bookingRef: json['booking_ref']?.toString() ?? '',
+      id: _asInt(json['id'] ?? json['booking_id']) ?? 0,
+      bookingRef:
+          _asString(
+            json['booking_ref'] ??
+                json['booking_reference'] ??
+                json['booking_number'] ??
+                json['booking_code'] ??
+                json['reference'],
+          ) ??
+          '',
       courtName:
-          json['court_name']?.toString() ??
-          (json['court'] is Map
-              ? (json['court'] as Map)['name']?.toString() ?? ''
-              : ''),
+          _asString(
+            json['court_name'] ??
+                json['venue_court_name'] ??
+                court['name'] ??
+                court['title'],
+          ) ??
+          '',
       futsalName:
-          json['futsal_name']?.toString() ??
-          (json['venue'] is Map
-              ? (json['venue'] as Map)['name']?.toString() ?? ''
-              : ''),
-      date: json['date'] != null
-          ? DateTime.tryParse(json['date'].toString()) ?? DateTime.now()
-          : DateTime.now(),
-      startTime: json['start_time']?.toString() ?? '',
-      endTime: json['end_time']?.toString() ?? '',
-      status: BookingStatus.fromString(json['status']?.toString()),
-      amount: _asDouble(json['amount']) ?? 0.0,
-      playerName:
-          json['player_name']?.toString() ??
-          (json['user'] is Map
-              ? (json['user'] as Map)['name']?.toString()
-              : null),
-      playerPhone:
-          json['player_phone']?.toString() ??
-          (json['user'] is Map
-              ? (json['user'] as Map)['phone']?.toString()
-              : null),
-      futsalAddress:
-          json['futsal_address']?.toString() ??
-          (json['venue'] is Map
-              ? (json['venue'] as Map)['address']?.toString()
-              : null),
+          _asString(
+            json['futsal_name'] ??
+                json['venue_name'] ??
+                venue['name'] ??
+                venue['title'],
+          ) ??
+          '',
+      date: _asDate(
+        json['booking_date'] ??
+            json['date'] ??
+            json['scheduled_date'] ??
+            json['start_at'] ??
+            json['starts_at'],
+      ),
+      startTime:
+          _asString(
+            json['start_time'] ??
+                json['slot_start_time'] ??
+                slot['start_time'] ??
+                slot['from'],
+          ) ??
+          '',
+      endTime:
+          _asString(
+            json['end_time'] ??
+                json['slot_end_time'] ??
+                slot['end_time'] ??
+                slot['to'],
+          ) ??
+          '',
+      status: BookingStatus.fromString(
+        _asString(json['status'] ?? json['booking_status']),
+      ),
+      amount:
+          _asDouble(
+            json['amount'] ??
+                json['total_amount'] ??
+                json['booking_total'] ??
+                json['final_amount'] ??
+                json['price'] ??
+                totals['booking_total'] ??
+                totals['total_amount'] ??
+                totals['amount'],
+          ) ??
+          0.0,
+      venueId: _asInt(json['venue_id'] ?? venue['id']),
+      courtId: _asInt(json['court_id'] ?? court['id']),
+      playerName: _asString(
+        json['player_name'] ??
+            json['customer_name'] ??
+            json['booked_by_name'] ??
+            player['name'] ??
+            player['full_name'] ??
+            player['team_name'],
+      ),
+      playerPhone: _asString(
+        json['player_phone'] ??
+            json['customer_phone'] ??
+            player['phone'] ??
+            player['phone_number'] ??
+            player['mobile'],
+      ),
+      playerEmail: _asString(
+        json['player_email'] ??
+            json['customer_email'] ??
+            player['email'] ??
+            player['email_address'],
+      ),
+      futsalAddress: _asString(
+        json['futsal_address'] ??
+            json['venue_address'] ??
+            venue['address'] ??
+            venue['exact_location'],
+      ),
+      seriesParentId: _asInt(json['series_parent_id']),
+      isRecurring: _asBool(json['is_recurring']),
+      isSeriesAnchor: _asBool(json['is_series_anchor']),
+      recurrenceType: _asString(json['recurrence_type']),
+      recurrenceStartDate: _asNullableDate(json['recurrence_start_date']),
+      recurrenceEndDate: _asNullableDate(json['recurrence_end_date']),
+      slotCount:
+          _asInt(json['slot_count']) ??
+          (bookingSlots.isEmpty ? 1 : bookingSlots.length),
+      pricePerSlot: _asDouble(json['price_per_slot']) ?? 0,
+      subtotal: _asDouble(json['subtotal']) ?? 0,
+      discountAmount: _asDouble(json['discount_amount']) ?? 0,
+      taxAmount: _asDouble(json['tax_amount']) ?? 0,
+      advanceAmount: _asDouble(json['advance_amount']) ?? 0,
+      payableNow: _asDouble(json['payable_now']) ?? 0,
+      balanceDueLater: _asDouble(json['balance_due_later']) ?? 0,
+      paymentStatus: _asString(json['payment_status']),
+      notes: _asString(json['notes']),
+      coupon: coupon.isEmpty ? null : BookingCouponModel.fromJson(coupon),
+      payment: payment.isEmpty ? null : BookingPaymentModel.fromJson(payment),
+      bookingSlots: bookingSlots,
     );
   }
 
@@ -78,20 +232,51 @@ class BookingModel extends Equatable {
     'end_time': endTime,
     'status': status.value,
     'amount': amount,
+    'venue_id': venueId,
+    'court_id': courtId,
     'player_name': playerName,
     'player_phone': playerPhone,
+    'player_email': playerEmail,
     'futsal_address': futsalAddress,
+    'series_parent_id': seriesParentId,
+    'is_recurring': isRecurring,
+    'is_series_anchor': isSeriesAnchor,
+    'recurrence_type': recurrenceType,
+    'recurrence_start_date': recurrenceStartDate?.toIso8601String(),
+    'recurrence_end_date': recurrenceEndDate?.toIso8601String(),
+    'slot_count': slotCount,
+    'price_per_slot': pricePerSlot,
+    'subtotal': subtotal,
+    'discount_amount': discountAmount,
+    'tax_amount': taxAmount,
+    'advance_amount': advanceAmount,
+    'payable_now': payableNow,
+    'balance_due_later': balanceDueLater,
+    'payment_status': paymentStatus,
+    'notes': notes,
+    'coupon': coupon?.toJson(),
+    'payment': payment?.toJson(),
+    'booking_slots': bookingSlots
+        .map((BookingSlotModel slot) => slot.toJson())
+        .toList(growable: false),
   };
 
   static List<BookingModel> listFromResponse(dynamic payload) {
-    final dynamic data = payload is Map
-        ? (payload['data'] ?? payload)
-        : payload;
-    final List<dynamic> items = data is List ? data : <dynamic>[];
+    final List<dynamic> items = _bookingListFrom(payload);
     return items
         .whereType<Map>()
         .map((item) => BookingModel.fromJson(Map<String, dynamic>.from(item)))
         .toList(growable: false);
+  }
+
+  static BookingModel fromResponse(dynamic payload) {
+    final List<BookingModel> bookings = listFromResponse(payload);
+    if (bookings.isEmpty) {
+      throw const FormatException(
+        'Booking detail response does not contain a booking.',
+      );
+    }
+    return bookings.first;
   }
 
   @override
@@ -105,9 +290,167 @@ class BookingModel extends Equatable {
     endTime,
     status,
     amount,
+    venueId,
+    courtId,
     playerName,
     playerPhone,
+    playerEmail,
     futsalAddress,
+    seriesParentId,
+    isRecurring,
+    isSeriesAnchor,
+    recurrenceType,
+    recurrenceStartDate,
+    recurrenceEndDate,
+    slotCount,
+    pricePerSlot,
+    subtotal,
+    discountAmount,
+    taxAmount,
+    advanceAmount,
+    payableNow,
+    balanceDueLater,
+    paymentStatus,
+    notes,
+    coupon,
+    payment,
+    bookingSlots,
+  ];
+}
+
+final class BookingCouponModel extends Equatable {
+  const BookingCouponModel({required this.id, this.code, this.title});
+
+  final int id;
+  final String? code;
+  final String? title;
+
+  factory BookingCouponModel.fromJson(Map<String, dynamic> json) {
+    return BookingCouponModel(
+      id: _asInt(json['id']) ?? 0,
+      code: _asString(json['code']),
+      title: _asString(json['title']),
+    );
+  }
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+    'id': id,
+    'code': code,
+    'title': title,
+  };
+
+  @override
+  List<Object?> get props => <Object?>[id, code, title];
+}
+
+final class BookingPaymentModel extends Equatable {
+  const BookingPaymentModel({
+    required this.id,
+    this.method,
+    this.amount = 0,
+    this.status,
+    this.verificationStatus,
+    this.paymentProofPath,
+    this.paymentProofUrl,
+    this.hasPaymentProof = false,
+    this.note,
+  });
+
+  final int id;
+  final String? method;
+  final double amount;
+  final String? status;
+  final String? verificationStatus;
+  final String? paymentProofPath;
+  final String? paymentProofUrl;
+  final bool hasPaymentProof;
+  final String? note;
+
+  factory BookingPaymentModel.fromJson(Map<String, dynamic> json) {
+    return BookingPaymentModel(
+      id: _asInt(json['id']) ?? 0,
+      method: _asString(json['payment_method']),
+      amount: _asDouble(json['amount']) ?? 0,
+      status: _asString(json['status']),
+      verificationStatus: _asString(json['verification_status']),
+      paymentProofPath: _asString(json['payment_proof']),
+      paymentProofUrl: _asString(json['payment_proof_url']),
+      hasPaymentProof: _asBool(json['has_payment_proof']),
+      note: _asString(json['payment_note']),
+    );
+  }
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+    'id': id,
+    'payment_method': method,
+    'amount': amount,
+    'status': status,
+    'verification_status': verificationStatus,
+    'payment_proof': paymentProofPath,
+    'payment_proof_url': paymentProofUrl,
+    'has_payment_proof': hasPaymentProof,
+    'payment_note': note,
+  };
+
+  @override
+  List<Object?> get props => <Object?>[
+    id,
+    method,
+    amount,
+    status,
+    verificationStatus,
+    paymentProofPath,
+    paymentProofUrl,
+    hasPaymentProof,
+    note,
+  ];
+}
+
+final class BookingSlotModel extends Equatable {
+  const BookingSlotModel({
+    required this.id,
+    required this.date,
+    required this.startTime,
+    required this.endTime,
+    this.price = 0,
+    this.status,
+  });
+
+  final int id;
+  final DateTime date;
+  final String startTime;
+  final String endTime;
+  final double price;
+  final String? status;
+
+  factory BookingSlotModel.fromJson(Map<String, dynamic> json) {
+    return BookingSlotModel(
+      id: _asInt(json['id']) ?? 0,
+      date: _asDate(json['slot_date']),
+      startTime: _asString(json['slot_start']) ?? '',
+      endTime: _asString(json['slot_end']) ?? '',
+      price: _asDouble(json['slot_price']) ?? 0,
+      status: _asString(json['status']),
+    );
+  }
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+    'id': id,
+    'slot_date': date.toIso8601String(),
+    'slot_start': startTime,
+    'slot_end': endTime,
+    'slot_price': price,
+    'status': status,
+  };
+
+  @override
+  List<Object?> get props => <Object?>[
+    id,
+    date,
+    startTime,
+    endTime,
+    price,
+    status,
   ];
 }
 
@@ -121,11 +464,104 @@ enum BookingStatus {
   final String value;
 
   static BookingStatus fromString(String? value) {
-    return BookingStatus.values.firstWhere(
-      (s) => s.value == value?.toLowerCase(),
-      orElse: () => BookingStatus.pending,
-    );
+    return switch (value?.trim().toLowerCase()) {
+      'confirmed' ||
+      'approved' ||
+      'accepted' ||
+      'paid' => BookingStatus.confirmed,
+      'cancelled' ||
+      'canceled' ||
+      'rejected' ||
+      'declined' => BookingStatus.cancelled,
+      'completed' || 'complete' || 'finished' => BookingStatus.completed,
+      _ => BookingStatus.pending,
+    };
   }
+}
+
+List<dynamic> _bookingListFrom(dynamic payload) {
+  dynamic current = payload;
+  for (int depth = 0; depth < 8; depth++) {
+    if (current is List) return current;
+    if (current is! Map) return const <dynamic>[];
+
+    final Map<String, dynamic> map = Map<String, dynamic>.from(current);
+    final dynamic next =
+        map['data'] ??
+        map['booking'] ??
+        map['bookings'] ??
+        map['futsal_bookings'] ??
+        map['items'] ??
+        map['records'] ??
+        map['results'];
+
+    if (next == null) {
+      return _looksLikeBooking(map) ? <dynamic>[map] : const <dynamic>[];
+    }
+    current = next;
+  }
+  return const <dynamic>[];
+}
+
+bool _looksLikeBooking(Map<String, dynamic> map) {
+  return map.containsKey('booking_id') ||
+      map.containsKey('booking_ref') ||
+      map.containsKey('booking_date') ||
+      (map.containsKey('id') &&
+          (map.containsKey('court') || map.containsKey('court_id')));
+}
+
+Map<String, dynamic> _mapOf(dynamic value) {
+  return value is Map
+      ? Map<String, dynamic>.from(value)
+      : const <String, dynamic>{};
+}
+
+List<Map<String, dynamic>> _mapList(dynamic value) {
+  if (value is! List) return const <Map<String, dynamic>>[];
+  return value
+      .whereType<Map>()
+      .map((Map item) => Map<String, dynamic>.from(item))
+      .toList(growable: false);
+}
+
+String? _asString(Object? value) {
+  final String text = value?.toString().trim() ?? '';
+  return text.isEmpty ? null : text;
+}
+
+DateTime _asDate(Object? value) {
+  if (value is DateTime) return value;
+  final String text = value?.toString().trim() ?? '';
+  return DateTime.tryParse(text) ?? DateTime.fromMillisecondsSinceEpoch(0);
+}
+
+DateTime? _asNullableDate(Object? value) {
+  if (value == null) return null;
+  if (value is DateTime) return value;
+  return DateTime.tryParse(value.toString().trim());
+}
+
+bool _asBool(Object? value) {
+  if (value is bool) return value;
+  if (value is num) return value != 0;
+  return switch (value?.toString().trim().toLowerCase()) {
+    'true' || '1' || 'yes' => true,
+    _ => false,
+  };
+}
+
+String _displayTime(String value) {
+  final List<String> parts = value.trim().split(':');
+  if (parts.length < 2) return value.trim();
+  final int? hour = int.tryParse(parts[0]);
+  final int? minute = int.tryParse(parts[1]);
+  if (hour == null || minute == null || hour > 23 || minute > 59) {
+    return value.trim();
+  }
+  final String period = hour >= 12 ? 'PM' : 'AM';
+  final int displayHour = hour % 12 == 0 ? 12 : hour % 12;
+  return '$displayHour:${minute.toString().padLeft(2, '0')} $period';
 }
 
 int? _asInt(Object? value) {

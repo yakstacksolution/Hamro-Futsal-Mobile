@@ -13,6 +13,7 @@ import 'package:hamro_footsall/features/futsal_details/data/model/time_slot_mode
 import 'package:hamro_footsall/features/futsal_details/data/model/venue_amenities_facilities_model.dart';
 import 'package:hamro_footsall/features/futsal_details/data/model/venue_description_model.dart';
 import 'package:hamro_footsall/features/futsal_details/domain/repository/futsal_details_repository.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 final class FutsalDetailsRepositoryImpl extends FutsalDetailsRepository {
   FutsalDetailsRepositoryImpl({FutsalDetailsRemoteDataSource? remoteDataSource})
@@ -36,7 +37,7 @@ final class FutsalDetailsRepositoryImpl extends FutsalDetailsRepository {
     } catch (_) {
       return left(
         DefaultException(
-          errorMessage: 'Could not parse host details from server.',
+          errorMessage: StringConstants.couldNotParseHostDetailsFromServer,
           statusCode: 0,
         ),
       );
@@ -61,7 +62,7 @@ final class FutsalDetailsRepositoryImpl extends FutsalDetailsRepository {
     } catch (_) {
       return left(
         DefaultException(
-          errorMessage: 'Could not parse venue description from server.',
+          errorMessage: StringConstants.couldNotParseVenueDescriptionFromServer,
           statusCode: 0,
         ),
       );
@@ -87,7 +88,8 @@ final class FutsalDetailsRepositoryImpl extends FutsalDetailsRepository {
     } catch (_) {
       return left(
         DefaultException(
-          errorMessage: 'Could not parse amenities and facilities from server.',
+          errorMessage:
+              StringConstants.couldNotParseAmenitiesAndFacilitiesFromServer,
           statusCode: 0,
         ),
       );
@@ -116,7 +118,7 @@ final class FutsalDetailsRepositoryImpl extends FutsalDetailsRepository {
     } catch (_) {
       return left(
         DefaultException(
-          errorMessage: 'Could not parse available courts from server.',
+          errorMessage: StringConstants.couldNotParseAvailableCourtsFromServer,
           statusCode: 0,
         ),
       );
@@ -143,7 +145,7 @@ final class FutsalDetailsRepositoryImpl extends FutsalDetailsRepository {
     } catch (_) {
       return left(
         DefaultException(
-          errorMessage: 'Could not parse venue slots from server.',
+          errorMessage: StringConstants.couldNotParseVenueSlotsFromServer,
           statusCode: 0,
         ),
       );
@@ -166,7 +168,7 @@ final class FutsalDetailsRepositoryImpl extends FutsalDetailsRepository {
     } catch (_) {
       return left(
         DefaultException(
-          errorMessage: 'Could not parse payment QR from server.',
+          errorMessage: StringConstants.couldNotParsePaymentQrFromServer,
           statusCode: 0,
         ),
       );
@@ -221,7 +223,7 @@ final class FutsalDetailsRepositoryImpl extends FutsalDetailsRepository {
     } catch (_) {
       return left(
         DefaultException(
-          errorMessage: 'Could not check availability. Please try again.',
+          errorMessage: StringConstants.couldNotCheckAvailabilityPleaseTryAgain,
           statusCode: 0,
         ),
       );
@@ -256,7 +258,7 @@ final class FutsalDetailsRepositoryImpl extends FutsalDetailsRepository {
     } catch (_) {
       return left(
         DefaultException(
-          errorMessage: 'Could not hold this slot. Please try again.',
+          errorMessage: StringConstants.couldNotHoldThisSlotPleaseTryAgain,
           statusCode: 0,
         ),
       );

@@ -10,6 +10,7 @@ import 'package:hamro_footsall/core/widgets/custom_button.dart';
 import 'package:hamro_footsall/core/widgets/custom_checkbox.dart';
 import 'package:hamro_footsall/core/widgets/custom_text_field.dart';
 import 'package:hamro_footsall/features/message/data/model/conversation_model.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 const int _kMaxGroupMembers = 50;
 const double _kCreateGroupSheetHeightFactor = 0.88;
@@ -154,7 +155,7 @@ class _AddGroupMembersFormState extends State<_AddGroupMembersForm> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Add Members',
+                StringConstants.addMembersTitle,
                 style: textTheme.bodyTextLarge?.copyWith(
                   color: LightColor.primaryTextColor,
                   fontWeight: FontWeight.w800,
@@ -178,7 +179,7 @@ class _AddGroupMembersFormState extends State<_AddGroupMembersForm> {
           ),
         ),
         IconButton(
-          tooltip: 'Close',
+          tooltip: StringConstants.close,
           style: IconButton.styleFrom(
             backgroundColor: LightColor.background,
             foregroundColor: LightColor.secondaryTextColor,
@@ -194,8 +195,8 @@ class _AddGroupMembersFormState extends State<_AddGroupMembersForm> {
     if (widget.candidates.isEmpty) {
       return const _EmptyStateCard(
         icon: Icons.person_search_outlined,
-        title: 'No members available',
-        message: 'There are no new people available to add in this group.',
+        title: StringConstants.noMembersAvailable,
+        message: StringConstants.thereAreNoNewPeopleAvailableToAddInThisGroup,
       );
     }
 
@@ -433,7 +434,7 @@ class _GroupConversationFormState extends State<_GroupConversationForm> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Create Group',
+                StringConstants.createGroup,
                 style: textTheme.bodyTextLarge?.copyWith(
                   color: LightColor.primaryTextColor,
                   fontWeight: FontWeight.w800,
@@ -457,7 +458,7 @@ class _GroupConversationFormState extends State<_GroupConversationForm> {
           ),
         ),
         IconButton(
-          tooltip: 'Close',
+          tooltip: StringConstants.close,
           style: IconButton.styleFrom(
             backgroundColor: LightColor.background,
             foregroundColor: LightColor.secondaryTextColor,
@@ -500,8 +501,8 @@ class _GroupConversationFormState extends State<_GroupConversationForm> {
       controller: _title,
       textCapitalization: TextCapitalization.words,
       onChanged: (_) => setState(() => _error = null),
-      labelText: 'Group name',
-      hintText: 'e.g. Weekend Futsal Team',
+      labelText: StringConstants.groupName,
+      hintText: StringConstants.eGWeekendFutsalTeam,
       icon: Icons.groups_2_outlined,
       ensureVisibleOnFocus: true,
     );
@@ -516,14 +517,14 @@ class _GroupConversationFormState extends State<_GroupConversationForm> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
-            'Members',
+            StringConstants.members,
             style: textTheme.bodyTextMedium?.copyWith(
               color: LightColor.primaryTextColor,
               fontWeight: FontWeight.w600,
             ),
           ),
           Text(
-            'Clear',
+            StringConstants.clear,
             style: textTheme.bodyTextSmall?.copyWith(
               color: LightColor.redColor,
               fontWeight: FontWeight.w500,
@@ -539,14 +540,14 @@ class _GroupConversationFormState extends State<_GroupConversationForm> {
       controller: _search,
       onChanged: (_) => setState(() {}),
       textInputAction: TextInputAction.search,
-      labelText: 'Search members',
-      hintText: 'Search by name or email',
+      labelText: StringConstants.searchMembers,
+      hintText: StringConstants.searchByNameOrEmail,
       icon: Icons.search_rounded,
       isRequired: false,
       suffixIcon: _search.text.isEmpty
           ? null
           : IconButton(
-              tooltip: 'Clear search',
+              tooltip: StringConstants.clearSearch,
               onPressed: _clearSearch,
               icon: const Icon(Icons.close_rounded),
             ),
@@ -605,16 +606,16 @@ class _GroupConversationFormState extends State<_GroupConversationForm> {
     if (widget.candidates.isEmpty) {
       return const _EmptyStateCard(
         icon: Icons.person_search_outlined,
-        title: 'No members found',
-        message: 'Start a conversation first, then create a group from it.',
+        title: StringConstants.noMembersFound,
+        message: StringConstants.startAConversationFirstThenCreateAGroupFromIt,
       );
     }
 
     if (_visibleCandidates.isEmpty) {
       return const _EmptyStateCard(
         icon: Icons.search_off_rounded,
-        title: 'No matching members',
-        message: 'Try searching with another name or email.',
+        title: StringConstants.noMatchingMembers,
+        message: StringConstants.trySearchingWithAnotherNameOrEmail,
       );
     }
 
@@ -687,14 +688,14 @@ class _GroupConversationFormState extends State<_GroupConversationForm> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Optional venue',
+                          StringConstants.optionalVenue,
                           style: textTheme.bodyTextMedium?.copyWith(
                             color: LightColor.primaryTextColor,
                             fontWeight: FontWeight.w800,
                           ),
                         ),
                         Text(
-                          'Connect this group to a venue',
+                          StringConstants.connectThisGroupToAVenue,
                           style: textTheme.bodyTextSmall?.copyWith(
                             color: LightColor.secondaryTextColor,
                           ),
@@ -723,8 +724,8 @@ class _GroupConversationFormState extends State<_GroupConversationForm> {
                 controller: _venueId,
                 keyboardType: TextInputType.number,
 
-                labelText: 'Venue ID',
-                hintText: 'Enter venue ID',
+                labelText: StringConstants.venueId,
+                hintText: StringConstants.enterVenueId,
                 icon: Icons.tag_rounded,
                 isRequired: false,
                 ensureVisibleOnFocus: true,

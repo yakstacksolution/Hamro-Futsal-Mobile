@@ -12,6 +12,7 @@ import 'package:hamro_footsall/features/booking_overview/presentation/models/boo
 import 'package:hamro_footsall/features/booking_overview/presentation/widgets/booking_overview_common.dart';
 import 'package:hamro_footsall/features/booking_overview/presentation/widgets/booking_overview_filter_widgets.dart';
 import 'package:hamro_footsall/features/booking_overview/presentation/widgets/booking_overview_tabs.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class BookingOverviewScreen extends StatelessWidget {
   const BookingOverviewScreen({super.key});
@@ -19,11 +20,9 @@ class BookingOverviewScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) =>
-          BookingOverviewBloc(
-              BookingOverviewUseCase(BookingOverviewRepositoryImpl()),
-            )
-            ..add(const LoadBookingOverviewEvent()),
+      create: (_) => BookingOverviewBloc(
+        BookingOverviewUseCase(BookingOverviewRepositoryImpl()),
+      )..add(const LoadBookingOverviewEvent()),
       child: const _BookingOverviewView(),
     );
   }
@@ -124,7 +123,10 @@ class _BookingOverviewViewState extends State<_BookingOverviewView>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: LightColor.background,
-      appBar: const CustomAppBar(title: 'Booking Overview', showBack: true),
+      appBar: const CustomAppBar(
+        title: StringConstants.bookingOverview,
+        showBack: true,
+      ),
       body: SafeArea(
         top: false,
         child: BlocBuilder<BookingOverviewBloc, BookingOverviewState>(
@@ -217,9 +219,9 @@ class _BookingOverviewViewState extends State<_BookingOverviewView>
             context,
           ).bodyTextSmall?.copyWith(fontWeight: FontWeight.w500),
           tabs: const [
-            Tab(text: 'Overview', height: 40),
-            Tab(text: 'Analytics', height: 40),
-            Tab(text: 'Rankings', height: 40),
+            Tab(text: StringConstants.overview, height: 40),
+            Tab(text: StringConstants.analytics, height: 40),
+            Tab(text: StringConstants.rankings, height: 40),
           ],
         ),
         // Breathing room between the tab bar and tab content.
@@ -274,7 +276,7 @@ class _LoadError extends StatelessWidget {
                 foregroundColor: LightColor.secondaryColor,
                 side: const BorderSide(color: LightColor.secondaryColor),
               ),
-              child: const Text('Retry'),
+              child: const Text(StringConstants.retry),
             ),
           ],
         ),

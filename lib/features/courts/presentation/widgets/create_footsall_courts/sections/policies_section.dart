@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hamro_footsall/core/widgets/custom_text_field.dart';
 import 'package:hamro_footsall/features/courts/presentation/bloc/create_footsall_courts_bloc.dart';
 import 'package:hamro_footsall/features/courts/presentation/widgets/create_footsall_courts/policy_toggle_tile.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class PoliciesSection extends StatelessWidget {
   const PoliciesSection({super.key, required this.bloc});
@@ -13,23 +14,25 @@ class PoliciesSection extends StatelessWidget {
     return Column(
       children: <Widget>[
         PolicyToggleTile(
-          title: 'Allow cancellations',
-          subtitle:
-              'Enable users to cancel confirmed bookings before match day.',
+          title: StringConstants.allowCancellations,
+          subtitle: StringConstants
+              .enableUsersToCancelConfirmedBookingsBeforeMatchDay,
           value: bloc.state.allowCancellation,
           onChanged: bloc.toggleAllowCancellation,
         ),
         const SizedBox(height: 12),
         PolicyToggleTile(
-          title: 'Require advance payment',
-          subtitle: 'Collect payment or deposit before a booking is confirmed.',
+          title: StringConstants.requireAdvancePayment,
+          subtitle:
+              StringConstants.collectPaymentOrDepositBeforeABookingIsConfirmed,
           value: bloc.state.requiresAdvancePayment,
           onChanged: bloc.toggleRequiresAdvancePayment,
         ),
         const SizedBox(height: 12),
         PolicyToggleTile(
-          title: 'Support refunds',
-          subtitle: 'Offer refunds when cancellations meet your venue policy.',
+          title: StringConstants.supportRefunds,
+          subtitle:
+              StringConstants.offerRefundsWhenCancellationsMeetYourVenuePolicy,
           value: bloc.state.supportsRefunds,
           onChanged: bloc.state.allowCancellation
               ? bloc.toggleSupportsRefunds
@@ -40,7 +43,7 @@ class PoliciesSection extends StatelessWidget {
           controller: bloc.bookingAdvanceDaysController,
           focusNode: bloc.bookingAdvanceDaysFocus,
           ensureVisibleOnFocus: true,
-          labelText: 'Booking Advance Limit (days) *',
+          labelText: StringConstants.bookingAdvanceLimitDays,
           hintText: '30',
           icon: Icons.calendar_month_rounded,
           keyboardType: TextInputType.number,
@@ -55,7 +58,7 @@ class PoliciesSection extends StatelessWidget {
           controller: bloc.cancellationWindowController,
           focusNode: bloc.cancellationWindowFocus,
           ensureVisibleOnFocus: true,
-          labelText: 'Cancellation Window (hours)',
+          labelText: StringConstants.cancellationWindowHours,
           hintText: bloc.state.allowCancellation ? '12' : 'Disabled',
           icon: Icons.access_time_filled_rounded,
           keyboardType: TextInputType.number,
@@ -70,9 +73,9 @@ class PoliciesSection extends StatelessWidget {
           controller: bloc.houseRulesController,
           focusNode: bloc.houseRulesFocus,
           ensureVisibleOnFocus: true,
-          labelText: 'House Rules *',
-          hintText:
-              'Example: non-marking shoes only, report 15 minutes early, no outside food.',
+          labelText: StringConstants.houseRules,
+          hintText: StringConstants
+              .exampleNonMarkingShoesOnlyReport15MinutesEarlyNo3d1a39a7,
           icon: Icons.gavel_rounded,
           keyboardType: TextInputType.multiline,
           textInputAction: TextInputAction.newline,

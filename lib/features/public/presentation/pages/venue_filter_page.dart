@@ -12,6 +12,7 @@ import 'package:hamro_footsall/features/public/domain/usecase/get_court_options_
 import 'package:hamro_footsall/features/public/presentation/bloc/public_court_options/public_court_options_bloc.dart';
 import 'package:hamro_footsall/features/public/presentation/models/venue_filter.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class VenueFilterPage extends StatelessWidget {
   const VenueFilterPage({super.key, this.initialFilter = VenueFilter.empty});
@@ -45,19 +46,19 @@ class _VenueFilterViewState extends State<_VenueFilterView> {
   static const List<_TimeSlotOption> _timeSlotOptions = <_TimeSlotOption>[
     _TimeSlotOption(
       key: '06:00-12:00',
-      label: 'Morning',
+      label: StringConstants.morning,
       range: '06:00 AM - 12:00 PM',
       icon: Icons.wb_sunny_rounded,
     ),
     _TimeSlotOption(
       key: '12:00-18:00',
-      label: 'Afternoon',
+      label: StringConstants.afternoon,
       range: '12:00 PM - 06:00 PM',
       icon: Icons.wb_twilight_rounded,
     ),
     _TimeSlotOption(
       key: '18:00-00:00',
-      label: 'Evening',
+      label: StringConstants.evening,
       range: '06:00 PM - 12:00 AM',
       icon: Icons.nightlight_round,
     ),
@@ -162,7 +163,7 @@ class _VenueFilterViewState extends State<_VenueFilterView> {
           onPressed: () => Navigator.of(context).maybePop(),
         ),
         title: Text(
-          'Filters & Sorting',
+          StringConstants.filtersAndSorting,
           style: textTheme.bodyTextMedium?.copyWith(
             fontSize: AppDimens.fontHeadingSmall,
             color: LightColor.primaryTextColor,
@@ -172,7 +173,7 @@ class _VenueFilterViewState extends State<_VenueFilterView> {
           TextButton(
             onPressed: _reset,
             child: Text(
-              'Reset',
+              StringConstants.reset,
               style: textTheme.bodyTextSmall?.copyWith(
                 color: LightColor.secondaryColor,
               ),
@@ -199,7 +200,7 @@ class _VenueFilterViewState extends State<_VenueFilterView> {
             ),
             children: <Widget>[
               _SectionTitle(
-                title: 'Price Range',
+                title: StringConstants.priceRange,
                 trailing: Text(
                   '${_priceLabel(_priceRange.start)} - ${_priceLabel(_priceRange.end)}',
                   style: textTheme.bodyTextSmall?.copyWith(
@@ -272,12 +273,12 @@ class _VenueFilterViewState extends State<_VenueFilterView> {
                 ),
               ),
               const SizedBox(height: AppDimens.paddingX20),
-              const _SectionTitle(title: 'Match Type'),
+              const _SectionTitle(title: StringConstants.matchType),
               const SizedBox(height: AppDimens.paddingX14),
               _OptionStateView(
                 status: optionsState.status,
                 isEmpty: matchTypeOptions.isEmpty,
-                emptyMessage: 'No match formats available.',
+                emptyMessage: StringConstants.noMatchFormatsAvailable,
                 errorMessage: optionsState.errorMessage,
                 loading: const _PillRowLoading(),
                 child: Wrap(
@@ -296,12 +297,12 @@ class _VenueFilterViewState extends State<_VenueFilterView> {
               ),
               const SizedBox(height: AppDimens.paddingX20),
 
-              const _SectionTitle(title: 'Court Type'),
+              const _SectionTitle(title: StringConstants.courtType),
               const SizedBox(height: AppDimens.paddingX14),
               _OptionStateView(
                 status: optionsState.status,
                 isEmpty: courtTypeOptions.isEmpty,
-                emptyMessage: 'No court types available.',
+                emptyMessage: StringConstants.noCourtTypesAvailable,
                 errorMessage: optionsState.errorMessage,
                 loading: const _CourtTypeRowLoading(),
                 child: _CourtTypeGrid(
@@ -314,7 +315,7 @@ class _VenueFilterViewState extends State<_VenueFilterView> {
 
               Row(
                 children: [
-                  const _SectionTitle(title: 'Rating'),
+                  const _SectionTitle(title: StringConstants.rating),
                   Spacer(),
                   Text(
                     '( ${_minRating?.toStringAsFixed(1) ?? 'Any'} & up )',
@@ -332,7 +333,7 @@ class _VenueFilterViewState extends State<_VenueFilterView> {
               ),
               const SizedBox(height: AppDimens.paddingX20),
 
-              const _SectionTitle(title: 'Time Slots'),
+              const _SectionTitle(title: StringConstants.timeSlots),
               const SizedBox(height: AppDimens.paddingX14),
               ..._timeSlotOptions.map((_TimeSlotOption slot) {
                 return Padding(
@@ -875,7 +876,7 @@ class _BottomBar extends StatelessWidget {
                       ),
                       const SizedBox(width: AppDimens.sizeX6),
                       Text(
-                        'Clear All',
+                        StringConstants.clearAll,
                         style: textTheme.bodyTextSmall?.copyWith(
                           color: LightColor.secondaryTextColor,
                           fontWeight: FontWeight.w600,
@@ -892,7 +893,7 @@ class _BottomBar extends StatelessWidget {
                   height: AppDimens.sizeX50,
                   child: CustomButton(
                     minHeight: 42,
-                    text: 'Apply Filters',
+                    text: StringConstants.applyFilters,
                     onPressed: onApply,
                   ),
                 ),

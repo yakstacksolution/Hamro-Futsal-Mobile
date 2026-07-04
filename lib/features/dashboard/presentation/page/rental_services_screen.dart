@@ -9,6 +9,7 @@ import 'package:hamro_footsall/core/widgets/custom_app_bar.dart';
 import 'package:hamro_footsall/core/widgets/custom_button.dart';
 import 'package:hamro_footsall/core/widgets/custom_dropdown_field.dart';
 import 'package:hamro_footsall/core/widgets/custom_text_field.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 // ─────────────────────────────────────────────
 //  MODELS
@@ -239,9 +240,7 @@ class _Repo {
     for (int i = 0; i < 5; i++) {
       final eq = equipment[rng.nextInt(equipment.length)];
       final qty = 1 + rng.nextInt(3);
-      final started = now.subtract(
-        Duration(minutes: 15 + rng.nextInt(60 * 2)),
-      );
+      final started = now.subtract(Duration(minutes: 15 + rng.nextInt(60 * 2)));
       final dueIn = -30 + rng.nextInt(120); // some overdue
       final dueAt = now.add(Duration(minutes: dueIn));
       final hours = math
@@ -249,19 +248,22 @@ class _Repo {
           .ceil();
       final amount = eq.hourlyRate * qty * hours;
       final customer = customers[rng.nextInt(customers.length)];
-      rentals.add(_Rental(
-        id: 'r${id++}',
-        equipmentId: eq.id,
-        qty: qty,
-        customer: customer.$1,
-        phone: customer.$2,
-        startedAt: started,
-        dueAt: dueAt,
-        totalAmount: amount,
-        depositAmount: eq.deposit * qty,
-        status:
-            dueAt.isBefore(now) ? _RentalStatus.overdue : _RentalStatus.active,
-      ));
+      rentals.add(
+        _Rental(
+          id: 'r${id++}',
+          equipmentId: eq.id,
+          qty: qty,
+          customer: customer.$1,
+          phone: customer.$2,
+          startedAt: started,
+          dueAt: dueAt,
+          totalAmount: amount,
+          depositAmount: eq.deposit * qty,
+          status: dueAt.isBefore(now)
+              ? _RentalStatus.overdue
+              : _RentalStatus.active,
+        ),
+      );
     }
 
     // Past returned over last 14 days
@@ -271,8 +273,13 @@ class _Repo {
         final day = now.subtract(Duration(days: d));
         final eq = equipment[rng.nextInt(equipment.length)];
         final qty = 1 + rng.nextInt(3);
-        final started = DateTime(day.year, day.month, day.day,
-            8 + rng.nextInt(12), rng.nextInt(60));
+        final started = DateTime(
+          day.year,
+          day.month,
+          day.day,
+          8 + rng.nextInt(12),
+          rng.nextInt(60),
+        );
         final hours = 1 + rng.nextInt(3);
         final dueAt = started.add(Duration(hours: hours));
         final returnedAt = dueAt.add(
@@ -280,19 +287,21 @@ class _Repo {
         );
         final amount = eq.hourlyRate * qty * hours;
         final customer = customers[rng.nextInt(customers.length)];
-        rentals.add(_Rental(
-          id: 'r${id++}',
-          equipmentId: eq.id,
-          qty: qty,
-          customer: customer.$1,
-          phone: customer.$2,
-          startedAt: started,
-          dueAt: dueAt,
-          returnedAt: returnedAt,
-          totalAmount: amount,
-          depositAmount: eq.deposit * qty,
-          status: _RentalStatus.returned,
-        ));
+        rentals.add(
+          _Rental(
+            id: 'r${id++}',
+            equipmentId: eq.id,
+            qty: qty,
+            customer: customer.$1,
+            phone: customer.$2,
+            startedAt: started,
+            dueAt: dueAt,
+            returnedAt: returnedAt,
+            totalAmount: amount,
+            depositAmount: eq.deposit * qty,
+            status: _RentalStatus.returned,
+          ),
+        );
       }
     }
     rentals.sort((a, b) => b.startedAt.compareTo(a.startedAt));
@@ -360,9 +369,11 @@ class _RentalServicesScreenState extends State<RentalServicesScreen> {
   }
 
   int get _onRentCount => _repo.rentals
-      .where((r) =>
-          r.status == _RentalStatus.active ||
-          r.status == _RentalStatus.overdue)
+      .where(
+        (r) =>
+            r.status == _RentalStatus.active ||
+            r.status == _RentalStatus.overdue,
+      )
       .fold(0, (a, r) => a + r.qty);
 
   int get _availableCount {
@@ -387,23 +398,27 @@ class _RentalServicesScreenState extends State<RentalServicesScreen> {
 
   int _tabCount(_Tab t) => switch (t) {
     _Tab.equipment => _repo.equipment.length,
-    _Tab.active => _repo.rentals
-        .where((r) =>
-            r.status == _RentalStatus.active ||
-            r.status == _RentalStatus.overdue)
-        .length,
-    _Tab.history => _repo.rentals
-        .where((r) =>
-            r.status == _RentalStatus.returned ||
-            r.status == _RentalStatus.cancelled)
-        .length,
+    _Tab.active =>
+      _repo.rentals
+          .where(
+            (r) =>
+                r.status == _RentalStatus.active ||
+                r.status == _RentalStatus.overdue,
+          )
+          .length,
+    _Tab.history =>
+      _repo.rentals
+          .where(
+            (r) =>
+                r.status == _RentalStatus.returned ||
+                r.status == _RentalStatus.cancelled,
+          )
+          .length,
   };
 
   Future<void> _openAddEquipment() async {
     final created = await Navigator.of(context).push<_Equipment>(
-      MaterialPageRoute<_Equipment>(
-        builder: (_) => const _AddEquipmentPage(),
-      ),
+      MaterialPageRoute<_Equipment>(builder: (_) => const _AddEquipmentPage()),
     );
     if (!mounted || created == null) return;
     setState(() => _repo.equipment.add(created));
@@ -416,9 +431,7 @@ class _RentalServicesScreenState extends State<RentalServicesScreen> {
       return;
     }
     final created = await Navigator.of(context).push<_Rental>(
-      MaterialPageRoute<_Rental>(
-        builder: (_) => _NewRentalPage(repo: _repo),
-      ),
+      MaterialPageRoute<_Rental>(builder: (_) => _NewRentalPage(repo: _repo)),
     );
     if (!mounted || created == null) return;
     setState(() {
@@ -463,12 +476,13 @@ class _RentalServicesScreenState extends State<RentalServicesScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: LightColor.background,
-      appBar: const CustomAppBar(title: 'Rental Services'),
+      appBar: const CustomAppBar(title: StringConstants.rentalServices),
       floatingActionButton: _tab == _Tab.history
           ? null
           : FloatingActionButton.extended(
-              onPressed:
-                  _tab == _Tab.equipment ? _openAddEquipment : _openNewRental,
+              onPressed: _tab == _Tab.equipment
+                  ? _openAddEquipment
+                  : _openNewRental,
               backgroundColor: LightColor.secondaryColor,
               foregroundColor: LightColor.whiteColor,
               elevation: 2,
@@ -506,21 +520,21 @@ class _RentalServicesScreenState extends State<RentalServicesScreen> {
                 switchInCurve: Curves.easeOut,
                 child: switch (_tab) {
                   _Tab.equipment => _EquipmentList(
-                      key: const ValueKey('e'),
-                      repo: _repo,
-                    ),
+                    key: const ValueKey('e'),
+                    repo: _repo,
+                  ),
                   _Tab.active => _RentalList(
-                      key: const ValueKey('a'),
-                      repo: _repo,
-                      onlyOpen: true,
-                      onReturn: _returnRental,
-                    ),
+                    key: const ValueKey('a'),
+                    repo: _repo,
+                    onlyOpen: true,
+                    onReturn: _returnRental,
+                  ),
                   _Tab.history => _RentalList(
-                      key: const ValueKey('h'),
-                      repo: _repo,
-                      onlyOpen: false,
-                      onReturn: _returnRental,
-                    ),
+                    key: const ValueKey('h'),
+                    repo: _repo,
+                    onlyOpen: false,
+                    onReturn: _returnRental,
+                  ),
                 },
               ),
             ),
@@ -555,7 +569,7 @@ class _SubtitleLine extends StatelessWidget {
         children: [
           Expanded(
             child: _StatPill(
-              label: 'Available',
+              label: StringConstants.available,
               value: '$available',
               color: LightColor.secondaryColor,
               icon: Icons.inventory_2_outlined,
@@ -564,7 +578,7 @@ class _SubtitleLine extends StatelessWidget {
           const SizedBox(width: AppDimens.paddingX8),
           Expanded(
             child: _StatPill(
-              label: 'On rent',
+              label: StringConstants.onRent,
               value: '$onRent',
               color: LightColor.warningColor,
               icon: Icons.outbox_rounded,
@@ -573,7 +587,7 @@ class _SubtitleLine extends StatelessWidget {
           const SizedBox(width: AppDimens.paddingX8),
           Expanded(
             child: _StatPill(
-              label: 'Today',
+              label: StringConstants.today,
               value: _Fmt.nprShort(earnings),
               color: LightColor.blueColor,
               icon: Icons.payments_outlined,
@@ -778,7 +792,7 @@ class _EquipmentList extends StatelessWidget {
     if (repo.equipment.isEmpty) {
       return const _Empty(
         icon: Icons.inventory_2_outlined,
-        title: 'No equipment yet',
+        title: StringConstants.noEquipmentYet,
         body: 'Add items to start renting them out.',
       );
     }
@@ -883,10 +897,7 @@ class _EquipmentTile extends StatelessWidget {
               ),
               const SizedBox(width: AppDimens.paddingX8),
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 3,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: outOfStock
                       ? LightColor.redLightColor
@@ -907,15 +918,18 @@ class _EquipmentTile extends StatelessWidget {
           const SizedBox(height: AppDimens.paddingX12),
           Row(
             children: [
-              _MiniStat(label: 'Total', value: '${equipment.totalUnits}'),
+              _MiniStat(
+                label: StringConstants.total,
+                value: '${equipment.totalUnits}',
+              ),
               const SizedBox(width: AppDimens.paddingX16),
               _MiniStat(
-                label: 'On rent',
+                label: StringConstants.onRent,
                 value: '$rented',
                 accent: rented > 0 ? LightColor.warningColor : null,
               ),
               const SizedBox(width: AppDimens.paddingX16),
-              _MiniStat(label: 'Available', value: '$available'),
+              _MiniStat(label: StringConstants.available, value: '$available'),
             ],
           ),
           const SizedBox(height: AppDimens.paddingX12),
@@ -1059,12 +1073,9 @@ class _RentalTileState extends State<_RentalTile> {
     super.initState();
     if (widget.rental.status == _RentalStatus.active ||
         widget.rental.status == _RentalStatus.overdue) {
-      _ticker = Timer.periodic(
-        const Duration(seconds: 30),
-        (_) {
-          if (mounted) setState(() {});
-        },
-      );
+      _ticker = Timer.periodic(const Duration(seconds: 30), (_) {
+        if (mounted) setState(() {});
+      });
     }
   }
 
@@ -1089,8 +1100,8 @@ class _RentalTileState extends State<_RentalTile> {
     final eq = widget.equipment;
     final color = eq?.kind.color ?? LightColor.secondaryColor;
     final icon = eq?.kind.icon ?? Icons.inventory_2_outlined;
-    final isOpen = r.status == _RentalStatus.active ||
-        r.status == _RentalStatus.overdue;
+    final isOpen =
+        r.status == _RentalStatus.active || r.status == _RentalStatus.overdue;
     final overdue = r.status == _RentalStatus.overdue;
     final now = DateTime.now();
     final remaining = r.dueAt.difference(now);
@@ -1218,7 +1229,7 @@ class _RentalTileState extends State<_RentalTile> {
             children: [
               _RentalMeta(
                 icon: Icons.play_arrow_rounded,
-                label: 'Started',
+                label: StringConstants.started,
                 value: _Fmt.timeAt(r.startedAt),
               ),
               const SizedBox(width: AppDimens.paddingX10),
@@ -1236,14 +1247,14 @@ class _RentalTileState extends State<_RentalTile> {
             children: [
               _RentalMeta(
                 icon: Icons.payments_outlined,
-                label: 'Charge',
+                label: StringConstants.charge,
                 value: _Fmt.npr(r.totalAmount),
                 emphasised: true,
               ),
               const SizedBox(width: AppDimens.paddingX10),
               _RentalMeta(
                 icon: Icons.savings_outlined,
-                label: 'Deposit',
+                label: StringConstants.deposit,
                 value: _Fmt.npr(r.depositAmount),
               ),
             ],
@@ -1260,19 +1271,15 @@ class _RentalTileState extends State<_RentalTile> {
                 Expanded(
                   child: _QuickAction(
                     icon: Icons.phone_outlined,
-                    label: 'Call',
+                    label: StringConstants.call,
                     onTap: () {},
                   ),
                 ),
-                Container(
-                  width: 1,
-                  height: 18,
-                  color: LightColor.dividerColor,
-                ),
+                Container(width: 1, height: 18, color: LightColor.dividerColor),
                 Expanded(
                   child: _QuickAction(
                     icon: Icons.assignment_turned_in_outlined,
-                    label: 'Mark returned',
+                    label: StringConstants.markReturned,
                     emphasised: true,
                     onTap: widget.onReturn,
                   ),
@@ -1389,18 +1396,18 @@ class _StatusBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final (fg, bg) = switch (status) {
       _RentalStatus.active => (
-          LightColor.secondaryColor,
-          LightColor.secondaryColor.withValues(alpha: 0.10),
-        ),
+        LightColor.secondaryColor,
+        LightColor.secondaryColor.withValues(alpha: 0.10),
+      ),
       _RentalStatus.overdue => (LightColor.redColor, LightColor.redLightColor),
       _RentalStatus.returned => (
-          LightColor.hintTextColor,
-          LightColor.dividerColor,
-        ),
+        LightColor.hintTextColor,
+        LightColor.dividerColor,
+      ),
       _RentalStatus.cancelled => (
-          LightColor.hintTextColor,
-          LightColor.dividerColor,
-        ),
+        LightColor.hintTextColor,
+        LightColor.dividerColor,
+      ),
     };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -1588,12 +1595,12 @@ class _AddEquipmentPageState extends State<_AddEquipmentPage> {
     return Scaffold(
       backgroundColor: LightColor.background,
       appBar: CustomAppBar(
-        title: 'Add equipment',
+        title: StringConstants.addEquipment,
         actions: [
           TextButton(
             onPressed: _canSave ? _save : null,
             child: Text(
-              'Save',
+              StringConstants.save,
               style: textTheme.bodyTextMedium?.copyWith(
                 fontWeight: FontWeight.w700,
                 color: _canSave
@@ -1617,7 +1624,7 @@ class _AddEquipmentPageState extends State<_AddEquipmentPage> {
           children: [
             const SizedBox(height: AppDimens.paddingX4),
             Text(
-              'Add a new item to your rental inventory.',
+              StringConstants.addANewItemToYourRentalInventory,
               style: textTheme.bodyTextSmall?.copyWith(
                 color: LightColor.secondaryTextColor,
               ),
@@ -1627,8 +1634,8 @@ class _AddEquipmentPageState extends State<_AddEquipmentPage> {
             const _SectionLabel('Item type'),
             _SurfaceCard(
               child: CustomDropdownField<_EquipKind>(
-                labelText: 'Type',
-                hintText: 'Select equipment type',
+                labelText: StringConstants.type,
+                hintText: StringConstants.selectEquipmentType,
                 icon: Icons.category_outlined,
                 initialValue: _kind,
                 autovalidateMode: _submitted
@@ -1655,8 +1662,9 @@ class _AddEquipmentPageState extends State<_AddEquipmentPage> {
                               alignment: Alignment.center,
                               decoration: BoxDecoration(
                                 color: k.color.withValues(alpha: 0.12),
-                                borderRadius:
-                                    BorderRadius.circular(AppDimens.radiusX6),
+                                borderRadius: BorderRadius.circular(
+                                  AppDimens.radiusX6,
+                                ),
                               ),
                               child: Icon(k.icon, size: 13, color: k.color),
                             ),
@@ -1685,8 +1693,8 @@ class _AddEquipmentPageState extends State<_AddEquipmentPage> {
                     ),
                     child: CustomTextField(
                       controller: _nameCtrl,
-                      labelText: 'Display name',
-                      hintText: 'e.g. Football · size 5',
+                      labelText: StringConstants.displayName,
+                      hintText: StringConstants.eGFootballSize5,
                       icon: Icons.label_outline_rounded,
                       textCapitalization: TextCapitalization.sentences,
                       isRequired: false,
@@ -1701,8 +1709,8 @@ class _AddEquipmentPageState extends State<_AddEquipmentPage> {
                     ),
                     child: CustomTextField(
                       controller: _unitsCtrl,
-                      labelText: 'Total units',
-                      hintText: 'Total quantity in stock',
+                      labelText: StringConstants.totalUnits,
+                      hintText: StringConstants.totalQuantityInStock,
                       icon: Icons.inventory_2_outlined,
                       keyboardType: TextInputType.number,
                       isRequired: false,
@@ -1717,8 +1725,8 @@ class _AddEquipmentPageState extends State<_AddEquipmentPage> {
                     ),
                     child: CustomTextField(
                       controller: _rateCtrl,
-                      labelText: 'Hourly rate (NPR)',
-                      hintText: 'Charge per unit per hour',
+                      labelText: StringConstants.hourlyRateNpr,
+                      hintText: StringConstants.chargePerUnitPerHour,
                       icon: Icons.payments_outlined,
                       keyboardType: TextInputType.number,
                       isRequired: false,
@@ -1733,8 +1741,8 @@ class _AddEquipmentPageState extends State<_AddEquipmentPage> {
                     ),
                     child: CustomTextField(
                       controller: _depositCtrl,
-                      labelText: 'Deposit (NPR, optional)',
-                      hintText: 'Refundable security deposit',
+                      labelText: StringConstants.depositNprOptional,
+                      hintText: StringConstants.refundableSecurityDeposit,
                       icon: Icons.savings_outlined,
                       keyboardType: TextInputType.number,
                       isRequired: false,
@@ -1746,7 +1754,7 @@ class _AddEquipmentPageState extends State<_AddEquipmentPage> {
             const SizedBox(height: AppDimens.paddingX24),
 
             CustomButton(
-              text: 'Save equipment',
+              text: StringConstants.saveEquipment,
               icon: Icons.save_outlined,
               onPressed: _canSave ? _save : null,
               minHeight: AppDimens.sizeX54,
@@ -1857,12 +1865,12 @@ class _NewRentalPageState extends State<_NewRentalPage> {
     return Scaffold(
       backgroundColor: LightColor.background,
       appBar: CustomAppBar(
-        title: 'New rental',
+        title: StringConstants.newRental,
         actions: [
           TextButton(
             onPressed: _canSave ? _save : null,
             child: Text(
-              'Start',
+              StringConstants.start,
               style: textTheme.bodyTextMedium?.copyWith(
                 fontWeight: FontWeight.w700,
                 color: _canSave
@@ -1886,7 +1894,7 @@ class _NewRentalPageState extends State<_NewRentalPage> {
           children: [
             const SizedBox(height: AppDimens.paddingX4),
             Text(
-              'Hand over equipment and start a rental timer.',
+              StringConstants.handOverEquipmentAndStartARentalTimer,
               style: textTheme.bodyTextSmall?.copyWith(
                 color: LightColor.secondaryTextColor,
               ),
@@ -1899,8 +1907,8 @@ class _NewRentalPageState extends State<_NewRentalPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   CustomDropdownField<_Equipment>(
-                    labelText: 'Item',
-                    hintText: 'Select equipment',
+                    labelText: StringConstants.item,
+                    hintText: StringConstants.selectEquipment,
                     icon: Icons.inventory_2_outlined,
                     initialValue: _equipment,
                     autovalidateMode: _submitted
@@ -1916,7 +1924,9 @@ class _NewRentalPageState extends State<_NewRentalPage> {
                         .map(
                           (e) => DropdownMenuItem<_Equipment>(
                             value: e,
-                            child: Text('${e.name} · ${_Fmt.npr(e.hourlyRate)}/hr'),
+                            child: Text(
+                              '${e.name} · ${_Fmt.npr(e.hourlyRate)}/hr',
+                            ),
                           ),
                         )
                         .toList(),
@@ -1936,8 +1946,9 @@ class _NewRentalPageState extends State<_NewRentalPage> {
                                     alpha: 0.10,
                                   )
                                 : LightColor.redLightColor,
-                            borderRadius:
-                                BorderRadius.circular(AppDimens.radiusX20),
+                            borderRadius: BorderRadius.circular(
+                              AppDimens.radiusX20,
+                            ),
                           ),
                           child: Text(
                             available > 0
@@ -1978,8 +1989,8 @@ class _NewRentalPageState extends State<_NewRentalPage> {
                       Expanded(
                         child: CustomTextField(
                           controller: _qtyCtrl,
-                          labelText: 'Quantity',
-                          hintText: 'Units',
+                          labelText: StringConstants.quantity,
+                          hintText: StringConstants.units,
                           icon: Icons.format_list_numbered_rounded,
                           keyboardType: TextInputType.number,
                           isRequired: false,
@@ -1988,7 +1999,7 @@ class _NewRentalPageState extends State<_NewRentalPage> {
                       const SizedBox(width: AppDimens.paddingX10),
                       Expanded(
                         child: CustomDropdownField<int>(
-                          labelText: 'Hours',
+                          labelText: StringConstants.hours,
                           icon: Icons.timer_outlined,
                           initialValue: _hours,
                           onChanged: (v) {
@@ -1998,7 +2009,9 @@ class _NewRentalPageState extends State<_NewRentalPage> {
                               .map(
                                 (h) => DropdownMenuItem<int>(
                                   value: h,
-                                  child: Text('$h hour${h == 1 ? '' : 's'}'),
+                                  child: Text(
+                                    '$h ${h == 1 ? StringConstants.hourLowercase : StringConstants.hoursLowercase}',
+                                  ),
                                 ),
                               )
                               .toList(),
@@ -2036,8 +2049,8 @@ class _NewRentalPageState extends State<_NewRentalPage> {
                     ),
                     child: CustomTextField(
                       controller: _customerCtrl,
-                      labelText: 'Name',
-                      hintText: 'Renter name',
+                      labelText: StringConstants.name,
+                      hintText: StringConstants.renterName,
                       icon: Icons.person_outline_rounded,
                       textCapitalization: TextCapitalization.words,
                       isRequired: false,
@@ -2052,8 +2065,8 @@ class _NewRentalPageState extends State<_NewRentalPage> {
                     ),
                     child: CustomTextField(
                       controller: _phoneCtrl,
-                      labelText: 'Phone',
-                      hintText: '9XX-XXXXXXX',
+                      labelText: StringConstants.phone,
+                      hintText: StringConstants.text9xxXxxxxxx,
                       icon: Icons.phone_outlined,
                       keyboardType: TextInputType.phone,
                       isRequired: false,
@@ -2076,7 +2089,7 @@ class _NewRentalPageState extends State<_NewRentalPage> {
                   ),
                   const SizedBox(height: AppDimens.paddingX8),
                   _SumRow(
-                    label: 'Deposit (refundable)',
+                    label: StringConstants.depositRefundable,
                     value: _Fmt.npr(_deposit),
                     muted: true,
                   ),
@@ -2093,14 +2106,13 @@ class _NewRentalPageState extends State<_NewRentalPage> {
                       vertical: AppDimens.paddingX10,
                     ),
                     decoration: BoxDecoration(
-                      color:
-                          LightColor.secondaryColor.withValues(alpha: 0.08),
+                      color: LightColor.secondaryColor.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(AppDimens.radiusX10),
                     ),
                     child: Row(
                       children: [
                         Text(
-                          'Collect now',
+                          StringConstants.collectNow,
                           style: textTheme.bodyTextSmall?.copyWith(
                             fontWeight: FontWeight.w600,
                             color: LightColor.secondaryColor,
@@ -2122,7 +2134,7 @@ class _NewRentalPageState extends State<_NewRentalPage> {
             ),
             const SizedBox(height: AppDimens.paddingX24),
             CustomButton(
-              text: 'Start rental',
+              text: StringConstants.startRental,
               icon: Icons.play_arrow_rounded,
               onPressed: _canSave ? _save : null,
               minHeight: AppDimens.sizeX54,
@@ -2137,11 +2149,7 @@ class _NewRentalPageState extends State<_NewRentalPage> {
 }
 
 class _SumRow extends StatelessWidget {
-  const _SumRow({
-    required this.label,
-    required this.value,
-    this.muted = false,
-  });
+  const _SumRow({required this.label, required this.value, this.muted = false});
 
   final String label;
   final String value;
@@ -2166,8 +2174,9 @@ class _SumRow extends StatelessWidget {
         Text(
           value,
           style: textTheme.bodyTextSmall?.copyWith(
-            color:
-                muted ? LightColor.hintTextColor : LightColor.primaryTextColor,
+            color: muted
+                ? LightColor.hintTextColor
+                : LightColor.primaryTextColor,
             fontWeight: muted ? FontWeight.w600 : FontWeight.w700,
           ),
         ),
@@ -2250,9 +2259,7 @@ class _Fmt {
   }
 
   static String timeAt(DateTime d) {
-    final h12 = d.hour == 0
-        ? 12
-        : (d.hour > 12 ? d.hour - 12 : d.hour);
+    final h12 = d.hour == 0 ? 12 : (d.hour > 12 ? d.hour - 12 : d.hour);
     final m = d.minute.toString().padLeft(2, '0');
     final p = d.hour < 12 ? 'AM' : 'PM';
     final now = DateTime.now();
@@ -2260,8 +2267,18 @@ class _Fmt {
         d.year == now.year && d.month == now.month && d.day == now.day;
     if (sameDay) return '$h12:$m $p';
     const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     return '${months[d.month - 1]} ${d.day} · $h12:$m $p';
   }

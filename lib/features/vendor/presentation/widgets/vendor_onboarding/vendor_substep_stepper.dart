@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_models.dart';
 import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/vendor_form_components.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class VendorSubstepStepper extends StatelessWidget {
   const VendorSubstepStepper({
@@ -28,7 +29,7 @@ class VendorSubstepStepper extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           const Text(
-            'Step Breakdown',
+            StringConstants.stepBreakdown,
             style: TextStyle(
               color: LightColor.primaryTextColor,
               fontSize: 15,
@@ -191,7 +192,9 @@ class _PremiumSubstepPill extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: isSelected ? Colors.white : LightColor.primaryTextColor,
+                        color: isSelected
+                            ? Colors.white
+                            : LightColor.primaryTextColor,
                         fontSize: 11.5,
                         fontWeight: FontWeight.w800,
                         height: 1.1,

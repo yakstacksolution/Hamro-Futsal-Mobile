@@ -3,6 +3,7 @@ import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class CourtBookingPoliciesSection extends StatelessWidget {
   const CourtBookingPoliciesSection({super.key, required this.policies});
@@ -45,7 +46,7 @@ class CourtBookingPoliciesSection extends StatelessWidget {
                 ),
                 const SizedBox(width: AppDimens.sizeX8),
                 Text(
-                  'Booking Policies',
+                  StringConstants.bookingPolicies,
                   style: textTheme.bodyTextLarge?.copyWith(
                     color: LightColor.primaryTextColor,
                     fontWeight: FontWeight.w800,
@@ -56,7 +57,7 @@ class CourtBookingPoliciesSection extends StatelessWidget {
             const SizedBox(height: AppDimens.sizeX16),
             if (policies.isEmpty)
               Text(
-                'No booking policy added yet.',
+                StringConstants.noBookingPolicyAddedYet,
                 style: textTheme.bodyTextSmall?.copyWith(
                   color: LightColor.secondaryTextColor,
                   fontWeight: FontWeight.w500,

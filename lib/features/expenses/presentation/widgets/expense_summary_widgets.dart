@@ -7,6 +7,7 @@ import 'package:hamro_footsall/features/expenses/data/model/expense_report_model
 import 'package:hamro_footsall/features/expenses/presentation/utils/expense_ui_utils.dart';
 import 'package:hamro_footsall/features/expenses/presentation/widgets/expense_common.dart';
 import 'package:syncfusion_flutter_charts/sparkcharts.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 /// Total-spend hero card: animated count-up total, per-day/entries subtitle
 /// and a sparkline of the server-computed trend series.
@@ -45,7 +46,7 @@ class ExpenseHeroCard extends StatelessWidget {
               ),
               const SizedBox(width: AppDimens.paddingX10),
               Text(
-                'Total expenses',
+                StringConstants.totalExpenses,
                 style: textTheme.bodyTextSmall?.copyWith(
                   color: LightColor.secondaryTextColor,
                   fontWeight: FontWeight.w600,
@@ -162,14 +163,14 @@ class ExpenseKpiGrid extends StatelessWidget {
     final items = <_Kpi>[
       _Kpi(
         icon: Icons.functions_rounded,
-        label: 'Avg / day',
+        label: StringConstants.avgDay,
         value: ExpenseFmt.npr(summary.avgPerDay.round()),
         sub: 'Daily average',
         accent: LightColor.secondaryColor,
       ),
       _Kpi(
         icon: Icons.format_list_numbered_rounded,
-        label: 'Entries',
+        label: StringConstants.entries,
         value: '${summary.entries}',
         sub: 'Avg ${ExpenseFmt.npr(summary.avgPerEntry)} / entry',
         accent: LightColor.blueColor,
@@ -178,14 +179,14 @@ class ExpenseKpiGrid extends StatelessWidget {
         icon: topCatEnum?.icon ?? Icons.category_outlined,
         category: topCatEnum,
         categoryId: topCat?.id,
-        label: 'Top category',
+        label: StringConstants.topCategory,
         value: topCat?.name.isNotEmpty == true ? topCat!.name : '—',
         sub: topCat == null ? 'No expenses yet' : ExpenseFmt.npr(topCat.total),
         accent: topCatEnum?.color ?? LightColor.iconGrey,
       ),
       _Kpi(
         icon: Icons.stadium_outlined,
-        label: 'Top venue',
+        label: StringConstants.topVenue,
         value: topVenue?.name.isNotEmpty == true ? topVenue!.name : '—',
         sub: topVenue == null
             ? 'No expenses yet'

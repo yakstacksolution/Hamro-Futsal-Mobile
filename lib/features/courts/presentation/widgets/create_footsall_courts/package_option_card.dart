@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/features/courts/data/model/create_courts_package_option.dart';
- 
+import 'package:hamro_footsall/core/utils/string_constants.dart';
+
 class PackageOptionCard extends StatelessWidget {
   const PackageOptionCard({
     super.key,
@@ -83,7 +84,7 @@ class PackageOptionCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(999),
                       ),
                       child: const Text(
-                        'Recommended',
+                        StringConstants.recommended,
                         style: TextStyle(
                           color: LightColor.warningColor,
                           fontSize: 11,

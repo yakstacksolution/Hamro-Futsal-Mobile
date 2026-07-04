@@ -15,6 +15,7 @@ import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboar
 import 'package:hamro_footsall/features/vendor/presentation/utils/vendor_template_defaults.dart';
 import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/sections/futsal_plan_selection_widget.dart';
 import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/vendor_form_components.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class FutsalPolicySection extends StatefulWidget {
   const FutsalPolicySection({
@@ -343,7 +344,7 @@ class _FutsalPolicySectionState extends State<FutsalPolicySection> {
         isReadOnly: false,
         controller: _policyQuillController,
         scrollController: _policyScrollController,
-        hintText: 'Describe your cancellation and refund policy...',
+        hintText: StringConstants.describeYourCancellationAndRefundPolicy,
       ),
     );
   }
@@ -358,7 +359,7 @@ class _FutsalPolicySectionState extends State<FutsalPolicySection> {
         isReadOnly: false,
         controller: _rulesQuillController,
         scrollController: _rulesScrollController,
-        hintText: 'List your futsal house rules for players...',
+        hintText: StringConstants.listYourFutsalHouseRulesForPlayers,
       ),
     );
   }
@@ -367,26 +368,27 @@ class _FutsalPolicySectionState extends State<FutsalPolicySection> {
     switch (index) {
       case 0:
         return const _PolicySectionMeta(
-          title: 'Privacy Policy',
-          subtitle: 'Refund, cancellation, and customer booking guidelines',
+          title: StringConstants.refundCancellationPolicyCompact,
+          subtitle:
+              StringConstants.refundCancellationAndCustomerBookingGuidelines,
           icon: Icons.policy_rounded,
         );
       case 1:
         return const _PolicySectionMeta(
-          title: 'Futsal Rules',
-          subtitle: 'Venue rules and player conduct details',
+          title: StringConstants.futsalRules,
+          subtitle: StringConstants.venueRulesAndPlayerConductDetails,
           icon: Icons.rule_rounded,
         );
       case 2:
         return const _PolicySectionMeta(
-          title: 'Choose Your Plan',
-          subtitle: 'Commission package and platform support details',
+          title: StringConstants.chooseYourPlan,
+          subtitle: StringConstants.commissionPackageAndPlatformSupportDetails,
           icon: Icons.workspace_premium_rounded,
         );
       default:
         return const _PolicySectionMeta(
-          title: 'Policy & Rules',
-          subtitle: 'Complete the required details',
+          title: StringConstants.policyAndRules,
+          subtitle: StringConstants.completeTheRequiredDetails,
           icon: Icons.info_rounded,
         );
     }
@@ -401,7 +403,7 @@ class _TemplateResetButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Tooltip(
-      message: 'Reset to default template',
+      message: StringConstants.resetToDefaultTemplate,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(999),

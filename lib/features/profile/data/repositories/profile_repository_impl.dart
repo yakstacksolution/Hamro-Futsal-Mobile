@@ -5,6 +5,7 @@ import 'package:hamro_footsall/core/helper/response_helper.dart';
 import 'package:hamro_footsall/features/profile/data/data_source/profile_data_source.dart';
 import 'package:hamro_footsall/features/profile/data/model/profile_model.dart';
 import 'package:hamro_footsall/features/profile/domain/repository/profile_repository.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 final class ProfileRepositoryImpl extends ProfileRepository {
   ProfileRepositoryImpl({ProfileRemoteDataSource? remoteDataSource})
@@ -62,7 +63,7 @@ final class ProfileRepositoryImpl extends ProfileRepository {
     }
 
     throw DefaultException(
-      errorMessage: 'Invalid profile response from server.',
+      errorMessage: StringConstants.invalidProfileResponseFromServer,
       statusCode: 0,
     );
   }

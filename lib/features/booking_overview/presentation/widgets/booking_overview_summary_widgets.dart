@@ -7,6 +7,7 @@ import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/features/booking_overview/presentation/models/booking_analytics.dart';
 import 'package:hamro_footsall/features/booking_overview/presentation/utils/booking_ui_utils.dart';
 import 'package:hamro_footsall/features/booking_overview/presentation/widgets/booking_overview_common.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 /// Net revenue hero with delta pill and revenue sparkline.
 class BookingHeroCard extends StatelessWidget {
@@ -44,7 +45,7 @@ class BookingHeroCard extends StatelessWidget {
               ),
               const SizedBox(width: AppDimens.paddingX10),
               Text(
-                'Net revenue',
+                StringConstants.netRevenue,
                 style: textTheme.bodyTextSmall?.copyWith(
                   color: LightColor.secondaryTextColor,
                   fontWeight: FontWeight.w600,
@@ -193,42 +194,42 @@ class BookingKpiGrid extends StatelessWidget {
     final items = <_Kpi>[
       _Kpi(
         icon: Icons.calendar_month_rounded,
-        label: 'Total bookings',
+        label: StringConstants.totalBookings,
         value: '${analytics.totalBookings}',
         sub: '${analytics.confirmed + analytics.completed} paid',
         accent: LightColor.secondaryColor,
       ),
       _Kpi(
         icon: Icons.cancel_outlined,
-        label: 'Cancelled',
+        label: StringConstants.cancelled,
         value: '${analytics.cancelled}',
         sub: '${(analytics.cancelRate * 100).toStringAsFixed(1)}% of bookings',
         accent: LightColor.redColor,
       ),
       _Kpi(
         icon: Icons.payments_outlined,
-        label: 'Revenue',
+        label: StringConstants.revenue,
         value: BookingFmt.npr(analytics.revenue),
         sub: 'Avg ${BookingFmt.npr(analytics.avgBookingValue)} / booking',
         accent: LightColor.secondaryColor,
       ),
       _Kpi(
         icon: Icons.receipt_long_outlined,
-        label: 'Expenses',
+        label: StringConstants.expenses,
         value: BookingFmt.npr(analytics.expenses),
         sub: 'Overheads + processing',
         accent: LightColor.warningColor,
       ),
       _Kpi(
         icon: Icons.timer_outlined,
-        label: 'Hours played',
+        label: StringConstants.hoursPlayed,
         value: '${analytics.hoursPlayed}h',
         sub: 'Across all paid slots',
         accent: LightColor.secondaryColor,
       ),
       _Kpi(
         icon: Icons.stadium_outlined,
-        label: 'Occupancy',
+        label: StringConstants.occupancy,
         value: '${(analytics.occupancy * 100).round()}%',
         sub: 'Of available court hours',
         accent: LightColor.secondaryColor,
@@ -358,7 +359,7 @@ class BookingProfitCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Net profit',
+                  StringConstants.netProfit,
                   style: textTheme.bodyTextSmall?.copyWith(
                     color: LightColor.secondaryTextColor,
                     fontWeight: FontWeight.w600,
@@ -380,7 +381,7 @@ class BookingProfitCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                'Margin',
+                StringConstants.margin,
                 style: textTheme.bodyTextSmall?.copyWith(
                   color: LightColor.hintTextColor,
                   fontSize: AppDimens.fontBodySubTitle,

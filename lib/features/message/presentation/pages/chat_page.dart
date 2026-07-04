@@ -21,6 +21,7 @@ import 'package:hamro_footsall/features/message/presentation/bloc/message_bloc/m
 import 'package:hamro_footsall/features/message/presentation/widgets/chat_bubble.dart';
 import 'package:hamro_footsall/features/message/presentation/widgets/chat_input_bar.dart';
 import 'package:hamro_footsall/features/message/presentation/widgets/group_conversation_sheet.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class ChatPage extends StatefulWidget {
   const ChatPage({super.key, required this.conversation});
@@ -166,12 +167,12 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
         children: [
           ListTile(
             leading: const Icon(Icons.attach_file_rounded),
-            title: const Text('Attach files'),
+            title: const Text(StringConstants.attachFiles),
             onTap: () => Navigator.of(sheetContext).pop('files'),
           ),
           ListTile(
             leading: const Icon(Icons.location_on_outlined),
-            title: const Text('Share current location'),
+            title: const Text(StringConstants.shareCurrentLocation),
             onTap: () => Navigator.of(sheetContext).pop('location'),
           ),
         ],
@@ -222,13 +223,13 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
         children: [
           ListTile(
             leading: const Icon(Icons.reply_rounded),
-            title: const Text('Reply'),
+            title: const Text(StringConstants.reply),
             onTap: () => Navigator.of(sheetContext).pop('reply'),
           ),
           if (message.isMine(_bloc.state.currentUserId))
             ListTile(
               leading: const Icon(Icons.delete_outline_rounded),
-              title: const Text('Delete message'),
+              title: const Text(StringConstants.deleteMessageAction),
               textColor: Colors.redAccent,
               iconColor: Colors.redAccent,
               onTap: () => Navigator.of(sheetContext).pop('delete'),
@@ -242,10 +243,10 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
     } else if (action == 'delete') {
       final confirmed = await showDeleteDialog(
         context: context,
-        title: 'Delete message?',
-        message:
-            'This message will be permanently removed from the conversation.',
-        confirmText: 'Delete',
+        title: StringConstants.deleteMessage,
+        message: StringConstants
+            .thisMessageWillBePermanentlyRemovedFromTheConversation,
+        confirmText: StringConstants.delete,
       );
       if (confirmed && mounted) {
         _bloc.add(DeleteMessageEvent(message.id));
@@ -421,7 +422,8 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
                   const Padding(
                     padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
                     child: Text(
-                      'You blocked this user. Unblock them to send messages.',
+                      StringConstants
+                          .youBlockedThisUserUnblockThemToSendMessages,
                       textAlign: TextAlign.center,
                       style: TextStyle(color: Colors.redAccent),
                     ),
@@ -536,7 +538,7 @@ class _TypingBubble extends StatelessWidget {
             ],
           ),
           child: Text(
-            'typing…',
+            StringConstants.typing,
             style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
               color: LightColor.secondaryTextColor,
               fontStyle: FontStyle.italic,
@@ -575,7 +577,7 @@ class _EmptyThread extends StatelessWidget {
             ),
             const SizedBox(height: AppDimens.paddingX14),
             Text(
-              'No messages yet',
+              StringConstants.noMessagesYet,
               style: textTheme.bodyTextMedium?.copyWith(
                 fontWeight: FontWeight.w600,
                 color: LightColor.primaryTextColor,
@@ -583,7 +585,7 @@ class _EmptyThread extends StatelessWidget {
             ),
             const SizedBox(height: AppDimens.paddingX6),
             Text(
-              'Say hello and start the conversation.',
+              StringConstants.sayHelloAndStartTheConversation,
               textAlign: TextAlign.center,
               style: textTheme.bodyTextSmall?.copyWith(
                 color: LightColor.secondaryTextColor,
@@ -626,7 +628,7 @@ class _ThreadError extends StatelessWidget {
             ),
             const SizedBox(height: AppDimens.paddingX18),
             CustomButton(
-              text: 'Retry',
+              text: StringConstants.retry,
               icon: Icons.refresh_rounded,
               onPressed: onRetry,
             ),
@@ -676,7 +678,7 @@ class _ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
       ),
       actions: [
         IconButton(
-          tooltip: 'Conversation settings',
+          tooltip: StringConstants.conversationSettings,
           onPressed: onActions,
           icon: const Icon(Icons.more_vert_rounded),
         ),
@@ -805,7 +807,7 @@ class _ConversationActions extends StatelessWidget {
         if (conversation.isGroup)
           ListTile(
             leading: const Icon(Icons.person_add_alt_1_rounded),
-            title: const Text('Add members'),
+            title: const Text(StringConstants.addMembers),
             onTap: () => Navigator.of(context).pop(
               const _ConversationAction(_ConversationActionType.addMembers),
             ),
@@ -816,7 +818,11 @@ class _ConversationActions extends StatelessWidget {
                 ? Icons.volume_up_outlined
                 : Icons.volume_off_outlined,
           ),
-          title: Text(conversation.isMuted ? 'Unmute' : 'Mute'),
+          title: Text(
+            conversation.isMuted
+                ? StringConstants.unmute
+                : StringConstants.mute,
+          ),
           onTap: () => Navigator.of(
             context,
           ).pop(const _ConversationAction(_ConversationActionType.mute)),
@@ -827,7 +833,11 @@ class _ConversationActions extends StatelessWidget {
                 ? Icons.unarchive_outlined
                 : Icons.archive_outlined,
           ),
-          title: Text(conversation.isArchived ? 'Unarchive' : 'Archive'),
+          title: Text(
+            conversation.isArchived
+                ? StringConstants.unarchive
+                : StringConstants.archive,
+          ),
           onTap: () => Navigator.of(
             context,
           ).pop(const _ConversationAction(_ConversationActionType.archive)),
@@ -837,7 +847,7 @@ class _ConversationActions extends StatelessWidget {
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 16, vertical: 6),
             child: Text(
-              'Participants',
+              StringConstants.participants,
               style: TextStyle(fontWeight: FontWeight.w700),
             ),
           ),
@@ -875,7 +885,11 @@ class _ConversationActions extends StatelessWidget {
                           participant,
                         ),
                       ),
-                child: Text(participant.isBlocked ? 'Unblock' : 'Block'),
+                child: Text(
+                  participant.isBlocked
+                      ? StringConstants.unblock
+                      : StringConstants.block,
+                ),
               ),
             ),
         ],

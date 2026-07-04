@@ -5,6 +5,7 @@ import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class ExpandableFocusSearchBar extends StatefulWidget {
   final ValueChanged<String>? onChanged;
@@ -178,7 +179,7 @@ class _ExpandableFocusSearchBarState extends State<ExpandableFocusSearchBar>
                     focusedErrorBorder: OutlineInputBorder(
                       borderSide: BorderSide(color: Colors.transparent),
                     ),
-                    hintText: 'Where do you want to play?',
+                    hintText: StringConstants.whereDoYouWantToPlay,
 
                     hintStyle: FutsalTheme.getTextTheme(context).bodyTextMedium
                         ?.copyWith(
@@ -277,7 +278,7 @@ class _ExpandableFocusSearchBarState extends State<ExpandableFocusSearchBar>
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            'Recent Searches',
+                            StringConstants.recentSearches,
                             style: FutsalTheme.getTextTheme(context)
                                 .bodyTextMedium
                                 ?.copyWith(
@@ -287,7 +288,7 @@ class _ExpandableFocusSearchBarState extends State<ExpandableFocusSearchBar>
                           GestureDetector(
                             onTap: _recentStore.clear,
                             child: Text(
-                              'Clear All',
+                              StringConstants.clearAll,
                               style: FutsalTheme.getTextTheme(context)
                                   .bodyTextSmall
                                   ?.copyWith(color: LightColor.redColor),

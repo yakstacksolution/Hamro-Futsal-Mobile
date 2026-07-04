@@ -3,6 +3,7 @@ import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class CourtRulesSection extends StatelessWidget {
   const CourtRulesSection({super.key, required this.rules});
@@ -45,7 +46,7 @@ class CourtRulesSection extends StatelessWidget {
                 ),
                 const SizedBox(width: AppDimens.sizeX8),
                 Text(
-                  'Court Rules',
+                  StringConstants.courtRules,
                   style: textTheme.bodyTextLarge?.copyWith(
                     color: LightColor.primaryTextColor,
                     fontWeight: FontWeight.w800,
@@ -56,7 +57,7 @@ class CourtRulesSection extends StatelessWidget {
             const SizedBox(height: AppDimens.sizeX14),
             if (rules.isEmpty)
               Text(
-                'No rules listed yet.',
+                StringConstants.noRulesListedYet,
                 style: textTheme.bodyTextSmall?.copyWith(
                   color: LightColor.secondaryTextColor,
                   fontWeight: FontWeight.w500,

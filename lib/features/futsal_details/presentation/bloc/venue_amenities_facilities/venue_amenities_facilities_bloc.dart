@@ -11,8 +11,7 @@ part 'venue_amenities_facilities_event.dart';
 part 'venue_amenities_facilities_state.dart';
 
 class VenueAmenitiesFacilitiesBloc
-    extends
-        Bloc<VenueAmenitiesFacilitiesEvent, VenueAmenitiesFacilitiesState> {
+    extends Bloc<VenueAmenitiesFacilitiesEvent, VenueAmenitiesFacilitiesState> {
   VenueAmenitiesFacilitiesBloc(this._getVenueAmenitiesFacilitiesUseCase)
     : super(const VenueAmenitiesFacilitiesState()) {
     on<FetchVenueAmenitiesFacilitiesEvent>(_onFetchVenueAmenitiesFacilities);

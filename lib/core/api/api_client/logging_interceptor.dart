@@ -2,13 +2,14 @@ import 'dart:convert';
 import 'dart:developer';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
- 
-class LoggingInterceptor extends Interceptor {
 
+class LoggingInterceptor extends Interceptor {
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
     if (kDebugMode) {
-      print("\n\n===============================================================\n\n");
+      print(
+        "\n\n===============================================================\n\n",
+      );
       print('REQUEST[${options.method}] => PATH: ${options.path}');
       log(options.toCurlCmd());
     }
@@ -19,18 +20,25 @@ class LoggingInterceptor extends Interceptor {
   void onResponse(Response response, ResponseInterceptorHandler handler) {
     if (kDebugMode) {
       print(
-          "\n\n===============================================================\n\n");
-      print(
-        'RESPONSE PATH[${response.statusCode}] => PATH: ${response
-            .requestOptions.path}',
+        "\n\n===============================================================\n\n",
       );
       print(
-          'RESPONSE VALUE [${response.statusCode}] => ${jsonEncode(
-              response.data.toString())}');
+        'RESPONSE PATH[${response.statusCode}] => PATH: ${response.requestOptions.path}',
+      );
+      print(
+        'RESPONSE VALUE [${response.statusCode}] => ${jsonEncode(response.data.toString())}',
+      );
     }
-    if(response.statusCode == 204){
+    if (response.statusCode == 204) {
       var statusCode = response.statusCode;
-      var dioE = DioException(requestOptions: response.requestOptions, response: Response(requestOptions: response.requestOptions, statusCode: statusCode), type: DioExceptionType.badResponse);
+      var dioE = DioException(
+        requestOptions: response.requestOptions,
+        response: Response(
+          requestOptions: response.requestOptions,
+          statusCode: statusCode,
+        ),
+        type: DioExceptionType.badResponse,
+      );
       return handler.reject(dioE, true);
     }
     return super.onResponse(response, handler);
@@ -44,7 +52,7 @@ class LoggingInterceptor extends Interceptor {
       if (err.error.toString().contains("SocketException")) {
         statusCode = 1503;
       } else {
-        switch(err.type) {
+        switch (err.type) {
           case DioExceptionType.connectionTimeout:
             statusCode = 522;
             break;
@@ -69,23 +77,36 @@ class LoggingInterceptor extends Interceptor {
             break;
         }
       }
-      dioE = DioException(requestOptions: err.requestOptions, response: Response(requestOptions: err.requestOptions, statusCode: statusCode));
+      dioE = DioException(
+        requestOptions: err.requestOptions,
+        response: Response(
+          requestOptions: err.requestOptions,
+          statusCode: statusCode,
+        ),
+      );
       if (kDebugMode) {
-        print("\n\n===============================================================\n\n");
-        print('ERROR[${dioE.response?.statusCode}] => PATH: ${dioE.requestOptions.path}');
+        print(
+          "\n\n===============================================================\n\n",
+        );
+        print(
+          'ERROR[${dioE.response?.statusCode}] => PATH: ${dioE.requestOptions.path}',
+        );
         print('ERROR RESPONSE ${jsonEncode(err.response?.data.toString())}');
       }
       return super.onError(dioE, handler);
     } else {
       if (kDebugMode) {
-        print("\n\n===============================================================\n\n");
-        print('ERROR[${err.response?.statusCode}] => PATH: ${err.requestOptions.path}');
+        print(
+          "\n\n===============================================================\n\n",
+        );
+        print(
+          'ERROR[${err.response?.statusCode}] => PATH: ${err.requestOptions.path}',
+        );
         print('ERROR RESPONSE ${jsonEncode(err.response?.data.toString())}');
       }
       return super.onError(err, handler);
     }
   }
-
 }
 
 extension Curl on RequestOptions {

@@ -13,6 +13,7 @@ import 'package:hamro_footsall/features/dashboard/presentation/page/dashboard_sc
 import 'package:hamro_footsall/features/profile/data/model/profile_model.dart';
 import 'package:hamro_footsall/features/profile/presentation/profile_bloc/profile_bloc.dart';
 import 'package:hamro_footsall/features/profile/presentation/widgets/profile_details_page.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -26,35 +27,42 @@ class _ProfilePageState extends State<ProfilePage> {
 
   late final List<_ProfileItem> _generalItems = <_ProfileItem>[
     _ProfileItem(
-      title: 'Settings',
+      title: StringConstants.settings,
       icon: Icons.settings_outlined,
       onTap: () => context.pushNamed(AppRouterParams.settings.name),
     ),
     _ProfileItem(
-      title: 'Opponent Requests',
+      title: StringConstants.opponentRequests,
       icon: Icons.sports_kabaddi_rounded,
       onTap: () => context.pushNamed(AppRouterParams.opponentMatch.name),
     ),
     _ProfileItem(
-      title: 'Transaction History',
+      title: StringConstants.transactionHistory,
       icon: Icons.receipt_long_outlined,
-      onTap: () {},
+      onTap: () {
+        final bool isVendor =
+            context.read<ProfileBloc>().state.profile?.data.role == 'vendor';
+        context.pushNamed(
+          AppRouterParams.transactions.name,
+          queryParameters: <String, String>{'futsal': isVendor.toString()},
+        );
+      },
     ),
   ];
 
   late final List<_ProfileItem> _vendorItems = <_ProfileItem>[
     _ProfileItem(
-      title: 'Your Venues',
+      title: StringConstants.yourVenues,
       icon: Icons.stadium_outlined,
       onTap: () => context.pushNamed(AppRouterParams.yourVenues.name),
     ),
     _ProfileItem(
-      title: 'Booking Overview',
+      title: StringConstants.bookingOverview,
       icon: Icons.insights_rounded,
       onTap: () => context.pushNamed(AppRouterParams.bookingOverview.name),
     ),
     _ProfileItem(
-      title: 'Expenses',
+      title: StringConstants.expenses,
       icon: Icons.account_balance_wallet_outlined,
       onTap: () => context.pushNamed(AppRouterParams.expenses.name),
     ),
@@ -63,7 +71,7 @@ class _ProfilePageState extends State<ProfilePage> {
   /// Candidates see a single upgrade entry instead of the vendor tools.
   late final List<_ProfileItem> _candidateVendorItems = <_ProfileItem>[
     _ProfileItem(
-      title: 'Upgrade to Vendor',
+      title: StringConstants.upgradeToVendor,
       icon: Icons.storefront_outlined,
       onTap: () => context.pushNamed(AppRouterParams.vendorStepper.name),
     ),
@@ -71,12 +79,12 @@ class _ProfilePageState extends State<ProfilePage> {
 
   late final List<_ProfileItem> _supportItems = <_ProfileItem>[
     _ProfileItem(
-      title: 'Help & FAQ',
+      title: StringConstants.helpAndFaq,
       icon: Icons.help_outline_rounded,
       onTap: () => context.pushNamed(AppRouterParams.helpFaq.name),
     ),
     _ProfileItem(
-      title: 'About App',
+      title: StringConstants.aboutApp,
       icon: Icons.info_outline_rounded,
       onTap: () => context.pushNamed(AppRouterParams.aboutApp.name),
     ),
@@ -154,17 +162,23 @@ class _ProfilePageState extends State<ProfilePage> {
                           ),
                   ),
                   const SizedBox(height: AppDimens.paddingX24),
-                  _SectionGroup(label: 'General', items: _generalItems),
+                  _SectionGroup(
+                    label: StringConstants.general,
+                    items: _generalItems,
+                  ),
                   const SizedBox(height: AppDimens.paddingX20),
                   _SectionGroup(
-                    label: 'Vendor',
+                    label: StringConstants.vendor,
                     items: isVendor ? _vendorItems : _candidateVendorItems,
                   ),
                   const SizedBox(height: AppDimens.paddingX20),
-                  _SectionGroup(label: 'Support', items: _supportItems),
+                  _SectionGroup(
+                    label: StringConstants.support,
+                    items: _supportItems,
+                  ),
                   const SizedBox(height: AppDimens.paddingX20),
                   _SectionGroup(
-                    label: 'Account',
+                    label: StringConstants.account,
                     items: [
                       _ProfileItem(
                         title: _isLoggingOut ? 'Logging out…' : 'Log out',
@@ -195,7 +209,7 @@ class _ProfilePageState extends State<ProfilePage> {
         top: AppDimens.paddingX24,
       ),
       child: Text(
-        'Profile',
+        StringConstants.profile,
         style: textTheme.bodyTextLarge?.copyWith(
           fontSize: AppDimens.fontHeadingSmall,
           fontWeight: FontWeight.w700,
@@ -208,7 +222,7 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget _appVersion(BuildContext context) {
     return Center(
       child: Text(
-        'Hamro Futsal · v1.0.0',
+        StringConstants.hamroFutsalV100,
         style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
           color: LightColor.hintTextColor,
           fontSize: AppDimens.fontBodySubTitle,
@@ -229,7 +243,11 @@ class _ProfilePageState extends State<ProfilePage> {
       (failure) =>
           AppUtils().showSnackBar(context, MsgType.error, failure.errorMessage),
       (_) {
-        AppUtils().showSnackBar(context, MsgType.success, 'Logout successful');
+        AppUtils().showSnackBar(
+          context,
+          MsgType.success,
+          StringConstants.logoutSuccessful,
+        );
         context.goNamed(AppRouterParams.login.name);
       },
     );
@@ -303,7 +321,7 @@ class _ProfileRow extends StatelessWidget {
               ),
               const SizedBox(width: AppDimens.paddingX8),
               Text(
-                'View',
+                StringConstants.view,
                 style: textTheme.bodyTextSmall?.copyWith(
                   color: LightColor.secondaryColor,
                   fontWeight: FontWeight.w600,

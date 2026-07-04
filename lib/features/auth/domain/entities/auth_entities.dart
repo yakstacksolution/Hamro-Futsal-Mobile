@@ -106,10 +106,7 @@ class ResendOtpEntity extends Equatable {
   final String email;
   final String? purpose;
 
-  const ResendOtpEntity({
-    required this.email,
-    this.purpose,
-  });
+  const ResendOtpEntity({required this.email, this.purpose});
 
   @override
   List<Object?> get props => [email, purpose];
@@ -134,8 +131,6 @@ class GoogleSignInEntity extends Equatable {
   List<Object?> get props => [idToken, accessToken];
 
   Map<String, dynamic> toMap() {
-    return <String, dynamic>{
-      "id_token": idToken,
-    };
+    return <String, dynamic>{"id_token": idToken};
   }
 }

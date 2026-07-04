@@ -19,6 +19,7 @@ import 'package:hamro_footsall/features/expenses/presentation/utils/expense_ui_u
 import 'package:hamro_footsall/features/expenses/presentation/widgets/expense_common.dart';
 import 'package:hamro_footsall/features/expenses/presentation/widgets/expense_filter_widgets.dart';
 import 'package:hamro_footsall/features/expenses/presentation/widgets/expense_form_widgets.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 /// Create a new expense, or edit an existing one when [initial] is provided.
 class CreateExpensePage extends StatefulWidget {
@@ -48,7 +49,9 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
   late final _vendorCtrl = TextEditingController(
     text: widget.initial?.vendor ?? '',
   );
-  late final _noteCtrl = TextEditingController(text: widget.initial?.note ?? '');
+  late final _noteCtrl = TextEditingController(
+    text: widget.initial?.note ?? '',
+  );
   final _amountFocus = FocusNode();
 
   ExpenseCategoryModel? _category;
@@ -60,9 +63,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
         );
   late CourtModel? _court = widget.initial?.courtId == null
       ? null
-      : widget.courts
-            .where((c) => c.id == widget.initial!.courtId)
-            .firstOrNull;
+      : widget.courts.where((c) => c.id == widget.initial!.courtId).firstOrNull;
   late DateTime _date = widget.initial?.date ?? DateTime.now();
   late PaymentMethod _method = widget.initial?.method ?? PaymentMethod.cash;
   PlatformFile? _document;
@@ -133,7 +134,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
   Future<void> _pickDate() async {
     final picked = await showCustomDatePicker(
       context,
-      title: 'Expense date',
+      title: StringConstants.expenseDate,
       initialDate: _date,
       minDate: DateTime(_date.year - 2),
       maxDate: DateTime.now().add(const Duration(days: 30)),
@@ -156,7 +157,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
         ..hideCurrentSnackBar()
         ..showSnackBar(
           const SnackBar(
-            content: Text('Document must be smaller than 10 MB.'),
+            content: Text(StringConstants.documentMustBeSmallerThan10Mb),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -200,7 +201,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
             builder: (context, _) => TextButton(
               onPressed: _canSave ? _save : null,
               child: Text(
-                'Save',
+                StringConstants.save,
                 style: textTheme.bodyTextMedium?.copyWith(
                   fontWeight: FontWeight.w700,
                   color: _canSave
@@ -276,7 +277,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
                           color: LightColor.secondaryColor,
                         ),
                       ),
-                      message: 'Loading categories…',
+                      message: StringConstants.loadingCategories,
                     ),
                   );
                 }
@@ -291,7 +292,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
                         size: 18,
                         color: LightColor.redColor,
                       ),
-                      message: 'Could not load categories.',
+                      message: StringConstants.couldNotLoadCategories,
                       onRetry: () => context.read<ExpensesBloc>().add(
                         const LoadExpenseCategoriesEvent(),
                       ),
@@ -300,8 +301,8 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
                 }
                 return ExpenseSurface(
                   child: CustomDropdownField<ExpenseCategoryModel>(
-                    labelText: 'Category',
-                    hintText: 'Select a category',
+                    labelText: StringConstants.category,
+                    hintText: StringConstants.selectACategory,
                     icon: Icons.category_outlined,
                     initialValue: _category,
                     autovalidateMode: _submitted
@@ -337,8 +338,8 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
                     ),
                     child: CustomTextField(
                       controller: _vendorCtrl,
-                      labelText: 'Purpose',
-                      hintText: 'e.g. Turf repair, monthly rent',
+                      labelText: StringConstants.purpose,
+                      hintText: StringConstants.eGTurfRepairMonthlyRent,
                       icon: Icons.assignment_outlined,
                       textCapitalization: TextCapitalization.sentences,
                       textInputAction: TextInputAction.next,
@@ -353,8 +354,8 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
                       AppDimens.paddingX18,
                     ),
                     child: CustomDropdownField<VenueModel>(
-                      labelText: 'Venue',
-                      hintText: 'Select a venue',
+                      labelText: StringConstants.venue,
+                      hintText: StringConstants.selectAVenue,
                       icon: Icons.stadium_outlined,
                       initialValue: _venue,
                       onChanged: (v) {
@@ -388,8 +389,8 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
                         // Rebuild when the venue changes so the stale court
                         // selection doesn't linger in the field.
                         key: ValueKey(_venue.id),
-                        labelText: 'Court',
-                        hintText: 'Select a court',
+                        labelText: StringConstants.court,
+                        hintText: StringConstants.selectACourt,
                         icon: Icons.sports_soccer_outlined,
                         initialValue: _court,
                         isRequired: false,
@@ -407,7 +408,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
                   const ExpenseFormDivider(),
                   ExpensePickerRow(
                     icon: Icons.calendar_today_outlined,
-                    label: 'Date',
+                    label: StringConstants.date,
                     value: _formatDate(_date),
                     onTap: _pickDate,
                   ),
@@ -423,7 +424,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Payment method',
+                          StringConstants.paymentMethod,
                           style: textTheme.bodyTextSmall?.copyWith(
                             color: LightColor.hintTextColor,
                             fontSize: 11.5,
@@ -446,8 +447,8 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
             ExpenseSurface(
               child: CustomTextField(
                 controller: _noteCtrl,
-                labelText: 'Note',
-                hintText: 'Add a remark, invoice ref, etc.',
+                labelText: StringConstants.note,
+                hintText: StringConstants.addARemarkInvoiceRefEtc,
                 icon: Icons.notes_rounded,
                 maxLines: 3,
                 minLines: 3,
@@ -633,7 +634,7 @@ class _DocumentField extends StatelessWidget {
                 const SizedBox(width: AppDimens.paddingX10),
                 Expanded(
                   child: Text(
-                    'Upload document',
+                    StringConstants.uploadDocument,
                     style: textTheme.bodyTextMedium?.copyWith(
                       fontWeight: FontWeight.w600,
                       color: LightColor.primaryTextColor,
@@ -649,8 +650,7 @@ class _DocumentField extends StatelessWidget {
             ),
             const SizedBox(height: AppDimens.paddingX6),
             Text(
-              'Only from device files — image (JPG, PNG, WebP), PDF or Word. '
-              'Max 10 MB. Gallery is not used here.',
+              StringConstants.documentUploadRequirements,
               style: textTheme.bodyTextSmall?.copyWith(
                 color: LightColor.hintTextColor,
                 fontSize: AppDimens.fontBodySubTitle,
@@ -701,7 +701,7 @@ class _DocumentField extends StatelessWidget {
         ),
         IconButton(
           visualDensity: VisualDensity.compact,
-          tooltip: 'Remove document',
+          tooltip: StringConstants.removeDocument,
           onPressed: onRemove,
           icon: const Icon(
             Icons.close_rounded,
@@ -746,7 +746,7 @@ class _CategoryStatusRow extends StatelessWidget {
           TextButton(
             onPressed: onRetry,
             child: Text(
-              'Retry',
+              StringConstants.retry,
               style: textTheme.bodyTextSmall?.copyWith(
                 fontWeight: FontWeight.w700,
                 color: LightColor.secondaryColor,

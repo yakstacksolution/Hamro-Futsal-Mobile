@@ -121,14 +121,18 @@ class BookingAnalytics {
   int get profit => revenue - expenses;
 
   int get totalBookings => scoped.length;
-  late final int cancelled =
-      scoped.where((b) => b.status == BookingStatus.cancelled).length;
-  late final int completed =
-      scoped.where((b) => b.status == BookingStatus.completed).length;
-  late final int confirmed =
-      scoped.where((b) => b.status == BookingStatus.confirmed).length;
-  late final int pending =
-      scoped.where((b) => b.status == BookingStatus.pending).length;
+  late final int cancelled = scoped
+      .where((b) => b.status == BookingStatus.cancelled)
+      .length;
+  late final int completed = scoped
+      .where((b) => b.status == BookingStatus.completed)
+      .length;
+  late final int confirmed = scoped
+      .where((b) => b.status == BookingStatus.confirmed)
+      .length;
+  late final int pending = scoped
+      .where((b) => b.status == BookingStatus.pending)
+      .length;
 
   double get cancelRate => totalBookings == 0 ? 0 : cancelled / totalBookings;
 
@@ -225,9 +229,7 @@ class BookingAnalytics {
   }
 
   late final Map<BookingStatus, int> statusBreakdown = () {
-    final m = <BookingStatus, int>{
-      for (final s in BookingStatus.values) s: 0,
-    };
+    final m = <BookingStatus, int>{for (final s in BookingStatus.values) s: 0};
     for (final b in scoped) {
       m[b.status] = (m[b.status] ?? 0) + 1;
     }

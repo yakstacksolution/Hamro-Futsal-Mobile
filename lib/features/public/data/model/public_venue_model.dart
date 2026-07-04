@@ -1,11 +1,7 @@
 import 'package:equatable/equatable.dart';
 
 final class CourtTypeModel extends Equatable {
-  const CourtTypeModel({
-    this.id,
-    this.name,
-    this.slug,
-  });
+  const CourtTypeModel({this.id, this.name, this.slug});
 
   final int? id;
   final String? name;
@@ -20,11 +16,7 @@ final class CourtTypeModel extends Equatable {
   }
 
   Map<String, dynamic> toJson() {
-    return <String, dynamic>{
-      'id': id,
-      'name': name,
-      'slug': slug,
-    };
+    return <String, dynamic>{'id': id, 'name': name, 'slug': slug};
   }
 
   @override
@@ -189,7 +181,9 @@ final class PublicListingVenueModel extends Equatable {
           .toList(growable: false),
       'longitude': longitude,
       'latitude': latitude,
-      'court_types': courtTypes?.map((type) => type.toJson()).toList(growable: false),
+      'court_types': courtTypes
+          ?.map((type) => type.toJson())
+          .toList(growable: false),
       'max_player': maxPlayer,
       'min_time': minTime,
       'max_time': maxTime,
@@ -245,9 +239,8 @@ final class PublicListingVenueModel extends Equatable {
       return value
           .whereType<Map>()
           .map(
-            (Map item) => CourtTypeModel.fromJson(
-              Map<String, dynamic>.from(item),
-            ),
+            (Map item) =>
+                CourtTypeModel.fromJson(Map<String, dynamic>.from(item)),
           )
           .toList(growable: false);
     }
@@ -314,7 +307,9 @@ final class PublicListingVenuePage extends Equatable {
   /// Whether there is at least one more page to load after this one.
   bool get hasMore {
     // Prefer the API's explicit signal, then last_page, then a size estimate.
-    final bool? hasMorePages = PublicListingVenueModel._parseBool(paginationMetaData['has_more_pages']);
+    final bool? hasMorePages = PublicListingVenueModel._parseBool(
+      paginationMetaData['has_more_pages'],
+    );
     if (hasMorePages != null) return hasMorePages;
     if (lastPage != null) return page < lastPage!;
     return page * perPage < total;
@@ -386,6 +381,12 @@ final class PublicListingVenuePage extends Equatable {
   }
 
   @override
-  List<Object?> get props =>
-      <Object?>[venues, page, perPage, total, lastPage, paginationMetaData];
+  List<Object?> get props => <Object?>[
+    venues,
+    page,
+    perPage,
+    total,
+    lastPage,
+    paginationMetaData,
+  ];
 }

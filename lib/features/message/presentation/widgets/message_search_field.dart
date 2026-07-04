@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class MessageSearchField extends StatelessWidget {
   const MessageSearchField({
@@ -46,7 +47,7 @@ class MessageSearchField extends StatelessWidget {
           isDense: true,
           filled: true,
           fillColor: LightColor.whiteColor,
-          hintText: 'Search conversations',
+          hintText: StringConstants.searchConversations,
           hintStyle: textTheme.bodyTextSmall?.copyWith(
             color: LightColor.hintTextColor,
           ),

@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_text.dart';
@@ -5,6 +6,7 @@ import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/custom_image_view.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class CourtHostedBySection extends StatelessWidget {
   const CourtHostedBySection({
@@ -26,8 +28,6 @@ class CourtHostedBySection extends StatelessWidget {
   final String? avatarUrl;
   final int? hostedVenues;
   final double? responseRate;
-
-
   final VoidCallback? onMessage;
 
   @override
@@ -62,7 +62,7 @@ class CourtHostedBySection extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Hosted By',
+              StringConstants.hostedBy,
               style: textTheme.bodyTextLarge?.copyWith(
                 color: LightColor.primaryTextColor,
                 fontWeight: FontWeight.w800,
@@ -118,20 +118,38 @@ class CourtHostedBySection extends StatelessWidget {
                     ],
                   ),
                 ),
-                // Message-the-host shortcut.
-                Material(
-                  color: LightColor.secondaryColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(AppDimens.radiusX8),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(AppDimens.radiusX8),
-                    onTap: onMessage,
-                    child: const SizedBox(
-                      width: AppDimens.sizeX42,
-                      height: AppDimens.sizeX42,
-                      child: Icon(
-                        Icons.chat_bubble_outline_rounded,
-                        color: LightColor.secondaryColor,
-                        size: AppDimens.sizeX20,
+                Tooltip(
+                  message: StringConstants.chatWithHost,
+                  child: Material(
+                    color: onMessage == null
+                        ? LightColor.dividerColor.withValues(alpha: 0.5)
+                        : LightColor.secondaryColor.withValues(alpha: 0.10),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+                      side: BorderSide(
+                        color: onMessage == null
+                            ? LightColor.dividerColor
+                            : LightColor.secondaryColor.withValues(alpha: 0.18),
+                      ),
+                    ),
+                    elevation: onMessage == null ? 0 : 1,
+                    shadowColor: LightColor.secondaryColor.withValues(
+                      alpha: 0.18,
+                    ),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(AppDimens.radiusX12),
+                      onTap: onMessage,
+                      child: SizedBox(
+                        width: AppDimens.sizeX44,
+                        height: AppDimens.sizeX44,
+                        child: Icon(
+                          // Icons.messan,
+                          CupertinoIcons.chat_bubble_text,
+                          color: onMessage == null
+                              ? LightColor.hintTextColor
+                              : LightColor.secondaryColor,
+                          size: AppDimens.sizeX20,
+                        ),
                       ),
                     ),
                   ),
@@ -143,26 +161,26 @@ class CourtHostedBySection extends StatelessWidget {
               children: [
                 _HostMetricTile(
                   icon: Icons.sports_soccer_rounded,
-                  label: 'Courts',
+                  label: StringConstants.courts,
                   value: hostedCourts.toString(),
                 ),
                 const SizedBox(width: AppDimens.sizeX10),
                 if (hostedVenues != null)
                   _HostMetricTile(
                     icon: Icons.stadium_rounded,
-                    label: 'Venues',
+                    label: StringConstants.venues,
                     value: hostedVenues.toString(),
                   )
                 else
                   _HostMetricTile(
                     icon: Icons.flash_on_rounded,
-                    label: 'Response',
+                    label: StringConstants.response,
                     value: '${(responseRate ?? 0).toInt()}%',
                   ),
                 const SizedBox(width: AppDimens.sizeX10),
                 _HostMetricTile(
                   icon: Icons.star_rounded,
-                  label: 'Rating',
+                  label: StringConstants.rating,
                   value: rating.toStringAsFixed(1),
                 ),
               ],

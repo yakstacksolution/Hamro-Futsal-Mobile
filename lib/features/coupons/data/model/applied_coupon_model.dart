@@ -162,7 +162,9 @@ Map<String, dynamic> _unwrap(dynamic payload) {
     if (stop || nested is! Map) return map;
     current = nested;
   }
-  return current is Map ? Map<String, dynamic>.from(current) : <String, dynamic>{};
+  return current is Map
+      ? Map<String, dynamic>.from(current)
+      : <String, dynamic>{};
 }
 
 Map<String, dynamic>? _mapOf(dynamic value) =>

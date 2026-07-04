@@ -24,6 +24,7 @@ import 'package:hamro_footsall/features/profile/presentation/profile_bloc/profil
 import 'package:hamro_footsall/features/public/presentation/models/venue_filter.dart';
 import 'package:hamro_footsall/core/helper/wishlist_store.dart';
 import 'package:hamro_footsall/features/wishlist/domain/usecase/toggle_wishlist_use_case.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class FootsallHomePage extends StatelessWidget {
   const FootsallHomePage({super.key, this.filter = VenueFilter.empty});
@@ -181,7 +182,7 @@ class _CourtsListScreenState extends State<CourtsListScreen>
               padding: AppUtils().getPadding(top: AppDimens.sizeX80),
               child: _VenueMessageView(
                 icon: Icons.wifi_off_rounded,
-                title: 'Unable to load venues',
+                title: StringConstants.unableToLoadVenues,
                 message:
                     state.errorMessage ??
                     'Please check your connection and try again.',
@@ -206,8 +207,8 @@ class _CourtsListScreenState extends State<CourtsListScreen>
               padding: AppUtils().getPadding(top: AppDimens.sizeX80),
               child: const _VenueMessageView(
                 icon: Icons.stadium_outlined,
-                title: 'No venues found',
-                message: 'There are no futsal venues to show right now.',
+                title: StringConstants.noVenuesFound,
+                message: StringConstants.thereAreNoFutsalVenuesToShowRightNow,
               ),
             ),
           ),
@@ -227,8 +228,8 @@ class _CourtsListScreenState extends State<CourtsListScreen>
               padding: AppUtils().getPadding(top: AppDimens.sizeX80),
               child: const _VenueMessageView(
                 icon: Icons.filter_alt_off_rounded,
-                title: 'No matching venues',
-                message: 'Try adjusting or clearing your filters.',
+                title: StringConstants.noMatchingVenues,
+                message: StringConstants.tryAdjustingOrClearingYourFilters,
               ),
             ),
           ),
@@ -367,9 +368,9 @@ class _CourtCardState extends State<CourtCard> {
     final int? venueId = widget.court.id;
     if (venueId == null) return;
     HapticFeedback.selectionClick();
-    final String? error = await ToggleWishlistUseCase(
-      PublicRepositoryImpl(),
-    )(venueId);
+    final String? error = await ToggleWishlistUseCase(PublicRepositoryImpl())(
+      venueId,
+    );
     if (error != null && mounted) {
       AppUtils().showSnackBar(context, MsgType.error, error);
     }
@@ -550,7 +551,7 @@ class _CourtCardState extends State<CourtCard> {
                             ),
                             const SizedBox(width: AppDimens.sizeX4),
                             Text(
-                              '/ hour',
+                              StringConstants.perHourSuffix,
                               style: FutsalTheme.getTextTheme(context)
                                   .bodyTextMedium
                                   ?.copyWith(

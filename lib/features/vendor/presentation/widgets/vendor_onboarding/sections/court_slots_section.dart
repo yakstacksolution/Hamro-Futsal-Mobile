@@ -9,6 +9,7 @@ import 'package:hamro_footsall/core/widgets/loading_widget.dart';
 import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_cubit.dart';
 import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_models.dart';
 import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/vendor_form_components.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 const List<String> weekdayOptions = <String>[
   'Sun',
@@ -130,13 +131,13 @@ class _SlotScheduleViewState extends State<_SlotScheduleView> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         VendorOnboardingSectionHeader(
-          title: 'Slot Schedule',
-          subtitle: 'Create reusable booking slots with days and times',
+          title: StringConstants.slotSchedule,
+          subtitle: StringConstants.createReusableBookingSlotsWithDaysAndTimes,
           icon: Icons.calendar_month_rounded,
           trailing: SizedBox(
             width: AppDimens.sizeX90,
             child: CustomButton(
-              text: 'Add Slot',
+              text: StringConstants.addSlot,
               minHeight: AppDimens.sizeX34,
               fontSize: AppDimens.fontBodyTextSmall,
               verticalPadding: AppDimens.paddingX2,
@@ -245,7 +246,7 @@ class _SlotDeleteDialogState extends State<_SlotDeleteDialog> {
         borderRadius: BorderRadius.circular(AppDimens.radiusX12),
       ),
       title: Text(
-        'Delete Slot',
+        StringConstants.deleteSlot,
         style: textTheme.bodyTextLarge?.copyWith(
           color: LightColor.primaryTextColor,
           fontWeight: FontWeight.w800,
@@ -256,7 +257,8 @@ class _SlotDeleteDialogState extends State<_SlotDeleteDialog> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Text(
-            'Are you sure you want to delete this slot? This action cannot be undone.',
+            StringConstants
+                .areYouSureYouWantToDeleteThisSlotThisActionCannotBeUndone,
             style: textTheme.bodyTextSmall?.copyWith(
               color: LightColor.secondaryTextColor,
               height: 1.5,
@@ -279,7 +281,7 @@ class _SlotDeleteDialogState extends State<_SlotDeleteDialog> {
           children: <Widget>[
             Expanded(
               child: CustomButton(
-                text: 'Cancel',
+                text: StringConstants.cancel,
                 isOutlined: true,
                 foregroundColor: LightColor.secondaryColor,
                 borderColor: LightColor.secondaryColor,
@@ -292,7 +294,7 @@ class _SlotDeleteDialogState extends State<_SlotDeleteDialog> {
             const SizedBox(width: AppDimens.sizeX10),
             Expanded(
               child: CustomButton(
-                text: 'Delete',
+                text: StringConstants.delete,
                 icon: Icons.delete_outline_rounded,
                 isLoading: _isDeleting,
                 minHeight: AppDimens.sizeX42,
@@ -478,7 +480,7 @@ class _SlotListTile extends StatelessWidget {
                 color: LightColor.secondaryColor,
               ),
               const SizedBox(width: AppDimens.sizeX8),
-              Text('Update', style: textTheme.bodyTextSmall),
+              Text(StringConstants.update, style: textTheme.bodyTextSmall),
             ],
           ),
         ),
@@ -492,7 +494,7 @@ class _SlotListTile extends StatelessWidget {
                 color: LightColor.redColor,
               ),
               const SizedBox(width: AppDimens.sizeX8),
-              Text('Delete', style: textTheme.bodyTextSmall),
+              Text(StringConstants.delete, style: textTheme.bodyTextSmall),
             ],
           ),
         ),
@@ -660,10 +662,10 @@ class _SlotFormSheetState extends State<_SlotFormSheet> {
                 const SizedBox(height: AppDimens.sizeX16),
                 VendorInputField(
                   isRequired: true,
-                  label: 'Slot label',
+                  label: StringConstants.slotLabel,
                   controller: _labelController,
                   initialValue: '',
-                  hintText: 'e.g. Morning Slot',
+                  hintText: StringConstants.eGMorningSlot,
                   onChanged: (_) {
                     if (_error != null) setState(() => _error = null);
                   },
@@ -676,7 +678,7 @@ class _SlotFormSheetState extends State<_SlotFormSheet> {
                   runSpacing: AppDimens.sizeX8,
                   children: <Widget>[
                     VendorSelectableChip(
-                      label: 'All',
+                      label: StringConstants.all,
                       isSelected: _allSelected,
                       onTap: () => setState(() {
                         _error = null;
@@ -704,7 +706,7 @@ class _SlotFormSheetState extends State<_SlotFormSheet> {
                   children: <Widget>[
                     Expanded(
                       child: CustomTimeField(
-                        label: 'Start time',
+                        label: StringConstants.startTime,
                         value: _startTime,
                         onChanged: (String value) => setState(() {
                           _error = null;
@@ -715,7 +717,7 @@ class _SlotFormSheetState extends State<_SlotFormSheet> {
                     const SizedBox(width: AppDimens.sizeX12),
                     Expanded(
                       child: CustomTimeField(
-                        label: 'End time',
+                        label: StringConstants.endTime,
                         value: _endTime,
                         onChanged: (String value) => setState(() {
                           _error = null;
@@ -740,7 +742,7 @@ class _SlotFormSheetState extends State<_SlotFormSheet> {
                   children: <Widget>[
                     Expanded(
                       child: CustomButton(
-                        text: 'Cancel',
+                        text: StringConstants.cancel,
                         isOutlined: true,
                         foregroundColor: LightColor.secondaryColor,
                         borderColor: LightColor.secondaryColor,
@@ -894,7 +896,7 @@ class _SlotFilterDropdown extends StatelessWidget {
         children: <Widget>[
           Expanded(
             child: Text(
-              'All slots',
+              StringConstants.allSlots,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: textTheme.bodyTextMedium?.copyWith(
@@ -1020,7 +1022,7 @@ class _WeekendHolidayView extends StatelessWidget {
       context: context,
       builder: (BuildContext context) {
         return _CustomCalendarDatePickerDialog(
-          title: 'Holiday dates',
+          title: StringConstants.holidayDates,
           initialDates: court.holidayDates,
         );
       },
@@ -1051,13 +1053,13 @@ class _WeekendHolidayView extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         const VendorOnboardingSectionHeader(
-          title: 'Weekend, Holidays & Closures',
-          subtitle: 'Special days for pricing and booking availability',
+          title: StringConstants.weekendHolidaysAndClosures,
+          subtitle: StringConstants.specialDaysForPricingAndBookingAvailability,
           icon: Icons.event_repeat_rounded,
         ),
         const SizedBox(height: AppDimens.sizeX12),
         Text(
-          'Weekend days',
+          StringConstants.weekendDays,
           style: textTheme.bodyTextSmall?.copyWith(
             color: LightColor.primaryTextColor,
             fontWeight: FontWeight.w800,
@@ -1079,11 +1081,11 @@ class _WeekendHolidayView extends StatelessWidget {
         ),
         const SizedBox(height: AppDimens.sizeX16),
         _DateCollectionCard(
-          title: 'Holiday dates',
-          subtitle: 'Bookings remain open and holiday pricing can apply.',
+          title: StringConstants.holidayDates,
+          subtitle: StringConstants.bookingsRemainOpenAndHolidayPricingCanApply,
           icon: Icons.celebration_rounded,
           dates: court.holidayDates,
-          emptyText: 'No holiday dates added.',
+          emptyText: StringConstants.noHolidayDatesAdded,
           actionLabel: 'Add Holiday',
           onAdd: () => _pickHolidayDates(context),
           onRemove: cubit.removeCourtHolidayDate,
@@ -1091,11 +1093,11 @@ class _WeekendHolidayView extends StatelessWidget {
         ),
         const SizedBox(height: AppDimens.sizeX12),
         _ClosedDateCollectionCard(
-          title: 'Closed dates',
-          subtitle: 'Close a full day or only a specific hour range.',
+          title: StringConstants.closedDates,
+          subtitle: StringConstants.closeAFullDayOrOnlyASpecificHourRange,
           icon: Icons.event_busy_rounded,
           dates: court.closedDates,
-          emptyText: 'No closed dates added.',
+          emptyText: StringConstants.noClosedDatesAdded,
           actionLabel: 'Add Closed Date',
           onAdd: () => _pickClosedDate(context),
           onRemove: cubit.removeCourtClosedDate,
@@ -1190,8 +1192,8 @@ class _SlotPricingViewState extends State<_SlotPricingView> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         const VendorOnboardingSectionHeader(
-          title: 'Slot Pricing',
-          subtitle: 'Weekend, holiday, and discount pricing',
+          title: StringConstants.slotPricing,
+          subtitle: StringConstants.weekendHolidayAndDiscountPricing,
           icon: Icons.attach_money_rounded,
         ),
         const SizedBox(height: AppDimens.sizeX12),
@@ -1381,7 +1383,7 @@ class _SlotPricingSheetState extends State<_SlotPricingSheet> {
                 ),
                 const SizedBox(height: AppDimens.sizeX4),
                 Text(
-                  'Update pricing for this slot',
+                  StringConstants.updatePricingForThisSlot,
                   style: textTheme.bodySubTitle?.copyWith(
                     color: LightColor.secondaryTextColor,
                     fontWeight: FontWeight.w600,
@@ -1389,7 +1391,7 @@ class _SlotPricingSheetState extends State<_SlotPricingSheet> {
                 ),
                 const SizedBox(height: AppDimens.sizeX16),
                 _MoneyField(
-                  label: 'Weekend price',
+                  label: StringConstants.weekendPrice,
                   value: _slot.weekendPrice,
                   onChanged: (String value) => _update(
                     _slot.copyWith(
@@ -1400,7 +1402,7 @@ class _SlotPricingSheetState extends State<_SlotPricingSheet> {
                 ),
                 const SizedBox(height: AppDimens.sizeX16),
                 _MoneyField(
-                  label: 'Holiday price',
+                  label: StringConstants.holidayPrice,
                   value: _slot.holidayPrice,
                   onChanged: (String value) => _update(
                     _slot.copyWith(
@@ -1436,7 +1438,8 @@ class _SlotPricingSheetState extends State<_SlotPricingSheet> {
                     _slot.copyWith(
                       customDatePrices: _slot.customDatePrices
                           .where(
-                            (SlotCustomDatePriceDraft item) => item.date != date,
+                            (SlotCustomDatePriceDraft item) =>
+                                item.date != date,
                           )
                           .toList(),
                     ),
@@ -1457,7 +1460,7 @@ class _SlotPricingSheetState extends State<_SlotPricingSheet> {
                   children: <Widget>[
                     Expanded(
                       child: CustomButton(
-                        text: 'Cancel',
+                        text: StringConstants.cancel,
                         isOutlined: true,
                         foregroundColor: LightColor.secondaryColor,
                         borderColor: LightColor.secondaryColor,
@@ -1470,7 +1473,7 @@ class _SlotPricingSheetState extends State<_SlotPricingSheet> {
                     const SizedBox(width: AppDimens.sizeX12),
                     Expanded(
                       child: CustomButton(
-                        text: 'Save Pricing',
+                        text: StringConstants.savePricing,
                         icon: Icons.check_rounded,
                         isLoading: _isSaving,
                         minHeight: AppDimens.sizeX44,
@@ -1523,11 +1526,14 @@ class _DiscountTypeSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return VendorDropdownField<String>(
-      label: 'Discount type',
+      label: StringConstants.discountType,
       initialValue: value == 'Percent' ? 'Percent' : 'Flat',
       items: const <DropdownMenuItem<String>>[
         DropdownMenuItem<String>(value: 'Percent', child: Text('%')),
-        DropdownMenuItem<String>(value: 'Flat', child: Text('Flat')),
+        DropdownMenuItem<String>(
+          value: 'Flat',
+          child: Text(StringConstants.flat),
+        ),
       ],
       onChanged: (String? value) {
         if (value == null) return;
@@ -1572,7 +1578,7 @@ class _CustomDatePricesSection extends StatelessWidget {
             children: <Widget>[
               Expanded(
                 child: Text(
-                  'Custom date prices',
+                  StringConstants.customDatePrices,
                   style: textTheme.bodyTextMedium?.copyWith(
                     color: LightColor.primaryTextColor,
                     fontWeight: FontWeight.w500,
@@ -1583,7 +1589,7 @@ class _CustomDatePricesSection extends StatelessWidget {
                 width: AppDimens.sizeX80,
                 child: CustomButton(
                   borderRadius: 8,
-                  text: 'Add Date',
+                  text: StringConstants.addDate,
                   minHeight: AppDimens.sizeX32,
                   fontSize: 10,
                   verticalPadding: AppDimens.paddingX2,
@@ -1596,7 +1602,7 @@ class _CustomDatePricesSection extends StatelessWidget {
             Padding(
               padding: AppUtils().getPadding(top: AppDimens.paddingX12),
               child: Text(
-                'Optional prices for one-off dates.',
+                StringConstants.optionalPricesForOneOffDates,
                 style: textTheme.bodySubTitle?.copyWith(
                   color: LightColor.secondaryTextColor,
                 ),
@@ -1683,7 +1689,7 @@ class _CustomDatePriceDialogState extends State<_CustomDatePriceDialog> {
       surfaceTintColor: LightColor.cardColor,
       insetPadding: AppUtils().getPadding(horizontal: AppDimens.paddingX16),
       title: Text(
-        'Custom date price',
+        StringConstants.customDatePrice,
         style: textTheme.bodyTextLarge?.copyWith(
           color: LightColor.primaryTextColor,
           fontWeight: FontWeight.w800,
@@ -1727,7 +1733,7 @@ class _CustomDatePriceDialogState extends State<_CustomDatePriceDialog> {
               const SizedBox(height: AppDimens.sizeX14),
               VendorInputField(
                 key: ValueKey<String>(_selectedDate ?? 'custom-date-price'),
-                label: 'Price',
+                label: StringConstants.price,
                 initialValue: _price,
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
@@ -1745,7 +1751,7 @@ class _CustomDatePriceDialogState extends State<_CustomDatePriceDialog> {
           children: <Widget>[
             Expanded(
               child: CustomButton(
-                text: 'Cancel',
+                text: StringConstants.cancel,
                 isOutlined: true,
                 foregroundColor: LightColor.secondaryColor,
                 borderColor: LightColor.secondaryColor,
@@ -1756,7 +1762,7 @@ class _CustomDatePriceDialogState extends State<_CustomDatePriceDialog> {
             const SizedBox(width: AppDimens.sizeX10),
             Expanded(
               child: CustomButton(
-                text: 'Apply',
+                text: StringConstants.apply,
                 icon: Icons.check_rounded,
                 minHeight: AppDimens.sizeX42,
                 backgroundColor: LightColor.secondaryColor,
@@ -1887,7 +1893,7 @@ class _DateCollectionCard extends StatelessWidget {
                 width: AppDimens.sizeX80,
                 child: CustomButton(
                   minHeight: AppDimens.sizeX36,
-                  text: 'Add Date',
+                  text: StringConstants.addDate,
                   borderRadius: 8,
 
                   onPressed: onAdd,
@@ -2014,7 +2020,7 @@ class _ClosedDateCollectionCard extends StatelessWidget {
                 width: AppDimens.sizeX80,
                 child: CustomButton(
                   minHeight: AppDimens.sizeX36,
-                  text: 'Add Date',
+                  text: StringConstants.addDate,
                   borderRadius: 8,
                   onPressed: onAdd,
                   fontSize: 10,
@@ -2089,7 +2095,8 @@ class _EmptySlotsCard extends StatelessWidget {
         border: Border.all(color: LightColor.greyBorderColor),
       ),
       child: Text(
-        'No slot configuration added yet. Add a slot to define the booking schedule for this court.',
+        StringConstants
+            .noSlotConfigurationAddedYetAddASlotToDefineTheBo243e88c0,
         style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
           color: LightColor.secondaryTextColor,
           height: 1.5,
@@ -2135,7 +2142,7 @@ class _ClosedDateDialogState extends State<_ClosedDateDialog> {
       surfaceTintColor: LightColor.cardColor,
       insetPadding: AppUtils().getPadding(horizontal: AppDimens.paddingX16),
       title: Text(
-        'Closed date',
+        StringConstants.closedDate,
         style: textTheme.bodyTextLarge?.copyWith(
           color: LightColor.primaryTextColor,
           fontWeight: FontWeight.w800,
@@ -2216,12 +2223,12 @@ class _ClosedDateDialogState extends State<_ClosedDateDialog> {
                   ButtonSegment<bool>(
                     value: true,
                     icon: Icon(Icons.event_busy_rounded),
-                    label: Text('Full day'),
+                    label: Text(StringConstants.fullDay),
                   ),
                   ButtonSegment<bool>(
                     value: false,
                     icon: Icon(Icons.schedule_rounded),
-                    label: Text('Hourly'),
+                    label: Text(StringConstants.hourly),
                   ),
                 ],
                 selected: <bool>{_isFullDay},
@@ -2235,7 +2242,7 @@ class _ClosedDateDialogState extends State<_ClosedDateDialog> {
                   children: <Widget>[
                     Expanded(
                       child: CustomTimeField(
-                        label: 'Start time',
+                        label: StringConstants.startTime,
                         value: _startTime,
                         onChanged: (String value) => setState(() {
                           _startTime = value;
@@ -2245,7 +2252,7 @@ class _ClosedDateDialogState extends State<_ClosedDateDialog> {
                     const SizedBox(width: AppDimens.sizeX12),
                     Expanded(
                       child: CustomTimeField(
-                        label: 'End time',
+                        label: StringConstants.endTime,
                         value: _endTime,
                         onChanged: (String value) => setState(() {
                           _endTime = value;
@@ -2274,7 +2281,7 @@ class _ClosedDateDialogState extends State<_ClosedDateDialog> {
           children: <Widget>[
             Expanded(
               child: CustomButton(
-                text: 'Cancel',
+                text: StringConstants.cancel,
                 isOutlined: true,
                 foregroundColor: LightColor.secondaryColor,
                 borderColor: LightColor.secondaryColor,
@@ -2285,7 +2292,7 @@ class _ClosedDateDialogState extends State<_ClosedDateDialog> {
             const SizedBox(width: AppDimens.sizeX10),
             Expanded(
               child: CustomButton(
-                text: 'Apply',
+                text: StringConstants.apply,
                 icon: Icons.check_rounded,
                 minHeight: AppDimens.sizeX42,
                 backgroundColor: LightColor.secondaryColor,
@@ -2438,7 +2445,7 @@ class _CustomCalendarDatePickerDialogState
           children: <Widget>[
             Expanded(
               child: CustomButton(
-                text: 'Cancel',
+                text: StringConstants.cancel,
                 isOutlined: true,
                 foregroundColor: LightColor.secondaryColor,
                 borderColor: LightColor.secondaryColor,
@@ -2449,7 +2456,7 @@ class _CustomCalendarDatePickerDialogState
             const SizedBox(width: AppDimens.sizeX10),
             Expanded(
               child: CustomButton(
-                text: 'Apply',
+                text: StringConstants.apply,
                 icon: Icons.check_rounded,
                 minHeight: AppDimens.sizeX42,
                 backgroundColor: LightColor.secondaryColor,

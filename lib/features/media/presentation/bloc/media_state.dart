@@ -30,7 +30,9 @@ final class MediaState extends Equatable {
       fetchStatus: fetchStatus ?? this.fetchStatus,
       createStatus: createStatus ?? this.createStatus,
       items: items ?? this.items,
-      errorMessage: clearErrorMessage ? null : errorMessage ?? this.errorMessage,
+      errorMessage: clearErrorMessage
+          ? null
+          : errorMessage ?? this.errorMessage,
       successMessage: clearSuccessMessage
           ? null
           : successMessage ?? this.successMessage,

@@ -6,6 +6,7 @@ import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/features/message/data/model/chat_message_model.dart';
 import 'package:hamro_footsall/features/message/presentation/utils/message_fmt.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 /// One chat bubble — mine: filled accent, right-aligned with delivery ticks;
 /// theirs: white card, left-aligned (sender name shown in groups).
@@ -182,7 +183,7 @@ class ChatBubble extends StatelessWidget {
             children: [
               if (message.isEdited)
                 Text(
-                  'edited · ',
+                  StringConstants.edited,
                   style: textTheme.bodyTextSmall?.copyWith(
                     fontSize: 10,
                     fontStyle: FontStyle.italic,

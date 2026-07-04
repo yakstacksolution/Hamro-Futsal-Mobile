@@ -109,9 +109,7 @@ final class BookingOverviewLocalDataSourceImpl
       ),
     ];
 
-    final allCourts = <BookingCourtModel>[
-      for (final f in futsals) ...f.courts,
-    ];
+    final allCourts = <BookingCourtModel>[for (final f in futsals) ...f.courts];
 
     const customers = <String>[
       'Aayush Karki',

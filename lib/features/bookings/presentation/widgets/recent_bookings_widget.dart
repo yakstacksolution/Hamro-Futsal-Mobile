@@ -8,6 +8,7 @@ import 'package:hamro_footsall/core/widgets/loading_widget.dart';
 import 'package:hamro_footsall/features/bookings/data/model/booking_model.dart';
 import 'package:hamro_footsall/features/bookings/presentation/bloc/booking_bloc/booking_bloc.dart';
 import 'package:hamro_footsall/features/bookings/presentation/widgets/booking_shared_widgets.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class _Summary {
   const _Summary({
@@ -127,19 +128,19 @@ class RecentBookingsWidget extends StatelessWidget {
 
     return [
       _Summary(
-        label: 'New Today',
+        label: StringConstants.newToday,
         value: newToday.toString().padLeft(2, '0'),
         icon: Icons.add_task_rounded,
         color: LightColor.secondaryColor,
       ),
       _Summary(
-        label: 'Revenue',
+        label: StringConstants.revenue,
         value: 'NPR ${_compact(revenue)}',
         icon: Icons.payments_rounded,
         color: LightColor.secondaryColor,
       ),
       _Summary(
-        label: 'Pending',
+        label: StringConstants.pending,
         value: pending.toString().padLeft(2, '0'),
         icon: Icons.timelapse_rounded,
         color: const Color(0xFFE65100),
@@ -173,7 +174,7 @@ class _SectionHeader extends StatelessWidget {
         const SizedBox(width: 10),
         Expanded(
           child: Text(
-            'Recent Bookings',
+            StringConstants.recentBookings,
             style: textTheme.headingSmall?.copyWith(
               fontWeight: FontWeight.w800,
               color: LightColor.primaryTextColor,
@@ -197,7 +198,7 @@ class _SectionHeader extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'View all',
+                  StringConstants.viewAll,
                   style: textTheme.bodyTextSmall?.copyWith(
                     color: LightColor.secondaryColor,
                     fontWeight: FontWeight.w700,
@@ -410,7 +411,7 @@ class _BookingTile extends StatelessWidget {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      'Booking Fee',
+                      StringConstants.bookingFee,
                       style: textTheme.bodyTextSmall?.copyWith(
                         fontSize: 10.5,
                         color: LightColor.secondaryColor,
@@ -588,7 +589,7 @@ class _InlineEmpty extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'No recent bookings',
+            StringConstants.noRecentBookings,
             style: textTheme.bodyTextSmall?.copyWith(
               color: LightColor.secondaryTextColor,
               fontWeight: FontWeight.w600,
@@ -649,7 +650,7 @@ class _InlineError extends StatelessWidget {
                 borderRadius: BorderRadius.circular(999),
               ),
               child: Text(
-                'Retry',
+                StringConstants.retry,
                 style: textTheme.bodyTextSmall?.copyWith(
                   color: LightColor.whiteColor,
                   fontWeight: FontWeight.w700,

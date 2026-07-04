@@ -24,7 +24,9 @@ class ReviewSummaryTile extends StatelessWidget {
         color: Colors.white,
         border: Border(
           left: const BorderSide(color: LightColor.secondaryColor, width: 2.5),
-          right: BorderSide(color: LightColor.borderColor.withValues(alpha: 0.6)),
+          right: BorderSide(
+            color: LightColor.borderColor.withValues(alpha: 0.6),
+          ),
           top: BorderSide(color: LightColor.borderColor.withValues(alpha: 0.6)),
           bottom: isLast
               ? BorderSide(color: LightColor.borderColor.withValues(alpha: 0.6))

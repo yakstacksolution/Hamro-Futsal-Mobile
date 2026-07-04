@@ -24,7 +24,9 @@ class CreateBookingBloc extends Bloc<CreateBookingEvent, CreateBookingState> {
     Emitter<CreateBookingState> emit,
   ) async {
     if (state.status == CreateBookingStatus.submitting) return;
-    emit(state.copyWith(status: CreateBookingStatus.submitting, clearError: true));
+    emit(
+      state.copyWith(status: CreateBookingStatus.submitting, clearError: true),
+    );
 
     final Either<AppException, BookingResultModel> response =
         await _createBookingUseCase.createBooking(event.request);

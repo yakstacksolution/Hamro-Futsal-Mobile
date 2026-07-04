@@ -28,12 +28,12 @@ class BookingQuoteModel {
       priceDetails: _mapOf(json['price_details']) == null
           ? null
           : BookingPriceDetailsModel.fromJson(_mapOf(json['price_details'])!),
-      calculationList: _listOf(json['calculation_list'])
-          .map(BookingCalculationLineModel.fromJson)
-          .toList(growable: false),
-      items: _listOf(json['items'])
-          .map(BookingSessionItemModel.fromJson)
-          .toList(growable: false),
+      calculationList: _listOf(
+        json['calculation_list'],
+      ).map(BookingCalculationLineModel.fromJson).toList(growable: false),
+      items: _listOf(
+        json['items'],
+      ).map(BookingSessionItemModel.fromJson).toList(growable: false),
     );
   }
 }

@@ -4,6 +4,7 @@ import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/widgets/custom_button.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 Future<TimeOfDay?> showCustomTimePicker({
   required BuildContext context,
@@ -12,9 +13,8 @@ Future<TimeOfDay?> showCustomTimePicker({
   return showDialog<TimeOfDay>(
     context: context,
     barrierDismissible: false,
-    builder: (BuildContext context) => _CustomTimePickerDialog(
-      initialTime: initialTime,
-    ),
+    builder: (BuildContext context) =>
+        _CustomTimePickerDialog(initialTime: initialTime),
   );
 }
 
@@ -57,7 +57,7 @@ class _CustomTimePickerDialogState extends State<_CustomTimePickerDialog> {
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
             Text(
-              'Select Time',
+              StringConstants.selectTime,
               style: textTheme.bodyTextLarge?.copyWith(
                 color: LightColor.primaryTextColor,
                 fontWeight: FontWeight.w800,
@@ -105,7 +105,7 @@ class _CustomTimePickerDialogState extends State<_CustomTimePickerDialog> {
                   ),
                   const SizedBox(height: AppDimens.sizeX20),
                   _TimeSlider(
-                    label: 'Hour',
+                    label: StringConstants.hour,
                     value: _selectedHour,
                     maxValue: 23,
                     onChanged: (double value) =>
@@ -113,7 +113,7 @@ class _CustomTimePickerDialogState extends State<_CustomTimePickerDialog> {
                   ),
                   const SizedBox(height: AppDimens.sizeX16),
                   _TimeSlider(
-                    label: 'Minute',
+                    label: StringConstants.minute,
                     value: _selectedMinute,
                     maxValue: 59,
                     onChanged: (double value) =>
@@ -127,7 +127,7 @@ class _CustomTimePickerDialogState extends State<_CustomTimePickerDialog> {
               children: <Widget>[
                 Expanded(
                   child: CustomButton(
-                    text: 'Cancel',
+                    text: StringConstants.cancel,
                     isOutlined: true,
                     foregroundColor: LightColor.secondaryColor,
                     borderColor: LightColor.secondaryColor,
@@ -138,7 +138,7 @@ class _CustomTimePickerDialogState extends State<_CustomTimePickerDialog> {
                 const SizedBox(width: AppDimens.sizeX12),
                 Expanded(
                   child: CustomButton(
-                    text: 'Confirm',
+                    text: StringConstants.confirm,
                     backgroundColor: LightColor.secondaryColor,
                     foregroundColor: LightColor.whiteColor,
                     minHeight: AppDimens.sizeX46,
@@ -197,10 +197,7 @@ class _TimeSelector extends StatelessWidget {
           decoration: BoxDecoration(
             color: LightColor.whiteColor,
             borderRadius: BorderRadius.circular(AppDimens.radiusX12),
-            border: Border.all(
-              color: LightColor.secondaryColor,
-              width: 2,
-            ),
+            border: Border.all(color: LightColor.secondaryColor, width: 2),
           ),
           child: Center(
             child: Text(

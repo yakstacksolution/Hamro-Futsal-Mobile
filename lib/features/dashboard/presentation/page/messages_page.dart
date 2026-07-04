@@ -4,6 +4,7 @@ import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/custom_image_view.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 enum MessageFilter { all, unread, active, bookings }
 
@@ -46,7 +47,7 @@ class _MessagesPageState extends State<MessagesPage> {
     _MessageItem(
       id: 'm1',
       name: 'Andy Robertson',
-      message: 'Oh yes, please send your booking details.',
+      message: StringConstants.ohYesPleaseSendYourBookingDetails,
       time: '5m',
       avatarUrl: 'https://i.pravatar.cc/150?img=12',
       unreadCount: 2,
@@ -56,7 +57,7 @@ class _MessagesPageState extends State<MessagesPage> {
     _MessageItem(
       id: 'm2',
       name: 'Giorgio Chiellini',
-      message: 'Hello sir, good morning.',
+      message: StringConstants.helloSirGoodMorning,
       time: '30m',
       avatarUrl: 'https://i.pravatar.cc/150?img=15',
       isActive: true,
@@ -64,7 +65,7 @@ class _MessagesPageState extends State<MessagesPage> {
     _MessageItem(
       id: 'm3',
       name: 'Alex Morgan',
-      message: 'I saw the futsal slot you posted yesterday.',
+      message: StringConstants.iSawTheFutsalSlotYouPostedYesterday,
       time: '09:30',
       avatarUrl: 'https://i.pravatar.cc/150?img=32',
       isBooking: true,
@@ -72,7 +73,7 @@ class _MessagesPageState extends State<MessagesPage> {
     _MessageItem(
       id: 'm4',
       name: 'Ilkay Gundogan',
-      message: 'Can we reschedule tonight’s booking?',
+      message: StringConstants.canWeRescheduleTonightSBooking,
       time: 'Yesterday',
       avatarUrl: 'https://i.pravatar.cc/150?img=51',
       isBooking: true,
@@ -80,14 +81,14 @@ class _MessagesPageState extends State<MessagesPage> {
     _MessageItem(
       id: 'm5',
       name: 'Megan Rapinoe',
-      message: 'Thanks, I will confirm the team shortly.',
+      message: StringConstants.thanksIWillConfirmTheTeamShortly,
       time: '13:00',
       avatarUrl: 'https://i.pravatar.cc/150?img=47',
     ),
     _MessageItem(
       id: 'm6',
       name: 'Alessandro Bastoni',
-      message: 'Please share the location pin once again.',
+      message: StringConstants.pleaseShareTheLocationPinOnceAgain,
       time: '18:00',
       avatarUrl: 'https://i.pravatar.cc/150?img=58',
       unreadCount: 1,
@@ -186,7 +187,7 @@ class _MessagesPageState extends State<MessagesPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Messages',
+            StringConstants.messages,
             style: textTheme.bodyTextLarge?.copyWith(
               fontSize: AppDimens.fontHeadingSmall,
               fontWeight: FontWeight.w700,
@@ -228,7 +229,7 @@ class _MessagesPageState extends State<MessagesPage> {
             isDense: true,
             filled: true,
             fillColor: LightColor.whiteColor,
-            hintText: 'Search conversations',
+            hintText: StringConstants.searchConversations,
             hintStyle: textTheme.bodyTextSmall?.copyWith(
               color: LightColor.hintTextColor,
             ),
@@ -578,7 +579,7 @@ class _MessageCard extends StatelessWidget {
         Expanded(
           child: _QuickAction(
             icon: Icons.reply_rounded,
-            label: 'Reply',
+            label: StringConstants.reply,
             onTap: onReply,
           ),
         ),
@@ -668,7 +669,7 @@ class _BookingTag extends StatelessWidget {
           ),
           const SizedBox(width: 3),
           Text(
-            'Booking',
+            StringConstants.booking,
             style: textTheme.bodyTextSmall?.copyWith(
               color: LightColor.secondaryColor,
               fontWeight: FontWeight.w600,

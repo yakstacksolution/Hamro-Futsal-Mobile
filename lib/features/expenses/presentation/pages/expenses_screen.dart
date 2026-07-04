@@ -19,6 +19,7 @@ import 'package:hamro_footsall/features/expenses/presentation/widgets/expense_de
 import 'package:hamro_footsall/features/expenses/presentation/widgets/expense_filter_widgets.dart';
 import 'package:hamro_footsall/features/expenses/presentation/widgets/expense_tabs.dart';
 import 'package:hamro_footsall/features/expenses/presentation/widgets/expenses_page_loading_widget.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class ExpensesScreen extends StatelessWidget {
   const ExpensesScreen({super.key});
@@ -69,7 +70,9 @@ class _ExpensesViewState extends State<_ExpensesView>
     );
     // Silent: keep the chips and current data on screen while the server
     // recomputes, instead of flashing the full-page loader on every tap.
-    context.read<ExpensesBloc>().add(LoadExpensesEvent(filter: f, silent: true));
+    context.read<ExpensesBloc>().add(
+      LoadExpensesEvent(filter: f, silent: true),
+    );
   }
 
   @override
@@ -140,7 +143,7 @@ class _ExpensesViewState extends State<_ExpensesView>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: LightColor.background,
-      appBar: const CustomAppBar(title: 'Expenses'),
+      appBar: const CustomAppBar(title: StringConstants.expenses),
 
       floatingActionButton: SizedBox(
         height: 44,
@@ -153,7 +156,7 @@ class _ExpensesViewState extends State<_ExpensesView>
           shape: const StadiumBorder(),
           icon: const Icon(Icons.add_rounded, size: 18),
           label: Text(
-            'New Expense',
+            StringConstants.newExpense,
             style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
               fontWeight: FontWeight.w700,
               color: LightColor.whiteColor,
@@ -203,14 +206,10 @@ class _ExpensesViewState extends State<_ExpensesView>
     // param): it narrows the Records list and highlights the breakdown.
     final records = _categoryFilter == null
         ? state.expenses
-        : state.expenses
-              .where((e) => e.categoryId == _categoryFilter)
-              .toList();
+        : state.expenses.where((e) => e.categoryId == _categoryFilter).toList();
 
     final hasFilters =
-        _categoryFilter != null ||
-        _venueId != null ||
-        _paymentMethod != null;
+        _categoryFilter != null || _venueId != null || _paymentMethod != null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -294,9 +293,9 @@ class _ExpensesViewState extends State<_ExpensesView>
             context,
           ).bodyTextSmall?.copyWith(fontWeight: FontWeight.w500),
           tabs: const [
-            Tab(text: 'Overview', height: 40),
-            Tab(text: 'Analytics', height: 40),
-            Tab(text: 'Records', height: 40),
+            Tab(text: StringConstants.overview, height: 40),
+            Tab(text: StringConstants.analytics, height: 40),
+            Tab(text: StringConstants.records, height: 40),
           ],
         ),
         const SizedBox(height: AppDimens.paddingX12),
@@ -373,10 +372,7 @@ class _ExpensesViewState extends State<_ExpensesView>
       ),
       layoutBuilder: (currentChild, previousChildren) => Stack(
         alignment: Alignment.topCenter,
-        children: [
-          ...previousChildren,
-          if (currentChild != null) currentChild,
-        ],
+        children: [...previousChildren, if (currentChild != null) currentChild],
       ),
       child: KeyedSubtree(key: key, child: child),
     );
@@ -519,7 +515,7 @@ class _LoadError extends StatelessWidget {
                 foregroundColor: LightColor.secondaryColor,
                 side: const BorderSide(color: LightColor.secondaryColor),
               ),
-              child: const Text('Retry'),
+              child: const Text(StringConstants.retry),
             ),
           ],
         ),

@@ -8,6 +8,7 @@ import 'package:hamro_footsall/core/widgets/custom_app_bar.dart';
 import 'package:hamro_footsall/core/widgets/custom_button.dart';
 import 'package:hamro_footsall/core/widgets/custom_text_field.dart';
 import 'package:hamro_footsall/features/change_password/presentation/bloc/change_password_bloc/change_password_bloc.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 /// Change the signed-in user's password — `PUT /auth/password`.
 ///
@@ -63,7 +64,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: LightColor.background,
-      appBar: const CustomAppBar(title: 'Change Password'),
+      appBar: const CustomAppBar(title: StringConstants.changePassword),
       body: SafeArea(
         top: false,
         child: BlocConsumer<ChangePasswordBloc, ChangePasswordState>(
@@ -125,8 +126,8 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                           children: <Widget>[
                             const SizedBox(height: AppDimens.sizeX12),
                             CustomTextField(
-                              labelText: 'Current Password',
-                              hintText: 'Enter current password',
+                              labelText: StringConstants.currentPassword,
+                              hintText: StringConstants.enterCurrentPassword,
                               icon: Icons.lock_outline_rounded,
                               obscureText: !_showOld,
                               textInputAction: TextInputAction.next,
@@ -140,8 +141,8 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                             ),
                             const SizedBox(height: AppDimens.sizeX14),
                             CustomTextField(
-                              labelText: 'New Password',
-                              hintText: 'Enter new password',
+                              labelText: StringConstants.newPassword,
+                              hintText: StringConstants.enterNewPassword,
                               icon: Icons.lock_reset_rounded,
                               obscureText: !_showNew,
                               textInputAction: TextInputAction.next,
@@ -155,8 +156,8 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                             ),
                             const SizedBox(height: AppDimens.sizeX14),
                             CustomTextField(
-                              labelText: 'Confirm New Password',
-                              hintText: 'Re-enter new password',
+                              labelText: StringConstants.confirmNewPassword,
+                              hintText: StringConstants.reEnterNewPassword,
                               icon: Icons.check_circle_outline_rounded,
                               obscureText: !_showConfirm,
                               textInputAction: TextInputAction.done,
@@ -189,15 +190,16 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                                 children: <Widget>[
                                   Icon(
                                     Icons.info_outline_rounded,
-                                    color: LightColor.secondaryColor
-                                        .withValues(alpha: 0.9),
+                                    color: LightColor.secondaryColor.withValues(
+                                      alpha: 0.9,
+                                    ),
                                     size: AppDimens.sizeX18,
                                   ),
                                   const SizedBox(width: AppDimens.sizeX8),
                                   Expanded(
                                     child: Text(
-                                      'Use at least 8 characters, different '
-                                      'from your current password.',
+                                      StringConstants
+                                          .passwordMustDifferFromCurrent,
                                       style: FutsalTheme.getTextTheme(context)
                                           .bodyTextSmall
                                           ?.copyWith(
@@ -211,7 +213,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                             ),
                             const SizedBox(height: AppDimens.sizeX18),
                             CustomButton(
-                              text: 'Update Password',
+                              text: StringConstants.updatePassword,
                               minHeight: AppDimens.sizeX44,
                               isLoading: state.isSubmitting,
                               backgroundColor: LightColor.buttonColor,
@@ -278,14 +280,14 @@ class _ChangePasswordHeader extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               Text(
-                'Change Password',
+                StringConstants.changePassword,
                 style: FutsalTheme.getTextTheme(
                   context,
                 ).headingSubTitle?.copyWith(color: LightColor.primaryTextColor),
               ),
               const SizedBox(height: AppDimens.sizeX2),
               Text(
-                'Enter your current password and choose a new one.',
+                StringConstants.enterYourCurrentPasswordAndChooseANewOne,
                 style: FutsalTheme.getTextTheme(context).bodyTextSmall
                     ?.copyWith(
                       color: LightColor.secondaryTextColor,

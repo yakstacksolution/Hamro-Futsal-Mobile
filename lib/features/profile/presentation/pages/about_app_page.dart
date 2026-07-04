@@ -7,6 +7,7 @@ import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/utils/image_constants.dart';
 import 'package:hamro_footsall/core/widgets/custom_app_bar.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class AboutAppPage extends StatefulWidget {
   const AboutAppPage({super.key});
@@ -28,7 +29,7 @@ class _AboutAppPageState extends State<AboutAppPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: LightColor.background,
-      appBar: const CustomAppBar(title: 'About App'),
+      appBar: const CustomAppBar(title: StringConstants.aboutApp),
       body: SafeArea(
         top: false,
         child: FutureBuilder<PackageInfo>(
@@ -140,7 +141,7 @@ class _HeroCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Text(
-                      'Hamro Footsall',
+                      StringConstants.hamroFootsall,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: textTheme.bodyTextLarge?.copyWith(
@@ -152,7 +153,7 @@ class _HeroCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'Futsal booking, simplified.',
+                      StringConstants.futsalBookingSimplified,
                       style: textTheme.bodyTextSmall?.copyWith(
                         color: LightColor.secondaryTextColor,
                         fontWeight: FontWeight.w500,
@@ -172,7 +173,8 @@ class _HeroCard extends StatelessWidget {
           ),
           const SizedBox(height: AppDimens.paddingX12),
           Text(
-            'Book courts, manage matches, and keep your futsal plans moving without the back-and-forth.',
+            StringConstants
+                .bookCourtsManageMatchesAndKeepYourFutsalPlansMov11f51a89,
             style: textTheme.bodyTextSmall?.copyWith(
               color: LightColor.secondaryTextColor,
               height: 1.5,
@@ -242,7 +244,7 @@ class _ProductOfCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Text(
-                  'Yak Stack Solution',
+                  StringConstants.yakStackSolution,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: textTheme.bodyTextMedium?.copyWith(
@@ -252,7 +254,7 @@ class _ProductOfCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Digital products for modern sports businesses.',
+                  StringConstants.digitalProductsForModernSportsBusinesses,
                   style: textTheme.bodyTextSmall?.copyWith(
                     color: LightColor.secondaryTextColor,
                     height: 1.4,
@@ -275,7 +277,8 @@ class _MissionCard extends StatelessWidget {
     final textTheme = FutsalTheme.getTextTheme(context);
     return _SurfaceCard(
       child: Text(
-        'Hamro Footsall is built to make local futsal easier for players, teams, and venue owners. Discover available courts, compare facilities, and book with confidence.',
+        StringConstants
+            .hamroFootsallIsBuiltToMakeLocalFutsalEasierForPl2dfd0648,
         style: textTheme.bodyTextSmall?.copyWith(
           color: LightColor.secondaryTextColor,
           height: 1.6,
@@ -291,23 +294,23 @@ class _FeatureGrid extends StatelessWidget {
   static const List<_AboutFeature> _features = <_AboutFeature>[
     _AboutFeature(
       icon: Icons.calendar_month_rounded,
-      title: 'Fast Booking',
-      subtitle: 'Pick dates and slots quickly.',
+      title: StringConstants.fastBooking,
+      subtitle: StringConstants.pickDatesAndSlotsQuickly,
     ),
     _AboutFeature(
       icon: Icons.groups_rounded,
-      title: 'Match Ready',
-      subtitle: 'Organize games with less effort.',
+      title: StringConstants.matchReady,
+      subtitle: StringConstants.organizeGamesWithLessEffort,
     ),
     _AboutFeature(
       icon: Icons.verified_rounded,
-      title: 'Trusted Venues',
-      subtitle: 'Review facilities before booking.',
+      title: StringConstants.trustedVenues,
+      subtitle: StringConstants.reviewFacilitiesBeforeBooking,
     ),
     _AboutFeature(
       icon: Icons.support_agent_rounded,
-      title: 'Helpful Support',
-      subtitle: 'Clear info when you need it.',
+      title: StringConstants.helpfulSupport,
+      subtitle: StringConstants.clearInfoWhenYouNeedIt,
     ),
   ];
 
@@ -352,20 +355,23 @@ class _InfoCard extends StatelessWidget {
         children: <Widget>[
           _InfoRow(
             icon: Icons.privacy_tip_outlined,
-            title: 'Privacy First',
-            subtitle: 'Your account and booking information stay protected.',
+            title: StringConstants.privacyFirst,
+            subtitle:
+                StringConstants.yourAccountAndBookingInformationStayProtected,
           ),
           _InfoDivider(),
           _InfoRow(
             icon: Icons.update_rounded,
-            title: 'Always Improving',
-            subtitle: 'We keep refining the app for smoother play planning.',
+            title: StringConstants.alwaysImproving,
+            subtitle:
+                StringConstants.weKeepRefiningTheAppForSmootherPlayPlanning,
           ),
           _InfoDivider(),
           _InfoRow(
             icon: Icons.favorite_rounded,
-            title: 'Made for Futsal',
-            subtitle: 'Designed around the way local players actually book.',
+            title: StringConstants.madeForFutsal,
+            subtitle:
+                StringConstants.designedAroundTheWayLocalPlayersActuallyBook,
           ),
         ],
       ),

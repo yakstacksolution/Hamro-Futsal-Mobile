@@ -3,6 +3,7 @@ import 'package:hamro_footsall/core/helper/exception_helper.dart';
 import 'package:hamro_footsall/features/booking_overview/data/data_source/booking_overview_data_source.dart';
 import 'package:hamro_footsall/features/booking_overview/data/model/booking_overview_model.dart';
 import 'package:hamro_footsall/features/booking_overview/domain/repository/booking_overview_repository.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 final class BookingOverviewRepositoryImpl extends BookingOverviewRepository {
   BookingOverviewRepositoryImpl({BookingOverviewDataSource? dataSource})
@@ -16,7 +17,10 @@ final class BookingOverviewRepositoryImpl extends BookingOverviewRepository {
       return right(await _dataSource.fetchFutsals());
     } catch (_) {
       return left(
-        DefaultException(errorMessage: 'Could not load venues.', statusCode: 0),
+        DefaultException(
+          errorMessage: StringConstants.couldNotLoadVenues,
+          statusCode: 0,
+        ),
       );
     }
   }
@@ -28,7 +32,7 @@ final class BookingOverviewRepositoryImpl extends BookingOverviewRepository {
     } catch (_) {
       return left(
         DefaultException(
-          errorMessage: 'Could not load bookings.',
+          errorMessage: StringConstants.couldNotLoadBookings,
           statusCode: 0,
         ),
       );

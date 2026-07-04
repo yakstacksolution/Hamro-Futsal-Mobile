@@ -6,6 +6,7 @@ import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/features/expenses/data/model/expense_model.dart';
 import 'package:hamro_footsall/features/expenses/presentation/models/expense_analytics.dart';
 import 'package:hamro_footsall/features/expenses/presentation/utils/expense_ui_utils.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 /// Compact selectable chip with haptic feedback, shared by all filter rows.
 class ExpenseChip extends StatelessWidget {
@@ -263,9 +264,7 @@ class ExpenseFilterDropdown extends StatelessWidget {
           color: active ? LightColor.secondaryColor : Colors.transparent,
           borderRadius: BorderRadius.circular(AppDimens.radiusX20),
           border: Border.all(
-            color: active
-                ? LightColor.secondaryColor
-                : LightColor.dividerColor,
+            color: active ? LightColor.secondaryColor : LightColor.dividerColor,
           ),
         ),
         child: Row(
@@ -316,7 +315,7 @@ class ExpenseVenueFilter extends StatelessWidget {
         itemBuilder: (_, i) {
           if (i == 0) {
             return ExpenseChip(
-              label: 'All venues',
+              label: StringConstants.allVenues,
               selected: selectedId == null,
               onTap: () => onChange(null),
             );
@@ -363,7 +362,7 @@ class ExpenseCategoryFilterRow extends StatelessWidget {
         itemBuilder: (_, i) {
           if (i == 0) {
             return ExpenseChip(
-              label: 'All',
+              label: StringConstants.all,
               selected: selected == null,
               onTap: () => onChange(null),
             );

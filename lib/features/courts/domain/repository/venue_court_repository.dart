@@ -18,5 +18,9 @@ abstract class VenueCourtRepository {
   Future<Either<AppException, List<SlotPricingDraft>>> deleteCourtSlot(
     Map<String, dynamic> data,
   );
+  Future<Either<AppException, Unit>> updateCourtStatus(
+    int courtId,
+    String status,
+  );
   Future<Either<AppException, Unit>> deleteCourt(int courtId);
 }

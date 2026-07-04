@@ -7,6 +7,7 @@ import 'package:hamro_footsall/features/vendor/data/model/court_onboarding_respo
 import 'package:hamro_footsall/features/vendor/data/model/vendor_onboarding_response_model.dart';
 import 'package:hamro_footsall/features/vendor/domain/repository/vendor_onboarding_repository.dart';
 import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_drafts.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 final class VendorOnboardingRepositoryImpl
     implements VendorOnboardingRepository {
@@ -145,7 +146,7 @@ final class VendorOnboardingRepositoryImpl
     }
 
     throw DefaultException(
-      errorMessage: 'Invalid create futsal response from server.',
+      errorMessage: StringConstants.invalidCreateFutsalResponseFromServer,
       statusCode: 0,
     );
   }

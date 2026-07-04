@@ -17,6 +17,7 @@ import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboa
 import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/vendor_onboarding_shell.dart';
 import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/vendor_onboarding_step_content.dart';
 import 'package:hamro_footsall/features/vendor/presentation/utils/vendor_template_defaults.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class StepperLogicScreen extends StatefulWidget {
   final int? futsalId;
@@ -237,7 +238,7 @@ class _StepperLogicScreenState extends State<StepperLogicScreen> {
                           key: const ValueKey<String>('futsal-body'),
                           child: ExcludeSemantics(
                             child: VendorOnboardingStepContent(
-                              title: 'Futsal Steps',
+                              title: StringConstants.futsalSteps,
                               cubit: cubit,
                               state: state,
                             ),

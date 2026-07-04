@@ -11,7 +11,11 @@ abstract class TeamRemoteDataSource {
   Future<Result> updateTeam(int teamId, Map<String, dynamic> data);
   Future<Result> deleteTeam(int teamId);
   Future<Result> addMember(int teamId, Map<String, dynamic> data);
-  Future<Result> updateMember(int teamId, int memberId, Map<String, dynamic> data);
+  Future<Result> updateMember(
+    int teamId,
+    int memberId,
+    Map<String, dynamic> data,
+  );
   Future<Result> removeMember(int teamId, int memberId);
   Future<Result> getPositions();
   Future<Result> getOpponentLevels();
@@ -76,7 +80,8 @@ abstract class OpponentMatchDataSource {
   Future<List<OpponentRequestModel>> fetchRequests();
 }
 
-final class OpponentMatchLocalDataSourceImpl implements OpponentMatchDataSource {
+final class OpponentMatchLocalDataSourceImpl
+    implements OpponentMatchDataSource {
   @override
   Future<List<String>> fetchVenues() async => const [
     'Green Turf Arena, Kathmandu',

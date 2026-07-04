@@ -23,7 +23,8 @@ class VenueListLoading extends StatelessWidget {
             bottom: AppDimens.paddingX24,
           ),
           itemCount: 4,
-          separatorBuilder: (_, __) => const SizedBox(height: AppDimens.sizeX14),
+          separatorBuilder: (_, __) =>
+              const SizedBox(height: AppDimens.sizeX14),
           itemBuilder: (_, __) => const _VenueCardSkeleton(),
         ),
       ),

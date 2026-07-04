@@ -15,8 +15,8 @@ final class OpponentMatchUseCase {
   Future<Either<AppException, TeamModel>> getTeam(String teamId) async =>
       await repository.getTeam(teamId);
 
-  Future<Either<AppException, List<PlayerPositionModel>>> getPositions() async =>
-      await repository.getPositions();
+  Future<Either<AppException, List<PlayerPositionModel>>>
+  getPositions() async => await repository.getPositions();
 
   Future<Either<AppException, List<OpponentLevelModel>>>
   getOpponentLevels() async => await repository.getOpponentLevels();
@@ -24,8 +24,8 @@ final class OpponentMatchUseCase {
   Future<Either<AppException, List<String>>> getVenues() async =>
       await repository.getVenues();
 
-  Future<Either<AppException, List<OpponentRequestModel>>> getRequests() async =>
-      await repository.getRequests();
+  Future<Either<AppException, List<OpponentRequestModel>>>
+  getRequests() async => await repository.getRequests();
 
   Future<Either<AppException, List<TeamModel>>> createTeam(String name) async =>
       await repository.createTeam(name);

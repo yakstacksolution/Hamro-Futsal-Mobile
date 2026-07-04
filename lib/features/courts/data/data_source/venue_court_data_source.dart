@@ -8,6 +8,7 @@ abstract class VenueCourtRemoteDataSource {
   Future<Result> createCourtSlot(Map<String, dynamic> data);
   Future<Result> updateCourtSlot(Map<String, dynamic> data);
   Future<Result> deleteCourtSlot(Map<String, dynamic> data);
+  Future<Result> updateCourtStatus(int courtId, String status);
   Future<Result> deleteCourt(int courtId);
 }
 
@@ -38,8 +39,13 @@ final class VenueCourtRemoteDataSourceImpl
       await Client.instance().getAuthManager().deleteCourtSlot(data);
 
   @override
-  Future<Result> deleteCourt(int courtId) async =>
-      await Client.instance().getAuthManager().deleteVendorCourt(
-        <String, dynamic>{'court_id': courtId},
+  Future<Result> updateCourtStatus(int courtId, String status) async =>
+      await Client.instance().getAuthManager().updateVendorOnboardingCourt(
+        <String, dynamic>{'court_id': courtId, 'status': status},
       );
+
+  @override
+  Future<Result> deleteCourt(int courtId) async => await Client.instance()
+      .getAuthManager()
+      .deleteVendorCourt(<String, dynamic>{'court_id': courtId});
 }

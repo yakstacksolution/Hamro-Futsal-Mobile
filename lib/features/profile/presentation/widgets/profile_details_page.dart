@@ -20,6 +20,7 @@ import 'package:hamro_footsall/features/vendor/data/repositories/vendor_onboardi
 import 'package:hamro_footsall/features/vendor/domain/usecase/vendor_onboarding_usecase.dart';
 import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_cubit.dart';
 import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_drafts.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class ProfileDetailsPage extends StatefulWidget {
   const ProfileDetailsPage({super.key, this.user});
@@ -142,8 +143,8 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
       cubit: _mediaCubit,
       allowedExtensions: const <String>['png', 'jpg', 'jpeg', 'webp'],
       allowMultiple: false,
-      title: 'Profile photo',
-      subtitle: 'Choose a saved image or upload a new one.',
+      title: StringConstants.profilePhoto,
+      subtitle: StringConstants.chooseASavedImageOrUploadANewOne,
     );
 
     if (picked == null || picked.isEmpty) return;
@@ -179,7 +180,10 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: LightColor.background,
-      appBar: CustomAppBar(title: 'Personal details', centerTitle: false),
+      appBar: CustomAppBar(
+        title: StringConstants.personalDetails,
+        centerTitle: false,
+      ),
       body: SafeArea(
         child: BlocConsumer<ProfileBloc, ProfileState>(
           listenWhen: (previous, current) =>
@@ -258,8 +262,9 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
                                         TextCapitalization.words,
                                     textInputAction: TextInputAction.next,
                                     onSubmitted: (_) => _pickDateOfBirth(),
-                                    labelText: 'Full name',
-                                    hintText: 'Enter your full name',
+                                    labelText:
+                                        StringConstants.fullNameSentenceCase,
+                                    hintText: StringConstants.enterYourFullName,
                                     icon: Icons.person_outline_rounded,
                                   ),
                                   const SizedBox(height: AppDimens.paddingX16),
@@ -267,8 +272,8 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
                                     controller: _dobController,
                                     focusNode: _dobFocus,
                                     keyboardType: TextInputType.datetime,
-                                    labelText: 'Date of birth',
-                                    hintText: 'Select date of birth',
+                                    labelText: StringConstants.dateOfBirth,
+                                    hintText: StringConstants.selectDateOfBirth,
                                     icon: Icons.cake_outlined,
                                     readOnly: true,
                                     onTap: _pickDateOfBirth,
@@ -289,9 +294,9 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
                                   ),
                                   const SizedBox(height: AppDimens.paddingX16),
                                   CustomDropdownField<String>(
-                                    labelText: 'Gender',
+                                    labelText: StringConstants.gender,
                                     icon: Icons.wc_rounded,
-                                    hintText: 'Select gender',
+                                    hintText: StringConstants.selectGender,
                                     initialValue: _selectedGender,
                                     focusNode: _genderFocus,
                                     items: _genderOptions
@@ -322,8 +327,9 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
                                     onSubmitted: (_) => FocusScope.of(
                                       context,
                                     ).requestFocus(_phoneFocus),
-                                    labelText: 'Email address',
-                                    hintText: 'name@example.com',
+                                    labelText: StringConstants
+                                        .emailAddressSentenceCase,
+                                    hintText: StringConstants.nameExampleCom,
                                     icon: Icons.email_outlined,
                                     readOnly: true,
                                   ),
@@ -336,7 +342,8 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
                                     onSubmitted: (_) => FocusScope.of(
                                       context,
                                     ).requestFocus(_addressFocus),
-                                    labelText: 'Phone number',
+                                    labelText:
+                                        StringConstants.phoneNumberSentenceCase,
                                     hintText: '+977 #########',
                                     icon: Icons.phone_outlined,
                                   ),
@@ -350,15 +357,15 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
                                     textInputAction: TextInputAction.done,
                                     onSubmitted: (_) =>
                                         FocusScope.of(context).unfocus(),
-                                    labelText: 'Address',
-                                    hintText: 'Enter your address',
+                                    labelText: StringConstants.address,
+                                    hintText: StringConstants.enterYourAddress,
                                     icon: Icons.location_on_outlined,
                                   ),
                                 ],
                               ),
                               const SizedBox(height: AppDimens.paddingX28),
                               CustomButton(
-                                text: 'Save changes',
+                                text: StringConstants.saveChanges,
                                 isLoading: isUpdating,
                                 onPressed: _onSavePressed,
                               ),
@@ -606,7 +613,7 @@ class _ChangePhotoButton extends StatelessWidget {
               ),
               const SizedBox(width: AppDimens.paddingX6),
               Text(
-                'Change photo',
+                StringConstants.changePhoto,
                 style: textTheme.bodyTextSmall?.copyWith(
                   color: LightColor.secondaryColor,
                   fontWeight: FontWeight.w600,

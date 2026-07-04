@@ -12,7 +12,6 @@ class APIEndpoint {
   static String get chatXORKey => _chatXORKey;
 }
 
-
 // import 'package:flutter/foundation.dart';
 
 // enum MainApiUrlType { base, fcm, backend, ticketing, package, subscription }

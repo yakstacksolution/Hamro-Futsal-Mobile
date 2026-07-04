@@ -25,6 +25,16 @@ class AppRouterParams {
     path: '/dashboard',
   );
 
+  static const RouteConfig notifications = RouteConfig(
+    name: 'notifications',
+    path: '/dashboard/notifications',
+  );
+
+  static const RouteConfig transactions = RouteConfig(
+    name: 'transactions',
+    path: '/dashboard/transactions',
+  );
+
   static const RouteConfig createCourts = RouteConfig(
     name: 'createCourts',
     path: '/dashboard/create-courts',

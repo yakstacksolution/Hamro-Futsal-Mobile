@@ -5,6 +5,7 @@ import 'package:hamro_footsall/core/utils/custom_image_view.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/features/message/data/model/conversation_model.dart';
 import 'package:hamro_footsall/features/message/presentation/utils/message_fmt.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class MessageCard extends StatelessWidget {
   const MessageCard({
@@ -257,7 +258,7 @@ class _GroupTag extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppDimens.radiusX6),
       ),
       child: Text(
-        'Group',
+        StringConstants.group,
         style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
           color: LightColor.secondaryColor,
           fontWeight: FontWeight.w600,

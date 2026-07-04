@@ -1,3 +1,4 @@
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 import 'package:hamro_footsall/features/futsal_details/data/model/time_slot_model.dart';
 import 'package:hamro_footsall/features/futsal_details/data/model/venue_court_item_model.dart';
 
@@ -239,14 +240,17 @@ VenueCourtItemModel _courtFromJson(Map<String, dynamic> json) {
     venueId: _asInt(json['venue_id'] ?? json['venueId']),
     name:
         _asString(json['name'] ?? json['court_name'] ?? json['title']) ??
-        'Court',
+        StringConstants.court,
     image: _imageFromJson(json),
     maxPlayers:
         _asInt(json['max_players'] ?? json['max_player'] ?? json['capacity']) ??
         0,
     matchType:
-        _optionName(matchFormat, json['match_format_name']) ?? 'Standard',
-    courtType: _optionName(courtType, json['court_type_name']) ?? 'Court',
+        _optionName(matchFormat, json['match_format_name']) ??
+        StringConstants.standard,
+    courtType:
+        _optionName(courtType, json['court_type_name']) ??
+        StringConstants.court,
     weekendSurcharge:
         _asDouble(
           json['weekend_surcharge'] ??
@@ -295,8 +299,8 @@ List<CourtPriceRule> _priceRulesFromJson(Map<String, dynamic> json) {
       0;
   return <CourtPriceRule>[
     CourtPriceRule(
-      label: 'Standard',
-      timeRange: 'All day',
+      label: StringConstants.standard,
+      timeRange: StringConstants.allDay,
       startHour: 0,
       endHour: 24,
       price: basePrice,

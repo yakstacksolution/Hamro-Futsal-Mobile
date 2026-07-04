@@ -11,6 +11,7 @@ import 'package:hamro_footsall/core/helper/fcm_helper.dart';
 import 'package:hamro_footsall/features/auth/data/model/token_model.dart';
 import 'package:hamro_footsall/features/auth/domain/entities/auth_entities.dart';
 import 'package:hamro_footsall/features/auth/domain/usecase/authentication_usecase.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 part 'authentication_event.dart';
 part 'authentication_state.dart';
 
@@ -98,8 +99,8 @@ class AuthenticationBloc
         emit(
           state.copyWith(
             googleLoginStatus: AuthStatus.failure,
-            errorMessage:
-                'Google sign-in is not configured. Missing GOOGLE_SERVER_CLIENT_ID.',
+            errorMessage: StringConstants
+                .googleSignInIsNotConfiguredMissingGoogleServerClientId,
           ),
         );
         return;
@@ -129,7 +130,8 @@ class AuthenticationBloc
         emit(
           state.copyWith(
             googleLoginStatus: AuthStatus.failure,
-            errorMessage: 'Could not get Google credentials. Please try again.',
+            errorMessage:
+                StringConstants.couldNotGetGoogleCredentialsPleaseTryAgain,
           ),
         );
         return;
@@ -163,7 +165,7 @@ class AuthenticationBloc
       emit(
         state.copyWith(
           googleLoginStatus: AuthStatus.failure,
-          errorMessage: 'Google sign-in failed. Please try again.',
+          errorMessage: StringConstants.googleSignInFailedPleaseTryAgain,
           clearErrorData: true,
         ),
       );
@@ -244,7 +246,7 @@ class AuthenticationBloc
         emit(
           state.copyWith(
             otpVerificationStatus: AuthStatus.failure,
-            errorMessage: 'OTP verification failed. Please try again.',
+            errorMessage: StringConstants.otpVerificationFailedPleaseTryAgain,
           ),
         );
         return;
@@ -302,7 +304,7 @@ class AuthenticationBloc
         emit(
           state.copyWith(
             resendOtpStatus: AuthStatus.failure,
-            errorMessage: 'Resend OTP failed. Please try again.',
+            errorMessage: StringConstants.resendOtpFailedPleaseTryAgain,
           ),
         );
         return;
@@ -351,7 +353,7 @@ class AuthenticationBloc
         emit(
           state.copyWith(
             logoutStatus: AuthStatus.failure,
-            errorMessage: 'Logout failed. Please try again.',
+            errorMessage: StringConstants.logoutFailedPleaseTryAgain,
           ),
         );
         return;

@@ -20,6 +20,7 @@ import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboardi
 import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_state.dart';
 import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_models.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 Future<List<UploadRef>?> showVendorMediaLibrarySheet({
   required BuildContext context,
@@ -512,7 +513,7 @@ class _VendorMediaLibrarySheetState extends State<MediaLibrarySheet> {
       builder: (BuildContext dialogContext) {
         return _UploadMediaPreviewDialog(
           files: files,
-          title: 'Upload media?',
+          title: StringConstants.uploadMedia,
           message: isSingle
               ? 'Do you want to upload "$fileLabel" to media library?'
               : 'Do you want to upload $fileLabel to media library?',
@@ -534,10 +535,10 @@ class _VendorMediaLibrarySheetState extends State<MediaLibrarySheet> {
 
     final bool confirmed = await showConfirmDialog(
       context: context,
-      title: 'Remove from media library?',
+      title: StringConstants.removeFromMediaLibrary,
       message:
           'Do you want to remove "${item.name}" from your saved collection?',
-      confirmText: 'Remove',
+      confirmText: StringConstants.remove,
       icon: Icons.delete_outline_rounded,
     );
 
@@ -783,7 +784,7 @@ class _UploadMediaPreviewDialog extends StatelessWidget {
               children: <Widget>[
                 Expanded(
                   child: CustomButton(
-                    text: 'Cancel',
+                    text: StringConstants.cancel,
                     isOutlined: true,
                     backgroundColor: Colors.white,
                     foregroundColor: LightColor.secondaryTextColor,
@@ -795,7 +796,7 @@ class _UploadMediaPreviewDialog extends StatelessWidget {
                 const SizedBox(width: AppDimens.sizeX12),
                 Expanded(
                   child: CustomButton(
-                    text: 'Upload',
+                    text: StringConstants.upload,
                     backgroundColor: LightColor.secondaryColor,
                     foregroundColor: Colors.white,
                     minHeight: AppDimens.sizeX44,
@@ -910,7 +911,7 @@ class _FilterMenuButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PopupMenuButton<_LibraryFilter>(
-      tooltip: 'Filter library',
+      tooltip: StringConstants.filterLibrary,
       onSelected: onSelected,
       color: LightColor.whiteColor,
       elevation: 10,
@@ -1023,7 +1024,7 @@ class _AddMediaMenuButton extends StatelessWidget {
 
     return PopupMenuButton<_AddSource>(
       enabled: !isDisabled,
-      tooltip: 'Pick from...',
+      tooltip: StringConstants.pickFrom,
       offset: const Offset(0, AppDimens.sizeX8),
       color: LightColor.whiteColor,
       elevation: 10,
@@ -1120,7 +1121,7 @@ class _AddMediaMenuButton extends StatelessWidget {
               const SizedBox(width: AppDimens.sizeX8),
               Flexible(
                 child: Text(
-                  'Pick from...',
+                  StringConstants.pickFrom,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: FutsalTheme.getTextTheme(context).bodyTextSmall
@@ -1210,7 +1211,7 @@ class _CompactLoadingState extends StatelessWidget {
             SizedBox(width: 28, height: 28, child: LoadingWidget()),
             SizedBox(height: 12),
             Text(
-              'Loading media library...',
+              StringConstants.loadingMediaLibrary,
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w800,
@@ -1219,7 +1220,7 @@ class _CompactLoadingState extends StatelessWidget {
             ),
             SizedBox(height: 6),
             Text(
-              'Fetching your saved media from the server.',
+              StringConstants.fetchingYourSavedMediaFromTheServer,
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 12,
@@ -1267,7 +1268,7 @@ class _CompactEmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              'No media found',
+              StringConstants.noMediaFound,
 
               style: FutsalTheme.getTextTheme(context).bodyTextLarge?.copyWith(
                 fontWeight: FontWeight.w800,
@@ -1276,7 +1277,7 @@ class _CompactEmptyState extends StatelessWidget {
             ),
             const SizedBox(height: AppDimens.sizeX6),
             Text(
-              'Add images or files to your library.',
+              StringConstants.addImagesOrFilesToYourLibrary,
               textAlign: TextAlign.center,
 
               style: FutsalTheme.getTextTheme(
@@ -1289,7 +1290,7 @@ class _CompactEmptyState extends StatelessWidget {
               padding: AppUtils().getPadding(horizontal: AppDimens.paddingX20),
               child: CustomButton(
                 minHeight: AppDimens.sizeX40,
-                text: 'Add Media',
+                text: StringConstants.addMedia,
                 onPressed: onAddTap,
               ),
             ),
@@ -1506,7 +1507,7 @@ class _MediaPreview extends StatelessWidget {
 
       return const _MiniFilePlaceholder(
         icon: Icons.broken_image_outlined,
-        label: 'IMAGE',
+        label: StringConstants.image,
       );
     }
 

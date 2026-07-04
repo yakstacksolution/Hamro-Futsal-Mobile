@@ -16,6 +16,7 @@ import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboar
 import 'package:hamro_footsall/features/vendor/presentation/utils/vendor_template_defaults.dart';
 import 'package:hamro_footsall/features/vendor/presentation/validation/vendor_onboarding_validator.dart';
 import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/vendor_form_components.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class FutsalInformationSection extends StatefulWidget {
   const FutsalInformationSection({
@@ -94,9 +95,7 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
   FocusNode? _firstInvalidBasicInfoFocus() {
     final FutsalDraft draft = widget.cubit.state.futsal;
     final String slug = draft.slug.trim();
-    final bool slugValid = RegExp(
-      r'^[a-z0-9]+(?:-[a-z0-9]+)*$',
-    ).hasMatch(slug);
+    final bool slugValid = RegExp(r'^[a-z0-9]+(?:-[a-z0-9]+)*$').hasMatch(slug);
     if (draft.title.trim().isEmpty || slug.isEmpty || !slugValid) {
       return _nameFocus;
     }
@@ -344,9 +343,9 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
       children: <Widget>[
         const SizedBox(height: 10),
         VendorInputField(
-          label: 'Futsal Club Name',
+          label: StringConstants.futsalClubName,
           isRequired: true,
-          hintText: 'Enter futsal club name',
+          hintText: StringConstants.enterFutsalClubName,
           enableIcon: true,
           focusNode: _nameFocus,
           ensureVisibleOnFocus: true,
@@ -359,8 +358,8 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
         const SizedBox(height: 20),
         VendorInputField(
           isRequired: true,
-          label: 'Registration Number',
-          hintText: 'Enter Futsal registration number',
+          label: StringConstants.registrationNumber,
+          hintText: StringConstants.enterFutsalRegistrationNumber,
           enableIcon: true,
           readOnly: false,
           focusNode: _registrationFocus,
@@ -375,8 +374,8 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
         const SizedBox(height: 20),
 
         VendorInputField(
-          label: 'Phone Number',
-          hintText: '98XXXXXXXX',
+          label: StringConstants.phoneNumber,
+          hintText: StringConstants.text98xxxxxxxx,
           initialValue: widget.draft.phone,
           enableIcon: true,
           keyboardType: TextInputType.phone,
@@ -391,8 +390,8 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
         const SizedBox(height: 20),
         VendorInputField(
           isRequired: true,
-          label: 'Email Address',
-          hintText: 'futsal@gmail.com',
+          label: StringConstants.emailAddress,
+          hintText: StringConstants.futsalGmailCom,
           initialValue: widget.draft.email,
           enableIcon: true,
           keyboardType: TextInputType.emailAddress,
@@ -405,8 +404,8 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
         ),
         const SizedBox(height: 20),
         VendorInputField(
-          label: 'Website or Social Media Link',
-          hintText: 'https://hamrofutsal.com/',
+          label: StringConstants.websiteOrSocialMediaLink,
+          hintText: StringConstants.hamroFutsalWebsiteUrlWithTrailingSlash,
           initialValue: widget.draft.websiteOrSocialLink,
           enableIcon: true,
           keyboardType: TextInputType.url,
@@ -433,7 +432,7 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
             isReadOnly: false,
             controller: _quillController,
             scrollController: _scrollController,
-            hintText: 'Description about your futsal...',
+            hintText: StringConstants.descriptionAboutYourFutsal,
           ),
         ),
       ],
@@ -445,9 +444,9 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
       children: <Widget>[
         const SizedBox(height: 10),
         VendorInputField(
-          label: 'Futsal Address',
+          label: StringConstants.futsalAddress,
           enableIcon: true,
-          hintText: 'Street, city, area',
+          hintText: StringConstants.streetCityArea,
           initialValue: widget.draft.location.fullAddress,
           onChanged: (String value) => widget.cubit.updateFutsal(
             widget.draft.copyWith(
@@ -458,8 +457,8 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
 
         const SizedBox(height: 20),
         VendorInputField(
-          label: 'Exact location',
-          hintText: 'Tap to pick location on map',
+          label: StringConstants.exactLocationSentenceCase,
+          hintText: StringConstants.tapToPickLocationOnMap,
           controller: _exactLocationController,
           initialValue: '',
           enableIcon: true,
@@ -472,8 +471,8 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
           children: <Widget>[
             Expanded(
               child: VendorInputField(
-                label: 'Longitude',
-                hintText: 'Auto-filled',
+                label: StringConstants.longitude,
+                hintText: StringConstants.autoFilled,
                 controller: _longitudeController,
                 initialValue: '',
                 readOnly: true,
@@ -483,8 +482,8 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
             const SizedBox(width: 10),
             Expanded(
               child: VendorInputField(
-                label: 'Latitude',
-                hintText: 'Auto-filled',
+                label: StringConstants.latitude,
+                hintText: StringConstants.autoFilled,
                 controller: _latitudeController,
                 initialValue: '',
                 readOnly: true,
@@ -502,7 +501,7 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         VendorGroupedContentCard(
-          title: 'Amenities',
+          title: StringConstants.amenities,
           icon: Icons.chair_alt_rounded,
           child: GridView.builder(
             shrinkWrap: true,
@@ -527,7 +526,7 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
         ),
         const SizedBox(height: 12),
         VendorGroupedContentCard(
-          title: 'Features',
+          title: StringConstants.features,
           icon: Icons.auto_awesome_rounded,
           child: GridView.builder(
             shrinkWrap: true,
@@ -558,32 +557,32 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
     switch (index) {
       case 0:
         return const _SectionMeta(
-          title: 'Basic Information',
-          subtitle: 'Venue identity and contact details',
+          title: StringConstants.basicInformation,
+          subtitle: StringConstants.venueIdentityAndContactDetails,
           icon: Icons.storefront_rounded,
         );
       case 1:
         return const _SectionMeta(
-          title: 'Description',
-          subtitle: 'Tell customers about your futsal',
+          title: StringConstants.description,
+          subtitle: StringConstants.tellCustomersAboutYourFutsalSubtitle,
           icon: Icons.description_rounded,
         );
       case 2:
         return const _SectionMeta(
-          title: 'Location Details',
-          subtitle: 'Address and map coordinates',
+          title: StringConstants.locationDetails,
+          subtitle: StringConstants.addressAndMapCoordinates,
           icon: Icons.location_on_rounded,
         );
       case 3:
         return const _SectionMeta(
-          title: 'Amenities & Features',
-          subtitle: 'Highlight what your futsal offers',
+          title: StringConstants.amenitiesAndFeatures,
+          subtitle: StringConstants.highlightWhatYourFutsalOffers,
           icon: Icons.dashboard_customize_rounded,
         );
       default:
         return const _SectionMeta(
-          title: 'Futsal Information',
-          subtitle: 'Complete the required details',
+          title: StringConstants.futsalInformation,
+          subtitle: StringConstants.completeTheRequiredDetails,
           icon: Icons.info_rounded,
         );
     }

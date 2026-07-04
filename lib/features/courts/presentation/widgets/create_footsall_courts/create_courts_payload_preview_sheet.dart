@@ -2,7 +2,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/features/courts/data/model/create_footsall_court_payload.dart';
- 
+import 'package:hamro_footsall/core/utils/string_constants.dart';
+
 Future<void> showCreateCourtsPayloadPreviewSheet(
   BuildContext context,
   CreateFootsallCourtPayload payload,
@@ -38,7 +39,7 @@ Future<void> showCreateCourtsPayloadPreviewSheet(
             ),
             const SizedBox(height: 14),
             const Text(
-              'Create Shop Payload',
+              StringConstants.createShopPayload,
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
@@ -47,7 +48,7 @@ Future<void> showCreateCourtsPayloadPreviewSheet(
             ),
             const SizedBox(height: 8),
             const Text(
-              'Matches the backend schema you shared.',
+              StringConstants.matchesTheBackendSchemaYouShared,
               style: TextStyle(color: LightColor.secondaryTextColor),
             ),
             const SizedBox(height: 12),
@@ -85,7 +86,7 @@ Future<void> showCreateCourtsPayloadPreviewSheet(
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: const Text('Close'),
+                child: const Text(StringConstants.close),
               ),
             ),
           ],

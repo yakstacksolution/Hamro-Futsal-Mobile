@@ -4,5 +4,6 @@ import 'package:hamro_footsall/features/bookings/data/model/booking_model.dart';
 
 abstract class BookingRepository {
   Future<Either<AppException, List<BookingModel>>> getMyBookings();
+  Future<Either<AppException, BookingModel>> getBookingDetails(int bookingId);
   Future<Either<AppException, List<BookingModel>>> getFutsalBookings();
 }

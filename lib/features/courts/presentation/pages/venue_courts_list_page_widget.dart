@@ -27,6 +27,7 @@ import 'package:hamro_footsall/features/vendor/domain/usecase/vendor_onboarding_
 import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_cubit.dart';
 import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_drafts.dart';
 import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/vendor_court_manager.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class VenueCourtsListPage extends StatefulWidget {
   const VenueCourtsListPage({super.key});
@@ -270,7 +271,13 @@ class _VenueListSection extends StatelessWidget {
 
 enum _VenueFilter { all, liveOnly, needsSetup }
 
-enum _VenueMenuAction { manageFutsal, addCourt, deleteFutsal, deleteCourt }
+enum _VenueMenuAction {
+  manageFutsal,
+  addCourt,
+  toggleCourtStatus,
+  deleteFutsal,
+  deleteCourt,
+}
 
 enum _VenueApprovalStatus { pending, approved, active, inactive }
 
@@ -304,7 +311,7 @@ class _TopDashboardHeader extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Text(
-                  'Futsal Portfolio',
+                  StringConstants.futsalPortfolio,
                   style: textTheme.bodyTextLarge?.copyWith(
                     fontSize: AppDimens.fontHeadingSmall,
                     fontWeight: FontWeight.w700,
@@ -358,7 +365,7 @@ class _AddFutsalButton extends StatelessWidget {
               ),
               const SizedBox(width: AppDimens.paddingX4),
               Text(
-                'New Futsal',
+                StringConstants.newFutsal,
                 style: textTheme.bodyTextSmall?.copyWith(
                   color: LightColor.whiteColor,
                 ),
@@ -426,7 +433,7 @@ class _VenueSearchFieldState extends State<_VenueSearchField> {
             isDense: true,
             filled: true,
             fillColor: LightColor.whiteColor,
-            hintText: 'Search venues, courts or location',
+            hintText: StringConstants.searchVenuesCourtsOrLocation,
             hintStyle: textTheme.bodyTextSmall?.copyWith(
               color: LightColor.hintTextColor,
             ),
@@ -652,6 +659,8 @@ class _VenueCardV2State extends State<_VenueCardV2> {
         widget.onEditVenue();
       case _VenueMenuAction.addCourt:
         widget.onAddCourt();
+      case _VenueMenuAction.toggleCourtStatus:
+        break;
       case _VenueMenuAction.deleteFutsal:
         break;
       case _VenueMenuAction.deleteCourt:
@@ -763,7 +772,7 @@ class _VenueCardV2State extends State<_VenueCardV2> {
                                 padding: EdgeInsets.zero,
                                 menuPadding: EdgeInsets.zero,
                                 constraints: const BoxConstraints(),
-                                tooltip: 'Venue actions',
+                                tooltip: StringConstants.venueActions,
                                 color: LightColor.whiteColor,
                                 surfaceTintColor: LightColor.whiteColor,
                                 shape: RoundedRectangleBorder(
@@ -786,7 +795,7 @@ class _VenueCardV2State extends State<_VenueCardV2> {
                                           width: AppDimens.sizeX10,
                                         ),
                                         Text(
-                                          'Manage Futsal',
+                                          StringConstants.manageFutsal,
                                           style: textTheme.bodyTextSmall
                                               ?.copyWith(
                                                 fontWeight: FontWeight.w600,
@@ -810,7 +819,7 @@ class _VenueCardV2State extends State<_VenueCardV2> {
                                           width: AppDimens.sizeX10,
                                         ),
                                         Text(
-                                          'Add Court',
+                                          StringConstants.addCourt,
                                           style: textTheme.bodyTextSmall
                                               ?.copyWith(
                                                 fontWeight: FontWeight.w600,
@@ -834,7 +843,7 @@ class _VenueCardV2State extends State<_VenueCardV2> {
                                           width: AppDimens.sizeX10,
                                         ),
                                         Text(
-                                          'Delete Futsal',
+                                          StringConstants.deleteFutsal,
                                           style: textTheme.bodyTextSmall
                                               ?.copyWith(
                                                 fontWeight: FontWeight.w600,
@@ -1052,22 +1061,22 @@ class _VenueApprovalBadge extends StatelessWidget {
     final ({String label, Color background, Color foreground}) config =
         switch (status) {
           _VenueApprovalStatus.approved => (
-            label: 'Approved',
+            label: StringConstants.approved,
             background: LightColor.secondaryColor,
             foreground: LightColor.whiteColor,
           ),
           _VenueApprovalStatus.pending => (
-            label: 'Pending',
+            label: StringConstants.pending,
             background: LightColor.ratingColor.withValues(alpha: 0.20),
             foreground: const Color(0xFF92400E),
           ),
           _VenueApprovalStatus.active => (
-            label: 'Active',
+            label: StringConstants.active,
             background: LightColor.secondaryColor,
             foreground: LightColor.whiteColor,
           ),
           _VenueApprovalStatus.inactive => (
-            label: 'Inactive',
+            label: StringConstants.inactive,
             background: LightColor.redColor,
             foreground: LightColor.whiteColor,
           ),
@@ -1121,7 +1130,7 @@ class _CourtEmptyHintV2 extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'No courts added yet',
+            StringConstants.noCourtsAddedYet,
             style: textTheme.bodyTextMedium?.copyWith(
               fontWeight: FontWeight.w600,
               color: LightColor.secondaryTextColor,
@@ -1129,7 +1138,7 @@ class _CourtEmptyHintV2 extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'Add your first court and start accepting bookings.',
+            StringConstants.addYourFirstCourtAndStartAcceptingBookings,
             textAlign: TextAlign.center,
             style: textTheme.bodyTextMedium?.copyWith(
               fontWeight: FontWeight.w400,
@@ -1190,6 +1199,58 @@ class _CourtRowV2 extends StatelessWidget {
     );
   }
 
+  Future<void> _toggleCourtStatus(BuildContext context) async {
+    final int? courtId = court.remoteId ?? int.tryParse(court.id);
+    final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
+    if (courtId == null) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text(StringConstants.couldNotIdentifyThisCourt),
+        ),
+      );
+      return;
+    }
+
+    final bool currentlyActive = _isCourtActive(court);
+    final String nextStatus = currentlyActive ? 'inactive' : 'active';
+    final VenueCourtBloc bloc = context.read<VenueCourtBloc>();
+    final Either<AppException, Unit> result = await GetVenueCourtUseCase(
+      VenueCourtRepositoryImpl(),
+    ).updateCourtStatus(courtId, nextStatus);
+
+    if (!context.mounted) return;
+    result.fold(
+      (AppException failure) {
+        messenger.showSnackBar(SnackBar(content: Text(failure.errorMessage)));
+      },
+      (_) {
+        final int? resolvedVenueId = venueId ?? court.venueId;
+        if (resolvedVenueId == null) {
+          bloc.add(const FetchVenueCourtEvent());
+        } else {
+          bloc.add(
+            UpsertVenueCourtLocallyEvent(
+              venueId: resolvedVenueId,
+              court: court.copyWith(
+                status: nextStatus,
+                enableOnlineBooking: !currentlyActive,
+              ),
+            ),
+          );
+        }
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(
+              currentlyActive
+                  ? 'Court is now inactive.'
+                  : 'Court is now active.',
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final AppUtils appUtils = AppUtils();
@@ -1198,7 +1259,7 @@ class _CourtRowV2 extends StatelessWidget {
         ? 'Court $index'
         : court.name.trim();
     final String type = (court.courtType ?? '').trim();
-    final bool isLive = court.enableOnlineBooking;
+    final bool isLive = _isCourtActive(court);
     final String photoUrl = court.photos
         .map((UploadRef photo) => (photo.remoteUrl ?? '').trim())
         .firstWhere((String url) => url.isNotEmpty, orElse: () => '');
@@ -1282,7 +1343,7 @@ class _CourtRowV2 extends StatelessWidget {
                       padding: EdgeInsets.zero,
                       menuPadding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
-                      tooltip: 'Court actions',
+                      tooltip: StringConstants.courtActions,
                       color: LightColor.whiteColor,
                       surfaceTintColor: LightColor.whiteColor,
                       shape: RoundedRectangleBorder(
@@ -1293,6 +1354,9 @@ class _CourtRowV2 extends StatelessWidget {
                       onSelected: (action) {
                         if (action == _VenueMenuAction.manageFutsal) {
                           onManageCourt();
+                        } else if (action ==
+                            _VenueMenuAction.toggleCourtStatus) {
+                          unawaited(_toggleCourtStatus(context));
                         } else if (action == _VenueMenuAction.deleteCourt) {
                           unawaited(_confirmDeleteCourt(context));
                         }
@@ -1309,10 +1373,36 @@ class _CourtRowV2 extends StatelessWidget {
                               ),
                               const SizedBox(width: AppDimens.sizeX10),
                               Text(
-                                'Manage Court',
+                                StringConstants.manageCourt,
                                 style: textTheme.bodyTextSmall?.copyWith(
                                   fontWeight: FontWeight.w600,
                                   color: LightColor.primaryTextColor,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        PopupMenuItem<_VenueMenuAction>(
+                          value: _VenueMenuAction.toggleCourtStatus,
+                          child: Row(
+                            children: <Widget>[
+                              Icon(
+                                isLive
+                                    ? Icons.toggle_off_outlined
+                                    : Icons.toggle_on_outlined,
+                                size: AppDimens.sizeX18,
+                                color: isLive
+                                    ? LightColor.redColor
+                                    : LightColor.secondaryColor,
+                              ),
+                              const SizedBox(width: AppDimens.sizeX10),
+                              Text(
+                                isLive ? 'Make Inactive' : 'Make Active',
+                                style: textTheme.bodyTextSmall?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: isLive
+                                      ? LightColor.redColor
+                                      : LightColor.secondaryColor,
                                 ),
                               ),
                             ],
@@ -1329,7 +1419,7 @@ class _CourtRowV2 extends StatelessWidget {
                               ),
                               const SizedBox(width: AppDimens.sizeX10),
                               Text(
-                                'Delete Court',
+                                StringConstants.deleteCourt,
                                 style: textTheme.bodyTextSmall?.copyWith(
                                   fontWeight: FontWeight.w600,
                                   color: LightColor.primaryTextColor,
@@ -1383,7 +1473,7 @@ class _CourtRowV2 extends StatelessWidget {
                         icon: isLive
                             ? Icons.check_circle_rounded
                             : Icons.pending_actions_rounded,
-                        label: isLive ? 'Live' : 'Inactive',
+                        label: isLive ? 'Active' : 'Inactive',
                         color: isLive
                             ? LightColor.secondaryColor
                             : LightColor.redColor,
@@ -1392,20 +1482,20 @@ class _CourtRowV2 extends StatelessWidget {
                         const SizedBox(width: AppDimens.sizeX6),
                         const _CourtStatusChip(
                           icon: Icons.account_balance_wallet_outlined,
-                          label: 'Advance',
+                          label: StringConstants.advance,
                           color: LightColor.secondaryColor,
                         ),
                       ],
                       const SizedBox(width: AppDimens.sizeX6),
                       const _CourtStatusChip(
                         icon: Icons.schedule_rounded,
-                        label: 'Booked',
+                        label: StringConstants.booked,
                         color: LightColor.warningColor,
                       ),
                       const SizedBox(width: AppDimens.sizeX6),
                       const _CourtStatusChip(
                         icon: Icons.sports_soccer_rounded,
-                        label: '5v5',
+                        label: StringConstants.text5v5,
                         color: LightColor.primaryDark,
                       ),
                       const SizedBox(width: AppDimens.sizeX6),
@@ -1551,7 +1641,7 @@ class _PortfolioStats {
     for (final _FutsalEntry entry in entries) {
       courtCount += entry.courts.length;
       for (final CourtDraft court in entry.courts) {
-        if (court.enableOnlineBooking) liveCourtCount += 1;
+        if (_isCourtActive(court)) liveCourtCount += 1;
         if (court.advancePaymentRequired) advanceCourtCount += 1;
         final double? price = court.basePrice;
         if (price != null) {
@@ -1570,6 +1660,14 @@ class _PortfolioStats {
       startingPrice: startingPrice,
     );
   }
+}
+
+bool _isCourtActive(CourtDraft court) {
+  return switch (court.status?.trim().toLowerCase()) {
+    'active' => true,
+    'inactive' => false,
+    _ => court.enableOnlineBooking,
+  };
 }
 
 class _FutsalEntry {
@@ -1616,8 +1714,7 @@ class _FutsalEntry {
     return false;
   }
 
-  int get liveCourts =>
-      courts.where((CourtDraft court) => court.enableOnlineBooking).length;
+  int get liveCourts => courts.where(_isCourtActive).length;
 
   double? get startingPrice {
     double? value;
@@ -1672,7 +1769,7 @@ class _CourtDeleteDialogState extends State<_CourtDeleteDialog> {
         borderRadius: BorderRadius.circular(AppDimens.radiusX12),
       ),
       title: Text(
-        'Delete Court',
+        StringConstants.deleteCourt,
         style: textTheme.bodyTextLarge?.copyWith(
           color: LightColor.primaryTextColor,
           fontWeight: FontWeight.w800,
@@ -1707,7 +1804,7 @@ class _CourtDeleteDialogState extends State<_CourtDeleteDialog> {
           children: <Widget>[
             Expanded(
               child: CustomButton(
-                text: 'Cancel',
+                text: StringConstants.cancel,
                 isOutlined: true,
                 foregroundColor: LightColor.secondaryColor,
                 borderColor: LightColor.secondaryColor,
@@ -1720,7 +1817,7 @@ class _CourtDeleteDialogState extends State<_CourtDeleteDialog> {
             const SizedBox(width: AppDimens.sizeX10),
             Expanded(
               child: CustomButton(
-                text: 'Delete',
+                text: StringConstants.delete,
                 icon: Icons.delete_outline_rounded,
                 isLoading: _isDeleting,
                 minHeight: AppDimens.sizeX42,

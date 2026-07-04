@@ -22,6 +22,7 @@ import 'package:hamro_footsall/features/futsal_details/data/model/payment_qr_mod
 import 'package:hamro_footsall/features/futsal_details/presentation/bloc/booking_hold/booking_hold_bloc.dart';
 import 'package:hamro_footsall/features/futsal_details/presentation/bloc/create_booking/create_booking_bloc.dart';
 import 'package:hamro_footsall/features/futsal_details/presentation/bloc/payment_qr/payment_qr_bloc.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class BookingCheckoutPage extends StatefulWidget {
   const BookingCheckoutPage({super.key, required this.draft});
@@ -334,7 +335,7 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
         behavior: FutsalScrollBehavior(),
         child: Scaffold(
           backgroundColor: LightColor.background,
-          appBar: const CustomAppBar(title: 'Confirm Booking'),
+          appBar: const CustomAppBar(title: StringConstants.confirmBooking),
           body: SafeArea(
             top: false,
             child: ListView(
@@ -451,7 +452,7 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
                 Text(
-                  'Pay now (advance)',
+                  StringConstants.payNowAdvance,
                   style: textTheme.bodyMiniSubTitle?.copyWith(
                     color: LightColor.hintTextColor,
                     fontWeight: FontWeight.w500,
@@ -671,13 +672,16 @@ class _SummaryCard extends StatelessWidget {
             value: _dateLabel(draft.selectedDate),
           ),
           const SizedBox(height: AppDimens.sizeX10),
-          _InfoRow(label: 'Time', value: timeRange),
+          _InfoRow(label: StringConstants.time, value: timeRange),
           const SizedBox(height: AppDimens.sizeX10),
-          _InfoRow(label: 'Players', value: 'Up to ${draft.maxPlayers}'),
+          _InfoRow(
+            label: StringConstants.players,
+            value: 'Up to ${draft.maxPlayers}',
+          ),
           if (draft.isRecurring) ...<Widget>[
             const SizedBox(height: AppDimens.sizeX10),
             _InfoRow(
-              label: 'Repeats',
+              label: StringConstants.repeats,
               value:
                   'Weekly · ${draft.recurrenceLabel ?? ''} · ${draft.sessions} sessions',
             ),
@@ -746,7 +750,7 @@ class _CouponField extends StatelessWidget {
             GestureDetector(
               onTap: onRemove,
               child: Text(
-                'Remove',
+                StringConstants.remove,
                 style: textTheme.bodyTextSmall?.copyWith(
                   color: LightColor.redColor,
                   fontWeight: FontWeight.w700,
@@ -767,8 +771,8 @@ class _CouponField extends StatelessWidget {
             Expanded(
               child: CustomTextField(
                 controller: controller,
-                labelText: 'Coupon code',
-                hintText: 'Enter coupon code',
+                labelText: StringConstants.couponCode,
+                hintText: StringConstants.enterCouponCode,
                 icon: Icons.local_offer_outlined,
                 isRequired: false,
                 textCapitalization: TextCapitalization.characters,
@@ -781,7 +785,7 @@ class _CouponField extends StatelessWidget {
               width: AppDimens.sizeX90,
               height: AppDimens.sizeX48,
               child: CustomButton(
-                text: 'Apply',
+                text: StringConstants.apply,
                 isLoading: coupon.isApplying,
                 onPressed: onApply,
                 isOutlined: true,
@@ -816,7 +820,7 @@ class _CouponField extends StatelessWidget {
       return Padding(
         padding: AppUtils().getPadding(top: AppDimens.paddingX10),
         child: Text(
-          'Loading available coupons…',
+          StringConstants.loadingAvailableCoupons,
           style: textTheme.bodyMiniSubTitle?.copyWith(
             color: LightColor.hintTextColor,
             fontWeight: FontWeight.w500,
@@ -832,7 +836,7 @@ class _CouponField extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Text(
-            'Available offers',
+            StringConstants.availableOffers,
             style: textTheme.bodyMiniSubTitle?.copyWith(
               color: LightColor.secondaryTextColor,
               fontWeight: FontWeight.w700,
@@ -956,7 +960,7 @@ class _PriceBreakdown extends StatelessWidget {
             ),
             const SizedBox(width: AppDimens.sizeX12),
             Text(
-              'Calculating price…',
+              StringConstants.calculatingPrice,
               style: textTheme.bodyTextSmall?.copyWith(
                 color: LightColor.secondaryTextColor,
                 fontWeight: FontWeight.w500,
@@ -1059,7 +1063,7 @@ class _PriceDetailsSheet extends StatelessWidget {
             ),
             const SizedBox(height: AppDimens.sizeX16),
             Text(
-              'Price breakdown',
+              StringConstants.priceBreakdown,
               style: textTheme.bodyTextLarge?.copyWith(
                 color: LightColor.primaryTextColor,
                 fontWeight: FontWeight.w800,
@@ -1142,18 +1146,21 @@ class _SessionPriceRow extends StatelessWidget {
             ],
           ),
           const SizedBox(height: AppDimens.sizeX8),
-          _MiniRow(label: 'Subtotal', value: _PriceBreakdown._money(item.subtotal)),
+          _MiniRow(
+            label: StringConstants.subtotal,
+            value: _PriceBreakdown._money(item.subtotal),
+          ),
           if (discount > 0) ...<Widget>[
             const SizedBox(height: AppDimens.sizeX4),
             _MiniRow(
-              label: 'Discount',
+              label: StringConstants.discount,
               value: '- ${_PriceBreakdown._money(discount)}',
               valueColor: LightColor.secondaryColor,
             ),
           ],
           const SizedBox(height: AppDimens.sizeX4),
           _MiniRow(
-            label: 'Advance',
+            label: StringConstants.advance,
             value: _PriceBreakdown._money(item.advanceAmount),
           ),
         ],
@@ -1290,7 +1297,7 @@ class _QrCard extends StatelessWidget {
           ),
           const SizedBox(height: AppDimens.sizeX6),
           const Text(
-            'QR unavailable',
+            StringConstants.qrUnavailable,
             style: TextStyle(
               color: LightColor.hintTextColor,
               fontSize: AppDimens.sizeX12,
@@ -1398,7 +1405,7 @@ class _QrCard extends StatelessWidget {
             ),
           ),
           _InfoRow(
-            label: 'Advance to pay',
+            label: StringConstants.advanceToPay,
             value: 'Rs ${amount.toStringAsFixed(0)}',
             emphasize: true,
           ),
@@ -1467,7 +1474,7 @@ class _UploadCard extends StatelessWidget {
               ),
               const SizedBox(height: AppDimens.sizeX8),
               Text(
-                'Upload payment receipt',
+                StringConstants.uploadPaymentReceipt,
                 style: textTheme.bodyTextSmall?.copyWith(
                   color: LightColor.primaryTextColor,
                   fontWeight: FontWeight.w700,
@@ -1475,7 +1482,7 @@ class _UploadCard extends StatelessWidget {
               ),
               const SizedBox(height: AppDimens.sizeX2),
               Text(
-                'JPG, PNG or PDF · up to 10 MB',
+                StringConstants.jpgPngOrPdfUpTo10Mb,
                 style: textTheme.bodyMiniSubTitle?.copyWith(
                   color: LightColor.hintTextColor,
                   fontWeight: FontWeight.w500,
@@ -1539,7 +1546,7 @@ class _UploadCard extends StatelessWidget {
           TextButton(
             onPressed: onPick,
             child: Text(
-              'Change',
+              StringConstants.change,
               style: textTheme.bodyTextSmall?.copyWith(
                 color: LightColor.secondaryColor,
                 fontWeight: FontWeight.w700,
@@ -1548,7 +1555,7 @@ class _UploadCard extends StatelessWidget {
           ),
           IconButton(
             onPressed: onRemove,
-            tooltip: 'Remove',
+            tooltip: StringConstants.remove,
             visualDensity: VisualDensity.compact,
             icon: const Icon(
               Icons.close_rounded,
@@ -1597,7 +1604,7 @@ class _PaymentNoteCard extends StatelessWidget {
               ),
               const SizedBox(width: AppDimens.sizeX8),
               Text(
-                'Important note',
+                StringConstants.importantNote,
                 style: textTheme.bodyTextSmall?.copyWith(
                   color: LightColor.secondaryColor,
                   fontWeight: FontWeight.w800,
@@ -1691,7 +1698,8 @@ class _TermsCheckbox extends StatelessWidget {
           const SizedBox(width: AppDimens.sizeX10),
           Expanded(
             child: Text(
-              'I confirm the booking details are correct and accept the cancellation & refund policy.',
+              StringConstants
+                  .iConfirmTheBookingDetailsAreCorrectAndAcceptTheCabab03b,
               style: textTheme.bodyMiniSubTitle?.copyWith(
                 color: LightColor.secondaryTextColor,
                 fontWeight: FontWeight.w500,
@@ -1764,7 +1772,7 @@ class _BookingOverviewSheet extends StatelessWidget {
             ),
             const SizedBox(height: AppDimens.sizeX16),
             Text(
-              'Review your booking',
+              StringConstants.reviewYourBooking,
               style: textTheme.bodyTextLarge?.copyWith(
                 color: LightColor.primaryTextColor,
                 fontWeight: FontWeight.w800,
@@ -1772,7 +1780,7 @@ class _BookingOverviewSheet extends StatelessWidget {
             ),
             const SizedBox(height: AppDimens.sizeX6),
             Text(
-              'Please confirm the details before booking.',
+              StringConstants.pleaseConfirmTheDetailsBeforeBooking,
               style: textTheme.bodySubTitle?.copyWith(
                 color: LightColor.hintTextColor,
                 fontWeight: FontWeight.w500,
@@ -1783,27 +1791,36 @@ class _BookingOverviewSheet extends StatelessWidget {
             _Surface(
               child: Column(
                 children: <Widget>[
-                  _InfoRow(label: 'Court', value: draft.courtName),
+                  _InfoRow(
+                    label: StringConstants.court,
+                    value: draft.courtName,
+                  ),
                   const SizedBox(height: AppDimens.sizeX10),
                   _InfoRow(
                     label: draft.isRecurring ? 'Starts' : 'Date',
                     value: _dateLabel(draft.selectedDate),
                   ),
                   const SizedBox(height: AppDimens.sizeX10),
-                  _InfoRow(label: 'Time', value: timeRange),
+                  _InfoRow(label: StringConstants.time, value: timeRange),
                   if (draft.isRecurring) ...<Widget>[
                     const SizedBox(height: AppDimens.sizeX10),
                     _InfoRow(
-                      label: 'Repeats',
+                      label: StringConstants.repeats,
                       value:
                           'Weekly · ${draft.recurrenceLabel ?? ''} · ${draft.sessions} sessions',
                     ),
                   ],
                   const SizedBox(height: AppDimens.sizeX10),
-                  _InfoRow(label: 'Payment', value: paymentMethodLabel),
+                  _InfoRow(
+                    label: StringConstants.payment,
+                    value: paymentMethodLabel,
+                  ),
                   if (paymentProofName != null) ...<Widget>[
                     const SizedBox(height: AppDimens.sizeX10),
-                    _InfoRow(label: 'Proof', value: paymentProofName!),
+                    _InfoRow(
+                      label: StringConstants.proof,
+                      value: paymentProofName!,
+                    ),
                   ],
                 ],
               ),
@@ -1819,7 +1836,7 @@ class _BookingOverviewSheet extends StatelessWidget {
                   child: SizedBox(
                     height: AppDimens.sizeX50,
                     child: CustomButton(
-                      text: 'Go back',
+                      text: StringConstants.goBack,
                       onPressed: () => Navigator.of(context).pop(false),
                       isOutlined: true,
                       foregroundColor: LightColor.secondaryTextColor,
@@ -1833,7 +1850,7 @@ class _BookingOverviewSheet extends StatelessWidget {
                   child: SizedBox(
                     height: AppDimens.sizeX50,
                     child: CustomButton(
-                      text: 'Confirm Booking',
+                      text: StringConstants.confirmBooking,
                       onPressed: () => Navigator.of(context).pop(true),
                       backgroundColor: LightColor.secondaryColor,
                       foregroundColor: LightColor.inverseTextColor,
@@ -1894,7 +1911,7 @@ class _BookingSuccessSheet extends StatelessWidget {
             ),
             const SizedBox(height: AppDimens.sizeX16),
             Text(
-              'Booking request sent',
+              StringConstants.bookingRequestSent,
               style: textTheme.headingSubTitle?.copyWith(
                 color: LightColor.primaryTextColor,
                 fontWeight: FontWeight.w800,
@@ -1915,7 +1932,7 @@ class _BookingSuccessSheet extends StatelessWidget {
               width: double.infinity,
               height: AppDimens.sizeX50,
               child: CustomButton(
-                text: 'Done',
+                text: StringConstants.done,
                 onPressed: () => Navigator.of(context).pop(),
               ),
             ),

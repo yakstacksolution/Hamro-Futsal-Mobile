@@ -12,6 +12,7 @@ import 'package:hamro_footsall/features/opponent_match/presentation/bloc/opponen
 import 'package:hamro_footsall/features/opponent_match/presentation/pages/create_opponent_request_page.dart';
 import 'package:hamro_footsall/features/opponent_match/presentation/widgets/opponent_requests_view.dart';
 import 'package:hamro_footsall/features/opponent_match/presentation/widgets/opponent_teams_view.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class OpponentMatchScreen extends StatelessWidget {
   const OpponentMatchScreen({super.key});
@@ -20,9 +21,7 @@ class OpponentMatchScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) =>
-          OpponentMatchBloc(
-              OpponentMatchUseCase(OpponentMatchRepositoryImpl()),
-            )
+          OpponentMatchBloc(OpponentMatchUseCase(OpponentMatchRepositoryImpl()))
             ..add(const LoadTeamsEvent())
             ..add(const LoadVenuesEvent())
             ..add(const LoadPositionsEvent())
@@ -167,12 +166,12 @@ class _OpponentMatchViewState extends State<_OpponentMatchView>
           ),
           tabs: [
             _tabItem(
-              label: 'Requests',
+              label: StringConstants.requests,
               count: state.requests.length,
               selected: _tabCtrl.index == 0,
             ),
             _tabItem(
-              label: 'My Teams',
+              label: StringConstants.myTeams,
               count: state.teams.length,
               selected: _tabCtrl.index == 1,
             ),
@@ -228,7 +227,7 @@ class _OpponentMatchViewState extends State<_OpponentMatchView>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: LightColor.background,
-      appBar: const CustomAppBar(title: 'Opponent Match'),
+      appBar: const CustomAppBar(title: StringConstants.opponentMatch),
       floatingActionButton: SizedBox(
         height: 44,
         child: FloatingActionButton.extended(
@@ -240,7 +239,7 @@ class _OpponentMatchViewState extends State<_OpponentMatchView>
           shape: const StadiumBorder(),
           icon: const Icon(Icons.add_rounded, size: 18),
           label: Text(
-            'New Request',
+            StringConstants.newRequest,
             style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
               fontWeight: FontWeight.w700,
               color: LightColor.whiteColor,
@@ -391,7 +390,7 @@ class _LoadError extends StatelessWidget {
             ),
             const SizedBox(height: AppDimens.paddingX18),
             CustomButton(
-              text: 'Retry',
+              text: StringConstants.retry,
               icon: Icons.refresh_rounded,
               onPressed: onRetry,
             ),

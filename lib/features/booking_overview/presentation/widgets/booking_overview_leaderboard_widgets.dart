@@ -6,6 +6,7 @@ import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/features/booking_overview/presentation/models/booking_analytics.dart';
 import 'package:hamro_footsall/features/booking_overview/presentation/utils/booking_ui_utils.dart';
 import 'package:hamro_footsall/features/booking_overview/presentation/widgets/booking_overview_common.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 /// Per-venue revenue + occupancy table.
 class BookingVenuePerformanceCard extends StatelessWidget {
@@ -17,7 +18,7 @@ class BookingVenuePerformanceCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final rows = analytics.futsalLeaderboard;
     if (rows.isEmpty) {
-      return const BookingEmptyMicro(text: 'No venue activity.');
+      return const BookingEmptyMicro(text: StringConstants.noVenueActivity);
     }
 
     return BookingSurface(
@@ -135,7 +136,7 @@ class BookingTopCourtsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final rows = analytics.courtLeaderboard.take(5).toList();
     if (rows.isEmpty) {
-      return const BookingEmptyMicro(text: 'No court activity.');
+      return const BookingEmptyMicro(text: StringConstants.noCourtActivity);
     }
 
     final maxV = rows.first.revenue.clamp(1, 1 << 30);
@@ -227,7 +228,7 @@ class BookingTopCustomersCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final rows = analytics.topCustomers;
     if (rows.isEmpty) {
-      return const BookingEmptyMicro(text: 'No customer activity.');
+      return const BookingEmptyMicro(text: StringConstants.noCustomerActivity);
     }
 
     final textTheme = FutsalTheme.getTextTheme(context);

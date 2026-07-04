@@ -3,6 +3,7 @@ import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/widgets/custom_text_field.dart';
 import 'package:hamro_footsall/features/courts/presentation/bloc/create_footsall_courts_bloc.dart';
 import 'package:hamro_footsall/features/courts/presentation/widgets/create_footsall_courts/selection_option_chip.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class AmenitiesFacilitiesSection extends StatelessWidget {
   const AmenitiesFacilitiesSection({super.key, required this.bloc});
@@ -19,9 +20,9 @@ class AmenitiesFacilitiesSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         const _SectionTitle(
-          title: 'Amenities',
-          subtitle:
-              'Select the value-added services players can expect on booking days.',
+          title: StringConstants.amenities,
+          subtitle: StringConstants
+              .selectTheValueAddedServicesPlayersCanExpectOnBookingDays,
         ),
         const SizedBox(height: 12),
         Wrap(
@@ -39,9 +40,9 @@ class AmenitiesFacilitiesSection extends StatelessWidget {
         ),
         const SizedBox(height: 20),
         const _SectionTitle(
-          title: 'Facilities',
-          subtitle:
-              'Mark the physical venue facilities available for teams and visitors.',
+          title: StringConstants.facilities,
+          subtitle: StringConstants
+              .markThePhysicalVenueFacilitiesAvailableForTeamsAndVisitors,
         ),
         const SizedBox(height: 12),
         Wrap(
@@ -74,9 +75,9 @@ class AmenitiesFacilitiesSection extends StatelessWidget {
           focusNode: bloc.amenitiesNotesFocus,
           ensureVisibleOnFocus: true,
           isRequired: false,
-          labelText: 'Amenities Notes',
-          hintText:
-              'Mention equipment quality, seating capacity, or any premium services.',
+          labelText: StringConstants.amenitiesNotes,
+          hintText: StringConstants
+              .mentionEquipmentQualitySeatingCapacityOrAnyPremiumServices,
           icon: Icons.sticky_note_2_rounded,
           minLines: 3,
           maxLines: 4,

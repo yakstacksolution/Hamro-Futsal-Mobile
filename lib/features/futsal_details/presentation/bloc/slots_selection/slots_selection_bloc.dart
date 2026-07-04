@@ -5,6 +5,7 @@ import 'package:dartz/dartz.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter/foundation.dart';
 import 'package:hamro_footsall/core/helper/exception_helper.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 import 'package:hamro_footsall/features/courts_details/presentation/page/court_details.dart';
 import 'package:hamro_footsall/features/futsal_details/data/model/available_courts_model.dart';
 import 'package:hamro_footsall/features/futsal_details/data/model/booking_draft.dart';
@@ -38,6 +39,8 @@ class SlotsSelectionBloc
     on<ChangeSlotsRecurrenceEvent>(_onChangeRecurrence);
     on<RefreshSlotsAvailabilityEvent>(_onRefresh);
     on<SlotsRealtimeRefreshRequested>(_onRealtimeRefresh);
+    on<SlotsBookingRealtimeEvent>(_onBookingRealtimeEvent);
+    on<SlotsViewersChangedEvent>(_onViewersChanged);
     on<CheckRecurringAvailabilityRequested>(_onCheckRecurringAvailability);
   }
 
@@ -54,6 +57,13 @@ class SlotsSelectionBloc
   StreamSubscription<SlotAvailabilityUpdate>? _availabilitySub;
   Timer? _availabilityDebounce;
   int? _subscribedVenueId;
+
+  /// Live hold/booking wiring for the venue + date currently on screen
+  /// (the `presence-venue.{venueId}.booking.{bookingDate}` channel).
+  StreamSubscription<BookingSlotEvent>? _bookingEventsSub;
+  StreamSubscription<int>? _viewersSub;
+  int? _joinedBookingVenueId;
+  String? _joinedBookingDate;
 
   FutureOr<void> _onInitialize(
     InitializeSlotsSelectionEvent event,
@@ -79,6 +89,7 @@ class SlotsSelectionBloc
     );
     emit(next);
     _listenToAvailability(event.court.venueId);
+    _joinBookingChannel(event.court.venueId, next.selectedDate);
     await _fetchSlotsAndCourts(emit, next);
   }
 
@@ -100,10 +111,119 @@ class SlotsSelectionBloc
         update.date != _formatApiDate(state.selectedDate)) {
       return;
     }
+    _scheduleRealtimeRefresh();
+  }
+
+  void _scheduleRealtimeRefresh() {
     _availabilityDebounce?.cancel();
     _availabilityDebounce = Timer(const Duration(milliseconds: 450), () {
       if (!isClosed) add(const SlotsRealtimeRefreshRequested());
     });
+  }
+
+  /// Joins the `presence-venue.{venueId}.booking.{date}` channel for the day
+  /// on screen, leaving the previously joined one (per-date channel, so the
+  /// user must drop out of the old date's roster). No-op when already joined.
+  void _joinBookingChannel(int? venueId, DateTime date) {
+    if (venueId == null || venueId <= 0) return;
+    final String bookingDate = _formatApiDate(date);
+    if (venueId == _joinedBookingVenueId && bookingDate == _joinedBookingDate) {
+      return;
+    }
+    _leaveBookingChannel();
+    _joinedBookingVenueId = venueId;
+    _joinedBookingDate = bookingDate;
+    _bookingEventsSub = _socketService
+        .bookingEvents(venueId, bookingDate)
+        .listen((BookingSlotEvent push) {
+          if (!isClosed) add(SlotsBookingRealtimeEvent(push));
+        });
+    _viewersSub = _socketService.bookingViewers(venueId, bookingDate).listen((
+      int viewers,
+    ) {
+      if (!isClosed) add(SlotsViewersChangedEvent(viewers));
+    });
+  }
+
+  void _leaveBookingChannel() {
+    _bookingEventsSub?.cancel();
+    _viewersSub?.cancel();
+    _bookingEventsSub = null;
+    _viewersSub = null;
+    final int? venueId = _joinedBookingVenueId;
+    final String? bookingDate = _joinedBookingDate;
+    _joinedBookingVenueId = null;
+    _joinedBookingDate = null;
+    if (venueId != null && bookingDate != null) {
+      _socketService.leaveBookingChannel(venueId, bookingDate);
+    }
+  }
+
+  /// Applies a live hold/booking broadcast: instantly patches the matching
+  /// court cell (when the event targets the selected slot), then schedules a
+  /// debounced silent re-fetch so the whole grid reconciles with the server.
+  /// Idempotent by design — our own REST actions echo back over the socket.
+  FutureOr<void> _onBookingRealtimeEvent(
+    SlotsBookingRealtimeEvent event,
+    Emitter<SlotsSelectionState> emit,
+  ) {
+    final BookingSlotEvent push = event.push;
+    // booking.step.updated is informational; no availability change.
+    if (push.isInformational) return null;
+    // Defensive: the channel is per-date, but ignore mismatches anyway.
+    if (push.bookingDate != null &&
+        push.bookingDate != _formatApiDate(state.selectedDate)) {
+      return null;
+    }
+
+    _patchCourtFromPush(push, emit);
+    _scheduleRealtimeRefresh();
+    return null;
+  }
+
+  /// Immediate optimistic patch: flips the affected court's status when the
+  /// broadcast targets the currently selected slot. The debounced re-fetch
+  /// remains the source of truth for everything else (e.g. slot-level counts).
+  void _patchCourtFromPush(
+    BookingSlotEvent push,
+    Emitter<SlotsSelectionState> emit,
+  ) {
+    final int? courtId = push.courtId;
+    final String? status = push.status;
+    if (courtId == null || status == null) return;
+    if (!state.hasSlotSelection) return;
+    if (!_sameApiTime(push.startTime, state.selectedSlotApiTime)) return;
+
+    final int index = state.courts.indexWhere(
+      (VenueCourtItemModel court) => court.id == courtId,
+    );
+    if (index < 0) return;
+
+    final SlotStatus newStatus = SlotStatus.fromApi(status);
+    if (state.courts[index].status == newStatus) return;
+
+    final List<VenueCourtItemModel> courts = List<VenueCourtItemModel>.of(
+      state.courts,
+    );
+    courts[index] = courts[index].copyWith(status: newStatus);
+    emit(
+      state.copyWith(
+        courts: courts,
+        // Deselect the court if someone else just took it.
+        selectedCourtIndex:
+            state.selectedCourtIndex == index && !newStatus.canSelect
+            ? -1
+            : state.selectedCourtIndex,
+      ),
+    );
+  }
+
+  FutureOr<void> _onViewersChanged(
+    SlotsViewersChangedEvent event,
+    Emitter<SlotsSelectionState> emit,
+  ) {
+    emit(state.copyWith(liveViewers: event.viewers));
+    return null;
   }
 
   /// Silent refresh triggered by the socket: re-pulls authoritative
@@ -140,8 +260,14 @@ class SlotsSelectionBloc
       courts: const <VenueCourtItemModel>[],
       status: SlotsSelectionStatus.loading,
       clearError: true,
+      // Roster resets while the new date's presence subscription completes.
+      liveViewers: 0,
     );
     emit(next);
+    _joinBookingChannel(
+      next.venueId ?? _sourceCourt?.venueId,
+      next.selectedDate,
+    );
     await _fetchSlotsAndCourts(emit, next);
   }
 
@@ -310,7 +436,7 @@ class SlotsSelectionBloc
         emit(
           current.copyWith(
             status: SlotsSelectionStatus.failure,
-            errorMessage: 'Venue id is missing for slot availability.',
+            errorMessage: StringConstants.venueIdIsMissingForSlotAvailability,
           ),
         );
       }
@@ -374,7 +500,7 @@ class SlotsSelectionBloc
         emit(
           current.copyWith(
             status: SlotsSelectionStatus.failure,
-            errorMessage: 'Venue id is missing for court availability.',
+            errorMessage: StringConstants.venueIdIsMissingForCourtAvailability,
           ),
         );
       }
@@ -454,8 +580,8 @@ class SlotsSelectionBloc
     final double price = _priceFromText(source.price) ?? 0;
     return <CourtPriceRule>[
       CourtPriceRule(
-        label: 'Standard',
-        timeRange: 'All day',
+        label: StringConstants.standard,
+        timeRange: StringConstants.allDay,
         startHour: 0,
         endHour: 24,
         price: price,
@@ -482,9 +608,23 @@ class SlotsSelectionBloc
   Future<void> close() {
     _availabilityDebounce?.cancel();
     _availabilitySub?.cancel();
-    // The Reverb connection is shared app-wide; don't dispose it here.
+    // Drop out of the per-date presence roster; the shared Reverb connection
+    // itself is app-wide, so don't dispose it here.
+    _leaveBookingChannel();
     return super.close();
   }
+}
+
+/// Compares two API times (`18:00`, `18:00:00`, `6:00`) on hours + minutes.
+bool _sameApiTime(String? a, String? b) {
+  if (a == null || b == null) return false;
+  String normalize(String value) {
+    final List<String> parts = value.trim().split(':');
+    if (parts.length < 2) return value.trim();
+    return '${parts[0].padLeft(2, '0')}:${parts[1].padLeft(2, '0')}';
+  }
+
+  return normalize(a) == normalize(b);
 }
 
 int _safeSlotIndex(int index, List<TimeSlotModel> slots) {

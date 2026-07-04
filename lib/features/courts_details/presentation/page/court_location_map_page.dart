@@ -8,6 +8,7 @@ import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/widgets/custom_app_bar.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 /// Full-screen, interactive map of a venue's location.
 ///
@@ -85,7 +86,7 @@ class _CourtLocationMapPageState extends State<CourtLocationMapPage> {
                 ),
                 const SizedBox(height: AppDimens.sizeX12),
                 Text(
-                  'Location unavailable',
+                  StringConstants.locationUnavailable,
                   textAlign: TextAlign.center,
                   style: textTheme.bodyTextLarge?.copyWith(
                     color: LightColor.primaryTextColor,
@@ -124,8 +125,7 @@ class _CourtLocationMapPageState extends State<CourtLocationMapPage> {
               ),
               children: <Widget>[
                 TileLayer(
-                  urlTemplate:
-                      'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                   userAgentPackageName: 'hamro_footsall',
                 ),
                 MarkerLayer(
@@ -254,7 +254,7 @@ class _CourtLocationMapPageState extends State<CourtLocationMapPage> {
                             ),
                             const SizedBox(width: AppDimens.sizeX6),
                             Text(
-                              'Directions',
+                              StringConstants.directions,
                               style: textTheme.bodySubTitle?.copyWith(
                                 color: LightColor.inverseTextColor,
                                 fontWeight: FontWeight.w700,

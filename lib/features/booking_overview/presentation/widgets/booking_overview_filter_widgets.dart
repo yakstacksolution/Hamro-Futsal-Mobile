@@ -5,6 +5,7 @@ import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/features/booking_overview/data/model/booking_overview_model.dart';
 import 'package:hamro_footsall/features/booking_overview/presentation/models/booking_analytics.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 /// Compact selectable chip with haptic feedback, shared by all filter rows.
 class BookingChip extends StatelessWidget {
@@ -147,7 +148,7 @@ class BookingVenueFilter extends StatelessWidget {
         itemBuilder: (_, i) {
           if (i == 0) {
             return BookingChip(
-              label: 'All venues',
+              label: StringConstants.allVenues,
               selected: selectedId == null,
               onTap: () => onChange(null),
             );

@@ -8,6 +8,7 @@ import 'package:hamro_footsall/core/helper/wishlist_store.dart';
 import 'package:hamro_footsall/features/profile/data/model/profile_model.dart';
 import 'package:hamro_footsall/features/profile/domain/usecase/profile_usecase.dart';
 import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_drafts.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 part 'profile_event.dart';
 part 'profile_state.dart';
@@ -107,7 +108,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
               profileImage: previewUrl ?? merged.data.profilePhoto?.remoteUrl,
               successMessage: profile.message.isNotEmpty
                   ? profile.message
-                  : 'Profile updated successfully.',
+                  : StringConstants.profileUpdatedSuccessfully,
               clearErrorMessage: true,
             ),
           );

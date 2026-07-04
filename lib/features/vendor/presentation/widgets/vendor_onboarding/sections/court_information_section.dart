@@ -20,6 +20,7 @@ import 'package:hamro_footsall/features/vendor/presentation/utils/vendor_templat
 import 'package:hamro_footsall/features/vendor/presentation/validation/vendor_onboarding_validator.dart';
 import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/sections/court_media_section.dart';
 import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/vendor_form_components.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class CourtInformationSection extends StatelessWidget {
   const CourtInformationSection({
@@ -59,23 +60,23 @@ class CourtInformationSection extends StatelessWidget {
   _CourtSectionMeta _sectionMeta(int index) {
     return switch (index) {
       0 => const _CourtSectionMeta(
-        title: 'Court Info',
-        subtitle: 'Court identity, pricing, type, and playing format',
+        title: StringConstants.courtInfo,
+        subtitle: StringConstants.courtIdentityPricingTypeAndPlayingFormat,
         icon: Icons.stadium_rounded,
       ),
       1 => const _CourtSectionMeta(
-        title: 'Description',
-        subtitle: 'Tell customers about this court',
+        title: StringConstants.description,
+        subtitle: StringConstants.tellCustomersAboutThisCourtSubtitle,
         icon: Icons.description_rounded,
       ),
       2 => const _CourtSectionMeta(
-        title: 'Photos & Memories',
-        subtitle: 'Court photos and memories',
+        title: StringConstants.photosAndMemories,
+        subtitle: StringConstants.courtPhotosAndMemoriesLabel,
         icon: Icons.photo_library_rounded,
       ),
       _ => const _CourtSectionMeta(
-        title: 'Court Information',
-        subtitle: 'Complete court details',
+        title: StringConstants.courtInformation,
+        subtitle: StringConstants.completeCourtDetails,
         icon: Icons.info_rounded,
       ),
     };
@@ -204,7 +205,7 @@ class _CourtBasicInfoForm extends StatelessWidget {
             ),
             const SizedBox(height: AppDimens.sizeX22),
             VendorInputField(
-              label: 'Court name',
+              label: StringConstants.courtName,
               isRequired: true,
               focusNode: nameFocus,
               ensureVisibleOnFocus: true,
@@ -216,7 +217,7 @@ class _CourtBasicInfoForm extends StatelessWidget {
             ),
             const SizedBox(height: AppDimens.sizeX16),
             VendorInputField(
-              label: 'Base price',
+              label: StringConstants.basePrice,
               isRequired: true,
               focusNode: basePriceFocus,
               ensureVisibleOnFocus: true,
@@ -238,7 +239,7 @@ class _CourtBasicInfoForm extends StatelessWidget {
                   fallback: _fallbackCourtTypes,
                 );
                 return VendorDropdownField<int>(
-                  label: 'Court type',
+                  label: StringConstants.courtTypeSentenceCase,
                   hintText: state.status == PublicCourtOptionsStatus.loading
                       ? 'Loading court types...'
                       : null,
@@ -263,7 +264,7 @@ class _CourtBasicInfoForm extends StatelessWidget {
                   fallback: _fallbackMatchFormats,
                 );
                 return VendorDropdownField<int>(
-                  label: 'Match format',
+                  label: StringConstants.matchFormat,
                   hintText: state.status == PublicCourtOptionsStatus.loading
                       ? 'Loading match formats...'
                       : null,
@@ -282,7 +283,7 @@ class _CourtBasicInfoForm extends StatelessWidget {
             ),
             const SizedBox(height: AppDimens.sizeX16),
             VendorInputField(
-              label: 'Max players',
+              label: StringConstants.maxPlayers,
               isRequired: true,
               focusNode: maxPlayersFocus,
               ensureVisibleOnFocus: true,
@@ -601,7 +602,7 @@ class _CourtDescriptionSubsectionState
                 isReadOnly: false,
                 controller: _quillController,
                 scrollController: _scrollController,
-                hintText: 'Description about your court...',
+                hintText: StringConstants.descriptionAboutYourCourt,
               ),
             ),
         ],

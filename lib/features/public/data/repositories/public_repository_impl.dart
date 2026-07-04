@@ -12,6 +12,7 @@ import 'package:hamro_footsall/features/public/data/model/public_template_model.
 import 'package:hamro_footsall/features/public/data/model/public_venue_model.dart';
 import 'package:hamro_footsall/features/public/domain/repository/public_repository.dart';
 import 'package:hamro_footsall/features/public/presentation/models/venue_filter.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 final class PublicRepositoryImpl extends PublicRepository {
   PublicRepositoryImpl({PublicRemoteDataSource? remoteDataSource})
@@ -43,7 +44,7 @@ final class PublicRepositoryImpl extends PublicRepository {
     } catch (_) {
       return left(
         DefaultException(
-          errorMessage: 'Could not parse public services from server.',
+          errorMessage: StringConstants.couldNotParsePublicServicesFromServer,
           statusCode: 0,
         ),
       );
@@ -74,7 +75,7 @@ final class PublicRepositoryImpl extends PublicRepository {
     } catch (_) {
       return left(
         DefaultException(
-          errorMessage: 'Could not parse public packages from server.',
+          errorMessage: StringConstants.couldNotParsePublicPackagesFromServer,
           statusCode: 0,
         ),
       );
@@ -107,7 +108,7 @@ final class PublicRepositoryImpl extends PublicRepository {
     } catch (_) {
       return left(
         DefaultException(
-          errorMessage: 'Could not parse FAQs from server.',
+          errorMessage: StringConstants.couldNotParseFaqsFromServer,
           statusCode: 0,
         ),
       );
@@ -140,7 +141,7 @@ final class PublicRepositoryImpl extends PublicRepository {
     } catch (_) {
       return left(
         DefaultException(
-          errorMessage: 'Could not parse help topics from server.',
+          errorMessage: StringConstants.couldNotParseHelpTopicsFromServer,
           statusCode: 0,
         ),
       );
@@ -159,7 +160,7 @@ final class PublicRepositoryImpl extends PublicRepository {
     } catch (_) {
       return left(
         DefaultException(
-          errorMessage: 'Could not parse court types from server.',
+          errorMessage: StringConstants.couldNotParseCourtTypesFromServer,
           statusCode: 0,
         ),
       );
@@ -179,7 +180,7 @@ final class PublicRepositoryImpl extends PublicRepository {
     } catch (_) {
       return left(
         DefaultException(
-          errorMessage: 'Could not parse match formats from server.',
+          errorMessage: StringConstants.couldNotParseMatchFormatsFromServer,
           statusCode: 0,
         ),
       );
@@ -198,7 +199,7 @@ final class PublicRepositoryImpl extends PublicRepository {
     } catch (_) {
       return left(
         DefaultException(
-          errorMessage: 'Could not parse amenities from server.',
+          errorMessage: StringConstants.couldNotParseAmenitiesFromServer,
           statusCode: 0,
         ),
       );
@@ -217,7 +218,7 @@ final class PublicRepositoryImpl extends PublicRepository {
     } catch (_) {
       return left(
         DefaultException(
-          errorMessage: 'Could not parse facilities from server.',
+          errorMessage: StringConstants.couldNotParseFacilitiesFromServer,
           statusCode: 0,
         ),
       );
@@ -246,7 +247,7 @@ final class PublicRepositoryImpl extends PublicRepository {
     } catch (_) {
       return left(
         DefaultException(
-          errorMessage: 'Could not parse public templates from server.',
+          errorMessage: StringConstants.couldNotParsePublicTemplatesFromServer,
           statusCode: 0,
         ),
       );
@@ -280,7 +281,7 @@ final class PublicRepositoryImpl extends PublicRepository {
     } catch (_) {
       return left(
         DefaultException(
-          errorMessage: 'Could not parse venues from server.',
+          errorMessage: StringConstants.couldNotParseVenuesFromServer,
           statusCode: 0,
         ),
       );
@@ -305,7 +306,7 @@ final class PublicRepositoryImpl extends PublicRepository {
     } catch (_) {
       return left(
         DefaultException(
-          errorMessage: 'Could not parse your wishlist from server.',
+          errorMessage: StringConstants.couldNotParseYourWishlistFromServer,
           statusCode: 0,
         ),
       );
@@ -352,7 +353,7 @@ final class PublicRepositoryImpl extends PublicRepository {
     } catch (_) {
       return left(
         DefaultException(
-          errorMessage: 'Could not parse category filters from server.',
+          errorMessage: StringConstants.couldNotParseCategoryFiltersFromServer,
           statusCode: 0,
         ),
       );

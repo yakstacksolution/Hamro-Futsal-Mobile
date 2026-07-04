@@ -7,6 +7,7 @@ import 'package:hamro_footsall/features/media/presentation/widgets/media_library
 import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_cubit.dart';
 import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_models.dart';
 import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/vendor_form_components.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class FutsalBusinessSection extends StatelessWidget {
   const FutsalBusinessSection({
@@ -64,8 +65,10 @@ class FutsalBusinessSection extends StatelessWidget {
       cubit: cubit,
       allowedExtensions: const <String>['pdf', 'jpg', 'jpeg', 'png'],
       allowMultiple: false,
-      title: 'Replace document',
-      subtitle: 'Pick a corrected file to replace "${target.name}".',
+      title: StringConstants.replaceDocument,
+      subtitle:
+          '${StringConstants.pickCorrectedFileToReplacePrefix}'
+          '"${target.name}".',
     );
     if (picked == null || picked.isEmpty) return;
     cubit.replaceCompanyDocument(target, picked.first);
@@ -87,8 +90,9 @@ class FutsalBusinessSection extends StatelessWidget {
           const SizedBox(height: AppDimens.sizeX12),
           if (subsectionIndex == 0)
             VendorUploadSection(
-              title: 'Cover image',
-              subtitle: 'Primary business thumbnail for the futsal listing.',
+              title: StringConstants.coverImageSentenceCase,
+              subtitle:
+                  StringConstants.primaryBusinessThumbnailForTheFutsalListing,
               onPick: () => unawaited(_openCoverLibrary(context)),
               actionLabel: 'Gallery',
               previewAsImage: true,
@@ -101,8 +105,8 @@ class FutsalBusinessSection extends StatelessWidget {
             ),
           if (subsectionIndex == 1)
             VendorUploadSection(
-              title: 'Gallery',
-              subtitle: 'Drag to reorder. First image is the cover.',
+              title: StringConstants.gallery,
+              subtitle: StringConstants.dragToReorderFirstImageIsTheCover,
               onPick: () => unawaited(_openGalleryLibrary(context)),
               actionLabel: 'Gallery',
               previewAsImage: true,
@@ -112,8 +116,8 @@ class FutsalBusinessSection extends StatelessWidget {
             ),
           if (subsectionIndex == 2)
             VendorUploadSection(
-              title: 'Company documents',
-              subtitle: 'PAN, license, registration, etc.',
+              title: StringConstants.companyDocuments,
+              subtitle: StringConstants.panLicenseRegistrationEtc,
               onPick: () {
                 unawaited(_openDocumentLibrary(context));
               },
@@ -133,26 +137,29 @@ class FutsalBusinessSection extends StatelessWidget {
     switch (index) {
       case 0:
         return const _BusinessSectionMeta(
-          title: 'Business Assets',
-          subtitle: 'Upload the primary cover image for your futsal listing.',
+          title: StringConstants.businessAssets,
+          subtitle:
+              StringConstants.uploadThePrimaryCoverImageForYourFutsalListing,
           icon: Icons.image_rounded,
         );
       case 1:
         return const _BusinessSectionMeta(
-          title: 'Gallery',
-          subtitle: 'Add venue-level gallery images for your business profile.',
+          title: StringConstants.gallery,
+          subtitle:
+              StringConstants.addVenueLevelGalleryImagesForYourBusinessProfile,
           icon: Icons.collections_rounded,
         );
       case 2:
         return const _BusinessSectionMeta(
-          title: 'Company Docs',
-          subtitle: 'Upload registration, PAN, license, and related documents.',
+          title: StringConstants.companyDocs,
+          subtitle:
+              StringConstants.uploadRegistrationPanLicenseAndRelatedDocuments,
           icon: Icons.description_rounded,
         );
       default:
         return const _BusinessSectionMeta(
-          title: 'Business Assets',
-          subtitle: 'Upload your futsal business media and documents.',
+          title: StringConstants.businessAssets,
+          subtitle: StringConstants.uploadYourFutsalBusinessMediaAndDocuments,
           icon: Icons.business_center_rounded,
         );
     }

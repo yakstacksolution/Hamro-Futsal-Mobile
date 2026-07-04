@@ -21,7 +21,8 @@ Map<String, dynamic> _unwrap(dynamic payload) {
   for (int depth = 0; depth < 5 && current is Map; depth++) {
     final Map<String, dynamic> map = Map<String, dynamic>.from(current);
     final dynamic nested = map['data'] ?? map['booking'];
-    final bool hasIdentity = map.containsKey('id') ||
+    final bool hasIdentity =
+        map.containsKey('id') ||
         map.containsKey('booking_id') ||
         map.containsKey('bookingId');
     if (hasIdentity || nested is! Map) return map;

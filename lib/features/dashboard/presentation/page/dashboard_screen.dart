@@ -46,10 +46,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void initState() {
     super.initState();
-    // Venue cards listen to the position notifier directly for their distance
-    // labels. Do not copy each GPS update into the API filter here: the helper
-    // can publish both a cached fix and a fresh fix during startup, which
-    // otherwise rebuilds the home page and fetches /venues once per fix.
     VenueDistanceHelper.instance.ensurePosition();
   }
 
@@ -72,8 +68,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       extra: _venueFilterNotifier.value,
     );
     if (result != null) {
-      // The filter page rebuilds the filter from its own controls, so carry
-      // the active search term across the round trip.
       _venueFilterNotifier.value = _withCurrentLocation(
         result.copyWith(search: _venueFilterNotifier.value.search),
       );
@@ -165,14 +159,32 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ),
 
-          _tapable(
-            onTap: () => context.goNamed(AppRouterParams.login.name),
-            borderRadius: BorderRadius.circular(13),
-            child: _buildActionIcon(
-              Icons.notifications_outlined,
-              color: LightColor.secondaryLight,
-              onTap: () {},
-            ),
+          Stack(
+            clipBehavior: Clip.none,
+            children: <Widget>[
+              _buildActionIcon(
+                Icons.notifications_outlined,
+                color: LightColor.secondaryColor,
+                onTap: () =>
+                    context.pushNamed(AppRouterParams.notifications.name),
+              ),
+              Positioned(
+                top: -2,
+                right: -2,
+                child: Container(
+                  width: AppDimens.sizeX10,
+                  height: AppDimens.sizeX10,
+                  decoration: BoxDecoration(
+                    color: LightColor.redColor,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: LightColor.whiteColor,
+                      width: AppDimens.sizeX2,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -189,10 +201,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       key: _scaffoldKey,
-      // Match the body's gradient origin so the top safe area (status bar)
-      // blends seamlessly into the content instead of showing a white band.
-      // The bottom nav bar paints its own white into the home-indicator strip,
-      // so the Scaffold no longer needs to be white.
       backgroundColor: LightColor.background,
       body: BlocListener<ProfileBloc, ProfileState>(
         listener: (BuildContext context, ProfileState state) {
@@ -257,8 +265,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: <Widget>[
-                          // Home-only header (greeting, search, categories)
-                          // smoothly collapses/expands as you enter/leave Home.
                           AnimatedSwitcher(
                             duration: const Duration(milliseconds: 280),
                             switchInCurve: Curves.easeOutCubic,
@@ -280,8 +286,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     key: ValueKey<String>('no-home-header'),
                                   ),
                           ),
-                          // All tabs stay alive — switching is instant and
-                          // flicker-free (no rebuild / re-fetch / scroll reset).
                           Expanded(
                             child: IndexedStack(
                               index: selectedNavIndex,
@@ -305,7 +309,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     bottom: 0,
                     left: 0,
                     right: 0,
-                    // Same tabs for every user type.
                     child: CustomBottomNavigationBar(
                       currentIndex: selectedNavIndex,
                       onTap: _onBottomIconPressed,

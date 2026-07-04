@@ -31,6 +31,11 @@ final class GetVenueCourtUseCase {
     Map<String, dynamic> data,
   ) async => await _repository.deleteCourtSlot(data);
 
+  Future<Either<AppException, Unit>> updateCourtStatus(
+    int courtId,
+    String status,
+  ) async => await _repository.updateCourtStatus(courtId, status);
+
   Future<Either<AppException, Unit>> deleteCourt(int courtId) async =>
       await _repository.deleteCourt(courtId);
 }

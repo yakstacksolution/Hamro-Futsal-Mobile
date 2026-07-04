@@ -10,6 +10,7 @@ import 'package:hamro_footsall/features/opponent_match/data/model/opponent_match
 import 'package:hamro_footsall/features/opponent_match/presentation/bloc/opponent_match_bloc/opponent_match_bloc.dart';
 import 'package:hamro_footsall/features/opponent_match/presentation/widgets/opponent_sheets.dart';
 import 'package:hamro_footsall/features/opponent_match/presentation/widgets/opponent_team_card.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class OpponentTeamsView extends StatelessWidget {
   const OpponentTeamsView({super.key});
@@ -54,7 +55,11 @@ class OpponentTeamsView extends StatelessWidget {
     );
   }
 
-  void _openEditPlayer(BuildContext context, TeamModel team, PlayerModel player) {
+  void _openEditPlayer(
+    BuildContext context,
+    TeamModel team,
+    PlayerModel player,
+  ) {
     final bloc = context.read<OpponentMatchBloc>();
     showModalBottomSheet(
       context: context,
@@ -86,7 +91,7 @@ class OpponentTeamsView extends StatelessWidget {
       builder: (ctx) => Padding(
         padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
         child: CreateTeamSheet(
-          title: 'Rename Team',
+          title: StringConstants.renameTeam,
           actionLabel: 'Save',
           actionIcon: Icons.check_rounded,
           initialName: team.name,
@@ -103,7 +108,7 @@ class OpponentTeamsView extends StatelessWidget {
     final bloc = context.read<OpponentMatchBloc>();
     final bool confirmed = await showDeleteDialog(
       context: context,
-      title: 'Delete team?',
+      title: StringConstants.deleteTeam,
       message:
           'This removes "${team.name}" and its players. This can\'t be undone.',
     );
@@ -125,10 +130,10 @@ class OpponentTeamsView extends StatelessWidget {
     }
     final bool confirmed = await showDeleteDialog(
       context: context,
-      title: 'Remove player?',
+      title: StringConstants.removePlayer,
       message:
           'This removes "$playerName" from "${team.name}". This can\'t be undone.',
-      confirmText: 'Remove',
+      confirmText: StringConstants.remove,
       icon: Icons.person_remove_outlined,
     );
     if (confirmed) bloc.add(RemoveMemberEvent(team.id, memberId));
@@ -209,7 +214,7 @@ class _NewTeamButton extends StatelessWidget {
               ),
               const SizedBox(width: AppDimens.paddingX6),
               Text(
-                'New Team',
+                StringConstants.newTeam,
                 style: textTheme.bodyTextSmall?.copyWith(
                   fontWeight: FontWeight.w700,
                   color: LightColor.secondaryColor,
@@ -252,7 +257,7 @@ class _EmptyTeams extends StatelessWidget {
             ),
             const SizedBox(height: AppDimens.paddingX14),
             Text(
-              'No teams yet',
+              StringConstants.noTeamsYet,
               style: textTheme.bodyTextMedium?.copyWith(
                 fontWeight: FontWeight.w600,
                 color: LightColor.primaryTextColor,
@@ -268,7 +273,7 @@ class _EmptyTeams extends StatelessWidget {
             ),
             const SizedBox(height: AppDimens.paddingX18),
             CustomButton(
-              text: 'Create Team',
+              text: StringConstants.createTeam,
               icon: Icons.add_rounded,
               onPressed: onCreateTeam,
             ),

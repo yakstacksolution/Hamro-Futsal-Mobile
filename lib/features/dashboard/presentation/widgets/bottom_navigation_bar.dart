@@ -5,6 +5,7 @@ import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/custom_image_view.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/utils/image_constants.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class CustomBottomNavigationBar extends StatelessWidget {
   const CustomBottomNavigationBar({
@@ -15,32 +16,32 @@ class CustomBottomNavigationBar extends StatelessWidget {
 
   final int currentIndex;
   final ValueChanged<int> onTap;
- 
+
   static const List<_NavItem> _items = <_NavItem>[
     _NavItem(
       icon: ImageConstants.navHome,
       activeIcon: ImageConstants.navHomeFill,
-      label: 'Home',
+      label: StringConstants.home,
     ),
     _NavItem(
       icon: ImageConstants.navBooking,
       activeIcon: ImageConstants.navBookingFill,
-      label: 'Bookings',
+      label: StringConstants.bookings,
     ),
     _NavItem(
       icon: ImageConstants.navMessage,
       activeIcon: ImageConstants.navMessageFill,
-      label: 'Chat',
+      label: StringConstants.chat,
     ),
     _NavItem(
       icon: ImageConstants.navHeart,
       activeIcon: ImageConstants.navHeartFill,
-      label: 'Wishlist',
+      label: StringConstants.wishlist,
     ),
     _NavItem(
       icon: ImageConstants.navProfile,
       activeIcon: ImageConstants.navProfileFill,
-      label: 'Profile',
+      label: StringConstants.profile,
     ),
   ];
 
@@ -150,7 +151,7 @@ class _NavBarItemState extends State<_NavBarItem>
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
               CustomImageView(
-                imagePath : widget.isActive
+                imagePath: widget.isActive
                     ? widget.item.activeIcon
                     : widget.item.icon,
                 width: AppDimens.sizeX20,

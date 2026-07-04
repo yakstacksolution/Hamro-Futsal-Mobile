@@ -7,7 +7,6 @@ sealed class BookingHoldEvent extends Equatable {
   List<Object?> get props => <Object?>[];
 }
 
-
 class CreateBookingHoldEvent extends BookingHoldEvent {
   const CreateBookingHoldEvent({
     required this.venueId,
@@ -37,7 +36,6 @@ class CreateBookingHoldEvent extends BookingHoldEvent {
     bookingDates,
   ];
 }
-
 
 class MarkBookingHoldConsumedEvent extends BookingHoldEvent {
   const MarkBookingHoldConsumedEvent();

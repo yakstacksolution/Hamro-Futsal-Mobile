@@ -174,10 +174,7 @@ class OpponentMatchBloc extends Bloc<OpponentMatchEvent, OpponentMatchState> {
     RemoveMemberEvent event,
     Emitter<OpponentMatchState> emit,
   ) async {
-    _applyTeams(
-      await useCase.removeMember(event.teamId, event.memberId),
-      emit,
-    );
+    _applyTeams(await useCase.removeMember(event.teamId, event.memberId), emit);
   }
 
   void _applyTeams(

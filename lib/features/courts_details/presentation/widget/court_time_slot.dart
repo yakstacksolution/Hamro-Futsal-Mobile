@@ -5,6 +5,7 @@ import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/features/futsal_details/data/model/time_slot_model.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 typedef TimeSelectionChanged = void Function(int dateIndex, int slotIndex);
 
@@ -100,7 +101,7 @@ class _CourtTimeSlotSectionState extends State<CourtTimeSlotSection> {
               children: [
                 Expanded(
                   child: Text(
-                    'Select Date & Time',
+                    StringConstants.selectDateAndTime,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: textTheme.bodyTextLarge?.copyWith(
@@ -152,9 +153,18 @@ class _CourtTimeSlotSectionState extends State<CourtTimeSlotSection> {
               runSpacing: AppDimens.sizeX8,
               crossAxisAlignment: WrapCrossAlignment.end,
               children: [
-                _SlotLegend(bg: LightColor.secondaryLight, label: 'Available'),
-                _SlotLegend(bg: LightColor.secondaryColor, label: 'Selected'),
-                _SlotLegend(bg: LightColor.dividerColor, label: 'Booked'),
+                _SlotLegend(
+                  bg: LightColor.secondaryLight,
+                  label: StringConstants.available,
+                ),
+                _SlotLegend(
+                  bg: LightColor.secondaryColor,
+                  label: StringConstants.selected,
+                ),
+                _SlotLegend(
+                  bg: LightColor.dividerColor,
+                  label: StringConstants.booked,
+                ),
               ],
             ),
             const SizedBox(height: AppDimens.sizeX16),
@@ -218,7 +228,7 @@ class _CourtTimeSlotSectionState extends State<CourtTimeSlotSection> {
                             ),
                           ),
                           Text(
-                            "Rs. 1200",
+                            StringConstants.rs1200,
                             style: textTheme.bodyMiniSubTitle?.copyWith(
                               color: selected
                                   ? LightColor.whiteColor

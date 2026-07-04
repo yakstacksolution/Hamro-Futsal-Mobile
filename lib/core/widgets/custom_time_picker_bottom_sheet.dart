@@ -6,6 +6,7 @@ import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/widgets/custom_button.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 Future<TimeOfDay?> customCupertinoTimePicker(
   BuildContext context,
@@ -80,7 +81,7 @@ Future<TimeOfDay?> customCupertinoTimePicker(
                     GestureDetector(
                       onTap: () => setState(() => selectedTime = now),
                       child: Text(
-                        'Reset',
+                        StringConstants.reset,
                         style: textTheme.bodyTextMedium?.copyWith(
                           color: LightColor.secondaryColor,
                           fontWeight: FontWeight.w600,
@@ -177,10 +178,16 @@ Future<TimeOfDay?> customCupertinoTimePicker(
                                   updateTime(am: index == 0),
                               children: <Widget>[
                                 Center(
-                                  child: Text('AM', style: pickerTextStyle),
+                                  child: Text(
+                                    StringConstants.am,
+                                    style: pickerTextStyle,
+                                  ),
                                 ),
                                 Center(
-                                  child: Text('PM', style: pickerTextStyle),
+                                  child: Text(
+                                    StringConstants.pm,
+                                    style: pickerTextStyle,
+                                  ),
                                 ),
                               ],
                             ),
@@ -192,7 +199,7 @@ Future<TimeOfDay?> customCupertinoTimePicker(
                 ),
                 SizedBox(height: AppDimens.sizeX24),
                 CustomButton(
-                  text: 'Select',
+                  text: StringConstants.select,
                   backgroundColor: LightColor.secondaryColor,
                   foregroundColor: LightColor.whiteColor,
                   minHeight: AppDimens.sizeX46,

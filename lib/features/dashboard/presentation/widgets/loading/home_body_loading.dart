@@ -9,7 +9,7 @@ class HomeBodyLoading extends StatelessWidget {
   final int itemCount;
 
   @override
-  Widget build(BuildContext context) { 
+  Widget build(BuildContext context) {
     return Padding(
       padding: AppUtils().getPadding(
         left: AppDimens.paddingX20,

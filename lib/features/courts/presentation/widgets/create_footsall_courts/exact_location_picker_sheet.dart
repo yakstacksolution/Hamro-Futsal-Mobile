@@ -13,8 +13,9 @@ import 'package:hamro_footsall/core/widgets/custom_button.dart';
 import 'package:hamro_footsall/core/widgets/custom_text_field.dart';
 import 'package:hamro_footsall/core/widgets/loading_widget.dart';
 import 'package:hamro_footsall/features/courts/data/model/picked_location.dart';
- import 'package:http/http.dart' as http;
+import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class ExactLocationPickerSheet extends StatefulWidget {
   const ExactLocationPickerSheet({
@@ -302,7 +303,7 @@ class _ExactLocationPickerSheetState extends State<ExactLocationPickerSheet> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: <Widget>[
                           Text(
-                            'Pick Exact Location',
+                            StringConstants.pickExactLocation,
 
                             style: FutsalTheme.getTextTheme(context)
                                 .headingSubTitle
@@ -310,7 +311,8 @@ class _ExactLocationPickerSheetState extends State<ExactLocationPickerSheet> {
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            'Search an address or tap directly on the map to pin the futsal location.',
+                            StringConstants
+                                .searchAnAddressOrTapDirectlyOnTheMapToPinTheFutsalLocation,
                             style: FutsalTheme.getTextTheme(context)
                                 .bodyTextSmall
                                 ?.copyWith(
@@ -325,8 +327,8 @@ class _ExactLocationPickerSheetState extends State<ExactLocationPickerSheet> {
 
                     CustomTextField(
                       controller: _searchController,
-                      labelText: 'Search exact place',
-                      hintText: 'Area, landmark, or street name',
+                      labelText: StringConstants.searchExactPlace,
+                      hintText: StringConstants.areaLandmarkOrStreetName,
                       icon: Icons.search_rounded,
                       textInputAction: TextInputAction.search,
                       suffixIcon: _isSearching
@@ -481,7 +483,7 @@ class _ExactLocationPickerSheetState extends State<ExactLocationPickerSheet> {
                               ),
                               const SizedBox(width: AppDimens.sizeX6),
                               Text(
-                                'Selected location',
+                                StringConstants.selectedLocation,
                                 style: FutsalTheme.getTextTheme(context)
                                     .bodyTextMedium
                                     ?.copyWith(
@@ -492,7 +494,7 @@ class _ExactLocationPickerSheetState extends State<ExactLocationPickerSheet> {
                               const Spacer(),
                               if (_isResolving)
                                 Text(
-                                  'Resolving...',
+                                  StringConstants.resolving,
                                   style: FutsalTheme.getTextTheme(context)
                                       .bodyTextMedium
                                       ?.copyWith(
@@ -525,7 +527,7 @@ class _ExactLocationPickerSheetState extends State<ExactLocationPickerSheet> {
               children: <Widget>[
                 Expanded(
                   child: CustomButton(
-                    text: 'Cancel',
+                    text: StringConstants.cancel,
                     isOutlined: true,
                     backgroundColor: LightColor.whiteColor,
                     foregroundColor: LightColor.secondaryColor,

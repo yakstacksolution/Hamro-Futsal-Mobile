@@ -42,7 +42,10 @@ class PolicyToggleTile extends StatelessWidget {
         ),
         subtitle: Text(
           subtitle,
-          style: const TextStyle(color: LightColor.secondaryTextColor, fontSize: 12.5),
+          style: const TextStyle(
+            color: LightColor.secondaryTextColor,
+            fontSize: 12.5,
+          ),
         ),
       ),
     );

@@ -4,6 +4,7 @@ import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/features/bookings/data/model/booking_model.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 Color bookingStatusColor(BookingStatus status) => switch (status) {
   BookingStatus.confirmed => LightColor.secondaryColor,
@@ -11,6 +12,19 @@ Color bookingStatusColor(BookingStatus status) => switch (status) {
   BookingStatus.cancelled => LightColor.redColor,
   BookingStatus.completed => LightColor.purpleColor,
 };
+
+List<BookingModel> sortBookingsForDisplay(Iterable<BookingModel> bookings) {
+  final DateTime now = DateTime.now();
+  final DateTime today = DateTime(now.year, now.month, now.day);
+  final List<BookingModel> sorted = bookings.toList(growable: false);
+  sorted.sort((BookingModel a, BookingModel b) {
+    final bool aIsPast = a.date.isBefore(today);
+    final bool bIsPast = b.date.isBefore(today);
+    if (aIsPast != bIsPast) return aIsPast ? 1 : -1;
+    return aIsPast ? b.date.compareTo(a.date) : a.date.compareTo(b.date);
+  });
+  return sorted;
+}
 
 class BookingStatusChip extends StatelessWidget {
   const BookingStatusChip({super.key, required this.status});
@@ -291,7 +305,7 @@ class BookingErrorView extends StatelessWidget {
             ),
             const SizedBox(height: AppDimens.paddingX16),
             Text(
-              'Something went wrong',
+              StringConstants.somethingWentWrong,
               style: textTheme.bodyTextMedium?.copyWith(
                 fontWeight: FontWeight.w600,
                 color: LightColor.primaryTextColor,
@@ -318,7 +332,7 @@ class BookingErrorView extends StatelessWidget {
                   borderRadius: BorderRadius.circular(AppDimens.radiusX8),
                 ),
                 child: Text(
-                  'Try again',
+                  StringConstants.tryAgain,
                   style: textTheme.bodyTextSmall?.copyWith(
                     color: LightColor.whiteColor,
                     fontWeight: FontWeight.w600,
@@ -458,8 +472,8 @@ class BookingCard extends StatelessWidget {
                   _separator(),
                   _Meta(
                     icon: Icons.access_time_outlined,
-                    label: booking.startTime.isNotEmpty
-                        ? '${booking.startTime} – ${booking.endTime}'
+                    label: booking.displayTimeRange.isNotEmpty
+                        ? booking.displayTimeRange
                         : '—',
                   ),
                   if (booking.amount > 0) ...[
@@ -474,12 +488,33 @@ class BookingCard extends StatelessWidget {
               ),
               if (booking.bookingRef.isNotEmpty) ...[
                 const SizedBox(height: AppDimens.paddingX8),
-                Text(
-                  'Ref: #${booking.bookingRef}',
-                  style: textTheme.bodyTextSmall?.copyWith(
-                    color: LightColor.hintTextColor,
-                    fontSize: AppDimens.fontBodySubTitle,
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Ref: #${booking.bookingRef}',
+                        style: textTheme.bodyTextSmall?.copyWith(
+                          color: LightColor.hintTextColor,
+                          fontSize: AppDimens.fontBodySubTitle,
+                        ),
+                      ),
+                    ),
+                    if (booking.isRecurring)
+                      BookingInfoChip(
+                        icon: Icons.repeat_rounded,
+                        label:
+                            '${_capitalize(booking.recurrenceType ?? 'Recurring')} booking',
+                        color: LightColor.purpleColor,
+                      ),
+                  ],
+                ),
+              ] else if (booking.isRecurring) ...[
+                const SizedBox(height: AppDimens.paddingX8),
+                BookingInfoChip(
+                  icon: Icons.repeat_rounded,
+                  label:
+                      '${_capitalize(booking.recurrenceType ?? 'Recurring')} booking',
+                  color: LightColor.purpleColor,
                 ),
               ],
             ],
@@ -518,6 +553,12 @@ class BookingCard extends StatelessWidget {
     ];
     return '${d.day} ${months[d.month - 1]} ${d.year}';
   }
+}
+
+String _capitalize(String value) {
+  final String text = value.trim();
+  if (text.isEmpty) return text;
+  return text[0].toUpperCase() + text.substring(1).toLowerCase();
 }
 
 class _Meta extends StatelessWidget {

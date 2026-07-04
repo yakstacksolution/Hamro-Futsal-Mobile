@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hamro_footsall/core/routers/app_router_params.dart';
 import 'package:hamro_footsall/core/routers/root_navigator_key.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 import 'package:hamro_footsall/core/widgets/custom_app_bar.dart';
 import 'package:hamro_footsall/features/auth/data/repositories/authentication_repository_impl.dart';
 import 'package:hamro_footsall/features/booking_overview/presentation/pages/booking_overview_screen.dart';
@@ -47,12 +48,15 @@ import 'package:hamro_footsall/features/auth/presentation/otp_verification_scree
 import 'package:hamro_footsall/features/auth/presentation/register_screen.dart';
 import 'package:hamro_footsall/features/auth/domain/usecase/authentication_usecase.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/page/dashboard_screen.dart';
+import 'package:hamro_footsall/features/dashboard/presentation/page/notifications_page.dart';
 import 'package:hamro_footsall/features/futsal_details/presentation/view/futsal_details_page_view.dart';
 import 'package:hamro_footsall/features/public/data/model/public_venue_model.dart';
 import 'package:hamro_footsall/features/public/data/repositories/public_repository_impl.dart';
 import 'package:hamro_footsall/features/public/domain/usecase/get_public_templates_use_case.dart';
 import 'package:hamro_footsall/features/public/presentation/bloc/public_templates/public_templates_bloc.dart';
 import 'package:hamro_footsall/features/public/presentation/pages/help_faq_page.dart';
+import 'package:hamro_footsall/features/transactions/domain/model/booking_transaction.dart';
+import 'package:hamro_footsall/features/transactions/presentation/pages/transaction_history_page.dart';
 import 'package:hamro_footsall/features/profile/data/repositories/profile_repository_impl.dart';
 import 'package:hamro_footsall/features/profile/data/model/profile_model.dart';
 import 'package:hamro_footsall/features/profile/domain/usecase/profile_usecase.dart';
@@ -202,6 +206,22 @@ class AppRouters {
         ),
 
         GoRoute(
+          name: AppRouterParams.notifications.name,
+          path: AppRouterParams.notifications.path,
+          builder: (context, state) => const NotificationsPage(),
+        ),
+
+        GoRoute(
+          name: AppRouterParams.transactions.name,
+          path: AppRouterParams.transactions.path,
+          builder: (context, state) => TransactionHistoryPage(
+            perspective: state.queryParameters['futsal'] == 'true'
+                ? TransactionPerspective.futsal
+                : TransactionPerspective.player,
+          ),
+        ),
+
+        GoRoute(
           name: AppRouterParams.helpFaq.name,
           path: AppRouterParams.helpFaq.path,
           builder: (context, state) => const HelpFaqPage(),
@@ -253,7 +273,7 @@ class AppRouters {
           path: AppRouterParams.yourVenues.path,
           builder: (context, state) => Scaffold(
             backgroundColor: LightColor.background,
-            appBar: const CustomAppBar(title: 'Your Venues'),
+            appBar: const CustomAppBar(title: StringConstants.yourVenues),
             body: const SafeArea(top: false, child: VenueCourtsListPage()),
           ),
         ),

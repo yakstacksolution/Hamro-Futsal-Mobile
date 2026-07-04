@@ -228,7 +228,6 @@ final class OpponentMatchRepositoryImpl extends OpponentMatchRepository {
     return _mutateThenReload(() => _teamDataSource.removeMember(id, member));
   }
 
-
   Future<Either<AppException, List<TeamModel>>> _mutateThenReload(
     Future<dynamic> Function() action,
   ) async {

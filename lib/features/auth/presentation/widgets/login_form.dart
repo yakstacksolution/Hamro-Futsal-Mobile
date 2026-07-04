@@ -4,6 +4,7 @@ import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/widgets/custom_checkbox.dart';
 import 'package:hamro_footsall/core/widgets/custom_text_field.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class LoginForm extends StatelessWidget {
   const LoginForm({
@@ -50,8 +51,8 @@ class LoginForm extends StatelessWidget {
             controller: emailController,
             focusNode: emailFocus,
             keyboardType: TextInputType.emailAddress,
-            labelText: 'Email Address',
-            hintText: 'you@example.com',
+            labelText: StringConstants.emailAddress,
+            hintText: StringConstants.youExampleCom,
             icon: Icons.alternate_email_rounded,
             textInputAction: TextInputAction.next,
             validator: emailValidator,
@@ -65,8 +66,8 @@ class LoginForm extends StatelessWidget {
             controller: passwordController,
             focusNode: passwordFocus,
             obscureText: obscurePassword,
-            labelText: 'Password',
-            hintText: 'Enter your password',
+            labelText: StringConstants.password,
+            hintText: StringConstants.enterYourPassword,
             icon: Icons.lock_outline_rounded,
             textInputAction: TextInputAction.done,
             validator: passwordValidator,
@@ -88,7 +89,7 @@ class LoginForm extends StatelessWidget {
                 child: CustomCheckbox(
                   value: rememberMe,
                   onChanged: onRememberMeChanged,
-                  label: 'Remember me',
+                  label: StringConstants.rememberMe,
                   textStyle: FutsalTheme.getTextTheme(context).bodyTextSmall
                       ?.copyWith(
                         color: LightColor.secondaryTextColor,
@@ -100,7 +101,7 @@ class LoginForm extends StatelessWidget {
                 child: InkWell(
                   onTap: onForgotPasswordTap,
                   child: Text(
-                    'Forgot password?',
+                    StringConstants.forgotPasswordPrompt,
                     style: FutsalTheme.getTextTheme(
                       context,
                     ).bodyTextSmall?.copyWith(color: LightColor.secondaryColor),

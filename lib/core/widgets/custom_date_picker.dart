@@ -8,6 +8,7 @@ import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/widgets/custom_button.dart';
 import 'package:intl/intl.dart';
 import 'package:scroll_datetime_picker/scroll_datetime_picker.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 /// Variants supported by [showCustomDatePicker]. Each variant ships with
 /// sensible defaults for min/max/initial dates, title, and display format so
@@ -78,7 +79,7 @@ _DatePickerSpec _resolveSpec(CustomDatePickerType type) {
   switch (type) {
     case CustomDatePickerType.dateOfBirth:
       return _DatePickerSpec(
-        title: 'Date of birth',
+        title: StringConstants.dateOfBirth,
         initialDate: DateTime(today.year - 18, today.month, today.day),
         minDate: DateTime(1900, 1, 1),
         maxDate: today,
@@ -86,7 +87,7 @@ _DatePickerSpec _resolveSpec(CustomDatePickerType type) {
       );
     case CustomDatePickerType.pastDate:
       return _DatePickerSpec(
-        title: 'Select date',
+        title: StringConstants.selectDate,
         initialDate: today,
         minDate: DateTime(today.year - 100, today.month, today.day),
         maxDate: today,
@@ -94,7 +95,7 @@ _DatePickerSpec _resolveSpec(CustomDatePickerType type) {
       );
     case CustomDatePickerType.futureDate:
       return _DatePickerSpec(
-        title: 'Select date',
+        title: StringConstants.selectDate,
         initialDate: today,
         minDate: today,
         maxDate: DateTime(today.year + 50, today.month, today.day),
@@ -102,7 +103,7 @@ _DatePickerSpec _resolveSpec(CustomDatePickerType type) {
       );
     case CustomDatePickerType.anyDate:
       return _DatePickerSpec(
-        title: 'Select date',
+        title: StringConstants.selectDate,
         initialDate: today,
         minDate: DateTime(today.year - 100, today.month, today.day),
         maxDate: DateTime(today.year + 50, today.month, today.day),
@@ -185,7 +186,7 @@ Future<DateTime?> _showDateSheet(
                           });
                         },
                         child: Text(
-                          'Reset',
+                          StringConstants.reset,
                           style: textTheme.bodyTextMedium?.copyWith(
                             color: LightColor.secondaryColor,
                             fontWeight: FontWeight.w600,

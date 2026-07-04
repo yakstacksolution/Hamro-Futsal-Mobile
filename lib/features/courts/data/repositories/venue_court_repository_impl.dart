@@ -6,6 +6,7 @@ import 'package:hamro_footsall/features/courts/data/data_source/venue_court_data
 import 'package:hamro_footsall/features/courts/data/model/venue_court_model.dart';
 import 'package:hamro_footsall/features/courts/domain/repository/venue_court_repository.dart';
 import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_drafts.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 final class VenueCourtRepositoryImpl implements VenueCourtRepository {
   VenueCourtRepositoryImpl({VenueCourtRemoteDataSource? remoteDataSource})
@@ -25,7 +26,7 @@ final class VenueCourtRepositoryImpl implements VenueCourtRepository {
     } catch (_) {
       return left(
         DefaultException(
-          errorMessage: 'Could not parse venue courts from server.',
+          errorMessage: StringConstants.couldNotParseVenueCourtsFromServer,
           statusCode: 0,
         ),
       );
@@ -44,7 +45,7 @@ final class VenueCourtRepositoryImpl implements VenueCourtRepository {
     } catch (_) {
       return left(
         DefaultException(
-          errorMessage: 'Could not parse court details from server.',
+          errorMessage: StringConstants.couldNotParseCourtDetailsFromServer,
           statusCode: 0,
         ),
       );
@@ -81,6 +82,18 @@ final class VenueCourtRepositoryImpl implements VenueCourtRepository {
   ) async {
     final response = await _remoteDataSource.deleteCourtSlot(data);
     return _parseSlots(response, 'Could not delete the court slot.');
+  }
+
+  @override
+  Future<Either<AppException, Unit>> updateCourtStatus(
+    int courtId,
+    String status,
+  ) async {
+    final response = await _remoteDataSource.updateCourtStatus(courtId, status);
+    if (response.isError()) {
+      return left(ResponseHelper.error(response));
+    }
+    return right(unit);
   }
 
   @override

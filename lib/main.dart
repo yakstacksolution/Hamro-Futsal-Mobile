@@ -17,6 +17,7 @@ import 'package:hamro_footsall/core/routers/notification_redirection.dart';
 import 'package:hamro_footsall/core/routers/root_navigator_key.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -82,7 +83,7 @@ class _MyAppState extends State<MyApp> {
       },
     );
     return MaterialApp.router(
-      title: 'Hamro Futsal',
+      title: StringConstants.hamroFutsal,
       debugShowCheckedModeBanner: false,
       theme: FutsalTheme.setTheme(context),
       themeMode: ThemeMode.light,

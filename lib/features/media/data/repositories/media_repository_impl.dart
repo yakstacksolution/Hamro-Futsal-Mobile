@@ -4,6 +4,7 @@ import 'package:hamro_footsall/core/helper/response_helper.dart';
 import 'package:hamro_footsall/features/media/data/data_source/media_remote_data_source.dart';
 import 'package:hamro_footsall/features/media/data/model/media_model.dart';
 import 'package:hamro_footsall/features/media/domain/repository/media_repository.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 final class MediaRepositoryImpl extends MediaRepository {
   MediaRepositoryImpl({MediaRemoteDataSource? remoteDataSource})
@@ -31,7 +32,7 @@ final class MediaRepositoryImpl extends MediaRepository {
     } catch (_) {
       return left(
         DefaultException(
-          errorMessage: 'Could not parse media list from server.',
+          errorMessage: StringConstants.couldNotParseMediaListFromServer,
           statusCode: 0,
         ),
       );
@@ -66,7 +67,8 @@ final class MediaRepositoryImpl extends MediaRepository {
     } catch (_) {
       return left(
         DefaultException(
-          errorMessage: 'Could not parse created media items from server.',
+          errorMessage:
+              StringConstants.couldNotParseCreatedMediaItemsFromServer,
           statusCode: 0,
         ),
       );

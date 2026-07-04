@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/utils/custom_image_view.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class LogoPickerCard extends StatelessWidget {
   const LogoPickerCard({
@@ -76,7 +77,7 @@ class LogoPickerCard extends StatelessWidget {
                         ),
                         SizedBox(height: 8),
                         Text(
-                          'Tap to upload shop logo',
+                          StringConstants.tapToUploadShopLogo,
                           style: TextStyle(
                             color: LightColor.primaryTextColor,
                             fontWeight: FontWeight.w700,
@@ -84,7 +85,7 @@ class LogoPickerCard extends StatelessWidget {
                         ),
                         SizedBox(height: 4),
                         Text(
-                          'PNG, JPG, JPEG, WEBP',
+                          StringConstants.pngJpgJpegWebp,
                           style: TextStyle(
                             color: LightColor.secondaryTextColor,
                             fontSize: 12,
@@ -125,7 +126,7 @@ class LogoPickerCard extends StatelessWidget {
                 child: OutlinedButton.icon(
                   onPressed: onPick,
                   icon: const Icon(Icons.file_open_rounded, size: 18),
-                  label: const Text('Choose File'),
+                  label: const Text(StringConstants.chooseFile),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: LightColor.secondaryColor,
                     side: BorderSide(
@@ -143,7 +144,7 @@ class LogoPickerCard extends StatelessWidget {
                   child: OutlinedButton.icon(
                     onPressed: onRemove,
                     icon: const Icon(Icons.delete_outline_rounded, size: 18),
-                    label: const Text('Remove'),
+                    label: const Text(StringConstants.remove),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: LightColor.redColor,
                       side: BorderSide(

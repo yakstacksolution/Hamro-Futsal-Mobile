@@ -6,7 +6,8 @@ abstract class ChangePasswordRemoteDataSource {
   Future<Result> changePassword(Map<String, dynamic> data);
 }
 
-final class ChangePasswordDataSourceImpl extends ChangePasswordRemoteDataSource {
+final class ChangePasswordDataSourceImpl
+    extends ChangePasswordRemoteDataSource {
   @override
   Future<Result> changePassword(Map<String, dynamic> data) async =>
       await Client.instance().getAuthManager().updatePassword(data);

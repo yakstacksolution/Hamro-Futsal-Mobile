@@ -6,6 +6,7 @@ import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/widgets/custom_button.dart';
 import 'package:hamro_footsall/core/widgets/custom_text_field.dart';
 import 'package:hamro_footsall/features/opponent_match/data/model/opponent_match_model.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 /// Rounded, drag-handled shell shared by every bottom sheet in the feature.
 class OpponentSheetShell extends StatelessWidget {
@@ -92,7 +93,7 @@ class VenuePickerSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
     return OpponentSheetShell(
-      title: 'Choose venue',
+      title: StringConstants.chooseVenue,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -269,8 +270,7 @@ class _AddPlayerSheetState extends State<AddPlayerSheet> {
         ? initial.positionName.trim()
         : initial.position.label;
     for (final p in widget.positions) {
-      final bool sameId =
-          p.id.isNotEmpty && p.id == initial.positionId.trim();
+      final bool sameId = p.id.isNotEmpty && p.id == initial.positionId.trim();
       if (sameId || p.name.toLowerCase() == currentName.toLowerCase()) {
         _position = p;
         break;
@@ -405,5 +405,3 @@ class _SheetInput extends StatelessWidget {
     );
   }
 }
-
-

@@ -5,6 +5,7 @@ import 'package:hamro_footsall/features/coupons/data/data_source/coupon_remote_d
 import 'package:hamro_footsall/features/coupons/data/model/active_coupons_model.dart';
 import 'package:hamro_footsall/features/coupons/data/model/applied_coupon_model.dart';
 import 'package:hamro_footsall/features/coupons/domain/repository/coupon_repository.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 final class CouponRepositoryImpl extends CouponRepository {
   CouponRepositoryImpl({CouponRemoteDataSource? remoteDataSource})
@@ -24,7 +25,7 @@ final class CouponRepositoryImpl extends CouponRepository {
     } catch (_) {
       return left(
         DefaultException(
-          errorMessage: 'Could not parse coupons from server.',
+          errorMessage: StringConstants.couldNotParseCouponsFromServer,
           statusCode: 0,
         ),
       );
@@ -70,7 +71,7 @@ final class CouponRepositoryImpl extends CouponRepository {
     } catch (_) {
       return left(
         DefaultException(
-          errorMessage: 'Could not apply the coupon. Please try again.',
+          errorMessage: StringConstants.couldNotApplyTheCouponPleaseTryAgain,
           statusCode: 0,
         ),
       );

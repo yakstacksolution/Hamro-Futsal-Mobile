@@ -12,6 +12,7 @@ import 'package:hamro_footsall/features/public/presentation/bloc/public_court_op
 import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_cubit.dart';
 import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_models.dart';
 import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/vendor_form_components.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class CourtAmenitiesSection extends StatefulWidget {
   const CourtAmenitiesSection({
@@ -100,7 +101,7 @@ class _CourtAmenitiesSectionState extends State<CourtAmenitiesSection> {
                   )
                 else if (isFacilities)
                   _CourtOptionGroup(
-                    title: 'Facilities',
+                    title: StringConstants.facilities,
                     icon: Icons.meeting_room_rounded,
                     options: state.facilities,
                     selectedIds: widget.court.facilities,
@@ -110,7 +111,7 @@ class _CourtAmenitiesSectionState extends State<CourtAmenitiesSection> {
                   )
                 else
                   _CourtOptionGroup(
-                    title: 'Amenities',
+                    title: StringConstants.amenities,
                     icon: Icons.chair_alt_rounded,
                     options: state.amenities,
                     selectedIds: widget.court.amenities,

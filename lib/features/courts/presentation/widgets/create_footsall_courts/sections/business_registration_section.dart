@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/widgets/custom_text_field.dart';
 import 'package:hamro_footsall/features/courts/presentation/bloc/create_footsall_courts_bloc.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class BusinessRegistrationSection extends StatelessWidget {
   const BusinessRegistrationSection({
@@ -26,8 +27,8 @@ class BusinessRegistrationSection extends StatelessWidget {
                 ensureVisibleOnFocus: true,
                 textInputAction: TextInputAction.next,
                 onSubmitted: (_) => bloc.countryFocus.requestFocus(),
-                labelText: 'City *',
-                hintText: 'Kathmandu',
+                labelText: StringConstants.city,
+                hintText: StringConstants.kathmandu,
                 icon: Icons.location_city_rounded,
                 validator: (String? value) =>
                     bloc.requiredValidator(value, fieldName: 'City'),
@@ -41,8 +42,8 @@ class BusinessRegistrationSection extends StatelessWidget {
                 ensureVisibleOnFocus: true,
                 textInputAction: TextInputAction.next,
                 onSubmitted: (_) => bloc.establishedYearFocus.requestFocus(),
-                labelText: 'Country *',
-                hintText: 'Nepal',
+                labelText: StringConstants.country,
+                hintText: StringConstants.nepal,
                 icon: Icons.public_rounded,
                 validator: (String? value) =>
                     bloc.requiredValidator(value, fieldName: 'Country'),
@@ -53,8 +54,8 @@ class BusinessRegistrationSection extends StatelessWidget {
         const SizedBox(height: 14),
         CustomTextField(
           controller: bloc.exactLocationController,
-          labelText: 'Exact Location *',
-          hintText: 'Tap to pick on map',
+          labelText: StringConstants.exactLocationRequired,
+          hintText: StringConstants.tapToPickOnMap,
           icon: Icons.place_rounded,
           readOnly: true,
           onTap: onPickExactLocation,
@@ -73,7 +74,7 @@ class BusinessRegistrationSection extends StatelessWidget {
           keyboardType: TextInputType.number,
           textInputAction: TextInputAction.next,
           onSubmitted: (_) => bloc.basicPriceFocus.requestFocus(),
-          labelText: 'Established Year *',
+          labelText: StringConstants.establishedYearRequired,
           hintText: '2018',
           icon: Icons.event_available_rounded,
           validator: bloc.establishedYearValidator,
@@ -86,7 +87,7 @@ class BusinessRegistrationSection extends StatelessWidget {
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           textInputAction: TextInputAction.next,
           onSubmitted: (_) => bloc.registrationFocus.requestFocus(),
-          labelText: 'Basic Price *',
+          labelText: StringConstants.basicPriceRequired,
           hintText: '1500',
           icon: Icons.payments_rounded,
           validator: bloc.basicPriceValidator,
@@ -98,8 +99,8 @@ class BusinessRegistrationSection extends StatelessWidget {
           ensureVisibleOnFocus: true,
           isRequired: false,
           textInputAction: TextInputAction.done,
-          labelText: 'Registration Number (optional)',
-          hintText: 'REG-2026-00123',
+          labelText: StringConstants.registrationNumberOptional,
+          hintText: StringConstants.registrationNumberExample,
           icon: Icons.assignment_rounded,
         ),
         const SizedBox(height: 14),
@@ -108,8 +109,8 @@ class BusinessRegistrationSection extends StatelessWidget {
           initialValue: bloc.state.status,
           decoration: customTextFieldDecoration(
             context: context,
-            labelText: 'Status',
-            hintText: 'Select status',
+            labelText: StringConstants.status,
+            hintText: StringConstants.selectStatus,
             icon: Icons.toggle_on_rounded,
           ),
           items: CreateFootsallCourtsBloc.statuses

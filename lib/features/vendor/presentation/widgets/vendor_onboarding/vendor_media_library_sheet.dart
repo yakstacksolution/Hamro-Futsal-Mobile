@@ -10,6 +10,7 @@ import 'package:hamro_footsall/core/widgets/loading_widget.dart';
 import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_cubit.dart';
 import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_state.dart';
 import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_models.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 Future<List<UploadRef>?> showVendorMediaLibrarySheet({
   required BuildContext context,
@@ -267,10 +268,10 @@ class _VendorMediaLibrarySheetState extends State<VendorMediaLibrarySheet> {
     if (_lockedPaths.contains(item.storageKey)) return;
     final bool confirmed = await showConfirmDialog(
       context: context,
-      title: 'Remove from media library?',
+      title: StringConstants.removeFromMediaLibrary,
       message:
           'Do you want to remove "${item.name}" from your saved collection?',
-      confirmText: 'Remove',
+      confirmText: StringConstants.remove,
       icon: Icons.delete_outline_rounded,
     );
 
@@ -409,7 +410,7 @@ class _CompactActionRow extends StatelessWidget {
       children: <Widget>[
         Expanded(
           child: _SmallActionButton(
-            label: 'Gallery',
+            label: StringConstants.gallery,
             icon: Icons.image_outlined,
             isLoading: isAddingImages,
             onTap: onAddImages,
@@ -418,7 +419,7 @@ class _CompactActionRow extends StatelessWidget {
         const SizedBox(width: 8),
         Expanded(
           child: _SmallActionButton(
-            label: 'Camera',
+            label: StringConstants.camera,
             icon: Icons.camera_alt_outlined,
             isLoading: isCapturing,
             onTap: onAddFromCamera,
@@ -427,7 +428,7 @@ class _CompactActionRow extends StatelessWidget {
         const SizedBox(width: 8),
         Expanded(
           child: _SmallActionButton(
-            label: 'File',
+            label: StringConstants.file,
             icon: Icons.insert_drive_file_outlined,
             isLoading: false,
             onTap: onAddFiles,
@@ -455,7 +456,7 @@ class _FilterMenuButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PopupMenuButton<_LibraryFilter>(
-      tooltip: 'Filter library',
+      tooltip: StringConstants.filterLibrary,
       onSelected: onSelected,
       color: LightColor.whiteColor,
       elevation: 10,
@@ -628,7 +629,7 @@ class _CompactEmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             const Text(
-              'No media found',
+              StringConstants.noMediaFound,
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w800,
@@ -637,7 +638,7 @@ class _CompactEmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             const Text(
-              'Add images or files to your library.',
+              StringConstants.addImagesOrFilesToYourLibrary,
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 12,
@@ -650,7 +651,7 @@ class _CompactEmptyState extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 50),
               child: CustomButton(
                 minHeight: 40,
-                text: 'Add Media',
+                text: StringConstants.addMedia,
                 onPressed: onAddTap,
               ),
             ),
@@ -735,8 +736,8 @@ class _CompactMediaCard extends StatelessWidget {
                       right: 4,
                       child: isLocked
                           ? Tooltip(
-                              message:
-                                  'Locked while under review — this selection cannot be changed.',
+                              message: StringConstants
+                                  .lockedWhileUnderReviewThisSelectionCannotBeChanged,
                               child: Container(
                                 width: 20,
                                 height: 20,

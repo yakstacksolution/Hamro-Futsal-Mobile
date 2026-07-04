@@ -26,6 +26,7 @@ import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboar
 import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/vendor_bottom_action_bar.dart';
 import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/vendor_form_components.dart';
 import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/vendor_onboarding_step_content.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class VendorCourtManager extends StatelessWidget {
   const VendorCourtManager({
@@ -171,11 +172,11 @@ class VendorCourtManager extends StatelessWidget {
   ) async {
     final bool confirmed = await showDeleteDialog(
       context: context,
-      title: 'Delete Court?',
+      title: StringConstants.deleteCourtPrompt,
       message:
           'Are you sure you want to delete "$courtName"? This action cannot be undone.',
-      confirmText: 'Delete',
-      cancelText: 'Cancel',
+      confirmText: StringConstants.delete,
+      cancelText: StringConstants.cancel,
       icon: Icons.delete_outline_rounded,
       confirmColor: LightColor.redColor,
     );
@@ -240,13 +241,13 @@ class VendorCourtManager extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Text(
-                      'Courts',
+                      StringConstants.courts,
                       style: FutsalTheme.getTextTheme(context).bodyTextMedium
                           ?.copyWith(fontWeight: FontWeight.w800, fontSize: 16),
                     ),
                     SizedBox(height: AppDimens.sizeX2),
                     Text(
-                      'Manage courts in compact view',
+                      StringConstants.manageCourtsInCompactView,
                       style: FutsalTheme.getTextTheme(context).bodyTextSmall
                           ?.copyWith(
                             color: LightColor.secondaryTextColor,
@@ -355,7 +356,7 @@ class _AddCourtButton extends StatelessWidget {
               ),
               SizedBox(width: AppDimens.sizeX4),
               Text(
-                'New Court',
+                StringConstants.newCourt,
                 style: FutsalTheme.getTextTheme(context).bodySubTitle?.copyWith(
                   color: LightColor.whiteColor,
                   fontWeight: FontWeight.w700,
@@ -403,14 +404,14 @@ class _CourtEmptyStateCompact extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Text(
-                  'No courts yet',
+                  StringConstants.noCourtsYet,
                   style: FutsalTheme.getTextTheme(
                     context,
                   ).bodyTextMedium?.copyWith(fontWeight: FontWeight.w800),
                 ),
                 SizedBox(height: AppDimens.sizeX4),
                 Text(
-                  'Add your first court to continue setup.',
+                  StringConstants.addYourFirstCourtToContinueSetup,
                   style: FutsalTheme.getTextTheme(context).bodySubTitle
                       ?.copyWith(color: LightColor.secondaryTextColor),
                 ),
@@ -774,7 +775,7 @@ class CourtOnboardingPageState extends State<CourtOnboardingPage> {
                     ),
                   )
                 : court == null
-                ? const Center(child: Text('Court not found.'))
+                ? const Center(child: Text(StringConstants.courtNotFound))
                 : SingleChildScrollView(
                     keyboardDismissBehavior:
                         ScrollViewKeyboardDismissBehavior.onDrag,
@@ -786,7 +787,7 @@ class CourtOnboardingPageState extends State<CourtOnboardingPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
                         VendorOnboardingStepContent(
-                          title: 'Court Setup',
+                          title: StringConstants.courtSetup,
                           cubit: _cubit,
                           state: state,
                           court: court,
@@ -862,7 +863,7 @@ class _AddCourtSheetState extends State<_AddCourtSheet> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         Text(
-          'Add New Court',
+          StringConstants.addNewCourt,
           style: FutsalTheme.getTextTheme(context).bodyTextLarge?.copyWith(
             color: LightColor.primaryTextColor,
             fontWeight: FontWeight.w800,
@@ -881,8 +882,8 @@ class _AddCourtSheetState extends State<_AddCourtSheet> {
         CustomTextField(
           controller: _nameController,
           focusNode: _focusNode,
-          labelText: 'Court Name',
-          hintText: 'e.g. Court A, Main Field',
+          labelText: StringConstants.courtNameTitleCase,
+          hintText: StringConstants.eGCourtAMainField,
           icon: Icons.sports_soccer_rounded,
           textInputAction: TextInputAction.done,
         ),
@@ -891,7 +892,7 @@ class _AddCourtSheetState extends State<_AddCourtSheet> {
           children: <Widget>[
             Expanded(
               child: CustomButton(
-                text: 'Cancel',
+                text: StringConstants.cancel,
                 isOutlined: true,
                 backgroundColor: Colors.white,
                 foregroundColor: LightColor.secondaryColor,
@@ -903,7 +904,7 @@ class _AddCourtSheetState extends State<_AddCourtSheet> {
             const SizedBox(width: AppDimens.sizeX14),
             Expanded(
               child: CustomButton(
-                text: 'Add Court',
+                text: StringConstants.addCourt,
                 minHeight: AppDimens.sizeX46,
                 onPressed: _submit,
               ),

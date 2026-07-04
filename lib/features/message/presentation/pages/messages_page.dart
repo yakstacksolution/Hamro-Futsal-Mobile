@@ -20,6 +20,7 @@ import 'package:hamro_footsall/features/message/presentation/widgets/message_emp
 import 'package:hamro_footsall/features/message/presentation/widgets/message_filter_chip.dart';
 import 'package:hamro_footsall/features/message/presentation/widgets/message_search_field.dart';
 import 'package:hamro_footsall/features/message/presentation/widgets/group_conversation_sheet.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class MessagesPage extends StatelessWidget {
   const MessagesPage({super.key});
@@ -416,7 +417,7 @@ class _Header extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Messages',
+                  StringConstants.messages,
                   style: textTheme.bodyTextLarge?.copyWith(
                     fontSize: AppDimens.fontHeadingSmall,
                     fontWeight: FontWeight.w700,
@@ -492,7 +493,7 @@ class _LoadError extends StatelessWidget {
             ),
             const SizedBox(height: AppDimens.paddingX18),
             CustomButton(
-              text: 'Retry',
+              text: StringConstants.retry,
               icon: Icons.refresh_rounded,
               onPressed: onRetry,
             ),

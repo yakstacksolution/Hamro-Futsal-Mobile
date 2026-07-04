@@ -101,14 +101,7 @@ class _CourtDescriptionSectionState extends State<CourtDescriptionSection> {
                   width: AppDimens.sizeX42,
                   height: AppDimens.sizeX42,
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        LightColor.blueLightColor,
-                        LightColor.secondarySoft,
-                      ],
-                    ),
+                    color: LightColor.secondaryColor.withValues(alpha: 0.10),
                     borderRadius: BorderRadius.circular(AppDimens.radiusX8),
                   ),
                   child: Icon(

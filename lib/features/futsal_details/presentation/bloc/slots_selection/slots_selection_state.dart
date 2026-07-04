@@ -21,6 +21,7 @@ final class SlotsSelectionState extends Equatable {
     this.recurringCheckStatus = RecurringCheckStatus.idle,
     this.recurringAvailability,
     this.recurringAvailabilityError,
+    this.liveViewers = 0,
   });
 
   final SlotsSelectionStatus status;
@@ -38,6 +39,13 @@ final class SlotsSelectionState extends Equatable {
   final RecurringCheckStatus recurringCheckStatus;
   final RecurringAvailabilityModel? recurringAvailability;
   final String? recurringAvailabilityError;
+
+  /// Users currently on this venue + date's booking presence channel,
+  /// including this client. 0 until the presence subscription succeeds.
+  final int liveViewers;
+
+  /// How many *other* people are looking at this venue + date right now.
+  int get otherViewers => liveViewers > 1 ? liveViewers - 1 : 0;
 
   int get safeSelectedDateIndex {
     if (dates.isEmpty) return 0;
@@ -186,6 +194,7 @@ final class SlotsSelectionState extends Equatable {
     String? recurringAvailabilityError,
     bool clearRecurring = false,
     bool clearRecurringError = false,
+    int? liveViewers,
   }) {
     return SlotsSelectionState(
       status: status ?? this.status,
@@ -209,6 +218,7 @@ final class SlotsSelectionState extends Equatable {
       recurringAvailabilityError: clearRecurring || clearRecurringError
           ? null
           : recurringAvailabilityError ?? this.recurringAvailabilityError,
+      liveViewers: liveViewers ?? this.liveViewers,
     );
   }
 
@@ -229,5 +239,6 @@ final class SlotsSelectionState extends Equatable {
     recurringCheckStatus,
     recurringAvailability,
     recurringAvailabilityError,
+    liveViewers,
   ];
 }

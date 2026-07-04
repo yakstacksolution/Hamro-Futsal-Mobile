@@ -98,25 +98,24 @@ class BookingRecordModel {
   final BookingStatus status;
   final String customer;
 
-  factory BookingRecordModel.fromJson(Map<String, dynamic> json) =>
-      BookingRecordModel(
-        id: json['id']?.toString() ?? '',
-        futsalId: json['futsal_id']?.toString() ?? '',
-        courtId: json['court_id']?.toString() ?? '',
-        start:
-            DateTime.tryParse(json['start']?.toString() ?? '') ??
-            DateTime.now(),
-        hours: json['hours'] is int
-            ? json['hours'] as int
-            : int.tryParse(json['hours']?.toString() ?? '') ?? 1,
-        amount: json['amount'] is int
-            ? json['amount'] as int
-            : int.tryParse(json['amount']?.toString() ?? '') ?? 0,
-        status:
-            BookingStatus.values.asNameMap()[json['status']] ??
-            BookingStatus.pending,
-        customer: json['customer']?.toString() ?? '',
-      );
+  factory BookingRecordModel.fromJson(
+    Map<String, dynamic> json,
+  ) => BookingRecordModel(
+    id: json['id']?.toString() ?? '',
+    futsalId: json['futsal_id']?.toString() ?? '',
+    courtId: json['court_id']?.toString() ?? '',
+    start: DateTime.tryParse(json['start']?.toString() ?? '') ?? DateTime.now(),
+    hours: json['hours'] is int
+        ? json['hours'] as int
+        : int.tryParse(json['hours']?.toString() ?? '') ?? 1,
+    amount: json['amount'] is int
+        ? json['amount'] as int
+        : int.tryParse(json['amount']?.toString() ?? '') ?? 0,
+    status:
+        BookingStatus.values.asNameMap()[json['status']] ??
+        BookingStatus.pending,
+    customer: json['customer']?.toString() ?? '',
+  );
 
   Map<String, dynamic> toJson() => {
     'id': id,

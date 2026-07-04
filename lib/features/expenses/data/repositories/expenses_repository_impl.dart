@@ -6,6 +6,7 @@ import 'package:hamro_footsall/features/expenses/data/model/expense_model.dart';
 import 'package:hamro_footsall/features/expenses/data/model/expense_report_model.dart';
 import 'package:hamro_footsall/features/expenses/domain/entities/expense_entities.dart';
 import 'package:hamro_footsall/features/expenses/domain/repository/expenses_repository.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 final class ExpensesRepositoryImpl extends ExpensesRepository {
   ExpensesRepositoryImpl({ExpensesRemoteDataSource? remoteDataSource})
@@ -26,7 +27,7 @@ final class ExpensesRepositoryImpl extends ExpensesRepository {
     } catch (_) {
       return left(
         DefaultException(
-          errorMessage: 'Could not parse venues and courts from server.',
+          errorMessage: StringConstants.couldNotParseVenuesAndCourtsFromServer,
           statusCode: 0,
         ),
       );
@@ -94,7 +95,8 @@ final class ExpensesRepositoryImpl extends ExpensesRepository {
     } catch (_) {
       return left(
         DefaultException(
-          errorMessage: 'Could not parse expense categories from server.',
+          errorMessage:
+              StringConstants.couldNotParseExpenseCategoriesFromServer,
           statusCode: 0,
         ),
       );
@@ -163,7 +165,7 @@ final class ExpensesRepositoryImpl extends ExpensesRepository {
     } catch (_) {
       return left(
         DefaultException(
-          errorMessage: 'Could not parse expenses from server.',
+          errorMessage: StringConstants.couldNotParseExpensesFromServer,
           statusCode: 0,
         ),
       );
@@ -190,7 +192,7 @@ final class ExpensesRepositoryImpl extends ExpensesRepository {
     } catch (_) {
       return left(
         DefaultException(
-          errorMessage: 'Could not save the expense.',
+          errorMessage: StringConstants.couldNotSaveTheExpense,
           statusCode: 0,
         ),
       );
@@ -207,7 +209,10 @@ final class ExpensesRepositoryImpl extends ExpensesRepository {
     final i = _expenses.indexWhere((e) => e.id == id);
     if (i < 0) {
       return left(
-        DefaultException(errorMessage: 'Expense not found.', statusCode: 0),
+        DefaultException(
+          errorMessage: StringConstants.expenseNotFound,
+          statusCode: 0,
+        ),
       );
     }
     final updated = data.toModel(id);
@@ -236,7 +241,10 @@ final class ExpensesRepositoryImpl extends ExpensesRepository {
     _expenses.removeWhere((e) => e.id == id);
     if (_expenses.length == lengthBefore) {
       return left(
-        DefaultException(errorMessage: 'Expense not found.', statusCode: 0),
+        DefaultException(
+          errorMessage: StringConstants.expenseNotFound,
+          statusCode: 0,
+        ),
       );
     }
     return right(true);

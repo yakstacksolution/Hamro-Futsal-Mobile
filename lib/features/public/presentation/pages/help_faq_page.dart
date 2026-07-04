@@ -13,6 +13,7 @@ import 'package:hamro_footsall/features/public/data/repositories/public_reposito
 import 'package:hamro_footsall/features/public/domain/usecase/get_faqs_use_case.dart';
 import 'package:hamro_footsall/features/public/domain/usecase/get_helps_use_case.dart';
 import 'package:hamro_footsall/features/public/presentation/bloc/support/support_bloc.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 /// Help & FAQ — two tabs backed by the public `GET /faqs` and `GET /helps`
 /// endpoints, opened from the profile's Support section.
@@ -25,9 +26,11 @@ class HelpFaqPage extends StatelessWidget {
       create: (_) {
         final PublicRepositoryImpl repository = PublicRepositoryImpl();
         return SupportBloc(
-          GetFaqsUseCase(repository),
-          GetHelpsUseCase(repository),
-        )..add(const FetchFaqsEvent())..add(const FetchHelpsEvent());
+            GetFaqsUseCase(repository),
+            GetHelpsUseCase(repository),
+          )
+          ..add(const FetchFaqsEvent())
+          ..add(const FetchHelpsEvent());
       },
       child: const _HelpFaqView(),
     );
@@ -44,7 +47,7 @@ class _HelpFaqView extends StatelessWidget {
       length: 2,
       child: Scaffold(
         backgroundColor: LightColor.background,
-        appBar: const CustomAppBar(title: 'Help & FAQ'),
+        appBar: const CustomAppBar(title: StringConstants.helpAndFaq),
         body: SafeArea(
           top: false,
           child: Column(
@@ -62,8 +65,8 @@ class _HelpFaqView extends StatelessWidget {
                   fontWeight: FontWeight.w500,
                 ),
                 tabs: const <Widget>[
-                  Tab(text: 'FAQs', height: 40),
-                  Tab(text: 'Help', height: 40),
+                  Tab(text: StringConstants.faqs, height: 40),
+                  Tab(text: StringConstants.help, height: 40),
                 ],
               ),
               Expanded(
@@ -145,7 +148,7 @@ class _SupportTab extends StatelessWidget {
       return _SupportMessage(
         icon: Icons.cloud_off_rounded,
         title: errorMessage,
-        message: 'Check your connection and try again.',
+        message: StringConstants.checkYourConnectionAndTryAgain,
         actionLabel: 'Retry',
         onAction: onRetry,
       );
@@ -175,8 +178,7 @@ class _FaqList extends StatelessWidget {
         symmetricVertical: AppDimens.paddingX16,
       ),
       itemCount: faqs.length,
-      separatorBuilder: (_, __) =>
-          const SizedBox(height: AppDimens.paddingX10),
+      separatorBuilder: (_, __) => const SizedBox(height: AppDimens.paddingX10),
       itemBuilder: (BuildContext context, int index) =>
           _FaqTile(faq: faqs[index]),
     );
@@ -281,8 +283,7 @@ class _HelpList extends StatelessWidget {
         symmetricVertical: AppDimens.paddingX16,
       ),
       itemCount: helps.length,
-      separatorBuilder: (_, __) =>
-          const SizedBox(height: AppDimens.paddingX10),
+      separatorBuilder: (_, __) => const SizedBox(height: AppDimens.paddingX10),
       itemBuilder: (BuildContext context, int index) =>
           _HelpTile(help: helps[index]),
     );

@@ -6,6 +6,7 @@ import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/vendor_form_components.dart';
 import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_cubit.dart';
 import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_state.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class VendorOnboardingHeader extends StatelessWidget {
   const VendorOnboardingHeader({
@@ -156,7 +157,7 @@ class VendorOnboardingHeader extends StatelessWidget {
                       ),
                       _gapH4,
                       Text(
-                        'Done',
+                        StringConstants.done,
                         style: textTheme.bodyMiniSubTitle?.copyWith(
                           color: white82,
                           fontWeight: FontWeight.w600,

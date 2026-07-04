@@ -7,6 +7,7 @@ import 'package:hamro_footsall/features/opponent_match/data/model/opponent_match
 import 'package:hamro_footsall/features/opponent_match/presentation/models/opponent_cost_split.dart';
 import 'package:hamro_footsall/features/opponent_match/presentation/utils/opponent_ui_utils.dart';
 import 'package:hamro_footsall/features/opponent_match/presentation/widgets/opponent_common.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 /// Court-fee split configurator: even / custom-%, with by-team or by-result
 /// basis and a live breakdown of who pays what.
@@ -105,7 +106,9 @@ class OpponentCostSplitCard extends StatelessWidget {
               rightLabel: cost.isResultBased ? 'Winner' : 'Opponent',
               min: cost.isResultBased ? 50 : 10,
               max: 90,
-              onChanged: cost.isResultBased ? onLoserPctChange : onPercentChange,
+              onChanged: cost.isResultBased
+                  ? onLoserPctChange
+                  : onPercentChange,
             ),
           ],
           const SizedBox(height: AppDimens.paddingX12),
@@ -118,32 +121,32 @@ class OpponentCostSplitCard extends StatelessWidget {
           if (cost.isResultBased) ...[
             const _CostHintRow(
               icon: Icons.emoji_events_outlined,
-              text:
-                  'Loser covers the larger share. Settle the amount after the match result.',
+              text: StringConstants
+                  .loserCoversTheLargerShareSettleTheAmountAfterThe2a150fda,
             ),
             const SizedBox(height: AppDimens.paddingX12),
             _CostLine(
-              label: 'Loser pays',
+              label: StringConstants.loserPays,
               value: OpponentFmt.npr(cost.loserShare),
               pct: cost.loserPercent,
               emphasised: true,
             ),
             const SizedBox(height: AppDimens.paddingX8),
             _CostLine(
-              label: 'Winner pays',
+              label: StringConstants.winnerPays,
               value: OpponentFmt.npr(cost.winnerShare),
               pct: 100 - cost.loserPercent,
             ),
           ] else ...[
             _CostLine(
-              label: 'Your team',
+              label: StringConstants.yourTeam,
               value: OpponentFmt.npr(cost.yourShare),
               pct: cost.myPct,
               emphasised: true,
             ),
             const SizedBox(height: AppDimens.paddingX8),
             _CostLine(
-              label: 'Opponent team',
+              label: StringConstants.opponentTeam,
               value: OpponentFmt.npr(cost.opponentShare),
               pct: 100 - (cost.myPct ?? 50),
             ),
@@ -360,7 +363,7 @@ class _PercentSlider extends StatelessWidget {
             ),
             const Spacer(),
             Text(
-              '10% steps',
+              StringConstants.text10Steps,
               style: textTheme.bodyTextSmall?.copyWith(
                 color: LightColor.hintTextColor,
                 fontSize: AppDimens.fontBodySubTitle,

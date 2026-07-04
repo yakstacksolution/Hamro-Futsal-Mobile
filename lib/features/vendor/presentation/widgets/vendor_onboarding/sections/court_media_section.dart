@@ -7,6 +7,7 @@ import 'package:hamro_footsall/features/media/presentation/widgets/media_library
 import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_cubit.dart';
 import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_models.dart';
 import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/vendor_form_components.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class CourtMediaSection extends StatelessWidget {
   const CourtMediaSection({
@@ -50,15 +51,15 @@ class CourtMediaSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           const VendorOnboardingSectionHeader(
-            title: 'Upload Photos and Memories',
-            subtitle:
-                'Use separate court media to show condition, layout, and events without mixing it into the futsal-level gallery.',
+            title: StringConstants.uploadPhotosAndMemories,
+            subtitle: StringConstants
+                .useSeparateCourtMediaToShowConditionLayoutAndEvec64b5,
             icon: Icons.collections_rounded,
           ),
           const SizedBox(height: AppDimens.sizeX12),
           VendorUploadSection(
-            title: 'Court photos',
-            subtitle: 'Operational photos for this specific court.',
+            title: StringConstants.courtPhotos,
+            subtitle: StringConstants.operationalPhotosForThisSpecificCourt,
             onPick: () => unawaited(_openPhotoLibrary(context)),
             actionLabel: 'Gallery',
             actionIcon: Icons.photo_library_rounded,
@@ -67,8 +68,8 @@ class CourtMediaSection extends StatelessWidget {
           ),
           const SizedBox(height: AppDimens.sizeX16),
           VendorUploadSection(
-            title: 'Memories',
-            subtitle: 'Tournaments, events, or promotional moments.',
+            title: StringConstants.memories,
+            subtitle: StringConstants.tournamentsEventsOrPromotionalMoments,
             onPick: () => unawaited(_openMemoryLibrary(context)),
             actionLabel: 'Gallery',
             actionIcon: Icons.collections_bookmark_rounded,

@@ -27,5 +27,9 @@ final class VenueAmenitiesFacilitiesState extends Equatable {
   }
 
   @override
-  List<Object?> get props => <Object?>[status, amenitiesFacilities, errorMessage];
+  List<Object?> get props => <Object?>[
+    status,
+    amenitiesFacilities,
+    errorMessage,
+  ];
 }

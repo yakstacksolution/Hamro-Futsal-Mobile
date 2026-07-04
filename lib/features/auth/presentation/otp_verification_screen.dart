@@ -11,6 +11,7 @@ import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/features/auth/presentation/authentication_bloc/authentication_bloc.dart';
 import 'package:hamro_footsall/features/auth/presentation/widgets/auth_screen_frame.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class OtpVerificationScreen extends StatefulWidget {
   const OtpVerificationScreen({super.key, this.email});
@@ -179,7 +180,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
               builder: (BuildContext context, bool canVerify, _) {
                 return AuthScreenFrame(
                   isLoading: state.otpVerificationStatus == AuthStatus.loading,
-                  title: 'OTP Verification',
+                  title: StringConstants.otpVerification,
                   subtitle:
                       'Enter the $_otpLength-digit code sent to $_maskedEmail',
                   headerIcon: Icons.mark_email_read_rounded,
@@ -208,7 +209,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                     ),
                     SizedBox(height: AppDimens.sizeX14),
                     Text(
-                      'Check your inbox and spam folder.',
+                      StringConstants.checkYourInboxAndSpamFolder,
                       textAlign: TextAlign.center,
                       style: FutsalTheme.getTextTheme(context).bodyTextSmall
                           ?.copyWith(

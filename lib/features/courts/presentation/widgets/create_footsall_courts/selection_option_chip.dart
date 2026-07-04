@@ -22,7 +22,9 @@ class SelectionOptionChip extends StatelessWidget {
       selectedColor: LightColor.secondaryColor.withValues(alpha: 0.14),
       checkmarkColor: LightColor.secondaryColor,
       labelStyle: TextStyle(
-        color: isSelected ? LightColor.secondaryColor : LightColor.primaryTextColor,
+        color: isSelected
+            ? LightColor.secondaryColor
+            : LightColor.primaryTextColor,
         fontWeight: FontWeight.w700,
       ),
       side: BorderSide(

@@ -8,6 +8,7 @@ import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/widgets/custom_app_bar.dart';
 import 'package:hamro_footsall/core/widgets/custom_switch_widget.dart';
 import 'package:hamro_footsall/features/profile/presentation/controller/settings_controller.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -40,7 +41,7 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: LightColor.background,
-      appBar: const CustomAppBar(title: 'Settings'),
+      appBar: const CustomAppBar(title: StringConstants.settings),
       body: SafeArea(
         top: false,
         // Only the preference list listens to the controller, so toggling a
@@ -69,70 +70,70 @@ class _SettingsPageState extends State<SettingsPage> {
   /// change here — no widget plumbing required.
   List<_Section> get _sections => <_Section>[
     _Section(
-      label: 'Account',
+      label: StringConstants.account,
       items: <_SettingsItem>[
         _SettingsItem.nav(
           icon: Icons.lock_outline_rounded,
-          title: 'Change Password',
-          subtitle: 'Keep your account secure',
+          title: StringConstants.changePassword,
+          subtitle: StringConstants.keepYourAccountSecure,
           onTap: () => context.pushNamed(AppRouterParams.changePassword.name),
         ),
         _SettingsItem.toggle(
           icon: Icons.fingerprint_rounded,
-          title: 'Biometric Login',
-          subtitle: 'Use Face ID or fingerprint to sign in',
+          title: StringConstants.biometricLogin,
+          subtitle: StringConstants.useFaceIdOrFingerprintToSignIn,
           value: _controller.biometricLogin,
           onChanged: _controller.setBiometricLogin,
         ),
       ],
     ),
     _Section(
-      label: 'Notifications',
+      label: StringConstants.notifications,
       items: <_SettingsItem>[
         _SettingsItem.toggle(
           icon: Icons.notifications_active_outlined,
-          title: 'Push Notifications',
-          subtitle: 'Receive updates on this device',
+          title: StringConstants.pushNotifications,
+          subtitle: StringConstants.receiveUpdatesOnThisDevice,
           value: _controller.pushNotifications,
           onChanged: _controller.setPushNotifications,
         ),
         _SettingsItem.toggle(
           icon: Icons.event_available_rounded,
-          title: 'Booking Alerts',
-          subtitle: 'Reminders before your matches start',
+          title: StringConstants.bookingAlerts,
+          subtitle: StringConstants.remindersBeforeYourMatchesStart,
           value: _controller.bookingAlerts,
           onChanged: _controller.setBookingAlerts,
         ),
         _SettingsItem.toggle(
           icon: Icons.sports_kabaddi_rounded,
-          title: 'Opponent Requests',
-          subtitle: 'Notify me when someone wants to play',
+          title: StringConstants.opponentRequests,
+          subtitle: StringConstants.notifyMeWhenSomeoneWantsToPlay,
           value: _controller.opponentRequests,
           onChanged: _controller.setOpponentRequests,
         ),
         _SettingsItem.toggle(
           icon: Icons.mark_email_unread_outlined,
-          title: 'Promotional Emails',
-          subtitle: 'Occasional offers and updates by email',
+          title: StringConstants.promotionalEmails,
+          subtitle: StringConstants.occasionalOffersAndUpdatesByEmail,
           value: _controller.promotionalEmails,
           onChanged: _controller.setPromotionalEmails,
         ),
       ],
     ),
     _Section(
-      label: 'Preferences',
+      label: StringConstants.preferences,
       items: <_SettingsItem>[
         _SettingsItem.toggle(
           icon: Icons.dark_mode_outlined,
-          title: 'Dark Mode',
-          subtitle: 'Switch to a darker appearance',
+          title: StringConstants.darkMode,
+          subtitle: StringConstants.switchToADarkerAppearance,
           value: _controller.darkMode,
           onChanged: _controller.setDarkMode,
         ),
         _SettingsItem.nav(
           icon: Icons.language_rounded,
-          title: 'Language',
-          subtitle: 'App display language',
+          title: StringConstants.language,
+          subtitle: StringConstants.appDisplayLanguage,
           trailingValue: _controller.language,
           onTap: _showLanguagePicker,
         ),
@@ -142,7 +143,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Future<void> _showLanguagePicker() async {
     final String? selected = await _showOptionSheet(
-      title: 'Language',
+      title: StringConstants.language,
       options: SettingsController.languages,
       current: _controller.language,
     );

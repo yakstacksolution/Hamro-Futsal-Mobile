@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class VendorOnboardingShell extends StatelessWidget {
   const VendorOnboardingShell({
@@ -26,7 +27,7 @@ class VendorOnboardingShell extends StatelessWidget {
         surfaceTintColor: Colors.transparent,
         centerTitle: false,
         title: Text(
-          'Vendor Onboarding',
+          StringConstants.vendorOnboarding,
           style: FutsalTheme.getTextTheme(
             context,
           ).headingSmall?.copyWith(fontWeight: FontWeight.w500),
@@ -53,7 +54,7 @@ class VendorOnboardingShell extends StatelessWidget {
               PopupMenuItem<String>(
                 value: 'reset',
                 child: Text(
-                  'Reset onboarding',
+                  StringConstants.resetOnboarding,
                   style: FutsalTheme.getTextTheme(context).bodyTextMedium,
                 ),
               ),

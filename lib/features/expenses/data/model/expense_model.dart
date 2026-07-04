@@ -123,7 +123,11 @@ class CourtModel {
     venueId: json['venue_id']?.toString() ?? '',
   );
 
-  Map<String, dynamic> toJson() => {'id': id, 'name': name, 'venue_id': venueId};
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    'venue_id': venueId,
+  };
 }
 
 class ExpenseModel {

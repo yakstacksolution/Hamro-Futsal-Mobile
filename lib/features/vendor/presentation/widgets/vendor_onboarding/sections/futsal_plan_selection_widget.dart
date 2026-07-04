@@ -13,6 +13,7 @@ import 'package:hamro_footsall/features/public/presentation/bloc/public_packages
 import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_cubit.dart';
 import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_state.dart';
 import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_drafts.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class FutsalPlanSelectionWidget extends StatelessWidget {
   const FutsalPlanSelectionWidget({super.key});
@@ -135,32 +136,34 @@ class _FutsalPlanSelectionContentState
         return Wrap(
           spacing: spacing,
           runSpacing: spacing,
-          children: packageOptions.map((_PackageOption option) {
-            final bool isSelected = selectedPackageId != null
-                ? selectedPackageId == option.id
-                : selectedPercent != null
-                ? (selectedPercent - option.percentage).abs() < 0.0001
-                : false;
+          children: packageOptions
+              .map((_PackageOption option) {
+                final bool isSelected = selectedPackageId != null
+                    ? selectedPackageId == option.id
+                    : selectedPercent != null
+                    ? (selectedPercent - option.percentage).abs() < 0.0001
+                    : false;
 
-            return SizedBox(
-              width: cardWidth,
-              child: _CommissionPackageCard(
-                title: option.title,
-                percentage: option.percentage,
-                isSelected: isSelected,
-                icon: option.icon,
-                color: LightColor.secondaryColor,
-                isRecommended: option.isPopular,
-                descriptionHtml: option.descriptionHtml,
-                onTap: () => _vendorOnboardingCubit.updateFutsal(
-                  futsalDraft.copyWith(
-                    packageId: option.id,
-                    commissionPercent: option.percentage,
+                return SizedBox(
+                  width: cardWidth,
+                  child: _CommissionPackageCard(
+                    title: option.title,
+                    percentage: option.percentage,
+                    isSelected: isSelected,
+                    icon: option.icon,
+                    color: LightColor.secondaryColor,
+                    isRecommended: option.isPopular,
+                    descriptionHtml: option.descriptionHtml,
+                    onTap: () => _vendorOnboardingCubit.updateFutsal(
+                      futsalDraft.copyWith(
+                        packageId: option.id,
+                        commissionPercent: option.percentage,
+                      ),
+                    ),
                   ),
-                ),
-              ),
-            );
-          }).toList(growable: false),
+                );
+              })
+              .toList(growable: false),
         );
       },
     );
@@ -224,7 +227,7 @@ class _FutsalPlanSelectionContentState
     return const <_PackageOption>[
       _PackageOption(
         id: 1,
-        title: 'Basic',
+        title: StringConstants.basic,
         percentage: 5,
         isPopular: false,
         icon: Icons.rocket_launch_rounded,
@@ -233,7 +236,7 @@ class _FutsalPlanSelectionContentState
       ),
       _PackageOption(
         id: 2,
-        title: 'Standard',
+        title: StringConstants.standard,
         percentage: 10,
         isPopular: true,
         icon: Icons.star_rounded,
@@ -466,7 +469,7 @@ class _CommissionPackageCard extends StatelessWidget {
                               ),
                         ),
                         TextSpan(
-                          text: ' / booking',
+                          text: StringConstants.bookingUnitSuffix,
                           style: FutsalTheme.getTextTheme(context).bodyTextSmall
                               ?.copyWith(
                                 fontWeight: FontWeight.w500,
@@ -505,7 +508,7 @@ class _CommissionPackageCard extends StatelessWidget {
                     ),
                   ),
                   child: Text(
-                    'Popular',
+                    StringConstants.popular,
                     style: FutsalTheme.getTextTheme(context).bodyMiniSubTitle
                         ?.copyWith(
                           fontWeight: FontWeight.w600,

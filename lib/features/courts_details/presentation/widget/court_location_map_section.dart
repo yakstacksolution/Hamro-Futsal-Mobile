@@ -8,6 +8,7 @@ import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class CourtLocationMapSection extends StatelessWidget {
   const CourtLocationMapSection({
@@ -107,7 +108,7 @@ class CourtLocationMapSection extends StatelessWidget {
                   const SizedBox(width: AppDimens.sizeX10),
                   Expanded(
                     child: Text(
-                      'Location',
+                      StringConstants.location,
                       style: textTheme.bodyTextMedium?.copyWith(
                         fontWeight: FontWeight.w800,
                         color: LightColor.primaryTextColor,
@@ -197,7 +198,7 @@ class CourtLocationMapSection extends StatelessWidget {
                           ),
                         ),
                         child: Text(
-                          '© OpenStreetMap',
+                          StringConstants.openstreetmap,
                           style: textTheme.bodyMiniSubTitle?.copyWith(
                             color: LightColor.secondaryTextColor,
                           ),
@@ -233,7 +234,7 @@ class CourtLocationMapSection extends StatelessWidget {
                                 ),
                                 const SizedBox(width: AppDimens.sizeX6),
                                 Text(
-                                  'Open in Maps',
+                                  StringConstants.openInMaps,
                                   style: textTheme.bodySubTitle?.copyWith(
                                     color: LightColor.secondaryColor,
                                     fontWeight: FontWeight.w700,

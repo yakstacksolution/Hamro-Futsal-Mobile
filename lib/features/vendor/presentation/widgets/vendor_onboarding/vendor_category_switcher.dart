@@ -4,6 +4,7 @@ import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_models.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class VendorCategorySwitcher extends StatefulWidget {
   const VendorCategorySwitcher({
@@ -92,8 +93,14 @@ class _VendorCategorySwitcherState extends State<VendorCategorySwitcher>
         labelStyle: labelStyle,
         unselectedLabelStyle: labelStyle,
         tabs: const <Widget>[
-          _CategoryTab(icon: Icons.storefront_rounded, title: 'Futsal'),
-          _CategoryTab(icon: Icons.stadium_rounded, title: 'Court'),
+          _CategoryTab(
+            icon: Icons.storefront_rounded,
+            title: StringConstants.futsal,
+          ),
+          _CategoryTab(
+            icon: Icons.stadium_rounded,
+            title: StringConstants.court,
+          ),
         ],
       ),
     );

@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class OverallPerformanceWidget extends StatelessWidget {
   const OverallPerformanceWidget({super.key});
@@ -10,7 +11,7 @@ class OverallPerformanceWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final List<OverviewMetric> kMetrics = [
       OverviewMetric(
-        title: 'Total Earning',
+        title: StringConstants.totalEarning,
         value: 'NPR 52,400',
         caption: 'This month revenue',
         icon: Icons.account_balance_wallet_rounded,
@@ -23,7 +24,7 @@ class OverallPerformanceWidget extends StatelessWidget {
         trendUp: true,
       ),
       OverviewMetric(
-        title: 'Total Booking',
+        title: StringConstants.totalBooking,
         value: '186',
         caption: 'Booked slots this month',
         icon: Icons.calendar_month_rounded,
@@ -36,7 +37,7 @@ class OverallPerformanceWidget extends StatelessWidget {
         trendUp: true,
       ),
       OverviewMetric(
-        title: 'Occupancy',
+        title: StringConstants.occupancy,
         value: '84%',
         caption: 'Court usage today',
         icon: Icons.stadium_rounded,
@@ -49,7 +50,7 @@ class OverallPerformanceWidget extends StatelessWidget {
         trendUp: true,
       ),
       OverviewMetric(
-        title: 'Cancelled',
+        title: StringConstants.cancelled,
         value: '12',
         caption: 'Cancelled reservations',
         icon: Icons.cancel_rounded,

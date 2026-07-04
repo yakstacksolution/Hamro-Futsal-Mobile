@@ -31,6 +31,7 @@ import 'package:hamro_footsall/features/futsal_details/presentation/bloc/venue_a
 import 'package:hamro_footsall/features/futsal_details/presentation/bloc/venue_description/venue_description_bloc.dart';
 import 'package:hamro_footsall/features/futsal_details/presentation/widgets/loading/hosted_by_section_loading.dart';
 import 'package:hamro_footsall/features/public/data/model/public_venue_model.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class FutsalDetailsPageView extends StatefulWidget {
   final CourtDetailModel? court;
@@ -327,8 +328,8 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
         }
         return CourtDescriptionSection(
           description: state.venueDescription.policy,
-          title: 'Cancellation Policy',
-          subtitle: 'Booking and cancellation terms',
+          title: StringConstants.refundCancellationPolicy,
+          subtitle: StringConstants.bookingAndCancellationTerms,
           icon: Icons.policy_outlined,
         );
       },
@@ -351,8 +352,8 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
         }
         return CourtDescriptionSection(
           description: state.venueDescription.rules,
-          title: 'Futsal Rules',
-          subtitle: 'Rules to follow at this venue',
+          title: StringConstants.futsalRules,
+          subtitle: StringConstants.rulesToFollowAtThisVenue,
           icon: Icons.gavel_rounded,
         );
       },
@@ -406,7 +407,7 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
                             bottom: AppDimens.paddingX2,
                           ),
                           child: Text(
-                            '/ hour',
+                            StringConstants.perHourSuffix,
                             style: FutsalTheme.getTextTheme(context)
                                 .bodyTextSmall
                                 ?.copyWith(
@@ -422,7 +423,7 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
                 SizedBox(width: AppDimens.sizeX10),
                 Expanded(
                   child: CustomButton(
-                    text: 'Book Now',
+                    text: StringConstants.bookNow,
                     onPressed: _openSlotsSelection,
                     backgroundColor: LightColor.secondaryColor,
                     minHeight: AppDimens.sizeX46,

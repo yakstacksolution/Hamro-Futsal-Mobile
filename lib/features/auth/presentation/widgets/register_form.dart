@@ -6,6 +6,7 @@ import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/widgets/custom_checkbox.dart';
 import 'package:hamro_footsall/core/widgets/custom_dropdown_field.dart';
 import 'package:hamro_footsall/core/widgets/custom_text_field.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class RegisterForm extends StatelessWidget {
   const RegisterForm({
@@ -74,8 +75,8 @@ class RegisterForm extends StatelessWidget {
             controller: nameController,
             focusNode: nameFocus,
             textCapitalization: TextCapitalization.words,
-            labelText: 'Full Name',
-            hintText: 'Your name',
+            labelText: StringConstants.fullName,
+            hintText: StringConstants.yourName,
             icon: Icons.person_outline_rounded,
             textInputAction: TextInputAction.next,
             validator: nameValidator,
@@ -86,9 +87,9 @@ class RegisterForm extends StatelessWidget {
           const SizedBox(height: AppDimens.sizeX18),
           CustomDropdownField<String>(
             initialValue: selectedAccountType,
-            labelText: 'Account Type',
+            labelText: StringConstants.accountType,
             icon: Icons.badge_outlined,
-            hintText: 'Select Player or Vendor',
+            hintText: StringConstants.selectPlayerOrVendor,
             items: accountTypes.map((String type) {
               return DropdownMenuItem<String>(
                 value: type,
@@ -119,8 +120,8 @@ class RegisterForm extends StatelessWidget {
             controller: emailController,
             focusNode: emailFocus,
             keyboardType: TextInputType.emailAddress,
-            labelText: 'Email Address',
-            hintText: 'name@footsall.com',
+            labelText: StringConstants.emailAddress,
+            hintText: StringConstants.nameFootsallCom,
             icon: Icons.alternate_email_rounded,
             textInputAction: TextInputAction.next,
             validator: emailValidator,
@@ -133,8 +134,8 @@ class RegisterForm extends StatelessWidget {
             controller: passwordController,
             focusNode: passwordFocus,
             obscureText: obscurePassword,
-            labelText: 'Password',
-            hintText: 'Use 8+ characters',
+            labelText: StringConstants.password,
+            hintText: StringConstants.use8Characters,
             icon: Icons.lock_outline_rounded,
             textInputAction: TextInputAction.next,
             validator: passwordValidator,
@@ -156,8 +157,8 @@ class RegisterForm extends StatelessWidget {
             controller: confirmPasswordController,
             focusNode: confirmPasswordFocus,
             obscureText: obscureConfirmPassword,
-            labelText: 'Confirm Password',
-            hintText: 'Re-enter your password',
+            labelText: StringConstants.confirmPassword,
+            hintText: StringConstants.reEnterYourPassword,
             icon: Icons.verified_user_outlined,
             textInputAction: TextInputAction.done,
             validator: confirmPasswordValidator,
@@ -205,7 +206,8 @@ class RegisterForm extends StatelessWidget {
                             activeColor: LightColor.secondaryColor,
                             borderColor: LightColor.secondaryLightMedium,
                             isExpanded: true,
-                            label: 'I agree to the Terms and Privacy Policy.',
+                            label: StringConstants
+                                .iAgreeToTheTermsAndPrivacyPolicy,
                             textStyle: FutsalTheme.getTextTheme(context)
                                 .bodyTextSmall
                                 ?.copyWith(

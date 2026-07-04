@@ -423,6 +423,10 @@ class AuthManager extends ServiceManager {
     return await _apiClient.getMyBookings();
   }
 
+  Future<Result> getBookingDetails(int bookingId) async {
+    return await _apiClient.getBookingDetails(bookingId: bookingId);
+  }
+
   Future<Result> getFutsalBookings() async {
     return await _apiClient.getFutsalBookings();
   }

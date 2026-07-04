@@ -1,4 +1,3 @@
-
 class Result<T, U> {
   U? _error;
   T? _value;
@@ -35,5 +34,5 @@ class DataError {
   final int errorCode;
   final dynamic data;
 
-  DataError(this.message, this.errorCode,this.data);
+  DataError(this.message, this.errorCode, this.data);
 }

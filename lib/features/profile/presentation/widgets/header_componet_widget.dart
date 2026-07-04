@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/utils/custom_image_view.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class HeaderComponetWidget extends StatelessWidget {
   const HeaderComponetWidget({
@@ -202,7 +203,7 @@ class HeaderComponetWidget extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const Text(
-                    'Change image',
+                    StringConstants.changeImage,
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 10,
@@ -256,7 +257,7 @@ class HeaderComponetWidget extends StatelessWidget {
             ),
             SizedBox(width: 4),
             Text(
-              'Back',
+              StringConstants.back,
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 12,

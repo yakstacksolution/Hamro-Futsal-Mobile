@@ -3,6 +3,7 @@ import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class CourtAmenitiesSection extends StatelessWidget {
   const CourtAmenitiesSection({
@@ -13,7 +14,6 @@ class CourtAmenitiesSection extends StatelessWidget {
 
   final List<String> features;
 
- 
   final Map<String, String>? categories;
 
   @override
@@ -167,7 +167,7 @@ class _FeaturesGridState extends State<_FeaturesGrid> {
             const SizedBox(width: AppDimens.sizeX10),
             Expanded(
               child: Text(
-                'No amenities information available yet.',
+                StringConstants.noAmenitiesInformationAvailableYet,
                 style: textTheme.bodyTextSmall?.copyWith(
                   color: LightColor.secondaryTextColor,
                   fontWeight: FontWeight.w500,
@@ -207,7 +207,7 @@ class _FeaturesGridState extends State<_FeaturesGrid> {
               const SizedBox(width: AppDimens.sizeX10),
               Expanded(
                 child: Text(
-                  'Amenities & Features',
+                  StringConstants.amenitiesAndFeatures,
                   style: textTheme.bodyTextMedium?.copyWith(
                     fontWeight: FontWeight.w800,
                     color: LightColor.primaryTextColor,
@@ -286,7 +286,7 @@ class _FeaturesGridState extends State<_FeaturesGrid> {
                   ),
                   child: Center(
                     child: Text(
-                      'No amenities in this category.',
+                      StringConstants.noAmenitiesInThisCategory,
                       style: textTheme.bodyTextSmall?.copyWith(
                         color: LightColor.secondaryTextColor,
                       ),

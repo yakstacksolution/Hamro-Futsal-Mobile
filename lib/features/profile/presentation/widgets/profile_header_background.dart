@@ -218,8 +218,12 @@ class _ProfileHeaderBackgroundState extends State<ProfileHeaderBackground>
     return List<Color>.generate(length == 0 ? fallback.length : length, (
       int index,
     ) {
-      final Color begin = index < (from?.length ?? 0) ? from![index] : fallback[index % fallback.length];
-      final Color end = index < (to?.length ?? 0) ? to![index] : fallback[index % fallback.length];
+      final Color begin = index < (from?.length ?? 0)
+          ? from![index]
+          : fallback[index % fallback.length];
+      final Color end = index < (to?.length ?? 0)
+          ? to![index]
+          : fallback[index % fallback.length];
       return Color.lerp(begin, end, t) ?? end;
     });
   }

@@ -110,9 +110,7 @@ class PaymentQrModel {
             map['merchant_code'] ??
             map['qr_id'],
       ),
-      bankName: _asString(
-        map['bank_name'] ?? map['bankName'] ?? map['bank'],
-      ),
+      bankName: _asString(map['bank_name'] ?? map['bankName'] ?? map['bank']),
       note: _asString(
         map['note'] ??
             map['instructions'] ??
@@ -175,10 +173,7 @@ Uint8List? _decodeBase64Image(String value) {
 
 List<String> _methodsFrom(dynamic value) {
   if (value is List) {
-    return value
-        .map(_asString)
-        .whereType<String>()
-        .toList(growable: false);
+    return value.map(_asString).whereType<String>().toList(growable: false);
   }
   final String? single = _asString(value);
   if (single == null) return const <String>[];

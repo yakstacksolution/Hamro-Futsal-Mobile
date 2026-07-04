@@ -5,6 +5,7 @@ import 'package:hamro_footsall/core/helper/share_preferences.dart';
 import 'package:hamro_footsall/features/auth/data/data_source/authentication_data_source.dart';
 import 'package:hamro_footsall/features/auth/data/model/token_model.dart';
 import 'package:hamro_footsall/features/auth/domain/repository/authentication_repository.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 final class AuthenticationRepositoryImpl extends AuthRepository {
   AuthenticationRepositoryImpl({AuthRemoteDataSource? remoteDataSource})
@@ -43,7 +44,7 @@ final class AuthenticationRepositoryImpl extends AuthRepository {
     } catch (_) {
       return left(
         DefaultException(
-          errorMessage: 'Could not load saved authentication details.',
+          errorMessage: StringConstants.couldNotLoadSavedAuthenticationDetails,
           statusCode: 0,
         ),
       );
@@ -130,7 +131,7 @@ final class AuthenticationRepositoryImpl extends AuthRepository {
     }
 
     throw DefaultException(
-      errorMessage: 'Invalid authentication response from server.',
+      errorMessage: StringConstants.invalidAuthenticationResponseFromServer,
       statusCode: 0,
     );
   }

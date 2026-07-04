@@ -17,6 +17,7 @@ import 'package:hamro_footsall/features/opponent_match/presentation/utils/oppone
 import 'package:hamro_footsall/features/opponent_match/presentation/widgets/opponent_common.dart';
 import 'package:hamro_footsall/features/opponent_match/presentation/widgets/opponent_cost_split_card.dart';
 import 'package:hamro_footsall/features/opponent_match/presentation/widgets/opponent_sheets.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 /// Full-page form to compose and send one opponent request.
 ///
@@ -32,7 +33,7 @@ class CreateOpponentRequestPage extends StatefulWidget {
 
 class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
   final _messageCtrl = TextEditingController(
-    text: 'Looking for a friendly competitive futsal match.',
+    text: StringConstants.lookingForAFriendlyCompetitiveFutsalMatch,
   );
 
   TeamModel? _team;
@@ -68,7 +69,7 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
   Future<void> _pickDate() async {
     final picked = await showCustomDatePicker(
       context,
-      title: 'Match date',
+      title: StringConstants.matchDate,
       initialDate: _date,
       minDate: DateTime.now().subtract(const Duration(days: 1)),
       maxDate: DateTime.now().add(const Duration(days: 180)),
@@ -156,7 +157,7 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: LightColor.background,
-      appBar: const CustomAppBar(title: 'New Request'),
+      appBar: const CustomAppBar(title: StringConstants.newRequest),
       body: SafeArea(
         top: false,
         child: BlocBuilder<OpponentMatchBloc, OpponentMatchState>(
@@ -176,8 +177,8 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
                 const OpponentSectionLabel('Team'),
                 OpponentCard(
                   child: CustomDropdownField<TeamModel>(
-                    labelText: 'Your team',
-                    hintText: 'Select your team',
+                    labelText: StringConstants.yourTeam,
+                    hintText: StringConstants.selectYourTeam,
                     icon: Icons.groups_2_outlined,
                     initialValue: _team,
                     autovalidateMode: _submitted
@@ -258,21 +259,21 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
                     children: [
                       OpponentPickerRow(
                         icon: Icons.calendar_month_outlined,
-                        label: 'Date',
+                        label: StringConstants.date,
                         value: OpponentFmt.shortDate(_date),
                         onTap: _pickDate,
                       ),
                       const OpponentRowDivider(),
                       OpponentPickerRow(
                         icon: Icons.schedule_outlined,
-                        label: 'Time',
+                        label: StringConstants.time,
                         value: OpponentFmt.time(_time),
                         onTap: _pickTime,
                       ),
                       const OpponentRowDivider(),
                       OpponentPickerRow(
                         icon: Icons.location_on_outlined,
-                        label: 'Venue',
+                        label: StringConstants.venue,
                         value: venue ?? 'Select a venue',
                         onTap: () => _pickVenue(state.venues, venue),
                       ),
@@ -285,8 +286,8 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
                 OpponentCard(
                   child: CustomTextField(
                     controller: _messageCtrl,
-                    labelText: 'Message',
-                    hintText: 'Message',
+                    labelText: StringConstants.message,
+                    hintText: StringConstants.message,
                     icon: Icons.chat_bubble_outline_rounded,
                     maxLines: 3,
                     minLines: 3,
@@ -352,7 +353,7 @@ class _BottomBar extends StatelessWidget {
           height: AppDimens.sizeX54,
           width: double.infinity,
           child: CustomButton(
-            text: 'Send Opponent Request',
+            text: StringConstants.sendOpponentRequest,
             icon: Icons.send_rounded,
             onPressed: onSend,
           ),

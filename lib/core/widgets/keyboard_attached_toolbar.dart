@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class KeyboardAttachedToolbar extends StatelessWidget {
   final QuillController controller;
@@ -83,7 +84,7 @@ class KeyboardAttachedToolbar extends StatelessWidget {
                           controller: controller,
                           isUndo: true,
                         ),
-                        tooltip: 'Undo',
+                        tooltip: StringConstants.undo,
                       ),
                       _buildQuillButton(
                         child: QuillToolbarHistoryButton(
@@ -91,7 +92,7 @@ class KeyboardAttachedToolbar extends StatelessWidget {
                           controller: controller,
                           isUndo: false,
                         ),
-                        tooltip: 'Redo',
+                        tooltip: StringConstants.redo,
                       ),
                       _buildQuillButton(
                         child: QuillToolbarToggleStyleButton(
@@ -99,7 +100,7 @@ class KeyboardAttachedToolbar extends StatelessWidget {
                           attribute: Attribute.bold,
                           controller: controller,
                         ),
-                        tooltip: 'Bold',
+                        tooltip: StringConstants.bold,
                       ),
                       _buildQuillButton(
                         child: QuillToolbarToggleStyleButton(
@@ -107,7 +108,7 @@ class KeyboardAttachedToolbar extends StatelessWidget {
                           attribute: Attribute.italic,
                           controller: controller,
                         ),
-                        tooltip: 'Italic',
+                        tooltip: StringConstants.italic,
                       ),
                       _buildQuillButton(
                         child: QuillToolbarToggleStyleButton(
@@ -115,7 +116,7 @@ class KeyboardAttachedToolbar extends StatelessWidget {
                           attribute: Attribute.underline,
                           controller: controller,
                         ),
-                        tooltip: 'Underline',
+                        tooltip: StringConstants.underline,
                       ),
                       _buildQuillButton(
                         child: QuillToolbarToggleStyleButton(
@@ -123,11 +124,11 @@ class KeyboardAttachedToolbar extends StatelessWidget {
                           attribute: Attribute.strikeThrough,
                           controller: controller,
                         ),
-                        tooltip: 'Strikethrough',
+                        tooltip: StringConstants.strikethrough,
                       ),
                       _buildIconButton(
                         icon: Icons.link,
-                        tooltip: 'Link',
+                        tooltip: StringConstants.link,
                         onTap: () => _showLinkDialog(context),
                         context: context,
                       ),
@@ -146,7 +147,7 @@ class KeyboardAttachedToolbar extends StatelessWidget {
                           attribute: Attribute.ul,
                           controller: controller,
                         ),
-                        tooltip: 'Bullet List',
+                        tooltip: StringConstants.bulletList,
                       ),
                       _buildQuillButton(
                         child: QuillToolbarToggleStyleButton(
@@ -154,7 +155,7 @@ class KeyboardAttachedToolbar extends StatelessWidget {
                           attribute: Attribute.ol,
                           controller: controller,
                         ),
-                        tooltip: 'Numbered List',
+                        tooltip: StringConstants.numberedList,
                       ),
                       _buildQuillButton(
                         child: QuillToolbarToggleStyleButton(
@@ -162,24 +163,24 @@ class KeyboardAttachedToolbar extends StatelessWidget {
                           attribute: Attribute.blockQuote,
                           controller: controller,
                         ),
-                        tooltip: 'Quote',
+                        tooltip: StringConstants.quote,
                       ),
                       _buildIconButton(
                         icon: Icons.code,
-                        tooltip: 'Code',
+                        tooltip: StringConstants.code,
                         onTap: () =>
                             controller.formatSelection(Attribute.codeBlock),
                         context: context,
                       ),
                       _buildIconButton(
                         icon: Icons.format_color_text,
-                        tooltip: 'Text Color',
+                        tooltip: StringConstants.textColor,
                         onTap: () => _showColorPicker(context, false),
                         context: context,
                       ),
                       _buildIconButton(
                         icon: Icons.format_color_fill,
-                        tooltip: 'Background Color',
+                        tooltip: StringConstants.backgroundColor,
                         onTap: () => _showColorPicker(context, true),
                         context: context,
                       ),
@@ -188,7 +189,7 @@ class KeyboardAttachedToolbar extends StatelessWidget {
                           options: _clearFormatButtonOptions,
                           controller: controller,
                         ),
-                        tooltip: 'Clear Format',
+                        tooltip: StringConstants.clearFormat,
                       ),
                     ],
                   ),
@@ -245,15 +246,15 @@ class KeyboardAttachedToolbar extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Insert Link'),
+        title: const Text(StringConstants.insertLink),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
               controller: urlController,
               decoration: const InputDecoration(
-                hintText: 'https://example.com',
-                labelText: 'URL',
+                hintText: StringConstants.urlExample,
+                labelText: StringConstants.url,
               ),
               keyboardType: TextInputType.url,
             ),
@@ -262,7 +263,7 @@ class KeyboardAttachedToolbar extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: const Text(StringConstants.cancel),
           ),
           ElevatedButton(
             onPressed: () {
@@ -286,7 +287,7 @@ class KeyboardAttachedToolbar extends StatelessWidget {
                 Navigator.pop(context);
               }
             },
-            child: const Text('Insert'),
+            child: const Text(StringConstants.insert),
           ),
         ],
       ),

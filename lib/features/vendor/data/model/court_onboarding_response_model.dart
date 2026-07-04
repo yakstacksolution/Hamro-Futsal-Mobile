@@ -191,35 +191,37 @@ List<SlotPricingDraft> _mergeSlotConfigs(
   List<SlotPricingDraft> schedules,
 ) {
   if (schedules.isEmpty) return existing;
-  return schedules.map((SlotPricingDraft schedule) {
-    SlotPricingDraft? prior;
-    for (final SlotPricingDraft item in existing) {
-      final bool sameId = item.id.isNotEmpty && item.id == schedule.id;
-      final bool sameLabel =
-          item.label.trim().isNotEmpty &&
-          item.label.trim().toLowerCase() ==
-              schedule.label.trim().toLowerCase();
-      if (sameId || sameLabel) {
-        prior = item;
-        break;
-      }
-    }
-    if (prior == null) return schedule;
-    return SlotPricingDraft(
-      id: schedule.id,
-      label: schedule.label,
-      days: schedule.days,
-      startTime: schedule.startTime,
-      endTime: schedule.endTime,
-      price: prior.price,
-      weekendPrice: prior.weekendPrice,
-      holidayPrice: prior.holidayPrice,
-      customDatePrices: prior.customDatePrices,
-      discountPrice: prior.discountPrice,
-      discountType: prior.discountType,
-      paymentPercent: prior.paymentPercent,
-    );
-  }).toList(growable: false);
+  return schedules
+      .map((SlotPricingDraft schedule) {
+        SlotPricingDraft? prior;
+        for (final SlotPricingDraft item in existing) {
+          final bool sameId = item.id.isNotEmpty && item.id == schedule.id;
+          final bool sameLabel =
+              item.label.trim().isNotEmpty &&
+              item.label.trim().toLowerCase() ==
+                  schedule.label.trim().toLowerCase();
+          if (sameId || sameLabel) {
+            prior = item;
+            break;
+          }
+        }
+        if (prior == null) return schedule;
+        return SlotPricingDraft(
+          id: schedule.id,
+          label: schedule.label,
+          days: schedule.days,
+          startTime: schedule.startTime,
+          endTime: schedule.endTime,
+          price: prior.price,
+          weekendPrice: prior.weekendPrice,
+          holidayPrice: prior.holidayPrice,
+          customDatePrices: prior.customDatePrices,
+          discountPrice: prior.discountPrice,
+          discountType: prior.discountType,
+          paymentPercent: prior.paymentPercent,
+        );
+      })
+      .toList(growable: false);
 }
 
 Set<String> _weekendKeysFromAny(Object? value) {
@@ -289,7 +291,9 @@ Set<int> _idSetFromAny(Object? value) {
   return value
       .map((Object? item) {
         if (item is Map) {
-          return _asInt(item['id'] ?? item['amenity_id'] ?? item['facility_id']);
+          return _asInt(
+            item['id'] ?? item['amenity_id'] ?? item['facility_id'],
+          );
         }
         return _asInt(item);
       })

@@ -7,6 +7,7 @@ import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/widgets/custom_bottom_sheet.dart';
 import 'package:hamro_footsall/features/futsal_details/data/model/booking_recurrence.dart';
 import 'package:hamro_footsall/features/futsal_details/data/model/venue_court_item_model.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 /// A small animated on/off toggle (custom switch).
 class CustomToggleButton extends StatelessWidget {
@@ -121,7 +122,7 @@ class BookingTypeCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Text(
-                      'Recurring booking',
+                      StringConstants.recurringBooking,
                       style: textTheme.bodyTextSmall?.copyWith(
                         color: LightColor.primaryTextColor,
                         fontWeight: FontWeight.w800,
@@ -250,7 +251,8 @@ class BookingTypeCard extends StatelessWidget {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
                                     content: Text(
-                                      'Select a time slot to see prices.',
+                                      StringConstants
+                                          .selectATimeSlotToSeePrices,
                                     ),
                                   ),
                                 );
@@ -325,7 +327,7 @@ class _RecurringPriceInfoButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Tooltip(
-      message: 'Recurring price details',
+      message: StringConstants.recurringPriceDetails,
       child: Material(
         color: LightColor.secondarySoft,
         shape: const CircleBorder(),
@@ -396,7 +398,7 @@ class _RecurringPriceSheet extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Text(
-                      'Recurring price details',
+                      StringConstants.recurringPriceDetails,
                       style: textTheme.bodyTextLarge?.copyWith(
                         color: LightColor.primaryTextColor,
                         fontWeight: FontWeight.w800,

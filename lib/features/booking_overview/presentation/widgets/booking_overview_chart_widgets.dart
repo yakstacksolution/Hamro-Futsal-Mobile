@@ -8,6 +8,7 @@ import 'package:hamro_footsall/features/booking_overview/data/model/booking_over
 import 'package:hamro_footsall/features/booking_overview/presentation/models/booking_analytics.dart';
 import 'package:hamro_footsall/features/booking_overview/presentation/utils/booking_ui_utils.dart';
 import 'package:hamro_footsall/features/booking_overview/presentation/widgets/booking_overview_common.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 /// Revenue trend bar chart bucketed by the selected period.
 class BookingTrendCard extends StatelessWidget {
@@ -164,7 +165,7 @@ class BookingStatusCard extends StatelessWidget {
           Row(
             children: [
               Text(
-                'Status mix',
+                StringConstants.statusMix,
                 style: textTheme.bodyTextMedium?.copyWith(
                   fontWeight: FontWeight.w700,
                   color: LightColor.primaryTextColor,

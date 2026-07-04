@@ -10,7 +10,6 @@ abstract class IClient {
 }
 
 class Client implements IClient {
-
   static Function? revokeAuth;
 
   Client._privateConstructor();
@@ -35,5 +34,4 @@ class Client implements IClient {
   AuthManager getAuthManager() {
     return AuthManager();
   }
-
 }

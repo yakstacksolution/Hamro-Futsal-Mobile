@@ -8,9 +8,11 @@ import 'package:hamro_footsall/features/bookings/data/model/booking_model.dart';
 import 'package:hamro_footsall/features/bookings/data/repositories/booking_repository_impl.dart';
 import 'package:hamro_footsall/features/bookings/domain/usecase/get_bookings_use_case.dart';
 import 'package:hamro_footsall/features/bookings/presentation/bloc/booking_bloc/booking_bloc.dart';
+import 'package:hamro_footsall/features/bookings/presentation/utils/booking_search.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/page/dashboard_screen.dart';
 import 'package:hamro_footsall/features/bookings/presentation/widgets/futsal_bookings_tab.dart';
 import 'package:hamro_footsall/features/bookings/presentation/widgets/my_bookings_tab.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class BookingsPage extends StatelessWidget {
   const BookingsPage({super.key});
@@ -37,21 +39,39 @@ class _BookingsViewState extends State<_BookingsView>
     with SingleTickerProviderStateMixin {
   int _selectedTab = 0;
   BookingStatus? _selectedFilter;
+  BookingDateOrder _dateOrder = BookingDateOrder.ascending;
+  DateTime? _fromDate;
+  DateTime? _toDate;
+  late DateTime _futsalDate;
+  final TextEditingController _searchController = TextEditingController();
 
   late final AnimationController _tabAnimCtrl;
   late final Animation<double> _tabAnim;
 
-  static const List<_Filter> _filters = [
-    _Filter(label: 'All', status: null),
-    _Filter(label: 'Confirmed', status: BookingStatus.confirmed),
-    _Filter(label: 'Pending', status: BookingStatus.pending),
-    _Filter(label: 'Completed', status: BookingStatus.completed),
-    _Filter(label: 'Cancelled', status: BookingStatus.cancelled),
+  static const List<_Filter> _myBookingFilters = [
+    _Filter(label: StringConstants.all, status: null),
+    _Filter(label: StringConstants.pending, status: BookingStatus.pending),
+    _Filter(label: StringConstants.confirmed, status: BookingStatus.confirmed),
+    _Filter(label: StringConstants.completed, status: BookingStatus.completed),
+    _Filter(label: StringConstants.cancelled, status: BookingStatus.cancelled),
   ];
+
+  static const List<_Filter> _futsalBookingFilters = [
+    _Filter(label: StringConstants.pending, status: BookingStatus.pending),
+    _Filter(label: StringConstants.confirmed, status: BookingStatus.confirmed),
+    _Filter(label: StringConstants.completed, status: BookingStatus.completed),
+    _Filter(label: StringConstants.cancelled, status: BookingStatus.cancelled),
+    _Filter(label: StringConstants.all, status: null),
+  ];
+
+  List<_Filter> get _activeFilters =>
+      _selectedTab == 0 ? _myBookingFilters : _futsalBookingFilters;
 
   @override
   void initState() {
     super.initState();
+    final DateTime now = DateTime.now();
+    _futsalDate = DateTime(now.year, now.month, now.day);
 
     _tabAnimCtrl = AnimationController(
       vsync: this,
@@ -73,6 +93,7 @@ class _BookingsViewState extends State<_BookingsView>
     DashboardScreen.selectedNavIndex.removeListener(
       _retryFailedFetchesOnTabVisible,
     );
+    _searchController.dispose();
     _tabAnimCtrl.dispose();
     super.dispose();
   }
@@ -94,6 +115,7 @@ class _BookingsViewState extends State<_BookingsView>
     setState(() {
       _selectedTab = index;
       _selectedFilter = null;
+      _searchController.clear();
     });
 
     if (index == 1) {
@@ -111,6 +133,67 @@ class _BookingsViewState extends State<_BookingsView>
     });
   }
 
+  Future<void> _openDateFilter() async {
+    final _BookingDateFilterValue? value =
+        await showModalBottomSheet<_BookingDateFilterValue>(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: LightColor.cardColor,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(
+              top: Radius.circular(AppDimens.radiusX20),
+            ),
+          ),
+          builder: (BuildContext context) => _BookingDateFilterSheet(
+            initialFromDate: _fromDate,
+            initialToDate: _toDate,
+            initialOrder: _dateOrder,
+          ),
+        );
+    if (value == null || !mounted) return;
+    setState(() {
+      _fromDate = value.fromDate;
+      _toDate = value.toDate;
+      _dateOrder = value.order;
+    });
+  }
+
+  Future<void> _pickFutsalDate() async {
+    final DateTime? selected = await showDatePicker(
+      context: context,
+      initialDate: _futsalDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100, 12, 31),
+      builder: (BuildContext context, Widget? child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: Theme.of(context).colorScheme.copyWith(
+              primary: LightColor.secondaryColor,
+              surface: LightColor.cardColor,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (selected == null || !mounted) return;
+    setState(() {
+      _futsalDate = DateTime(selected.year, selected.month, selected.day);
+    });
+  }
+
+  void _shiftFutsalDate(int days) {
+    setState(() {
+      _futsalDate = _futsalDate.add(Duration(days: days));
+    });
+  }
+
+  void _clearSearch() {
+    if (_searchController.text.isEmpty) return;
+    _searchController.clear();
+    setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -120,14 +203,26 @@ class _BookingsViewState extends State<_BookingsView>
         const SizedBox(height: AppDimens.paddingX20),
         _tabBar(context),
         const SizedBox(height: AppDimens.paddingX14),
-        _filterRow(context),
-        const SizedBox(height: AppDimens.paddingX6),
+        _searchAndFilterSection(context),
+        const SizedBox(height: AppDimens.paddingX8),
         Expanded(
           child: IndexedStack(
             index: _selectedTab,
             children: [
-              MyBookingsTab(filter: _selectedFilter),
-              FutsalBookingsTab(filter: _selectedFilter),
+              MyBookingsTab(
+                filter: _selectedFilter,
+                searchQuery: _searchController.text,
+                dateOrder: _dateOrder,
+                fromDate: _fromDate,
+                toDate: _toDate,
+              ),
+              FutsalBookingsTab(
+                filter: _selectedFilter,
+                searchQuery: _searchController.text,
+                dateOrder: _dateOrder,
+                fromDate: _futsalDate,
+                toDate: _futsalDate,
+              ),
             ],
           ),
         ),
@@ -171,7 +266,7 @@ class _BookingsViewState extends State<_BookingsView>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Bookings',
+                StringConstants.bookings,
                 style: textTheme.bodyTextLarge?.copyWith(
                   fontSize: AppDimens.fontHeadingSmall,
                   fontWeight: FontWeight.w700,
@@ -204,13 +299,13 @@ class _BookingsViewState extends State<_BookingsView>
           return Row(
             children: [
               _TabItem(
-                label: 'My Bookings',
+                label: StringConstants.myBookings,
                 isActive: _selectedTab == 0,
                 onTap: () => _onTabSelected(0),
               ),
               const SizedBox(width: AppDimens.paddingX24),
               _TabItem(
-                label: 'Futsal Bookings',
+                label: StringConstants.futsalBookings,
                 isActive: _selectedTab == 1,
                 onTap: () => _onTabSelected(1),
               ),
@@ -221,6 +316,97 @@ class _BookingsViewState extends State<_BookingsView>
     );
   }
 
+  Widget _searchAndFilterSection(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    final bool hasQuery = _searchController.text.trim().isNotEmpty;
+    final String hint = _selectedTab == 0
+        ? 'Search venue, court or booking ID'
+        : 'Search court or booking ID';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: AppUtils().getPadding(
+            symmetricHorizontal: AppDimens.paddingX16,
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Container(
+                  height: AppDimens.sizeX44,
+                  decoration: BoxDecoration(
+                    color: LightColor.cardColor,
+                    borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+                    border: Border.all(color: LightColor.dividerColor),
+                  ),
+                  child: TextField(
+                    key: const Key('booking-search-field'),
+                    controller: _searchController,
+                    onChanged: (_) => setState(() {}),
+                    textInputAction: TextInputAction.search,
+                    style: textTheme.bodyTextSmall?.copyWith(
+                      color: LightColor.primaryTextColor,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: hint,
+                      hintStyle: textTheme.bodyTextSmall?.copyWith(
+                        color: LightColor.hintTextColor,
+                        fontWeight: FontWeight.w400,
+                      ),
+                      prefixIcon: const Icon(
+                        Icons.search_rounded,
+                        size: AppDimens.sizeX20,
+                        color: LightColor.secondaryTextColor,
+                      ),
+                      suffixIcon: hasQuery
+                          ? IconButton(
+                              key: const Key('clear-booking-search'),
+                              tooltip: StringConstants.clearSearch,
+                              onPressed: _clearSearch,
+                              icon: const Icon(
+                                Icons.close_rounded,
+                                size: AppDimens.sizeX18,
+                                color: LightColor.secondaryTextColor,
+                              ),
+                            )
+                          : null,
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+              ),
+              if (_selectedTab == 0) ...[
+                const SizedBox(width: AppDimens.paddingX8),
+                _DateFilterButton(
+                  fromDate: _fromDate,
+                  toDate: _toDate,
+                  selectedOrder: _dateOrder,
+                  onTap: _openDateFilter,
+                ),
+              ] else ...[
+                const SizedBox(width: AppDimens.paddingX8),
+                _FutsalDateNavigator(
+                  date: _futsalDate,
+                  onPrevious: () => _shiftFutsalDate(-1),
+                  onNext: () => _shiftFutsalDate(1),
+                  onDateTap: _pickFutsalDate,
+                ),
+              ],
+            ],
+          ),
+        ),
+        const SizedBox(height: AppDimens.paddingX20),
+
+        _filterRow(context),
+      ],
+    );
+  }
+
   Widget _filterRow(BuildContext context) {
     return SizedBox(
       height: AppDimens.sizeX32,
@@ -228,14 +414,14 @@ class _BookingsViewState extends State<_BookingsView>
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
         padding: AppUtils().getPadding(
-          symmetricHorizontal: AppDimens.paddingX22,
+          symmetricHorizontal: AppDimens.paddingX20,
         ),
-        itemCount: _filters.length,
+        itemCount: _activeFilters.length,
         separatorBuilder: (_, __) {
           return const SizedBox(width: AppDimens.paddingX8);
         },
         itemBuilder: (context, index) {
-          final filter = _filters[index];
+          final filter = _activeFilters[index];
           final isSelected = _selectedFilter == filter.status;
 
           return _FilterChipItem(
@@ -358,6 +544,541 @@ class _FilterChipItem extends StatelessWidget {
       ),
     );
   }
+}
+
+class _FutsalDateNavigator extends StatelessWidget {
+  const _FutsalDateNavigator({
+    required this.date,
+    required this.onPrevious,
+    required this.onNext,
+    required this.onDateTap,
+  });
+
+  final DateTime date;
+  final VoidCallback onPrevious;
+  final VoidCallback onNext;
+  final VoidCallback onDateTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    return Container(
+      height: AppDimens.sizeX44,
+      decoration: BoxDecoration(
+        color: LightColor.cardColor,
+        borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+        border: Border.all(color: LightColor.dividerColor),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          InkWell(
+            key: const Key('previous-futsal-booking-date'),
+            onTap: onPrevious,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Icon(Icons.chevron_left_rounded),
+            ),
+          ),
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              key: const Key('select-futsal-booking-date'),
+              onTap: onDateTap,
+              borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Text(
+                  _formatNavigatorDate(date),
+                  maxLines: 1,
+                  style: textTheme.bodySubTitle?.copyWith(
+                    color: LightColor.primaryTextColor,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          InkWell(
+            key: const Key('next-futsal-booking-date'),
+            onTap: onNext,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Icon(Icons.chevron_right_rounded),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DateFilterButton extends StatelessWidget {
+  const _DateFilterButton({
+    required this.fromDate,
+    required this.toDate,
+    required this.selectedOrder,
+    required this.onTap,
+  });
+
+  final DateTime? fromDate;
+  final DateTime? toDate;
+  final BookingDateOrder selectedOrder;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final bool hasRange = fromDate != null || toDate != null;
+    return Tooltip(
+      message: hasRange ? 'Edit date range' : 'Filter by date',
+      child: Material(
+        color: hasRange
+            ? LightColor.secondaryColor.withValues(alpha: 0.10)
+            : LightColor.cardColor,
+        borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+        child: InkWell(
+          key: const Key('booking-date-filter'),
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+          child: Container(
+            width: AppDimens.sizeX44,
+            height: AppDimens.sizeX44,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+              border: Border.all(
+                color: hasRange
+                    ? LightColor.secondaryColor.withValues(alpha: 0.45)
+                    : LightColor.dividerColor,
+              ),
+            ),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                const Icon(
+                  Icons.calendar_month_outlined,
+                  size: AppDimens.sizeX20,
+                  color: LightColor.secondaryColor,
+                ),
+                Positioned(
+                  right: AppDimens.paddingX4,
+                  bottom: AppDimens.paddingX4,
+                  child: Icon(
+                    selectedOrder == BookingDateOrder.ascending
+                        ? Icons.arrow_upward_rounded
+                        : Icons.arrow_downward_rounded,
+                    size: AppDimens.sizeX10,
+                    color: LightColor.secondaryColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _BookingDateFilterValue {
+  const _BookingDateFilterValue({
+    required this.fromDate,
+    required this.toDate,
+    required this.order,
+  });
+
+  final DateTime? fromDate;
+  final DateTime? toDate;
+  final BookingDateOrder order;
+}
+
+class _BookingDateFilterSheet extends StatefulWidget {
+  const _BookingDateFilterSheet({
+    required this.initialFromDate,
+    required this.initialToDate,
+    required this.initialOrder,
+  });
+
+  final DateTime? initialFromDate;
+  final DateTime? initialToDate;
+  final BookingDateOrder initialOrder;
+
+  @override
+  State<_BookingDateFilterSheet> createState() =>
+      _BookingDateFilterSheetState();
+}
+
+class _BookingDateFilterSheetState extends State<_BookingDateFilterSheet> {
+  DateTime? _fromDate;
+  DateTime? _toDate;
+  late BookingDateOrder _order;
+
+  @override
+  void initState() {
+    super.initState();
+    _fromDate = widget.initialFromDate;
+    _toDate = widget.initialToDate;
+    _order = widget.initialOrder;
+  }
+
+  Future<void> _selectFromDate() async {
+    final DateTime? selected = await _showPicker(
+      initialDate: _fromDate ?? _toDate ?? DateTime.now(),
+      firstDate: DateTime(2020),
+    );
+    if (selected == null || !mounted) return;
+    setState(() {
+      _fromDate = selected;
+      if (_toDate != null && _toDate!.isBefore(selected)) {
+        _toDate = null;
+      }
+    });
+  }
+
+  Future<void> _selectToDate() async {
+    final DateTime firstDate = _fromDate ?? DateTime(2020);
+    final DateTime? selected = await _showPicker(
+      initialDate: _toDate ?? _fromDate ?? DateTime.now(),
+      firstDate: firstDate,
+    );
+    if (selected == null || !mounted) return;
+    setState(() => _toDate = selected);
+  }
+
+  Future<DateTime?> _showPicker({
+    required DateTime initialDate,
+    required DateTime firstDate,
+  }) {
+    final DateTime safeInitial = initialDate.isBefore(firstDate)
+        ? firstDate
+        : initialDate;
+    return showDatePicker(
+      context: context,
+      initialDate: safeInitial,
+      firstDate: firstDate,
+      lastDate: DateTime(2100, 12, 31),
+      builder: (BuildContext context, Widget? child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: Theme.of(context).colorScheme.copyWith(
+              primary: LightColor.secondaryColor,
+              surface: LightColor.cardColor,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+  }
+
+  void _clear() {
+    setState(() {
+      _fromDate = null;
+      _toDate = null;
+    });
+  }
+
+  void _apply() {
+    Navigator.of(context).pop(
+      _BookingDateFilterValue(
+        fromDate: _fromDate,
+        toDate: _toDate,
+        order: _order,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: AppUtils().getPadding(
+          left: AppDimens.paddingX20,
+          right: AppDimens.paddingX20,
+          top: AppDimens.paddingX10,
+          bottom: AppDimens.paddingX20,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: AppDimens.sizeX40,
+                height: AppDimens.sizeX4,
+                decoration: BoxDecoration(
+                  color: LightColor.dividerColor,
+                  borderRadius: BorderRadius.circular(AppDimens.radiusX20),
+                ),
+              ),
+            ),
+            const SizedBox(height: AppDimens.paddingX16),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    StringConstants.filterByDate,
+                    style: textTheme.bodyTextLarge?.copyWith(
+                      color: LightColor.primaryTextColor,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  tooltip: StringConstants.close,
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(
+                    Icons.close_rounded,
+                    color: LightColor.secondaryTextColor,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppDimens.paddingX12),
+            Row(
+              children: [
+                Expanded(
+                  child: _DateField(
+                    label: StringConstants.fromDate,
+                    value: _fromDate,
+                    onTap: _selectFromDate,
+                  ),
+                ),
+                const SizedBox(width: AppDimens.paddingX10),
+                Expanded(
+                  child: _DateField(
+                    label: StringConstants.toDate,
+                    value: _toDate,
+                    onTap: _selectToDate,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppDimens.paddingX18),
+            Text(
+              StringConstants.dateOrder,
+              style: textTheme.bodyTextSmall?.copyWith(
+                color: LightColor.secondaryTextColor,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: AppDimens.paddingX8),
+            Row(
+              children: [
+                Expanded(
+                  child: _SheetOrderButton(
+                    label: StringConstants.ascending,
+                    icon: Icons.arrow_upward_rounded,
+                    isSelected: _order == BookingDateOrder.ascending,
+                    onTap: () =>
+                        setState(() => _order = BookingDateOrder.ascending),
+                  ),
+                ),
+                const SizedBox(width: AppDimens.paddingX10),
+                Expanded(
+                  child: _SheetOrderButton(
+                    label: StringConstants.descending,
+                    icon: Icons.arrow_downward_rounded,
+                    isSelected: _order == BookingDateOrder.descending,
+                    onTap: () =>
+                        setState(() => _order = BookingDateOrder.descending),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppDimens.paddingX20),
+            Row(
+              children: [
+                TextButton(
+                  onPressed: _clear,
+                  child: const Text(
+                    StringConstants.clear,
+                    style: TextStyle(color: LightColor.secondaryTextColor),
+                  ),
+                ),
+                const SizedBox(width: AppDimens.paddingX12),
+                Expanded(
+                  child: SizedBox(
+                    height: AppDimens.sizeX42,
+                    child: FilledButton(
+                      onPressed: _apply,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: LightColor.secondaryColor,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(
+                            AppDimens.radiusX8,
+                          ),
+                        ),
+                      ),
+                      child: const Text(StringConstants.applyFilter),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DateField extends StatelessWidget {
+  const _DateField({
+    required this.label,
+    required this.value,
+    required this.onTap,
+  });
+
+  final String label;
+  final DateTime? value;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    return Material(
+      color: LightColor.background,
+      borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+        child: Container(
+          padding: AppUtils().getPadding(
+            horizontal: AppDimens.paddingX12,
+            vertical: AppDimens.paddingX10,
+          ),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+            border: Border.all(color: LightColor.dividerColor),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: textTheme.bodySubTitle?.copyWith(
+                  color: LightColor.secondaryTextColor,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: AppDimens.paddingX4),
+              Row(
+                children: [
+                  const Icon(
+                    Icons.calendar_today_outlined,
+                    size: AppDimens.sizeX16,
+                    color: LightColor.secondaryColor,
+                  ),
+                  const SizedBox(width: AppDimens.paddingX6),
+                  Expanded(
+                    child: Text(
+                      value == null ? 'Select date' : _formatFilterDate(value!),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: textTheme.bodyTextSmall?.copyWith(
+                        color: value == null
+                            ? LightColor.hintTextColor
+                            : LightColor.primaryTextColor,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SheetOrderButton extends StatelessWidget {
+  const _SheetOrderButton({
+    required this.label,
+    required this.icon,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    return Material(
+      color: isSelected
+          ? LightColor.secondaryColor.withValues(alpha: 0.10)
+          : LightColor.background,
+      borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+        child: Container(
+          height: AppDimens.sizeX42,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+            border: Border.all(
+              color: isSelected
+                  ? LightColor.secondaryColor
+                  : LightColor.dividerColor,
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: AppDimens.sizeX18,
+                color: isSelected
+                    ? LightColor.secondaryColor
+                    : LightColor.secondaryTextColor,
+              ),
+              const SizedBox(width: AppDimens.paddingX6),
+              Text(
+                label,
+                style: textTheme.bodyTextSmall?.copyWith(
+                  color: isSelected
+                      ? LightColor.secondaryColor
+                      : LightColor.secondaryTextColor,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+String _formatFilterDate(DateTime date) {
+  return '${date.day.toString().padLeft(2, '0')}/'
+      '${date.month.toString().padLeft(2, '0')}/${date.year}';
+}
+
+String _formatNavigatorDate(DateTime date) {
+  const List<String> months = <String>[
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
+  return '${months[date.month - 1]} ${date.day} ${date.year}';
 }
 
 class _Filter {

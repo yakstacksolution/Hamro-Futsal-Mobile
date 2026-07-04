@@ -40,9 +40,8 @@ class SupportBloc extends Bloc<SupportEvent, SupportState> {
           faqsError: failure.errorMessage,
         ),
       ),
-      (List<PublicFaqModel> faqs) => emit(
-        state.copyWith(faqsStatus: SupportStatus.success, faqs: faqs),
-      ),
+      (List<PublicFaqModel> faqs) =>
+          emit(state.copyWith(faqsStatus: SupportStatus.success, faqs: faqs)),
     );
   }
 

@@ -16,6 +16,7 @@ import 'package:hamro_footsall/core/widgets/custom_text_field.dart';
 import 'package:hamro_footsall/core/widgets/loading_widget.dart';
 import 'package:hamro_footsall/features/courts/data/model/picked_location.dart';
 import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_models.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 import 'package:http/http.dart' as http;
 
 class VendorPanel extends StatelessWidget {
@@ -327,7 +328,7 @@ class VendorTemplateResetButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Tooltip(
-      message: 'Reset to default template',
+      message: StringConstants.resetToDefaultTemplate,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(999),
@@ -697,7 +698,7 @@ class VendorUploadSection extends StatelessWidget {
                         ),
                         const SizedBox(height: AppDimens.sizeX10),
                         Text(
-                          'No uploads yet',
+                          StringConstants.noUploadsYet,
                           style: FutsalTheme.getTextTheme(context)
                               .bodyTextMedium
                               ?.copyWith(
@@ -820,10 +821,10 @@ class VendorUploadSection extends StatelessWidget {
     if (onRemove == null) return;
     final bool confirmed = await showDeleteDialog(
       context: context,
-      title: 'Delete File?',
-      message: 'Are you sure you want to remove "${file.name}"?',
-      confirmText: 'Delete',
-      cancelText: 'Cancel',
+      title: StringConstants.deleteFile,
+      message: '${StringConstants.removeFileConfirmationPrefix}"${file.name}"?',
+      confirmText: StringConstants.delete,
+      cancelText: StringConstants.cancel,
       icon: Icons.delete_outline_rounded,
       confirmColor: LightColor.redColor,
     );
@@ -1103,7 +1104,7 @@ class _DocumentGridTile extends StatelessWidget {
             right: AppDimens.sizeX6,
             child: switch (status) {
               UploadVerificationStatus.pending => _cornerBadge(
-                tooltip: 'Under review',
+                tooltip: StringConstants.underReview,
                 child: const Icon(
                   Icons.hourglass_top_rounded,
                   color: LightColor.warningColor,
@@ -1111,7 +1112,7 @@ class _DocumentGridTile extends StatelessWidget {
                 ),
               ),
               UploadVerificationStatus.approved => _cornerBadge(
-                tooltip: 'Approved',
+                tooltip: StringConstants.approved,
                 child: const Icon(
                   Icons.check_circle_rounded,
                   color: LightColor.successColor,
@@ -1130,7 +1131,7 @@ class _DocumentGridTile extends StatelessWidget {
               bottom: AppDimens.sizeX6,
               right: AppDimens.sizeX6,
               child: Tooltip(
-                message: 'Replace this rejected document',
+                message: StringConstants.replaceThisRejectedDocument,
                 child: InkWell(
                   onTap: onReplace,
                   borderRadius: BorderRadius.circular(AppDimens.radiusX8),
@@ -1213,10 +1214,10 @@ class VendorUploadItem extends StatelessWidget {
 
     final bool confirmed = await showDeleteDialog(
       context: context,
-      title: 'Delete File?',
-      message: 'Are you sure you want to remove "${file.name}"?',
-      confirmText: 'Delete',
-      cancelText: 'Cancel',
+      title: StringConstants.deleteFile,
+      message: '${StringConstants.removeFileConfirmationPrefix}"${file.name}"?',
+      confirmText: StringConstants.delete,
+      cancelText: StringConstants.cancel,
       icon: Icons.delete_outline_rounded,
       confirmColor: LightColor.redColor,
     );
@@ -1319,8 +1320,8 @@ class VendorUploadItem extends StatelessWidget {
             ),
             if (_isRejected)
               const _RejectionCallout(
-                message:
-                    'This document was rejected. Please remove it and add a new, corrected document.',
+                message: StringConstants
+                    .thisDocumentWasRejectedPleaseRemoveItAndAddANewC30fa5f11,
               ),
           ],
         ),
@@ -1433,8 +1434,8 @@ class VendorUploadItem extends StatelessWidget {
           if (_isRejected) ...<Widget>[
             const SizedBox(height: AppDimens.sizeX10),
             const _RejectionCallout(
-              message:
-                  'This document was rejected. Please remove it and add a new, corrected document.',
+              message: StringConstants
+                  .thisDocumentWasRejectedPleaseRemoveItAndAddANewC30fa5f11,
             ),
           ],
         ],
@@ -1514,8 +1515,8 @@ class _UploadActionButton extends StatelessWidget {
         background: LightColor.background,
         foreground: LightColor.disabledTextColor,
         onTap: null,
-        tooltip:
-            'This document is locked while under review. It can be replaced only after it is rejected.',
+        tooltip: StringConstants
+            .thisDocumentIsLockedWhileUnderReviewItCanBeRepla3c137b54,
       );
     }
 
@@ -1525,7 +1526,7 @@ class _UploadActionButton extends StatelessWidget {
         background: LightColor.redLightColor,
         foreground: LightColor.redColor,
         onTap: onReplace,
-        tooltip: 'Replace this rejected document',
+        tooltip: StringConstants.replaceThisRejectedDocument,
       );
     }
 
@@ -1616,21 +1617,21 @@ class VerificationStatusBadge extends StatelessWidget {
     switch (status) {
       case UploadVerificationStatus.pending:
         return const _BadgePalette(
-          label: 'Pending',
+          label: StringConstants.pending,
           icon: Icons.schedule_rounded,
           foreground: LightColor.warningColor,
           background: LightColor.warningLightColor,
         );
       case UploadVerificationStatus.approved:
         return const _BadgePalette(
-          label: 'Approved',
+          label: StringConstants.approved,
           icon: Icons.verified_rounded,
           foreground: LightColor.secondaryColor,
           background: LightColor.secondarySoft,
         );
       case UploadVerificationStatus.rejected:
         return const _BadgePalette(
-          label: 'Rejected',
+          label: StringConstants.rejected,
           icon: Icons.error_outline_rounded,
           foreground: LightColor.redColor,
           background: LightColor.redLightColor,

@@ -33,21 +33,24 @@ final class BookingState extends Equatable {
     return BookingState(
       myBookingsStatus: myBookingsStatus ?? this.myBookingsStatus,
       myBookings: myBookings ?? this.myBookings,
-      myBookingsError: clearMyError ? null : myBookingsError ?? this.myBookingsError,
+      myBookingsError: clearMyError
+          ? null
+          : myBookingsError ?? this.myBookingsError,
       futsalBookingsStatus: futsalBookingsStatus ?? this.futsalBookingsStatus,
       futsalBookings: futsalBookings ?? this.futsalBookings,
-      futsalBookingsError:
-          clearFutsalError ? null : futsalBookingsError ?? this.futsalBookingsError,
+      futsalBookingsError: clearFutsalError
+          ? null
+          : futsalBookingsError ?? this.futsalBookingsError,
     );
   }
 
   @override
   List<Object?> get props => <Object?>[
-        myBookingsStatus,
-        myBookings,
-        myBookingsError,
-        futsalBookingsStatus,
-        futsalBookings,
-        futsalBookingsError,
-      ];
+    myBookingsStatus,
+    myBookings,
+    myBookingsError,
+    futsalBookingsStatus,
+    futsalBookings,
+    futsalBookingsError,
+  ];
 }

@@ -11,6 +11,7 @@ import 'package:hamro_footsall/features/auth/presentation/authentication_bloc/au
 import 'package:hamro_footsall/features/auth/presentation/widgets/auth_screen_frame.dart';
 import 'package:hamro_footsall/features/auth/presentation/widgets/login_form.dart';
 import 'package:hamro_footsall/features/auth/presentation/widgets/register_form.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 enum AuthMode { login, register }
 
@@ -509,7 +510,7 @@ class _GoogleLoginSection extends StatelessWidget {
                 symmetricHorizontal: AppDimens.paddingX12,
               ),
               child: Text(
-                'or',
+                StringConstants.or,
                 style: textTheme.bodyTextSmall?.copyWith(
                   color: LightColor.secondaryTextColor,
                 ),
@@ -550,7 +551,7 @@ class _GoogleLoginSection extends StatelessWidget {
                         ),
                         const SizedBox(width: AppDimens.paddingX10),
                         Text(
-                          'Continue with Google',
+                          StringConstants.continueWithGoogle,
                           style: textTheme.bodyTextSmall?.copyWith(
                             color: LightColor.primaryTextColor,
                             fontWeight: FontWeight.w600,

@@ -11,6 +11,7 @@ import 'package:hamro_footsall/features/dashboard/presentation/widgets/loading/h
 import 'package:hamro_footsall/features/public/data/model/public_venue_model.dart';
 import 'package:hamro_footsall/features/public/data/repositories/public_repository_impl.dart';
 import 'package:hamro_footsall/features/wishlist/domain/usecase/get_wishlist_use_case.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 /// Candidate's saved venues tab — `GET /auth/wishlist`.
 ///
@@ -111,7 +112,7 @@ class _WishlistPageState extends State<WishlistPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Wishlist',
+                StringConstants.wishlist,
                 style: textTheme.bodyTextLarge?.copyWith(
                   fontSize: AppDimens.fontHeadingSmall,
                   fontWeight: FontWeight.w700,
@@ -142,7 +143,7 @@ class _WishlistPageState extends State<WishlistPage> {
     if (_error != null && _venues.isEmpty) {
       return _MessageView(
         icon: Icons.wifi_off_rounded,
-        title: 'Unable to load wishlist',
+        title: StringConstants.unableToLoadWishlist,
         message: _error!,
         actionLabel: 'Retry',
         onAction: _fetch,
@@ -151,8 +152,8 @@ class _WishlistPageState extends State<WishlistPage> {
     if (venues.isEmpty) {
       return const _MessageView(
         icon: Icons.favorite_outline_rounded,
-        title: 'No favourites yet',
-        message: 'Tap the heart on a venue to save it here for quick booking.',
+        title: StringConstants.noFavouritesYet,
+        message: StringConstants.tapTheHeartOnAVenueToSaveItHereForQuickBooking,
       );
     }
 
@@ -170,8 +171,7 @@ class _WishlistPageState extends State<WishlistPage> {
           bottom: AppDimens.sizeX120,
         ),
         itemCount: venues.length,
-        separatorBuilder: (_, __) =>
-            const SizedBox(height: AppDimens.sizeX20),
+        separatorBuilder: (_, __) => const SizedBox(height: AppDimens.sizeX20),
         // Same card the home listing uses.
         itemBuilder: (_, i) => CourtCard(court: venues[i]),
       ),

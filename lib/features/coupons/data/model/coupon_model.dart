@@ -120,7 +120,9 @@ class CouponModel {
     final List<dynamic> items = _listFromAny(payload);
     return items
         .whereType<Map>()
-        .map((Map item) => CouponModel.fromJson(Map<String, dynamic>.from(item)))
+        .map(
+          (Map item) => CouponModel.fromJson(Map<String, dynamic>.from(item)),
+        )
         .where((CouponModel coupon) => coupon.code.isNotEmpty)
         .toList(growable: false);
   }

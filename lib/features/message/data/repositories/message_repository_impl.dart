@@ -5,6 +5,7 @@ import 'package:hamro_footsall/core/api/api_client/result.dart';
 import 'package:hamro_footsall/core/helper/exception_helper.dart';
 import 'package:hamro_footsall/core/helper/response_helper.dart';
 import 'package:hamro_footsall/core/helper/share_preferences.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 import 'package:hamro_footsall/features/message/data/data_source/message_remote_data_source.dart';
 import 'package:hamro_footsall/features/message/data/model/chat_message_model.dart';
 import 'package:hamro_footsall/features/message/data/model/chat_send_request.dart';
@@ -31,7 +32,9 @@ final class MessageRepositoryImpl extends MessageRepository {
   }
 
   AppException _parseError(String what) => DefaultException(
-    errorMessage: 'Could not parse $what from server.',
+    errorMessage:
+        '${StringConstants.couldNotParsePrefix}$what'
+        '${StringConstants.fromServerSuffix}',
     statusCode: 0,
   );
 

@@ -3,6 +3,7 @@ import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/features/expenses/presentation/utils/expense_ui_utils.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 /// Large NPR amount entry card with live thousands-separator formatting.
 class ExpenseAmountCard extends StatelessWidget {
@@ -50,7 +51,7 @@ class ExpenseAmountCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Text(
-                  'NPR',
+                  StringConstants.npr,
                   style: textTheme.bodyTextMedium?.copyWith(
                     fontSize: (textTheme.bodyTextMedium?.fontSize ?? 14) + 2,
                     color: LightColor.secondaryColor,

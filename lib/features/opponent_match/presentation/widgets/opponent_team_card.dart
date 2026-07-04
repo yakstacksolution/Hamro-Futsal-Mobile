@@ -5,6 +5,7 @@ import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/features/opponent_match/data/model/opponent_match_model.dart';
 import 'package:hamro_footsall/features/opponent_match/presentation/widgets/opponent_common.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 enum _TeamAction { edit, delete }
 
@@ -107,7 +108,7 @@ class OpponentTeamCard extends StatelessWidget {
                   ),
                 ),
                 _CardOptionsMenu(
-                  tooltip: 'Team options',
+                  tooltip: StringConstants.teamOptions,
                   onUpdate: onEditTeam,
                   onDelete: onDeleteTeam,
                 ),
@@ -162,7 +163,9 @@ class OpponentTeamCard extends StatelessWidget {
                   ),
                   const SizedBox(width: AppDimens.paddingX6),
                   Text(
-                    team.players.isEmpty ? 'Add your first player' : 'Add Player',
+                    team.players.isEmpty
+                        ? 'Add your first player'
+                        : 'Add Player',
                     style: textTheme.bodyTextSmall?.copyWith(
                       fontWeight: FontWeight.w700,
                       color: LightColor.secondaryColor,
@@ -201,9 +204,7 @@ class _CardOptionsMenu extends StatelessWidget {
     return PopupMenuItem(
       value: value,
       height: AppDimens.sizeX40,
-      padding: AppUtils().getPadding(
-        symmetricHorizontal: AppDimens.paddingX14,
-      ),
+      padding: AppUtils().getPadding(symmetricHorizontal: AppDimens.paddingX14),
       child: Row(
         children: [
           Icon(icon, size: AppDimens.sizeX16, color: color),
@@ -252,14 +253,14 @@ class _CardOptionsMenu extends StatelessWidget {
           context,
           value: _TeamAction.edit,
           icon: Icons.edit_outlined,
-          label: 'Update',
+          label: StringConstants.update,
           color: LightColor.secondaryColor,
         ),
         _item(
           context,
           value: _TeamAction.delete,
           icon: Icons.delete_outline_rounded,
-          label: 'Delete',
+          label: StringConstants.delete,
           color: LightColor.redColor,
         ),
       ],
@@ -338,7 +339,7 @@ class _PlayerRow extends StatelessWidget {
           ),
           const SizedBox(width: AppDimens.paddingX4),
           _CardOptionsMenu(
-            tooltip: 'Player options',
+            tooltip: StringConstants.playerOptions,
             onUpdate: onEdit,
             onDelete: onDelete,
           ),
@@ -362,7 +363,8 @@ class _EmptyRosterHint extends StatelessWidget {
         AppDimens.paddingX12,
       ),
       child: Text(
-        'Add players with their position — goalkeeper, defender, midfielder or forward.',
+        StringConstants
+            .addPlayersWithTheirPositionGoalkeeperDefenderMid3034fc58,
         style: textTheme.bodyTextSmall?.copyWith(
           color: LightColor.secondaryTextColor,
           height: 1.4,

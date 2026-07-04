@@ -4,6 +4,7 @@ import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/features/expenses/presentation/utils/expense_ui_utils.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 /// Custom range date picker shown in a bottom sheet — replaces the default
 /// Material `showDateRangePicker` dialog so the look matches the rest of the
@@ -64,7 +65,9 @@ class _ExpenseDateRangeSheetState extends State<ExpenseDateRangeSheet> {
     super.initState();
     _first = _d(widget.firstDate);
     _last = _d(widget.lastDate);
-    _start = widget.initialRange == null ? null : _d(widget.initialRange!.start);
+    _start = widget.initialRange == null
+        ? null
+        : _d(widget.initialRange!.start);
     _end = widget.initialRange == null ? null : _d(widget.initialRange!.end);
     final anchor = _start ?? _d(DateTime.now());
     _visibleMonth = DateTime(anchor.year, anchor.month);
@@ -72,15 +75,15 @@ class _ExpenseDateRangeSheetState extends State<ExpenseDateRangeSheet> {
 
   bool get _canApply => _start != null;
 
-  bool get _canPrev =>
-      DateTime(_visibleMonth.year, _visibleMonth.month).isAfter(
-        DateTime(_first.year, _first.month),
-      );
+  bool get _canPrev => DateTime(
+    _visibleMonth.year,
+    _visibleMonth.month,
+  ).isAfter(DateTime(_first.year, _first.month));
 
-  bool get _canNext =>
-      DateTime(_visibleMonth.year, _visibleMonth.month).isBefore(
-        DateTime(_last.year, _last.month),
-      );
+  bool get _canNext => DateTime(
+    _visibleMonth.year,
+    _visibleMonth.month,
+  ).isBefore(DateTime(_last.year, _last.month));
 
   void _changeMonth(int delta) {
     setState(() {
@@ -189,7 +192,7 @@ class _ExpenseDateRangeSheetState extends State<ExpenseDateRangeSheet> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Custom range',
+              StringConstants.customRange,
               style: textTheme.bodyTextLarge?.copyWith(
                 fontWeight: FontWeight.w800,
                 color: LightColor.primaryTextColor,
@@ -220,16 +223,8 @@ class _ExpenseDateRangeSheetState extends State<ExpenseDateRangeSheet> {
     final items = <(String, DateTime, DateTime)>[
       ('7 days', today.subtract(const Duration(days: 6)), today),
       ('30 days', today.subtract(const Duration(days: 29)), today),
-      (
-        'This month',
-        DateTime(today.year, today.month, 1),
-        today,
-      ),
-      (
-        'This year',
-        DateTime(today.year, 1, 1),
-        today,
-      ),
+      ('This month', DateTime(today.year, today.month, 1), today),
+      ('This year', DateTime(today.year, 1, 1), today),
     ];
     return SizedBox(
       height: AppDimens.sizeX32,
@@ -240,8 +235,7 @@ class _ExpenseDateRangeSheetState extends State<ExpenseDateRangeSheet> {
         separatorBuilder: (_, __) => const SizedBox(width: AppDimens.paddingX8),
         itemBuilder: (_, i) {
           final (label, start, end) = items[i];
-          final selected =
-              _start == _clamp(start) && _end == _clamp(end);
+          final selected = _start == _clamp(start) && _end == _clamp(end);
           return _Pill(
             label: label,
             selected: selected,
@@ -411,16 +405,16 @@ class _ExpenseDateRangeSheetState extends State<ExpenseDateRangeSheet> {
                 borderRadius: BorderRadius.circular(AppDimens.radiusX12),
               ),
             ),
-            child: const Text('Cancel'),
+            child: const Text(StringConstants.cancel),
           ),
         ),
         const SizedBox(width: AppDimens.paddingX12),
         Expanded(
           child: FilledButton(
             onPressed: _canApply
-                ? () => Navigator.of(context).pop(
-                    DateTimeRange(start: _start!, end: _end ?? _start!),
-                  )
+                ? () => Navigator.of(
+                    context,
+                  ).pop(DateTimeRange(start: _start!, end: _end ?? _start!))
                 : null,
             style: FilledButton.styleFrom(
               backgroundColor: LightColor.secondaryColor,
@@ -433,7 +427,7 @@ class _ExpenseDateRangeSheetState extends State<ExpenseDateRangeSheet> {
                 borderRadius: BorderRadius.circular(AppDimens.radiusX12),
               ),
             ),
-            child: const Text('Apply'),
+            child: const Text(StringConstants.apply),
           ),
         ),
       ],
@@ -516,7 +510,9 @@ class _NavButton extends StatelessWidget {
           child: Icon(
             icon,
             size: 22,
-            color: enabled ? LightColor.primaryTextColor : LightColor.dividerColor,
+            color: enabled
+                ? LightColor.primaryTextColor
+                : LightColor.dividerColor,
           ),
         ),
       ),

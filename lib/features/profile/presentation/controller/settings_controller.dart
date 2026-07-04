@@ -61,12 +61,15 @@ class SettingsController extends ChangeNotifier {
   /// them from `/auth/me` so the toggles reflect the stored preferences.
   Future<void> _seedNotificationPrefsFromProfile() async {
     final result = await _profileUseCase.getProfile();
-    result.fold((_) {
-      // Offline or failed fetch: keep the locally cached values.
-    }, (profile) {
-      _applyNotificationPrefs(profile.data.notificationPreferences);
-      notifyListeners();
-    });
+    result.fold(
+      (_) {
+        // Offline or failed fetch: keep the locally cached values.
+      },
+      (profile) {
+        _applyNotificationPrefs(profile.data.notificationPreferences);
+        notifyListeners();
+      },
+    );
   }
 
   void _applyNotificationPrefs(NotificationPreferences prefs) {

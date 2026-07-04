@@ -15,8 +15,7 @@ class WishlistStore {
 
   void seed(List<int> venueIds) => ids.value = <int>{...venueIds};
 
-  bool contains(int? venueId) =>
-      venueId != null && ids.value.contains(venueId);
+  bool contains(int? venueId) => venueId != null && ids.value.contains(venueId);
 
   /// Local flip only — persistence is the caller's job.
   void toggleLocal(int venueId) {

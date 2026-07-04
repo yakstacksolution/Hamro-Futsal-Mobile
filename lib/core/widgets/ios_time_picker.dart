@@ -5,6 +5,7 @@ import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/widgets/custom_button.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 Future<TimeOfDay?> showIOSTimePicker({
   required BuildContext context,
@@ -18,9 +19,8 @@ Future<TimeOfDay?> showIOSTimePicker({
         top: Radius.circular(AppDimens.radiusX20),
       ),
     ),
-    builder: (BuildContext context) => _IOSTimePickerSheet(
-      initialTime: initialTime,
-    ),
+    builder: (BuildContext context) =>
+        _IOSTimePickerSheet(initialTime: initialTime),
   );
 }
 
@@ -45,8 +45,9 @@ class _IOSTimePickerSheetState extends State<_IOSTimePickerSheet> {
     _selectedHour = widget.initialTime.hour;
     _selectedMinute = widget.initialTime.minute;
     _hourController = FixedExtentScrollController(initialItem: _selectedHour);
-    _minuteController =
-        FixedExtentScrollController(initialItem: _selectedMinute);
+    _minuteController = FixedExtentScrollController(
+      initialItem: _selectedMinute,
+    );
   }
 
   @override
@@ -80,7 +81,7 @@ class _IOSTimePickerSheetState extends State<_IOSTimePickerSheet> {
                 GestureDetector(
                   onTap: () => Navigator.pop(context),
                   child: Text(
-                    'Cancel',
+                    StringConstants.cancel,
                     style: textTheme.bodyTextMedium?.copyWith(
                       color: LightColor.secondaryColor,
                       fontWeight: FontWeight.w600,
@@ -88,7 +89,7 @@ class _IOSTimePickerSheetState extends State<_IOSTimePickerSheet> {
                   ),
                 ),
                 Text(
-                  'Select Time',
+                  StringConstants.selectTime,
                   style: textTheme.bodyTextLarge?.copyWith(
                     color: LightColor.primaryTextColor,
                     fontWeight: FontWeight.w800,
@@ -100,7 +101,7 @@ class _IOSTimePickerSheetState extends State<_IOSTimePickerSheet> {
                     TimeOfDay(hour: _selectedHour, minute: _selectedMinute),
                   ),
                   child: Text(
-                    'Done',
+                    StringConstants.done,
                     style: textTheme.bodyTextMedium?.copyWith(
                       color: LightColor.secondaryColor,
                       fontWeight: FontWeight.w600,
@@ -110,14 +111,9 @@ class _IOSTimePickerSheetState extends State<_IOSTimePickerSheet> {
               ],
             ),
           ),
-          Divider(
-            height: 1,
-            color: LightColor.greyBorderColor,
-          ),
+          Divider(height: 1, color: LightColor.greyBorderColor),
           Padding(
-            padding: AppUtils().getPadding(
-              vertical: AppDimens.paddingX16,
-            ),
+            padding: AppUtils().getPadding(vertical: AppDimens.paddingX16),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
@@ -157,7 +153,7 @@ class _IOSTimePickerSheetState extends State<_IOSTimePickerSheet> {
               vertical: AppDimens.paddingX16,
             ),
             child: CustomButton(
-              text: 'Confirm',
+              text: StringConstants.confirm,
               backgroundColor: LightColor.secondaryColor,
               foregroundColor: LightColor.whiteColor,
               minHeight: AppDimens.sizeX46,

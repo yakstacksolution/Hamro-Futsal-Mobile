@@ -104,7 +104,9 @@ class _SmallHorizontalStep extends StatelessWidget {
                 : LightColor.inputFillColor,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: isSelected ? LightColor.secondaryColor : LightColor.borderColor,
+              color: isSelected
+                  ? LightColor.secondaryColor
+                  : LightColor.borderColor,
               width: isSelected ? 1.2 : 1,
             ),
           ),
@@ -117,7 +119,9 @@ class _SmallHorizontalStep extends StatelessWidget {
                     width: 24,
                     height: 24,
                     decoration: BoxDecoration(
-                      color: isSelected ? LightColor.secondaryColor : LightColor.whiteColor,
+                      color: isSelected
+                          ? LightColor.secondaryColor
+                          : LightColor.whiteColor,
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
                         color: isSelected
@@ -131,8 +135,12 @@ class _SmallHorizontalStep extends StatelessWidget {
                           : icon,
                       size: 14,
                       color: status == StepStatus.complete
-                          ? (isSelected ? Colors.white : LightColor.secondaryColor)
-                          : (isSelected ? Colors.white : LightColor.secondaryColor),
+                          ? (isSelected
+                                ? Colors.white
+                                : LightColor.secondaryColor)
+                          : (isSelected
+                                ? Colors.white
+                                : LightColor.secondaryColor),
                     ),
                   ),
                   const SizedBox(width: 6),

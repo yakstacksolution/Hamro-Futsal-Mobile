@@ -436,11 +436,15 @@ class ApiClient {
   }
 
   Future<Result> getMyBookings() {
-    return _get(url: '$_baseUrl/bookings/my-bookings');
+    return _get(url: '$_baseUrl/bookings');
+  }
+
+  Future<Result> getBookingDetails({required int bookingId}) {
+    return _get(url: '$_baseUrl/bookings/$bookingId');
   }
 
   Future<Result> getFutsalBookings() {
-    return _get(url: '$_baseUrl/bookings/futsal-bookings');
+    return _get(url: '$_baseUrl/futsal-bookings');
   }
 
   // ── Opponent-match teams ──

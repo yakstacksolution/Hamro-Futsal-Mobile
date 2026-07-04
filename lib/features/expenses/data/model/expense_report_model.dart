@@ -250,7 +250,6 @@ class ExpenseReport {
     records: records ?? this.records,
   );
 
- 
   static Map<String, dynamic> _data(dynamic payload) {
     if (payload is Map) {
       final inner = payload['data'];
@@ -268,7 +267,7 @@ class ExpenseReport {
         ? ExpenseSummary.fromJson(summaryJson)
         : ExpenseSummary.empty;
 
-     final analytics = data['analytics'];
+    final analytics = data['analytics'];
     ExpenseTrend trend = ExpenseTrend.empty;
     final byCategory = <ExpenseCategorySpend>[];
     final byCourt = <ExpenseCourtSpend>[];
@@ -300,7 +299,7 @@ class ExpenseReport {
     byCategory.sort((a, b) => b.amount.compareTo(a.amount));
     byCourt.sort((a, b) => b.amount.compareTo(a.amount));
 
-     final records = <ExpenseModel>[];
+    final records = <ExpenseModel>[];
     final recordsNode = data['records'];
     dynamic items;
     if (recordsNode is Map) {

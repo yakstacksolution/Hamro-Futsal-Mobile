@@ -7,6 +7,7 @@ import 'package:hamro_footsall/features/expenses/data/model/expense_report_model
 import 'package:hamro_footsall/features/expenses/presentation/utils/expense_ui_utils.dart';
 import 'package:hamro_footsall/features/expenses/presentation/widgets/expense_common.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 /// Hourly/daily/monthly spend column chart with tracks and tap tooltips,
 /// driven by the server-computed [ExpenseReport.trend].
@@ -25,8 +26,8 @@ class ExpenseTrendCard extends StatelessWidget {
 
     if (buckets.isEmpty) {
       return const ExpenseEmptyState(
-        title: 'No trend yet',
-        message: 'No expenses recorded for this range.',
+        title: StringConstants.noTrendYet,
+        message: StringConstants.noExpensesRecordedForThisRange,
       );
     }
 
@@ -153,8 +154,8 @@ class ExpenseCategoryCard extends StatelessWidget {
 
     if (entries.isEmpty) {
       return const ExpenseEmptyState(
-        title: 'Nothing to break down',
-        message: 'No expenses recorded for this range.',
+        title: StringConstants.nothingToBreakDown,
+        message: StringConstants.noExpensesRecordedForThisRange,
       );
     }
 
@@ -189,7 +190,7 @@ class ExpenseCategoryCard extends StatelessWidget {
                               ),
                             ),
                             Text(
-                              'cats',
+                              StringConstants.cats,
                               style: textTheme.bodyTextSmall?.copyWith(
                                 fontSize: AppDimens.fontBodySubTitle,
                                 color: LightColor.hintTextColor,

@@ -46,12 +46,7 @@ class TokenModel extends Equatable {
   }
 
   @override
-  List<Object?> get props => [
-        tokenType,
-        expiredIn,
-        accessToken,
-        refreshToken,
-      ];
+  List<Object?> get props => [tokenType, expiredIn, accessToken, refreshToken];
 
   @override
   bool get stringify => true;

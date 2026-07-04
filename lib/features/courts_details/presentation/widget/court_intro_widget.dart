@@ -6,6 +6,7 @@ import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/widgets/custom_html_viewer.dart';
 import 'package:hamro_footsall/features/courts_details/presentation/page/court_details.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/widgets/venue_status_widget.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class CourtIntroWidget extends StatelessWidget {
   final CourtDetailModel court;
@@ -232,7 +233,7 @@ class CourtIntroWidget extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'About this court',
+                      StringConstants.aboutThisCourt,
                       style: FutsalTheme.getTextTheme(context).bodyTextLarge!
                           .copyWith(
                             color: LightColor.primaryTextColor,
@@ -241,7 +242,7 @@ class CourtIntroWidget extends StatelessWidget {
                     ),
                     const SizedBox(height: AppDimens.sizeX3),
                     Text(
-                      'Overview and important details',
+                      StringConstants.overviewAndImportantDetails,
                       style: FutsalTheme.getTextTheme(context).bodyTextSmall!
                           .copyWith(
                             color: LightColor.hintTextColor,
@@ -269,7 +270,7 @@ class CourtIntroWidget extends StatelessWidget {
                         ),
                   )
                 : Text(
-                    'No description available for this court yet.',
+                    StringConstants.noDescriptionAvailableForThisCourtYet,
                     style: FutsalTheme.getTextTheme(context).bodyTextMedium!
                         .copyWith(
                           color: LightColor.hintTextColor,

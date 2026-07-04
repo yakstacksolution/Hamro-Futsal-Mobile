@@ -38,7 +38,10 @@ class CreateCourtsStepScaffold extends StatelessWidget {
                   gradient: const LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: <Color>[LightColor.secondaryColor, Color(0xFF2F87E0)],
+                    colors: <Color>[
+                      LightColor.secondaryColor,
+                      Color(0xFF2F87E0),
+                    ],
                   ),
                   borderRadius: BorderRadius.circular(8),
                   boxShadow: <BoxShadow>[

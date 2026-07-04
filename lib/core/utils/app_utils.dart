@@ -125,10 +125,15 @@ final class AppUtils {
     );
   }
 
-  showSnackBar(BuildContext context, MsgType msgType, String message, {Object? key}) {
+  showSnackBar(
+    BuildContext context,
+    MsgType msgType,
+    String message, {
+    Object? key,
+  }) {
     // Create a unique key based on message content to prevent duplicates
     final messageKey = key ?? '${msgType.name}_${message.hashCode}';
-    
+
     showTopSnackBar(
       Overlay.of(context),
       msgType == MsgType.error
