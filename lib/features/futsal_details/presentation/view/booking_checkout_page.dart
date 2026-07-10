@@ -13,12 +13,12 @@ import 'package:hamro_footsall/core/utils/scroll_behavior.dart';
 import 'package:hamro_footsall/core/widgets/custom_app_bar.dart';
 import 'package:hamro_footsall/core/widgets/custom_button.dart';
 import 'package:hamro_footsall/core/widgets/custom_text_field.dart';
+import 'package:hamro_footsall/core/widgets/payment_qr_card.dart';
 import 'package:hamro_footsall/features/coupons/data/model/coupon_model.dart';
 import 'package:hamro_footsall/features/coupons/presentation/bloc/coupon_bloc.dart';
 import 'package:hamro_footsall/features/futsal_details/data/model/booking_draft.dart';
 import 'package:hamro_footsall/features/futsal_details/data/model/booking_quote_model.dart';
 import 'package:hamro_footsall/features/futsal_details/data/model/create_booking_request.dart';
-import 'package:hamro_footsall/features/futsal_details/data/model/payment_qr_model.dart';
 import 'package:hamro_footsall/features/futsal_details/presentation/bloc/booking_hold/booking_hold_bloc.dart';
 import 'package:hamro_footsall/features/futsal_details/presentation/bloc/create_booking/create_booking_bloc.dart';
 import 'package:hamro_footsall/features/futsal_details/presentation/bloc/payment_qr/payment_qr_bloc.dart';
@@ -294,7 +294,7 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
         balanceDue: pricing.balanceDue,
       ),
     );
-    if (mounted) Navigator.of(context).pop();
+    if (mounted) Navigator.of(context).pop(true);
   }
 
   @override
@@ -391,11 +391,21 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
                 const SizedBox(height: AppDimens.sizeX20),
 
                 const _SectionLabel('Payment'),
-                _QrCard(
-                  qrState: context.watch<PaymentQrBloc>().state,
-                  fallbackPayeeName: _payeeName,
-                  fallbackPayeeId: _payeeId,
-                  amount: pricing.advance,
+                Builder(
+                  builder: (context) {
+                    final PaymentQrState qrState = context
+                        .watch<PaymentQrBloc>()
+                        .state;
+                    return PaymentQrCard(
+                      qr: qrState.qr,
+                      isLoading: qrState.isLoading,
+                      fallbackPayeeName: _payeeName,
+                      fallbackPayeeId: _payeeId,
+                      amountLabel: StringConstants.advanceToPay,
+                      amountValue:
+                          'Rs ${pricing.advance.toStringAsFixed(0)}',
+                    );
+                  },
                 ),
                 const SizedBox(height: AppDimens.sizeX20),
 
@@ -1211,209 +1221,6 @@ class _MiniRow extends StatelessWidget {
 }
 
 /// ─────────────────────────── Company QR ───────────────────────────
-
-class _QrCard extends StatelessWidget {
-  const _QrCard({
-    required this.qrState,
-    required this.fallbackPayeeName,
-    required this.fallbackPayeeId,
-    required this.amount,
-  });
-
-  final PaymentQrState qrState;
-  final String fallbackPayeeName;
-  final String fallbackPayeeId;
-  final double amount;
-
-  PaymentQrModel? get _qr => qrState.qr;
-
-  String get _payeeName {
-    final String? name = _qr?.payeeName;
-    return (name != null && name.isNotEmpty) ? name : fallbackPayeeName;
-  }
-
-  String get _payeeId {
-    final String? id = _qr?.accountId;
-    return (id != null && id.isNotEmpty) ? id : fallbackPayeeId;
-  }
-
-  // String get _methodsLabel {
-  //   final List<String> methods = _qr?.methods ?? const <String>[];
-  //   if (methods.isNotEmpty) return methods.join(' · ');
-  //   return 'eSewa · Khalti · Mobile banking';
-  // }
-
-  Widget _qrImage(double size) {
-    final PaymentQrModel? qr = _qr;
-    if (qr != null && qr.qrImageBytes != null) {
-      return Image.memory(
-        qr.qrImageBytes!,
-        width: size,
-        height: size,
-        fit: BoxFit.contain,
-        gaplessPlayback: true,
-        errorBuilder: (_, __, ___) => _qrPlaceholder(size),
-      );
-    }
-    if (qr != null && qr.qrImageUrl != null) {
-      return CustomImageView(
-        url: qr.qrImageUrl,
-        width: size,
-        height: size,
-        fit: BoxFit.contain,
-      );
-    }
-    return _qrPlaceholder(size);
-  }
-
-  Widget _qrPlaceholder(double size) {
-    if (qrState.isLoading) {
-      return SizedBox(
-        width: size,
-        height: size,
-        child: const Center(
-          child: SizedBox(
-            width: AppDimens.sizeX24,
-            height: AppDimens.sizeX24,
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              color: LightColor.secondaryColor,
-            ),
-          ),
-        ),
-      );
-    }
-    // No QR from the server: keep the section usable with a neutral placeholder.
-    return SizedBox(
-      width: size,
-      height: size,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: <Widget>[
-          Icon(
-            Icons.qr_code_2_rounded,
-            size: size * 0.4,
-            color: LightColor.hintTextColor,
-          ),
-          const SizedBox(height: AppDimens.sizeX6),
-          const Text(
-            StringConstants.qrUnavailable,
-            style: TextStyle(
-              color: LightColor.hintTextColor,
-              fontSize: AppDimens.sizeX12,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _zoom(BuildContext context) {
-    if (!(_qr?.hasQr ?? false)) return;
-    showDialog<void>(
-      context: context,
-      builder: (BuildContext context) => Dialog(
-        backgroundColor: LightColor.whiteColor,
-        insetPadding: AppUtils().getPadding(all: AppDimens.paddingX24),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppDimens.radiusX16),
-        ),
-        child: Padding(
-          padding: AppUtils().getPadding(all: AppDimens.paddingX24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              _qrImage(AppDimens.sizeX250),
-              const SizedBox(height: AppDimens.sizeX16),
-              Text(
-                _payeeName,
-                textAlign: TextAlign.center,
-                style: FutsalTheme.getTextTheme(context).bodyTextMedium
-                    ?.copyWith(
-                      color: LightColor.primaryTextColor,
-                      fontWeight: FontWeight.w700,
-                    ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = FutsalTheme.getTextTheme(context);
-    final bool hasQr = _qr?.hasQr ?? false;
-    final String? note = _qr?.note;
-    return _Surface(
-      child: Column(
-        children: <Widget>[
-          GestureDetector(
-            onTap: hasQr ? () => _zoom(context) : null,
-            child: Container(
-              padding: AppUtils().getPadding(all: AppDimens.paddingX12),
-              decoration: BoxDecoration(
-                color: LightColor.whiteColor,
-                borderRadius: BorderRadius.circular(AppDimens.radiusX12),
-                border: Border.all(
-                  color: LightColor.dividerColor.withValues(alpha: 0.9),
-                ),
-              ),
-              child: _qrImage(AppDimens.sizeX150),
-            ),
-          ),
-          const SizedBox(height: AppDimens.sizeX12),
-          Text(
-            _payeeName,
-            style: textTheme.bodyTextSmall?.copyWith(
-              color: LightColor.primaryTextColor,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          if (_qr?.accountId != null) ...<Widget>[
-            const SizedBox(height: AppDimens.sizeX2),
-            Text(
-              _payeeId,
-              style: textTheme.bodyMiniSubTitle?.copyWith(
-                color: LightColor.secondaryTextColor,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-
-          if (note != null) ...<Widget>[
-            const SizedBox(height: AppDimens.sizeX6),
-            Text(
-              note,
-              textAlign: TextAlign.center,
-              style: textTheme.bodyMiniSubTitle?.copyWith(
-                color: LightColor.hintTextColor,
-                fontWeight: FontWeight.w500,
-                height: 1.4,
-              ),
-            ),
-          ],
-          Padding(
-            padding: AppUtils().getPadding(
-              symmetricVertical: AppDimens.paddingX12,
-            ),
-            child: Divider(
-              height: 1,
-              color: LightColor.dividerColor.withValues(alpha: 0.8),
-            ),
-          ),
-          _InfoRow(
-            label: StringConstants.advanceToPay,
-            value: 'Rs ${amount.toStringAsFixed(0)}',
-            emphasize: true,
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 /// ─────────────────────────── Upload ───────────────────────────
 

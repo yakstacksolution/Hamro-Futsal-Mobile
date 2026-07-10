@@ -72,6 +72,8 @@ BookingModel _booking({
     amount: 1500,
     playerName: playerName,
     payableNow: payableNow,
-    payment: payment,
+    payments: payment == null
+        ? const <BookingPaymentModel>[]
+        : <BookingPaymentModel>[payment],
   );
 }

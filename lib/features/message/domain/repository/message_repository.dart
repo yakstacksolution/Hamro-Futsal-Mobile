@@ -15,8 +15,9 @@ abstract class MessageRepository {
     bool archived = false,
   });
   Future<Either<AppException, ConversationModel>> startDirectConversation({
-    required int vendorId,
+    int? vendorId,
     int? venueId,
+    int? userId,
   });
   Future<Either<AppException, ConversationModel>> createGroupConversation({
     required String title,

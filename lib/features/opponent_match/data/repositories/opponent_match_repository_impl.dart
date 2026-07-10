@@ -1,24 +1,35 @@
+import 'dart:math';
+
 import 'package:dartz/dartz.dart';
 import 'package:hamro_footsall/core/helper/exception_helper.dart';
 import 'package:hamro_footsall/core/helper/response_helper.dart';
 import 'package:hamro_footsall/features/opponent_match/data/data_source/opponent_match_data_source.dart';
+import 'package:hamro_footsall/features/opponent_match/data/model/accept_opponent_request_request.dart';
+import 'package:hamro_footsall/features/opponent_match/data/model/opponent_accept_quote_model.dart';
 import 'package:hamro_footsall/features/opponent_match/data/model/opponent_match_model.dart';
 import 'package:hamro_footsall/features/opponent_match/domain/entities/opponent_match_entities.dart';
 import 'package:hamro_footsall/features/opponent_match/domain/repository/opponent_match_repository.dart';
 
 final class OpponentMatchRepositoryImpl extends OpponentMatchRepository {
+  // Teams/members are backend-only; requests hit the API but fall back to
+  // the static expected response while those endpoints aren't live yet.
   OpponentMatchRepositoryImpl({
     OpponentMatchDataSource? dataSource,
     TeamRemoteDataSource? teamDataSource,
+    OpponentRequestRemoteDataSource? requestDataSource,
   }) : _dataSource = dataSource ?? OpponentMatchLocalDataSourceImpl(),
-       _teamDataSource = teamDataSource ?? TeamRemoteDataSourceImpl();
+       _teamDataSource = teamDataSource ?? TeamRemoteDataSourceImpl(),
+       _requestDataSource =
+           requestDataSource ??
+           (kUseOpponentRequestMock
+               ? OpponentRequestMockDataSourceImpl()
+               : OpponentRequestFallbackDataSourceImpl());
 
   final OpponentMatchDataSource _dataSource;
   final TeamRemoteDataSource _teamDataSource;
+  final OpponentRequestRemoteDataSource _requestDataSource;
 
   final List<TeamModel> _teams = [];
-  final List<OpponentRequestModel> _requests = [];
-  bool _requestsLoaded = false;
 
   AppException _error(String message) =>
       DefaultException(errorMessage: message, statusCode: 0);
@@ -128,16 +139,25 @@ final class OpponentMatchRepositoryImpl extends OpponentMatchRepository {
 
   @override
   Future<Either<AppException, List<OpponentRequestModel>>> getRequests() async {
+    final response = await _requestDataSource.fetchRequests();
+    if (response.isError()) {
+      return left(ResponseHelper.error(response));
+    }
     try {
-      if (!_requestsLoaded) {
-        _requests
-          ..clear()
-          ..addAll(await _dataSource.fetchRequests());
-        _requestsLoaded = true;
-      }
-      return right(List.unmodifiable(_requests));
+      final items = _findList(
+        response.getValue(),
+        keys: const ['data', 'requests', 'items', 'results'],
+        depth: 0,
+      );
+      final requests = items
+          .whereType<Map>()
+          .map(
+            (e) => OpponentRequestModel.fromJson(Map<String, dynamic>.from(e)),
+          )
+          .toList(growable: false);
+      return right(requests);
     } catch (_) {
-      return left(_error('Could not load opponent requests.'));
+      return left(_error('Could not parse opponent requests from server.'));
     }
   }
 
@@ -274,37 +294,116 @@ final class OpponentMatchRepositoryImpl extends OpponentMatchRepository {
   Future<Either<AppException, List<OpponentRequestModel>>> sendRequest(
     CreateOpponentRequestEntity data,
   ) async {
-    try {
-      _requests.insert(
-        0,
-        data.toModel('r${DateTime.now().microsecondsSinceEpoch}'),
-      );
-      return right(List.unmodifiable(_requests));
-    } catch (_) {
-      return left(_error('Could not send the request.'));
-    }
+    // The key lets the server dedupe network-level retries of the same tap.
+    final body = data.toJson()..['idempotency_key'] = _idempotencyKey();
+    return _mutateRequestsThenReload(
+      () => _requestDataSource.createRequest(body),
+    );
   }
 
   @override
-  Future<Either<AppException, List<OpponentRequestModel>>> updateRequestStatus(
+  Future<Either<AppException, List<OpponentRequestModel>>> declineRequest(
     String id,
-    RequestStatus status,
   ) async {
-    final i = _requests.indexWhere((r) => r.id == id);
-    if (i < 0) return left(_error('Request not found.'));
-    _requests[i] = _requests[i].copyWith(status: status);
-    return right(List.unmodifiable(_requests));
+    return _mutateRequestsThenReload(() => _requestDataSource.decline(id));
   }
 
   @override
   Future<Either<AppException, List<OpponentRequestModel>>> deleteRequest(
     String id,
   ) async {
-    final lengthBefore = _requests.length;
-    _requests.removeWhere((r) => r.id == id);
-    if (_requests.length == lengthBefore) {
-      return left(_error('Request not found.'));
+    return _mutateRequestsThenReload(() => _requestDataSource.delete(id));
+  }
+
+  @override
+  Future<Either<AppException, List<OpponentRequestModel>>> verifyPayment(
+    String id,
+  ) async {
+    return _mutateRequestsThenReload(
+      () => _requestDataSource.verifyPayment(id),
+    );
+  }
+
+  @override
+  Future<Either<AppException, List<OpponentRequestModel>>> rejectPayment(
+    String id,
+    String reason,
+  ) async {
+    return _mutateRequestsThenReload(
+      () => _requestDataSource.rejectPayment(id, reason),
+    );
+  }
+
+  @override
+  Future<Either<AppException, OpponentAcceptQuoteModel>> getAcceptQuote(
+    String requestId,
+    String teamId,
+  ) async {
+    final response = await _requestDataSource.createAcceptQuote(requestId, {
+      'team_id': teamId,
+    });
+    if (response.isError()) {
+      return left(ResponseHelper.error(response));
     }
-    return right(List.unmodifiable(_requests));
+    try {
+      final quote = OpponentAcceptQuoteModel.fromResponse(response.getValue());
+      if (quote.holdToken.isEmpty) {
+        return left(_error('The server did not return an accept hold.'));
+      }
+      return right(quote);
+    } catch (_) {
+      return left(_error('Could not parse the accept quote from server.'));
+    }
+  }
+
+  @override
+  Future<Either<AppException, OpponentRequestModel>> acceptRequest(
+    AcceptOpponentRequestRequest request,
+  ) async {
+    final response = await _requestDataSource.accept(request);
+    if (response.isError()) {
+      return left(ResponseHelper.error(response));
+    }
+    try {
+      return right(
+        OpponentRequestModel.fromJson(_unwrapRequest(response.getValue())),
+      );
+    } catch (_) {
+      return left(_error('Could not parse the accepted request from server.'));
+    }
+  }
+
+  /// POST/DELETE then refresh the list — the server copy is the truth after
+  /// any request mutation (mirrors the teams `_mutateThenReload` pattern,
+  /// including the 204-as-success carve-out for DELETE).
+  Future<Either<AppException, List<OpponentRequestModel>>>
+  _mutateRequestsThenReload(Future<dynamic> Function() action) async {
+    final response = await action();
+    if (response.isError()) {
+      final AppException error = ResponseHelper.error(response);
+      if (error.statusCode != 204) return left(error);
+    }
+    return getRequests();
+  }
+
+  Map<String, dynamic> _unwrapRequest(dynamic payload) {
+    if (payload is Map) {
+      for (final key in const ['data', 'request', 'opponent_request']) {
+        final child = payload[key];
+        if (child is Map) return _unwrapRequest(child);
+      }
+      return Map<String, dynamic>.from(payload);
+    }
+    return <String, dynamic>{};
+  }
+
+  /// Unique-enough key for request deduplication; no uuid dependency needed.
+  String _idempotencyKey() {
+    final random = Random();
+    final suffix = List.generate(
+      4,
+      (_) => random.nextInt(0x10000).toRadixString(16).padLeft(4, '0'),
+    ).join();
+    return 'req-${DateTime.now().microsecondsSinceEpoch}-$suffix';
   }
 }

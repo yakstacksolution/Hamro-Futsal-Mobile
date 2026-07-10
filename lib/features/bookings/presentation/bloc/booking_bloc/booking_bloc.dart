@@ -20,12 +20,14 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
     FetchMyBookingsEvent event,
     Emitter<BookingState> emit,
   ) async {
-    emit(
-      state.copyWith(
-        myBookingsStatus: BookingLoadStatus.loading,
-        clearMyError: true,
-      ),
-    );
+    if (!event.silent) {
+      emit(
+        state.copyWith(
+          myBookingsStatus: BookingLoadStatus.loading,
+          clearMyError: true,
+        ),
+      );
+    }
 
     final result = await _useCase.getMyBookings();
     result.fold(
@@ -33,6 +35,7 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
         state.copyWith(
           myBookingsStatus: BookingLoadStatus.failure,
           myBookingsError: error.errorMessage,
+          refreshTick: state.refreshTick + 1,
         ),
       ),
       (bookings) => emit(
@@ -40,6 +43,7 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
           myBookingsStatus: BookingLoadStatus.success,
           myBookings: bookings,
           clearMyError: true,
+          refreshTick: state.refreshTick + 1,
         ),
       ),
     );
@@ -49,12 +53,14 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
     FetchFutsalBookingsEvent event,
     Emitter<BookingState> emit,
   ) async {
-    emit(
-      state.copyWith(
-        futsalBookingsStatus: BookingLoadStatus.loading,
-        clearFutsalError: true,
-      ),
-    );
+    if (!event.silent) {
+      emit(
+        state.copyWith(
+          futsalBookingsStatus: BookingLoadStatus.loading,
+          clearFutsalError: true,
+        ),
+      );
+    }
 
     final result = await _useCase.getFutsalBookings();
     result.fold(
@@ -62,6 +68,7 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
         state.copyWith(
           futsalBookingsStatus: BookingLoadStatus.failure,
           futsalBookingsError: error.errorMessage,
+          refreshTick: state.refreshTick + 1,
         ),
       ),
       (bookings) => emit(
@@ -69,6 +76,7 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
           futsalBookingsStatus: BookingLoadStatus.success,
           futsalBookings: bookings,
           clearFutsalError: true,
+          refreshTick: state.refreshTick + 1,
         ),
       ),
     );

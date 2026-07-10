@@ -92,12 +92,14 @@ final class MessageRepositoryImpl extends MessageRepository {
 
   @override
   Future<Either<AppException, ConversationModel>> startDirectConversation({
-    required int vendorId,
+    int? vendorId,
     int? venueId,
+    int? userId,
   }) async {
     final response = await _remoteDataSource.startDirectConversation(
       vendorId: vendorId,
       venueId: venueId,
+      userId: userId,
     );
     if (response.isError()) {
       return left(ResponseHelper.error(response));

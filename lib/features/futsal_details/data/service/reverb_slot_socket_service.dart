@@ -14,9 +14,9 @@ import 'package:hamro_footsall/features/futsal_details/data/service/slot_socket_
 /// Two channels feed the slot-selection screen, both multiplexed over the
 /// single shared [ReverbConnection] (the same socket chat uses):
 ///
-/// 1. `private-venue.{venueId}.slots` — fires `venue.slots.updated` after a
+/// 1. `venue.{venueId}.slots` — fires `venue.slots.updated` after a
 ///    booking is created or cancelled; listeners re-fetch the grid.
-/// 2. `presence-venue.{venueId}.booking.{bookingDate}` — fires the six
+/// 2. `venue.{venueId}.booking.{bookingDate}` — fires the six
 ///    `slot.*` / `booking.*` hold events plus a member roster of everyone
 ///    currently viewing/booking that venue + date.
 ///
@@ -40,21 +40,27 @@ final class ReverbSlotSocketService implements SlotSocketService {
   /// Laravel Echo private channel carrying slot availability for a venue.
   static String _venueSlotsChannel(int venueId) {
     final String? template = dotenv.env['REVERB_SLOT_CHANNEL'];
-    if (template != null && template.trim().isNotEmpty) {
-      return template.replaceAll('{venueId}', '$venueId');
-    }
-    return 'private-venue.$venueId.slots';
+    final String name = template != null && template.trim().isNotEmpty
+        ? template.replaceAll('{venueId}', '$venueId')
+        : 'venue.$venueId.slots';
+    return _withChannelPrefix(name, 'private');
   }
 
   /// Presence channel carrying live hold/booking state for one venue + date.
   static String _bookingChannel(int venueId, String bookingDate) {
     final String? template = dotenv.env['REVERB_BOOKING_CHANNEL'];
-    if (template != null && template.trim().isNotEmpty) {
-      return template
-          .replaceAll('{venueId}', '$venueId')
-          .replaceAll('{bookingDate}', bookingDate);
-    }
-    return 'presence-venue.$venueId.booking.$bookingDate';
+    final String name = template != null && template.trim().isNotEmpty
+        ? template
+              .replaceAll('{venueId}', '$venueId')
+              .replaceAll('{bookingDate}', bookingDate)
+        : 'venue.$venueId.booking.$bookingDate';
+    return _withChannelPrefix(name, 'presence');
+  }
+
+  static String _withChannelPrefix(String name, String prefix) {
+    final String trimmed = name.trim();
+    if (trimmed.startsWith('$prefix-')) return trimmed;
+    return '$prefix-$trimmed';
   }
 
   /// The six hold/booking events broadcast on the presence channel.
@@ -72,9 +78,6 @@ final class ReverbSlotSocketService implements SlotSocketService {
   /// Broadcast controllers keyed by venue id.
   final Map<int, StreamController<SlotAvailabilityUpdate>> _slotControllers =
       <int, StreamController<SlotAvailabilityUpdate>>{};
-
-  /// Venues we've already subscribed a slots channel for (subscribe once each).
-  final Set<int> _subscribedVenues = <int>{};
 
   // ── presence-venue.{id}.booking.{date} ────────────────────────────────────
 
@@ -113,7 +116,6 @@ final class ReverbSlotSocketService implements SlotSocketService {
       );
 
   void _ensureSlotsChannel(int venueId) {
-    if (!_subscribedVenues.add(venueId)) return;
     ReverbConnection.instance.privateChannel(
       _venueSlotsChannel(venueId),
       authorizationDelegate: _privateAuthDelegate(),
@@ -131,7 +133,10 @@ final class ReverbSlotSocketService implements SlotSocketService {
     // availability moved — surface it and let listeners re-fetch.
     final Map<String, dynamic>? payload = _decode(event.data);
     if (kDebugMode) {
-      debugPrint('SlotSocket: [$name] on ${_venueSlotsChannel(venueId)}');
+      debugPrint(
+        'SlotSocket: ← [$name] on ${_venueSlotsChannel(venueId)} — '
+        '${event.data}',
+      );
     }
     _slotControllers[venueId]?.add(
       SlotAvailabilityUpdate(
@@ -144,14 +149,20 @@ final class ReverbSlotSocketService implements SlotSocketService {
 
   void _ensureBookingChannel(int venueId, String bookingDate) {
     final String key = _bookingKey(venueId, bookingDate);
-    final _PresenceBinding binding = _bookings.putIfAbsent(
-      key,
-      () => _PresenceBinding(),
-    );
-    if (binding.channel != null) return;
+    final String channelName = _bookingChannel(venueId, bookingDate);
+    _PresenceBinding binding = _bookings[key] ?? _PresenceBinding();
+    if (binding.channel != null &&
+        ReverbConnection.instance.hasChannel(channelName)) {
+      return;
+    }
+    if (binding.channel != null) {
+      binding.close();
+      binding = _PresenceBinding();
+    }
+    _bookings[key] = binding;
 
     final PresenceChannel? channel = ReverbConnection.instance.presenceChannel(
-      _bookingChannel(venueId, bookingDate),
+      channelName,
       authorizationDelegate: _presenceAuthDelegate(),
       onEvent: (event) => _routeBookingEvent(venueId, bookingDate, event),
     );
@@ -178,34 +189,62 @@ final class ReverbSlotSocketService implements SlotSocketService {
     String bookingDate,
     PusherChannelsReadEvent event,
   ) {
-    final String type = _normalizeHoldEvent(event.name);
-    if (type.isEmpty) return;
-    if (kDebugMode) {
+    final String channelName = _bookingChannel(venueId, bookingDate);
+    final bool internal =
+        event.name.startsWith('pusher:') ||
+        event.name.startsWith('pusher_internal:');
+    if (kDebugMode && !internal) {
       debugPrint(
-        'SlotSocket: [$type] on ${_bookingChannel(venueId, bookingDate)} — '
-        '${event.data}',
+        'SlotSocket: ← [${event.name}] on $channelName — ${event.data}',
       );
     }
 
+    final String type = _normalizeHoldEvent(event.name);
+    if (type.isEmpty) {
+      if (kDebugMode && !internal) {
+        debugPrint(
+          'SlotSocket: ⚠ unhandled event "${event.name}" on $channelName '
+          '(known: $_holdEvents)',
+        );
+      }
+      return;
+    }
+
     final Map<String, dynamic>? payload = _decode(event.data);
-    if (payload == null) return;
+    if (payload == null) {
+      if (kDebugMode) {
+        debugPrint('SlotSocket: ⚠ could not decode payload for [$type]');
+      }
+      return;
+    }
     final Map<String, dynamic> data = _eventPayload(payload);
 
-    _bookings[_bookingKey(venueId, bookingDate)]?.events.add(
-      BookingSlotEvent(
-        type: type,
-        venueId: int.tryParse(data['venue_id']?.toString() ?? '') ?? venueId,
-        courtId: int.tryParse(data['court_id']?.toString() ?? ''),
-        bookingDate: _dateFrom(data) ?? bookingDate,
-        startTime: data['start_time']?.toString(),
-        endTime: data['end_time']?.toString(),
-        status: data['status']?.toString(),
-        reason: data['reason']?.toString(),
-        step: data['step']?.toString(),
-        expiresAt: DateTime.tryParse(data['expires_at']?.toString() ?? ''),
-        raw: data,
-      ),
+    // Payloads may use snake_case or camelCase depending on the broadcaster.
+    String? field(String snake, String camel) =>
+        (data[snake] ?? data[camel])?.toString();
+
+    final BookingSlotEvent slotEvent = BookingSlotEvent(
+      type: type,
+      venueId: int.tryParse(field('venue_id', 'venueId') ?? '') ?? venueId,
+      courtId: int.tryParse(field('court_id', 'courtId') ?? ''),
+      bookingDate: _dateFrom(data) ?? bookingDate,
+      startTime: field('start_time', 'startTime'),
+      endTime: field('end_time', 'endTime'),
+      status: data['status']?.toString(),
+      reason: data['reason']?.toString(),
+      step: data['step']?.toString(),
+      expiresAt: DateTime.tryParse(field('expires_at', 'expiresAt') ?? ''),
+      raw: data,
     );
+    if (kDebugMode) {
+      debugPrint(
+        'SlotSocket: ✓ [$type] court=${slotEvent.courtId} '
+        '${slotEvent.startTime}-${slotEvent.endTime} '
+        'status=${slotEvent.status} reason=${slotEvent.reason} '
+        'step=${slotEvent.step} expiresAt=${slotEvent.expiresAt}',
+      );
+    }
+    _bookings[_bookingKey(venueId, bookingDate)]?.events.add(slotEvent);
   }
 
   /// Maps a wire event name onto one of the six hold events, tolerating

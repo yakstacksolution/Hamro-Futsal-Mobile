@@ -6,11 +6,13 @@ import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/widgets/custom_app_bar.dart';
 import 'package:hamro_footsall/core/widgets/custom_button.dart';
+import 'package:hamro_footsall/core/widgets/custom_confirm_dialog.dart';
 import 'package:hamro_footsall/features/opponent_match/data/repositories/opponent_match_repository_impl.dart';
 import 'package:hamro_footsall/features/opponent_match/domain/usecase/opponent_match_usecase.dart';
 import 'package:hamro_footsall/features/opponent_match/presentation/bloc/opponent_match_bloc/opponent_match_bloc.dart';
 import 'package:hamro_footsall/features/opponent_match/presentation/pages/create_opponent_request_page.dart';
 import 'package:hamro_footsall/features/opponent_match/presentation/widgets/opponent_requests_view.dart';
+import 'package:hamro_footsall/features/opponent_match/presentation/widgets/opponent_sheets.dart';
 import 'package:hamro_footsall/features/opponent_match/presentation/widgets/opponent_teams_view.dart';
 import 'package:hamro_footsall/core/utils/string_constants.dart';
 
@@ -67,8 +69,21 @@ class _OpponentMatchViewState extends State<_OpponentMatchView>
     final bloc = context.read<OpponentMatchBloc>();
     // Sending a request needs a team — steer the user to create one first.
     if (bloc.state.teams.isEmpty) {
+      if (bloc.state.teamsStatus == OpponentMatchStatus.loading ||
+          bloc.state.teamsStatus == OpponentMatchStatus.initial) {
+        _showSnack('Your teams are still loading — try again in a moment.');
+        return;
+      }
+      final bool create = await showConfirmDialog(
+        context: context,
+        title: StringConstants.createYourTeamFirst,
+        message: StringConstants.youNeedATeamToChallengeOpponents,
+        confirmText: StringConstants.createTeam,
+        icon: Icons.groups_2_outlined,
+      );
+      if (!create || !mounted) return;
       _tabCtrl.animateTo(1);
-      _showSnack('Create a team first, then send a request.');
+      _openCreateTeamSheet(bloc);
       return;
     }
     final sent = await Navigator.of(context).push<bool>(
@@ -86,6 +101,24 @@ class _OpponentMatchViewState extends State<_OpponentMatchView>
     setState(() => _requestFilter = RequestFilter.mine);
     _tabCtrl.animateTo(0);
     _showSnack('Request sent successfully');
+  }
+
+  /// Same create-team sheet the Teams tab uses (`OpponentTeamsView`).
+  void _openCreateTeamSheet(OpponentMatchBloc bloc) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: LightColor.transparentColor,
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+        child: CreateTeamSheet(
+          onCreate: (name) {
+            bloc.add(CreateTeamEvent(name));
+            Navigator.pop(ctx);
+          },
+        ),
+      ),
+    );
   }
 
   void _showSnack(String msg) {

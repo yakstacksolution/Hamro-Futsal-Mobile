@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hamro_footsall/core/helper/share_preferences.dart';
+import 'package:hamro_footsall/core/helper/fcm_helper.dart';
 import 'package:hamro_footsall/core/routers/app_router_params.dart';
+import 'package:hamro_footsall/core/security/biometric_auth_service.dart';
+import 'package:hamro_footsall/core/security/biometric_session_store.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
@@ -54,6 +58,8 @@ class _AuthScreenState extends State<AuthScreen> {
   final TextEditingController _loginEmailController = TextEditingController();
   final TextEditingController _loginPasswordController =
       TextEditingController();
+  bool _canUseBiometricLogin = false;
+  bool _isBiometricSubmitting = false;
 
   // Register
   final FocusNode _registerNameFocus = FocusNode();
@@ -83,6 +89,43 @@ class _AuthScreenState extends State<AuthScreen> {
     _loginValidationEnabledNotifier = ValueNotifier<bool>(false);
     _registerValidationEnabledNotifier = ValueNotifier<bool>(false);
     _selectedAccountTypeNotifier = ValueNotifier<String?>(null);
+    _checkBiometricLogin();
+  }
+
+  Future<void> _checkBiometricLogin() async {
+    final bool hasSession = await BiometricSessionStore().hasSession;
+    final bool available =
+        AppSettings().biometricLogin &&
+        hasSession &&
+        await BiometricAuthService().isAvailable();
+    if (mounted && available != _canUseBiometricLogin) {
+      setState(() => _canUseBiometricLogin = available);
+    }
+  }
+
+  Future<void> _signInWithBiometrics() async {
+    if (_isBiometricSubmitting) return;
+    setState(() => _isBiometricSubmitting = true);
+    final bool authenticated = await BiometricAuthService().authenticate();
+    if (!mounted) return;
+    setState(() => _isBiometricSubmitting = false);
+    if (authenticated) {
+      final session = await BiometricSessionStore().read();
+      if (session?.accessToken?.trim().isNotEmpty != true) {
+        if (mounted) {
+          AppUtils().showSnackBar(
+            context,
+            MsgType.error,
+            'No biometric account is saved. Sign in with your password first.',
+          );
+        }
+        return;
+      }
+      AppSettings().token = session!;
+      await FcmHelper().syncTokenAfterLogin();
+      if (!mounted) return;
+      context.goNamed(AppRouterParams.dashboard.name);
+    }
   }
 
   @override
@@ -327,11 +370,17 @@ class _AuthScreenState extends State<AuthScreen> {
               footer: isLogin
                   ? _GoogleLoginSection(
                       enabled:
-                          !isAnimating && !isSubmitting && !isGoogleSubmitting,
+                          !isAnimating &&
+                          !isSubmitting &&
+                          !isGoogleSubmitting &&
+                          !_isBiometricSubmitting,
                       isLoading: isGoogleSubmitting,
                       onTap: () => context.read<AuthenticationBloc>().add(
                         const GoogleLoginEvent(),
                       ),
+                      showBiometric: _canUseBiometricLogin,
+                      isBiometricLoading: _isBiometricSubmitting,
+                      onBiometricTap: _signInWithBiometrics,
                     )
                   : null,
               formFields: <Widget>[
@@ -486,12 +535,18 @@ class _GoogleLoginSection extends StatelessWidget {
   const _GoogleLoginSection({
     required this.enabled,
     required this.onTap,
+    required this.showBiometric,
+    required this.onBiometricTap,
     this.isLoading = false,
+    this.isBiometricLoading = false,
   });
 
   final bool enabled;
   final bool isLoading;
   final VoidCallback onTap;
+  final bool showBiometric;
+  final bool isBiometricLoading;
+  final VoidCallback onBiometricTap;
 
   @override
   Widget build(BuildContext context) {
@@ -562,6 +617,52 @@ class _GoogleLoginSection extends StatelessWidget {
             ),
           ),
         ),
+        if (showBiometric) ...<Widget>[
+          const SizedBox(height: AppDimens.paddingX12),
+          Material(
+            color: LightColor.secondaryColor.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+            child: InkWell(
+              key: const Key('biometric-login-button'),
+              onTap: enabled ? onBiometricTap : null,
+              borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+              child: Container(
+                height: AppDimens.sizeX44,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+                  border: Border.all(
+                    color: LightColor.secondaryColor.withValues(alpha: 0.35),
+                  ),
+                ),
+                child: isBiometricLoading
+                    ? const SizedBox(
+                        width: AppDimens.sizeX18,
+                        height: AppDimens.sizeX18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: <Widget>[
+                          const Icon(
+                            Icons.fingerprint_rounded,
+                            color: LightColor.secondaryColor,
+                            size: AppDimens.sizeX22,
+                          ),
+                          const SizedBox(width: AppDimens.paddingX10),
+                          Text(
+                            'Sign in with biometrics',
+                            style: textTheme.bodyTextSmall?.copyWith(
+                              color: LightColor.secondaryColor,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }

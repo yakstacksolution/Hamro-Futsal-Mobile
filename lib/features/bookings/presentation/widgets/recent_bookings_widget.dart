@@ -560,6 +560,7 @@ class _StatusBadge extends StatelessWidget {
     BookingStatus.pending => Icons.access_time_filled_rounded,
     BookingStatus.completed => Icons.verified_rounded,
     BookingStatus.cancelled => Icons.cancel_rounded,
+    BookingStatus.rejected => Icons.block_rounded,
   };
 }
 

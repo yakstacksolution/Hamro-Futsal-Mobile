@@ -17,8 +17,33 @@ class ChatLauncher {
     BuildContext context, {
     required int vendorId,
     int? venueId,
+  }) {
+    if (vendorId <= 0) return Future<void>.value();
+    return _start(
+      context,
+      key: '$vendorId:${venueId ?? 0}',
+      vendorId: vendorId,
+      venueId: venueId,
+    );
+  }
+
+  /// Direct user↔user chat — e.g. messaging the requester of an opponent
+  /// match request.
+  static Future<void> startDirectUser(
+    BuildContext context, {
+    required int userId,
+  }) {
+    if (userId <= 0) return Future<void>.value();
+    return _start(context, key: 'u:$userId', userId: userId);
+  }
+
+  static Future<void> _start(
+    BuildContext context, {
+    required String key,
+    int? vendorId,
+    int? venueId,
+    int? userId,
   }) async {
-    final key = '$vendorId:${venueId ?? 0}';
     if (!_opening.add(key)) return;
     final useCase = MessageUseCase(MessageRepositoryImpl());
 
@@ -33,6 +58,7 @@ class ChatLauncher {
     final result = await useCase.startDirectConversation(
       vendorId: vendorId,
       venueId: venueId,
+      userId: userId,
     );
     _opening.remove(key);
 

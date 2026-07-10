@@ -35,7 +35,12 @@ void main() {
               'customer_name': 'Dilli Bhandari',
               'customer_phone': '985655336655',
               'customer_email': 'officialdilli1@gmail.com',
-              'venue': <String, dynamic>{'id': 1, 'name': 'Dhananjay sports'},
+              'venue': <String, dynamic>{
+                'id': 1,
+                'name': 'Dhananjay sports',
+                'vendor': <String, dynamic>{'id': 41},
+              },
+              'customer': <String, dynamic>{'id': 73, 'name': 'Dilli Bhandari'},
               'court': <String, dynamic>{'id': 6, 'name': 'Shidartha'},
               'coupon': <String, dynamic>{
                 'id': 1,
@@ -77,6 +82,8 @@ void main() {
       expect(booking.courtName, 'Shidartha');
       expect(booking.futsalName, 'Dhananjay sports');
       expect(booking.venueId, 1);
+      expect(booking.vendorId, 41);
+      expect(booking.playerId, 73);
       expect(booking.courtId, 6);
       expect(booking.status, BookingStatus.pending);
       expect(booking.amount, 1080);
@@ -139,7 +146,7 @@ void main() {
       expect(bookings.single.futsalName, 'Hamro Futsal');
       expect(bookings.single.playerName, 'Player One');
       expect(bookings.single.playerPhone, '9800000000');
-      expect(bookings.single.status, BookingStatus.cancelled);
+      expect(bookings.single.status, BookingStatus.rejected);
     });
   });
 }

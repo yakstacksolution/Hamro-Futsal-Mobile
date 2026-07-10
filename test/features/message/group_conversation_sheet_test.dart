@@ -34,13 +34,16 @@ void main() {
 
     await tester.tap(find.text('Open'));
     await tester.pumpAndSettle();
-    expect(find.text('Create a new group'), findsOneWidget);
-    expect(find.text('No participants selected yet'), findsOneWidget);
+    expect(find.text('Create Group'), findsOneWidget);
+    expect(
+      find.text('Add members and start a group conversation'),
+      findsOneWidget,
+    );
 
     await tester.enterText(find.byType(TextField).first, 'Weekend Team');
     await tester.tap(find.text('Ram'));
     await tester.pump();
-    expect(find.text('1 participant selected'), findsOneWidget);
+    expect(find.text('1/50 members selected'), findsOneWidget);
 
     await tester.tap(find.text('Create group with 1'));
     await tester.pumpAndSettle();

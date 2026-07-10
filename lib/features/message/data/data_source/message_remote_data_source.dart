@@ -10,7 +10,11 @@ import 'package:hamro_footsall/features/message/data/model/chat_send_request.dar
 
 abstract class MessageRemoteDataSource {
   Future<Result> getConversations({bool archived = false});
-  Future<Result> startDirectConversation({required int vendorId, int? venueId});
+  Future<Result> startDirectConversation({
+    int? vendorId,
+    int? venueId,
+    int? userId,
+  });
   Future<Result> createGroupConversation({
     required String title,
     required List<int> participantIds,
@@ -52,11 +56,14 @@ final class MessageRemoteDataSourceImpl extends MessageRemoteDataSource {
 
   @override
   Future<Result> startDirectConversation({
-    required int vendorId,
+    int? vendorId,
     int? venueId,
+    int? userId,
   }) async => await Client.instance().getAuthManager().startDirectConversation({
-    'vendor_id': vendorId,
+    if (vendorId != null) 'vendor_id': vendorId,
     if (venueId != null) 'venue_id': venueId,
+    // User↔user direct chat (e.g. opponent-match requester ↔ accepter).
+    if (userId != null) 'user_id': userId,
   });
 
   @override

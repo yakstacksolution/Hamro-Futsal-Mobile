@@ -67,6 +67,26 @@ class AuthManager extends ServiceManager {
     return await _apiClient.updateFcmToken(data: data);
   }
 
+  Future<Result> getNotifications(String filter, int perPage) async {
+    return await _apiClient.getNotifications(filter: filter, perPage: perPage);
+  }
+
+  Future<Result> markAllNotificationsRead() async {
+    return await _apiClient.markAllNotificationsRead();
+  }
+
+  Future<Result> markNotificationRead(String notificationId) async {
+    return await _apiClient.markNotificationRead(
+      notificationId: notificationId,
+    );
+  }
+
+  Future<Result> markNotificationUnread(String notificationId) async {
+    return await _apiClient.markNotificationUnread(
+      notificationId: notificationId,
+    );
+  }
+
   /// Authenticated password change (Settings) — distinct from the
   /// forgot-password reset flow's `changePassword`.
   Future<Result> updatePassword(Map<String, dynamic> data) async {
@@ -431,6 +451,46 @@ class AuthManager extends ServiceManager {
     return await _apiClient.getFutsalBookings();
   }
 
+  Future<Result> cancelBooking(int bookingId) async {
+    return await _apiClient.cancelBooking(bookingId: bookingId);
+  }
+
+  Future<Result> getBookingCancelBoundary(int bookingId) async {
+    return await _apiClient.getBookingCancelBoundary(bookingId: bookingId);
+  }
+
+  Future<Result> verifyBookingPayment(
+    int bookingId,
+    int paymentId,
+    Map<String, dynamic> data,
+  ) async {
+    return await _apiClient.verifyBookingPayment(
+      bookingId: bookingId,
+      paymentId: paymentId,
+      data: data,
+    );
+  }
+
+  Future<Result> rejectBookingPayment(
+    int bookingId,
+    int paymentId,
+    Map<String, dynamic> data,
+  ) async {
+    return await _apiClient.rejectBookingPayment(
+      bookingId: bookingId,
+      paymentId: paymentId,
+      data: data,
+    );
+  }
+
+  Future<Result> acceptBooking(int bookingId, Map<String, dynamic> data) async {
+    return await _apiClient.acceptBooking(bookingId: bookingId, data: data);
+  }
+
+  Future<Result> rejectBooking(int bookingId, Map<String, dynamic> data) async {
+    return await _apiClient.rejectBooking(bookingId: bookingId, data: data);
+  }
+
   Future<Result> getTeams() async {
     return await _apiClient.getTeams();
   }
@@ -480,5 +540,56 @@ class AuthManager extends ServiceManager {
       teamId: teamId,
       memberId: memberId,
     );
+  }
+
+  Future<Result> getOpponentRequests({Map<String, dynamic>? query}) async {
+    return await _apiClient.getOpponentRequests(query: query);
+  }
+
+  Future<Result> getOpponentRequest(String requestId) async {
+    return await _apiClient.getOpponentRequest(requestId: requestId);
+  }
+
+  Future<Result> createOpponentRequest(Map<String, dynamic> data) async {
+    return await _apiClient.createOpponentRequest(data: data);
+  }
+
+  Future<Result> createOpponentAcceptQuote(
+    String requestId,
+    Map<String, dynamic> data,
+  ) async {
+    return await _apiClient.createOpponentAcceptQuote(
+      requestId: requestId,
+      data: data,
+    );
+  }
+
+  Future<Result> acceptOpponentRequest(String requestId, dynamic data) async {
+    return await _apiClient.acceptOpponentRequest(
+      requestId: requestId,
+      data: data,
+    );
+  }
+
+  Future<Result> declineOpponentRequest(String requestId) async {
+    return await _apiClient.declineOpponentRequest(requestId: requestId);
+  }
+
+  Future<Result> verifyOpponentPayment(String requestId) async {
+    return await _apiClient.verifyOpponentPayment(requestId: requestId);
+  }
+
+  Future<Result> rejectOpponentPayment(
+    String requestId,
+    Map<String, dynamic> data,
+  ) async {
+    return await _apiClient.rejectOpponentPayment(
+      requestId: requestId,
+      data: data,
+    );
+  }
+
+  Future<Result> deleteOpponentRequest(String requestId) async {
+    return await _apiClient.deleteOpponentRequest(requestId: requestId);
   }
 }

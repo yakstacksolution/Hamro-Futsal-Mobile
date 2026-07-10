@@ -94,12 +94,6 @@ final class ReverbChatSocketService implements ChatSocketService {
     );
   }
 
-  /// Registers (once) the private channel for [name] on the shared connection
-  /// and wires its message/typing events into the matching controllers. No-op
-  /// when realtime is disabled (missing env) or the channel already exists —
-  /// callers read the controller streams regardless, which simply stay silent
-  /// until events arrive. Routing is tolerant of Laravel's optional leading-dot
-  /// (`.message.sent`) on broadcastAs names.
   void _ensureChannel(String name, {int? conversationId}) {
     ReverbConnection.instance.privateChannel(
       name,

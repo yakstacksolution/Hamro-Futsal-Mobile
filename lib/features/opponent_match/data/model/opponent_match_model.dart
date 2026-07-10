@@ -157,16 +157,27 @@ class OpponentLevelModel {
 }
 
 /// Lifecycle of an opponent request.
-enum RequestStatus { fresh, pending, accepted, rejected, sent, expired }
+enum RequestStatus {
+  fresh,
+  pending,
+  paymentPending,
+  accepted,
+  rejected,
+  sent,
+  expired,
+  cancelled,
+}
 
 extension RequestStatusX on RequestStatus {
   String get label => switch (this) {
     RequestStatus.fresh => 'New',
     RequestStatus.pending => 'Pending',
+    RequestStatus.paymentPending => 'Payment pending',
     RequestStatus.accepted => 'Accepted',
     RequestStatus.rejected => 'Rejected',
     RequestStatus.sent => 'Sent',
     RequestStatus.expired => 'Expired',
+    RequestStatus.cancelled => 'Cancelled',
   };
 
   /// Still actionable (can be accepted / rejected).
@@ -174,6 +185,91 @@ extension RequestStatusX on RequestStatus {
       this == RequestStatus.fresh || this == RequestStatus.pending;
 
   bool get isSettled => !isOpen;
+
+  /// Maps a wire status (`open | accept_pending_payment | accepted |
+  /// declined | expired | cancelled`) onto the UI lifecycle. An `open`
+  /// request is [sent] when it's mine, [fresh] while its accept deadline is
+  /// still running, [pending] when the server gave no deadline, and shows as
+  /// [expired] once the deadline has passed (until the server sweep catches
+  /// up).
+  static RequestStatus fromApi(
+    dynamic raw, {
+    required bool isMine,
+    DateTime? acceptDeadline,
+  }) {
+    switch (raw?.toString().trim().toLowerCase() ?? '') {
+      case 'open':
+        if (isMine) return RequestStatus.sent;
+        if (acceptDeadline == null) return RequestStatus.pending;
+        return acceptDeadline.isAfter(DateTime.now())
+            ? RequestStatus.fresh
+            : RequestStatus.expired;
+      case 'accept_pending_payment':
+      case 'payment_pending':
+        return RequestStatus.paymentPending;
+      case 'accepted':
+        return RequestStatus.accepted;
+      case 'declined':
+      case 'rejected':
+        return RequestStatus.rejected;
+      case 'cancelled':
+      case 'canceled':
+        return RequestStatus.cancelled;
+      case 'expired':
+        return RequestStatus.expired;
+      default:
+        return isMine ? RequestStatus.sent : RequestStatus.pending;
+    }
+  }
+}
+
+/// Verification lifecycle of the advance paid when accepting a request.
+enum OpponentPaymentStatus { pending, verified, rejected }
+
+extension OpponentPaymentStatusX on OpponentPaymentStatus {
+  String get label => switch (this) {
+    OpponentPaymentStatus.pending => 'Pending verification',
+    OpponentPaymentStatus.verified => 'Verified',
+    OpponentPaymentStatus.rejected => 'Rejected',
+  };
+
+  static OpponentPaymentStatus fromApi(dynamic raw) =>
+      switch (raw?.toString().trim().toLowerCase() ?? '') {
+        'verified' || 'approved' || 'paid' => OpponentPaymentStatus.verified,
+        'rejected' || 'failed' || 'declined' => OpponentPaymentStatus.rejected,
+        _ => OpponentPaymentStatus.pending,
+      };
+}
+
+/// The advance payment attached to an accepted (or accept-pending) request.
+class OpponentPaymentModel {
+  const OpponentPaymentModel({
+    required this.status,
+    this.amount = 0,
+    this.proofUrl = '',
+    this.rejectedReason = '',
+  });
+
+  final OpponentPaymentStatus status;
+  final int amount;
+  final String proofUrl;
+
+  /// Why verification failed — only set when [status] is rejected.
+  final String rejectedReason;
+
+  factory OpponentPaymentModel.fromJson(Map<String, dynamic> json) {
+    return OpponentPaymentModel(
+      status: OpponentPaymentStatusX.fromApi(json['status']),
+      amount: _asInt(json['amount']),
+      proofUrl: (json['proof_url'] ?? json['proofUrl'] ?? '')
+          .toString()
+          .trim(),
+      rejectedReason:
+          (json['rejected_reason'] ?? json['rejectedReason'] ?? '')
+              .toString()
+              .trim(),
+    );
+  }
 }
 
 /// How the court fee is divided between the two teams.
@@ -333,6 +429,16 @@ class OpponentRequestModel {
     required this.yourShare,
     this.myPct,
     this.createdAt,
+    this.requesterUserId = 0,
+    this.requesterName = '',
+    this.requesterTeamId = '',
+    this.isMine = false,
+    this.acceptDeadline,
+    this.advancePayableNow = 0,
+    this.acceptedByTeamId = '',
+    this.acceptedByTeamName = '',
+    this.acceptedByUserId = 0,
+    this.payment,
   });
 
   final String id;
@@ -352,23 +458,138 @@ class OpponentRequestModel {
   /// Your side's percentage; null when the split is result-based.
   final int? myPct;
 
-  /// When set on a `fresh` request, drives the accept-window countdown.
   final DateTime? createdAt;
 
-  OpponentRequestModel copyWith({RequestStatus? status}) =>
-      OpponentRequestModel(
-        id: id,
-        team: team,
-        dateTime: dateTime,
-        summary: summary,
-        status: status ?? this.status,
-        venue: venue,
-        slot: slot,
-        totalFee: totalFee,
-        yourShare: yourShare,
-        myPct: myPct,
-        createdAt: createdAt,
-      );
+  /// The user who posted the request — chat target for incoming requests.
+  final int requesterUserId;
+  final String requesterName;
+  final String requesterTeamId;
+
+  /// True when the current user posted this request.
+  final bool isMine;
+
+  /// Server-owned accept window; drives the countdown on `fresh` requests.
+  final DateTime? acceptDeadline;
+
+  /// Server-computed advance the accepter pays now (display only — the
+  /// authoritative figure is re-quoted by `accept-quote`).
+  final int advancePayableNow;
+
+  /// Set once a team has accepted (or is pending payment verification).
+  final String acceptedByTeamId;
+  final String acceptedByTeamName;
+
+  /// The accepting captain's user id — chat target for the requester.
+  final int acceptedByUserId;
+
+  /// The accepter's advance payment, once submitted.
+  final OpponentPaymentModel? payment;
+
+  /// A request row from `GET /opponent-requests`. Tolerant of flat or nested
+  /// (`requester`/`match`/`pricing`) payload shapes.
+  factory OpponentRequestModel.fromJson(Map<String, dynamic> json) {
+    final requester = _asMap(json['requester']);
+    final match = _asMap(json['match']);
+    final pricing = _asMap(json['pricing']);
+    final acceptedBy = _asMap(json['accepted_by']);
+    final payment = _asMap(json['payment']);
+
+    final bool isMine = json['is_mine'] == true || json['isMine'] == true;
+    final DateTime? acceptDeadline = _asDate(
+      json['accept_deadline'] ?? json['acceptDeadline'],
+    );
+
+    final String startTime = (match['start_time'] ?? '').toString().trim();
+    final String endTime = (match['end_time'] ?? '').toString().trim();
+    final DateTime dateTime =
+        _asDate('${match['date'] ?? ''} $startTime'.trim()) ??
+        _asDate(json['date_time'] ?? json['dateTime']) ??
+        DateTime.now();
+
+    final String slot = [
+      _displayTime(startTime),
+      _displayTime(endTime),
+    ].where((s) => s.isNotEmpty).join(' – ');
+
+    // "custom_result" splits have no fixed percentage.
+    final String splitMode = (pricing['split_mode'] ?? '').toString();
+    final bool isResultSplit = splitMode == 'custom_result';
+    final int totalFee = _asInt(pricing['total_fee'] ?? json['total_fee']);
+    final int accepterShare = _asInt(
+      pricing['accepter_share'] ?? json['your_share'],
+    );
+    final int requesterPct = _asInt(pricing['requester_pct']);
+    final int accepterPct = _asInt(pricing['accepter_pct']);
+
+    // "Your" side of the money depends on which side of the request you're on.
+    final int yourShare = isMine
+        ? (isResultSplit ? 0 : (totalFee * requesterPct / 100).round())
+        : accepterShare;
+    final int? myPct = isResultSplit ? null : (isMine ? requesterPct : accepterPct);
+
+    final String summary =
+        (json['summary'] ?? '').toString().trim().isNotEmpty
+        ? json['summary'].toString().trim()
+        : [
+            (match['level'] ?? '').toString().trim(),
+            (match['format'] ?? '').toString().trim(),
+          ].where((s) => s.isNotEmpty).join(' · ');
+
+    return OpponentRequestModel(
+      id: (json['id'] ?? '').toString(),
+      team: (requester['team_name'] ?? json['team'] ?? '').toString().trim(),
+      dateTime: dateTime,
+      summary: summary,
+      status: RequestStatusX.fromApi(
+        json['status'],
+        isMine: isMine,
+        acceptDeadline: acceptDeadline,
+      ),
+      venue: (match['venue_name'] ?? json['venue'] ?? '').toString().trim(),
+      slot: slot.isEmpty ? (json['slot'] ?? '').toString() : slot,
+      totalFee: totalFee,
+      yourShare: yourShare,
+      myPct: myPct,
+      createdAt: _asDate(json['created_at'] ?? json['createdAt']),
+      requesterUserId: _asInt(requester['user_id']),
+      requesterName: (requester['name'] ?? '').toString().trim(),
+      requesterTeamId: (requester['team_id'] ?? '').toString(),
+      isMine: isMine,
+      acceptDeadline: acceptDeadline,
+      advancePayableNow: _asInt(pricing['advance_payable_now']),
+      acceptedByTeamId: (acceptedBy['team_id'] ?? '').toString(),
+      acceptedByTeamName: (acceptedBy['team_name'] ?? '').toString().trim(),
+      acceptedByUserId: _asInt(acceptedBy['user_id']),
+      payment: payment.isEmpty ? null : OpponentPaymentModel.fromJson(payment),
+    );
+  }
+
+  OpponentRequestModel copyWith({
+    RequestStatus? status,
+    OpponentPaymentModel? payment,
+  }) => OpponentRequestModel(
+    id: id,
+    team: team,
+    dateTime: dateTime,
+    summary: summary,
+    status: status ?? this.status,
+    venue: venue,
+    slot: slot,
+    totalFee: totalFee,
+    yourShare: yourShare,
+    myPct: myPct,
+    createdAt: createdAt,
+    requesterUserId: requesterUserId,
+    requesterName: requesterName,
+    requesterTeamId: requesterTeamId,
+    isMine: isMine,
+    acceptDeadline: acceptDeadline,
+    advancePayableNow: advancePayableNow,
+    acceptedByTeamId: acceptedByTeamId,
+    acceptedByTeamName: acceptedByTeamName,
+    acceptedByUserId: acceptedByUserId,
+    payment: payment ?? this.payment,
+  );
 
   String get initials {
     final parts = team
@@ -380,4 +601,34 @@ class OpponentRequestModel {
     if (parts.length == 1) return parts.first.substring(0, 1).toUpperCase();
     return (parts[0].substring(0, 1) + parts[1].substring(0, 1)).toUpperCase();
   }
+}
+
+Map<String, dynamic> _asMap(dynamic value) =>
+    value is Map ? Map<String, dynamic>.from(value) : const {};
+
+int _asInt(dynamic value) {
+  if (value is int) return value;
+  if (value is num) return value.round();
+  return int.tryParse(value?.toString() ?? '') ??
+      double.tryParse(value?.toString() ?? '')?.round() ??
+      0;
+}
+
+DateTime? _asDate(dynamic value) {
+  final raw = value?.toString().trim() ?? '';
+  if (raw.isEmpty) return null;
+  return DateTime.tryParse(raw)?.toLocal();
+}
+
+/// `18:00` → `6:00 PM`; returns the input when it isn't `HH:mm`.
+String _displayTime(String raw) {
+  final parts = raw.split(':');
+  if (parts.length < 2) return raw;
+  final hour = int.tryParse(parts[0]);
+  final minuteStr = parts[1].length > 2 ? parts[1].substring(0, 2) : parts[1];
+  final minute = int.tryParse(minuteStr);
+  if (hour == null || minute == null) return raw;
+  final h12 = hour % 12 == 0 ? 12 : hour % 12;
+  final period = hour < 12 ? 'AM' : 'PM';
+  return '$h12:${minute.toString().padLeft(2, '0')} $period';
 }

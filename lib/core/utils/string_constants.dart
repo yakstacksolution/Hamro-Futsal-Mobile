@@ -4,7 +4,74 @@ final class StringConstants {
   static const String aboutApp = 'About App';
   static const String aboutThisCourt = 'About this court';
   static const String accept = 'Accept';
+  static const String acceptBooking = 'Accept booking';
+  static const String rejectBooking = 'Reject booking';
+  static const String acceptBookingConfirmation =
+      'Confirm the verified payment amount to accept this booking.';
+  static const String approvePaymentProofConfirmation =
+      'Confirm the actual received amount and add optional remarks.';
+  static const String rejectBookingConfirmation =
+      'Add a reason for rejecting this payment (optional).';
+  static const String actualAmount = 'Actual amount';
+  static const String verifiedAmount = 'Verified amount';
+  static const String paymentNote = 'Payment note';
+  static const String rejectionReason = 'Reason';
+  static const String enterValidAmount = 'Enter a valid amount';
+  static const String bookingAcceptedSuccessfully =
+      'Booking accepted successfully.';
+  static const String bookingRejectedSuccessfully =
+      'Booking rejected successfully.';
+  static const String couldNotAcceptBooking = 'Could not accept the booking.';
+  static const String couldNotRejectBooking = 'Could not reject the booking.';
+  static const String paymentVerifiedSuccessfully =
+      'Payment verified successfully.';
+  static const String paymentRejectedSuccessfully =
+      'Payment rejected successfully.';
+  static const String couldNotVerifyPayment = 'Could not verify the payment.';
+  static const String couldNotRejectPayment = 'Could not reject the payment.';
+  static const String noPaymentToVerify =
+      'This booking has no payment to verify.';
+  static const String acceptAndPay = 'Accept & Pay';
   static const String acceptWithin = 'Accept within';
+  static const String advancePendingVerification =
+      'Advance pending verification';
+  static const String advancePolicyNote =
+      'The advance is fixed regardless of the match result. If your team '
+      'no-shows, the advance is forfeited; if the requester cancels or '
+      'no-shows, it is refunded.';
+  static const String advanceSubmittedPendingVerification =
+      'Advance submitted — the match is confirmed once the payment is '
+      'verified.';
+  static const String approvePayment = 'Approve payment';
+  static const String completePaymentWithin = 'Complete payment within';
+  static const String confirmTeamAndContinue = 'Confirm team & continue';
+  static const String createYourTeamFirst = 'Create your team first';
+  static const String matchConfirmed = 'Match confirmed';
+  static const String rejectPayment = 'Reject payment';
+  static const String preferredVenue = 'Preferred venue';
+  static const String rejectionReasonHint =
+      'Why is this proof invalid? (e.g. wrong amount)';
+  static const String search = 'Search';
+  static const String reviewPayment = 'Review payment';
+  static const String reviewTheirAdvancePayment =
+      'Review their advance payment';
+  static const String searchVenueToCheckSlots = 'Search venue to check slots';
+  static const String totalCourtFeeRs = 'Total court fee (Rs)';
+  static const String youNeedATeamToChallengeOpponents =
+      'You need a team before you can challenge opponents. Create your team '
+      'with its players first.';
+  static const String finalPricingConfirmedByServer =
+      'Final pricing is confirmed by the server.';
+  static const String iConfirmMyTeamWillPlayAndAcceptAdvancePolicy =
+      'I confirm my team will show up for this match and accept the '
+      'advance-payment policy.';
+  static const String requestExpiredMessage =
+      'This request has expired and can no longer be accepted.';
+  static const String requestJustAcceptedByAnotherTeam =
+      'This request was just accepted by another team.';
+  static const String submitAndAccept = 'Submit & Accept';
+  static const String whichTeamWillPlay = 'Which team will play?';
+  static const String yourTeamShare = "Your team's share";
   static const String account = 'Account';
   static const String active = 'Active';
   static const String addANewItemToYourRentalInventory =
@@ -77,6 +144,8 @@ final class StringConstants {
   static const String back = 'Back';
   static const String backgroundColor = 'Background Color';
   static const String balanceDueLater = 'Balance due later';
+  static const String balanceDue = 'Balance due';
+  static const String paidAmount = 'Paid amount';
   static const String balancedPackageForActiveFutsalOperations =
       'Balanced package for active futsal operations.';
   static const String basePrice = 'Base price';
@@ -122,6 +191,13 @@ final class StringConstants {
       'Can we reschedule tonight’s booking?';
   static const String cancel = 'Cancel';
   static const String cancelBooking = 'Cancel booking';
+  static const String cancelBookingConfirmation =
+      'Are you sure you want to cancel this booking? This cannot be undone.';
+  static const String keepBooking = 'Keep booking';
+  static const String bookingCancelledSuccessfully =
+      'Your booking has been cancelled.';
+  static const String couldNotCancelBooking =
+      'Could not cancel the booking. Please try again.';
   static const String cancelled = 'Cancelled';
   static const String categories = 'Categories';
   static const String cats = 'cats';
@@ -212,6 +288,10 @@ final class StringConstants {
       'Could not parse category filters from server.';
   static const String couldNotParseCouponsFromServer =
       'Could not parse coupons from server.';
+  static const String couldNotParseNotificationsFromServer =
+      'Could not parse notifications from server.';
+  static const String couldNotLoadNotifications =
+      'Could not load notifications.';
   static const String couldNotParseCourtDetailsFromServer =
       'Could not parse court details from server.';
   static const String couldNotParseCourtTypesFromServer =
@@ -503,6 +583,7 @@ final class StringConstants {
       'Mark weekend days, holiday dates, and closed dates.';
   static const String matchDate = 'Match date';
   static const String matchFormat = 'Match format';
+  static const String matchTime = 'Match time';
   static const String matchReady = 'Match Ready';
   static const String matchType = 'Match Type';
   static const String matchesTheBackendSchemaYouShared =
@@ -1017,6 +1098,9 @@ final class StringConstants {
       'Your 7:00 PM booking at Goal Arena has been confirmed.';
   static const String earlier = 'Earlier';
   static const String markAllAsRead = 'Mark all as read';
+  static const String markAsRead = 'Mark as read';
+  static const String markAsUnread = 'Mark as unread';
+  static const String justNow = 'Just now';
   static const String matchReminder = 'Match reminder';
   static const String matchReminderNotification =
       'Your match starts in 2 hours at Riverside Futsal.';

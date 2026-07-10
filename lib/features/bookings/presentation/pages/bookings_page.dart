@@ -12,6 +12,7 @@ import 'package:hamro_footsall/features/bookings/presentation/utils/booking_sear
 import 'package:hamro_footsall/features/dashboard/presentation/page/dashboard_screen.dart';
 import 'package:hamro_footsall/features/bookings/presentation/widgets/futsal_bookings_tab.dart';
 import 'package:hamro_footsall/features/bookings/presentation/widgets/my_bookings_tab.dart';
+import 'package:hamro_footsall/features/profile/presentation/profile_bloc/profile_bloc.dart';
 import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class BookingsPage extends StatelessWidget {
@@ -19,34 +20,47 @@ class BookingsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ProfileState profileState = context.watch<ProfileBloc>().state;
+    final String role =
+        profileState.profile?.data.role.trim().toLowerCase() ?? '';
+    if (role.isEmpty) {
+      return const Center(
+        child: CircularProgressIndicator(color: LightColor.secondaryColor),
+      );
+    }
+    final bool isCandidate = role == 'candidate';
+
     return BlocProvider<BookingBloc>(
-      create: (_) => BookingBloc(GetBookingsUseCase(BookingRepositoryImpl()))
-        ..add(const FetchMyBookingsEvent())
-        ..add(const FetchFutsalBookingsEvent()),
-      child: const _BookingsView(),
+      create: (_) =>
+          BookingBloc(GetBookingsUseCase(BookingRepositoryImpl()))..add(
+            isCandidate
+                ? const FetchMyBookingsEvent()
+                : const FetchFutsalBookingsEvent(),
+          ),
+      child: _BookingsView(isCandidate: isCandidate),
     );
   }
 }
 
 class _BookingsView extends StatefulWidget {
-  const _BookingsView();
+  const _BookingsView({required this.isCandidate});
+
+  final bool isCandidate;
 
   @override
   State<_BookingsView> createState() => _BookingsViewState();
 }
 
-class _BookingsViewState extends State<_BookingsView>
-    with SingleTickerProviderStateMixin {
-  int _selectedTab = 0;
+class _BookingsViewState extends State<_BookingsView> {
   BookingStatus? _selectedFilter;
   BookingDateOrder _dateOrder = BookingDateOrder.ascending;
   DateTime? _fromDate;
   DateTime? _toDate;
   late DateTime _futsalDate;
+  // The futsal date navigator only filters once the user interacts with it;
+  // tapping "All" deactivates it again so All truly shows everything.
+  bool _futsalDateActive = false;
   final TextEditingController _searchController = TextEditingController();
-
-  late final AnimationController _tabAnimCtrl;
-  late final Animation<double> _tabAnim;
 
   static const List<_Filter> _myBookingFilters = [
     _Filter(label: StringConstants.all, status: null),
@@ -54,18 +68,20 @@ class _BookingsViewState extends State<_BookingsView>
     _Filter(label: StringConstants.confirmed, status: BookingStatus.confirmed),
     _Filter(label: StringConstants.completed, status: BookingStatus.completed),
     _Filter(label: StringConstants.cancelled, status: BookingStatus.cancelled),
+    _Filter(label: StringConstants.rejected, status: BookingStatus.rejected),
   ];
 
   static const List<_Filter> _futsalBookingFilters = [
+    _Filter(label: StringConstants.all, status: null),
     _Filter(label: StringConstants.pending, status: BookingStatus.pending),
     _Filter(label: StringConstants.confirmed, status: BookingStatus.confirmed),
     _Filter(label: StringConstants.completed, status: BookingStatus.completed),
     _Filter(label: StringConstants.cancelled, status: BookingStatus.cancelled),
-    _Filter(label: StringConstants.all, status: null),
+    _Filter(label: StringConstants.rejected, status: BookingStatus.rejected),
   ];
 
   List<_Filter> get _activeFilters =>
-      _selectedTab == 0 ? _myBookingFilters : _futsalBookingFilters;
+      widget.isCandidate ? _myBookingFilters : _futsalBookingFilters;
 
   @override
   void initState() {
@@ -73,63 +89,61 @@ class _BookingsViewState extends State<_BookingsView>
     final DateTime now = DateTime.now();
     _futsalDate = DateTime(now.year, now.month, now.day);
 
-    _tabAnimCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 220),
-    );
-
-    _tabAnim = CurvedAnimation(parent: _tabAnimCtrl, curve: Curves.easeInOut);
-
-    // Tabs stay alive inside the dashboard's IndexedStack, so a fetch that
-    // failed while offline would otherwise show a stale error forever.
-    // Re-fetch automatically whenever this tab becomes visible again.
-    DashboardScreen.selectedNavIndex.addListener(
-      _retryFailedFetchesOnTabVisible,
-    );
+    // Tabs stay alive inside the dashboard's IndexedStack, so re-fetch the
+    // latest bookings automatically whenever this tab becomes visible again
+    // (also recovers from a fetch that failed while offline).
+    DashboardScreen.selectedNavIndex.addListener(_refreshOnTabVisible);
   }
 
   @override
   void dispose() {
-    DashboardScreen.selectedNavIndex.removeListener(
-      _retryFailedFetchesOnTabVisible,
-    );
+    DashboardScreen.selectedNavIndex.removeListener(_refreshOnTabVisible);
     _searchController.dispose();
-    _tabAnimCtrl.dispose();
     super.dispose();
   }
 
-  void _retryFailedFetchesOnTabVisible() {
+  void _refreshOnTabVisible() {
     if (!mounted || DashboardScreen.selectedNavIndex.value != 1) return;
-    final BookingBloc bloc = context.read<BookingBloc>();
-    if (bloc.state.myBookingsStatus == BookingLoadStatus.failure) {
-      bloc.add(const FetchMyBookingsEvent());
-    }
-    if (bloc.state.futsalBookingsStatus == BookingLoadStatus.failure) {
-      bloc.add(const FetchFutsalBookingsEvent());
-    }
+    _refreshCurrentTab();
   }
 
-  void _onTabSelected(int index) {
-    if (_selectedTab == index) return;
-
-    setState(() {
-      _selectedTab = index;
-      _selectedFilter = null;
-      _searchController.clear();
-    });
-
-    if (index == 1) {
-      _tabAnimCtrl.forward();
+  /// Pulls the latest data for the active tab from the API. Shows the skeleton
+  /// loader on the first load and refreshes silently thereafter.
+  void _refreshCurrentTab() {
+    if (!mounted) return;
+    final BookingBloc bloc = context.read<BookingBloc>();
+    if (widget.isCandidate) {
+      final BookingLoadStatus status = bloc.state.myBookingsStatus;
+      if (status == BookingLoadStatus.loading) return;
+      bloc.add(
+        FetchMyBookingsEvent(silent: status == BookingLoadStatus.success),
+      );
     } else {
-      _tabAnimCtrl.reverse();
+      final BookingLoadStatus status = bloc.state.futsalBookingsStatus;
+      if (status == BookingLoadStatus.loading) return;
+      bloc.add(
+        FetchFutsalBookingsEvent(silent: status == BookingLoadStatus.success),
+      );
     }
   }
 
   void _onFilterSelected(BookingStatus? status) {
-    if (_selectedFilter == status) return;
+    final bool isAll = status == null;
+    if (_selectedFilter == status && !isAll) return;
 
     setState(() {
       _selectedFilter = status;
+      if (isAll) {
+        _searchController.clear();
+        if (widget.isCandidate) {
+          _fromDate = null;
+          _toDate = null;
+        } else {
+          final DateTime now = DateTime.now();
+          _futsalDate = DateTime(now.year, now.month, now.day);
+          _futsalDateActive = false;
+        }
+      }
     });
   }
 
@@ -179,12 +193,14 @@ class _BookingsViewState extends State<_BookingsView>
     if (selected == null || !mounted) return;
     setState(() {
       _futsalDate = DateTime(selected.year, selected.month, selected.day);
+      _futsalDateActive = true;
     });
   }
 
   void _shiftFutsalDate(int days) {
     setState(() {
       _futsalDate = _futsalDate.add(Duration(days: days));
+      _futsalDateActive = true;
     });
   }
 
@@ -206,25 +222,21 @@ class _BookingsViewState extends State<_BookingsView>
         _searchAndFilterSection(context),
         const SizedBox(height: AppDimens.paddingX8),
         Expanded(
-          child: IndexedStack(
-            index: _selectedTab,
-            children: [
-              MyBookingsTab(
-                filter: _selectedFilter,
-                searchQuery: _searchController.text,
-                dateOrder: _dateOrder,
-                fromDate: _fromDate,
-                toDate: _toDate,
-              ),
-              FutsalBookingsTab(
-                filter: _selectedFilter,
-                searchQuery: _searchController.text,
-                dateOrder: _dateOrder,
-                fromDate: _futsalDate,
-                toDate: _futsalDate,
-              ),
-            ],
-          ),
+          child: widget.isCandidate
+              ? MyBookingsTab(
+                  filter: _selectedFilter,
+                  searchQuery: _searchController.text,
+                  dateOrder: _dateOrder,
+                  fromDate: _fromDate,
+                  toDate: _toDate,
+                )
+              : FutsalBookingsTab(
+                  filter: _selectedFilter,
+                  searchQuery: _searchController.text,
+                  dateOrder: _dateOrder,
+                  fromDate: _futsalDateActive ? _futsalDate : null,
+                  toDate: _futsalDateActive ? _futsalDate : null,
+                ),
         ),
       ],
     );
@@ -239,53 +251,19 @@ class _BookingsViewState extends State<_BookingsView>
         right: AppDimens.paddingX20,
         top: AppDimens.paddingX24,
       ),
-      child: BlocBuilder<BookingBloc, BookingState>(
-        buildWhen: (previous, current) {
-          return previous.myBookings != current.myBookings ||
-              previous.myBookingsStatus != current.myBookingsStatus ||
-              previous.futsalBookings != current.futsalBookings ||
-              previous.futsalBookingsStatus != current.futsalBookingsStatus;
-        },
-        builder: (context, state) {
-          final List<BookingModel> bookings = _selectedTab == 0
-              ? state.myBookings
-              : state.futsalBookings;
-
-          final bool isLoaded = _selectedTab == 0
-              ? state.myBookingsStatus == BookingLoadStatus.success
-              : state.futsalBookingsStatus == BookingLoadStatus.success;
-
-          final now = DateTime.now();
-
-          final int upcomingCount = bookings.where((booking) {
-            return booking.status == BookingStatus.confirmed &&
-                booking.date.isAfter(now);
-          }).length;
-
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                StringConstants.bookings,
-                style: textTheme.bodyTextLarge?.copyWith(
-                  fontSize: AppDimens.fontHeadingSmall,
-                  fontWeight: FontWeight.w700,
-                  color: LightColor.primaryTextColor,
-                ),
-              ),
-              if (isLoaded && bookings.isNotEmpty) ...[
-                const SizedBox(height: AppDimens.paddingX4),
-                Text(
-                  '${bookings.length} total'
-                  '${upcomingCount > 0 ? ' · $upcomingCount upcoming' : ''}',
-                  style: textTheme.bodyTextSmall?.copyWith(
-                    color: LightColor.secondaryTextColor,
-                  ),
-                ),
-              ],
-            ],
-          );
-        },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            StringConstants.bookings,
+            style: textTheme.bodyTextLarge?.copyWith(
+              fontSize: AppDimens.fontHeadingSmall,
+              fontWeight: FontWeight.w700,
+              color: LightColor.primaryTextColor,
+            ),
+          ),
+          const SizedBox(height: AppDimens.paddingX4),
+        ],
       ),
     );
   }
@@ -293,25 +271,16 @@ class _BookingsViewState extends State<_BookingsView>
   Widget _tabBar(BuildContext context) {
     return Padding(
       padding: AppUtils().getPadding(symmetricHorizontal: AppDimens.paddingX20),
-      child: AnimatedBuilder(
-        animation: _tabAnim,
-        builder: (context, _) {
-          return Row(
-            children: [
-              _TabItem(
-                label: StringConstants.myBookings,
-                isActive: _selectedTab == 0,
-                onTap: () => _onTabSelected(0),
-              ),
-              const SizedBox(width: AppDimens.paddingX24),
-              _TabItem(
-                label: StringConstants.futsalBookings,
-                isActive: _selectedTab == 1,
-                onTap: () => _onTabSelected(1),
-              ),
-            ],
-          );
-        },
+      child: Row(
+        children: [
+          _TabItem(
+            label: widget.isCandidate
+                ? StringConstants.myBookings
+                : StringConstants.futsalBookings,
+            isActive: true,
+            onTap: () {},
+          ),
+        ],
       ),
     );
   }
@@ -319,7 +288,7 @@ class _BookingsViewState extends State<_BookingsView>
   Widget _searchAndFilterSection(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
     final bool hasQuery = _searchController.text.trim().isNotEmpty;
-    final String hint = _selectedTab == 0
+    final String hint = widget.isCandidate
         ? 'Search venue, court or booking ID'
         : 'Search court or booking ID';
 
@@ -380,7 +349,7 @@ class _BookingsViewState extends State<_BookingsView>
                   ),
                 ),
               ),
-              if (_selectedTab == 0) ...[
+              if (widget.isCandidate) ...[
                 const SizedBox(width: AppDimens.paddingX8),
                 _DateFilterButton(
                   fromDate: _fromDate,
@@ -464,6 +433,9 @@ class _TabItem extends StatelessWidget {
               children: [
                 Text(
                   label,
+                  maxLines: 1,
+                  softWrap: false,
+                  overflow: TextOverflow.visible,
                   style: textTheme.bodyTextMedium?.copyWith(
                     fontWeight: isActive ? FontWeight.w700 : FontWeight.w400,
                     color: isActive

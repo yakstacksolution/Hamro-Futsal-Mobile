@@ -13,6 +13,8 @@ class BookingModel extends Equatable {
     required this.amount,
     this.venueId,
     this.courtId,
+    this.vendorId,
+    this.playerId,
     this.playerName,
     this.playerPhone,
     this.playerEmail,
@@ -31,10 +33,12 @@ class BookingModel extends Equatable {
     this.advanceAmount = 0,
     this.payableNow = 0,
     this.balanceDueLater = 0,
+    this.paidAmount = 0,
+    this.balanceDue = 0,
     this.paymentStatus,
     this.notes,
     this.coupon,
-    this.payment,
+    this.payments = const <BookingPaymentModel>[],
     this.bookingSlots = const <BookingSlotModel>[],
   });
 
@@ -49,6 +53,13 @@ class BookingModel extends Equatable {
   final double amount;
   final int? venueId;
   final int? courtId;
+
+  /// User id of the venue owner/vendor — used to open a chat with the venue.
+  final int? vendorId;
+
+  /// User id of the customer who made the booking — used to open a chat with
+  /// the player from the vendor's futsal-bookings view.
+  final int? playerId;
   final String? playerName;
   final String? playerPhone;
   final String? playerEmail;
@@ -67,11 +78,113 @@ class BookingModel extends Equatable {
   final double advanceAmount;
   final double payableNow;
   final double balanceDueLater;
+
+  /// Amount already paid & verified by the server for this booking.
+  final double paidAmount;
+
+  /// Remaining amount still owed for this booking.
+  final double balanceDue;
   final String? paymentStatus;
   final String? notes;
   final BookingCouponModel? coupon;
-  final BookingPaymentModel? payment;
+  final List<BookingPaymentModel> payments;
   final List<BookingSlotModel> bookingSlots;
+
+  /// Primary payment for this booking — the one carrying a proof screenshot if
+  /// any, otherwise the first recorded payment. Null when no payments exist.
+  BookingPaymentModel? get payment {
+    if (payments.isEmpty) return null;
+    for (final BookingPaymentModel p in payments) {
+      if (p.hasPaymentProof ||
+          p.paymentProofUrl?.trim().isNotEmpty == true ||
+          p.paymentProofPath?.trim().isNotEmpty == true) {
+        return p;
+      }
+    }
+    return payments.first;
+  }
+
+  BookingModel copyWith({
+    int? id,
+    String? bookingRef,
+    String? courtName,
+    String? futsalName,
+    DateTime? date,
+    String? startTime,
+    String? endTime,
+    BookingStatus? status,
+    double? amount,
+    int? venueId,
+    int? courtId,
+    int? vendorId,
+    int? playerId,
+    String? playerName,
+    String? playerPhone,
+    String? playerEmail,
+    String? futsalAddress,
+    int? seriesParentId,
+    bool? isRecurring,
+    bool? isSeriesAnchor,
+    String? recurrenceType,
+    DateTime? recurrenceStartDate,
+    DateTime? recurrenceEndDate,
+    int? slotCount,
+    double? pricePerSlot,
+    double? subtotal,
+    double? discountAmount,
+    double? taxAmount,
+    double? advanceAmount,
+    double? payableNow,
+    double? balanceDueLater,
+    double? paidAmount,
+    double? balanceDue,
+    String? paymentStatus,
+    String? notes,
+    BookingCouponModel? coupon,
+    List<BookingPaymentModel>? payments,
+    List<BookingSlotModel>? bookingSlots,
+  }) {
+    return BookingModel(
+      id: id ?? this.id,
+      bookingRef: bookingRef ?? this.bookingRef,
+      courtName: courtName ?? this.courtName,
+      futsalName: futsalName ?? this.futsalName,
+      date: date ?? this.date,
+      startTime: startTime ?? this.startTime,
+      endTime: endTime ?? this.endTime,
+      status: status ?? this.status,
+      amount: amount ?? this.amount,
+      venueId: venueId ?? this.venueId,
+      courtId: courtId ?? this.courtId,
+      vendorId: vendorId ?? this.vendorId,
+      playerId: playerId ?? this.playerId,
+      playerName: playerName ?? this.playerName,
+      playerPhone: playerPhone ?? this.playerPhone,
+      playerEmail: playerEmail ?? this.playerEmail,
+      futsalAddress: futsalAddress ?? this.futsalAddress,
+      seriesParentId: seriesParentId ?? this.seriesParentId,
+      isRecurring: isRecurring ?? this.isRecurring,
+      isSeriesAnchor: isSeriesAnchor ?? this.isSeriesAnchor,
+      recurrenceType: recurrenceType ?? this.recurrenceType,
+      recurrenceStartDate: recurrenceStartDate ?? this.recurrenceStartDate,
+      recurrenceEndDate: recurrenceEndDate ?? this.recurrenceEndDate,
+      slotCount: slotCount ?? this.slotCount,
+      pricePerSlot: pricePerSlot ?? this.pricePerSlot,
+      subtotal: subtotal ?? this.subtotal,
+      discountAmount: discountAmount ?? this.discountAmount,
+      taxAmount: taxAmount ?? this.taxAmount,
+      advanceAmount: advanceAmount ?? this.advanceAmount,
+      payableNow: payableNow ?? this.payableNow,
+      balanceDueLater: balanceDueLater ?? this.balanceDueLater,
+      paidAmount: paidAmount ?? this.paidAmount,
+      balanceDue: balanceDue ?? this.balanceDue,
+      paymentStatus: paymentStatus ?? this.paymentStatus,
+      notes: notes ?? this.notes,
+      coupon: coupon ?? this.coupon,
+      payments: payments ?? this.payments,
+      bookingSlots: bookingSlots ?? this.bookingSlots,
+    );
+  }
 
   String get displayStartTime => _displayTime(startTime);
   String get displayEndTime => _displayTime(endTime);
@@ -89,6 +202,9 @@ class BookingModel extends Equatable {
     final Map<String, dynamic> venue = _mapOf(
       json['venue'] ?? json['futsal'] ?? court['venue'] ?? court['futsal'],
     );
+    final Map<String, dynamic> vendor = _mapOf(
+      json['vendor'] ?? json['owner'] ?? venue['vendor'] ?? venue['owner'],
+    );
     final Map<String, dynamic> player = _mapOf(
       json['user'] ?? json['player'] ?? json['customer'] ?? json['booked_by'],
     );
@@ -99,7 +215,12 @@ class BookingModel extends Equatable {
       json['price_details'] ?? json['payment'] ?? json['quote'],
     );
     final Map<String, dynamic> coupon = _mapOf(json['coupon']);
-    final Map<String, dynamic> payment = _mapOf(json['payment']);
+    // The API returns a list under `payments`; older/detail payloads may still
+    // send a single `payment` object — support both.
+    final List<BookingPaymentModel> payments = _mapList(
+      json['payments'],
+    ).map(BookingPaymentModel.fromJson).toList(growable: false);
+    final Map<String, dynamic> singlePayment = _mapOf(json['payment']);
     final List<BookingSlotModel> bookingSlots = _mapList(
       json['booking_slots'],
     ).map(BookingSlotModel.fromJson).toList(growable: false);
@@ -171,6 +292,24 @@ class BookingModel extends Equatable {
           0.0,
       venueId: _asInt(json['venue_id'] ?? venue['id']),
       courtId: _asInt(json['court_id'] ?? court['id']),
+      vendorId: _asInt(
+        json['vendor_id'] ??
+            json['owner_id'] ??
+            venue['vendor_id'] ??
+            venue['owner_id'] ??
+            venue['user_id'] ??
+            vendor['id'] ??
+            vendor['vendor_id'] ??
+            vendor['user_id'],
+      ),
+      playerId: _asInt(
+        json['user_id'] ??
+            json['player_id'] ??
+            json['customer_id'] ??
+            json['booked_by'] ??
+            player['id'] ??
+            player['user_id'],
+      ),
       playerName: _asString(
         json['player_name'] ??
             json['customer_name'] ??
@@ -214,10 +353,18 @@ class BookingModel extends Equatable {
       advanceAmount: _asDouble(json['advance_amount']) ?? 0,
       payableNow: _asDouble(json['payable_now']) ?? 0,
       balanceDueLater: _asDouble(json['balance_due_later']) ?? 0,
+      paidAmount: _asDouble(json['paid_amount']) ?? 0,
+      balanceDue: _asDouble(json['balance_due']) ?? 0,
       paymentStatus: _asString(json['payment_status']),
       notes: _asString(json['notes']),
       coupon: coupon.isEmpty ? null : BookingCouponModel.fromJson(coupon),
-      payment: payment.isEmpty ? null : BookingPaymentModel.fromJson(payment),
+      payments: payments.isNotEmpty
+          ? payments
+          : (singlePayment.isEmpty
+                ? const <BookingPaymentModel>[]
+                : <BookingPaymentModel>[
+                    BookingPaymentModel.fromJson(singlePayment),
+                  ]),
       bookingSlots: bookingSlots,
     );
   }
@@ -234,6 +381,8 @@ class BookingModel extends Equatable {
     'amount': amount,
     'venue_id': venueId,
     'court_id': courtId,
+    'vendor_id': vendorId,
+    'user_id': playerId,
     'player_name': playerName,
     'player_phone': playerPhone,
     'player_email': playerEmail,
@@ -252,10 +401,14 @@ class BookingModel extends Equatable {
     'advance_amount': advanceAmount,
     'payable_now': payableNow,
     'balance_due_later': balanceDueLater,
+    'paid_amount': paidAmount,
+    'balance_due': balanceDue,
     'payment_status': paymentStatus,
     'notes': notes,
     'coupon': coupon?.toJson(),
-    'payment': payment?.toJson(),
+    'payments': payments
+        .map((BookingPaymentModel payment) => payment.toJson())
+        .toList(growable: false),
     'booking_slots': bookingSlots
         .map((BookingSlotModel slot) => slot.toJson())
         .toList(growable: false),
@@ -292,6 +445,8 @@ class BookingModel extends Equatable {
     amount,
     venueId,
     courtId,
+    vendorId,
+    playerId,
     playerName,
     playerPhone,
     playerEmail,
@@ -310,10 +465,12 @@ class BookingModel extends Equatable {
     advanceAmount,
     payableNow,
     balanceDueLater,
+    paidAmount,
+    balanceDue,
     paymentStatus,
     notes,
     coupon,
-    payment,
+    payments,
     bookingSlots,
   ];
 }
@@ -365,6 +522,30 @@ final class BookingPaymentModel extends Equatable {
   final String? paymentProofUrl;
   final bool hasPaymentProof;
   final String? note;
+
+  BookingPaymentModel copyWith({
+    int? id,
+    String? method,
+    double? amount,
+    String? status,
+    String? verificationStatus,
+    String? paymentProofPath,
+    String? paymentProofUrl,
+    bool? hasPaymentProof,
+    String? note,
+  }) {
+    return BookingPaymentModel(
+      id: id ?? this.id,
+      method: method ?? this.method,
+      amount: amount ?? this.amount,
+      status: status ?? this.status,
+      verificationStatus: verificationStatus ?? this.verificationStatus,
+      paymentProofPath: paymentProofPath ?? this.paymentProofPath,
+      paymentProofUrl: paymentProofUrl ?? this.paymentProofUrl,
+      hasPaymentProof: hasPaymentProof ?? this.hasPaymentProof,
+      note: note ?? this.note,
+    );
+  }
 
   factory BookingPaymentModel.fromJson(Map<String, dynamic> json) {
     return BookingPaymentModel(
@@ -458,6 +639,7 @@ enum BookingStatus {
   pending('pending'),
   confirmed('confirmed'),
   cancelled('cancelled'),
+  rejected('rejected'),
   completed('completed');
 
   const BookingStatus(this.value);
@@ -469,10 +651,8 @@ enum BookingStatus {
       'approved' ||
       'accepted' ||
       'paid' => BookingStatus.confirmed,
-      'cancelled' ||
-      'canceled' ||
-      'rejected' ||
-      'declined' => BookingStatus.cancelled,
+      'rejected' || 'declined' => BookingStatus.rejected,
+      'cancelled' || 'canceled' => BookingStatus.cancelled,
       'completed' || 'complete' || 'finished' => BookingStatus.completed,
       _ => BookingStatus.pending,
     };

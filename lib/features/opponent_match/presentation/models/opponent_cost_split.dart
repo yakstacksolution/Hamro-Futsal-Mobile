@@ -11,7 +11,27 @@ class OpponentCostSplit {
     required this.myPercent,
     required this.loserPercent,
     required this.playerCount,
+    this.overrideCourtFee,
+    this.overrideYourShare,
   });
+
+  /// Split with server-authoritative figures — reuses the per-player math on
+  /// the accept flow where the fee and share come from the request/quote, not
+  /// the local format table.
+  factory OpponentCostSplit.fromServerShare({
+    required int totalFee,
+    required int accepterShare,
+    required int playerCount,
+  }) => OpponentCostSplit(
+    format: MatchFormat.fiveASide,
+    split: SplitMode.even,
+    basis: SplitBasis.teams,
+    myPercent: 50,
+    loserPercent: 70,
+    playerCount: playerCount,
+    overrideCourtFee: totalFee,
+    overrideYourShare: accepterShare,
+  );
 
   final MatchFormat format;
   final SplitMode split;
@@ -24,7 +44,12 @@ class OpponentCostSplit {
   final int loserPercent;
   final int playerCount;
 
-  int get courtFee => format.courtFee;
+  /// Server-quoted totals; when set they take precedence over the local
+  /// format fee table and percentage math.
+  final int? overrideCourtFee;
+  final int? overrideYourShare;
+
+  int get courtFee => overrideCourtFee ?? format.courtFee;
 
   bool get isResultBased =>
       split == SplitMode.custom && basis == SplitBasis.result;
@@ -40,6 +65,7 @@ class OpponentCostSplit {
   }
 
   int get yourShare {
+    if (overrideYourShare != null) return overrideYourShare!;
     if (split == SplitMode.even) return (courtFee * 0.5).round();
     if (isResultBased) return 0; // conditional on match result
     return (courtFee * myPercent / 100).round();

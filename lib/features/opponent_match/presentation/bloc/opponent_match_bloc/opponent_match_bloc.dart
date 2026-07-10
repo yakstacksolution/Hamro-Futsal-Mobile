@@ -26,8 +26,11 @@ class OpponentMatchBloc extends Bloc<OpponentMatchEvent, OpponentMatchState> {
     on<UpdateMemberEvent>(_onUpdateMember);
     on<RemoveMemberEvent>(_onRemoveMember);
     on<SendOpponentRequestEvent>(_onSendRequest);
-    on<UpdateRequestStatusEvent>(_onUpdateStatus);
+    on<DeclineRequestEvent>(_onDeclineRequest);
+    on<RequestAcceptedEvent>(_onRequestAccepted);
     on<DeleteOpponentRequestEvent>(_onDeleteRequest);
+    on<VerifyOpponentPaymentEvent>(_onVerifyPayment);
+    on<RejectOpponentPaymentEvent>(_onRejectPayment);
   }
 
   final OpponentMatchUseCase useCase;
@@ -194,14 +197,25 @@ class OpponentMatchBloc extends Bloc<OpponentMatchEvent, OpponentMatchState> {
     _applyRequests(await useCase.sendRequest(event.request), emit);
   }
 
-  Future<void> _onUpdateStatus(
-    UpdateRequestStatusEvent event,
+  Future<void> _onDeclineRequest(
+    DeclineRequestEvent event,
     Emitter<OpponentMatchState> emit,
   ) async {
-    _applyRequests(
-      await useCase.updateRequestStatus(event.request.id, event.status),
-      emit,
-    );
+    _applyRequests(await useCase.declineRequest(event.request.id), emit);
+  }
+
+  /// Patch the accepted request into the list right away so the card shows
+  /// "payment pending" without waiting for the round-trip refresh.
+  Future<void> _onRequestAccepted(
+    RequestAcceptedEvent event,
+    Emitter<OpponentMatchState> emit,
+  ) async {
+    final requests = [
+      for (final r in state.requests)
+        if (r.id == event.updated.id) event.updated else r,
+    ];
+    emit(state.copyWith(requests: requests, clearErrorMessage: true));
+    _applyRequests(await useCase.getRequests(), emit);
   }
 
   Future<void> _onDeleteRequest(
@@ -209,6 +223,23 @@ class OpponentMatchBloc extends Bloc<OpponentMatchEvent, OpponentMatchState> {
     Emitter<OpponentMatchState> emit,
   ) async {
     _applyRequests(await useCase.deleteRequest(event.request.id), emit);
+  }
+
+  Future<void> _onVerifyPayment(
+    VerifyOpponentPaymentEvent event,
+    Emitter<OpponentMatchState> emit,
+  ) async {
+    _applyRequests(await useCase.verifyPayment(event.request.id), emit);
+  }
+
+  Future<void> _onRejectPayment(
+    RejectOpponentPaymentEvent event,
+    Emitter<OpponentMatchState> emit,
+  ) async {
+    _applyRequests(
+      await useCase.rejectPayment(event.request.id, event.reason),
+      emit,
+    );
   }
 
   void _applyRequests(

@@ -3,7 +3,69 @@ import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 import 'package:hamro_footsall/features/opponent_match/data/model/opponent_match_model.dart';
+
+/// Countdown pill used for the accept window on request cards and the
+/// payment-hold window on the accept page. Turns red when [urgent].
+class OpponentCountdownPill extends StatelessWidget {
+  const OpponentCountdownPill({
+    super.key,
+    required this.value,
+    required this.urgent,
+    this.label = StringConstants.acceptWithin,
+  });
+
+  /// `mm:ss` remaining.
+  final String value;
+  final bool urgent;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    final Color fg = urgent ? LightColor.redColor : LightColor.secondaryColor;
+    final Color bg = urgent
+        ? LightColor.redLightColor
+        : LightColor.secondaryColor.withValues(alpha: 0.10);
+    return Container(
+      padding: AppUtils().getPadding(
+        horizontal: AppDimens.paddingX10,
+        vertical: AppDimens.paddingX6,
+      ),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(AppDimens.radiusX6),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            urgent ? Icons.timer_rounded : Icons.timer_outlined,
+            size: 14,
+            color: fg,
+          ),
+          const SizedBox(width: AppDimens.paddingX6),
+          Text(
+            label,
+            style: textTheme.bodyTextSmall?.copyWith(
+              color: fg,
+              fontWeight: FontWeight.w500,
+              fontSize: AppDimens.fontBodySubTitle,
+            ),
+          ),
+          const Spacer(),
+          Text(
+            value,
+            style: textTheme.bodyTextMedium?.copyWith(
+              color: fg,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 /// Elevated surface used by every section of the opponent-match feature.
 class OpponentCard extends StatelessWidget {
@@ -340,7 +402,12 @@ class OpponentStatusBadge extends StatelessWidget {
         LightColor.secondaryColor.withValues(alpha: 0.10),
         status.label,
       ),
-      RequestStatus.expired => (
+      RequestStatus.paymentPending => (
+        LightColor.warningColor,
+        LightColor.warningLightColor,
+        status.label,
+      ),
+      RequestStatus.expired || RequestStatus.cancelled => (
         LightColor.hintTextColor,
         LightColor.dividerColor,
         'Closed',

@@ -23,8 +23,9 @@ class SlotAvailabilityUpdate {
   final Map<String, dynamic> raw;
 }
 
-/// A live hold/booking state change broadcast on the per-date presence
-/// channel `presence-venue.{venueId}.booking.{bookingDate}`.
+/// A live hold/booking state change broadcast on the per-date booking channel
+/// `venue.{venueId}.booking.{bookingDate}`. The Flutter Pusher subscription
+/// uses Echo's `presence-` prefix for this channel.
 ///
 /// All six backend events (`slot.held`, `slot.released`, `slot.expired`,
 /// `booking.step.updated`, `booking.confirmed`, `booking.cancelled`) share
@@ -90,7 +91,7 @@ abstract class SlotSocketService {
   Stream<SlotAvailabilityUpdate> venueSlots(int venueId);
 
   /// Emits every hold/booking state change broadcast on the presence channel
-  /// `presence-venue.{venueId}.booking.{bookingDate}` for the given day.
+  /// `venue.{venueId}.booking.{bookingDate}` for the given day.
   Stream<BookingSlotEvent> bookingEvents(int venueId, String bookingDate);
 
   /// Emits the number of users currently on that venue + date's presence

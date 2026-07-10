@@ -25,6 +25,7 @@ class CustomTextField extends StatefulWidget {
     this.onTap,
     this.style,
     this.validator,
+    this.autovalidateMode,
     this.minLines,
     this.initialValue,
     this.onSubmitted,
@@ -50,6 +51,7 @@ class CustomTextField extends StatefulWidget {
   final VoidCallback? onTap;
   final TextStyle? style;
   final FormFieldValidator<String>? validator;
+  final AutovalidateMode? autovalidateMode;
   final int? minLines;
   final String? initialValue;
   final ValueChanged<String>? onSubmitted;
@@ -138,6 +140,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
       onTap: widget.onTap,
       onFieldSubmitted: widget.onSubmitted,
       validator: widget.validator,
+      autovalidateMode: widget.autovalidateMode,
       inputFormatters: widget.inputFormatters,
       cursorColor: LightColor.primaryTextColor,
       cursorHeight: AppDimens.sizeX16,

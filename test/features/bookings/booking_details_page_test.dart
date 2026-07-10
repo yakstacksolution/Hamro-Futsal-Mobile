@@ -107,6 +107,14 @@ void main() {
       'total_amount': 1080,
       'venue': <String, dynamic>{'id': 1, 'name': 'Dhananjay sports'},
       'court': <String, dynamic>{'id': 6, 'name': 'Shidartha'},
+      // Payment already verified so the Accept action is enabled.
+      'payment': <String, dynamic>{
+        'id': 7,
+        'payment_method': 'cash',
+        'amount': 1080,
+        'verification_status': 'verified',
+        'has_payment_proof': true,
+      },
     });
     bool accepted = false;
     bool rejected = false;
@@ -137,6 +145,142 @@ void main() {
     expect(rejected, isTrue);
     expect(openedChat, isTrue);
   });
+
+  testWidgets('verifying payment proof does not accept or refresh booking', (
+    WidgetTester tester,
+  ) async {
+    final BookingModel booking = BookingModel.fromJson(<String, dynamic>{
+      'id': 5,
+      'booking_date': '2026-08-12',
+      'start_time': '18:00:00',
+      'end_time': '19:00:00',
+      'booking_status': 'pending',
+      'total_amount': 1080,
+      'venue': <String, dynamic>{'id': 1, 'name': 'Dhananjay sports'},
+      'court': <String, dynamic>{'id': 6, 'name': 'Shidartha'},
+      'payment': <String, dynamic>{
+        'id': 13,
+        'payment_method': 'cash',
+        'amount': 1080,
+        'verification_status': 'pending',
+        'has_payment_proof': true,
+      },
+    });
+    final _FakeBookingRepository repository = _FakeBookingRepository(booking);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: BookingDetailsPage(
+          booking: booking,
+          isFutsalView: true,
+          repository: repository,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(repository.getBookingDetailsCalls, 1);
+
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('proof-accept-button')),
+      500,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.ensureVisible(find.byKey(const Key('proof-accept-button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('proof-accept-button')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('payment-proof-actual-amount-field')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('payment-proof-remarks-field')),
+      findsOneWidget,
+    );
+
+    await tester.enterText(
+      find.byKey(const Key('payment-proof-actual-amount-field')),
+      '1050',
+    );
+    await tester.enterText(
+      find.byKey(const Key('payment-proof-remarks-field')),
+      'Verified with bank statement',
+    );
+    await tester.tap(
+      find.byKey(const Key('confirm-payment-proof-accept-button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(repository.verifyPaymentCalls, 1);
+    expect(repository.verifiedActualAmount, 1050);
+    expect(repository.verifiedNote, 'Verified with bank statement');
+    expect(repository.acceptBookingCalls, 0);
+    expect(repository.getBookingDetailsCalls, 1);
+  });
+
+  testWidgets('rejecting payment proof asks for a reason', (
+    WidgetTester tester,
+  ) async {
+    final BookingModel booking = BookingModel.fromJson(<String, dynamic>{
+      'id': 5,
+      'booking_date': '2026-08-12',
+      'start_time': '18:00:00',
+      'end_time': '19:00:00',
+      'booking_status': 'pending',
+      'total_amount': 1080,
+      'venue': <String, dynamic>{'id': 1, 'name': 'Dhananjay sports'},
+      'court': <String, dynamic>{'id': 6, 'name': 'Shidartha'},
+      'payment': <String, dynamic>{
+        'id': 13,
+        'payment_method': 'cash',
+        'amount': 1080,
+        'verification_status': 'pending',
+        'has_payment_proof': true,
+      },
+    });
+    final _FakeBookingRepository repository = _FakeBookingRepository(booking);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: BookingDetailsPage(
+          booking: booking,
+          isFutsalView: true,
+          repository: repository,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('proof-reject-button')),
+      500,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.ensureVisible(find.byKey(const Key('proof-reject-button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('proof-reject-button')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('payment-proof-reject-reason-field')),
+      findsOneWidget,
+    );
+
+    await tester.enterText(
+      find.byKey(const Key('payment-proof-reject-reason-field')),
+      'Wrong amount',
+    );
+    await tester.tap(
+      find.byKey(const Key('confirm-payment-proof-reject-button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(repository.rejectPaymentCalls, 1);
+    expect(repository.rejectedNote, 'Wrong amount');
+    expect(repository.acceptBookingCalls, 0);
+  });
 }
 
 final class _FakeBookingRepository implements BookingRepository {
@@ -144,11 +288,19 @@ final class _FakeBookingRepository implements BookingRepository {
 
   final BookingModel booking;
   int? requestedBookingId;
+  int getBookingDetailsCalls = 0;
+  int verifyPaymentCalls = 0;
+  int rejectPaymentCalls = 0;
+  int acceptBookingCalls = 0;
+  double? verifiedActualAmount;
+  String? verifiedNote;
+  String? rejectedNote;
 
   @override
   Future<Either<AppException, BookingModel>> getBookingDetails(
     int bookingId,
   ) async {
+    getBookingDetailsCalls++;
     requestedBookingId = bookingId;
     return right(booking);
   }
@@ -160,4 +312,51 @@ final class _FakeBookingRepository implements BookingRepository {
   @override
   Future<Either<AppException, List<BookingModel>>> getFutsalBookings() async =>
       right(<BookingModel>[booking]);
+
+  @override
+  Future<Either<AppException, BookingModel?>> cancelBooking(
+    int bookingId,
+  ) async => right(booking);
+
+  @override
+  Future<Either<AppException, bool>> getCancelBoundary(int bookingId) async =>
+      right(true);
+
+  @override
+  Future<Either<AppException, BookingModel?>> verifyBookingPayment({
+    required int bookingId,
+    required int paymentId,
+    required double actualAmount,
+    String? note,
+  }) async {
+    verifyPaymentCalls++;
+    verifiedActualAmount = actualAmount;
+    verifiedNote = note;
+    return right(booking);
+  }
+
+  @override
+  Future<Either<AppException, BookingModel?>> rejectBookingPayment({
+    required int bookingId,
+    required int paymentId,
+    String? note,
+  }) async {
+    rejectPaymentCalls++;
+    rejectedNote = note;
+    return right(booking);
+  }
+
+  @override
+  Future<Either<AppException, BookingModel?>> acceptBooking({
+    required int bookingId,
+  }) async {
+    acceptBookingCalls++;
+    return right(booking);
+  }
+
+  @override
+  Future<Either<AppException, BookingModel?>> rejectBooking({
+    required int bookingId,
+    String? note,
+  }) async => right(booking);
 }

@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hamro_footsall/core/routers/app_router_params.dart';
-import 'package:hamro_footsall/core/socket/reverb_connection.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
@@ -41,7 +40,6 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
     super.initState();
 
     WidgetsBinding.instance.addObserver(this);
-    ReverbConnection.instance.connect();
 
     _bottomBarController = AnimationController(
       vsync: this,
@@ -63,7 +61,6 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state != AppLifecycleState.resumed || !mounted) return;
-    ReverbConnection.instance.connect();
     context.read<SlotsSelectionBloc>().add(
       const SlotsRealtimeRefreshRequested(),
     );
@@ -461,14 +458,18 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
                       child: CustomButton(
                         text: state.buttonText,
                         onPressed: canBook
-                            ? () {
+                            ? () async {
                                 HapticFeedback.mediumImpact();
                                 final draft = state.bookingDraft;
                                 if (draft == null) return;
-                                context.pushNamed(
-                                  AppRouterParams.bookingCheckout.name,
-                                  extra: draft,
-                                );
+                                final bool? booked = await context
+                                    .pushNamed<bool>(
+                                      AppRouterParams.bookingCheckout.name,
+                                      extra: draft,
+                                    );
+                                if (booked == true && context.mounted) {
+                                  Navigator.of(context).pop(draft);
+                                }
                               }
                             : null,
                         backgroundColor: canBook

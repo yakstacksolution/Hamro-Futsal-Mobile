@@ -12,6 +12,13 @@ class CreateOpponentRequestEntity {
     required this.yourShare,
     required this.message,
     this.myPct,
+    this.teamId = '',
+    this.formatLabel = '',
+    this.levelSlug = '',
+    this.splitMode = 'even',
+    this.loserPct,
+    this.endTime,
+    this.claimedTotalFee,
   });
 
   final String team;
@@ -26,6 +33,53 @@ class CreateOpponentRequestEntity {
   /// Your side's percentage; null when the split is result-based.
   final int? myPct;
 
+  /// Server id of the requesting team.
+  final String teamId;
+
+  /// Wire format label, e.g. `5v5`.
+  final String formatLabel;
+
+  /// Wire level slug, e.g. `intermediate`.
+  final String levelSlug;
+
+  /// Wire split mode: `even | custom_team | custom_result`.
+  final String splitMode;
+
+  /// Loser's percentage — only for result-based splits.
+  final int? loserPct;
+
+  /// `HH:mm` end time when a booked slot supplied one.
+  final String? endTime;
+
+  /// What the requester says they paid for an externally-booked court.
+  /// Only sent for the already-booked path — for platform venues the server
+  /// computes the fee itself and ignores this.
+  final int? claimedTotalFee;
+
+  /// Body for `POST /opponent-requests`. Platform-venue fees are intentionally
+  /// NOT serialized — the server computes total fee, shares and the advance;
+  /// only [claimedTotalFee] travels, for externally-booked courts.
+  Map<String, dynamic> toJson() => {
+    'team_id': teamId,
+    'date':
+        '${dateTime.year.toString().padLeft(4, '0')}-'
+        '${dateTime.month.toString().padLeft(2, '0')}-'
+        '${dateTime.day.toString().padLeft(2, '0')}',
+    'start_time':
+        '${dateTime.hour.toString().padLeft(2, '0')}:'
+        '${dateTime.minute.toString().padLeft(2, '0')}',
+    'end_time': endTime,
+    'venue_name': venue,
+    'format': formatLabel,
+    'level_slug': levelSlug,
+    'split_mode': splitMode,
+    'requester_pct': myPct,
+    'loser_pct': loserPct,
+    'message': message,
+    'claimed_total_fee': claimedTotalFee,
+  };
+
+  /// Local model used only by the mock fallback (`OPPONENT_MOCK`).
   OpponentRequestModel toModel(String id) => OpponentRequestModel(
     id: id,
     team: team,
@@ -37,5 +91,6 @@ class CreateOpponentRequestEntity {
     totalFee: totalFee,
     yourShare: yourShare,
     myPct: myPct,
+    isMine: true,
   );
 }

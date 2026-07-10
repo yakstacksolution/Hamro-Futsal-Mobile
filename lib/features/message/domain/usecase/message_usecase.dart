@@ -19,11 +19,13 @@ final class MessageUseCase {
   }) async => await repository.getConversations(archived: archived);
 
   Future<Either<AppException, ConversationModel>> startDirectConversation({
-    required int vendorId,
+    int? vendorId,
     int? venueId,
+    int? userId,
   }) async => await repository.startDirectConversation(
     vendorId: vendorId,
     venueId: venueId,
+    userId: userId,
   );
 
   Future<Either<AppException, ConversationModel>> createGroupConversation({

@@ -23,6 +23,7 @@ import 'package:hamro_footsall/features/coupons/domain/usecase/apply_coupon_use_
 import 'package:hamro_footsall/features/coupons/domain/usecase/get_active_coupons_use_case.dart';
 import 'package:hamro_footsall/features/coupons/presentation/bloc/coupon_bloc.dart';
 import 'package:hamro_footsall/features/futsal_details/data/model/booking_draft.dart';
+import 'package:hamro_footsall/features/futsal_details/data/model/slots_selection_route_args.dart';
 import 'package:hamro_footsall/features/futsal_details/presentation/view/booking_checkout_page.dart';
 import 'package:hamro_footsall/features/futsal_details/presentation/view/slots_selection_page.dart';
 import 'package:hamro_footsall/features/futsal_details/data/repositories/futsal_details_repository_impl.dart';
@@ -48,7 +49,7 @@ import 'package:hamro_footsall/features/auth/presentation/otp_verification_scree
 import 'package:hamro_footsall/features/auth/presentation/register_screen.dart';
 import 'package:hamro_footsall/features/auth/domain/usecase/authentication_usecase.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/page/dashboard_screen.dart';
-import 'package:hamro_footsall/features/dashboard/presentation/page/notifications_page.dart';
+import 'package:hamro_footsall/features/notifications/presentation/pages/notifications_page.dart';
 import 'package:hamro_footsall/features/futsal_details/presentation/view/futsal_details_page_view.dart';
 import 'package:hamro_footsall/features/public/data/model/public_venue_model.dart';
 import 'package:hamro_footsall/features/public/data/repositories/public_repository_impl.dart';
@@ -302,15 +303,27 @@ class AppRouters {
           name: AppRouterParams.slotsSelection.name,
           path: AppRouterParams.slotsSelection.path,
           builder: (context, state) {
-            final CourtDetailModel court = state.extra as CourtDetailModel;
+            final Object? extra = state.extra;
+            final SlotsSelectionRouteArgs args =
+                extra is SlotsSelectionRouteArgs
+                ? extra
+                : SlotsSelectionRouteArgs(court: extra as CourtDetailModel);
+            final CourtDetailModel court = args.court;
             final FutsalDetailsRepositoryImpl repository =
                 FutsalDetailsRepositoryImpl();
             return BlocProvider<SlotsSelectionBloc>(
-              create: (_) => SlotsSelectionBloc(
-                GetAvailableCourtsUseCase(repository),
-                GetVenueSlotsUseCase(repository),
-                CheckRecurringAvailabilityUseCase(repository),
-              )..add(InitializeSlotsSelectionEvent(court: court)),
+              create: (_) =>
+                  SlotsSelectionBloc(
+                    GetAvailableCourtsUseCase(repository),
+                    GetVenueSlotsUseCase(repository),
+                    CheckRecurringAvailabilityUseCase(repository),
+                  )..add(
+                    InitializeSlotsSelectionEvent(
+                      court: court,
+                      initialDate: args.initialDate,
+                      initialStartTime: args.initialStartTime,
+                    ),
+                  ),
               child: SlotsSelectionPage(court: court),
             );
           },

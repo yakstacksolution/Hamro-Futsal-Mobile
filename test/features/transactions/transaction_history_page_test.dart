@@ -67,12 +67,14 @@ final class _FakeBookingRepository implements BookingRepository {
     status: BookingStatus.confirmed,
     amount: 1500,
     playerName: 'Aarav Shrestha',
-    payment: const BookingPaymentModel(
-      id: 50,
-      amount: 1500,
-      status: 'completed',
-      method: 'eSewa',
-    ),
+    payments: const <BookingPaymentModel>[
+      BookingPaymentModel(
+        id: 50,
+        amount: 1500,
+        status: 'completed',
+        method: 'eSewa',
+      ),
+    ],
   );
 
   @override
@@ -93,4 +95,39 @@ final class _FakeBookingRepository implements BookingRepository {
   ) async {
     return right(booking);
   }
+
+  @override
+  Future<Either<AppException, BookingModel?>> cancelBooking(
+    int bookingId,
+  ) async => right(booking);
+
+  @override
+  Future<Either<AppException, bool>> getCancelBoundary(int bookingId) async =>
+      right(true);
+
+  @override
+  Future<Either<AppException, BookingModel?>> verifyBookingPayment({
+    required int bookingId,
+    required int paymentId,
+    required double actualAmount,
+    String? note,
+  }) async => right(booking);
+
+  @override
+  Future<Either<AppException, BookingModel?>> rejectBookingPayment({
+    required int bookingId,
+    required int paymentId,
+    String? note,
+  }) async => right(booking);
+
+  @override
+  Future<Either<AppException, BookingModel?>> acceptBooking({
+    required int bookingId,
+  }) async => right(booking);
+
+  @override
+  Future<Either<AppException, BookingModel?>> rejectBooking({
+    required int bookingId,
+    String? note,
+  }) async => right(booking);
 }

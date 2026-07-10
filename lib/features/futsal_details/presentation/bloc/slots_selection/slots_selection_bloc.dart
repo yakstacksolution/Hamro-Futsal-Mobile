@@ -52,6 +52,7 @@ class SlotsSelectionBloc
   int _slotsRequestSerial = 0;
   int _courtsRequestSerial = 0;
   int _recurringRequestSerial = 0;
+  String? _preferredInitialStartTime;
 
   /// Live slot-availability wiring for the current venue.
   StreamSubscription<SlotAvailabilityUpdate>? _availabilitySub;
@@ -59,7 +60,7 @@ class SlotsSelectionBloc
   int? _subscribedVenueId;
 
   /// Live hold/booking wiring for the venue + date currently on screen
-  /// (the `presence-venue.{venueId}.booking.{bookingDate}` channel).
+  /// (the `venue.{venueId}.booking.{bookingDate}` presence channel).
   StreamSubscription<BookingSlotEvent>? _bookingEventsSub;
   StreamSubscription<int>? _viewersSub;
   int? _joinedBookingVenueId;
@@ -70,13 +71,24 @@ class SlotsSelectionBloc
     Emitter<SlotsSelectionState> emit,
   ) async {
     _sourceCourt = event.court;
+    _preferredInitialStartTime = event.initialStartTime;
+    final DateTime today = _dateOnly(DateTime.now());
+    final DateTime? preferredDate = event.initialDate == null
+        ? null
+        : _dateOnly(event.initialDate!);
+    final int preferredOffset = preferredDate?.difference(today).inDays ?? 0;
+    final int dateCount = preferredOffset >= 14 ? preferredOffset + 1 : 14;
+    final List<DateTime> dates = List<DateTime>.generate(
+      dateCount,
+      (int i) => _dateOnly(DateTime.now().add(Duration(days: i))),
+    );
+    final int preferredDateIndex = preferredDate == null
+        ? 0
+        : dates.indexWhere((DateTime date) => date == preferredDate);
     final SlotsSelectionState next = state.copyWith(
       venueId: event.court.venueId,
-      dates: List<DateTime>.generate(
-        14,
-        (int i) => _dateOnly(DateTime.now().add(Duration(days: i))),
-      ),
-      selectedDateIndex: 0,
+      dates: dates,
+      selectedDateIndex: preferredDateIndex < 0 ? 0 : preferredDateIndex,
       selectedSlotIndex: -1,
       selectedCourtIndex: -1,
       timeSlots: const <TimeSlotModel>[],
@@ -121,7 +133,7 @@ class SlotsSelectionBloc
     });
   }
 
-  /// Joins the `presence-venue.{venueId}.booking.{date}` channel for the day
+  /// Joins the `venue.{venueId}.booking.{date}` presence channel for the day
   /// on screen, leaving the previously joined one (per-date channel, so the
   /// user must drop out of the old date's roster). No-op when already joined.
   void _joinBookingChannel(int? venueId, DateTime date) {
@@ -468,16 +480,24 @@ class SlotsSelectionBloc
         );
       },
       (List<TimeSlotModel> timeSlots) {
+        final int selectedSlotIndex = _preferredInitialStartTime == null
+            ? _safeSlotIndex(current.selectedSlotIndex, timeSlots)
+            : timeSlots.indexWhere(
+                (TimeSlotModel slot) =>
+                    slot.isAvailable &&
+                    _sameApiTime(
+                      slot.apiTime ?? _apiTimeFromDisplay(slot.time),
+                      _preferredInitialStartTime,
+                    ),
+              );
+        _preferredInitialStartTime = null;
         emit(
           current.copyWith(
             status: markSuccess
                 ? SlotsSelectionStatus.success
                 : SlotsSelectionStatus.loading,
             timeSlots: timeSlots,
-            selectedSlotIndex: _safeSlotIndex(
-              current.selectedSlotIndex,
-              timeSlots,
-            ),
+            selectedSlotIndex: selectedSlotIndex,
             selectedCourtIndex: -1,
             courts: const <VenueCourtItemModel>[],
             clearError: true,

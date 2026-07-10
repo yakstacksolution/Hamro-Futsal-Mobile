@@ -10,6 +10,7 @@ Color bookingStatusColor(BookingStatus status) => switch (status) {
   BookingStatus.confirmed => LightColor.secondaryColor,
   BookingStatus.pending => const Color(0xFFE65100),
   BookingStatus.cancelled => LightColor.redColor,
+  BookingStatus.rejected => LightColor.redColor,
   BookingStatus.completed => LightColor.purpleColor,
 };
 

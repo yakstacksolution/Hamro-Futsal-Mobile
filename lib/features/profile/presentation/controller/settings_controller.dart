@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:hamro_footsall/core/helper/share_preferences.dart';
+import 'package:hamro_footsall/core/security/biometric_auth_service.dart';
+import 'package:hamro_footsall/core/security/biometric_session_store.dart';
 import 'package:hamro_footsall/features/profile/data/model/profile_model.dart';
 import 'package:hamro_footsall/features/profile/data/repositories/profile_repository_impl.dart';
 import 'package:hamro_footsall/features/profile/domain/usecase/profile_usecase.dart';
@@ -140,8 +142,21 @@ class SettingsController extends ChangeNotifier {
     _syncNotificationPrefs(previous);
   }
 
-  void setBiometricLogin(bool value) {
+  Future<void> setBiometricLogin(bool value) async {
     if (_biometricLogin == value) return;
+    if (value) {
+      final BiometricAuthService biometricAuth = BiometricAuthService();
+      if (!await biometricAuth.isAvailable()) {
+        onError?.call(
+          'Face ID or fingerprint is not available on this device.',
+        );
+        return;
+      }
+      if (!await biometricAuth.authenticate()) return;
+      await BiometricSessionStore().save(_settings.tokenModel);
+    } else {
+      await BiometricSessionStore().clear();
+    }
     _biometricLogin = value;
     _settings.biometricLogin = value;
     notifyListeners();

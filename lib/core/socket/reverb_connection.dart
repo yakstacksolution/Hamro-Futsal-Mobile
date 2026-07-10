@@ -19,6 +19,7 @@ final class ReverbConnection {
 
   PusherChannelsClient? _client;
   bool _initialised = false;
+  StreamSubscription<void>? _connectionSub;
 
   final Map<String, Channel> _channels = <String, Channel>{};
 
@@ -28,6 +29,8 @@ final class ReverbConnection {
   String? get socketId => _client?.socketId;
 
   bool get isEnabled => _appKey.isNotEmpty && _host.isNotEmpty;
+
+  bool hasChannel(String name) => _channels.containsKey(name);
 
   void connect() => _ensureConnected();
 
@@ -57,16 +60,56 @@ final class ReverbConnection {
     );
     _client = client;
 
+    if (kDebugMode) {
+      client.lifecycleStream.listen(
+        (state) => debugPrint('Reverb: lifecycle → $state'),
+      );
+    }
+
     // (Re)subscribe every registered channel on each (re)connect — this also
     // transparently covers automatic reconnects.
-    client.onConnectionEstablished.listen((_) {
-      debugPrint('Reverb: connected (socketId=${client.socketId})');
+    _connectionSub = client.onConnectionEstablished.listen((_) {
+      debugPrint(
+        'Reverb: connected (socketId=${client.socketId}) — authorizing & '
+        'subscribing ${_channels.length} channel(s): ${_channels.keys}',
+      );
       for (final channel in _channels.values) {
         channel.subscribeIfNotUnsubscribed();
       }
     });
 
     client.connect();
+  }
+
+  /// Tears down the shared Reverb client and all channel bindings.
+  ///
+  /// Call this when the authenticated session changes (logout/token switch) so
+  /// private and presence channel authorization is rebuilt with fresh headers.
+  Future<void> reset() async {
+    _initialised = false;
+    await _connectionSub?.cancel();
+    _connectionSub = null;
+
+    for (final subs in _eventSubs.values) {
+      for (final sub in subs) {
+        await sub.cancel();
+      }
+    }
+    _eventSubs.clear();
+
+    for (final channel in _channels.values) {
+      channel.unsubscribe();
+    }
+    _channels.clear();
+
+    final client = _client;
+    _client = null;
+    if (client == null || client.isDisposed) return;
+    try {
+      client.dispose();
+    } on PusherChannelsException catch (exception) {
+      debugPrint('Reverb reset ignored disposed client: ${exception.message}');
+    }
   }
 
   /// Returns the private channel named [name], creating, binding [onEvent] and
@@ -92,7 +135,7 @@ final class ReverbConnection {
     );
     _channels[name] = channel;
     _eventSubs[name] = <StreamSubscription<dynamic>>[
-      channel.bindToAll().listen(onEvent),
+      channel.bindToAll().listen(_logged(name, onEvent)),
       ..._debugWatch(channel),
     ];
     channel.subscribe();
@@ -126,7 +169,7 @@ final class ReverbConnection {
     );
     _channels[name] = channel;
     _eventSubs[name] = <StreamSubscription<dynamic>>[
-      channel.bindToAll().listen(onEvent),
+      channel.bindToAll().listen(_logged(name, onEvent)),
       ..._debugWatch(channel),
     ];
     // Plain subscribe (not subscribeIfNotUnsubscribed): re-joining a channel
@@ -143,6 +186,21 @@ final class ReverbConnection {
     }
     _channels.remove(name)?.unsubscribe();
     debugPrint('Reverb: left channel $name');
+  }
+
+  /// Wraps a channel's [onEvent] handler so every event received on the
+  /// socket is logged (debug mode) before it's routed to feature services.
+  void Function(PusherChannelsReadEvent) _logged(
+    String channelName,
+    void Function(PusherChannelsReadEvent event) onEvent,
+  ) {
+    if (!kDebugMode) return onEvent;
+    return (event) {
+      debugPrint(
+        'Reverb: ← event "${event.name}" on $channelName — data: ${event.data}',
+      );
+      onEvent(event);
+    };
   }
 
   /// Debug-only visibility into a channel's subscription lifecycle —
@@ -179,7 +237,7 @@ final class ReverbConnection {
     final channel = client.publicChannel(name);
     _channels[name] = channel;
     _eventSubs[name] = <StreamSubscription<dynamic>>[
-      channel.bindToAll().listen(onEvent),
+      channel.bindToAll().listen(_logged(name, onEvent)),
       ..._debugWatch(channel),
     ];
     channel.subscribe();

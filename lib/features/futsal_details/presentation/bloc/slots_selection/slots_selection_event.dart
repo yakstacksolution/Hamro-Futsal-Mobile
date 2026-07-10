@@ -8,12 +8,18 @@ sealed class SlotsSelectionEvent extends Equatable {
 }
 
 final class InitializeSlotsSelectionEvent extends SlotsSelectionEvent {
-  const InitializeSlotsSelectionEvent({required this.court});
+  const InitializeSlotsSelectionEvent({
+    required this.court,
+    this.initialDate,
+    this.initialStartTime,
+  });
 
   final CourtDetailModel court;
+  final DateTime? initialDate;
+  final String? initialStartTime;
 
   @override
-  List<Object?> get props => <Object?>[court];
+  List<Object?> get props => <Object?>[court, initialDate, initialStartTime];
 }
 
 final class SelectSlotsDateEvent extends SlotsSelectionEvent {
@@ -74,7 +80,7 @@ final class SlotsRealtimeRefreshRequested extends SlotsSelectionEvent {
 }
 
 /// Internal event fired for each hold/booking broadcast on the per-date
-/// presence channel `presence-venue.{venueId}.booking.{bookingDate}`
+/// presence channel `venue.{venueId}.booking.{bookingDate}`
 /// (slot.held, slot.released, slot.expired, booking.confirmed,
 /// booking.cancelled, booking.step.updated).
 final class SlotsBookingRealtimeEvent extends SlotsSelectionEvent {

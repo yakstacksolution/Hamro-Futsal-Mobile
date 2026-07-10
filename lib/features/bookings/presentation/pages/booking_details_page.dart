@@ -6,16 +6,23 @@ import 'package:hamro_footsall/core/api/api_client/api_constants.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_text.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
+import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/custom_image_view.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/widgets/custom_app_bar.dart';
+import 'package:hamro_footsall/core/widgets/custom_bottom_sheet.dart';
 import 'package:hamro_footsall/core/widgets/custom_button.dart';
+import 'package:hamro_footsall/core/widgets/custom_cancel_button.dart';
+import 'package:hamro_footsall/core/widgets/custom_text_field.dart';
 import 'package:hamro_footsall/features/bookings/data/model/booking_model.dart';
 import 'package:hamro_footsall/features/bookings/data/repositories/booking_repository_impl.dart';
 import 'package:hamro_footsall/features/bookings/domain/repository/booking_repository.dart';
 import 'package:hamro_footsall/features/bookings/domain/usecase/get_bookings_use_case.dart';
 import 'package:hamro_footsall/features/bookings/presentation/bloc/booking_details_bloc/booking_details_bloc.dart';
 import 'package:hamro_footsall/features/bookings/presentation/widgets/booking_shared_widgets.dart';
+import 'package:hamro_footsall/features/futsal_details/data/repositories/futsal_details_repository_impl.dart';
+import 'package:hamro_footsall/features/futsal_details/domain/usecase/get_hosted_by_use_case.dart';
+import 'package:hamro_footsall/features/message/presentation/pages/chat_launcher.dart';
 import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class BookingDetailsPage extends StatelessWidget {
@@ -48,6 +55,7 @@ class BookingDetailsPage extends StatelessWidget {
         final BookingDetailsBloc bloc = BookingDetailsBloc(
           GetBookingsUseCase(repository ?? BookingRepositoryImpl()),
           initialBooking: booking,
+          isFutsalView: isFutsalView,
         );
         if (booking.id > 0) {
           bloc.add(FetchBookingDetailsEvent(booking.id));
@@ -83,48 +91,280 @@ class _BookingDetailsView extends StatelessWidget {
   final VoidCallback? onChatVenue;
   final VoidCallback? onCancelBooking;
 
+  Future<void> _confirmAndCancel(BuildContext context) async {
+    final BookingDetailsBloc bloc = context.read<BookingDetailsBloc>();
+    final bool? confirmed = await showAppBottomSheet<bool>(
+      context: context,
+      child: const _CancelBookingSheet(),
+    );
+    if (confirmed == true) {
+      bloc.add(CancelBookingEvent(bloc.state.booking.id));
+    }
+  }
+
+  // ── Payment proof verify / reject ──
+
+  Future<void> _verifyPayment(BuildContext context) async {
+    final BookingDetailsBloc bloc = context.read<BookingDetailsBloc>();
+    final BookingModel booking = bloc.state.booking;
+    final BookingPaymentModel? payment = booking.payment;
+    if (payment == null || payment.id <= 0) {
+      AppUtils().showSnackBar(
+        context,
+        MsgType.error,
+        StringConstants.noPaymentToVerify,
+      );
+      return;
+    }
+    final _PaymentProofAcceptResult? result =
+        await showAppBottomSheet<_PaymentProofAcceptResult>(
+          context: context,
+          builder: (_) => _PaymentProofAcceptSheet(payment: payment),
+        );
+    if (result != null) {
+      bloc.add(
+        VerifyPaymentEvent(
+          bookingId: booking.id,
+          paymentId: payment.id,
+          actualAmount: result.actualAmount,
+          note: result.note,
+        ),
+      );
+    }
+  }
+
+  Future<void> _rejectPayment(BuildContext context) async {
+    final BookingDetailsBloc bloc = context.read<BookingDetailsBloc>();
+    final BookingModel booking = bloc.state.booking;
+    final BookingPaymentModel? payment = booking.payment;
+    if (payment == null || payment.id <= 0) {
+      AppUtils().showSnackBar(
+        context,
+        MsgType.error,
+        StringConstants.noPaymentToVerify,
+      );
+      return;
+    }
+    final _RejectResult? result = await showAppBottomSheet<_RejectResult>(
+      context: context,
+      builder: (_) => const _PaymentProofRejectSheet(),
+    );
+    if (result != null) {
+      bloc.add(
+        RejectPaymentEvent(
+          bookingId: booking.id,
+          paymentId: payment.id,
+          note: result.note,
+        ),
+      );
+    }
+  }
+
+  // ── Booking accept / reject ──
+
+  void _acceptBooking(BuildContext context) {
+    final BookingDetailsBloc bloc = context.read<BookingDetailsBloc>();
+    bloc.add(AcceptBookingEvent(bookingId: bloc.state.booking.id));
+  }
+
+  Future<void> _rejectBooking(BuildContext context) async {
+    final BookingDetailsBloc bloc = context.read<BookingDetailsBloc>();
+    final int bookingId = bloc.state.booking.id;
+    final _RejectResult? result = await showAppBottomSheet<_RejectResult>(
+      context: context,
+      builder: (_) => const _RejectBookingSheet(),
+    );
+    if (result != null) {
+      bloc.add(RejectBookingEvent(bookingId: bookingId, note: result.note));
+    }
+  }
+
+  /// Resolves the venue owner's user id through the same hosted-by endpoint
+  /// used by the futsal details page. A booking's `vendor_id` may identify the
+  /// vendor record rather than the user accepted by the conversations API.
+  Future<void> _chatWithVenue(
+    BuildContext context,
+    BookingModel booking,
+  ) async {
+    final int? venueId = booking.venueId;
+    if (venueId == null || venueId <= 0) {
+      AppUtils().showSnackBar(
+        context,
+        MsgType.error,
+        'Venue information is unavailable for this booking.',
+      );
+      return;
+    }
+
+    final result = await GetHostedByUseCase(FutsalDetailsRepositoryImpl())(
+      venueId: venueId,
+    );
+    if (!context.mounted) return;
+
+    await result.fold(
+      (failure) async =>
+          AppUtils().showSnackBar(context, MsgType.error, failure.errorMessage),
+      (hostedBy) async {
+        final int? hostUserId = hostedBy.id;
+        if (hostUserId == null || hostUserId <= 0) {
+          AppUtils().showSnackBar(
+            context,
+            MsgType.error,
+            'The venue host is unavailable for messaging.',
+          );
+          return;
+        }
+        await ChatLauncher.startDirect(
+          context,
+          vendorId: hostUserId,
+          venueId: venueId,
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: LightColor.background,
-      appBar: const CustomAppBar(title: StringConstants.bookingDetails),
-      bottomNavigationBar: BlocBuilder<BookingDetailsBloc, BookingDetailsState>(
-        buildWhen: (BookingDetailsState previous, BookingDetailsState current) {
-          return previous.booking.status != current.booking.status ||
-              previous.status != current.status;
-        },
-        builder: (BuildContext context, BookingDetailsState state) {
-          final bool isLoading = state.status == BookingDetailsStatus.loading;
-          if (isFutsalView && state.booking.status == BookingStatus.pending) {
-            return SizedBox(
-              height: 90,
-              child: _BookingDecisionBar(
-                onAccept: onAcceptBooking,
-                onReject: onRejectBooking,
-                isLoading: isLoading,
-              ),
-            );
-          }
-          if (!isFutsalView &&
-              (state.booking.status == BookingStatus.pending ||
-                  state.booking.status == BookingStatus.confirmed)) {
-            return SizedBox(
-              height: 90,
-              child: _CancelBookingBar(
-                onCancel: onCancelBooking,
-                isLoading: isLoading,
-              ),
-            );
-          }
-          return const SizedBox.shrink();
-        },
-      ),
-      body: BlocBuilder<BookingDetailsBloc, BookingDetailsState>(
-        builder: (BuildContext context, BookingDetailsState state) {
-          final BookingModel booking = state.booking;
-          return SafeArea(
-            bottom: true,
-            child: Column(
+    return BlocListener<BookingDetailsBloc, BookingDetailsState>(
+      listenWhen: (BookingDetailsState previous, BookingDetailsState current) =>
+          previous.cancelStatus != current.cancelStatus ||
+          previous.decisionStatus != current.decisionStatus ||
+          previous.paymentStatus != current.paymentStatus,
+      listener: (BuildContext context, BookingDetailsState state) {
+        void refresh() => context.read<BookingDetailsBloc>().add(
+          FetchBookingDetailsEvent(state.booking.id),
+        );
+        if (state.cancelStatus == CancelBookingStatus.cancelled) {
+          AppUtils().showSnackBar(
+            context,
+            MsgType.success,
+            StringConstants.bookingCancelledSuccessfully,
+          );
+          // Re-fetch so the status chip and details reflect the server state.
+          refresh();
+        } else if (state.cancelStatus == CancelBookingStatus.failure) {
+          AppUtils().showSnackBar(
+            context,
+            MsgType.error,
+            state.errorMessage ?? StringConstants.couldNotCancelBooking,
+          );
+        } else if (state.paymentStatus == PaymentActionStatus.verified) {
+          AppUtils().showSnackBar(
+            context,
+            MsgType.success,
+            StringConstants.paymentVerifiedSuccessfully,
+          );
+        } else if (state.paymentStatus == PaymentActionStatus.rejected) {
+          AppUtils().showSnackBar(
+            context,
+            MsgType.success,
+            StringConstants.paymentRejectedSuccessfully,
+          );
+        } else if (state.paymentStatus == PaymentActionStatus.failure) {
+          AppUtils().showSnackBar(
+            context,
+            MsgType.error,
+            state.errorMessage ?? StringConstants.couldNotVerifyPayment,
+          );
+        } else if (state.decisionStatus == DecisionStatus.accepted) {
+          AppUtils().showSnackBar(
+            context,
+            MsgType.success,
+            StringConstants.bookingAcceptedSuccessfully,
+          );
+          refresh();
+        } else if (state.decisionStatus == DecisionStatus.rejected) {
+          AppUtils().showSnackBar(
+            context,
+            MsgType.success,
+            StringConstants.bookingRejectedSuccessfully,
+          );
+          refresh();
+        } else if (state.decisionStatus == DecisionStatus.failure) {
+          AppUtils().showSnackBar(
+            context,
+            MsgType.error,
+            state.errorMessage ?? StringConstants.couldNotAcceptBooking,
+          );
+        }
+      },
+      child: _buildScaffold(context),
+    );
+  }
+
+  Widget _buildScaffold(BuildContext context) {
+    return SafeArea(
+      bottom: true,
+      top: false,
+      child: Scaffold(
+        backgroundColor: LightColor.background,
+        appBar: const CustomAppBar(title: StringConstants.bookingDetails),
+        bottomNavigationBar:
+            BlocBuilder<BookingDetailsBloc, BookingDetailsState>(
+              buildWhen:
+                  (BookingDetailsState previous, BookingDetailsState current) {
+                    return previous.booking.status != current.booking.status ||
+                        previous.booking.payment?.verificationStatus !=
+                            current.booking.payment?.verificationStatus ||
+                        previous.status != current.status ||
+                        previous.cancelStatus != current.cancelStatus ||
+                        previous.canCancel != current.canCancel ||
+                        previous.paymentStatus != current.paymentStatus ||
+                        previous.decisionStatus != current.decisionStatus;
+                  },
+              builder: (BuildContext context, BookingDetailsState state) {
+                final bool isLoading =
+                    state.status == BookingDetailsStatus.loading ||
+                    state.cancelStatus == CancelBookingStatus.cancelling ||
+                    state.decisionStatus == DecisionStatus.submitting;
+                if (isFutsalView &&
+                    state.booking.status == BookingStatus.pending) {
+                  final String verification =
+                      state.booking.payment?.verificationStatus
+                          ?.trim()
+                          .toLowerCase() ??
+                      'pending';
+                  // Booking Accept unlocks once the payment proof is verified —
+                  // either reflected by the server's verification status or the
+                  // just-completed verify action in this session. Booking Reject
+                  // stays available regardless.
+                  final bool paymentVerified =
+                      verification == 'accepted' ||
+                      verification == 'verified' ||
+                      state.paymentStatus == PaymentActionStatus.verified;
+                  return SizedBox(
+                    height: 70 + MediaQuery.viewPaddingOf(context).bottom,
+                    child: _BookingDecisionBar(
+                      onAccept:
+                          onAcceptBooking ?? () => _acceptBooking(context),
+                      onReject:
+                          onRejectBooking ?? () => _rejectBooking(context),
+                      isLoading: isLoading,
+                      canAccept: paymentVerified,
+                    ),
+                  );
+                }
+                if (!isFutsalView &&
+                    state.canCancel &&
+                    state.cancelStatus != CancelBookingStatus.cancelled &&
+                    (state.booking.status == BookingStatus.pending ||
+                        state.booking.status == BookingStatus.confirmed)) {
+                  return SizedBox(
+                    height: 70 + MediaQuery.viewPaddingOf(context).bottom,
+                    child: _CancelBookingBar(
+                      onCancel:
+                          onCancelBooking ?? () => _confirmAndCancel(context),
+                      isLoading: isLoading,
+                    ),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
+        body: BlocBuilder<BookingDetailsBloc, BookingDetailsState>(
+          builder: (BuildContext context, BookingDetailsState state) {
+            final BookingModel booking = state.booking;
+            return Column(
               children: [
                 if (state.status == BookingDetailsStatus.loading)
                   const LinearProgressIndicator(
@@ -157,12 +397,29 @@ class _BookingDetailsView extends StatelessWidget {
                         const SizedBox(height: 20),
                         const _SectionTitle('Customer'),
                         const SizedBox(height: 8),
-                        _CustomerCard(booking: booking, onChat: onChatCustomer),
+                        _CustomerCard(
+                          booking: booking,
+                          onChat:
+                              onChatCustomer ??
+                              ((booking.playerId ?? 0) > 0
+                                  ? () => ChatLauncher.startDirectUser(
+                                      context,
+                                      userId: booking.playerId!,
+                                    )
+                                  : null),
+                        ),
                       ] else ...[
                         const SizedBox(height: 20),
                         const _SectionTitle('Venue Hosted by'),
                         const SizedBox(height: 8),
-                        _VenueHostCard(booking: booking, onChat: onChatVenue),
+                        _VenueHostCard(
+                          booking: booking,
+                          onChat:
+                              onChatVenue ??
+                              ((booking.venueId ?? 0) > 0
+                                  ? () => _chatWithVenue(context, booking)
+                                  : null),
+                        ),
                       ],
                       const SizedBox(height: 20),
                       const _SectionTitle('Payment summary'),
@@ -172,16 +429,386 @@ class _BookingDetailsView extends StatelessWidget {
                         const SizedBox(height: 20),
                         const _SectionTitle('Payment proof'),
                         const SizedBox(height: 8),
-                        _PaymentProofCard(payment: booking.payment!),
+                        Builder(
+                          builder: (context) {
+                            final String verification =
+                                booking.payment!.verificationStatus
+                                    ?.trim()
+                                    .toLowerCase() ??
+                                'pending';
+                            final bool verificationPending =
+                                verification != 'accepted' &&
+                                verification != 'verified' &&
+                                verification != 'rejected';
+                            final bool paymentSettled =
+                                state.paymentStatus ==
+                                    PaymentActionStatus.verified ||
+                                state.paymentStatus ==
+                                    PaymentActionStatus.rejected;
+                            final bool canDecide =
+                                isFutsalView &&
+                                booking.status == BookingStatus.pending &&
+                                verificationPending &&
+                                !paymentSettled;
+                            return _PaymentProofCard(
+                              payment: booking.payment!,
+                              isLoading:
+                                  state.paymentStatus ==
+                                  PaymentActionStatus.submitting,
+                              onAccept: canDecide
+                                  ? () => _verifyPayment(context)
+                                  : null,
+                              onReject: canDecide
+                                  ? () => _rejectPayment(context)
+                                  : null,
+                            );
+                          },
+                        ),
                       ],
                     ],
                   ),
                 ),
               ],
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
+    );
+  }
+}
+
+class _CancelBookingSheet extends StatelessWidget {
+  const _CancelBookingSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    final FutsalTextTheme textTheme = FutsalTheme.getTextTheme(context);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          StringConstants.cancelBooking,
+          style: textTheme.bodyTextLarge?.copyWith(
+            color: LightColor.primaryTextColor,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          StringConstants.cancelBookingConfirmation,
+          style: textTheme.bodyTextSmall?.copyWith(
+            color: LightColor.secondaryTextColor,
+          ),
+        ),
+        const SizedBox(height: 20),
+        Row(
+          children: [
+            Expanded(
+              child: CustomButton(
+                key: const Key('keep-booking-button'),
+                text: StringConstants.keepBooking,
+                onPressed: () => Navigator.of(context).pop(false),
+                minHeight: AppDimens.sizeX42,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: CustomButton(
+                key: const Key('confirm-cancel-booking-button'),
+                text: StringConstants.cancelBooking,
+                onPressed: () => Navigator.of(context).pop(true),
+                backgroundColor: LightColor.redColor,
+                minHeight: AppDimens.sizeX42,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _RejectResult {
+  const _RejectResult({this.note});
+  final String? note;
+}
+
+class _PaymentProofAcceptResult {
+  const _PaymentProofAcceptResult({required this.actualAmount, this.note});
+
+  final double actualAmount;
+  final String? note;
+}
+
+class _PaymentProofAcceptSheet extends StatefulWidget {
+  const _PaymentProofAcceptSheet({required this.payment});
+
+  final BookingPaymentModel payment;
+
+  @override
+  State<_PaymentProofAcceptSheet> createState() =>
+      _PaymentProofAcceptSheetState();
+}
+
+class _PaymentProofAcceptSheetState extends State<_PaymentProofAcceptSheet> {
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  late final TextEditingController _amountController = TextEditingController(
+    text: _amountInputValue(widget.payment.amount),
+  );
+  final TextEditingController _noteController = TextEditingController();
+
+  @override
+  void dispose() {
+    _amountController.dispose();
+    _noteController.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+    final double amount =
+        double.tryParse(_amountController.text.trim()) ?? widget.payment.amount;
+    final String note = _noteController.text.trim();
+    Navigator.of(context).pop(
+      _PaymentProofAcceptResult(
+        actualAmount: amount,
+        note: note.isEmpty ? null : note,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final FutsalTextTheme textTheme = FutsalTheme.getTextTheme(context);
+    return Form(
+      key: _formKey,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            StringConstants.approvePayment,
+            style: textTheme.bodyTextLarge?.copyWith(
+              color: LightColor.primaryTextColor,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            StringConstants.approvePaymentProofConfirmation,
+            style: textTheme.bodyTextSmall?.copyWith(
+              color: LightColor.secondaryTextColor,
+            ),
+          ),
+          const SizedBox(height: 20),
+          CustomTextField(
+            key: const Key('payment-proof-actual-amount-field'),
+            labelText: StringConstants.actualAmount,
+            controller: _amountController,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: <TextInputFormatter>[
+              FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
+            ],
+            validator: (String? value) {
+              final double? amount = double.tryParse(value?.trim() ?? '');
+              if (amount == null || amount <= 0) {
+                return StringConstants.enterValidAmount;
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 14),
+          CustomTextField(
+            key: const Key('payment-proof-remarks-field'),
+            labelText: StringConstants.paymentNote,
+            hintText: StringConstants.addARemarkInvoiceRefEtc,
+            controller: _noteController,
+            isRequired: false,
+            maxLines: 3,
+            minLines: 2,
+            textCapitalization: TextCapitalization.sentences,
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(
+                child: CustomCancelButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  minHeight: AppDimens.sizeX42,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: CustomButton(
+                  key: const Key('confirm-payment-proof-accept-button'),
+                  text: StringConstants.approvePayment,
+                  onPressed: _submit,
+                  minHeight: AppDimens.sizeX42,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PaymentProofRejectSheet extends StatefulWidget {
+  const _PaymentProofRejectSheet();
+
+  @override
+  State<_PaymentProofRejectSheet> createState() =>
+      _PaymentProofRejectSheetState();
+}
+
+class _PaymentProofRejectSheetState extends State<_PaymentProofRejectSheet> {
+  final TextEditingController _noteController = TextEditingController();
+
+  @override
+  void dispose() {
+    _noteController.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final String note = _noteController.text.trim();
+    Navigator.of(context).pop(_RejectResult(note: note.isEmpty ? null : note));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final FutsalTextTheme textTheme = FutsalTheme.getTextTheme(context);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          StringConstants.rejectPayment,
+          style: textTheme.bodyTextLarge?.copyWith(
+            color: LightColor.primaryTextColor,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          StringConstants.rejectBookingConfirmation,
+          style: textTheme.bodyTextSmall?.copyWith(
+            color: LightColor.secondaryTextColor,
+          ),
+        ),
+        const SizedBox(height: 20),
+        CustomTextField(
+          key: const Key('payment-proof-reject-reason-field'),
+          labelText: StringConstants.rejectionReason,
+          hintText: StringConstants.rejectionReasonHint,
+          controller: _noteController,
+          isRequired: false,
+          maxLines: 3,
+          minLines: 2,
+          textCapitalization: TextCapitalization.sentences,
+        ),
+        const SizedBox(height: 20),
+        Row(
+          children: [
+            Expanded(
+              child: CustomCancelButton(
+                onPressed: () => Navigator.of(context).pop(),
+                minHeight: AppDimens.sizeX42,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: CustomButton(
+                key: const Key('confirm-payment-proof-reject-button'),
+                text: StringConstants.reject,
+                onPressed: _submit,
+                backgroundColor: LightColor.redColor,
+                minHeight: AppDimens.sizeX42,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _RejectBookingSheet extends StatefulWidget {
+  const _RejectBookingSheet();
+
+  @override
+  State<_RejectBookingSheet> createState() => _RejectBookingSheetState();
+}
+
+class _RejectBookingSheetState extends State<_RejectBookingSheet> {
+  final TextEditingController _noteController = TextEditingController();
+
+  @override
+  void dispose() {
+    _noteController.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final String note = _noteController.text.trim();
+    Navigator.of(context).pop(_RejectResult(note: note.isEmpty ? null : note));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final FutsalTextTheme textTheme = FutsalTheme.getTextTheme(context);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          StringConstants.rejectBooking,
+          style: textTheme.bodyTextLarge?.copyWith(
+            color: LightColor.primaryTextColor,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          StringConstants.rejectBookingConfirmation,
+          style: textTheme.bodyTextSmall?.copyWith(
+            color: LightColor.secondaryTextColor,
+          ),
+        ),
+        const SizedBox(height: 20),
+        CustomTextField(
+          key: const Key('reject-note-field'),
+          labelText: StringConstants.rejectionReason,
+          controller: _noteController,
+          isRequired: false,
+          maxLines: 3,
+          minLines: 2,
+          textCapitalization: TextCapitalization.sentences,
+        ),
+        const SizedBox(height: 20),
+        Row(
+          children: [
+            Expanded(
+              child: CustomCancelButton(
+                onPressed: () => Navigator.of(context).pop(),
+                minHeight: AppDimens.sizeX42,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: CustomButton(
+                key: const Key('confirm-reject-booking-button'),
+                text: StringConstants.reject,
+                onPressed: _submit,
+                backgroundColor: LightColor.redColor,
+                minHeight: AppDimens.sizeX42,
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }
@@ -191,11 +818,15 @@ class _BookingDecisionBar extends StatelessWidget {
     required this.onAccept,
     required this.onReject,
     required this.isLoading,
+    this.canAccept = true,
   });
 
   final VoidCallback? onAccept;
   final VoidCallback? onReject;
   final bool isLoading;
+
+  /// Accept is only tappable once the payment proof has been verified.
+  final bool canAccept;
 
   @override
   Widget build(BuildContext context) {
@@ -234,7 +865,12 @@ class _BookingDecisionBar extends StatelessWidget {
                   key: const Key('accept-booking-button'),
                   text: StringConstants.accept,
                   icon: Icons.check_rounded,
-                  onPressed: isLoading ? null : onAccept ?? () {},
+                  onPressed: (isLoading || !canAccept)
+                      ? null
+                      : onAccept ?? () {},
+                  backgroundColor: canAccept
+                      ? LightColor.secondaryColor
+                      : LightColor.buttonDisabledColor,
                   minHeight: AppDimens.sizeX42,
                 ),
               ),
@@ -714,6 +1350,22 @@ class _PaymentCard extends StatelessWidget {
               value: _currency(booking.balanceDueLater),
             ),
           ],
+          if (booking.paidAmount > 0) ...[
+            const SizedBox(height: 9),
+            _InlineValue(
+              label: StringConstants.paidAmount,
+              value: _currency(booking.paidAmount),
+              valueColor: LightColor.secondaryColor,
+            ),
+          ],
+          if (booking.balanceDue > 0) ...[
+            const SizedBox(height: 9),
+            _InlineValue(
+              label: StringConstants.balanceDue,
+              value: _currency(booking.balanceDue),
+              valueColor: const Color(0xFFE65100),
+            ),
+          ],
           if (booking.payment?.method?.trim().isNotEmpty == true) ...[
             const SizedBox(height: 14),
             const Divider(height: 1, color: LightColor.dividerColor),
@@ -736,9 +1388,20 @@ class _PaymentCard extends StatelessWidget {
 }
 
 class _PaymentProofCard extends StatelessWidget {
-  const _PaymentProofCard({required this.payment});
+  const _PaymentProofCard({
+    required this.payment,
+    this.onAccept,
+    this.onReject,
+    this.isLoading = false,
+  });
 
   final BookingPaymentModel payment;
+
+  /// When provided (futsal view, decision still pending) compact accept/reject
+  /// actions are rendered on the payment proof itself.
+  final VoidCallback? onAccept;
+  final VoidCallback? onReject;
+  final bool isLoading;
 
   @override
   Widget build(BuildContext context) {
@@ -749,6 +1412,7 @@ class _PaymentProofCard extends StatelessWidget {
         payment.paymentProofUrl?.trim().isNotEmpty == true ||
         payment.paymentProofPath?.trim().isNotEmpty == true;
     final String verification = payment.verificationStatus?.trim() ?? 'pending';
+    final bool showDecisionActions = onAccept != null && onReject != null;
 
     return _Card(
       child: Column(
@@ -845,6 +1509,37 @@ class _PaymentProofCard extends StatelessWidget {
               style: textTheme.bodyTextSmall?.copyWith(
                 color: LightColor.secondaryTextColor,
               ),
+            ),
+          ],
+          if (showDecisionActions) ...[
+            const SizedBox(height: 14),
+            const Divider(height: 1, color: LightColor.dividerColor),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: CustomButton(
+                    key: const Key('proof-reject-button'),
+                    text: StringConstants.reject,
+                    icon: Icons.close_rounded,
+                    onPressed: isLoading ? null : onReject,
+                    isOutlined: true,
+                    foregroundColor: LightColor.redColor,
+                    borderColor: LightColor.redColor,
+                    minHeight: AppDimens.sizeX38,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: CustomButton(
+                    key: const Key('proof-accept-button'),
+                    text: StringConstants.accept,
+                    icon: Icons.check_rounded,
+                    onPressed: isLoading ? null : onAccept,
+                    minHeight: AppDimens.sizeX38,
+                  ),
+                ),
+              ],
             ),
           ],
         ],
@@ -1118,6 +1813,13 @@ String _recurrenceLabel(BookingModel booking) {
 }
 
 String _currency(double value) => 'NPR ${value.toStringAsFixed(0)}';
+
+String _amountInputValue(double value) {
+  if (value <= 0) return '';
+  return value == value.roundToDouble()
+      ? value.toStringAsFixed(0)
+      : value.toStringAsFixed(2);
+}
 
 String _titleCase(String value) {
   return value

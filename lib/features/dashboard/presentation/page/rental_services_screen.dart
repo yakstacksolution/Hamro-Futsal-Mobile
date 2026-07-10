@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
@@ -10,10 +9,6 @@ import 'package:hamro_footsall/core/widgets/custom_button.dart';
 import 'package:hamro_footsall/core/widgets/custom_dropdown_field.dart';
 import 'package:hamro_footsall/core/widgets/custom_text_field.dart';
 import 'package:hamro_footsall/core/utils/string_constants.dart';
-
-// ─────────────────────────────────────────────
-//  MODELS
-// ─────────────────────────────────────────────
 
 enum _Tab { equipment, active, history }
 
@@ -144,10 +139,6 @@ class _Rental {
   });
 }
 
-// ─────────────────────────────────────────────
-//  STATE / DEMO
-// ─────────────────────────────────────────────
-
 class _Repo {
   _Repo._(this.equipment, this.rentals);
   final List<_Equipment> equipment;
@@ -236,7 +227,6 @@ class _Repo {
     final rentals = <_Rental>[];
     int id = 0;
 
-    // Active / overdue right now
     for (int i = 0; i < 5; i++) {
       final eq = equipment[rng.nextInt(equipment.length)];
       final qty = 1 + rng.nextInt(3);
@@ -562,7 +552,6 @@ class _SubtitleLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = FutsalTheme.getTextTheme(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppDimens.paddingX20),
       child: Row(

@@ -108,13 +108,24 @@ final class SendOpponentRequestEvent extends OpponentMatchEvent {
   List<Object?> get props => [request];
 }
 
-final class UpdateRequestStatusEvent extends OpponentMatchEvent {
-  const UpdateRequestStatusEvent(this.request, this.status);
+/// Declines an incoming open request on the server.
+final class DeclineRequestEvent extends OpponentMatchEvent {
+  const DeclineRequestEvent(this.request);
   final OpponentRequestModel request;
-  final RequestStatus status;
 
   @override
-  List<Object?> get props => [request, status];
+  List<Object?> get props => [request];
+}
+
+/// Fired by the accept flow after a successful submit — patches the request
+/// into the list immediately, then a background refresh reconciles with the
+/// server copy.
+final class RequestAcceptedEvent extends OpponentMatchEvent {
+  const RequestAcceptedEvent(this.updated);
+  final OpponentRequestModel updated;
+
+  @override
+  List<Object?> get props => [updated];
 }
 
 final class DeleteOpponentRequestEvent extends OpponentMatchEvent {
@@ -123,4 +134,23 @@ final class DeleteOpponentRequestEvent extends OpponentMatchEvent {
 
   @override
   List<Object?> get props => [request];
+}
+
+/// Requester approves the accepter's advance proof — confirms the match.
+final class VerifyOpponentPaymentEvent extends OpponentMatchEvent {
+  const VerifyOpponentPaymentEvent(this.request);
+  final OpponentRequestModel request;
+
+  @override
+  List<Object?> get props => [request];
+}
+
+/// Requester rejects the proof with [reason] — the request re-opens.
+final class RejectOpponentPaymentEvent extends OpponentMatchEvent {
+  const RejectOpponentPaymentEvent(this.request, this.reason);
+  final OpponentRequestModel request;
+  final String reason;
+
+  @override
+  List<Object?> get props => [request, reason];
 }

@@ -38,13 +38,70 @@ void main() {
       expect(booking.courtName, 'Shidartha');
     });
   });
+
+  test('reads cancel-boundary flag from the data field', () async {
+    final _FakeBookingRemoteDataSource source = _FakeBookingRemoteDataSource(
+      Result<dynamic, dynamic>.success(<String, dynamic>{}),
+    );
+    // Matches the live API: {status, message, data: true}
+    source.cancelBoundaryResponse =
+        Result<dynamic, dynamic>.success(<String, dynamic>{
+          'status': 'success',
+          'message': 'Booking cancellation boundary fetched successfully.',
+          'data': true,
+        });
+    final BookingRepositoryImpl repository = BookingRepositoryImpl(
+      remoteDataSource: source,
+    );
+
+    final resultTrue = await repository.getCancelBoundary(1);
+    expect(resultTrue.getOrElse(() => false), isTrue);
+
+    source.cancelBoundaryResponse = Result<dynamic, dynamic>.success(
+      <String, dynamic>{'status': 'success', 'data': false},
+    );
+    final resultFalse = await repository.getCancelBoundary(1);
+    expect(resultFalse.getOrElse(() => true), isFalse);
+  });
+
+  test(
+    'sends actual amount and remarks when verifying payment proof',
+    () async {
+      final _FakeBookingRemoteDataSource source = _FakeBookingRemoteDataSource(
+        Result<dynamic, dynamic>.success(<String, dynamic>{}),
+      );
+      final BookingRepositoryImpl repository = BookingRepositoryImpl(
+        remoteDataSource: source,
+      );
+
+      await repository.verifyBookingPayment(
+        bookingId: 5,
+        paymentId: 13,
+        actualAmount: 1050,
+        note: 'Verified with bank statement',
+      );
+
+      expect(source.verifiedBookingId, 5);
+      expect(source.verifiedPaymentId, 13);
+      expect(source.verifyPaymentPayload, <String, dynamic>{
+        'actual_amount': 1050,
+        'payment_note': 'Verified with bank statement',
+      });
+    },
+  );
 }
 
 final class _FakeBookingRemoteDataSource implements BookingRemoteDataSource {
   _FakeBookingRemoteDataSource(this.detailResponse);
 
   final Result detailResponse;
+  Result cancelBoundaryResponse = Result<dynamic, dynamic>.success(
+    <String, dynamic>{'data': true},
+  );
   int? requestedBookingId;
+  int? verifiedBookingId;
+  int? verifiedPaymentId;
+  Map<String, dynamic>? verifyPaymentPayload;
 
   @override
   Future<Result> getBookingDetails(int bookingId) async {
@@ -59,4 +116,43 @@ final class _FakeBookingRemoteDataSource implements BookingRemoteDataSource {
   @override
   Future<Result> getFutsalBookings() async =>
       Result<dynamic, dynamic>.success(<dynamic>[]);
+
+  @override
+  Future<Result> cancelBooking(int bookingId) async =>
+      Result<dynamic, dynamic>.success(<String, dynamic>{});
+
+  @override
+  Future<Result> getBookingCancelBoundary(int bookingId) async =>
+      cancelBoundaryResponse;
+
+  @override
+  Future<Result> verifyBookingPayment(
+    int bookingId,
+    int paymentId,
+    Map<String, dynamic> data,
+  ) async {
+    verifiedBookingId = bookingId;
+    verifiedPaymentId = paymentId;
+    verifyPaymentPayload = data;
+    return Result<dynamic, dynamic>.success(<String, dynamic>{});
+  }
+
+  @override
+  Future<Result> rejectBookingPayment(
+    int bookingId,
+    int paymentId,
+    Map<String, dynamic> data,
+  ) async => Result<dynamic, dynamic>.success(<String, dynamic>{});
+
+  @override
+  Future<Result> acceptBooking(
+    int bookingId,
+    Map<String, dynamic> data,
+  ) async => Result<dynamic, dynamic>.success(<String, dynamic>{});
+
+  @override
+  Future<Result> rejectBooking(
+    int bookingId,
+    Map<String, dynamic> data,
+  ) async => Result<dynamic, dynamic>.success(<String, dynamic>{});
 }

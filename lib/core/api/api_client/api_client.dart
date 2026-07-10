@@ -46,6 +46,27 @@ class ApiClient {
     return _post(url: '$_baseUrl/auth/fcm-token', data: data);
   }
 
+  // ── Notifications ──
+
+  Future<Result> getNotifications({required String filter, int perPage = 20}) {
+    return _get(
+      url: '$_baseUrl/notifications',
+      query: <String, dynamic>{'filter': filter, 'per_page': perPage},
+    );
+  }
+
+  Future<Result> markAllNotificationsRead() {
+    return _post(url: '$_baseUrl/notifications/read-all');
+  }
+
+  Future<Result> markNotificationRead({required String notificationId}) {
+    return _patch(url: '$_baseUrl/notifications/$notificationId/read');
+  }
+
+  Future<Result> markNotificationUnread({required String notificationId}) {
+    return _post(url: '$_baseUrl/notifications/$notificationId/unread');
+  }
+
   Future<Result> googleLogin({required Map<String, dynamic> data}) {
     return _post(url: '$_baseUrl/auth/google-login', data: data);
   }
@@ -447,6 +468,56 @@ class ApiClient {
     return _get(url: '$_baseUrl/futsal-bookings');
   }
 
+  Future<Result> cancelBooking({required int bookingId}) {
+    return _delete(url: '$_baseUrl/bookings/$bookingId');
+  }
+
+  /// Returns whether the booking is still within its allowed cancellation
+  /// window.
+  Future<Result> getBookingCancelBoundary({required int bookingId}) {
+    return _get(url: '$_baseUrl/bookings/$bookingId/cancel-boundary');
+  }
+
+  // ── Payment proof verification ──
+
+  Future<Result> verifyBookingPayment({
+    required int bookingId,
+    required int paymentId,
+    required Map<String, dynamic> data,
+  }) {
+    return _patch(
+      url: '$_baseUrl/bookings/$bookingId/payments/$paymentId/verify',
+      data: data,
+    );
+  }
+
+  Future<Result> rejectBookingPayment({
+    required int bookingId,
+    required int paymentId,
+    required Map<String, dynamic> data,
+  }) {
+    return _patch(
+      url: '$_baseUrl/bookings/$bookingId/payments/$paymentId/reject',
+      data: data,
+    );
+  }
+
+  // ── Booking accept / reject ──
+
+  Future<Result> acceptBooking({
+    required int bookingId,
+    required Map<String, dynamic> data,
+  }) {
+    return _post(url: '$_baseUrl/bookings/$bookingId/accept', data: data);
+  }
+
+  Future<Result> rejectBooking({
+    required int bookingId,
+    required Map<String, dynamic> data,
+  }) {
+    return _post(url: '$_baseUrl/bookings/$bookingId/reject', data: data);
+  }
+
   // ── Opponent-match teams ──
 
   Future<Result> getTeams() {
@@ -505,6 +576,68 @@ class ApiClient {
     return _delete(url: '$_baseUrl/auth/teams/$teamId/members/$memberId');
   }
 
+  // ── Opponent-match requests ──
+
+  Future<Result> getOpponentRequests({Map<String, dynamic>? query}) {
+    return _get(url: '$_baseUrl/opponent-requests', query: query);
+  }
+
+  Future<Result> getOpponentRequest({required String requestId}) {
+    return _get(url: '$_baseUrl/opponent-requests/$requestId');
+  }
+
+  Future<Result> createOpponentRequest({required Map<String, dynamic> data}) {
+    return _post(url: '$_baseUrl/opponent-requests', data: data);
+  }
+
+  /// Places a single-use accept hold and returns the authoritative advance
+  /// quote + payment QR.
+  Future<Result> createOpponentAcceptQuote({
+    required String requestId,
+    required Map<String, dynamic> data,
+  }) {
+    return _post(
+      url: '$_baseUrl/opponent-requests/$requestId/accept-quote',
+      data: data,
+    );
+  }
+
+  /// Finalizes the accept — multipart [data] carries the hold token, team and
+  /// the `payment_proof` file.
+  Future<Result> acceptOpponentRequest({
+    required String requestId,
+    required dynamic data,
+  }) {
+    return _post(
+      url: '$_baseUrl/opponent-requests/$requestId/accept',
+      data: data,
+    );
+  }
+
+  Future<Result> declineOpponentRequest({required String requestId}) {
+    return _post(url: '$_baseUrl/opponent-requests/$requestId/decline');
+  }
+
+  /// Requester approves the accepter's advance-payment proof.
+  Future<Result> verifyOpponentPayment({required String requestId}) {
+    return _patch(url: '$_baseUrl/opponent-requests/$requestId/payment/verify');
+  }
+
+  /// Requester rejects the proof — the request re-opens for other teams.
+  Future<Result> rejectOpponentPayment({
+    required String requestId,
+    required Map<String, dynamic> data,
+  }) {
+    return _patch(
+      url: '$_baseUrl/opponent-requests/$requestId/payment/reject',
+      data: data,
+    );
+  }
+
+  Future<Result> deleteOpponentRequest({required String requestId}) {
+    return _delete(url: '$_baseUrl/opponent-requests/$requestId');
+  }
+
   Future<Result> _get({required String url, Map<String, dynamic>? query}) {
     return _apiCallWrapper.makeRequest(
       url: url,
@@ -531,6 +664,26 @@ class ApiClient {
       data: requestData,
       token: AppSettings().tokenModel.accessToken,
       method: HttpVerb.post,
+    );
+  }
+
+  Future<Result> _patch({required String url, dynamic data}) {
+    final dynamic requestData;
+    if (data is Map<String, dynamic>) {
+      requestData = AppUtils().cleanUnwantedMapValue(data);
+    } else if (data is Map) {
+      requestData = AppUtils().cleanUnwantedMapValue(
+        Map<String, dynamic>.from(data),
+      );
+    } else {
+      requestData = data;
+    }
+
+    return _apiCallWrapper.makeRequest(
+      url: url,
+      data: requestData,
+      token: AppSettings().tokenModel.accessToken,
+      method: HttpVerb.patch,
     );
   }
 

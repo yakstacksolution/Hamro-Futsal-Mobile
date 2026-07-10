@@ -10,6 +10,7 @@ final class BookingState extends Equatable {
     this.futsalBookingsStatus = BookingLoadStatus.idle,
     this.futsalBookings = const <BookingModel>[],
     this.futsalBookingsError,
+    this.refreshTick = 0,
   });
 
   final BookingLoadStatus myBookingsStatus;
@@ -20,6 +21,11 @@ final class BookingState extends Equatable {
   final List<BookingModel> futsalBookings;
   final String? futsalBookingsError;
 
+  /// Bumped on every completed fetch so a (silent) refresh that returns
+  /// identical data still emits a distinct state — otherwise Equatable would
+  /// suppress the emission and any `stream.firstWhere` awaiting it would hang.
+  final int refreshTick;
+
   BookingState copyWith({
     BookingLoadStatus? myBookingsStatus,
     List<BookingModel>? myBookings,
@@ -29,6 +35,7 @@ final class BookingState extends Equatable {
     List<BookingModel>? futsalBookings,
     String? futsalBookingsError,
     bool clearFutsalError = false,
+    int? refreshTick,
   }) {
     return BookingState(
       myBookingsStatus: myBookingsStatus ?? this.myBookingsStatus,
@@ -41,6 +48,7 @@ final class BookingState extends Equatable {
       futsalBookingsError: clearFutsalError
           ? null
           : futsalBookingsError ?? this.futsalBookingsError,
+      refreshTick: refreshTick ?? this.refreshTick,
     );
   }
 
@@ -52,5 +60,6 @@ final class BookingState extends Equatable {
     futsalBookingsStatus,
     futsalBookings,
     futsalBookingsError,
+    refreshTick,
   ];
 }

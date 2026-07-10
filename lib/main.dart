@@ -14,7 +14,6 @@ import 'package:hamro_footsall/core/helper/share_preferences.dart';
 import 'package:hamro_footsall/core/routers/app_router_params.dart';
 import 'package:hamro_footsall/core/routers/app_routers.dart';
 import 'package:hamro_footsall/core/routers/notification_redirection.dart';
-import 'package:hamro_footsall/core/routers/root_navigator_key.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hamro_footsall/core/utils/string_constants.dart';
@@ -40,7 +39,9 @@ void main() async {
     await FcmHelper().syncTokenAfterLogin();
   }
 
-  final String initialLocation = hasLoggedIn
+  final bool requiresBiometricUnlock =
+      hasLoggedIn && AppSettings().biometricLogin;
+  final String initialLocation = hasLoggedIn && !requiresBiometricUnlock
       ? AppRouterParams.dashboard.path
       : AppRouterParams.login.path;
 

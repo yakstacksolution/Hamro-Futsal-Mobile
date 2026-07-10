@@ -2,6 +2,8 @@ import 'package:dartz/dartz.dart';
 import 'package:hamro_footsall/core/helper/exception_helper.dart';
 import 'package:hamro_footsall/core/helper/response_helper.dart';
 import 'package:hamro_footsall/core/helper/share_preferences.dart';
+import 'package:hamro_footsall/core/socket/reverb_connection.dart';
+import 'package:hamro_footsall/core/security/biometric_session_store.dart';
 import 'package:hamro_footsall/features/auth/data/data_source/authentication_data_source.dart';
 import 'package:hamro_footsall/features/auth/data/model/token_model.dart';
 import 'package:hamro_footsall/features/auth/domain/repository/authentication_repository.dart';
@@ -25,6 +27,7 @@ final class AuthenticationRepositoryImpl extends AuthRepository {
   @override
   Future<bool> clearTokenDetails() async {
     AppSettings().logout();
+    await ReverbConnection.instance.reset();
     return true;
   }
 
@@ -60,6 +63,9 @@ final class AuthenticationRepositoryImpl extends AuthRepository {
 
     final TokenModel tokenModel = _parseTokenModel(response.getValue());
     AppSettings().token = tokenModel;
+    if (AppSettings().biometricLogin) {
+      await BiometricSessionStore().save(tokenModel);
+    }
     return right(tokenModel);
   }
 
@@ -72,6 +78,9 @@ final class AuthenticationRepositoryImpl extends AuthRepository {
 
     final TokenModel tokenModel = _parseTokenModel(response.getValue());
     AppSettings().token = tokenModel;
+    if (AppSettings().biometricLogin) {
+      await BiometricSessionStore().save(tokenModel);
+    }
     return right(tokenModel);
   }
 
@@ -171,6 +180,16 @@ final class AuthenticationRepositoryImpl extends AuthRepository {
 
   @override
   Future<Either<AppException, bool>>? logout() async {
+    // With biometric login enabled, logout locks the local account instead of
+    // revoking the encrypted session needed for the next biometric sign-in.
+    // Disabling biometric login first performs a full server logout.
+    if (AppSettings().biometricLogin &&
+        await BiometricSessionStore().hasSession) {
+      AppSettings().logout();
+      await ReverbConnection.instance.reset();
+      return right(true);
+    }
+
     final response = await _remoteDataSource.logout();
 
     if (response.isError()) {
@@ -181,6 +200,7 @@ final class AuthenticationRepositoryImpl extends AuthRepository {
     }
 
     AppSettings().logout();
+    await ReverbConnection.instance.reset();
     return right(true);
   }
 }

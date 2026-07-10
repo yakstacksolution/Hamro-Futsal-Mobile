@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hamro_footsall/core/helper/venue_distance_helper.dart';
+import 'package:hamro_footsall/core/socket/reverb_connection.dart';
 import 'package:hamro_footsall/features/bookings/presentation/pages/bookings_page.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/page/footsall_home_page.dart';
 import 'package:hamro_footsall/features/message/presentation/pages/messages_page.dart';
@@ -46,6 +47,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void initState() {
     super.initState();
+    ReverbConnection.instance.connect();
     VenueDistanceHelper.instance.ensurePosition();
   }
 

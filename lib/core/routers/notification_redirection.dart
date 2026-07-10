@@ -44,6 +44,13 @@ _NotificationKind? _kindOf(String? type) {
     case 'opponent_match':
     case 'match_request':
     case 'match':
+    // Opponent-request lifecycle events land on the opponent-match screen —
+    // the `opponent_` prefix keeps the payment ones out of the generic
+    // `payment` kind, which routes to bookings.
+    case 'opponent_request_accepted':
+    case 'opponent_request_declined':
+    case 'opponent_payment_verified':
+    case 'opponent_payment_rejected':
       return _NotificationKind.opponentMatch;
     case 'payment':
     case 'payment_success':
@@ -191,6 +198,8 @@ String _dedupeSignature(_NotificationKind kind, Map<String, dynamic> payload) {
       payload['conversation_id'] ??
       payload['conversationId'] ??
       payload['booking_id'] ??
+      payload['request_id'] ??
+      payload['requestId'] ??
       payload['id'];
   return '${kind.name}:${id ?? ''}';
 }

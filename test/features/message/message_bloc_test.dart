@@ -279,8 +279,9 @@ final class _FakeMessageRepository implements MessageRepository {
 
   @override
   Future<Either<AppException, ConversationModel>> startDirectConversation({
-    required int vendorId,
+    int? vendorId,
     int? venueId,
+    int? userId,
   }) => throw UnimplementedError();
 
   @override

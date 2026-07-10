@@ -7,13 +7,17 @@ import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/widgets/custom_delete_dialog.dart';
+import 'package:hamro_footsall/features/message/presentation/pages/chat_launcher.dart';
 import 'package:hamro_footsall/features/opponent_match/data/model/opponent_match_model.dart';
+import 'package:hamro_footsall/features/opponent_match/presentation/bloc/accept_request_bloc/accept_request_bloc.dart';
 import 'package:hamro_footsall/features/opponent_match/presentation/bloc/opponent_match_bloc/opponent_match_bloc.dart';
+import 'package:hamro_footsall/features/opponent_match/presentation/pages/accept_opponent_request_page.dart';
 import 'package:hamro_footsall/features/opponent_match/presentation/utils/opponent_ui_utils.dart';
 import 'package:hamro_footsall/features/opponent_match/presentation/widgets/opponent_common.dart';
 import 'package:hamro_footsall/core/utils/string_constants.dart';
 
-/// How long a `New` incoming request stays acceptable.
+/// Fallback accept window for requests without a server `accept_deadline`
+/// (mock data only — the server owns the real deadline).
 const Duration kAcceptWindow = Duration(minutes: 20);
 
 enum RequestFilter { all, open, mine, settled }
@@ -29,7 +33,8 @@ extension RequestFilterX on RequestFilter {
 
 /// Requests I sent live under "My Requests"; they stay pending until the
 /// opponent replies and can be removed at any time.
-bool _isMine(OpponentRequestModel r) => r.status == RequestStatus.sent;
+bool _isMine(OpponentRequestModel r) =>
+    r.isMine || r.status == RequestStatus.sent;
 
 /// Requests tab: filter chips + request cards.
 class OpponentRequestsView extends StatelessWidget {
@@ -61,6 +66,30 @@ class OpponentRequestsView extends StatelessWidget {
         RequestFilter.settled =>
           requests.where((r) => r.status.isSettled && !_isMine(r)).length,
       };
+
+  /// Accept → full "Accept & Pay" page (team confirm + advance payment).
+  /// A successful accept pops with the updated request, patched in place.
+  Future<void> _openAcceptFlow(
+    BuildContext context,
+    OpponentRequestModel request,
+  ) async {
+    final bloc = context.read<OpponentMatchBloc>();
+    final OpponentRequestModel? updated = await Navigator.of(context)
+        .push<OpponentRequestModel>(
+          MaterialPageRoute(
+            builder: (_) => MultiBlocProvider(
+              providers: [
+                BlocProvider.value(value: bloc),
+                BlocProvider(
+                  create: (_) => AcceptOpponentRequestBloc(bloc.useCase),
+                ),
+              ],
+              child: AcceptOpponentRequestPage(request: request),
+            ),
+          ),
+        );
+    if (updated != null) bloc.add(RequestAcceptedEvent(updated));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -113,24 +142,19 @@ class OpponentRequestsView extends StatelessWidget {
                         return OpponentRequestCard(
                           key: ValueKey(request.id),
                           request: request,
-                          onAccept: () => bloc.add(
-                            UpdateRequestStatusEvent(
-                              request,
-                              RequestStatus.accepted,
-                            ),
-                          ),
+                          onAccept: () => _openAcceptFlow(context, request),
+                          onMessage: request.requesterUserId > 0
+                              ? () => ChatLauncher.startDirectUser(
+                                  context,
+                                  userId: request.requesterUserId,
+                                )
+                              : null,
                           onDelete: () =>
                               bloc.add(DeleteOpponentRequestEvent(request)),
-                          onExpire: () {
-                            if (request.status == RequestStatus.fresh) {
-                              bloc.add(
-                                UpdateRequestStatusEvent(
-                                  request,
-                                  RequestStatus.expired,
-                                ),
-                              );
-                            }
-                          },
+                          // The deadline passed on-device: re-fetch so the
+                          // card reflects the server's (swept) status.
+                          onExpire: () =>
+                              bloc.add(const LoadOpponentRequestsEvent()),
                         );
                       },
                     ),
@@ -149,12 +173,17 @@ class OpponentRequestCard extends StatefulWidget {
     required this.onAccept,
     required this.onDelete,
     required this.onExpire,
+    this.onMessage,
   });
 
   final OpponentRequestModel request;
   final VoidCallback onAccept;
   final VoidCallback onDelete;
   final VoidCallback onExpire;
+
+  /// Opens a direct chat with the requester; hidden when null (own requests
+  /// or no requester id).
+  final VoidCallback? onMessage;
 
   @override
   State<OpponentRequestCard> createState() => _OpponentRequestCardState();
@@ -164,9 +193,14 @@ class _OpponentRequestCardState extends State<OpponentRequestCard> {
   Timer? _ticker;
   Duration _remaining = Duration.zero;
 
+  /// Server-owned deadline; falls back to `createdAt + kAcceptWindow` for
+  /// mock rows without one.
+  DateTime? get _deadline =>
+      widget.request.acceptDeadline ??
+      widget.request.createdAt?.add(kAcceptWindow);
+
   bool get _hasCountdown =>
-      widget.request.status == RequestStatus.fresh &&
-      widget.request.createdAt != null;
+      widget.request.status == RequestStatus.fresh && _deadline != null;
 
   @override
   void initState() {
@@ -178,6 +212,7 @@ class _OpponentRequestCardState extends State<OpponentRequestCard> {
   void didUpdateWidget(covariant OpponentRequestCard old) {
     super.didUpdateWidget(old);
     if (old.request.status != widget.request.status ||
+        old.request.acceptDeadline != widget.request.acceptDeadline ||
         old.request.createdAt != widget.request.createdAt) {
       _ticker?.cancel();
       _ticker = null;
@@ -192,8 +227,7 @@ class _OpponentRequestCardState extends State<OpponentRequestCard> {
       }
       return;
     }
-    final elapsed = DateTime.now().difference(widget.request.createdAt!);
-    final remaining = kAcceptWindow - elapsed;
+    final remaining = _deadline!.difference(DateTime.now());
     if (remaining.inSeconds <= 0) {
       _ticker?.cancel();
       _ticker = null;
@@ -366,13 +400,17 @@ class _OpponentRequestCardState extends State<OpponentRequestCard> {
                     ),
                   ),
                   const SizedBox(width: AppDimens.paddingX8),
+                  if (widget.onMessage != null) ...[
+                    _MessageIconButton(onTap: widget.onMessage!),
+                    const SizedBox(width: AppDimens.paddingX6),
+                  ],
                   OpponentStatusBadge(status: request.status),
                 ],
               ),
               if (showCountdown) ...[
                 const SizedBox(height: AppDimens.paddingX10),
-                _CountdownPill(
-                  label: _formatRemaining(_remaining),
+                OpponentCountdownPill(
+                  value: _formatRemaining(_remaining),
                   urgent: urgent,
                 ),
               ],
@@ -387,6 +425,15 @@ class _OpponentRequestCardState extends State<OpponentRequestCard> {
                 emphasised: true,
               ),
               const SizedBox(height: AppDimens.paddingX12),
+              // A rejected advance re-opens the request — surface why.
+              if (request.payment?.status == OpponentPaymentStatus.rejected &&
+                  request.payment!.rejectedReason.isNotEmpty) ...[
+                _FooterNote(
+                  icon: Icons.error_outline_rounded,
+                  label: request.payment!.rejectedReason,
+                  color: LightColor.redColor,
+                ),
+              ],
               if (isExpired) ...[
                 const Divider(
                   height: 1,
@@ -396,6 +443,17 @@ class _OpponentRequestCardState extends State<OpponentRequestCard> {
                 const _FooterNote(
                   icon: Icons.hourglass_disabled_rounded,
                   label: StringConstants.closedAcceptWindowExpired,
+                ),
+              ] else if (request.status == RequestStatus.paymentPending) ...[
+                const Divider(
+                  height: 1,
+                  thickness: 1,
+                  color: LightColor.dividerColor,
+                ),
+                const _FooterNote(
+                  icon: Icons.hourglass_top_rounded,
+                  label: StringConstants.advancePendingVerification,
+                  color: LightColor.warningColor,
                 ),
               ] else if (request.status.isOpen)
                 // Incoming requests are accept-only: letting the countdown
@@ -447,25 +505,30 @@ class _OpponentRequestCardState extends State<OpponentRequestCard> {
 }
 
 class _FooterNote extends StatelessWidget {
-  const _FooterNote({required this.icon, required this.label});
+  const _FooterNote({required this.icon, required this.label, this.color});
 
   final IconData icon;
   final String label;
+  final Color? color;
 
   @override
   Widget build(BuildContext context) {
+    final Color fg = color ?? LightColor.hintTextColor;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: AppDimens.sizeX16, color: LightColor.hintTextColor),
+          Icon(icon, size: AppDimens.sizeX16, color: fg),
           const SizedBox(width: AppDimens.paddingX6),
-          Text(
-            label,
-            style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
-              color: LightColor.hintTextColor,
-              fontWeight: FontWeight.w500,
+          Flexible(
+            child: Text(
+              label,
+              textAlign: TextAlign.center,
+              style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
+                color: fg,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
         ],
@@ -474,53 +537,29 @@ class _FooterNote extends StatelessWidget {
   }
 }
 
-class _CountdownPill extends StatelessWidget {
-  const _CountdownPill({required this.label, required this.urgent});
+/// Compact chat entry in the card header — pre-accept vetting and
+/// post-accept coordination with the requester.
+class _MessageIconButton extends StatelessWidget {
+  const _MessageIconButton({required this.onTap});
 
-  final String label;
-  final bool urgent;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = FutsalTheme.getTextTheme(context);
-    final Color fg = urgent ? LightColor.redColor : LightColor.secondaryColor;
-    final Color bg = urgent
-        ? LightColor.redLightColor
-        : LightColor.secondaryColor.withValues(alpha: 0.10);
-    return Container(
-      padding: AppUtils().getPadding(
-        horizontal: AppDimens.paddingX10,
-        vertical: AppDimens.paddingX6,
-      ),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(AppDimens.radiusX6),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            urgent ? Icons.timer_rounded : Icons.timer_outlined,
-            size: 14,
-            color: fg,
+    return Material(
+      color: LightColor.secondaryColor.withValues(alpha: 0.08),
+      shape: const CircleBorder(),
+      child: InkWell(
+        onTap: onTap,
+        customBorder: const CircleBorder(),
+        child: const Padding(
+          padding: EdgeInsets.all(AppDimens.paddingX6),
+          child: Icon(
+            Icons.chat_bubble_outline_rounded,
+            size: AppDimens.sizeX16,
+            color: LightColor.secondaryColor,
           ),
-          const SizedBox(width: AppDimens.paddingX6),
-          Text(
-            StringConstants.acceptWithin,
-            style: textTheme.bodyTextSmall?.copyWith(
-              color: fg,
-              fontWeight: FontWeight.w500,
-              fontSize: AppDimens.fontBodySubTitle,
-            ),
-          ),
-          const Spacer(),
-          Text(
-            label,
-            style: textTheme.bodyTextMedium?.copyWith(
-              color: fg,
-              fontFeatures: const [FontFeature.tabularFigures()],
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
