@@ -300,20 +300,6 @@ class VendorOnboardingValidator {
             }
             return VendorValidationResult.valid(key);
           case 2:
-            if (draft.slotConfigs.isEmpty) {
-              return VendorValidationResult.invalid(
-                key,
-                'Add at least one slot before setting pricing.',
-              );
-            }
-            if (draft.slotConfigs.any(
-              (SlotPricingDraft slot) => !_isSlotPricingValid(slot),
-            )) {
-              return VendorValidationResult.invalid(
-                key,
-                'Complete price details for all configured slots.',
-              );
-            }
             return VendorValidationResult.valid(key);
         }
     }
@@ -443,23 +429,6 @@ class VendorOnboardingValidator {
     return slot.days.isNotEmpty &&
         slot.startTime.trim().isNotEmpty &&
         slot.endTime.trim().isNotEmpty;
-  }
-
-  static bool _isSlotPricingValid(SlotPricingDraft slot) {
-    return slot.weekendPrice != null &&
-        slot.weekendPrice! >= 0 &&
-        slot.holidayPrice != null &&
-        slot.holidayPrice! >= 0 &&
-        slot.customDatePrices.every(
-          (SlotCustomDatePriceDraft item) =>
-              item.date.trim().isNotEmpty && item.price >= 0,
-        ) &&
-        (slot.discountPrice == null || slot.discountPrice! >= 0) &&
-        (slot.discountType != 'Percent' ||
-            slot.discountPrice == null ||
-            slot.discountPrice! <= 100) &&
-        (slot.paymentPercent == null ||
-            (slot.paymentPercent! >= 0 && slot.paymentPercent! <= 100));
   }
 
   static bool _isSlugValid(String value) {

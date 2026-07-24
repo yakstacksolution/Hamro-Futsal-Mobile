@@ -123,6 +123,10 @@ class SlotsSelectionBloc
         update.date != _formatApiDate(state.selectedDate)) {
       return;
     }
+    // The date-scoped presence event already patches the visible court state.
+    // Avoid a second REST request from the companion venue-level broadcast,
+    // which replaces the grid and causes visible shaking while selecting.
+    if (state.hasSlotSelection) return;
     _scheduleRealtimeRefresh();
   }
 
@@ -171,10 +175,9 @@ class SlotsSelectionBloc
     }
   }
 
-  /// Applies a live hold/booking broadcast: instantly patches the matching
-  /// court cell (when the event targets the selected slot), then schedules a
-  /// debounced silent re-fetch so the whole grid reconciles with the server.
-  /// Idempotent by design — our own REST actions echo back over the socket.
+  /// Applies a live hold/booking broadcast directly to the matching court
+  /// cell. Do not re-fetch here: replacing the full grid after every socket
+  /// push causes unnecessary rebuilds, selection flicker and scroll shaking.
   FutureOr<void> _onBookingRealtimeEvent(
     SlotsBookingRealtimeEvent event,
     Emitter<SlotsSelectionState> emit,
@@ -189,7 +192,6 @@ class SlotsSelectionBloc
     }
 
     _patchCourtFromPush(push, emit);
-    _scheduleRealtimeRefresh();
     return null;
   }
 
@@ -201,7 +203,7 @@ class SlotsSelectionBloc
     Emitter<SlotsSelectionState> emit,
   ) {
     final int? courtId = push.courtId;
-    final String? status = push.status;
+    final String? status = push.status ?? _statusForBookingEvent(push.type);
     if (courtId == null || status == null) return;
     if (!state.hasSlotSelection) return;
     if (!_sameApiTime(push.startTime, state.selectedSlotApiTime)) return;
@@ -634,6 +636,15 @@ class SlotsSelectionBloc
     return super.close();
   }
 }
+
+String? _statusForBookingEvent(String type) => switch (type) {
+  BookingSlotEvent.held => 'unavailable',
+  BookingSlotEvent.confirmed => 'booked',
+  BookingSlotEvent.released ||
+  BookingSlotEvent.expired ||
+  BookingSlotEvent.cancelled => 'available',
+  _ => null,
+};
 
 /// Compares two API times (`18:00`, `18:00:00`, `6:00`) on hours + minutes.
 bool _sameApiTime(String? a, String? b) {

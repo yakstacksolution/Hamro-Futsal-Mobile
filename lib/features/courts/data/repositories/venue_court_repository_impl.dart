@@ -86,10 +86,9 @@ final class VenueCourtRepositoryImpl implements VenueCourtRepository {
 
   @override
   Future<Either<AppException, Unit>> updateCourtStatus(
-    int courtId,
-    String status,
+    Map<String, dynamic> data,
   ) async {
-    final response = await _remoteDataSource.updateCourtStatus(courtId, status);
+    final response = await _remoteDataSource.updateCourtStatus(data);
     if (response.isError()) {
       return left(ResponseHelper.error(response));
     }

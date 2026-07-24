@@ -272,7 +272,7 @@ class _OpponentMatchViewState extends State<_OpponentMatchView>
           shape: const StadiumBorder(),
           icon: const Icon(Icons.add_rounded, size: 18),
           label: Text(
-            StringConstants.newRequest,
+            'Find an Opponent',
             style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
               fontWeight: FontWeight.w700,
               color: LightColor.whiteColor,

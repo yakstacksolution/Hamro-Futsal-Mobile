@@ -1,10 +1,13 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import 'package:hamro_footsall/core/routers/app_router_params.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/widgets/loading_widget.dart';
+import 'package:hamro_footsall/features/dashboard/presentation/page/dashboard_screen.dart';
 import 'package:hamro_footsall/features/public/data/model/public_template_model.dart';
 import 'package:hamro_footsall/features/public/presentation/bloc/public_templates/public_templates_bloc.dart';
 import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_cubit.dart';
@@ -181,7 +184,12 @@ class _StepperLogicScreenState extends State<StepperLogicScreen> {
 
           return VendorOnboardingShell(
             isSubmitting: state.isSubmitting,
-            onReset: () => unawaited(cubit.resetOnboarding()),
+            onExitToHome: () async {
+              final String? failure = await cubit.saveProgressBeforeExit();
+              if (!context.mounted || failure != null) return;
+              DashboardScreen.selectedNavIndex.value = 0;
+              context.goNamed(AppRouterParams.dashboard.name);
+            },
             bottomBar: VendorBottomActionBar(
               hasPrevious: cubit.canGoPrevious,
               isSubmitting: state.isSubmitting,

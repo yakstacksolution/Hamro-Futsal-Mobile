@@ -434,9 +434,9 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
   }
 
   String _resolvedFullName(UserData? user) {
-    if (user == null) return 'Guest User';
+    if (user == null) return 'Profile unavailable';
     if (user.fullName.trim().isNotEmpty) return user.fullName;
-    return 'Guest User';
+    return 'Name not provided';
   }
 
   String _resolvedAddress(UserData? user) {

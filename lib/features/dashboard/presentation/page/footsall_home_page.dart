@@ -115,8 +115,6 @@ class _CourtsListScreenState extends State<CourtsListScreen>
   }
 
   Future<void> _refresh() async {
-    // Refresh the profile alongside the venues so the dashboard greeting and
-    // vendor-onboarding state stay current.
     context.read<ProfileBloc>().add(const FetchProfileEvent());
     _publicVenueBloc.add(FetchPublicVenuesEvent(filter: widget.filter));
     await _publicVenueBloc.stream.firstWhere(
@@ -133,9 +131,6 @@ class _CourtsListScreenState extends State<CourtsListScreen>
         opacity: _fadeIn,
         child: BlocBuilder<PublicVenueBloc, PublicVenueState>(
           builder: (BuildContext context, PublicVenueState state) {
-            // Show the loading skeleton on every fetch — first load, pull to
-            // refresh and filter changes — plus the pre-fetch idle state so the
-            // empty view never flashes before the first request resolves.
             final bool showSkeleton =
                 state.status == PublicVenueStatus.loading ||
                 state.status == PublicVenueStatus.idle;
@@ -254,7 +249,7 @@ class _CourtsListScreenState extends State<CourtsListScreen>
                   ),
               child: Padding(
                 padding: AppUtils().getPadding(bottom: AppDimens.sizeX20),
-                child: CourtCard(court: filtered[index]),
+                child: CourtCard(publicListingVenueModel: filtered[index]),
               ),
             );
           },
@@ -352,8 +347,8 @@ class _VenueMessageView extends StatelessWidget {
 }
 
 class CourtCard extends StatefulWidget {
-  final PublicListingVenueModel court;
-  const CourtCard({super.key, required this.court});
+  final PublicListingVenueModel publicListingVenueModel;
+  const CourtCard({super.key, required this.publicListingVenueModel});
 
   @override
   State<CourtCard> createState() => _CourtCardState();
@@ -362,10 +357,8 @@ class CourtCard extends StatefulWidget {
 class _CourtCardState extends State<CourtCard> {
   bool _isPressed = false;
 
-  /// Optimistically flips the shared heart state and persists with
-  /// `POST /venues/{venue}/wishlist`; reverts on failure.
   Future<void> _toggleWishlist() async {
-    final int? venueId = widget.court.id;
+    final int? venueId = widget.publicListingVenueModel.id;
     if (venueId == null) return;
     HapticFeedback.selectionClick();
     final String? error = await ToggleWishlistUseCase(PublicRepositoryImpl())(
@@ -377,13 +370,14 @@ class _CourtCardState extends State<CourtCard> {
   }
 
   PublicListingVenueModel _courtWithDistance() {
-    final double? latitude = widget.court.latitude;
-    final double? longitude = widget.court.longitude;
-    if (latitude == null || longitude == null) return widget.court;
+    final double? latitude = widget.publicListingVenueModel.latitude;
+    final double? longitude = widget.publicListingVenueModel.longitude;
+    if (latitude == null || longitude == null)
+      return widget.publicListingVenueModel;
 
-    return widget.court.copyWith(
+    return widget.publicListingVenueModel.copyWith(
       distanceMeters:
-          widget.court.distanceMeters ??
+          widget.publicListingVenueModel.distanceMeters ??
           VenueDistanceHelper.instance.distanceMeters(latitude, longitude),
     );
   }
@@ -433,7 +427,7 @@ class _CourtCardState extends State<CourtCard> {
                     fit: StackFit.expand,
                     children: [
                       CustomImageView(
-                        url: widget.court.featureImage,
+                        url: widget.publicListingVenueModel.featureImage,
                         fit: BoxFit.cover,
                         width: double.infinity,
                         height: double.infinity,
@@ -441,14 +435,12 @@ class _CourtCardState extends State<CourtCard> {
                       Positioned(
                         top: 12,
                         right: 12,
-                        // Heart state lives in the shared wishlist store, so
-                        // it stays in sync across home, wishlist and details.
                         child: ValueListenableBuilder<Set<int>>(
                           valueListenable: WishlistStore.instance.ids,
                           builder: (context, ids, _) {
                             final bool saved =
-                                widget.court.id != null &&
-                                ids.contains(widget.court.id);
+                                widget.publicListingVenueModel.id != null &&
+                                ids.contains(widget.publicListingVenueModel.id);
                             return GestureDetector(
                               onTap: _toggleWishlist,
                               child: ClipRRect(
@@ -499,7 +491,7 @@ class _CourtCardState extends State<CourtCard> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      widget.court.name ?? '',
+                      widget.publicListingVenueModel.name ?? '',
                       style: FutsalTheme.getTextTheme(context).bodyTextLarge
                           ?.copyWith(
                             color: LightColor.primaryTextColor,
@@ -520,7 +512,7 @@ class _CourtCardState extends State<CourtCard> {
                         const SizedBox(width: AppDimens.sizeX6),
                         Flexible(
                           child: Text(
-                            widget.court.address ?? '',
+                            widget.publicListingVenueModel.address ?? '',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: FutsalTheme.getTextTheme(context)
@@ -530,7 +522,7 @@ class _CourtCardState extends State<CourtCard> {
                                 ),
                           ),
                         ),
-                        _DistanceLabel(court: widget.court),
+                        _DistanceLabel(court: widget.publicListingVenueModel),
                       ],
                     ),
                     const SizedBox(height: AppDimens.sizeX12),
@@ -539,9 +531,9 @@ class _CourtCardState extends State<CourtCard> {
                         Row(
                           children: [
                             Text(
-                              widget.court.price == null
+                              widget.publicListingVenueModel.price == null
                                   ? 'Rs. --'
-                                  : 'Rs. ${widget.court.price!.toStringAsFixed(0)}',
+                                  : 'Rs. ${widget.publicListingVenueModel.price!.toStringAsFixed(0)}',
                               style: FutsalTheme.getTextTheme(context)
                                   .headingSubTitle
                                   ?.copyWith(
@@ -562,7 +554,10 @@ class _CourtCardState extends State<CourtCard> {
                           ],
                         ),
                         const Spacer(),
-                        VenueStatusWidget(isOpen: widget.court.isOpen ?? false),
+                        VenueStatusWidget(
+                          isOpen:
+                              widget.publicListingVenueModel.isOpen ?? false,
+                        ),
                       ],
                     ),
                   ],

@@ -60,6 +60,9 @@ extension VendorOnboardingApiPayload on VendorOnboardingState {
       body['court_id'] = court.remoteId;
     }
 
+    // Courts (not venues) always carry their status on create and update.
+    body['status'] = court.isActive ? 'active' : 'inactive';
+
     if (currentSubstepOnly) {
       body.addAll(_courtSubstepBody(court, resolvedMainStep, resolvedSubStep));
     } else {

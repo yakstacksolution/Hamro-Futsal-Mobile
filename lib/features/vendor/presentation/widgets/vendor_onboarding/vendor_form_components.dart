@@ -457,12 +457,17 @@ class VendorSelectableChip extends StatelessWidget {
     required this.isSelected,
     required this.onTap,
     this.icon,
+    this.imageUrl,
   });
 
   final String label;
   final bool isSelected;
   final VoidCallback onTap;
   final IconData? icon;
+
+  /// Network URL of a leading icon (e.g. facility icon from the API). Takes
+  /// precedence over [icon] when provided.
+  final String? imageUrl;
 
   @override
   Widget build(BuildContext context) {
@@ -488,7 +493,16 @@ class VendorSelectableChip extends StatelessWidget {
           children: <Widget>[
             VendorMiniCheckbox(isChecked: isSelected, size: AppDimens.sizeX16),
             SizedBox(width: AppDimens.sizeX6),
-            if (icon != null) ...[
+            if (imageUrl != null && imageUrl!.isNotEmpty) ...[
+              CustomImageView(
+                url: imageUrl,
+                height: AppDimens.sizeX20,
+                width: AppDimens.sizeX20,
+                fit: BoxFit.contain,
+                isHidePlaceholderImage: true,
+              ),
+              SizedBox(width: AppDimens.sizeX6),
+            ] else if (icon != null) ...[
               Icon(
                 icon,
                 size: AppDimens.sizeX16,
@@ -498,13 +512,17 @@ class VendorSelectableChip extends StatelessWidget {
               ),
               SizedBox(width: AppDimens.sizeX6),
             ],
-            Text(
-              label,
-              style: FutsalTheme.getTextTheme(context).bodySubTitle?.copyWith(
-                color: isSelected
-                    ? LightColor.secondaryDark
-                    : LightColor.primaryTextColor,
-                fontWeight: FontWeight.w700,
+            Flexible(
+              child: Text(
+                label,
+                overflow: TextOverflow.ellipsis,
+                style: FutsalTheme.getTextTheme(context).bodySubTitle
+                    ?.copyWith(
+                      color: isSelected
+                          ? LightColor.secondaryDark
+                          : LightColor.primaryTextColor,
+                      fontWeight: FontWeight.w700,
+                    ),
               ),
             ),
           ],

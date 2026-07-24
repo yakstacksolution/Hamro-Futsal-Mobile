@@ -5,13 +5,20 @@ final class PublicOptionModel extends Equatable {
     required this.id,
     required this.name,
     required this.raw,
+    this.image = '',
   });
 
   final String id;
   final String name;
+
+  /// Absolute URL of the option icon/image (e.g. facility icon), or empty
+  /// when the server did not provide one.
+  final String image;
   final Map<String, dynamic> raw;
 
   int? get idAsInt => int.tryParse(id);
+
+  bool get hasImage => image.isNotEmpty;
 
   factory PublicOptionModel.fromJson(Map<String, dynamic> json) {
     final String id = (json['id'] ?? json['_id'] ?? json['uuid'] ?? '')
@@ -26,10 +33,14 @@ final class PublicOptionModel extends Equatable {
                 '')
             .toString()
             .trim();
+    final String image =
+        (json['image'] ?? json['icon'] ?? json['logo'] ?? '')
+            .toString()
+            .trim();
 
-    return PublicOptionModel(id: id, name: name, raw: json);
+    return PublicOptionModel(id: id, name: name, image: image, raw: json);
   }
 
   @override
-  List<Object?> get props => <Object?>[id, name, raw];
+  List<Object?> get props => <Object?>[id, name, image, raw];
 }

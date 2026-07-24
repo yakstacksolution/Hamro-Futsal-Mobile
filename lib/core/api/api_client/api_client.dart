@@ -64,7 +64,7 @@ class ApiClient {
   }
 
   Future<Result> markNotificationUnread({required String notificationId}) {
-    return _post(url: '$_baseUrl/notifications/$notificationId/unread');
+    return _patch(url: '$_baseUrl/notifications/$notificationId/unread');
   }
 
   Future<Result> googleLogin({required Map<String, dynamic> data}) {
@@ -123,6 +123,29 @@ class ApiClient {
     return _get(url: '$_baseUrl/helps');
   }
 
+  Future<Result> getFeedbackTypes() {
+    return _get(url: '$_baseUrl/feedback-types');
+  }
+
+  Future<Result> getFeedbackCategories() {
+    return _get(url: '$_baseUrl/feedback-categories');
+  }
+
+  Future<Result> submitFeedback({required Map<String, dynamic> data}) {
+    return _post(url: '$_baseUrl/feedback', data: data);
+  }
+
+  Future<Result> getMyFeedback({int perPage = 15}) {
+    return _get(
+      url: '$_baseUrl/feedback',
+      query: <String, dynamic>{'per_page': perPage},
+    );
+  }
+
+  Future<Result> getFeedbackDetails({required String feedbackId}) {
+    return _get(url: '$_baseUrl/feedback/$feedbackId');
+  }
+
   Future<Result> getMatchFormats() {
     return _get(url: '$_baseUrl/match-formate');
   }
@@ -172,6 +195,89 @@ class ApiClient {
 
   Future<Result> getExpenses({Map<String, dynamic>? query}) {
     return _get(url: '$_baseUrl/auth/expenses', query: query);
+  }
+
+  Future<Result> getProducts({required int venueId, int perPage = 15}) {
+    return _get(
+      url: '$_baseUrl/products',
+      query: <String, dynamic>{'venue_id': venueId, 'per_page': perPage},
+    );
+  }
+
+  Future<Result> createProduct({required Map<String, dynamic> data}) {
+    return _post(url: '$_baseUrl/products', data: data);
+  }
+
+  Future<Result> updateProduct({
+    required int productId,
+    required Map<String, dynamic> data,
+  }) {
+    return _post(url: '$_baseUrl/products/$productId', data: data);
+  }
+
+  Future<Result> deleteProduct({required int productId}) {
+    return _delete(url: '$_baseUrl/products/$productId');
+  }
+
+  // Products available for sale at a given venue — used to add products to a
+  // confirmed/completed booking as a cart.
+  Future<Result> getVenueProducts({required int venueId}) {
+    return _get(url: '$_baseUrl/venues/$venueId/products');
+  }
+
+  // Submits the selected products (cart) against a booking.
+  Future<Result> addBookingProducts({
+    required int bookingId,
+    required Map<String, dynamic> data,
+  }) {
+    return _post(url: '$_baseUrl/bookings/$bookingId/extra-items', data: data);
+  }
+
+  // Marks a confirmed booking as completed.
+  Future<Result> completeBooking({
+    required int bookingId,
+    String? paymentType,
+    double? discount,
+    double? amountPaid,
+    String? paymentStatus,
+  }) {
+    final Map<String, dynamic> data = <String, dynamic>{
+      if (paymentType != null) 'payment_type': paymentType,
+      if (discount != null) 'discount': discount,
+      if (amountPaid != null) 'amount_paid': amountPaid,
+      if (paymentStatus != null) 'payment_status': paymentStatus,
+    };
+    return _post(
+      url: '$_baseUrl/bookings/$bookingId/complete',
+      data: data.isEmpty ? null : data,
+    );
+  }
+
+  // Vendor ↔ super-admin financial account (balance, ledger, settlements).
+  Future<Result> getSettlementAccount() {
+    return _get(url: '$_baseUrl/auth/settlement-account');
+  }
+
+  Future<Result> getSettlementBreakdown() {
+    return _get(url: '$_baseUrl/auth/settlement-breakdown');
+  }
+
+  Future<Result> getSettlementPreview({int? venueId}) {
+    return _get(
+      url: '$_baseUrl/auth/settlement-preview',
+      query: venueId == null ? null : <String, dynamic>{'venue_id': venueId},
+    );
+  }
+
+  Future<Result> getSettlements({Map<String, dynamic>? query}) {
+    return _get(
+      url: '$_baseUrl/auth/settlements',
+      query: query ?? <String, dynamic>{'per_page': 20},
+    );
+  }
+
+  Future<Result> createSettlement({required dynamic data}) {
+    return _post(url: '$_baseUrl/auth/settlements', data: data);
   }
 
   Future<Result> getConversations({bool archived = false}) {
@@ -295,7 +401,7 @@ class ApiClient {
   }
 
   Future<Result> getVenueHostedBy({required int venueId}) {
-    return _get(url: '$_baseUrl/hosted-by/2');
+    return _get(url: '$_baseUrl/hosted-by/$venueId');
   }
 
   Future<Result> getVenueDescription({required int venueId}) {
@@ -466,6 +572,12 @@ class ApiClient {
 
   Future<Result> getFutsalBookings() {
     return _get(url: '$_baseUrl/futsal-bookings');
+  }
+
+  /// Aggregated booking analytics. All filter params are optional — omit the
+  /// [query] entirely to let the server apply its default window.
+  Future<Result> getBookingOverview({Map<String, dynamic>? query}) {
+    return _get(url: '$_baseUrl/booking-overview', query: query);
   }
 
   Future<Result> cancelBooking({required int bookingId}) {

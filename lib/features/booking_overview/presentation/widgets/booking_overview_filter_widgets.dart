@@ -127,12 +127,12 @@ class BookingPeriodChips extends StatelessWidget {
 class BookingVenueFilter extends StatelessWidget {
   const BookingVenueFilter({
     super.key,
-    required this.futsals,
+    required this.venues,
     required this.selectedId,
     required this.onChange,
   });
 
-  final List<BookingFutsalModel> futsals;
+  final List<OverviewVenue> venues;
   final String? selectedId;
   final ValueChanged<String?> onChange;
 
@@ -143,7 +143,7 @@ class BookingVenueFilter extends StatelessWidget {
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
-        itemCount: futsals.length + 1,
+        itemCount: venues.length + 1,
         separatorBuilder: (_, __) => const SizedBox(width: AppDimens.paddingX8),
         itemBuilder: (_, i) {
           if (i == 0) {
@@ -153,11 +153,11 @@ class BookingVenueFilter extends StatelessWidget {
               onTap: () => onChange(null),
             );
           }
-          final f = futsals[i - 1];
+          final v = venues[i - 1];
           return BookingChip(
-            label: f.name,
-            selected: selectedId == f.id,
-            onTap: () => onChange(f.id),
+            label: v.name,
+            selected: selectedId == v.id,
+            onTap: () => onChange(v.id),
           );
         },
       ),

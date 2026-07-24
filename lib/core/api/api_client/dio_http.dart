@@ -15,8 +15,6 @@ class DioHttp implements IHttp {
     _instance.dio.options = BaseOptions(
       connectTimeout: const Duration(milliseconds: 15000),
       receiveTimeout: const Duration(milliseconds: 20000),
-      // Encode list query params as `key[]=a&key[]=b` so array filters
-      // (category ids, time slots) are parsed correctly by the backend.
       listFormat: ListFormat.multiCompatible,
     );
     _instance.dio.interceptors.add(LoggingInterceptor());
@@ -71,9 +69,15 @@ class DioHttp implements IHttp {
   }
 
   void _applyHeaders({String? url, String? token, dynamic data}) {
-    dio.options.headers['content-Type'] = data is FormData
-        ? 'multipart/form-data'
-        : 'application/json';
+    final bool isMultipart = data is FormData;
+    dio.options.contentType = isMultipart
+        ? Headers.multipartFormDataContentType
+        : Headers.jsonContentType;
+    dio.options.headers.remove('content-Type');
+    dio.options.headers.remove(Headers.contentTypeHeader);
+    if (!isMultipart) {
+      dio.options.headers[Headers.contentTypeHeader] = Headers.jsonContentType;
+    }
     dio.options.headers['Accept'] = 'application/json';
 
     if (_isApiRequest(url)) {

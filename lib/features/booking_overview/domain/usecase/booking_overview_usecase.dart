@@ -8,9 +8,15 @@ final class BookingOverviewUseCase {
 
   final BookingOverviewRepository repository;
 
-  Future<Either<AppException, List<BookingFutsalModel>>> getFutsals() async =>
-      await repository.getFutsals();
-
-  Future<Either<AppException, List<BookingRecordModel>>> getBookings() async =>
-      await repository.getBookings();
+  Future<Either<AppException, BookingOverviewResponse>> getOverview({
+    String? dateFilter,
+    String? dateFrom,
+    String? dateTo,
+    List<String>? venueIds,
+  }) async => await repository.getOverview(
+    dateFilter: dateFilter,
+    dateFrom: dateFrom,
+    dateTo: dateTo,
+    venueIds: venueIds,
+  );
 }

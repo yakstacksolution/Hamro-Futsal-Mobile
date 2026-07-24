@@ -3,6 +3,7 @@ import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/features/booking_overview/data/model/booking_overview_model.dart';
 import 'package:hamro_footsall/features/booking_overview/presentation/models/booking_analytics.dart';
 import 'package:hamro_footsall/features/booking_overview/presentation/utils/booking_ui_utils.dart';
 import 'package:hamro_footsall/features/booking_overview/presentation/widgets/booking_overview_common.dart';
@@ -38,7 +39,7 @@ class BookingVenuePerformanceCard extends StatelessWidget {
 class _VenueRow extends StatelessWidget {
   const _VenueRow({required this.row});
 
-  final FutsalPerformanceRow row;
+  final VenuePerformanceRow row;
 
   @override
   Widget build(BuildContext context) {
@@ -73,7 +74,7 @@ class _VenueRow extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      row.futsal.name,
+                      row.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: textTheme.bodyTextMedium?.copyWith(
@@ -82,7 +83,7 @@ class _VenueRow extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      '${row.futsal.area} · ${row.futsal.courts.length} courts · ${row.bookings} bookings',
+                      '${row.area} · ${row.courtCount} courts · ${row.bookings} bookings',
                       style: textTheme.bodyTextSmall?.copyWith(
                         color: LightColor.hintTextColor,
                         fontSize: AppDimens.fontBodySubTitle,
@@ -178,14 +179,14 @@ class BookingTopCourtsCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          rows[i].court.name,
+                          rows[i].courtName,
                           style: textTheme.bodyTextMedium?.copyWith(
                             fontWeight: FontWeight.w600,
                             color: LightColor.primaryTextColor,
                           ),
                         ),
                         Text(
-                          '${rows[i].futsalName} · ${rows[i].bookings} bookings',
+                          '${rows[i].venueName} · ${rows[i].bookings} bookings',
                           style: textTheme.bodyTextSmall?.copyWith(
                             color: LightColor.hintTextColor,
                             fontSize: AppDimens.fontBodySubTitle,

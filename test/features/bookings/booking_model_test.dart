@@ -3,6 +3,17 @@ import 'package:hamro_footsall/features/bookings/data/model/booking_model.dart';
 
 void main() {
   group('BookingModel', () {
+    test('parses customer user id from candidate-shaped futsal payload', () {
+      final BookingModel booking = BookingModel.fromJson(<String, dynamic>{
+        'id': 9,
+        'booking_date': '2026-08-12',
+        'candidate': <String, dynamic>{'id': 73, 'name': 'Dilli Bhandari'},
+      });
+
+      expect(booking.playerId, 73);
+      expect(booking.playerName, 'Dilli Bhandari');
+    });
+
     test('parses the my-bookings API response', () {
       final List<BookingModel> bookings = BookingModel.listFromResponse(
         <String, dynamic>{
@@ -147,6 +158,31 @@ void main() {
       expect(bookings.single.playerName, 'Player One');
       expect(bookings.single.playerPhone, '9800000000');
       expect(bookings.single.status, BookingStatus.rejected);
+    });
+
+    test('parses booked extras even when product uses legacy field names', () {
+      final BookingModel booking = BookingModel.fromJson(<String, dynamic>{
+        'id': 26,
+        'booking_date': '2026-10-02',
+        'booking_extra_items': <Map<String, dynamic>>[
+          <String, dynamic>{
+            'id': 41,
+            'venue_product_id': 9,
+            'product_name': 'Archived water',
+            'qty': 3,
+            'price': 50,
+          },
+        ],
+      });
+
+      expect(booking.extraItems, hasLength(1));
+      expect(booking.extraItems.single.productId, 9);
+      expect(booking.extraItems.single.name, 'Archived water');
+      expect(booking.extraItems.single.quantity, 3);
+      expect(booking.extraItems.single.unitPrice, 50);
+      expect(booking.extraItems.single.totalAmount, 150);
+      expect(booking.extraItemsCount, 3);
+      expect(booking.extraItemsTotal, 150);
     });
   });
 }

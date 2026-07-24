@@ -62,6 +62,16 @@ class _ProfilePageState extends State<ProfilePage> {
       onTap: () => context.pushNamed(AppRouterParams.bookingOverview.name),
     ),
     _ProfileItem(
+      title: 'Finance & Payouts',
+      icon: Icons.account_balance_outlined,
+      onTap: () => context.pushNamed(AppRouterParams.account.name),
+    ),
+    _ProfileItem(
+      title: 'Products',
+      icon: Icons.inventory_2_outlined,
+      onTap: () => context.pushNamed(AppRouterParams.products.name),
+    ),
+    _ProfileItem(
       title: StringConstants.expenses,
       icon: Icons.account_balance_wallet_outlined,
       onTap: () => context.pushNamed(AppRouterParams.expenses.name),
@@ -84,6 +94,11 @@ class _ProfilePageState extends State<ProfilePage> {
       onTap: () => context.pushNamed(AppRouterParams.helpFaq.name),
     ),
     _ProfileItem(
+      title: StringConstants.feedback,
+      icon: Icons.rate_review_outlined,
+      onTap: () => context.pushNamed(AppRouterParams.feedback.name),
+    ),
+    _ProfileItem(
       title: StringConstants.aboutApp,
       icon: Icons.info_outline_rounded,
       onTap: () => context.pushNamed(AppRouterParams.aboutApp.name),
@@ -93,9 +108,6 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   void initState() {
     super.initState();
-    // Tabs stay alive inside the dashboard's IndexedStack, so a fetch that
-    // failed while offline would otherwise show a stale error forever.
-    // Re-fetch automatically whenever this tab becomes visible again.
     DashboardScreen.selectedNavIndex.addListener(_retryFailedFetchOnTabVisible);
   }
 
@@ -110,8 +122,6 @@ class _ProfilePageState extends State<ProfilePage> {
   void _retryFailedFetchOnTabVisible() {
     if (!mounted || DashboardScreen.selectedNavIndex.value != 4) return;
     final ProfileBloc bloc = context.read<ProfileBloc>();
-    // Only the initial profile load can leave the page without data; an
-    // update failure keeps the loaded profile, so don't refetch for it.
     if (bloc.state.profile == null &&
         bloc.state.status != ProfileStatus.loading) {
       bloc.add(const FetchProfileEvent());
@@ -135,7 +145,6 @@ class _ProfilePageState extends State<ProfilePage> {
             state.status == ProfileStatus.loading && profile == null;
 
         final bool isVendor = profile?.data.role == 'vendor';
-
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -144,7 +153,9 @@ class _ProfilePageState extends State<ProfilePage> {
             Expanded(
               child: ListView(
                 physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.only(bottom: AppDimens.paddingX50),
+                padding: const EdgeInsets.only(
+                  bottom: AppDimens.paddingX50 * 3,
+                ),
                 children: [
                   _ProfileRow(
                     profile: profile,
@@ -161,6 +172,10 @@ class _ProfilePageState extends State<ProfilePage> {
                             ),
                           ),
                   ),
+                  // if (profile != null && isVendor) ...[
+                  //   _VendorStatusCard(user: profile.data),
+                  //   const SizedBox(height: AppDimens.paddingX20),
+                  // ],
                   const SizedBox(height: AppDimens.paddingX24),
                   _SectionGroup(
                     label: StringConstants.general,
@@ -272,12 +287,12 @@ class _ProfileRow extends StatelessWidget {
     final textTheme = FutsalTheme.getTextTheme(context);
     final UserData? user = profile?.data;
 
-    final String fullName = (user?.fullName.trim().isNotEmpty ?? false)
-        ? user!.fullName
-        : 'Guest User';
-    final String email = (user?.email.trim().isNotEmpty ?? false)
-        ? user!.email
-        : 'No email available';
+    final String? fullName = user?.fullName.trim().isNotEmpty == true
+        ? user!.fullName.trim()
+        : null;
+    final String? email = user?.email.trim().isNotEmpty == true
+        ? user!.email.trim()
+        : null;
     final String? profilePhoto = profileImage ?? user?.profilePhoto?.remoteUrl;
 
     return Material(
@@ -299,7 +314,9 @@ class _ProfileRow extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      isLoading ? 'Loading…' : fullName,
+                      isLoading
+                          ? 'Loading…'
+                          : fullName ?? 'Profile unavailable',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: textTheme.bodyTextLarge?.copyWith(
@@ -309,7 +326,7 @@ class _ProfileRow extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      email,
+                      email ?? 'Pull to refresh your account',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: textTheme.bodyTextSmall?.copyWith(
@@ -335,6 +352,112 @@ class _ProfileRow extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _VendorStatusCard extends StatelessWidget {
+  const _VendorStatusCard({required this.user});
+
+  final UserData user;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    final (
+      String title,
+      String message,
+      Color color,
+      IconData icon,
+    ) = switch (user.vendorStatus) {
+      VendorLifecycleStatus.active => (
+        'Vendor account active',
+        user.businessVerified
+            ? 'Your business is verified and ready to receive bookings.'
+            : 'Your vendor account is active. Business verification is pending.',
+        LightColor.secondaryColor,
+        Icons.verified_rounded,
+      ),
+      VendorLifecycleStatus.underReview => (
+        'Business under review',
+        'Hamro Futsal is reviewing your submitted business information.',
+        LightColor.warningColor,
+        Icons.hourglass_top_rounded,
+      ),
+      VendorLifecycleStatus.rejected => (
+        'Business verification rejected',
+        user.vendorStatusReason.isNotEmpty
+            ? user.vendorStatusReason
+            : 'Review your business information and submit it again.',
+        LightColor.redColor,
+        Icons.error_outline_rounded,
+      ),
+      VendorLifecycleStatus.suspended => (
+        'Vendor account suspended',
+        user.vendorStatusReason.isNotEmpty
+            ? user.vendorStatusReason
+            : 'Contact Hamro Futsal support for assistance.',
+        LightColor.redColor,
+        Icons.block_rounded,
+      ),
+      VendorLifecycleStatus.actionRequired => (
+        'Action required',
+        user.vendorStatusReason.isNotEmpty
+            ? user.vendorStatusReason
+            : 'Update your vendor information to continue.',
+        LightColor.warningColor,
+        Icons.notification_important_outlined,
+      ),
+      VendorLifecycleStatus.incomplete => (
+        'Complete vendor setup',
+        'Finish your venue and business details to start accepting bookings.',
+        LightColor.warningColor,
+        Icons.edit_note_rounded,
+      ),
+      VendorLifecycleStatus.notStarted => (
+        'Start vendor setup',
+        'Add your business and venue details to become a verified vendor.',
+        LightColor.secondaryColor,
+        Icons.storefront_outlined,
+      ),
+    };
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: AppDimens.paddingX16),
+      padding: const EdgeInsets.all(AppDimens.paddingX14),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(AppDimens.radiusX12),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: color, size: AppDimens.sizeX22),
+          const SizedBox(width: AppDimens.paddingX10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: textTheme.bodyTextMedium?.copyWith(
+                    color: LightColor.primaryTextColor,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: AppDimens.paddingX4),
+                Text(
+                  message,
+                  style: textTheme.bodyTextSmall?.copyWith(
+                    color: LightColor.secondaryTextColor,
+                    height: 1.35,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

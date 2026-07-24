@@ -642,6 +642,7 @@ class CourtDraft {
     this.matchFormatId = 1,
     this.matchFormat = '5v5',
     this.maxPlayers = 10,
+    this.isActive = true,
     this.surfaceType,
     this.slotDuration,
     this.slotCount,
@@ -688,6 +689,7 @@ class CourtDraft {
   final int? matchFormatId;
   final String? matchFormat;
   final int? maxPlayers;
+  final bool isActive;
   final String? surfaceType;
   final int? slotDuration;
   final int? slotCount;
@@ -744,6 +746,7 @@ class CourtDraft {
     int? matchFormatId,
     String? matchFormat,
     int? maxPlayers,
+    bool? isActive,
     String? surfaceType,
     int? slotDuration,
     int? slotCount,
@@ -814,6 +817,7 @@ class CourtDraft {
           : matchFormatId ?? this.matchFormatId,
       matchFormat: clearMatchFormat ? null : matchFormat ?? this.matchFormat,
       maxPlayers: clearMaxPlayers ? null : maxPlayers ?? this.maxPlayers,
+      isActive: isActive ?? this.isActive,
       surfaceType: clearSurfaceType ? null : surfaceType ?? this.surfaceType,
       slotDuration: clearSlotDuration
           ? null
@@ -874,6 +878,7 @@ class CourtDraft {
       'matchFormatId': matchFormatId,
       'matchFormat': matchFormat,
       'maxPlayers': maxPlayers,
+      'isActive': isActive,
       'surfaceType': surfaceType,
       'slotDuration': slotDuration,
       'slotCount': slotCount,
@@ -958,6 +963,9 @@ class CourtDraft {
             json['maxPlayers'] ?? json['max_players'] ?? json['max_player'],
           ) ??
           10,
+      isActive:
+          _asBool(json['isActive'] ?? json['is_active'] ?? json['status']) ??
+          true,
       surfaceType:
           json['surfaceType'] as String? ?? json['surface_type'] as String?,
       slotDuration: _asInt(json['slotDuration'] ?? json['slot_duration']),
@@ -1057,6 +1065,17 @@ double? _asDouble(Object? value) {
   if (value == null) return null;
   if (value is num) return value.toDouble();
   return double.tryParse(value.toString());
+}
+
+bool? _asBool(Object? value) {
+  if (value == null) return null;
+  if (value is bool) return value;
+  if (value is num) return value != 0;
+  return switch (value.toString().trim().toLowerCase()) {
+    'true' || '1' || 'active' => true,
+    'false' || '0' || 'inactive' => false,
+    _ => null,
+  };
 }
 
 int? _asInt(Object? value) {

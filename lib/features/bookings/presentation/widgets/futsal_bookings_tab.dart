@@ -8,6 +8,7 @@ import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/features/bookings/data/model/booking_model.dart';
 import 'package:hamro_footsall/features/bookings/presentation/bloc/booking_bloc/booking_bloc.dart';
 import 'package:hamro_footsall/features/bookings/presentation/utils/booking_search.dart';
+import 'package:hamro_footsall/features/bookings/presentation/widgets/booking_products_sheet.dart';
 import 'package:hamro_footsall/features/bookings/presentation/widgets/booking_shared_widgets.dart';
 
 class FutsalBookingsTab extends StatelessWidget {
@@ -130,7 +131,7 @@ class FutsalBookingsTab extends StatelessWidget {
             padding: AppUtils().getPadding(
               symmetricHorizontal: AppDimens.paddingX16,
               top: AppDimens.paddingX8,
-              bottom: AppDimens.sizeX80,
+              bottom: AppDimens.sizeX180,
             ),
             itemCount: items.length,
             separatorBuilder: (_, __) =>
@@ -138,6 +139,11 @@ class FutsalBookingsTab extends StatelessWidget {
             itemBuilder: (_, i) => BookingCard(
               booking: items[i],
               showPlayer: true,
+              footer:
+                  (bookingSupportsProducts(items[i]) ||
+                      bookingCanComplete(items[i]))
+                  ? _BookingCardActions(booking: items[i])
+                  : null,
               onTap: () async {
                 await context.pushNamed(
                   AppRouterParams.bookingDetails.name,
@@ -155,6 +161,65 @@ class FutsalBookingsTab extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+/// Quick-action chips shown at the bottom of a futsal booking card:
+/// "Add products" (confirmed/completed) and "Complete" (confirmed only).
+class _BookingCardActions extends StatelessWidget {
+  const _BookingCardActions({required this.booking});
+
+  final BookingModel booking;
+
+  void _refresh(BuildContext context) => context.read<BookingBloc>().add(
+    const FetchFutsalBookingsEvent(silent: true),
+  );
+
+  Future<void> _addProducts(BuildContext context) async {
+    final bool? added = await openBookingProductsSheet(context, booking);
+    if (added == true && context.mounted) _refresh(context);
+  }
+
+  Future<void> _complete(BuildContext context) async {
+    final BookingBloc bloc = context.read<BookingBloc>();
+    final BookingCompleteResult? result = await showBookingCompleteSheet(
+      context,
+      booking,
+    );
+    if (result == null || !context.mounted) return;
+    final bool ok = await completeBooking(booking.id, result: result);
+    if (!context.mounted) return;
+    AppUtils().showSnackBar(
+      context,
+      ok ? MsgType.success : MsgType.error,
+      ok ? 'Booking marked as completed.' : 'Could not complete the booking.',
+    );
+    if (ok) bloc.add(const FetchFutsalBookingsEvent(silent: true));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: AppDimens.paddingX8,
+      runSpacing: AppDimens.paddingX8,
+      children: <Widget>[
+        if (bookingSupportsProducts(booking))
+          BookingActionChip(
+            icon: Icons.add_shopping_cart_rounded,
+            label: booking.extraItemsCount > 0
+                ? 'Products · ${booking.extraItemsCount}'
+                : 'Add products',
+            onTap: () => _addProducts(context),
+          ),
+        if (bookingCanComplete(booking))
+          BookingActionChip(
+            icon: Icons.check_circle_outline_rounded,
+            label: 'Complete',
+            color: LightColor.purpleColor,
+            onTap: () => _complete(context),
+          ),
+      ],
     );
   }
 }

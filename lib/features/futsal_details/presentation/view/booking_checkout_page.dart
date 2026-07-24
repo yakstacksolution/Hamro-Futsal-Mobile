@@ -402,8 +402,7 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
                       fallbackPayeeName: _payeeName,
                       fallbackPayeeId: _payeeId,
                       amountLabel: StringConstants.advanceToPay,
-                      amountValue:
-                          'Rs ${pricing.advance.toStringAsFixed(0)}',
+                      amountValue: 'Rs ${pricing.advance.toStringAsFixed(0)}',
                     );
                   },
                 ),
@@ -1546,13 +1545,22 @@ class _BookingOverviewSheet extends StatelessWidget {
     final String timeRange = draft.endTime == null
         ? draft.selectedTime
         : '${draft.selectedTime} – ${draft.endTime}';
+    final String recurrence = draft.recurrenceLabel?.trim().isNotEmpty == true
+        ? draft.recurrenceLabel!.trim()
+        : '${draft.sessions} sessions';
+    final List<DateTime> sessionDates = draft.sessionDates.isEmpty
+        ? <DateTime>[draft.selectedDate]
+        : draft.sessionDates;
 
     return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.sizeOf(context).height * 0.9,
+      ),
       padding: AppUtils().getPadding(
         left: AppDimens.paddingX20,
         right: AppDimens.paddingX20,
         top: AppDimens.paddingX12,
-        bottom: AppDimens.paddingX24,
+        bottom: AppDimens.paddingX16,
       ),
       decoration: const BoxDecoration(
         color: LightColor.cardColor,
@@ -1578,95 +1586,395 @@ class _BookingOverviewSheet extends StatelessWidget {
               ),
             ),
             const SizedBox(height: AppDimens.sizeX16),
-            Text(
-              StringConstants.reviewYourBooking,
-              style: textTheme.bodyTextLarge?.copyWith(
-                color: LightColor.primaryTextColor,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            const SizedBox(height: AppDimens.sizeX6),
-            Text(
-              StringConstants.pleaseConfirmTheDetailsBeforeBooking,
-              style: textTheme.bodySubTitle?.copyWith(
-                color: LightColor.hintTextColor,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(height: AppDimens.sizeX16),
-
-            _Surface(
-              child: Column(
-                children: <Widget>[
-                  _InfoRow(
-                    label: StringConstants.court,
-                    value: draft.courtName,
-                  ),
-                  const SizedBox(height: AppDimens.sizeX10),
-                  _InfoRow(
-                    label: draft.isRecurring ? 'Starts' : 'Date',
-                    value: _dateLabel(draft.selectedDate),
-                  ),
-                  const SizedBox(height: AppDimens.sizeX10),
-                  _InfoRow(label: StringConstants.time, value: timeRange),
-                  if (draft.isRecurring) ...<Widget>[
-                    const SizedBox(height: AppDimens.sizeX10),
-                    _InfoRow(
-                      label: StringConstants.repeats,
-                      value:
-                          'Weekly · ${draft.recurrenceLabel ?? ''} · ${draft.sessions} sessions',
-                    ),
-                  ],
-                  const SizedBox(height: AppDimens.sizeX10),
-                  _InfoRow(
-                    label: StringConstants.payment,
-                    value: paymentMethodLabel,
-                  ),
-                  if (paymentProofName != null) ...<Widget>[
-                    const SizedBox(height: AppDimens.sizeX10),
-                    _InfoRow(
-                      label: StringConstants.proof,
-                      value: paymentProofName!,
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            const SizedBox(height: AppDimens.sizeX12),
-
-            _PriceBreakdown(lines: pricing.lines, ready: pricing.ready),
-            const SizedBox(height: AppDimens.sizeX20),
-
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Expanded(
-                  child: SizedBox(
-                    height: AppDimens.sizeX50,
-                    child: CustomButton(
-                      text: StringConstants.goBack,
-                      onPressed: () => Navigator.of(context).pop(false),
-                      isOutlined: true,
-                      foregroundColor: LightColor.secondaryTextColor,
-                      borderColor: LightColor.dividerColor,
-                    ),
+                Container(
+                  width: AppDimens.sizeX44,
+                  height: AppDimens.sizeX44,
+                  decoration: BoxDecoration(
+                    color: LightColor.secondaryColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(AppDimens.radiusX12),
+                  ),
+                  child: const Icon(
+                    Icons.event_available_rounded,
+                    color: LightColor.secondaryColor,
+                    size: AppDimens.sizeX22,
                   ),
                 ),
                 const SizedBox(width: AppDimens.sizeX12),
                 Expanded(
-                  flex: 2,
-                  child: SizedBox(
-                    height: AppDimens.sizeX50,
-                    child: CustomButton(
-                      text: StringConstants.confirmBooking,
-                      onPressed: () => Navigator.of(context).pop(true),
-                      backgroundColor: LightColor.secondaryColor,
-                      foregroundColor: LightColor.inverseTextColor,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        StringConstants.reviewYourBooking,
+                        style: textTheme.bodyTextLarge?.copyWith(
+                          color: LightColor.primaryTextColor,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: AppDimens.sizeX4),
+                      Text(
+                        StringConstants.pleaseConfirmTheDetailsBeforeBooking,
+                        style: textTheme.bodyTextSmall?.copyWith(
+                          color: LightColor.secondaryTextColor,
+                          fontWeight: FontWeight.w500,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
+            const SizedBox(height: AppDimens.sizeX18),
+            Flexible(
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    _ReviewCourtCard(draft: draft, timeRange: timeRange),
+                    if (draft.isRecurring) ...<Widget>[
+                      const SizedBox(height: AppDimens.sizeX12),
+                      _RecurringReviewCard(
+                        recurrence: recurrence,
+                        sessions: draft.sessions,
+                        sessionDates: sessionDates,
+                      ),
+                    ],
+                    const SizedBox(height: AppDimens.sizeX12),
+                    _ReviewPaymentCard(
+                      paymentMethodLabel: paymentMethodLabel,
+                      paymentProofName: paymentProofName,
+                      couponCode: couponCode,
+                    ),
+                    const SizedBox(height: AppDimens.sizeX12),
+                    _PriceBreakdown(lines: pricing.lines, ready: pricing.ready),
+                    const SizedBox(height: AppDimens.sizeX4),
+                  ],
+                ),
+              ),
+            ),
+            Padding(
+              padding: AppUtils().getPadding(
+                top: AppDimens.paddingX14,
+                bottom: AppDimens.paddingX12,
+              ),
+              child: Divider(
+                height: 1,
+                color: LightColor.dividerColor.withValues(alpha: 0.85),
+              ),
+            ),
+
+            LayoutBuilder(
+              builder: (BuildContext context, BoxConstraints constraints) {
+                final bool stackActions = constraints.maxWidth < 330;
+                final Widget backButton = CustomButton(
+                  text: StringConstants.goBack,
+                  onPressed: () => Navigator.of(context).pop(false),
+                  isOutlined: true,
+                  foregroundColor: LightColor.primaryTextColor,
+                  borderColor: LightColor.greyBorderColor,
+                  minHeight: AppDimens.sizeX48,
+                );
+                final Widget confirmButton = CustomButton(
+                  text: StringConstants.confirmBooking,
+                  onPressed: () => Navigator.of(context).pop(true),
+                  backgroundColor: LightColor.secondaryColor,
+                  foregroundColor: LightColor.inverseTextColor,
+                  minHeight: AppDimens.sizeX48,
+                );
+
+                if (stackActions) {
+                  return Column(
+                    children: <Widget>[
+                      confirmButton,
+                      const SizedBox(height: AppDimens.sizeX10),
+                      backButton,
+                    ],
+                  );
+                }
+
+                return Row(
+                  children: <Widget>[
+                    Expanded(child: backButton),
+                    const SizedBox(width: AppDimens.sizeX12),
+                    Expanded(flex: 2, child: confirmButton),
+                  ],
+                );
+              },
+            ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ReviewCourtCard extends StatelessWidget {
+  const _ReviewCourtCard({required this.draft, required this.timeRange});
+
+  final BookingDraft draft;
+  final String timeRange;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    return _Surface(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              CustomImageView(
+                url: draft.courtImage,
+                imagePath: draft.courtImage.isEmpty
+                    ? 'assets/images/image_placeholder_normal.png'
+                    : null,
+                width: AppDimens.sizeX56,
+                height: AppDimens.sizeX56,
+                fit: BoxFit.cover,
+                radius: BorderRadius.circular(AppDimens.radiusX10),
+              ),
+              const SizedBox(width: AppDimens.sizeX12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      draft.courtName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: textTheme.bodyTextMedium?.copyWith(
+                        color: LightColor.primaryTextColor,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: AppDimens.sizeX4),
+                    Text(
+                      '${draft.matchType} · ${draft.courtType}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: textTheme.bodyTextSmall?.copyWith(
+                        color: LightColor.secondaryTextColor,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          Padding(
+            padding: AppUtils().getPadding(
+              symmetricVertical: AppDimens.paddingX14,
+            ),
+            child: Divider(
+              height: 1,
+              color: LightColor.dividerColor.withValues(alpha: 0.8),
+            ),
+          ),
+          _ReviewDetailRow(
+            icon: Icons.calendar_today_rounded,
+            label: draft.isRecurring ? 'Starts' : 'Date',
+            value: _dateLabel(draft.selectedDate),
+          ),
+          const SizedBox(height: AppDimens.sizeX10),
+          _ReviewDetailRow(
+            icon: Icons.schedule_rounded,
+            label: StringConstants.time,
+            value: timeRange,
+          ),
+          const SizedBox(height: AppDimens.sizeX10),
+          _ReviewDetailRow(
+            icon: Icons.groups_rounded,
+            label: StringConstants.players,
+            value: 'Up to ${draft.maxPlayers}',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RecurringReviewCard extends StatelessWidget {
+  const _RecurringReviewCard({
+    required this.recurrence,
+    required this.sessions,
+    required this.sessionDates,
+  });
+
+  final String recurrence;
+  final int sessions;
+  final List<DateTime> sessionDates;
+
+  @override
+  Widget build(BuildContext context) {
+    return _Surface(
+      borderColor: LightColor.secondaryColor.withValues(alpha: 0.35),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          _ReviewDetailRow(
+            icon: Icons.repeat_rounded,
+            label: StringConstants.recurringBooking,
+            value: 'Weekly · $recurrence · $sessions sessions',
+            emphasize: true,
+          ),
+          if (sessionDates.isNotEmpty) ...<Widget>[
+            const SizedBox(height: AppDimens.sizeX12),
+            Wrap(
+              spacing: AppDimens.sizeX8,
+              runSpacing: AppDimens.sizeX8,
+              children: <Widget>[
+                for (final DateTime date in sessionDates)
+                  _SessionDateChip(label: _dateLabel(date)),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ReviewPaymentCard extends StatelessWidget {
+  const _ReviewPaymentCard({
+    required this.paymentMethodLabel,
+    required this.paymentProofName,
+    required this.couponCode,
+  });
+
+  final String paymentMethodLabel;
+  final String? paymentProofName;
+  final String? couponCode;
+
+  @override
+  Widget build(BuildContext context) {
+    return _Surface(
+      child: Column(
+        children: <Widget>[
+          _ReviewDetailRow(
+            icon: Icons.payments_rounded,
+            label: StringConstants.payment,
+            value: paymentMethodLabel,
+          ),
+          if (paymentProofName != null) ...<Widget>[
+            const SizedBox(height: AppDimens.sizeX10),
+            _ReviewDetailRow(
+              icon: Icons.attach_file_rounded,
+              label: StringConstants.proof,
+              value: paymentProofName!,
+            ),
+          ],
+          if (couponCode != null && couponCode!.trim().isNotEmpty) ...<Widget>[
+            const SizedBox(height: AppDimens.sizeX10),
+            _ReviewDetailRow(
+              icon: Icons.local_offer_rounded,
+              label: StringConstants.couponCode,
+              value: couponCode!.trim().toUpperCase(),
+              valueColor: LightColor.secondaryColor,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ReviewDetailRow extends StatelessWidget {
+  const _ReviewDetailRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.valueColor,
+    this.emphasize = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color? valueColor;
+  final bool emphasize;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Container(
+          width: AppDimens.sizeX30,
+          height: AppDimens.sizeX30,
+          decoration: BoxDecoration(
+            color: LightColor.inputFillColor,
+            borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+          ),
+          child: Icon(
+            icon,
+            size: AppDimens.sizeX16,
+            color: LightColor.iconGrey,
+          ),
+        ),
+        const SizedBox(width: AppDimens.sizeX10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                label,
+                style: textTheme.bodyMiniSubTitle?.copyWith(
+                  color: LightColor.hintTextColor,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: AppDimens.sizeX2),
+              Text(
+                value,
+                style: textTheme.bodyTextSmall?.copyWith(
+                  color:
+                      valueColor ??
+                      (emphasize
+                          ? LightColor.secondaryColor
+                          : LightColor.primaryTextColor),
+                  fontWeight: emphasize ? FontWeight.w800 : FontWeight.w700,
+                  height: 1.35,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SessionDateChip extends StatelessWidget {
+  const _SessionDateChip({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: AppUtils().getPadding(
+        horizontal: AppDimens.paddingX10,
+        vertical: AppDimens.paddingX6,
+      ),
+      decoration: BoxDecoration(
+        color: LightColor.secondaryColor.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(AppDimens.radiusX20),
+        border: Border.all(
+          color: LightColor.secondaryColor.withValues(alpha: 0.22),
+        ),
+      ),
+      child: Text(
+        label,
+        style: FutsalTheme.getTextTheme(context).bodyMiniSubTitle?.copyWith(
+          color: LightColor.secondaryColor,
+          fontWeight: FontWeight.w700,
         ),
       ),
     );

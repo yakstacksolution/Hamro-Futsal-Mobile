@@ -69,6 +69,21 @@ class AppRouterParams {
     path: '/dashboard/help-faq',
   );
 
+  static const RouteConfig feedback = RouteConfig(
+    name: 'feedback',
+    path: '/dashboard/feedback',
+  );
+
+  static const RouteConfig myFeedback = RouteConfig(
+    name: 'myFeedback',
+    path: '/dashboard/my-feedback',
+  );
+
+  static const RouteConfig feedbackDetails = RouteConfig(
+    name: 'feedbackDetails',
+    path: '/dashboard/my-feedback/details',
+  );
+
   static const RouteConfig settings = RouteConfig(
     name: 'settings',
     path: '/dashboard/settings',
@@ -92,6 +107,16 @@ class AppRouterParams {
   static const RouteConfig bookingOverview = RouteConfig(
     name: 'bookingOverview',
     path: '/dashboard/booking-overview',
+  );
+
+  static const RouteConfig account = RouteConfig(
+    name: 'account',
+    path: '/dashboard/account',
+  );
+
+  static const RouteConfig products = RouteConfig(
+    name: 'products',
+    path: '/dashboard/products',
   );
 
   static const RouteConfig expenses = RouteConfig(

@@ -27,10 +27,38 @@ void main() {
     // Once everything is read the mark-all action disappears.
     expect(find.byKey(const Key('mark-all-read-button')), findsNothing);
   });
+
+  testWidgets('marks a read notification as unread from the menu', (
+    WidgetTester tester,
+  ) async {
+    final _FakeNotificationRepository repository = _FakeNotificationRepository();
+
+    repository.seedReadNotification();
+
+    await tester.pumpWidget(
+      MaterialApp(home: NotificationsPage(repository: repository)),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Mark as unread'), findsNothing);
+
+    await tester.tap(find.byKey(const Key('notification-menu-n1')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Mark as unread'), findsOneWidget);
+
+    await tester.tap(find.text('Mark as unread'));
+    await tester.pumpAndSettle();
+
+    expect(repository.markUnreadCalls, 1);
+    expect(find.byKey(const Key('mark-all-read-button')), findsOneWidget);
+  });
 }
 
 final class _FakeNotificationRepository implements NotificationRepository {
   int markAllReadCalls = 0;
+  int markUnreadCalls = 0;
+  bool _isRead = false;
 
   final NotificationModel _unread = NotificationModel(
     id: 'n1',
@@ -40,16 +68,19 @@ final class _FakeNotificationRepository implements NotificationRepository {
     createdAt: DateTime(2026, 7, 8, 9),
   );
 
+  void seedReadNotification() {
+    _isRead = true;
+  }
+
   @override
   Future<Either<AppException, NotificationPage>> getNotifications({
     required NotificationFilter filter,
     int perPage = 20,
   }) async {
-    final bool allRead = markAllReadCalls > 0;
-    final NotificationModel model = allRead
+    final NotificationModel model = _isRead
         ? _unread.copyWith(readAt: DateTime(2026, 7, 8, 10))
         : _unread;
-    if (filter == NotificationFilter.unread && allRead) {
+    if (filter == NotificationFilter.unread && _isRead) {
       return right(
         const NotificationPage(notifications: <NotificationModel>[]),
       );
@@ -57,7 +88,7 @@ final class _FakeNotificationRepository implements NotificationRepository {
     return right(
       NotificationPage(
         notifications: <NotificationModel>[model],
-        unreadCount: allRead ? 0 : 1,
+        unreadCount: _isRead ? 0 : 1,
       ),
     );
   }
@@ -65,14 +96,20 @@ final class _FakeNotificationRepository implements NotificationRepository {
   @override
   Future<Either<AppException, Unit>> markAllRead() async {
     markAllReadCalls++;
+    _isRead = true;
     return right(unit);
   }
 
   @override
-  Future<Either<AppException, Unit>> markRead(String notificationId) async =>
-      right(unit);
+  Future<Either<AppException, Unit>> markRead(String notificationId) async {
+    _isRead = true;
+    return right(unit);
+  }
 
   @override
-  Future<Either<AppException, Unit>> markUnread(String notificationId) async =>
-      right(unit);
+  Future<Either<AppException, Unit>> markUnread(String notificationId) async {
+    markUnreadCalls++;
+    _isRead = false;
+    return right(unit);
+  }
 }

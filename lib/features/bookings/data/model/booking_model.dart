@@ -40,6 +40,7 @@ class BookingModel extends Equatable {
     this.coupon,
     this.payments = const <BookingPaymentModel>[],
     this.bookingSlots = const <BookingSlotModel>[],
+    this.extraItems = const <BookingExtraItemModel>[],
   });
 
   final int id;
@@ -89,6 +90,21 @@ class BookingModel extends Equatable {
   final BookingCouponModel? coupon;
   final List<BookingPaymentModel> payments;
   final List<BookingSlotModel> bookingSlots;
+
+  /// Products added to this booking (from the `extra_items` array).
+  final List<BookingExtraItemModel> extraItems;
+
+  /// Total number of extra product units attached to this booking.
+  int get extraItemsCount => extraItems.fold<int>(
+    0,
+    (int sum, BookingExtraItemModel e) => sum + e.quantity,
+  );
+
+  /// Total monetary value of the extra products.
+  double get extraItemsTotal => extraItems.fold<double>(
+    0,
+    (double sum, BookingExtraItemModel e) => sum + e.totalAmount,
+  );
 
   /// Primary payment for this booking — the one carrying a proof screenshot if
   /// any, otherwise the first recorded payment. Null when no payments exist.
@@ -143,6 +159,7 @@ class BookingModel extends Equatable {
     BookingCouponModel? coupon,
     List<BookingPaymentModel>? payments,
     List<BookingSlotModel>? bookingSlots,
+    List<BookingExtraItemModel>? extraItems,
   }) {
     return BookingModel(
       id: id ?? this.id,
@@ -183,6 +200,7 @@ class BookingModel extends Equatable {
       coupon: coupon ?? this.coupon,
       payments: payments ?? this.payments,
       bookingSlots: bookingSlots ?? this.bookingSlots,
+      extraItems: extraItems ?? this.extraItems,
     );
   }
 
@@ -206,7 +224,13 @@ class BookingModel extends Equatable {
       json['vendor'] ?? json['owner'] ?? venue['vendor'] ?? venue['owner'],
     );
     final Map<String, dynamic> player = _mapOf(
-      json['user'] ?? json['player'] ?? json['customer'] ?? json['booked_by'],
+      json['user'] ??
+          json['player'] ??
+          json['customer'] ??
+          json['candidate'] ??
+          json['booking_user'] ??
+          json['created_by'] ??
+          json['booked_by'],
     );
     final Map<String, dynamic> slot = _mapOf(
       json['slot'] ?? json['time_slot'] ?? json['slot_schedule'],
@@ -224,6 +248,9 @@ class BookingModel extends Equatable {
     final List<BookingSlotModel> bookingSlots = _mapList(
       json['booking_slots'],
     ).map(BookingSlotModel.fromJson).toList(growable: false);
+    final List<BookingExtraItemModel> extraItems = _mapList(
+      json['extra_items'] ?? json['booking_extra_items'] ?? json['extras'],
+    ).map(BookingExtraItemModel.fromJson).toList(growable: false);
 
     return BookingModel(
       id: _asInt(json['id'] ?? json['booking_id']) ?? 0,
@@ -306,9 +333,13 @@ class BookingModel extends Equatable {
         json['user_id'] ??
             json['player_id'] ??
             json['customer_id'] ??
+            json['candidate_user_id'] ??
+            json['candidate_id'] ??
+            json['booked_by_user_id'] ??
+            json['created_by_id'] ??
             json['booked_by'] ??
-            player['id'] ??
-            player['user_id'],
+            player['user_id'] ??
+            player['id'],
       ),
       playerName: _asString(
         json['player_name'] ??
@@ -366,6 +397,7 @@ class BookingModel extends Equatable {
                     BookingPaymentModel.fromJson(singlePayment),
                   ]),
       bookingSlots: bookingSlots,
+      extraItems: extraItems,
     );
   }
 
@@ -411,6 +443,9 @@ class BookingModel extends Equatable {
         .toList(growable: false),
     'booking_slots': bookingSlots
         .map((BookingSlotModel slot) => slot.toJson())
+        .toList(growable: false),
+    'extra_items': extraItems
+        .map((BookingExtraItemModel item) => item.toJson())
         .toList(growable: false),
   };
 
@@ -472,6 +507,7 @@ class BookingModel extends Equatable {
     coupon,
     payments,
     bookingSlots,
+    extraItems,
   ];
 }
 
@@ -632,6 +668,83 @@ final class BookingSlotModel extends Equatable {
     endTime,
     price,
     status,
+  ];
+}
+
+final class BookingExtraItemModel extends Equatable {
+  const BookingExtraItemModel({
+    required this.id,
+    required this.productId,
+    required this.name,
+    required this.quantity,
+    this.unitPrice = 0,
+    this.totalAmount = 0,
+  });
+
+  final int id;
+  final int productId;
+  final String name;
+  final int quantity;
+  final double unitPrice;
+  final double totalAmount;
+
+  factory BookingExtraItemModel.fromJson(Map<String, dynamic> json) {
+    final Map<String, dynamic> product = _mapOf(json['product']);
+    final int quantity = _asInt(json['quantity'] ?? json['qty']) ?? 0;
+    final double unitPrice =
+        _asDouble(
+          json['unit_price'] ??
+              json['price_per_unit'] ??
+              json['price'] ??
+              product['price'],
+        ) ??
+        0;
+    return BookingExtraItemModel(
+      id: _asInt(json['id']) ?? 0,
+      productId:
+          _asInt(
+            json['product_id'] ?? json['venue_product_id'] ?? product['id'],
+          ) ??
+          0,
+      name:
+          _asString(
+            json['name'] ??
+                json['product_name'] ??
+                json['title'] ??
+                product['name'] ??
+                product['title'],
+          ) ??
+          '',
+      quantity: quantity,
+      unitPrice: unitPrice,
+      totalAmount:
+          _asDouble(
+            json['total_amount'] ??
+                json['total_price'] ??
+                json['line_total'] ??
+                json['subtotal'],
+          ) ??
+          (unitPrice * quantity),
+    );
+  }
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+    'id': id,
+    'product_id': productId,
+    'name': name,
+    'quantity': quantity,
+    'unit_price': unitPrice,
+    'total_amount': totalAmount,
+  };
+
+  @override
+  List<Object?> get props => <Object?>[
+    id,
+    productId,
+    name,
+    quantity,
+    unitPrice,
+    totalAmount,
   ];
 }
 

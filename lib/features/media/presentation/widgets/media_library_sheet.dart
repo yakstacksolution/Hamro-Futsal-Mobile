@@ -16,6 +16,7 @@ import 'package:hamro_footsall/features/media/data/model/media_model.dart';
 import 'package:hamro_footsall/features/media/data/repositories/media_repository_impl.dart';
 import 'package:hamro_footsall/features/media/domain/usecase/media_use_case.dart';
 import 'package:hamro_footsall/features/media/presentation/bloc/media_bloc.dart';
+import 'package:hamro_footsall/features/media/utils/stable_media_file.dart';
 import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_cubit.dart';
 import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_state.dart';
 import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_models.dart';
@@ -33,18 +34,28 @@ Future<List<UploadRef>?> showVendorMediaLibrarySheet({
 }) {
   return showAppBottomSheet<List<UploadRef>>(
     context: context,
-    builder: (_) => BlocProvider<MediaBloc>(
-      lazy: false,
-      create: (_) =>
-          MediaBloc(MediaUseCase(MediaRepositoryImpl()))
-            ..add(const FetchMediaEvent()),
-      child: MediaLibrarySheet(
-        cubit: cubit,
-        title: title,
-        subtitle: subtitle,
-        allowedExtensions: allowedExtensions,
-        allowMultiple: allowMultiple,
-        initiallySelected: initiallySelected,
+    wrapWithCustomSheet: false,
+    builder: (_) => CustomBottomSheet(
+      useSafeArea: false,
+      padding: const EdgeInsets.fromLTRB(
+        AppDimens.paddingX18,
+        AppDimens.paddingX12,
+        AppDimens.paddingX18,
+        0,
+      ),
+      child: BlocProvider<MediaBloc>(
+        lazy: false,
+        create: (_) =>
+            MediaBloc(MediaUseCase(MediaRepositoryImpl()))
+              ..add(const FetchMediaEvent()),
+        child: MediaLibrarySheet(
+          cubit: cubit,
+          title: title,
+          subtitle: subtitle,
+          allowedExtensions: allowedExtensions,
+          allowMultiple: allowMultiple,
+          initiallySelected: initiallySelected,
+        ),
       ),
     ),
   );
@@ -94,7 +105,7 @@ class _VendorMediaLibrarySheetState extends State<MediaLibrarySheet> {
         .toSet();
 
     return SizedBox(
-      height: size.height * 0.8,
+      height: size.height * 0.85,
       child: BlocListener<MediaBloc, MediaState>(
         listener: _onMediaStateChanged,
         child: BlocBuilder<MediaBloc, MediaState>(
@@ -117,6 +128,7 @@ class _VendorMediaLibrarySheetState extends State<MediaLibrarySheet> {
                 return Stack(
                   children: <Widget>[
                     Column(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: <Widget>[
                         _CompactHeader(
                           title: widget.title,
@@ -170,7 +182,7 @@ class _VendorMediaLibrarySheetState extends State<MediaLibrarySheet> {
                                 )
                               : GridView.builder(
                                   padding: const EdgeInsets.only(
-                                    bottom: AppDimens.sizeX80,
+                                    bottom: AppDimens.sizeX120,
                                   ),
                                   itemCount: library.length,
                                   gridDelegate:
@@ -392,11 +404,17 @@ class _VendorMediaLibrarySheetState extends State<MediaLibrarySheet> {
     try {
       final ImagePicker picker = ImagePicker();
       final List<XFile> pickedImages = allowMultiple
-          ? await picker.pickMultiImage(imageQuality: 90)
+          ? await picker.pickMultiImage(
+              maxWidth: 1920,
+              maxHeight: 1920,
+              imageQuality: 85,
+            )
           : <XFile>[
               if (await picker.pickImage(
                     source: ImageSource.gallery,
-                    imageQuality: 90,
+                    maxWidth: 1920,
+                    maxHeight: 1920,
+                    imageQuality: 85,
                   )
                   case final XFile image)
                 image,
@@ -404,8 +422,27 @@ class _VendorMediaLibrarySheetState extends State<MediaLibrarySheet> {
 
       if (!mounted) return;
 
+      final List<XFile> stableImages = <XFile>[];
+      for (final XFile image in pickedImages) {
+        final XFile? stableImage = await stabilizePickedMedia(image);
+        if (stableImage != null) {
+          stableImages.add(stableImage);
+        }
+      }
+      if (!mounted) return;
+
+      if (stableImages.length != pickedImages.length) {
+        AppUtils().showSnackBar(
+          context,
+          MsgType.error,
+          'The selected image is empty. Please select the original image again.',
+        );
+        setState(() => _isAdding = false);
+        return;
+      }
+
       await _confirmAndUpload(
-        pickedImages
+        stableImages
             .map(
               (XFile image) =>
                   UploadRef(name: image.name, remoteUrl: image.path),
@@ -428,12 +465,27 @@ class _VendorMediaLibrarySheetState extends State<MediaLibrarySheet> {
 
     try {
       final ImagePicker picker = ImagePicker();
-      final XFile? photo = await picker.pickImage(
+      final XFile? captured = await picker.pickImage(
         source: ImageSource.camera,
-        imageQuality: 90,
+        maxWidth: 1920,
+        maxHeight: 1920,
+        imageQuality: 85,
       );
+      final XFile? photo = captured == null
+          ? null
+          : await stabilizePickedMedia(captured);
 
       if (!mounted) return;
+
+      if (captured != null && photo == null) {
+        AppUtils().showSnackBar(
+          context,
+          MsgType.error,
+          'The camera did not finish saving the image. Please take the photo again.',
+        );
+        setState(() => _isCapturing = false);
+        return;
+      }
 
       await _confirmAndUpload(
         photo == null

@@ -73,7 +73,27 @@ final class StringConstants {
   static const String whichTeamWillPlay = 'Which team will play?';
   static const String yourTeamShare = "Your team's share";
   static const String account = 'Account';
+  static const String accountStatement = 'Statement';
+  static const String availableBalance = 'Available balance';
+  static const String commissionPaid = 'Commission paid';
+  static const String couldNotParseAccountFromServer =
+      'Could not read your account from the server.';
+  static const String couldNotSubmitSettlementRequest =
+      'Could not submit the settlement request.';
+  static const String pendingClearance = 'Pending clearance';
+  static const String requestSettlement = 'Request Settlement';
+  static const String settlementNoteHint = 'Bank / wallet details, remarks…';
+  static const String settlementRequestSubmitted =
+      'Settlement request sent to Hamro Futsal for approval.';
+  static const String settlements = 'Settlements';
+  static const String settlementAwaitingApproval =
+      'A settlement is already awaiting approval.';
+  static const String totalEarned = 'Total earned';
+  static const String totalSettled = 'Settled';
   static const String active = 'Active';
+  static const String courtStatus = 'Court status';
+  static const String inactiveCourtsAreHiddenFromPlayers =
+      'Inactive courts are hidden from players.';
   static const String addANewItemToYourRentalInventory =
       'Add a new item to your rental inventory.';
   static const String addARemarkInvoiceRefEtc =
@@ -503,6 +523,25 @@ final class StringConstants {
   static const String helpAndFaq = 'Help & FAQ';
   static const String helpAndSupport = 'Help & Support';
   static const String helpfulSupport = 'Helpful Support';
+  static const String feedback = 'Feedback';
+  static const String feedbackTitle = 'Share your feedback';
+  static const String feedbackSubtitle =
+      'Tell us what worked well and where we can improve the platform or services.';
+  static const String feedbackType = 'Feedback type';
+  static const String feedbackCategory = 'Category';
+  static const String feedbackMessage = 'Your feedback';
+  static const String feedbackContact = 'Contact number or email (optional)';
+  static const String feedbackSuccess =
+      'Thanks for sharing your feedback. We have received it successfully.';
+  static const String feedbackPlatform = 'Platform';
+  static const String feedbackServices = 'Services';
+  static const String feedbackBoth = 'Both';
+  static const String feedbackBug = 'Bug / issue';
+  static const String feedbackSuggestion = 'Suggestion';
+  static const String feedbackPraise = 'Appreciation';
+  static const String submitFeedback = 'Submit feedback';
+  static const String feedbackHelpNote =
+      'Your response helps us improve the app experience, support flow, and service quality.';
   static const String highlightTheServicesAndOnSiteFacilitiesYourVenueOffers =
       'Highlight the services and on-site facilities your venue offers.';
   static const String highlightWhatYourFutsalOffers =

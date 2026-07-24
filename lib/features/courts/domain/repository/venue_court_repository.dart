@@ -19,8 +19,7 @@ abstract class VenueCourtRepository {
     Map<String, dynamic> data,
   );
   Future<Either<AppException, Unit>> updateCourtStatus(
-    int courtId,
-    String status,
+    Map<String, dynamic> data,
   );
   Future<Either<AppException, Unit>> deleteCourt(int courtId);
 }

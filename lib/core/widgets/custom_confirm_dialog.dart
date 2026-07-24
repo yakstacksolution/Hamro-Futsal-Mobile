@@ -13,6 +13,7 @@ Future<bool> showConfirmDialog({
   String cancelText = 'Cancel',
   Color confirmColor = LightColor.secondaryColor,
   IconData? icon,
+  Widget? iconWidget,
 }) async {
   final bool? result = await showDialog<bool>(
     context: context,
@@ -24,6 +25,7 @@ Future<bool> showConfirmDialog({
       cancelText: cancelText,
       confirmColor: confirmColor,
       icon: icon,
+      iconWidget: iconWidget,
     ),
   );
   return result ?? false;
@@ -38,6 +40,7 @@ class CustomConfirmDialog extends StatelessWidget {
     this.cancelText = 'Cancel',
     this.confirmColor = LightColor.redColor,
     this.icon,
+    this.iconWidget,
   });
 
   final String title;
@@ -46,77 +49,125 @@ class CustomConfirmDialog extends StatelessWidget {
   final String cancelText;
   final Color confirmColor;
   final IconData? icon;
+  final Widget? iconWidget;
 
   @override
   Widget build(BuildContext context) {
     final AppUtils appUtils = AppUtils();
     final textTheme = FutsalTheme.getTextTheme(context);
+    final double dialogWidth = MediaQuery.sizeOf(context).width;
+    final bool stackActions = dialogWidth < 360;
 
     return Dialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppDimens.radiusX20),
+      insetPadding: appUtils.getPadding(
+        symmetricHorizontal: AppDimens.paddingX20,
+        symmetricVertical: AppDimens.paddingX24,
       ),
-      backgroundColor: LightColor.cardColor,
-      child: Padding(
-        padding: appUtils.getPadding(all: AppDimens.paddingX20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            if (icon != null) ...<Widget>[
-              Container(
-                width: AppDimens.sizeX56,
-                height: AppDimens.sizeX56,
-                decoration: BoxDecoration(
-                  color: confirmColor.withValues(alpha: 0.12),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, color: confirmColor, size: AppDimens.sizeX28),
-              ),
-              SizedBox(height: AppDimens.sizeX16),
-            ],
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: textTheme.headingXSmall?.copyWith(
-                color: LightColor.primaryTextColor,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            SizedBox(height: AppDimens.sizeX10),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: textTheme.bodyTextMedium?.copyWith(
-                color: LightColor.secondaryTextColor,
-              ),
-            ),
-            SizedBox(height: AppDimens.sizeX22),
-            Row(
-              children: <Widget>[
-                Expanded(
-                  child: CustomButton(
-                    text: cancelText,
-                    isOutlined: true,
-                    backgroundColor: LightColor.whiteColor,
-                    foregroundColor: LightColor.secondaryTextColor,
-                    borderColor: LightColor.borderColor,
-                    minHeight: AppDimens.sizeX44,
-                    onPressed: () => Navigator.of(context).pop(false),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppDimens.radiusX16),
+      ),
+      backgroundColor: LightColor.whiteColor,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 360),
+        child: Container(
+          padding: appUtils.getPadding(all: AppDimens.paddingX20),
+          decoration: BoxDecoration(
+            color: LightColor.whiteColor,
+            borderRadius: BorderRadius.circular(AppDimens.radiusX16),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              if (icon != null || iconWidget != null) ...<Widget>[
+                Container(
+                  width: AppDimens.sizeX58,
+                  height: AppDimens.sizeX58,
+                  decoration: BoxDecoration(
+                    color: confirmColor.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(AppDimens.radiusX16),
                   ),
+                  alignment: Alignment.center,
+                  child: iconWidget == null
+                      ? Icon(icon, color: confirmColor, size: AppDimens.sizeX28)
+                      : IconTheme(
+                          data: IconThemeData(
+                            color: confirmColor,
+                            size: AppDimens.sizeX28,
+                          ),
+                          child: iconWidget!,
+                        ),
                 ),
-                SizedBox(width: AppDimens.sizeX12),
-                Expanded(
-                  child: CustomButton(
-                    text: confirmText,
-                    backgroundColor: confirmColor,
-                    foregroundColor: LightColor.inverseTextColor,
-                    minHeight: AppDimens.sizeX44,
-                    onPressed: () => Navigator.of(context).pop(true),
-                  ),
-                ),
+                const SizedBox(height: AppDimens.sizeX16),
               ],
-            ),
-          ],
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: textTheme.bodyTextLarge?.copyWith(
+                  color: LightColor.primaryTextColor,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: AppDimens.sizeX8),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: textTheme.bodyTextSmall?.copyWith(
+                  color: LightColor.secondaryTextColor,
+                  fontWeight: FontWeight.w500,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: AppDimens.sizeX24),
+              if (stackActions)
+                Column(
+                  children: <Widget>[
+                    CustomButton(
+                      text: confirmText,
+                      backgroundColor: confirmColor,
+                      foregroundColor: LightColor.inverseTextColor,
+                      minHeight: AppDimens.sizeX46,
+                      onPressed: () => Navigator.of(context).pop(true),
+                    ),
+                    const SizedBox(height: AppDimens.sizeX10),
+                    CustomButton(
+                      text: cancelText,
+                      isOutlined: true,
+                      backgroundColor: LightColor.whiteColor,
+                      foregroundColor: LightColor.primaryTextColor,
+                      borderColor: LightColor.greyBorderColor,
+                      minHeight: AppDimens.sizeX46,
+                      onPressed: () => Navigator.of(context).pop(false),
+                    ),
+                  ],
+                )
+              else
+                Row(
+                  children: <Widget>[
+                    Expanded(
+                      child: CustomButton(
+                        text: cancelText,
+                        isOutlined: true,
+                        backgroundColor: LightColor.whiteColor,
+                        foregroundColor: LightColor.primaryTextColor,
+                        borderColor: LightColor.greyBorderColor,
+                        minHeight: AppDimens.sizeX46,
+                        onPressed: () => Navigator.of(context).pop(false),
+                      ),
+                    ),
+                    const SizedBox(width: AppDimens.sizeX12),
+                    Expanded(
+                      child: CustomButton(
+                        text: confirmText,
+                        backgroundColor: confirmColor,
+                        foregroundColor: LightColor.inverseTextColor,
+                        minHeight: AppDimens.sizeX46,
+                        onPressed: () => Navigator.of(context).pop(true),
+                      ),
+                    ),
+                  ],
+                ),
+            ],
+          ),
         ),
       ),
     );

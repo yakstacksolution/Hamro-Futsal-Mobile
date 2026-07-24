@@ -201,6 +201,7 @@ class _CourtOptionGrid extends StatelessWidget {
         if (id == null) return const SizedBox.shrink();
         return VendorSelectableChip(
           label: item.name,
+          imageUrl: item.hasImage ? item.image : null,
           isSelected: selectedIds.contains(id),
           onTap: () => onTap(id),
         );

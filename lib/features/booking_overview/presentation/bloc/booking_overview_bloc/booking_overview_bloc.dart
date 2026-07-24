@@ -26,29 +26,24 @@ class BookingOverviewBloc
         clearErrorMessage: true,
       ),
     );
-    final futsalsResult = await useCase.getFutsals();
-    final bookingsResult = await useCase.getBookings();
-    futsalsResult.fold(
+    final result = await useCase.getOverview(
+      dateFilter: event.dateFilter,
+      dateFrom: event.dateFrom,
+      dateTo: event.dateTo,
+      venueIds: event.venueIds,
+    );
+    result.fold(
       (failure) => emit(
         state.copyWith(
           status: BookingOverviewStatus.failure,
           errorMessage: failure.errorMessage,
         ),
       ),
-      (futsals) => bookingsResult.fold(
-        (failure) => emit(
-          state.copyWith(
-            status: BookingOverviewStatus.failure,
-            errorMessage: failure.errorMessage,
-          ),
-        ),
-        (bookings) => emit(
-          state.copyWith(
-            status: BookingOverviewStatus.success,
-            futsals: futsals,
-            bookings: bookings,
-            clearErrorMessage: true,
-          ),
+      (overview) => emit(
+        state.copyWith(
+          status: BookingOverviewStatus.success,
+          overview: overview,
+          clearErrorMessage: true,
         ),
       ),
     );

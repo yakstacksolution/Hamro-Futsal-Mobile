@@ -48,7 +48,18 @@ class BookingDetailsBloc
       (booking) => emit(
         state.copyWith(
           status: BookingDetailsStatus.success,
-          booking: booking,
+          // Vendor detail responses are sometimes slimmer than the futsal
+          // booking-list item and omit the customer relation. Preserve the
+          // list identity so "Chat with customer" remains actionable after
+          // the details request completes.
+          booking: booking.copyWith(
+            playerId: booking.playerId ?? state.booking.playerId,
+            playerName: booking.playerName ?? state.booking.playerName,
+            playerPhone: booking.playerPhone ?? state.booking.playerPhone,
+            playerEmail: booking.playerEmail ?? state.booking.playerEmail,
+            venueId: booking.venueId ?? state.booking.venueId,
+            vendorId: booking.vendorId ?? state.booking.vendorId,
+          ),
           clearError: true,
         ),
       ),

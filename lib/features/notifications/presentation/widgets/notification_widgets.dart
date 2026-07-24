@@ -24,12 +24,11 @@ class NotificationFilterBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: AppDimens.sizeX44,
+      height: AppDimens.sizeX42,
       padding: const EdgeInsets.all(AppDimens.paddingX4),
       decoration: BoxDecoration(
-        color: LightColor.cardColor,
-        borderRadius: BorderRadius.circular(AppDimens.radiusX12),
-        border: Border.all(color: LightColor.dividerColor),
+        color: LightColor.inputFillColor,
+        borderRadius: BorderRadius.circular(AppDimens.radiusX10),
       ),
       child: Row(
         children: <Widget>[
@@ -100,11 +99,11 @@ class _FilterButton extends StatelessWidget {
                 ),
               ),
               if (count != null && count! > 0) ...<Widget>[
-                const SizedBox(width: AppDimens.sizeX6),
+                const SizedBox(width: AppDimens.sizeX4),
                 Container(
                   constraints: const BoxConstraints(
-                    minWidth: AppDimens.sizeX20,
-                    minHeight: AppDimens.sizeX20,
+                    minWidth: AppDimens.sizeX18,
+                    minHeight: AppDimens.sizeX18,
                   ),
                   padding: const EdgeInsets.symmetric(
                     horizontal: AppDimens.paddingX6,
@@ -155,16 +154,17 @@ class NotificationSection extends StatelessWidget {
       children: <Widget>[
         Padding(
           padding: const EdgeInsets.only(
-            left: AppDimens.paddingX4,
-            bottom: AppDimens.paddingX10,
+            left: AppDimens.paddingX2,
+            bottom: AppDimens.paddingX8,
           ),
           child: Row(
             children: <Widget>[
               Text(
                 title,
                 style: textTheme.bodyTextMedium?.copyWith(
-                  color: LightColor.primaryTextColor,
+                  color: LightColor.secondaryTextColor,
                   fontWeight: FontWeight.w700,
+                  fontSize: AppDimens.fontBodyTextSmall,
                 ),
               ),
               const SizedBox(width: AppDimens.sizeX8),
@@ -182,15 +182,8 @@ class NotificationSection extends StatelessWidget {
           clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
             color: LightColor.cardColor,
-            borderRadius: BorderRadius.circular(AppDimens.radiusX16),
+            borderRadius: BorderRadius.circular(AppDimens.radiusX12),
             border: Border.all(color: LightColor.dividerColor),
-            boxShadow: const <BoxShadow>[
-              BoxShadow(
-                color: LightColor.shadowColor,
-                blurRadius: AppDimens.radiusX14,
-                offset: Offset(0, AppDimens.sizeX6),
-              ),
-            ],
           ),
           child: Column(
             children: <Widget>[
@@ -200,7 +193,7 @@ class NotificationSection extends StatelessWidget {
                   const Divider(
                     height: AppDimens.sizeX1,
                     thickness: AppDimens.sizeX1,
-                    indent: AppDimens.sizeX72,
+                    indent: AppDimens.sizeX60,
                     color: LightColor.dividerColor,
                   ),
               ],
@@ -238,27 +231,32 @@ class NotificationTile extends StatelessWidget {
               : () => bloc.add(MarkNotificationReadEvent(notification.id)),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 180),
-            padding: const EdgeInsets.all(AppDimens.paddingX14),
+            padding: const EdgeInsets.fromLTRB(
+              AppDimens.paddingX12,
+              AppDimens.paddingX12,
+              AppDimens.paddingX4,
+              AppDimens.paddingX12,
+            ),
             color: isRead
                 ? LightColor.cardColor
-                : LightColor.secondaryColor.withValues(alpha: 0.045),
+                : LightColor.secondaryColor.withValues(alpha: 0.035),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Container(
-                  width: AppDimens.sizeX44,
-                  height: AppDimens.sizeX44,
+                  width: AppDimens.sizeX36,
+                  height: AppDimens.sizeX36,
                   decoration: BoxDecoration(
-                    color: accent.withValues(alpha: 0.11),
+                    color: accent.withValues(alpha: isRead ? 0.07 : 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
                     _iconFor(notification.type),
                     color: accent,
-                    size: AppDimens.sizeX20,
+                    size: AppDimens.sizeX18,
                   ),
                 ),
-                const SizedBox(width: AppDimens.sizeX14),
+                const SizedBox(width: AppDimens.sizeX12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -273,17 +271,18 @@ class NotificationTile extends StatelessWidget {
                               overflow: TextOverflow.ellipsis,
                               style: textTheme.bodyTextMedium?.copyWith(
                                 color: LightColor.primaryTextColor,
+                                fontSize: AppDimens.fontBodyTextMedium,
                                 fontWeight: isRead
-                                    ? FontWeight.w600
+                                    ? FontWeight.w500
                                     : FontWeight.w700,
                               ),
                             ),
                           ),
                           if (!isRead) ...<Widget>[
-                            const SizedBox(width: AppDimens.sizeX8),
+                            const SizedBox(width: AppDimens.sizeX6),
                             Container(
-                              width: AppDimens.sizeX8,
-                              height: AppDimens.sizeX8,
+                              width: AppDimens.sizeX6,
+                              height: AppDimens.sizeX6,
                               margin: const EdgeInsets.only(
                                 top: AppDimens.marginX4,
                               ),
@@ -303,7 +302,7 @@ class NotificationTile extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: textTheme.bodyTextSmall?.copyWith(
                             color: LightColor.secondaryTextColor,
-                            height: 1.45,
+                            height: 1.42,
                           ),
                         ),
                       ],
@@ -343,15 +342,15 @@ class _NotificationMenu extends StatelessWidget {
       padding: EdgeInsets.zero,
       color: LightColor.cardColor,
       surfaceTintColor: LightColor.cardColor,
-      elevation: 4,
+      elevation: 3,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppDimens.radiusX12),
         side: const BorderSide(color: LightColor.dividerColor),
       ),
       icon: const Icon(
-        Icons.more_horiz_rounded,
+        Icons.more_vert_rounded,
         color: LightColor.hintTextColor,
-        size: AppDimens.sizeX20,
+        size: AppDimens.sizeX18,
       ),
       onSelected: (bool markRead) {
         if (markRead) {

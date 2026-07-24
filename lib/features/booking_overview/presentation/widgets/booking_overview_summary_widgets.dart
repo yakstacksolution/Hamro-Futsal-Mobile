@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
@@ -8,6 +6,7 @@ import 'package:hamro_footsall/features/booking_overview/presentation/models/boo
 import 'package:hamro_footsall/features/booking_overview/presentation/utils/booking_ui_utils.dart';
 import 'package:hamro_footsall/features/booking_overview/presentation/widgets/booking_overview_common.dart';
 import 'package:hamro_footsall/core/utils/string_constants.dart';
+import 'package:syncfusion_flutter_charts/charts.dart';
 
 /// Net revenue hero with delta pill and revenue sparkline.
 class BookingHeroCard extends StatelessWidget {
@@ -75,11 +74,25 @@ class BookingHeroCard extends StatelessWidget {
           const SizedBox(height: AppDimens.paddingX14),
           SizedBox(
             height: 56,
-            child: CustomPaint(
-              size: Size.infinite,
-              painter: BookingSparklinePainter(
-                values: analytics.series,
-                color: LightColor.secondaryColor,
+            child: RepaintBoundary(
+              child: SfCartesianChart(
+                key: ValueKey<int>(Object.hashAll(analytics.series)),
+                margin: EdgeInsets.zero,
+                plotAreaBorderWidth: 0,
+                primaryXAxis: const NumericAxis(isVisible: false),
+                primaryYAxis: const NumericAxis(isVisible: false),
+                series: <SplineAreaSeries<int, int>>[
+                  SplineAreaSeries<int, int>(
+                    dataSource: analytics.series,
+                    xValueMapper: (_, int index) => index,
+                    yValueMapper: (int value, _) => value,
+                    color: LightColor.secondaryColor.withValues(alpha: 0.14),
+                    borderColor: LightColor.secondaryColor,
+                    borderWidth: 2,
+                    animationDuration: 650,
+                    animationDelay: 40,
+                  ),
+                ],
               ),
             ),
           ),
@@ -128,60 +141,6 @@ class BookingTrendPill extends StatelessWidget {
       ),
     );
   }
-}
-
-class BookingSparklinePainter extends CustomPainter {
-  BookingSparklinePainter({required this.values, required this.color});
-
-  final List<int> values;
-  final Color color;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (values.isEmpty) return;
-    final maxV = values.fold<int>(0, math.max);
-    if (maxV == 0) return;
-    final dx = values.length == 1 ? 0.0 : size.width / (values.length - 1);
-    final path = Path();
-    final fill = Path();
-    for (int i = 0; i < values.length; i++) {
-      final x = i * dx;
-      final y = size.height - (values[i] / maxV) * (size.height - 4) - 2;
-      if (i == 0) {
-        path.moveTo(x, y);
-        fill.moveTo(x, size.height);
-        fill.lineTo(x, y);
-      } else {
-        path.lineTo(x, y);
-        fill.lineTo(x, y);
-      }
-    }
-    fill.lineTo(size.width, size.height);
-    fill.close();
-
-    canvas.drawPath(
-      fill,
-      Paint()
-        ..shader = LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [color.withValues(alpha: 0.20), color.withValues(alpha: 0)],
-        ).createShader(Offset.zero & size),
-    );
-    canvas.drawPath(
-      path,
-      Paint()
-        ..color = color
-        ..strokeWidth = 2
-        ..style = PaintingStyle.stroke
-        ..strokeCap = StrokeCap.round
-        ..strokeJoin = StrokeJoin.round,
-    );
-  }
-
-  @override
-  bool shouldRepaint(BookingSparklinePainter old) =>
-      old.values != values || old.color != color;
 }
 
 class BookingKpiGrid extends StatelessWidget {

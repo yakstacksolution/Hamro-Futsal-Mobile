@@ -322,7 +322,13 @@ final class PublicListingVenuePage extends Equatable {
         ? Map<String, dynamic>.from(dataField)
         : json;
 
-    final dynamic listSource = root['venues'];
+    final dynamic listSource =
+        root['venues'] ??
+        root['wishlists'] ??
+        root['wishlist'] ??
+        root['futsals'] ??
+        root['items'] ??
+        root['results'];
     final List<dynamic> items = listSource is List
         ? listSource
         : const <dynamic>[];
@@ -339,11 +345,19 @@ final class PublicListingVenuePage extends Equatable {
     return PublicListingVenuePage(
       venues: items
           .whereType<Map>()
-          .map(
-            (Map item) => PublicListingVenueModel.fromJson(
-              Map<String, dynamic>.from(item),
-            ),
-          )
+          .map((Map item) {
+            final Map<String, dynamic> map = Map<String, dynamic>.from(item);
+            final dynamic wrappedVenue =
+                map['venue'] ?? map['futsal'] ?? map['court'];
+            if (wrappedVenue is Map) {
+              final Map<String, dynamic> venue = Map<String, dynamic>.from(
+                wrappedVenue,
+              );
+              venue['id'] ??= map['venue_id'] ?? map['futsal_id'];
+              return PublicListingVenueModel.fromJson(venue);
+            }
+            return PublicListingVenueModel.fromJson(map);
+          })
           .toList(growable: false),
       page:
           PublicListingVenueModel._parseInt(

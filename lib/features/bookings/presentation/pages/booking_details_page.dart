@@ -19,6 +19,7 @@ import 'package:hamro_footsall/features/bookings/data/repositories/booking_repos
 import 'package:hamro_footsall/features/bookings/domain/repository/booking_repository.dart';
 import 'package:hamro_footsall/features/bookings/domain/usecase/get_bookings_use_case.dart';
 import 'package:hamro_footsall/features/bookings/presentation/bloc/booking_details_bloc/booking_details_bloc.dart';
+import 'package:hamro_footsall/features/bookings/presentation/widgets/booking_products_sheet.dart';
 import 'package:hamro_footsall/features/bookings/presentation/widgets/booking_shared_widgets.dart';
 import 'package:hamro_footsall/features/futsal_details/data/repositories/futsal_details_repository_impl.dart';
 import 'package:hamro_footsall/features/futsal_details/domain/usecase/get_hosted_by_use_case.dart';
@@ -160,6 +161,28 @@ class _BookingDetailsView extends StatelessWidget {
     }
   }
 
+  // ── Complete booking ──
+
+  Future<void> _completeBooking(
+    BuildContext context,
+    BookingModel booking,
+  ) async {
+    final BookingDetailsBloc bloc = context.read<BookingDetailsBloc>();
+    final BookingCompleteResult? result = await showBookingCompleteSheet(
+      context,
+      booking,
+    );
+    if (result == null || !context.mounted) return;
+    final bool ok = await completeBooking(booking.id, result: result);
+    if (!context.mounted) return;
+    AppUtils().showSnackBar(
+      context,
+      ok ? MsgType.success : MsgType.error,
+      ok ? 'Booking marked as completed.' : 'Could not complete the booking.',
+    );
+    if (ok) bloc.add(FetchBookingDetailsEvent(booking.id));
+  }
+
   // ── Booking accept / reject ──
 
   void _acceptBooking(BuildContext context) {
@@ -220,6 +243,53 @@ class _BookingDetailsView extends StatelessWidget {
           venueId: venueId,
         );
       },
+    );
+  }
+
+  /// Starts the vendor-to-customer conversation with the complete direct-chat
+  /// contract. The API still requires the venue owner's user id as
+  /// `vendor_id`, even though the other participant is supplied as `user_id`.
+  Future<void> _chatWithCustomer(
+    BuildContext context,
+    BookingModel booking,
+  ) async {
+    final int? customerId = booking.playerId;
+    final int? venueId = booking.venueId;
+    if (customerId == null || customerId <= 0) {
+      AppUtils().showSnackBar(
+        context,
+        MsgType.error,
+        'Customer information is unavailable for messaging.',
+      );
+      return;
+    }
+
+    int? vendorUserId;
+    if (venueId != null && venueId > 0) {
+      final result = await GetHostedByUseCase(FutsalDetailsRepositoryImpl())(
+        venueId: venueId,
+      );
+      if (!context.mounted) return;
+      result.fold((_) {}, (hostedBy) => vendorUserId = hostedBy.id);
+    }
+    vendorUserId ??= booking.vendorId;
+    if (vendorUserId == null || vendorUserId! <= 0) {
+      if (context.mounted) {
+        AppUtils().showSnackBar(
+          context,
+          MsgType.error,
+          'Vendor information is unavailable for messaging.',
+        );
+      }
+      return;
+    }
+
+    if (!context.mounted) return;
+    await ChatLauncher.startDirectUser(
+      context,
+      userId: customerId,
+      vendorId: vendorUserId,
+      venueId: venueId,
     );
   }
 
@@ -344,6 +414,18 @@ class _BookingDetailsView extends StatelessWidget {
                     ),
                   );
                 }
+                if (isFutsalView &&
+                    state.booking.status == BookingStatus.confirmed &&
+                    state.cancelStatus != CancelBookingStatus.cancelled) {
+                  return SizedBox(
+                    height: 70 + MediaQuery.viewPaddingOf(context).bottom,
+                    child: _ConfirmedActionsBar(
+                      onComplete: () =>
+                          _completeBooking(context, state.booking),
+                      isLoading: isLoading,
+                    ),
+                  );
+                }
                 if (!isFutsalView &&
                     state.canCancel &&
                     state.cancelStatus != CancelBookingStatus.cancelled &&
@@ -402,10 +484,7 @@ class _BookingDetailsView extends StatelessWidget {
                           onChat:
                               onChatCustomer ??
                               ((booking.playerId ?? 0) > 0
-                                  ? () => ChatLauncher.startDirectUser(
-                                      context,
-                                      userId: booking.playerId!,
-                                    )
+                                  ? () => _chatWithCustomer(context, booking)
                                   : null),
                         ),
                       ] else ...[
@@ -419,6 +498,19 @@ class _BookingDetailsView extends StatelessWidget {
                               ((booking.venueId ?? 0) > 0
                                   ? () => _chatWithVenue(context, booking)
                                   : null),
+                        ),
+                      ],
+                      if (isFutsalView &&
+                          bookingSupportsProducts(booking)) ...[
+                        const SizedBox(height: 20),
+                        const _SectionTitle('Products'),
+                        const SizedBox(height: 8),
+                        BookingProductsSection(
+                          booking: booking,
+                          onChanged: () =>
+                              context.read<BookingDetailsBloc>().add(
+                                FetchBookingDetailsEvent(booking.id),
+                              ),
                         ),
                       ],
                       const SizedBox(height: 20),
@@ -912,6 +1004,46 @@ class _CancelBookingBar extends StatelessWidget {
             isOutlined: true,
             foregroundColor: LightColor.redColor,
             borderColor: LightColor.redColor,
+            minHeight: AppDimens.sizeX42,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ConfirmedActionsBar extends StatelessWidget {
+  const _ConfirmedActionsBar({
+    required this.onComplete,
+    required this.isLoading,
+  });
+
+  final VoidCallback onComplete;
+  final bool isLoading;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: LightColor.cardColor,
+      elevation: 12,
+      shadowColor: LightColor.shadowColor,
+      child: SafeArea(
+        top: false,
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+          decoration: BoxDecoration(
+            border: Border(
+              top: BorderSide(
+                color: LightColor.dividerColor.withValues(alpha: 0.8),
+              ),
+            ),
+          ),
+          child: CustomButton(
+            key: const Key('complete-booking-button'),
+            text: 'Complete',
+            icon: Icons.check_circle_outline_rounded,
+            onPressed: isLoading ? null : onComplete,
+            backgroundColor: LightColor.purpleColor,
             minHeight: AppDimens.sizeX42,
           ),
         ),

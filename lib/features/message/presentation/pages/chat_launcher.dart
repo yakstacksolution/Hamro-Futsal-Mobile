@@ -32,9 +32,17 @@ class ChatLauncher {
   static Future<void> startDirectUser(
     BuildContext context, {
     required int userId,
+    int? vendorId,
+    int? venueId,
   }) {
     if (userId <= 0) return Future<void>.value();
-    return _start(context, key: 'u:$userId', userId: userId);
+    return _start(
+      context,
+      key: 'u:$userId:${vendorId ?? 0}:${venueId ?? 0}',
+      userId: userId,
+      vendorId: vendorId,
+      venueId: venueId,
+    );
   }
 
   static Future<void> _start(

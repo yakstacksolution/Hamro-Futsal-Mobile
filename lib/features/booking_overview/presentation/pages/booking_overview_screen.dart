@@ -6,6 +6,7 @@ import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/widgets/custom_app_bar.dart';
 import 'package:hamro_footsall/features/booking_overview/data/repositories/booking_overview_repository_impl.dart';
+import 'package:hamro_footsall/features/booking_overview/data/model/booking_overview_model.dart';
 import 'package:hamro_footsall/features/booking_overview/domain/usecase/booking_overview_usecase.dart';
 import 'package:hamro_footsall/features/booking_overview/presentation/bloc/booking_overview_bloc/booking_overview_bloc.dart';
 import 'package:hamro_footsall/features/booking_overview/presentation/models/booking_analytics.dart';
@@ -22,7 +23,8 @@ class BookingOverviewScreen extends StatelessWidget {
     return BlocProvider(
       create: (_) => BookingOverviewBloc(
         BookingOverviewUseCase(BookingOverviewRepositoryImpl()),
-      )..add(const LoadBookingOverviewEvent()),
+        // Initial window matches the default selected chip (Week).
+      )..add(const LoadBookingOverviewEvent(dateFilter: 'week')),
       child: const _BookingOverviewView(),
     );
   }
@@ -54,40 +56,31 @@ class _BookingOverviewViewState extends State<_BookingOverviewView>
     super.dispose();
   }
 
-  BookingRange _resolvedRange() {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    switch (_period) {
-      case BookingPeriod.today:
-        return BookingRange(today, today.add(const Duration(days: 1)));
-      case BookingPeriod.week:
-        final start = today.subtract(Duration(days: today.weekday - 1));
-        return BookingRange(start, start.add(const Duration(days: 7)));
-      case BookingPeriod.month:
-        final start = DateTime(today.year, today.month, 1);
-        final end = DateTime(today.year, today.month + 1, 1);
-        return BookingRange(start, end);
-      case BookingPeriod.year:
-        return BookingRange(
-          DateTime(today.year, 1, 1),
-          DateTime(today.year + 1, 1, 1),
-        );
-      case BookingPeriod.custom:
-        final r = _customRange;
-        if (r == null) {
-          final start = today.subtract(const Duration(days: 6));
-          return BookingRange(start, today.add(const Duration(days: 1)));
-        }
-        return BookingRange(
-          DateTime(r.start.year, r.start.month, r.start.day),
-          DateTime(
-            r.end.year,
-            r.end.month,
-            r.end.day,
-          ).add(const Duration(days: 1)),
-        );
+  /// Maps the selected chip to the optional `/booking-overview` filter params.
+  /// Presets send just `date_filter`; a custom range adds `date_from`/`date_to`.
+  LoadBookingOverviewEvent _loadEvent() {
+    final venueIds = _futsalId == null ? null : <String>[_futsalId!];
+    if (_period == BookingPeriod.custom) {
+      final r = _customRange;
+      return LoadBookingOverviewEvent(
+        dateFilter: 'custom',
+        dateFrom: r == null ? null : _fmtDate(r.start),
+        dateTo: r == null ? null : _fmtDate(r.end),
+        venueIds: venueIds,
+      );
     }
+    return LoadBookingOverviewEvent(
+      dateFilter: _period.key,
+      venueIds: venueIds,
+    );
   }
+
+  void _reload() => context.read<BookingOverviewBloc>().add(_loadEvent());
+
+  String _fmtDate(DateTime d) =>
+      '${d.year.toString().padLeft(4, '0')}-'
+      '${d.month.toString().padLeft(2, '0')}-'
+      '${d.day.toString().padLeft(2, '0')}';
 
   Future<void> _pickRange() async {
     final now = DateTime.now();
@@ -116,6 +109,7 @@ class _BookingOverviewViewState extends State<_BookingOverviewView>
         _customRange = picked;
         _period = BookingPeriod.custom;
       });
+      _reload();
     }
   }
 
@@ -131,38 +125,44 @@ class _BookingOverviewViewState extends State<_BookingOverviewView>
         top: false,
         child: BlocBuilder<BookingOverviewBloc, BookingOverviewState>(
           builder: (context, state) {
-            if (state.status == BookingOverviewStatus.initial ||
-                state.status == BookingOverviewStatus.loading) {
-              return const Center(
-                child: CircularProgressIndicator(
-                  color: LightColor.secondaryColor,
-                ),
+            final overview = state.overview;
+            if (overview != null) {
+              return _buildContent(
+                context,
+                overview,
+                isLoading: state.status == BookingOverviewStatus.loading,
               );
             }
-            if (state.status == BookingOverviewStatus.failure &&
-                state.bookings.isEmpty) {
+            if (state.status == BookingOverviewStatus.failure) {
               return _LoadError(
                 message: state.errorMessage ?? 'Could not load bookings.',
-                onRetry: () => context.read<BookingOverviewBloc>().add(
-                  const LoadBookingOverviewEvent(),
-                ),
+                onRetry: _reload,
               );
             }
-            return _buildContent(context, state);
+            return const Center(
+              child: CircularProgressIndicator(
+                color: LightColor.secondaryColor,
+              ),
+            );
           },
         ),
       ),
     );
   }
 
-  Widget _buildContent(BuildContext context, BookingOverviewState state) {
-    final range = _resolvedRange();
+  Widget _buildContent(
+    BuildContext context,
+    BookingOverviewResponse overview, {
+    required bool isLoading,
+  }) {
+    final range = BookingRange.fromApi(
+      overview.period.dateFrom,
+      overview.period.dateTo,
+    );
     final analytics = BookingAnalytics(
-      futsals: state.futsals,
-      bookings: state.bookings,
+      data: overview,
       period: _period,
       range: range,
-      futsalFilter: _futsalId,
     );
 
     return Column(
@@ -191,16 +191,23 @@ class _BookingOverviewViewState extends State<_BookingOverviewView>
                     _pickRange();
                   } else {
                     setState(() => _period = p);
+                    _reload();
                   }
                 },
                 onEditCustom: _pickRange,
               ),
               const SizedBox(height: AppDimens.paddingX10),
               BookingVenueFilter(
-                futsals: state.futsals,
+                venues: overview.availableVenues,
                 selectedId: _futsalId,
-                onChange: (id) => setState(() => _futsalId = id),
+                onChange: (id) {
+                  setState(() => _futsalId = id);
+                  _reload();
+                },
               ),
+              // Keep the current dashboard visible while a filter refreshes.
+              // The refresh indicator intentionally has zero thickness.
+              if (isLoading) const SizedBox.shrink(),
             ],
           ),
         ),

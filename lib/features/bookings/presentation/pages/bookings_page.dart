@@ -4,6 +4,7 @@ import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/widgets/custom_date_picker.dart';
 import 'package:hamro_footsall/features/bookings/data/model/booking_model.dart';
 import 'package:hamro_footsall/features/bookings/data/repositories/booking_repository_impl.dart';
 import 'package:hamro_footsall/features/bookings/domain/usecase/get_bookings_use_case.dart';
@@ -14,6 +15,8 @@ import 'package:hamro_footsall/features/bookings/presentation/widgets/futsal_boo
 import 'package:hamro_footsall/features/bookings/presentation/widgets/my_bookings_tab.dart';
 import 'package:hamro_footsall/features/profile/presentation/profile_bloc/profile_bloc.dart';
 import 'package:hamro_footsall/core/utils/string_constants.dart';
+
+enum _BookingTab { futsal, mine }
 
 class BookingsPage extends StatelessWidget {
   const BookingsPage({super.key});
@@ -52,6 +55,8 @@ class _BookingsView extends StatefulWidget {
 }
 
 class _BookingsViewState extends State<_BookingsView> {
+  _BookingTab _activeTab = _BookingTab.futsal;
+  late final PageController _pageController;
   BookingStatus? _selectedFilter;
   BookingDateOrder _dateOrder = BookingDateOrder.ascending;
   DateTime? _fromDate;
@@ -81,13 +86,18 @@ class _BookingsViewState extends State<_BookingsView> {
   ];
 
   List<_Filter> get _activeFilters =>
-      widget.isCandidate ? _myBookingFilters : _futsalBookingFilters;
+      _showsMyBookings ? _myBookingFilters : _futsalBookingFilters;
+
+  bool get _showsMyBookings =>
+      widget.isCandidate || _activeTab == _BookingTab.mine;
 
   @override
   void initState() {
     super.initState();
     final DateTime now = DateTime.now();
     _futsalDate = DateTime(now.year, now.month, now.day);
+    if (widget.isCandidate) _activeTab = _BookingTab.mine;
+    _pageController = PageController();
 
     // Tabs stay alive inside the dashboard's IndexedStack, so re-fetch the
     // latest bookings automatically whenever this tab becomes visible again
@@ -98,6 +108,7 @@ class _BookingsViewState extends State<_BookingsView> {
   @override
   void dispose() {
     DashboardScreen.selectedNavIndex.removeListener(_refreshOnTabVisible);
+    _pageController.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -112,7 +123,7 @@ class _BookingsViewState extends State<_BookingsView> {
   void _refreshCurrentTab() {
     if (!mounted) return;
     final BookingBloc bloc = context.read<BookingBloc>();
-    if (widget.isCandidate) {
+    if (_showsMyBookings) {
       final BookingLoadStatus status = bloc.state.myBookingsStatus;
       if (status == BookingLoadStatus.loading) return;
       bloc.add(
@@ -127,6 +138,35 @@ class _BookingsViewState extends State<_BookingsView> {
     }
   }
 
+  void _selectTab(_BookingTab tab) {
+    if (widget.isCandidate || tab == _activeTab) return;
+    _pageController.animateToPage(
+      tab == _BookingTab.futsal ? 0 : 1,
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOut,
+    );
+  }
+
+  void _onPageChanged(int page) {
+    final _BookingTab tab = page == 0 ? _BookingTab.futsal : _BookingTab.mine;
+    if (tab == _activeTab) return;
+
+    setState(() {
+      _activeTab = tab;
+      _selectedFilter = null;
+      _searchController.clear();
+    });
+
+    final BookingBloc bloc = context.read<BookingBloc>();
+    if (tab == _BookingTab.mine &&
+        bloc.state.myBookingsStatus == BookingLoadStatus.idle) {
+      bloc.add(const FetchMyBookingsEvent());
+    } else if (tab == _BookingTab.futsal &&
+        bloc.state.futsalBookingsStatus == BookingLoadStatus.idle) {
+      bloc.add(const FetchFutsalBookingsEvent());
+    }
+  }
+
   void _onFilterSelected(BookingStatus? status) {
     final bool isAll = status == null;
     if (_selectedFilter == status && !isAll) return;
@@ -135,7 +175,7 @@ class _BookingsViewState extends State<_BookingsView> {
       _selectedFilter = status;
       if (isAll) {
         _searchController.clear();
-        if (widget.isCandidate) {
+        if (_showsMyBookings) {
           _fromDate = null;
           _toDate = null;
         } else {
@@ -173,22 +213,10 @@ class _BookingsViewState extends State<_BookingsView> {
   }
 
   Future<void> _pickFutsalDate() async {
-    final DateTime? selected = await showDatePicker(
-      context: context,
+    final DateTime? selected = await showCustomDatePicker(
+      context,
+      type: CustomDatePickerType.pastDate,
       initialDate: _futsalDate,
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2100, 12, 31),
-      builder: (BuildContext context, Widget? child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: Theme.of(context).colorScheme.copyWith(
-              primary: LightColor.secondaryColor,
-              surface: LightColor.cardColor,
-            ),
-          ),
-          child: child!,
-        );
-      },
     );
     if (selected == null || !mounted) return;
     setState(() {
@@ -210,12 +238,55 @@ class _BookingsViewState extends State<_BookingsView> {
     setState(() {});
   }
 
+  /// Resets the futsal single-day date filter back to "all dates".
+  void _clearFutsalDate() {
+    final DateTime now = DateTime.now();
+    setState(() {
+      _futsalDate = DateTime(now.year, now.month, now.day);
+      _futsalDateActive = false;
+    });
+  }
+
+  /// Clears the My-Bookings date range filter.
+  void _clearMyBookingDates() {
+    setState(() {
+      _fromDate = null;
+      _toDate = null;
+    });
+  }
+
+  /// Whether a date filter is currently applied for the visible tab.
+  bool get _hasActiveDateFilter => _showsMyBookings
+      ? _fromDate != null || _toDate != null
+      : _futsalDateActive;
+
+  /// Label describing the active date filter, for the clear section.
+  String get _activeDateFilterLabel {
+    if (_showsMyBookings) {
+      if (_fromDate != null && _toDate != null) {
+        return '${_formatNavigatorDate(_fromDate!)} - '
+            '${_formatNavigatorDate(_toDate!)}';
+      }
+      if (_fromDate != null) return 'From ${_formatNavigatorDate(_fromDate!)}';
+      if (_toDate != null) return 'Until ${_formatNavigatorDate(_toDate!)}';
+      return '';
+    }
+    return _formatNavigatorDate(_futsalDate);
+  }
+
+  void _clearActiveDateFilter() {
+    if (_showsMyBookings) {
+      _clearMyBookingDates();
+    } else {
+      _clearFutsalDate();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _pageHeader(context),
         const SizedBox(height: AppDimens.paddingX20),
         _tabBar(context),
         const SizedBox(height: AppDimens.paddingX14),
@@ -230,41 +301,28 @@ class _BookingsViewState extends State<_BookingsView> {
                   fromDate: _fromDate,
                   toDate: _toDate,
                 )
-              : FutsalBookingsTab(
-                  filter: _selectedFilter,
-                  searchQuery: _searchController.text,
-                  dateOrder: _dateOrder,
-                  fromDate: _futsalDateActive ? _futsalDate : null,
-                  toDate: _futsalDateActive ? _futsalDate : null,
+              : PageView(
+                  controller: _pageController,
+                  onPageChanged: _onPageChanged,
+                  children: [
+                    FutsalBookingsTab(
+                      filter: _selectedFilter,
+                      searchQuery: _searchController.text,
+                      dateOrder: _dateOrder,
+                      fromDate: _futsalDateActive ? _futsalDate : null,
+                      toDate: _futsalDateActive ? _futsalDate : null,
+                    ),
+                    MyBookingsTab(
+                      filter: _selectedFilter,
+                      searchQuery: _searchController.text,
+                      dateOrder: _dateOrder,
+                      fromDate: _fromDate,
+                      toDate: _toDate,
+                    ),
+                  ],
                 ),
         ),
       ],
-    );
-  }
-
-  Widget _pageHeader(BuildContext context) {
-    final textTheme = FutsalTheme.getTextTheme(context);
-
-    return Padding(
-      padding: AppUtils().getPadding(
-        left: AppDimens.paddingX20,
-        right: AppDimens.paddingX20,
-        top: AppDimens.paddingX24,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            StringConstants.bookings,
-            style: textTheme.bodyTextLarge?.copyWith(
-              fontSize: AppDimens.fontHeadingSmall,
-              fontWeight: FontWeight.w700,
-              color: LightColor.primaryTextColor,
-            ),
-          ),
-          const SizedBox(height: AppDimens.paddingX4),
-        ],
-      ),
     );
   }
 
@@ -272,14 +330,24 @@ class _BookingsViewState extends State<_BookingsView> {
     return Padding(
       padding: AppUtils().getPadding(symmetricHorizontal: AppDimens.paddingX20),
       child: Row(
-        children: [
+        children: <Widget>[
           _TabItem(
             label: widget.isCandidate
                 ? StringConstants.myBookings
                 : StringConstants.futsalBookings,
-            isActive: true,
-            onTap: () {},
+            isActive: widget.isCandidate || _activeTab == _BookingTab.futsal,
+            onTap: () => _selectTab(
+              widget.isCandidate ? _BookingTab.mine : _BookingTab.futsal,
+            ),
           ),
+          if (!widget.isCandidate) ...<Widget>[
+            const SizedBox(width: AppDimens.paddingX24),
+            _TabItem(
+              label: StringConstants.myBookings,
+              isActive: _activeTab == _BookingTab.mine,
+              onTap: () => _selectTab(_BookingTab.mine),
+            ),
+          ],
         ],
       ),
     );
@@ -288,7 +356,7 @@ class _BookingsViewState extends State<_BookingsView> {
   Widget _searchAndFilterSection(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
     final bool hasQuery = _searchController.text.trim().isNotEmpty;
-    final String hint = widget.isCandidate
+    final String hint = _showsMyBookings
         ? 'Search venue, court or booking ID'
         : 'Search court or booking ID';
 
@@ -306,8 +374,19 @@ class _BookingsViewState extends State<_BookingsView> {
                   height: AppDimens.sizeX44,
                   decoration: BoxDecoration(
                     color: LightColor.cardColor,
-                    borderRadius: BorderRadius.circular(AppDimens.radiusX10),
-                    border: Border.all(color: LightColor.dividerColor),
+                    borderRadius: BorderRadius.circular(AppDimens.radiusX12),
+                    border: Border.all(
+                      color: hasQuery
+                          ? LightColor.secondaryColor.withValues(alpha: 0.45)
+                          : LightColor.dividerColor,
+                    ),
+                    boxShadow: <BoxShadow>[
+                      BoxShadow(
+                        color: LightColor.shadowColor.withValues(alpha: 0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
                   ),
                   child: TextField(
                     key: const Key('booking-search-field'),
@@ -349,7 +428,7 @@ class _BookingsViewState extends State<_BookingsView> {
                   ),
                 ),
               ),
-              if (widget.isCandidate) ...[
+              if (_showsMyBookings) ...[
                 const SizedBox(width: AppDimens.paddingX8),
                 _DateFilterButton(
                   fromDate: _fromDate,
@@ -361,6 +440,7 @@ class _BookingsViewState extends State<_BookingsView> {
                 const SizedBox(width: AppDimens.paddingX8),
                 _FutsalDateNavigator(
                   date: _futsalDate,
+                  isActive: _futsalDateActive,
                   onPrevious: () => _shiftFutsalDate(-1),
                   onNext: () => _shiftFutsalDate(1),
                   onDateTap: _pickFutsalDate,
@@ -369,6 +449,18 @@ class _BookingsViewState extends State<_BookingsView> {
             ],
           ),
         ),
+        if (_hasActiveDateFilter) ...<Widget>[
+          const SizedBox(height: AppDimens.paddingX12),
+          Padding(
+            padding: AppUtils().getPadding(
+              symmetricHorizontal: AppDimens.paddingX16,
+            ),
+            child: _ActiveDateFilterBar(
+              label: _activeDateFilterLabel,
+              onClear: _clearActiveDateFilter,
+            ),
+          ),
+        ],
         const SizedBox(height: AppDimens.paddingX20),
 
         _filterRow(context),
@@ -521,12 +613,14 @@ class _FilterChipItem extends StatelessWidget {
 class _FutsalDateNavigator extends StatelessWidget {
   const _FutsalDateNavigator({
     required this.date,
+    required this.isActive,
     required this.onPrevious,
     required this.onNext,
     required this.onDateTap,
   });
 
   final DateTime date;
+  final bool isActive;
   final VoidCallback onPrevious;
   final VoidCallback onNext;
   final VoidCallback onDateTap;
@@ -534,23 +628,24 @@ class _FutsalDateNavigator extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
+    final Color accent = LightColor.secondaryColor;
     return Container(
       height: AppDimens.sizeX44,
+      padding: const EdgeInsets.symmetric(horizontal: AppDimens.paddingX2),
       decoration: BoxDecoration(
-        color: LightColor.cardColor,
-        borderRadius: BorderRadius.circular(AppDimens.radiusX10),
-        border: Border.all(color: LightColor.dividerColor),
+        color: isActive ? accent.withValues(alpha: 0.10) : LightColor.cardColor,
+        borderRadius: BorderRadius.circular(AppDimens.radiusX12),
+        border: Border.all(
+          color: isActive ? accent.withValues(alpha: 0.45) : LightColor.dividerColor,
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
-        children: [
-          InkWell(
+        children: <Widget>[
+          _NavArrow(
             key: const Key('previous-futsal-booking-date'),
+            icon: Icons.chevron_left_rounded,
             onTap: onPrevious,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Icon(Icons.chevron_left_rounded),
-            ),
           ),
           Material(
             color: Colors.transparent,
@@ -559,25 +654,152 @@ class _FutsalDateNavigator extends StatelessWidget {
               onTap: onDateTap,
               borderRadius: BorderRadius.circular(AppDimens.radiusX8),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                child: Text(
-                  _formatNavigatorDate(date),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppDimens.paddingX6,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Icon(
+                      Icons.calendar_month_rounded,
+                      size: AppDimens.sizeX16,
+                      color: isActive ? accent : LightColor.secondaryTextColor,
+                    ),
+                    const SizedBox(width: AppDimens.paddingX6),
+                    Text(
+                      isActive ? _formatNavigatorDate(date) : 'All dates',
+                      maxLines: 1,
+                      style: textTheme.bodySubTitle?.copyWith(
+                        color: isActive
+                            ? accent
+                            : LightColor.secondaryTextColor,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          _NavArrow(
+            key: const Key('next-futsal-booking-date'),
+            icon: Icons.chevron_right_rounded,
+            onTap: onNext,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NavArrow extends StatelessWidget {
+  const _NavArrow({super.key, required this.icon, required this.onTap});
+
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      shape: const CircleBorder(),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(AppDimens.paddingX4),
+          child: Icon(
+            icon,
+            size: AppDimens.sizeX20,
+            color: LightColor.primaryTextColor,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Shows the currently applied date filter with a one-tap clear control.
+class _ActiveDateFilterBar extends StatelessWidget {
+  const _ActiveDateFilterBar({required this.label, required this.onClear});
+
+  final String label;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    final Color accent = LightColor.secondaryColor;
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppDimens.paddingX12,
+        vertical: AppDimens.paddingX8,
+      ),
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+        border: Border.all(color: accent.withValues(alpha: 0.30)),
+      ),
+      child: Row(
+        children: <Widget>[
+          Icon(Icons.event_available_rounded, size: AppDimens.sizeX18, color: accent),
+          const SizedBox(width: AppDimens.paddingX8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Text(
+                  'Date filter',
+                  style: textTheme.bodyMiniSubTitle?.copyWith(
+                    color: LightColor.secondaryTextColor,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Text(
+                  label,
                   maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: textTheme.bodySubTitle?.copyWith(
                     color: LightColor.primaryTextColor,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-              ),
+              ],
             ),
           ),
-
-          InkWell(
-            key: const Key('next-futsal-booking-date'),
-            onTap: onNext,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Icon(Icons.chevron_right_rounded),
+          const SizedBox(width: AppDimens.paddingX8),
+          Material(
+            color: accent,
+            borderRadius: BorderRadius.circular(AppDimens.radiusX20),
+            child: InkWell(
+              key: const Key('clear-booking-date-filter'),
+              onTap: onClear,
+              borderRadius: BorderRadius.circular(AppDimens.radiusX20),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppDimens.paddingX10,
+                  vertical: AppDimens.paddingX6,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    const Icon(
+                      Icons.close_rounded,
+                      size: AppDimens.sizeX14,
+                      color: LightColor.whiteColor,
+                    ),
+                    const SizedBox(width: AppDimens.paddingX4),
+                    Text(
+                      'Clear',
+                      style: textTheme.bodySubTitle?.copyWith(
+                        color: LightColor.whiteColor,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         ],
@@ -724,22 +946,11 @@ class _BookingDateFilterSheetState extends State<_BookingDateFilterSheet> {
     final DateTime safeInitial = initialDate.isBefore(firstDate)
         ? firstDate
         : initialDate;
-    return showDatePicker(
-      context: context,
+    return showCustomDatePicker(
+      context,
+      type: CustomDatePickerType.pastDate,
       initialDate: safeInitial,
-      firstDate: firstDate,
-      lastDate: DateTime(2100, 12, 31),
-      builder: (BuildContext context, Widget? child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: Theme.of(context).colorScheme.copyWith(
-              primary: LightColor.secondaryColor,
-              surface: LightColor.cardColor,
-            ),
-          ),
-          child: child!,
-        );
-      },
+      minDate: firstDate,
     );
   }
 

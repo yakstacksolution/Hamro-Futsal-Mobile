@@ -44,7 +44,8 @@ class MyBookingsTab extends StatelessWidget {
           p.myBookingsStatus != c.myBookingsStatus ||
           p.myBookings != c.myBookings,
       builder: (context, state) {
-        if (state.myBookingsStatus == BookingLoadStatus.loading) {
+        if (state.myBookingsStatus == BookingLoadStatus.idle ||
+            state.myBookingsStatus == BookingLoadStatus.loading) {
           return const BookingSkeletonLoader();
         }
 
@@ -87,7 +88,9 @@ class MyBookingsTab extends StatelessWidget {
                 ),
                 children: [
                   ConstrainedBox(
-                    constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight,
+                    ),
                     child: BookingEmptyView(
                       icon: Icons.calendar_month_outlined,
                       title: hasCriteria
@@ -114,7 +117,7 @@ class MyBookingsTab extends StatelessWidget {
             padding: AppUtils().getPadding(
               symmetricHorizontal: AppDimens.paddingX16,
               top: AppDimens.paddingX8,
-              bottom: AppDimens.sizeX80,
+              bottom: AppDimens.sizeX180,
             ),
             itemCount: items.length,
             separatorBuilder: (_, __) =>

@@ -7,6 +7,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hamro_footsall/core/helper/exception_helper.dart';
 import 'package:hamro_footsall/features/courts/data/repositories/venue_court_repository_impl.dart';
 import 'package:hamro_footsall/features/courts/domain/usecase/get_venue_court_use_case.dart';
+import 'package:hamro_footsall/features/media/utils/stable_media_file.dart';
 import 'package:hamro_footsall/features/vendor/data/model/court_onboarding_response_model.dart';
 import 'package:hamro_footsall/features/vendor/data/model/vendor_onboarding_response_model.dart';
 import 'package:hamro_footsall/features/vendor/data/vendor_draft_repository.dart';
@@ -610,10 +611,9 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
 
   Future<UploadRef?> pickImageFromCamera() async {
     final ImagePicker picker = ImagePicker();
-    final XFile? photo = await picker.pickImage(
-      source: ImageSource.camera,
-      imageQuality: 90,
-    );
+    final XFile? captured = await picker.pickImage(source: ImageSource.camera);
+    if (captured == null) return null;
+    final XFile? photo = await stabilizePickedMedia(captured);
     if (photo == null) return null;
     final UploadRef ref = UploadRef(name: photo.name, remoteUrl: photo.path);
     _emitUpdated(
@@ -1105,9 +1105,18 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     final Map<String, dynamic> body = courtSlotBody(slot, courtId: courtId);
     // A new slot has a non-numeric local id (no backend slot_id) -> create.
     final bool isNew = int.tryParse(slot.id) == null;
-    final Either<AppException, List<SlotPricingDraft>> response = isNew
+    Either<AppException, List<SlotPricingDraft>> response = isNew
         ? await useCase.createCourtSlot(body)
         : await useCase.updateCourtSlot(body);
+    if (!isNew && _hasInvalidSlotIdFailure(response)) {
+      response =
+          await _retrySlotMutationWithFreshId(
+            slot,
+            courtId,
+            isPricing: false,
+          ) ??
+          response;
+    }
     // After creating, re-fetch so the new slot carries the authoritative id
     // from `get-court-slots` (the create response id may not be the one the
     // pricing/update endpoints expect).
@@ -1134,10 +1143,15 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     }
 
     emit(state.copyWith(isSubmitting: true, clearErrorMessage: true));
-    final Either<AppException, List<SlotPricingDraft>> response =
+    Either<AppException, List<SlotPricingDraft>> response =
         await GetVenueCourtUseCase(
           VenueCourtRepositoryImpl(),
         ).updateCourtSlot(courtSlotPricingBody(slot, courtId: courtId));
+    if (_hasInvalidSlotIdFailure(response)) {
+      response =
+          await _retrySlotMutationWithFreshId(slot, courtId, isPricing: true) ??
+          response;
+    }
     return _applySlotMutation(response, courtId);
   }
 
@@ -1241,6 +1255,87 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
       }
     }
     return result;
+  }
+
+  bool _hasInvalidSlotIdFailure(
+    Either<AppException, List<SlotPricingDraft>> response,
+  ) {
+    return response.fold((AppException failure) {
+      final String message = failure.errorMessage.toLowerCase();
+      return message.contains('slot') &&
+          message.contains('id') &&
+          message.contains('invalid');
+    }, (_) => false);
+  }
+
+  Future<Either<AppException, List<SlotPricingDraft>>?>
+  _retrySlotMutationWithFreshId(
+    SlotPricingDraft staleSlot,
+    int courtId, {
+    required bool isPricing,
+  }) async {
+    await fetchActiveCourtSlots(force: true);
+    if (isClosed) return null;
+
+    final CourtDraft? current = state.activeCourt;
+    final SlotPricingDraft? freshSlot = _resolveFreshSlot(
+      staleSlot,
+      current?.slotConfigs ?? const <SlotPricingDraft>[],
+    );
+    if (freshSlot == null || freshSlot.id == staleSlot.id) return null;
+
+    final SlotPricingDraft retrySlot = _slotWithId(staleSlot, freshSlot.id);
+    final GetVenueCourtUseCase useCase = GetVenueCourtUseCase(
+      VenueCourtRepositoryImpl(),
+    );
+    return useCase.updateCourtSlot(
+      isPricing
+          ? courtSlotPricingBody(retrySlot, courtId: courtId)
+          : courtSlotBody(retrySlot, courtId: courtId),
+    );
+  }
+
+  SlotPricingDraft? _resolveFreshSlot(
+    SlotPricingDraft staleSlot,
+    List<SlotPricingDraft> freshSlots,
+  ) {
+    for (final SlotPricingDraft slot in freshSlots) {
+      if (slot.id == staleSlot.id) return slot;
+    }
+    for (final SlotPricingDraft slot in freshSlots) {
+      if (_sameSlotSchedule(slot, staleSlot)) return slot;
+    }
+    return null;
+  }
+
+  bool _sameSlotSchedule(SlotPricingDraft a, SlotPricingDraft b) {
+    return a.label.trim().toLowerCase() == b.label.trim().toLowerCase() &&
+        _normalizedSlotDays(a.days) == _normalizedSlotDays(b.days) &&
+        a.startTime.trim() == b.startTime.trim() &&
+        a.endTime.trim() == b.endTime.trim();
+  }
+
+  String _normalizedSlotDays(Set<String> days) {
+    final List<String> normalized =
+        days.map((String day) => day.trim().toLowerCase()).toList()..sort();
+    return normalized.join(',');
+  }
+
+  SlotPricingDraft _slotWithId(SlotPricingDraft slot, String id) {
+    return SlotPricingDraft(
+      id: id,
+      label: slot.label,
+      days: slot.days,
+      startTime: slot.startTime,
+      endTime: slot.endTime,
+      price: slot.price,
+      weekendPrice: slot.weekendPrice,
+      holidayPrice: slot.holidayPrice,
+      customDatePrices: slot.customDatePrices,
+      discountPrice: slot.discountPrice,
+      discountType: slot.discountType,
+      paymentPercent: slot.paymentPercent,
+    );
   }
 
   final Set<int> _courtSlotsFetched = <int>{};
@@ -1670,6 +1765,17 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
 
   Future<void> saveDraftNow() async {
     await _saveDraft(showSavingState: true);
+  }
+
+  Future<String?> saveProgressBeforeExit() async {
+    if (state.isSubmitting) {
+      return 'Please wait for the current save to finish.';
+    }
+    _flushActiveEditors();
+    final String? failure = await _submitProgressIfNeeded();
+    if (failure != null) return failure;
+    await _saveDraft(showSavingState: false);
+    return null;
   }
 
   Future<String?> submit() async {

@@ -214,6 +214,7 @@ CourtDraft _courtFromJson(Map<String, dynamic> json) {
         _asInt(json['capacity'] ?? json['max_player'] ?? json['max_players']) ??
         10,
     surfaceType: surfaceType.isEmpty ? null : surfaceType,
+    isActive: _asString(json['status']).toLowerCase() != 'inactive',
     slotDuration: _asInt(json['slot_duration']),
     slotCount: _asInt(json['slot_count'] ?? json['slotCount']),
     availability: AvailabilityDraft.fromJson(availability),

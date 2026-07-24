@@ -93,6 +93,29 @@ class NotificationPreferences extends Equatable {
   ];
 }
 
+enum VendorLifecycleStatus {
+  notStarted,
+  incomplete,
+  underReview,
+  rejected,
+  active,
+  suspended,
+  actionRequired;
+
+  static VendorLifecycleStatus parse(Object? value) {
+    final String status = value?.toString().trim().toLowerCase() ?? '';
+    return switch (status) {
+      'incomplete' || 'draft' => VendorLifecycleStatus.incomplete,
+      'under_review' || 'pending_review' => VendorLifecycleStatus.underReview,
+      'rejected' => VendorLifecycleStatus.rejected,
+      'active' || 'approved' => VendorLifecycleStatus.active,
+      'suspended' => VendorLifecycleStatus.suspended,
+      'action_required' => VendorLifecycleStatus.actionRequired,
+      _ => VendorLifecycleStatus.notStarted,
+    };
+  }
+}
+
 class UserData extends Equatable {
   final int id;
   final String fullName;
@@ -115,6 +138,12 @@ class UserData extends Equatable {
   final int? futsalId;
   final int? mainStep;
   final int? subStep;
+  final Set<String> capabilities;
+  final VendorLifecycleStatus vendorStatus;
+  final String vendorStatusReason;
+  final int profileCompletion;
+  final bool businessVerified;
+  final bool financeAccess;
 
   /// Venue ids the user has wishlisted (`wishlists` on `/auth/me`) — drives
   /// the heart state on venue cards.
@@ -145,6 +174,12 @@ class UserData extends Equatable {
     this.futsalId,
     this.mainStep,
     this.subStep,
+    this.capabilities = const <String>{},
+    this.vendorStatus = VendorLifecycleStatus.notStarted,
+    this.vendorStatusReason = '',
+    this.profileCompletion = 0,
+    this.businessVerified = false,
+    this.financeAccess = false,
     this.wishlistVenueIds = const <int>[],
     this.notificationPreferences = const NotificationPreferences(),
   });
@@ -210,6 +245,26 @@ class UserData extends Equatable {
       subStep:
           _asInt(json['sub_step']) ??
           _asInt((json['vendor_onboarding_data'] as Map?)?['sub_step']),
+      capabilities: (json['capabilities'] is List)
+          ? (json['capabilities'] as List)
+                .map((item) => item.toString().trim())
+                .where((item) => item.isNotEmpty)
+                .toSet()
+          : const <String>{},
+      vendorStatus: VendorLifecycleStatus.parse(
+        json['vendor_status'] ?? json['vendor_lifecycle_status'],
+      ),
+      vendorStatusReason: json['vendor_status_reason']?.toString().trim() ?? '',
+      profileCompletion:
+          _asInt(
+            json['profile_completion'] ?? json['profile_completion_pct'],
+          ) ??
+          0,
+      businessVerified: json['business_verified'] == true,
+      financeAccess:
+          json['finance_access'] == true ||
+          (json['capabilities'] is List &&
+              (json['capabilities'] as List).contains('vendor.finance.read')),
       wishlistVenueIds: _parseWishlistIds(json['wishlists']),
       notificationPreferences: NotificationPreferences.fromUserJson(json),
     );
@@ -239,6 +294,12 @@ class UserData extends Equatable {
       'futsal_id': futsalId,
       'main_step': mainStep,
       'sub_step': subStep,
+      'capabilities': capabilities.toList(growable: false),
+      'vendor_status': vendorStatus.name,
+      'vendor_status_reason': vendorStatusReason,
+      'profile_completion': profileCompletion,
+      'business_verified': businessVerified,
+      'finance_access': financeAccess,
       'wishlists': wishlistVenueIds,
       'notification_preferences': notificationPreferences.toJson(),
     };
@@ -267,6 +328,12 @@ class UserData extends Equatable {
     futsalId,
     mainStep,
     subStep,
+    capabilities,
+    vendorStatus,
+    vendorStatusReason,
+    profileCompletion,
+    businessVerified,
+    financeAccess,
     wishlistVenueIds,
     notificationPreferences,
   ];
@@ -294,6 +361,12 @@ class UserData extends Equatable {
     int? futsalId,
     int? mainStep,
     int? subStep,
+    Set<String>? capabilities,
+    VendorLifecycleStatus? vendorStatus,
+    String? vendorStatusReason,
+    int? profileCompletion,
+    bool? businessVerified,
+    bool? financeAccess,
     List<int>? wishlistVenueIds,
     NotificationPreferences? notificationPreferences,
   }) {
@@ -321,6 +394,12 @@ class UserData extends Equatable {
       futsalId: futsalId ?? this.futsalId,
       mainStep: mainStep ?? this.mainStep,
       subStep: subStep ?? this.subStep,
+      capabilities: capabilities ?? this.capabilities,
+      vendorStatus: vendorStatus ?? this.vendorStatus,
+      vendorStatusReason: vendorStatusReason ?? this.vendorStatusReason,
+      profileCompletion: profileCompletion ?? this.profileCompletion,
+      businessVerified: businessVerified ?? this.businessVerified,
+      financeAccess: financeAccess ?? this.financeAccess,
       wishlistVenueIds: wishlistVenueIds ?? this.wishlistVenueIds,
       notificationPreferences:
           notificationPreferences ?? this.notificationPreferences,
@@ -351,6 +430,12 @@ class UserData extends Equatable {
       futsalId: other.futsalId,
       mainStep: other.mainStep,
       subStep: other.subStep,
+      capabilities: other.capabilities.isNotEmpty ? other.capabilities : null,
+      vendorStatus: other.vendorStatus,
+      vendorStatusReason: other.vendorStatusReason,
+      profileCompletion: other.profileCompletion,
+      businessVerified: other.businessVerified,
+      financeAccess: other.financeAccess,
       wishlistVenueIds: other.wishlistVenueIds.isNotEmpty
           ? other.wishlistVenueIds
           : null,

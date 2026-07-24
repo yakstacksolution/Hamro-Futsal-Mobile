@@ -133,6 +133,26 @@ class AuthManager extends ServiceManager {
     return await _apiClient.getHelps();
   }
 
+  Future<Result> getFeedbackTypes() async {
+    return await _apiClient.getFeedbackTypes();
+  }
+
+  Future<Result> getFeedbackCategories() async {
+    return await _apiClient.getFeedbackCategories();
+  }
+
+  Future<Result> submitFeedback(Map<String, dynamic> data) async {
+    return await _apiClient.submitFeedback(data: data);
+  }
+
+  Future<Result> getMyFeedback({int perPage = 15}) async {
+    return await _apiClient.getMyFeedback(perPage: perPage);
+  }
+
+  Future<Result> getFeedbackDetails(String feedbackId) async {
+    return await _apiClient.getFeedbackDetails(feedbackId: feedbackId);
+  }
+
   Future<Result> getPublicPackages() async {
     return await _apiClient.getPublicPackages();
   }
@@ -191,6 +211,72 @@ class AuthManager extends ServiceManager {
 
   Future<Result> getExpenses({Map<String, dynamic>? query}) async {
     return await _apiClient.getExpenses(query: query);
+  }
+
+  Future<Result> getProducts({required int venueId, int perPage = 15}) async {
+    return await _apiClient.getProducts(venueId: venueId, perPage: perPage);
+  }
+
+  Future<Result> createProduct(Map<String, dynamic> data) async {
+    return await _apiClient.createProduct(data: data);
+  }
+
+  Future<Result> updateProduct({
+    required int productId,
+    required Map<String, dynamic> data,
+  }) async {
+    return await _apiClient.updateProduct(productId: productId, data: data);
+  }
+
+  Future<Result> deleteProduct({required int productId}) async {
+    return await _apiClient.deleteProduct(productId: productId);
+  }
+
+  Future<Result> getVenueProducts({required int venueId}) async {
+    return await _apiClient.getVenueProducts(venueId: venueId);
+  }
+
+  Future<Result> addBookingProducts({
+    required int bookingId,
+    required Map<String, dynamic> data,
+  }) async {
+    return await _apiClient.addBookingProducts(bookingId: bookingId, data: data);
+  }
+
+  Future<Result> completeBooking({
+    required int bookingId,
+    String? paymentType,
+    double? discount,
+    double? amountPaid,
+    String? paymentStatus,
+  }) async {
+    return await _apiClient.completeBooking(
+      bookingId: bookingId,
+      paymentType: paymentType,
+      discount: discount,
+      amountPaid: amountPaid,
+      paymentStatus: paymentStatus,
+    );
+  }
+
+  Future<Result> getSettlementAccount() async {
+    return await _apiClient.getSettlementAccount();
+  }
+
+  Future<Result> getSettlementBreakdown() async {
+    return await _apiClient.getSettlementBreakdown();
+  }
+
+  Future<Result> getSettlementPreview({int? venueId}) async {
+    return await _apiClient.getSettlementPreview(venueId: venueId);
+  }
+
+  Future<Result> getSettlements({Map<String, dynamic>? query}) async {
+    return await _apiClient.getSettlements(query: query);
+  }
+
+  Future<Result> createSettlement(dynamic data) async {
+    return await _apiClient.createSettlement(data: data);
   }
 
   Future<Result> getConversations({bool archived = false}) async {
@@ -449,6 +535,10 @@ class AuthManager extends ServiceManager {
 
   Future<Result> getFutsalBookings() async {
     return await _apiClient.getFutsalBookings();
+  }
+
+  Future<Result> getBookingOverview({Map<String, dynamic>? query}) async {
+    return await _apiClient.getBookingOverview(query: query);
   }
 
   Future<Result> cancelBooking(int bookingId) async {

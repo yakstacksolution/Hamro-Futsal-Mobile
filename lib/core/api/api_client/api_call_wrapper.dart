@@ -152,6 +152,9 @@ class ApiCallWrapper {
     dynamic data,
     Map? query,
   }) async {
+    // FormData contains one-shot streams. Clone it for every HTTP attempt so
+    // token-refresh retries do not resend already-consumed multipart files.
+    final dynamic requestData = data is FormData ? data.clone() : data;
     dynamic response;
     switch (method) {
       case HttpVerb.get:
@@ -160,7 +163,7 @@ class ApiCallWrapper {
       case HttpVerb.post:
         response = await _iHttp.post(
           url: url,
-          data: data,
+          data: requestData,
           query: query,
           token: token,
         );
@@ -169,10 +172,14 @@ class ApiCallWrapper {
         response = await _iHttp.delete(url: url, token: token);
         break;
       case HttpVerb.patch:
-        response = await _iHttp.patch(url: url, data: data, token: token);
+        response = await _iHttp.patch(
+          url: url,
+          data: requestData,
+          token: token,
+        );
         break;
       case HttpVerb.put:
-        response = await _iHttp.put(url: url, data: data, token: token);
+        response = await _iHttp.put(url: url, data: requestData, token: token);
         break;
     }
     return response;

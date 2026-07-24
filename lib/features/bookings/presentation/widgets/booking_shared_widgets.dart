@@ -356,11 +356,16 @@ class BookingCard extends StatelessWidget {
     required this.booking,
     this.showPlayer = false,
     this.onTap,
+    this.footer,
   });
 
   final BookingModel booking;
   final bool showPlayer;
   final VoidCallback? onTap;
+
+  /// Optional trailing widget rendered at the bottom of the card (e.g. the
+  /// "Add products" quick action on eligible futsal bookings).
+  final Widget? footer;
 
   @override
   Widget build(BuildContext context) {
@@ -517,6 +522,12 @@ class BookingCard extends StatelessWidget {
                       '${_capitalize(booking.recurrenceType ?? 'Recurring')} booking',
                   color: LightColor.purpleColor,
                 ),
+              ],
+              if (footer != null) ...[
+                const SizedBox(height: AppDimens.paddingX12),
+                const Divider(color: LightColor.dividerColor, height: 1),
+                const SizedBox(height: AppDimens.paddingX10),
+                Align(alignment: Alignment.centerLeft, child: footer!),
               ],
             ],
           ),

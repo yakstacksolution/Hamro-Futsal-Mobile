@@ -32,6 +32,7 @@ class _WishlistPageState extends State<WishlistPage> {
   bool _loading = true;
   String? _error;
   List<PublicListingVenueModel> _venues = const [];
+  bool _loadedOnce = false;
 
   @override
   void initState() {
@@ -53,21 +54,31 @@ class _WishlistPageState extends State<WishlistPage> {
 
   void _retryFailedFetchOnTabVisible() {
     if (!mounted || DashboardScreen.selectedNavIndex.value != 3) return;
-    if (_error != null && !_loading) _fetch();
+    if (!_loading) _fetch(silent: _loadedOnce);
   }
 
-  Future<void> _fetch() async {
-    setState(() {
-      _loading = true;
+  Future<void> _fetch({bool silent = false}) async {
+    if (!silent) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    } else {
       _error = null;
-    });
+    }
     final result = await _getWishlist();
     if (!mounted) return;
     result.fold(
-      (failure) => setState(() {
-        _loading = false;
-        _error = failure.errorMessage;
-      }),
+      (failure) {
+        if (silent && _venues.isNotEmpty) {
+          setState(() => _error = failure.errorMessage);
+          return;
+        }
+        setState(() {
+          _loading = false;
+          _error = failure.errorMessage;
+        });
+      },
       (page) {
         // The fetched wishlist is canonical — re-seed the shared heart state.
         WishlistStore.instance.seed(
@@ -75,6 +86,7 @@ class _WishlistPageState extends State<WishlistPage> {
         );
         setState(() {
           _loading = false;
+          _loadedOnce = true;
           _venues = page.venues;
         });
       },
@@ -173,7 +185,7 @@ class _WishlistPageState extends State<WishlistPage> {
         itemCount: venues.length,
         separatorBuilder: (_, __) => const SizedBox(height: AppDimens.sizeX20),
         // Same card the home listing uses.
-        itemBuilder: (_, i) => CourtCard(court: venues[i]),
+        itemBuilder: (_, i) => CourtCard(publicListingVenueModel: venues[i]),
       ),
     );
   }

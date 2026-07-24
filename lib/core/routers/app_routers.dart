@@ -17,6 +17,7 @@ import 'package:hamro_footsall/features/change_password/presentation/pages/chang
 import 'package:hamro_footsall/features/courts/presentation/pages/venue_courts_list_page_widget.dart';
 import 'package:hamro_footsall/features/courts_details/presentation/page/court_details.dart';
 import 'package:hamro_footsall/features/courts_details/presentation/page/court_location_map_page.dart';
+import 'package:hamro_footsall/features/account/presentation/pages/account_screen.dart';
 import 'package:hamro_footsall/features/expenses/presentation/pages/expenses_screen.dart';
 import 'package:hamro_footsall/features/coupons/data/repositories/coupon_repository_impl.dart';
 import 'package:hamro_footsall/features/coupons/domain/usecase/apply_coupon_use_case.dart';
@@ -39,7 +40,11 @@ import 'package:hamro_footsall/features/futsal_details/presentation/bloc/payment
 import 'package:hamro_footsall/features/futsal_details/presentation/bloc/slots_selection/slots_selection_bloc.dart';
 import 'package:hamro_footsall/features/opponent_match/presentation/pages/opponent_match_screen.dart';
 import 'package:hamro_footsall/features/profile/presentation/pages/about_app_page.dart';
+import 'package:hamro_footsall/features/profile/presentation/pages/feedback_details_page.dart';
+import 'package:hamro_footsall/features/profile/presentation/pages/feedback_page.dart';
+import 'package:hamro_footsall/features/profile/presentation/pages/my_feedback_page.dart';
 import 'package:hamro_footsall/features/profile/presentation/pages/settings_page.dart';
+import 'package:hamro_footsall/features/products/presentation/pages/products_screen.dart';
 import 'package:hamro_footsall/features/public/presentation/models/venue_filter.dart';
 import 'package:hamro_footsall/features/public/presentation/pages/venue_filter_page.dart';
 import 'package:hamro_footsall/features/auth/presentation/forgot_password_screen.dart';
@@ -229,6 +234,25 @@ class AppRouters {
         ),
 
         GoRoute(
+          name: AppRouterParams.feedback.name,
+          path: AppRouterParams.feedback.path,
+          builder: (context, state) => const FeedbackPage(),
+        ),
+
+        GoRoute(
+          name: AppRouterParams.myFeedback.name,
+          path: AppRouterParams.myFeedback.path,
+          builder: (context, state) => const MyFeedbackPage(),
+        ),
+
+        GoRoute(
+          name: AppRouterParams.feedbackDetails.name,
+          path: AppRouterParams.feedbackDetails.path,
+          builder: (context, state) =>
+              FeedbackDetailsPage(feedbackId: (state.extra as String?) ?? ''),
+        ),
+
+        GoRoute(
           name: AppRouterParams.settings.name,
           path: AppRouterParams.settings.path,
           builder: (context, state) => const SettingsPage(),
@@ -261,6 +285,18 @@ class AppRouters {
           name: AppRouterParams.bookingOverview.name,
           path: AppRouterParams.bookingOverview.path,
           builder: (context, state) => const BookingOverviewScreen(),
+        ),
+
+        GoRoute(
+          name: AppRouterParams.account.name,
+          path: AppRouterParams.account.path,
+          builder: (context, state) => const AccountScreen(),
+        ),
+
+        GoRoute(
+          name: AppRouterParams.products.name,
+          path: AppRouterParams.products.path,
+          builder: (context, state) => const ProductsScreen(),
         ),
 
         GoRoute(

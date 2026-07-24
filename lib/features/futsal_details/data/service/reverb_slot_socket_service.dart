@@ -171,6 +171,7 @@ final class ReverbSlotSocketService implements SlotSocketService {
     binding.channel = channel;
     void pushCount(_) {
       final int count = channel.state?.members?.membersCount ?? 0;
+      binding.latestViewerCount = count;
       if (kDebugMode) {
         debugPrint('SlotSocket: ${channel.name} roster → $count viewer(s)');
       }
@@ -199,25 +200,20 @@ final class ReverbSlotSocketService implements SlotSocketService {
       );
     }
 
-    final String type = _normalizeHoldEvent(event.name);
-    if (type.isEmpty) {
-      if (kDebugMode && !internal) {
-        debugPrint(
-          'SlotSocket: ⚠ unhandled event "${event.name}" on $channelName '
-          '(known: $_holdEvents)',
-        );
-      }
-      return;
-    }
+    if (internal) return;
+
+    // `broadcastAs()` is not consistently configured on every backend event.
+    // When it is absent Laravel may send a class-qualified event name instead
+    // of one of the friendly names above. Do not throw that update away: the
+    // BLoC can always reconcile from REST even when an optimistic patch is not
+    // possible.
+    final String normalizedType = _normalizeHoldEvent(event.name);
+    final String type = normalizedType.isEmpty ? event.name : normalizedType;
 
     final Map<String, dynamic>? payload = _decode(event.data);
-    if (payload == null) {
-      if (kDebugMode) {
-        debugPrint('SlotSocket: ⚠ could not decode payload for [$type]');
-      }
-      return;
-    }
-    final Map<String, dynamic> data = _eventPayload(payload);
+    final Map<String, dynamic> data = payload == null
+        ? const <String, dynamic>{}
+        : _eventPayload(payload);
 
     // Payloads may use snake_case or camelCase depending on the broadcaster.
     String? field(String snake, String camel) =>
@@ -247,12 +243,29 @@ final class ReverbSlotSocketService implements SlotSocketService {
     _bookings[_bookingKey(venueId, bookingDate)]?.events.add(slotEvent);
   }
 
-  /// Maps a wire event name onto one of the six hold events, tolerating
-  /// Laravel's optional leading-dot (`.slot.held`) on broadcastAs names.
-  /// Returns '' for anything else (including pusher internals).
+  /// Maps a wire event name onto one of the six hold events. Besides Laravel's
+  /// optional leading dot, tolerate class-qualified event names and the usual
+  /// StudlyCase class names produced when `broadcastAs()` is omitted.
   String _normalizeHoldEvent(String name) {
-    final String bare = name.startsWith('.') ? name.substring(1) : name;
-    return _holdEvents.contains(bare) ? bare : '';
+    final String bare = (name.startsWith('.') ? name.substring(1) : name)
+        .trim();
+    if (_holdEvents.contains(bare)) return bare;
+
+    final String className = bare.split(r'\').last.split('.').last;
+    final String key = className
+        .replaceAll(RegExp(r'[^a-zA-Z]'), '')
+        .toLowerCase();
+    return switch (key) {
+      'slotheld' || 'held' => BookingSlotEvent.held,
+      'slotreleased' || 'released' => BookingSlotEvent.released,
+      'slotexpired' || 'expired' => BookingSlotEvent.expired,
+      'bookingstepupdated' || 'stepupdated' => BookingSlotEvent.stepUpdated,
+      'bookingconfirmed' || 'confirmed' => BookingSlotEvent.confirmed,
+      'bookingcancelled' ||
+      'cancelled' ||
+      'canceled' => BookingSlotEvent.cancelled,
+      _ => '',
+    };
   }
 
   // ── payload helpers ───────────────────────────────────────────────────────
@@ -315,7 +328,7 @@ final class ReverbSlotSocketService implements SlotSocketService {
   @override
   Stream<int> bookingViewers(int venueId, String bookingDate) {
     _ensureBookingChannel(venueId, bookingDate);
-    return _bookings[_bookingKey(venueId, bookingDate)]!.viewers.stream;
+    return _bookings[_bookingKey(venueId, bookingDate)]!.viewerStream();
   }
 
   @override
@@ -338,11 +351,27 @@ final class ReverbSlotSocketService implements SlotSocketService {
 /// Streams + subscriptions backing one venue+date presence channel.
 final class _PresenceBinding {
   PresenceChannel? channel;
+  int? latestViewerCount;
   final StreamController<BookingSlotEvent> events =
       StreamController<BookingSlotEvent>.broadcast();
   final StreamController<int> viewers = StreamController<int>.broadcast();
   final List<StreamSubscription<void>> rosterSubs =
       <StreamSubscription<void>>[];
+
+  /// Replays the current roster to late listeners. Subscription success can
+  /// arrive between [bookingEvents] and [bookingViewers] being wired by the
+  /// BLoC; a plain broadcast stream would lose that first (and often only)
+  /// count until another person joined or left.
+  Stream<int> viewerStream() => Stream<int>.multi((controller) {
+    final int? current = latestViewerCount;
+    if (current != null) controller.add(current);
+    final StreamSubscription<int> subscription = viewers.stream.listen(
+      controller.add,
+      onError: controller.addError,
+      onDone: controller.close,
+    );
+    controller.onCancel = subscription.cancel;
+  });
 
   void close() {
     for (final StreamSubscription<void> sub in rosterSubs) {
@@ -351,6 +380,7 @@ final class _PresenceBinding {
     rosterSubs.clear();
     events.close();
     viewers.close();
+    latestViewerCount = null;
     channel = null;
   }
 }

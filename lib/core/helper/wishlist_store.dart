@@ -13,7 +13,26 @@ class WishlistStore {
 
   final ValueNotifier<Set<int>> ids = ValueNotifier<Set<int>>(<int>{});
 
-  void seed(List<int> venueIds) => ids.value = <int>{...venueIds};
+  /// Venue ids with an in-flight toggle whose API round-trip has not resolved
+  /// yet. While a venue is pending, a [seed] from a (possibly stale) server
+  /// response must not clobber the optimistic flip — otherwise the heart would
+  /// briefly jump back before the toggle persists.
+  final Set<int> _pending = <int>{};
+
+  /// Replaces the set from a canonical source (profile / wishlist fetch), but
+  /// preserves the optimistic decision for any venue whose toggle is still
+  /// in flight so a slow server response can't revert a fresh tap.
+  void seed(List<int> venueIds) {
+    final Set<int> next = <int>{...venueIds};
+    for (final int pendingId in _pending) {
+      if (ids.value.contains(pendingId)) {
+        next.add(pendingId);
+      } else {
+        next.remove(pendingId);
+      }
+    }
+    ids.value = next;
+  }
 
   bool contains(int? venueId) => venueId != null && ids.value.contains(venueId);
 
@@ -24,5 +43,14 @@ class WishlistStore {
     ids.value = next;
   }
 
-  void clear() => ids.value = <int>{};
+  /// Marks [venueId] as having an in-flight toggle so [seed] won't overwrite it.
+  void markPending(int venueId) => _pending.add(venueId);
+
+  /// Clears the in-flight marker once the toggle's API call has resolved.
+  void clearPending(int venueId) => _pending.remove(venueId);
+
+  void clear() {
+    _pending.clear();
+    ids.value = <int>{};
+  }
 }

@@ -39,9 +39,9 @@ void main() async {
     await FcmHelper().syncTokenAfterLogin();
   }
 
-  final bool requiresBiometricUnlock =
-      hasLoggedIn && AppSettings().biometricLogin;
-  final String initialLocation = hasLoggedIn && !requiresBiometricUnlock
+  // Biometric login is only a quick sign-in on the login screen after a
+  // logout — an already signed-in user goes straight to the dashboard.
+  final String initialLocation = hasLoggedIn
       ? AppRouterParams.dashboard.path
       : AppRouterParams.login.path;
 

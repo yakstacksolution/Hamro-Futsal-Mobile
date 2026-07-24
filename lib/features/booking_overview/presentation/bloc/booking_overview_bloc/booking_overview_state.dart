@@ -5,27 +5,23 @@ enum BookingOverviewStatus { initial, loading, success, failure }
 final class BookingOverviewState extends Equatable {
   const BookingOverviewState({
     this.status = BookingOverviewStatus.initial,
-    this.futsals = const [],
-    this.bookings = const [],
+    this.overview,
     this.errorMessage,
   });
 
   final BookingOverviewStatus status;
-  final List<BookingFutsalModel> futsals;
-  final List<BookingRecordModel> bookings;
+  final BookingOverviewResponse? overview;
   final String? errorMessage;
 
   BookingOverviewState copyWith({
     BookingOverviewStatus? status,
-    List<BookingFutsalModel>? futsals,
-    List<BookingRecordModel>? bookings,
+    BookingOverviewResponse? overview,
     String? errorMessage,
     bool clearErrorMessage = false,
   }) {
     return BookingOverviewState(
       status: status ?? this.status,
-      futsals: futsals ?? this.futsals,
-      bookings: bookings ?? this.bookings,
+      overview: overview ?? this.overview,
       errorMessage: clearErrorMessage
           ? null
           : errorMessage ?? this.errorMessage,
@@ -33,5 +29,5 @@ final class BookingOverviewState extends Equatable {
   }
 
   @override
-  List<Object?> get props => [status, futsals, bookings, errorMessage];
+  List<Object?> get props => [status, overview, errorMessage];
 }

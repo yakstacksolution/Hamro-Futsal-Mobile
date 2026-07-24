@@ -1214,9 +1214,23 @@ class _CourtRowV2 extends StatelessWidget {
     final bool currentlyActive = _isCourtActive(court);
     final String nextStatus = currentlyActive ? 'inactive' : 'active';
     final VenueCourtBloc bloc = context.read<VenueCourtBloc>();
-    final Either<AppException, Unit> result = await GetVenueCourtUseCase(
-      VenueCourtRepositoryImpl(),
-    ).updateCourtStatus(courtId, nextStatus);
+    final Either<AppException, Unit> result =
+        await GetVenueCourtUseCase(
+          VenueCourtRepositoryImpl(),
+          // Submit as main step 0 / sub step 0 with that step's required fields;
+          // sending the court's own saved step would trigger validation for that
+          // step's payload (e.g. `slot_schedules` on step 3).
+        ).updateCourtStatus(<String, dynamic>{
+          'court_id': courtId,
+          'status': nextStatus,
+          'main_step': 0,
+          'sub_step': 0,
+          'court_name': court.name.trim(),
+          'base_price': court.basePrice,
+          'court_type': court.courtTypeId,
+          'match_format': court.matchFormatId,
+          'max_player': court.maxPlayers,
+        });
 
     if (!context.mounted) return;
     result.fold(
@@ -1238,14 +1252,10 @@ class _CourtRowV2 extends StatelessWidget {
             ),
           );
         }
-        messenger.showSnackBar(
-          SnackBar(
-            content: Text(
-              currentlyActive
-                  ? 'Court is now inactive.'
-                  : 'Court is now active.',
-            ),
-          ),
+        AppUtils().showSnackBar(
+          context,
+          MsgType.success,
+          currentlyActive ? 'Court is now inactive.' : 'Court is now active.',
         );
       },
     );

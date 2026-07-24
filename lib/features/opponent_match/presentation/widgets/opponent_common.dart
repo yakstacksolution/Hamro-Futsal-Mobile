@@ -100,6 +100,77 @@ class OpponentCard extends StatelessWidget {
   }
 }
 
+/// Plain-language guidance used at the start of opponent-match journeys.
+class OpponentGuidanceCard extends StatelessWidget {
+  const OpponentGuidanceCard({
+    super.key,
+    required this.icon,
+    required this.title,
+    required this.message,
+  });
+
+  final IconData icon;
+  final String title;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    return Container(
+      width: double.infinity,
+      padding: AppUtils().getPadding(all: AppDimens.paddingX12),
+      decoration: BoxDecoration(
+        color: LightColor.secondaryColor.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(AppDimens.radiusX12),
+        border: Border.all(
+          color: LightColor.secondaryColor.withValues(alpha: 0.20),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Container(
+            width: AppDimens.sizeX36,
+            height: AppDimens.sizeX36,
+            decoration: BoxDecoration(
+              color: LightColor.secondaryColor.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              icon,
+              color: LightColor.secondaryColor,
+              size: AppDimens.sizeX20,
+            ),
+          ),
+          const SizedBox(width: AppDimens.paddingX10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  title,
+                  style: textTheme.bodyTextSmall?.copyWith(
+                    color: LightColor.primaryTextColor,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: AppDimens.paddingX4),
+                Text(
+                  message,
+                  style: textTheme.bodyTextSmall?.copyWith(
+                    color: LightColor.secondaryTextColor,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class OpponentSectionLabel extends StatelessWidget {
   const OpponentSectionLabel(this.text, {super.key});
   final String text;

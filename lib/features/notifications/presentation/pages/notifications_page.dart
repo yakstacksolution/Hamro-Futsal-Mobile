@@ -94,9 +94,9 @@ class _NotificationsView extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.fromLTRB(
                     AppDimens.paddingX20,
-                    AppDimens.paddingX8,
+                    AppDimens.paddingX10,
                     AppDimens.paddingX20,
-                    AppDimens.paddingX16,
+                    AppDimens.paddingX14,
                   ),
                   child: NotificationFilterBar(
                     selectedFilter: state.filter,
@@ -124,7 +124,8 @@ class _NotificationsView extends StatelessWidget {
     if (state.status == NotificationStatus.failure &&
         state.notifications.isEmpty) {
       return NotificationErrorView(
-        message: state.errorMessage ?? StringConstants.couldNotLoadNotifications,
+        message:
+            state.errorMessage ?? StringConstants.couldNotLoadNotifications,
         onRetry: () => context.read<NotificationBloc>().add(
           const FetchNotificationsEvent(),
         ),
@@ -180,7 +181,7 @@ class _NotificationsView extends StatelessWidget {
           AppDimens.paddingX20,
           0,
           AppDimens.paddingX20,
-          AppDimens.paddingX28,
+          AppDimens.paddingX32,
         ),
         children: <Widget>[
           if (today.isNotEmpty)

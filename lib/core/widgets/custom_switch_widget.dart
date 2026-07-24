@@ -34,44 +34,40 @@ class CustomSwitchWidget extends StatelessWidget {
     final double thumbSize = height - 4;
     final double trackRadius = height / 2;
 
-    return Semantics(
-      toggled: value,
-      enabled: _isInteractive,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: _handleToggle,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          curve: Curves.easeOut,
-          width: width,
-          height: height,
-          padding: const EdgeInsets.all(2),
-          decoration: BoxDecoration(
-            color: value ? activeColor : inactiveColor,
-            borderRadius: BorderRadius.circular(trackRadius),
-          ),
-          child: Stack(
-            alignment: value ? Alignment.centerRight : Alignment.centerLeft,
-            children: [
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 180),
-                curve: Curves.easeOut,
-                width: thumbSize,
-                height: thumbSize,
-                decoration: BoxDecoration(
-                  color: thumbColor,
-                  shape: BoxShape.circle,
-                  boxShadow: const [
-                    BoxShadow(
-                      color: LightColor.shadowColor,
-                      blurRadius: 4,
-                      offset: Offset(0, 1),
-                    ),
-                  ],
-                ),
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: _handleToggle,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
+        width: width,
+        height: height,
+        padding: const EdgeInsets.all(2),
+        decoration: BoxDecoration(
+          color: value ? activeColor : inactiveColor,
+          borderRadius: BorderRadius.circular(trackRadius),
+        ),
+        child: Stack(
+          alignment: value ? Alignment.centerRight : Alignment.centerLeft,
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              curve: Curves.easeOut,
+              width: thumbSize,
+              height: thumbSize,
+              decoration: BoxDecoration(
+                color: thumbColor,
+                shape: BoxShape.circle,
+                boxShadow: const [
+                  BoxShadow(
+                    color: LightColor.shadowColor,
+                    blurRadius: 4,
+                    offset: Offset(0, 1),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

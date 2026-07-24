@@ -2,18 +2,23 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import 'package:hamro_footsall/core/routers/app_router_params.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/custom_image_view.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/utils/image_constants.dart';
 import 'package:hamro_footsall/core/widgets/custom_bottom_sheet.dart';
 import 'package:hamro_footsall/core/widgets/custom_button.dart';
+import 'package:hamro_footsall/core/widgets/custom_confirm_dialog.dart';
 import 'package:hamro_footsall/core/widgets/custom_delete_dialog.dart';
 import 'package:hamro_footsall/core/widgets/custom_text_field.dart';
 import 'package:hamro_footsall/core/widgets/loading_widget.dart';
 import 'package:hamro_footsall/features/courts/data/repositories/venue_court_repository_impl.dart';
 import 'package:hamro_footsall/features/courts/domain/usecase/get_venue_court_use_case.dart';
+import 'package:hamro_footsall/features/dashboard/presentation/page/dashboard_screen.dart';
 import 'package:hamro_footsall/features/public/data/repositories/public_repository_impl.dart';
 import 'package:hamro_footsall/features/public/domain/usecase/get_public_templates_use_case.dart';
 import 'package:hamro_footsall/features/public/presentation/bloc/public_templates/public_templates_bloc.dart';
@@ -290,12 +295,10 @@ class VendorCourtManager extends StatelessWidget {
                   const SizedBox(height: AppDimens.sizeX10),
               itemBuilder: (BuildContext context, int index) {
                 final CourtDraft court = state.courts[index];
-                final int completedSections = _completedSectionCount(court);
                 return _CourtListTile(
                   court: court,
                   isSelected: state.activeCourtId == court.id,
-                  completedSections: completedSections,
-                  totalSections: courtSectionDefinitions.length,
+                  progress: _courtProgress(court),
                   onTap: () => unawaited(_openCourtEditor(context, court.id)),
                   onRemove: () => _confirmRemoveCourt(
                     context,
@@ -312,19 +315,36 @@ class VendorCourtManager extends StatelessWidget {
     );
   }
 
-  int _completedSectionCount(CourtDraft court) {
-    int completedSections = 0;
-    for (
-      int sectionIndex = 0;
-      sectionIndex < courtSectionDefinitions.length;
-      sectionIndex++
-    ) {
-      if (cubit.courtSectionStatus(court.id, sectionIndex) ==
-          StepStatus.complete) {
-        completedSections++;
-      }
+  double _courtProgress(CourtDraft court) {
+    if (court.isStepCompleted) return 1;
+
+    final int totalSubsteps = courtSectionDefinitions.fold<int>(
+      0,
+      (int total, VendorSectionDefinition section) =>
+          total + section.substeps.length,
+    );
+    if (totalSubsteps == 0) return 0;
+
+    final int? mainStep = court.mainStep;
+    final int? subStep = court.subStep;
+    if (mainStep == null || subStep == null) return 0;
+
+    final int safeMainStep = mainStep.clamp(
+      0,
+      courtSectionDefinitions.length - 1,
+    );
+    int completedSubsteps = 0;
+    for (int index = 0; index < safeMainStep; index++) {
+      completedSubsteps += courtSectionDefinitions[index].substeps.length;
     }
-    return completedSections;
+
+    final int safeSubStep = subStep.clamp(
+      0,
+      courtSectionDefinitions[safeMainStep].substeps.length - 1,
+    );
+    completedSubsteps += safeSubStep + 1;
+
+    return (completedSubsteps / totalSubsteps).clamp(0, 1);
   }
 }
 
@@ -428,16 +448,14 @@ class _CourtListTile extends StatelessWidget {
   const _CourtListTile({
     required this.court,
     required this.isSelected,
-    required this.completedSections,
-    required this.totalSections,
+    required this.progress,
     required this.onTap,
     required this.onRemove,
   });
 
   final CourtDraft court;
   final bool isSelected;
-  final int completedSections;
-  final int totalSections;
+  final double progress;
   final VoidCallback onTap;
   final VoidCallback onRemove;
 
@@ -448,12 +466,8 @@ class _CourtListTile extends StatelessWidget {
     final String courtName = court.name.trim().isEmpty
         ? 'Unnamed Court'
         : court.name.trim();
-    final bool isComplete =
-        totalSections > 0 && completedSections == totalSections;
-    final double progress = totalSections == 0
-        ? 0
-        : (completedSections / totalSections).clamp(0, 1);
     final int progressPercent = (progress * 100).round();
+    final bool isComplete = progressPercent == 100;
 
     final UploadRef? coverImage = court.photos.isNotEmpty
         ? court.photos.first
@@ -531,6 +545,7 @@ class _CourtListTile extends StatelessWidget {
                               label:
                                   '$slotCount ${slotCount == 1 ? 'slot' : 'slots'}',
                             ),
+                            _CourtStatusChip(isActive: court.isActive),
                           ],
                         ),
                       ],
@@ -577,6 +592,48 @@ class _CourtListTile extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _CourtStatusChip extends StatelessWidget {
+  const _CourtStatusChip({required this.isActive});
+
+  final bool isActive;
+
+  @override
+  Widget build(BuildContext context) {
+    final Color color = isActive
+        ? LightColor.secondaryColor
+        : LightColor.secondaryTextColor;
+    return Container(
+      padding: AppUtils().getPadding(
+        horizontal: AppDimens.paddingX6,
+        vertical: AppDimens.paddingX4,
+      ),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(AppDimens.radiusX4),
+        border: Border.all(color: color.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Icon(
+            isActive ? Icons.check_circle_rounded : Icons.pause_circle_rounded,
+            size: AppDimens.sizeX12,
+            color: color,
+          ),
+          const SizedBox(width: AppDimens.sizeX4),
+          Text(
+            isActive ? StringConstants.active : StringConstants.inactive,
+            style: FutsalTheme.getTextTheme(context).bodyMiniSubTitle?.copyWith(
+              color: color,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -702,6 +759,34 @@ class CourtOnboardingPageState extends State<CourtOnboardingPage> {
     });
   }
 
+  Future<void> _confirmExitToHome() async {
+    final bool shouldExit = await showConfirmDialog(
+      context: context,
+      title: 'Save changes & exit?',
+      message:
+          'Your current court setup progress will be saved before returning home.',
+      confirmText: 'Save & go home',
+      cancelText: 'Stay here',
+      iconWidget: const Padding(
+        padding: EdgeInsets.all(8.0),
+        child: CustomImageView(
+          imagePath: ImageConstants.navHomeFill,
+          width: AppDimens.sizeX28,
+          height: AppDimens.sizeX20,
+          fit: BoxFit.contain,
+          color: LightColor.secondaryColor,
+        ),
+      ),
+    );
+    if (!mounted || !shouldExit) return;
+
+    final String? failure = await _cubit.saveProgressBeforeExit();
+    if (!mounted || failure != null) return;
+
+    DashboardScreen.selectedNavIndex.value = 0;
+    context.goNamed(AppRouterParams.dashboard.name);
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<VendorOnboardingCubit, VendorOnboardingState>(
@@ -735,6 +820,20 @@ class CourtOnboardingPageState extends State<CourtOnboardingPage> {
             elevation: 0,
             surfaceTintColor: LightColor.background,
             foregroundColor: LightColor.primaryTextColor,
+            actions: <Widget>[
+              IconButton(
+                tooltip: 'Home',
+                onPressed: state.isSubmitting ? null : _confirmExitToHome,
+                icon: const CustomImageView(
+                  imagePath: ImageConstants.navHome,
+                  width: AppDimens.sizeX22,
+                  height: AppDimens.sizeX22,
+                  fit: BoxFit.contain,
+                  color: LightColor.secondaryColor,
+                ),
+              ),
+              const SizedBox(width: AppDimens.sizeX8),
+            ],
           ),
           bottomNavigationBar: (court == null || state.isLoadingCourtDetails)
               ? null
@@ -780,8 +879,9 @@ class CourtOnboardingPageState extends State<CourtOnboardingPage> {
                     keyboardDismissBehavior:
                         ScrollViewKeyboardDismissBehavior.onDrag,
                     padding: AppUtils().getPadding(
-                      horizontal: AppDimens.paddingX12,
-                      vertical: AppDimens.paddingX10,
+                      left: AppDimens.paddingX12,
+                      top: AppDimens.paddingX10,
+                      right: AppDimens.paddingX12,
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -794,7 +894,7 @@ class CourtOnboardingPageState extends State<CourtOnboardingPage> {
                           errorSpacing: AppDimens.sizeX10,
                           contentSpacing: AppDimens.sizeX12,
                         ),
-                        const SizedBox(height: AppDimens.sizeX90),
+                        const SizedBox(height: 30),
                       ],
                     ),
                   ),

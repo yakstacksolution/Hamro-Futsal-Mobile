@@ -28,6 +28,7 @@ import 'package:hamro_footsall/features/public/data/model/public_venue_model.dar
 import 'package:hamro_footsall/features/public/data/repositories/public_repository_impl.dart';
 import 'package:hamro_footsall/features/public/domain/usecase/get_public_venues_use_case.dart';
 import 'package:hamro_footsall/features/public/presentation/bloc/public_venue/public_venue_bloc.dart';
+import 'package:hamro_footsall/features/opponent_match/presentation/widgets/venue_search_sheet.dart';
 
 enum _VenuePlan { alreadyBooked, findAvailable }
 
@@ -280,6 +281,31 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
     );
   }
 
+  Future<void> _pickPreferredVenue() async {
+    // Ensure the venue list is being (or has been) loaded before opening.
+    if (_publicVenueBloc.state.status == PublicVenueStatus.idle) {
+      _publicVenueBloc.add(const FetchPublicVenuesEvent());
+    }
+
+    final PublicListingVenueModel? selected = await showVenueSearchSheet(
+      context,
+      bloc: _publicVenueBloc,
+    );
+    if (selected == null || !mounted) return;
+
+    setState(() {
+      _preferredVenue = selected;
+      final String name = selected.name?.trim() ?? '';
+      final String location = selected.exactLocation?.trim().isNotEmpty == true
+          ? selected.exactLocation!.trim()
+          : selected.address?.trim() ?? '';
+      _preferredVenueCtrl.text = <String>[
+        name,
+        location,
+      ].where((String value) => value.isNotEmpty).join(', ');
+    });
+  }
+
   String _venueLabel(
     PublicListingVenueModel venue, {
     required String courtName,
@@ -365,6 +391,13 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
                   bottom: AppDimens.paddingX28,
                 ),
                 children: [
+                  const OpponentGuidanceCard(
+                    icon: Icons.campaign_outlined,
+                    title: 'Create an opponent request',
+                    message:
+                        'Tell other teams when and where you want to play. After you send it, track the response under My Requests.',
+                  ),
+                  const SizedBox(height: AppDimens.paddingX18),
                   const OpponentSectionLabel('Team'),
                   OpponentCard(
                     child: CustomDropdownField<TeamModel>(
@@ -593,7 +626,7 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
                                                     .secondaryTextColor,
                                               ),
                                               readOnly: true,
-                                              // onTap: _pickPreferredVenue,
+                                              onTap: _pickPreferredVenue,
                                               autovalidateMode: _submitted
                                                   ? AutovalidateMode.always
                                                   : AutovalidateMode.disabled,

@@ -7,8 +7,9 @@ import 'package:hamro_footsall/core/socket/reverb_connection.dart';
 import 'package:hamro_footsall/features/bookings/presentation/pages/bookings_page.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/page/footsall_home_page.dart';
 import 'package:hamro_footsall/features/message/presentation/pages/messages_page.dart';
+import 'package:hamro_footsall/features/notifications/data/repositories/notification_repository_impl.dart';
+import 'package:hamro_footsall/features/notifications/domain/repository/notification_repository.dart';
 import 'package:hamro_footsall/features/wishlist/presentation/pages/wishlist_page.dart';
-import 'package:hamro_footsall/features/dashboard/presentation/widgets/app_drawer.dart';
 import 'package:hamro_footsall/core/routers/app_router_params.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
@@ -36,19 +37,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
       DashboardScreen.selectedNavIndex;
   final ValueNotifier<VenueFilter> _venueFilterNotifier =
       ValueNotifier<VenueFilter>(VenueFilter.empty);
-  static const DashboardUser _user = DashboardUser(
-    id: 'USR-1024',
-    name: 'Hamro Futsal',
-    email: 'merchant@hamrofutsal.com',
-  );
-
   bool _hasHandledVendorOnboarding = false;
+  bool _hasUnreadNotifications = false;
+  int _notificationRefreshGeneration = 0;
 
   @override
   void initState() {
     super.initState();
     ReverbConnection.instance.connect();
     VenueDistanceHelper.instance.ensurePosition();
+    _refreshNotificationBadge();
+  }
+
+  Future<void> _refreshNotificationBadge() async {
+    final int generation = ++_notificationRefreshGeneration;
+    final result = await NotificationRepositoryImpl().getNotifications(
+      filter: NotificationFilter.all,
+      perPage: 1,
+    );
+    if (!mounted || generation != _notificationRefreshGeneration) return;
+
+    result.fold(
+      (_) {},
+      (page) => setState(() => _hasUnreadNotifications = page.unreadCount > 0),
+    );
+  }
+
+  Future<void> _openNotifications() async {
+    await context.pushNamed(AppRouterParams.notifications.name);
+    if (!mounted) return;
+    await _refreshNotificationBadge();
   }
 
   static const List<BoxShadow> _cardShadow = <BoxShadow>[
@@ -142,7 +160,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final String firstName =
         profileState.profile?.data.fullName.trim().isNotEmpty == true
         ? profileState.profile!.data.fullName.split(' ').first
-        : _user.name.split(' ').first;
+        : 'there';
 
     return Padding(
       padding: appUtils.getPadding(
@@ -167,25 +185,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
               _buildActionIcon(
                 Icons.notifications_outlined,
                 color: LightColor.secondaryColor,
-                onTap: () =>
-                    context.pushNamed(AppRouterParams.notifications.name),
+                onTap: _openNotifications,
               ),
-              Positioned(
-                top: -2,
-                right: -2,
-                child: Container(
-                  width: AppDimens.sizeX10,
-                  height: AppDimens.sizeX10,
-                  decoration: BoxDecoration(
-                    color: LightColor.redColor,
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: LightColor.whiteColor,
-                      width: AppDimens.sizeX2,
+              if (_hasUnreadNotifications)
+                Positioned(
+                  top: -2,
+                  right: -2,
+                  child: Container(
+                    width: AppDimens.sizeX10,
+                    height: AppDimens.sizeX10,
+                    decoration: BoxDecoration(
+                      color: LightColor.redColor,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: LightColor.whiteColor,
+                        width: AppDimens.sizeX2,
+                      ),
                     ),
                   ),
                 ),
-              ),
             ],
           ),
         ],
@@ -277,7 +295,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     opacity: anim,
                                     child: SizeTransition(
                                       sizeFactor: anim,
-                                      axisAlignment: -1,
+                                      alignment: Alignment.topCenter,
                                       child: child,
                                     ),
                                   );

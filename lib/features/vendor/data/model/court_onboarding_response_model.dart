@@ -161,6 +161,9 @@ final class CourtOnboardingResponseModel {
       slug: slug,
       code: code,
       status: status,
+      isActive: status == null
+          ? null
+          : status!.trim().toLowerCase() != 'inactive',
       bookingPolicies: bookingPolicies,
       courtRules: courtRules,
       cancellationPolicy: cancellationPolicy,

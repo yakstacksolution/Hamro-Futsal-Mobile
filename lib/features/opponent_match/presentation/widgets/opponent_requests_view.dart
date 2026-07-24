@@ -25,7 +25,7 @@ enum RequestFilter { all, open, mine, settled }
 extension RequestFilterX on RequestFilter {
   String get label => switch (this) {
     RequestFilter.all => 'All',
-    RequestFilter.open => 'Open',
+    RequestFilter.open => 'Need Opponent',
     RequestFilter.mine => 'My Requests',
     RequestFilter.settled => 'Settled',
   };
@@ -67,6 +67,12 @@ class OpponentRequestsView extends StatelessWidget {
           requests.where((r) => r.status.isSettled && !_isMine(r)).length,
       };
 
+  /// Who this card's chat talks to: on my own requests it's the accepting
+  /// captain (once someone accepts); on incoming requests it's the requester.
+  /// 0 means nobody to chat with yet, so the button stays hidden.
+  int _chatPeerId(OpponentRequestModel r) =>
+      _isMine(r) ? r.acceptedByUserId : r.requesterUserId;
+
   /// Accept → full "Accept & Pay" page (team confirm + advance payment).
   /// A successful accept pops with the updated request, patched in place.
   Future<void> _openAcceptFlow(
@@ -101,6 +107,20 @@ class OpponentRequestsView extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            const Padding(
+              padding: EdgeInsets.fromLTRB(
+                AppDimens.paddingX20,
+                0,
+                AppDimens.paddingX20,
+                AppDimens.paddingX10,
+              ),
+              child: OpponentGuidanceCard(
+                icon: Icons.sports_soccer_rounded,
+                title: 'Find a team or respond to a challenge',
+                message:
+                    'Need Opponent shows teams you can play. My Requests shows challenges sent by your team. To accept, choose your team and pay the displayed advance by QR.',
+              ),
+            ),
             SizedBox(
               height: AppDimens.sizeX32,
               child: ListView.separated(
@@ -143,10 +163,10 @@ class OpponentRequestsView extends StatelessWidget {
                           key: ValueKey(request.id),
                           request: request,
                           onAccept: () => _openAcceptFlow(context, request),
-                          onMessage: request.requesterUserId > 0
+                          onMessage: _chatPeerId(request) > 0
                               ? () => ChatLauncher.startDirectUser(
                                   context,
-                                  userId: request.requesterUserId,
+                                  userId: _chatPeerId(request),
                                 )
                               : null,
                           onDelete: () =>
@@ -181,8 +201,8 @@ class OpponentRequestCard extends StatefulWidget {
   final VoidCallback onDelete;
   final VoidCallback onExpire;
 
-  /// Opens a direct chat with the requester; hidden when null (own requests
-  /// or no requester id).
+  /// Opens a direct chat with the request's counterparty (the requester on
+  /// incoming requests, the accepting captain on my own); hidden when null.
   final VoidCallback? onMessage;
 
   @override
@@ -461,8 +481,8 @@ class _OpponentRequestCardState extends State<OpponentRequestCard> {
                 Padding(
                   padding: const EdgeInsets.only(bottom: AppDimens.paddingX6),
                   child: _ActionButton(
-                    icon: Icons.check_rounded,
-                    label: StringConstants.accept,
+                    icon: Icons.qr_code_2_rounded,
+                    label: 'Accept & Pay Advance',
                     foreground: LightColor.whiteColor,
                     background: LightColor.secondaryColor,
                     glow: true,
@@ -525,10 +545,9 @@ class _FooterNote extends StatelessWidget {
             child: Text(
               label,
               textAlign: TextAlign.center,
-              style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
-                color: fg,
-                fontWeight: FontWeight.w500,
-              ),
+              style: FutsalTheme.getTextTheme(
+                context,
+              ).bodyTextSmall?.copyWith(color: fg, fontWeight: FontWeight.w500),
             ),
           ),
         ],

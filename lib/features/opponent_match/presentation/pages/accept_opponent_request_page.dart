@@ -13,6 +13,7 @@ import 'package:hamro_footsall/core/widgets/custom_app_bar.dart';
 import 'package:hamro_footsall/core/widgets/custom_button.dart';
 import 'package:hamro_footsall/core/widgets/custom_text_field.dart';
 import 'package:hamro_footsall/core/widgets/payment_qr_card.dart';
+import 'package:hamro_footsall/features/message/presentation/pages/chat_launcher.dart';
 import 'package:hamro_footsall/features/opponent_match/data/model/accept_opponent_request_request.dart';
 import 'package:hamro_footsall/features/opponent_match/data/model/opponent_accept_quote_model.dart';
 import 'package:hamro_footsall/features/opponent_match/data/model/opponent_match_model.dart';
@@ -176,66 +177,179 @@ class _AcceptOpponentRequestPageState extends State<AcceptOpponentRequestPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: LightColor.background,
-      appBar: const CustomAppBar(title: StringConstants.acceptAndPay),
+      appBar: CustomAppBar(
+        title: StringConstants.acceptAndPay,
+        actions: [
+          // Vet the requester (confirm squad, timing, split) before paying
+          // the advance.
+          if (widget.request.requesterUserId > 0)
+            IconButton(
+              tooltip: 'Message ${widget.request.requesterName}'.trim(),
+              icon: const Icon(Icons.chat_bubble_outline_rounded),
+              onPressed: () => ChatLauncher.startDirectUser(
+                context,
+                userId: widget.request.requesterUserId,
+              ),
+            ),
+        ],
+      ),
       body: SafeArea(
         top: false,
-        child:
-            BlocConsumer<AcceptOpponentRequestBloc, AcceptRequestState>(
-              listener: (context, state) {
-                if (state.submitStatus == AcceptRequestStatus.success &&
-                    state.result != null) {
-                  AppUtils().showSnackBar(
-                    context,
-                    MsgType.success,
-                    StringConstants.advanceSubmittedPendingVerification,
-                  );
-                  Navigator.of(context).pop(state.result);
-                  return;
-                }
-                if (state.submitStatus == AcceptRequestStatus.failure ||
-                    state.quoteStatus == AcceptRequestStatus.failure) {
-                  _handleTerminalError(state);
-                }
-              },
-              builder: (context, state) {
-                final quote = state.quote;
-                final bool onPayStep =
-                    state.quoteStatus == AcceptRequestStatus.success &&
-                    quote != null;
-                return AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 200),
-                  child: onPayStep
-                      ? _PaymentStep(
-                          key: const ValueKey('pay'),
-                          request: widget.request,
-                          quote: quote,
-                          team: _team,
-                          paymentDoc: _paymentDoc,
-                          agreedToTerms: _agreedToTerms,
-                          noteCtrl: _noteCtrl,
-                          submitting:
-                              state.submitStatus == AcceptRequestStatus.loading,
-                          onPick: _pickPaymentDoc,
-                          onRemoveDoc: () =>
-                              setState(() => _paymentDoc = null),
-                          onTerms: (v) => setState(() => _agreedToTerms = v),
-                          onHoldExpired: _onHoldExpired,
-                          onSubmit: () => _submit(quote),
-                        )
-                      : _TeamStep(
-                          key: const ValueKey('team'),
-                          request: widget.request,
-                          selected: _team,
-                          formatSize: _formatSize,
-                          loadingQuote:
-                              state.quoteStatus == AcceptRequestStatus.loading,
-                          onSelect: (t) => setState(() => _team = t),
-                          onContinue: _continueToPayment,
-                        ),
-                );
-              },
-            ),
+        child: BlocConsumer<AcceptOpponentRequestBloc, AcceptRequestState>(
+          listener: (context, state) {
+            if (state.submitStatus == AcceptRequestStatus.success &&
+                state.result != null) {
+              AppUtils().showSnackBar(
+                context,
+                MsgType.success,
+                StringConstants.advanceSubmittedPendingVerification,
+              );
+              Navigator.of(context).pop(state.result);
+              return;
+            }
+            if (state.submitStatus == AcceptRequestStatus.failure ||
+                state.quoteStatus == AcceptRequestStatus.failure) {
+              _handleTerminalError(state);
+            }
+          },
+          builder: (context, state) {
+            final quote = state.quote;
+            final bool onPayStep =
+                state.quoteStatus == AcceptRequestStatus.success &&
+                quote != null;
+            return AnimatedSwitcher(
+              duration: const Duration(milliseconds: 200),
+              child: onPayStep
+                  ? _PaymentStep(
+                      key: const ValueKey('pay'),
+                      request: widget.request,
+                      quote: quote,
+                      team: _team,
+                      paymentDoc: _paymentDoc,
+                      agreedToTerms: _agreedToTerms,
+                      noteCtrl: _noteCtrl,
+                      submitting:
+                          state.submitStatus == AcceptRequestStatus.loading,
+                      onPick: _pickPaymentDoc,
+                      onRemoveDoc: () => setState(() => _paymentDoc = null),
+                      onTerms: (v) => setState(() => _agreedToTerms = v),
+                      onHoldExpired: _onHoldExpired,
+                      onSubmit: () => _submit(quote),
+                    )
+                  : _TeamStep(
+                      key: const ValueKey('team'),
+                      request: widget.request,
+                      selected: _team,
+                      formatSize: _formatSize,
+                      loadingQuote:
+                          state.quoteStatus == AcceptRequestStatus.loading,
+                      onSelect: (t) => setState(() => _team = t),
+                      onContinue: _continueToPayment,
+                    ),
+            );
+          },
+        ),
       ),
+    );
+  }
+}
+
+class _AcceptProgress extends StatelessWidget {
+  const _AcceptProgress({required this.currentStep});
+
+  final int currentStep;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: <Widget>[
+        Expanded(
+          child: _ProgressStep(
+            number: 1,
+            label: 'Choose team',
+            active: currentStep >= 1,
+            complete: currentStep > 1,
+          ),
+        ),
+        Container(
+          width: AppDimens.sizeX24,
+          height: 2,
+          color: currentStep > 1
+              ? LightColor.secondaryColor
+              : LightColor.dividerColor,
+        ),
+        Expanded(
+          child: _ProgressStep(
+            number: 2,
+            label: 'Pay advance',
+            active: currentStep >= 2,
+            complete: false,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ProgressStep extends StatelessWidget {
+  const _ProgressStep({
+    required this.number,
+    required this.label,
+    required this.active,
+    required this.complete,
+  });
+
+  final int number;
+  final String label;
+  final bool active;
+  final bool complete;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    final Color color = active
+        ? LightColor.secondaryColor
+        : LightColor.hintTextColor;
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: <Widget>[
+        Container(
+          width: AppDimens.sizeX28,
+          height: AppDimens.sizeX28,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: active ? LightColor.secondaryColor : LightColor.cardColor,
+            shape: BoxShape.circle,
+            border: Border.all(color: color),
+          ),
+          child: complete
+              ? const Icon(
+                  Icons.check_rounded,
+                  size: AppDimens.sizeX16,
+                  color: LightColor.whiteColor,
+                )
+              : Text(
+                  '$number',
+                  style: textTheme.bodyTextSmall?.copyWith(
+                    color: active
+                        ? LightColor.whiteColor
+                        : LightColor.hintTextColor,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+        ),
+        const SizedBox(width: AppDimens.paddingX6),
+        Flexible(
+          child: Text(
+            label,
+            overflow: TextOverflow.ellipsis,
+            style: textTheme.bodyTextSmall?.copyWith(
+              color: color,
+              fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -277,11 +391,18 @@ class _TeamStep extends StatelessWidget {
                   bottom: AppDimens.paddingX20,
                 ),
                 children: [
+                  const _AcceptProgress(currentStep: 1),
+                  const SizedBox(height: AppDimens.paddingX14),
+                  const OpponentGuidanceCard(
+                    icon: Icons.groups_2_outlined,
+                    title: 'Choose the team that will play',
+                    message:
+                        'Review the match details, then select one of your teams. You will see the exact advance amount before paying.',
+                  ),
+                  const SizedBox(height: AppDimens.paddingX18),
                   _RequestSummaryCard(request: request),
                   const SizedBox(height: AppDimens.paddingX18),
-                  const OpponentSectionLabel(
-                    StringConstants.whichTeamWillPlay,
-                  ),
+                  const OpponentSectionLabel(StringConstants.whichTeamWillPlay),
                   if (state.teamsStatus == OpponentMatchStatus.loading &&
                       teams.isEmpty)
                     const Padding(
@@ -426,9 +547,7 @@ class _TeamOption extends StatelessWidget {
                             borderRadius: BorderRadius.circular(
                               AppDimens.radiusX6,
                             ),
-                            border: Border.all(
-                              color: LightColor.dividerColor,
-                            ),
+                            border: Border.all(color: LightColor.dividerColor),
                           ),
                           child: Text(
                             '${p.name} · ${p.position.abbr}',
@@ -561,6 +680,8 @@ class _PaymentStepState extends State<_PaymentStep> {
               bottom: AppDimens.paddingX20,
             ),
             children: [
+              const _AcceptProgress(currentStep: 2),
+              const SizedBox(height: AppDimens.paddingX14),
               if (quote.holdExpiresAt != null)
                 OpponentCountdownPill(
                   value: _remainingLabel,
@@ -597,14 +718,21 @@ class _PaymentStepState extends State<_PaymentStep> {
                 ),
               ),
               const SizedBox(height: AppDimens.paddingX18),
-              const OpponentSectionLabel('Payment'),
+              const OpponentGuidanceCard(
+                icon: Icons.qr_code_scanner_rounded,
+                title: 'Pay the advance in 3 simple steps',
+                message:
+                    '1. Scan the QR and pay the exact amount.\n2. Take a screenshot or save the receipt.\n3. Upload the proof below and submit your acceptance.',
+              ),
+              const SizedBox(height: AppDimens.paddingX18),
+              const OpponentSectionLabel('1. Scan QR and pay'),
               PaymentQrCard(
                 qr: quote.paymentQr,
                 amountLabel: StringConstants.advanceToPay,
                 amountValue: OpponentFmt.npr(quote.advancePayableNow),
               ),
               const SizedBox(height: AppDimens.paddingX18),
-              const OpponentSectionLabel(StringConstants.paymentProof),
+              const OpponentSectionLabel('2. Upload payment proof'),
               _ProofTile(
                 file: widget.paymentDoc,
                 onPick: widget.onPick,
@@ -665,7 +793,7 @@ class _PaymentStepState extends State<_PaymentStep> {
           ),
         ),
         _BottomAction(
-          text: StringConstants.submitAndAccept,
+          text: 'Submit Proof & Accept Match',
           icon: Icons.check_rounded,
           busy: widget.submitting,
           enabled: widget.paymentDoc != null && widget.agreedToTerms,
@@ -703,13 +831,14 @@ class _QuoteRow extends StatelessWidget {
         ),
         Text(
           value,
-          style: (emphasised ? textTheme.bodyTextMedium : textTheme.bodyTextSmall)
-              ?.copyWith(
-                color: emphasised
-                    ? LightColor.secondaryColor
-                    : LightColor.primaryTextColor,
-                fontWeight: emphasised ? FontWeight.w800 : FontWeight.w600,
-              ),
+          style:
+              (emphasised ? textTheme.bodyTextMedium : textTheme.bodyTextSmall)
+                  ?.copyWith(
+                    color: emphasised
+                        ? LightColor.secondaryColor
+                        : LightColor.primaryTextColor,
+                    fontWeight: emphasised ? FontWeight.w800 : FontWeight.w600,
+                  ),
         ),
       ],
     );
@@ -750,9 +879,7 @@ class _ProofTile extends StatelessWidget {
           child: Row(
             children: [
               Icon(
-                picked == null
-                    ? Icons.upload_file_rounded
-                    : Icons.task_rounded,
+                picked == null ? Icons.upload_file_rounded : Icons.task_rounded,
                 color: picked == null
                     ? LightColor.hintTextColor
                     : LightColor.secondaryColor,

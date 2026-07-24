@@ -60,6 +60,7 @@ class LoggingInterceptor extends Interceptor {
             statusCode = 552;
             break;
           case DioExceptionType.receiveTimeout:
+          case DioExceptionType.transformTimeout:
             statusCode = 504;
             break;
           case DioExceptionType.badCertificate:

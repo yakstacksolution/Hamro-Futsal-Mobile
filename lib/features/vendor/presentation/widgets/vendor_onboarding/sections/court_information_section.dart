@@ -4,8 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_quill_delta_from_html/flutter_quill_delta_from_html.dart';
+import 'package:hamro_footsall/core/theme/app_colors.dart';
+import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/widgets/custom_switch_widget.dart';
 import 'package:hamro_footsall/core/widgets/loading_widget.dart';
 import 'package:vsc_quill_delta_to_html/vsc_quill_delta_to_html.dart';
 import 'package:hamro_footsall/core/widgets/custom_quill_editor.dart';
@@ -130,7 +133,7 @@ class _CourtBasicInfoSubsectionState extends State<_CourtBasicInfoSubsection> {
         ? _nameFocus
         : court.basePrice == null
         ? _basePriceFocus
-        : null; // court type is a dropdown — nothing to focus
+        : null;
     if (target == null) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) target.requestFocus();
@@ -298,6 +301,12 @@ class _CourtBasicInfoForm extends StatelessWidget {
               ),
             ),
             const SizedBox(height: AppDimens.sizeX16),
+            _CourtStatusToggle(
+              isActive: court.isActive,
+              onChanged: (bool value) =>
+                  cubit.updateActiveCourt(court.copyWith(isActive: value)),
+            ),
+            const SizedBox(height: AppDimens.sizeX16),
           ],
         ),
       ),
@@ -393,6 +402,62 @@ class _CourtBasicInfoForm extends StatelessWidget {
       }
     }
     return options.first;
+  }
+}
+
+class _CourtStatusToggle extends StatelessWidget {
+  const _CourtStatusToggle({required this.isActive, required this.onChanged});
+
+  final bool isActive;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    return Container(
+      padding: AppUtils().getPadding(all: AppDimens.paddingX12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+        border: Border.all(color: LightColor.borderColor, width: 0.7),
+      ),
+      child: Row(
+        children: <Widget>[
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  StringConstants.courtStatus,
+                  style: textTheme.bodyTextMedium?.copyWith(
+                    color: LightColor.primaryTextColor,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: AppDimens.sizeX2),
+                Text(
+                  StringConstants.inactiveCourtsAreHiddenFromPlayers,
+                  style: textTheme.bodyTextSmall?.copyWith(
+                    color: LightColor.secondaryTextColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: AppDimens.sizeX12),
+          Text(
+            isActive ? StringConstants.active : StringConstants.inactive,
+            style: textTheme.bodyTextSmall?.copyWith(
+              color: isActive
+                  ? LightColor.secondaryColor
+                  : LightColor.secondaryTextColor,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(width: AppDimens.sizeX8),
+          CustomSwitchWidget(value: isActive, onChanged: onChanged),
+        ],
+      ),
+    );
   }
 }
 
