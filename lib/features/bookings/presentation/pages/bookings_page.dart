@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import 'package:hamro_footsall/core/routers/app_router_params.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
@@ -58,7 +60,9 @@ class _BookingsViewState extends State<_BookingsView> {
   _BookingTab _activeTab = _BookingTab.futsal;
   late final PageController _pageController;
   BookingStatus? _selectedFilter;
-  BookingDateOrder _dateOrder = BookingDateOrder.ascending;
+  // Newest bookings first — the most recent activity is what vendors and
+  // players look for when they open the list.
+  BookingDateOrder _dateOrder = BookingDateOrder.descending;
   DateTime? _fromDate;
   DateTime? _toDate;
   late DateTime _futsalDate;
@@ -282,8 +286,65 @@ class _BookingsViewState extends State<_BookingsView> {
     }
   }
 
+  /// Opens the manual (walk-in) booking flow. It pops `true` once a booking is
+  /// created, so the futsal list is refreshed to show it straight away.
+  Future<void> _openManualBooking() async {
+    final bool? created = await context.pushNamed<bool>(
+      AppRouterParams.manualBooking.name,
+    );
+    if (created != true || !mounted) return;
+    context.read<BookingBloc>().add(
+      const FetchFutsalBookingsEvent(silent: true),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    // The dashboard hosts this page, so the FAB lives in a Stack rather than a
+    // nested Scaffold — walk-in bookings are a vendor-only action on the futsal
+    // tab, so it is hidden everywhere else.
+    if (!widget.isCandidate && _activeTab == _BookingTab.futsal) {
+      return Stack(
+        children: <Widget>[
+          _buildBody(context),
+          Positioned(
+            right: AppDimens.paddingX16,
+            // The dashboard paints its bottom navigation bar as a sibling laid
+            // over this content, so the button must clear the bar's height plus
+            // the system inset — at `paddingX16` it hides behind the bar.
+            bottom:
+                AppDimens.sizeX70 + MediaQuery.viewPaddingOf(context).bottom,
+            // Same compact pill as the expenses screen's "New Expense" action.
+            child: SizedBox(
+              height: 44,
+              child: FloatingActionButton.extended(
+                key: const Key('manual-booking-fab'),
+                heroTag: 'manual-booking-fab',
+                onPressed: _openManualBooking,
+                backgroundColor: LightColor.secondaryColor,
+                foregroundColor: LightColor.whiteColor,
+                elevation: 0,
+                extendedPadding: const EdgeInsets.symmetric(horizontal: 16),
+                shape: const StadiumBorder(),
+                icon: const Icon(Icons.add_rounded, size: 18),
+                label: Text(
+                  StringConstants.manualBooking,
+                  style: FutsalTheme.getTextTheme(context).bodyTextSmall
+                      ?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: LightColor.whiteColor,
+                      ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+    return _buildBody(context);
+  }
+
+  Widget _buildBody(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -636,7 +697,9 @@ class _FutsalDateNavigator extends StatelessWidget {
         color: isActive ? accent.withValues(alpha: 0.10) : LightColor.cardColor,
         borderRadius: BorderRadius.circular(AppDimens.radiusX12),
         border: Border.all(
-          color: isActive ? accent.withValues(alpha: 0.45) : LightColor.dividerColor,
+          color: isActive
+              ? accent.withValues(alpha: 0.45)
+              : LightColor.dividerColor,
         ),
       ),
       child: Row(
@@ -742,7 +805,11 @@ class _ActiveDateFilterBar extends StatelessWidget {
       ),
       child: Row(
         children: <Widget>[
-          Icon(Icons.event_available_rounded, size: AppDimens.sizeX18, color: accent),
+          Icon(
+            Icons.event_available_rounded,
+            size: AppDimens.sizeX18,
+            color: accent,
+          ),
           const SizedBox(width: AppDimens.paddingX8),
           Expanded(
             child: Column(

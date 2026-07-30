@@ -351,7 +351,10 @@ Map<String, dynamic> courtSlotPricingBody(
 /// Maps the draft discount type (`Flat`/`Percent`) to the backend value
 /// (`flat` / `percentage`).
 String _discountTypeApiValue(String discountType) {
-  return discountType.trim().toLowerCase() == 'percent' ? 'percentage' : 'flat';
+  final String normalized = discountType.trim().toLowerCase();
+  return normalized == 'percent' || normalized == 'percentage'
+      ? 'percentage'
+      : 'flat';
 }
 
 /// Converts a stored time string (12-hour display, e.g. `06 : 00 AM`) into the
@@ -407,7 +410,7 @@ List<Map<String, dynamic>> _slotBodies(
               )
               .toList(),
           'discount_price': item.discountPrice,
-          'discount_type': item.discountType,
+          'discount_type': _discountTypeApiValue(item.discountType),
           'payment_percent': item.paymentPercent,
         },
       )

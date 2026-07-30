@@ -25,6 +25,7 @@ abstract class FutsalDetailsRepository {
     required String selectDate,
     String? slotStartTime,
     String? slotEndTime,
+    String bookingType,
   });
   Future<Either<AppException, List<TimeSlotModel>>> getVenueSlots({
     required int venueId,

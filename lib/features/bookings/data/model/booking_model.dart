@@ -19,6 +19,7 @@ class BookingModel extends Equatable {
     this.playerPhone,
     this.playerEmail,
     this.futsalAddress,
+    this.bookingType,
     this.seriesParentId,
     this.isRecurring = false,
     this.isSeriesAnchor = false,
@@ -29,8 +30,11 @@ class BookingModel extends Equatable {
     this.pricePerSlot = 0,
     this.subtotal = 0,
     this.discountAmount = 0,
+    this.completionDiscount = 0,
     this.taxAmount = 0,
+    this.extraAmount = 0,
     this.advanceAmount = 0,
+    this.partialAmount = 0,
     this.payableNow = 0,
     this.balanceDueLater = 0,
     this.paidAmount = 0,
@@ -41,6 +45,7 @@ class BookingModel extends Equatable {
     this.payments = const <BookingPaymentModel>[],
     this.bookingSlots = const <BookingSlotModel>[],
     this.extraItems = const <BookingExtraItemModel>[],
+    this.createdAt,
   });
 
   final int id;
@@ -65,6 +70,10 @@ class BookingModel extends Equatable {
   final String? playerPhone;
   final String? playerEmail;
   final String? futsalAddress;
+
+  /// How the booking was created — `online` (player app) or `manual`
+  /// (walk-in entered by the vendor).
+  final String? bookingType;
   final int? seriesParentId;
   final bool isRecurring;
   final bool isSeriesAnchor;
@@ -75,8 +84,20 @@ class BookingModel extends Equatable {
   final double pricePerSlot;
   final double subtotal;
   final double discountAmount;
+
+  /// Discount granted by the vendor at the moment the booking was completed.
+  final double completionDiscount;
   final double taxAmount;
+
+  /// Server-side total of the products attached to the booking. When this is
+  /// greater than zero, `total_amount` and the balance fields already include
+  /// the products — see [totalsIncludeExtras].
+  final double extraAmount;
   final double advanceAmount;
+
+  /// Partial payment recorded against the booking, when the venue accepts a
+  /// custom amount instead of the fixed advance.
+  final double partialAmount;
   final double payableNow;
   final double balanceDueLater;
 
@@ -94,6 +115,9 @@ class BookingModel extends Equatable {
   /// Products added to this booking (from the `extra_items` array).
   final List<BookingExtraItemModel> extraItems;
 
+  /// When the booking was placed, when the API reports it.
+  final DateTime? createdAt;
+
   /// Total number of extra product units attached to this booking.
   int get extraItemsCount => extraItems.fold<int>(
     0,
@@ -105,6 +129,72 @@ class BookingModel extends Equatable {
     0,
     (double sum, BookingExtraItemModel e) => sum + e.totalAmount,
   );
+
+  /// Whether the server's `total_amount`/balance fields already account for the
+  /// booked products. The API reports `extra_amount` alongside `extra_items`
+  /// once products are attached, and folds it into `total_amount`.
+  bool get totalsIncludeExtras => extraAmount > 0;
+
+  /// Net court charge after booking-level discount/tax, excluding products. The
+  /// API's `amount` (`total_amount`) is authoritative; the arithmetic fallback
+  /// supports older payloads that only expose the individual charge fields.
+  double get bookingTotal {
+    if (amount > 0) return _atLeastZero(amount - extraAmount);
+    return _atLeastZero(subtotal - discountAmount + taxAmount);
+  }
+
+  /// Court charge plus products sold against the booking.
+  double get grandTotal {
+    if (totalsIncludeExtras && amount > 0) return amount;
+    return bookingTotal + extraItemsTotal;
+  }
+
+  /// Verified/settled money recorded for this booking.
+  double get effectivePaidAmount {
+    if (paidAmount > 0) return paidAmount;
+    return payments
+        .where((BookingPaymentModel payment) {
+          final String status = payment.status?.trim().toLowerCase() ?? '';
+          final String verification =
+              payment.verificationStatus?.trim().toLowerCase() ?? '';
+          return const <String>{
+                'paid',
+                'completed',
+                'success',
+                'successful',
+              }.contains(status) ||
+              const <String>{'accepted', 'verified'}.contains(verification);
+        })
+        .fold<double>(0, (double sum, payment) => sum + payment.amount);
+  }
+
+  /// Remaining court charge before completion. Products are deliberately not
+  /// included here because they are added once by [amountDueForCompletion], so
+  /// the server balances — which already carry `extra_amount` — are reduced by
+  /// it again.
+  double get remainingBookingBalance {
+    final double extras = totalsIncludeExtras ? extraAmount : 0;
+    if (balanceDue > 0) return _atLeastZero(balanceDue - extras);
+    if (balanceDueLater > 0) return _atLeastZero(balanceDueLater - extras);
+    return _atLeastZero(bookingTotal - effectivePaidAmount);
+  }
+
+  /// Amount presented when a confirmed booking is completed.
+  double get amountDueForCompletion =>
+      remainingBookingBalance + extraItemsTotal;
+
+  /// Server-recorded due on a completed booking. Unlike completion, products
+  /// are not added again because the completed booking's `balance_due`
+  /// already represents the final outstanding settlement.
+  double get amountDueForCollection {
+    if (status != BookingStatus.completed) return 0;
+    if (balanceDue > 0) return balanceDue;
+    final String normalized = paymentStatus?.trim().toLowerCase() ?? '';
+    if (normalized == 'partial' || normalized == 'partially_paid') {
+      return balanceDueLater;
+    }
+    return 0;
+  }
 
   /// Primary payment for this booking — the one carrying a proof screenshot if
   /// any, otherwise the first recorded payment. Null when no payments exist.
@@ -138,6 +228,7 @@ class BookingModel extends Equatable {
     String? playerPhone,
     String? playerEmail,
     String? futsalAddress,
+    String? bookingType,
     int? seriesParentId,
     bool? isRecurring,
     bool? isSeriesAnchor,
@@ -148,8 +239,11 @@ class BookingModel extends Equatable {
     double? pricePerSlot,
     double? subtotal,
     double? discountAmount,
+    double? completionDiscount,
     double? taxAmount,
+    double? extraAmount,
     double? advanceAmount,
+    double? partialAmount,
     double? payableNow,
     double? balanceDueLater,
     double? paidAmount,
@@ -160,6 +254,7 @@ class BookingModel extends Equatable {
     List<BookingPaymentModel>? payments,
     List<BookingSlotModel>? bookingSlots,
     List<BookingExtraItemModel>? extraItems,
+    DateTime? createdAt,
   }) {
     return BookingModel(
       id: id ?? this.id,
@@ -179,6 +274,7 @@ class BookingModel extends Equatable {
       playerPhone: playerPhone ?? this.playerPhone,
       playerEmail: playerEmail ?? this.playerEmail,
       futsalAddress: futsalAddress ?? this.futsalAddress,
+      bookingType: bookingType ?? this.bookingType,
       seriesParentId: seriesParentId ?? this.seriesParentId,
       isRecurring: isRecurring ?? this.isRecurring,
       isSeriesAnchor: isSeriesAnchor ?? this.isSeriesAnchor,
@@ -189,8 +285,11 @@ class BookingModel extends Equatable {
       pricePerSlot: pricePerSlot ?? this.pricePerSlot,
       subtotal: subtotal ?? this.subtotal,
       discountAmount: discountAmount ?? this.discountAmount,
+      completionDiscount: completionDiscount ?? this.completionDiscount,
       taxAmount: taxAmount ?? this.taxAmount,
+      extraAmount: extraAmount ?? this.extraAmount,
       advanceAmount: advanceAmount ?? this.advanceAmount,
+      partialAmount: partialAmount ?? this.partialAmount,
       payableNow: payableNow ?? this.payableNow,
       balanceDueLater: balanceDueLater ?? this.balanceDueLater,
       paidAmount: paidAmount ?? this.paidAmount,
@@ -201,6 +300,7 @@ class BookingModel extends Equatable {
       payments: payments ?? this.payments,
       bookingSlots: bookingSlots ?? this.bookingSlots,
       extraItems: extraItems ?? this.extraItems,
+      createdAt: createdAt ?? this.createdAt,
     );
   }
 
@@ -368,6 +468,7 @@ class BookingModel extends Equatable {
             venue['address'] ??
             venue['exact_location'],
       ),
+      bookingType: _asString(json['booking_type']),
       seriesParentId: _asInt(json['series_parent_id']),
       isRecurring: _asBool(json['is_recurring']),
       isSeriesAnchor: _asBool(json['is_series_anchor']),
@@ -380,8 +481,11 @@ class BookingModel extends Equatable {
       pricePerSlot: _asDouble(json['price_per_slot']) ?? 0,
       subtotal: _asDouble(json['subtotal']) ?? 0,
       discountAmount: _asDouble(json['discount_amount']) ?? 0,
+      completionDiscount: _asDouble(json['completion_discount']) ?? 0,
       taxAmount: _asDouble(json['tax_amount']) ?? 0,
+      extraAmount: _asDouble(json['extra_amount']) ?? 0,
       advanceAmount: _asDouble(json['advance_amount']) ?? 0,
+      partialAmount: _asDouble(json['partial_amount']) ?? 0,
       payableNow: _asDouble(json['payable_now']) ?? 0,
       balanceDueLater: _asDouble(json['balance_due_later']) ?? 0,
       paidAmount: _asDouble(json['paid_amount']) ?? 0,
@@ -398,6 +502,7 @@ class BookingModel extends Equatable {
                   ]),
       bookingSlots: bookingSlots,
       extraItems: extraItems,
+      createdAt: _asNullableDate(json['created_at'] ?? json['booked_at']),
     );
   }
 
@@ -419,6 +524,7 @@ class BookingModel extends Equatable {
     'player_phone': playerPhone,
     'player_email': playerEmail,
     'futsal_address': futsalAddress,
+    'booking_type': bookingType,
     'series_parent_id': seriesParentId,
     'is_recurring': isRecurring,
     'is_series_anchor': isSeriesAnchor,
@@ -429,8 +535,11 @@ class BookingModel extends Equatable {
     'price_per_slot': pricePerSlot,
     'subtotal': subtotal,
     'discount_amount': discountAmount,
+    'completion_discount': completionDiscount,
     'tax_amount': taxAmount,
+    'extra_amount': extraAmount,
     'advance_amount': advanceAmount,
+    'partial_amount': partialAmount,
     'payable_now': payableNow,
     'balance_due_later': balanceDueLater,
     'paid_amount': paidAmount,
@@ -447,6 +556,7 @@ class BookingModel extends Equatable {
     'extra_items': extraItems
         .map((BookingExtraItemModel item) => item.toJson())
         .toList(growable: false),
+    'created_at': createdAt?.toIso8601String(),
   };
 
   static List<BookingModel> listFromResponse(dynamic payload) {
@@ -486,6 +596,7 @@ class BookingModel extends Equatable {
     playerPhone,
     playerEmail,
     futsalAddress,
+    bookingType,
     seriesParentId,
     isRecurring,
     isSeriesAnchor,
@@ -496,8 +607,11 @@ class BookingModel extends Equatable {
     pricePerSlot,
     subtotal,
     discountAmount,
+    completionDiscount,
     taxAmount,
+    extraAmount,
     advanceAmount,
+    partialAmount,
     payableNow,
     balanceDueLater,
     paidAmount,
@@ -508,6 +622,7 @@ class BookingModel extends Equatable {
     payments,
     bookingSlots,
     extraItems,
+    createdAt,
   ];
 }
 
@@ -540,6 +655,7 @@ final class BookingPaymentModel extends Equatable {
   const BookingPaymentModel({
     required this.id,
     this.method,
+    this.type,
     this.amount = 0,
     this.status,
     this.verificationStatus,
@@ -547,10 +663,15 @@ final class BookingPaymentModel extends Equatable {
     this.paymentProofUrl,
     this.hasPaymentProof = false,
     this.note,
+    this.createdAt,
   });
 
   final int id;
   final String? method;
+
+  /// The API's `payment_type`, which mirrors `payment_method` today but is sent
+  /// separately (e.g. `cash`, `online`).
+  final String? type;
   final double amount;
   final String? status;
   final String? verificationStatus;
@@ -559,9 +680,13 @@ final class BookingPaymentModel extends Equatable {
   final bool hasPaymentProof;
   final String? note;
 
+  /// When the payment was recorded, per the API's `created_at`.
+  final DateTime? createdAt;
+
   BookingPaymentModel copyWith({
     int? id,
     String? method,
+    String? type,
     double? amount,
     String? status,
     String? verificationStatus,
@@ -569,10 +694,12 @@ final class BookingPaymentModel extends Equatable {
     String? paymentProofUrl,
     bool? hasPaymentProof,
     String? note,
+    DateTime? createdAt,
   }) {
     return BookingPaymentModel(
       id: id ?? this.id,
       method: method ?? this.method,
+      type: type ?? this.type,
       amount: amount ?? this.amount,
       status: status ?? this.status,
       verificationStatus: verificationStatus ?? this.verificationStatus,
@@ -580,6 +707,7 @@ final class BookingPaymentModel extends Equatable {
       paymentProofUrl: paymentProofUrl ?? this.paymentProofUrl,
       hasPaymentProof: hasPaymentProof ?? this.hasPaymentProof,
       note: note ?? this.note,
+      createdAt: createdAt ?? this.createdAt,
     );
   }
 
@@ -587,6 +715,7 @@ final class BookingPaymentModel extends Equatable {
     return BookingPaymentModel(
       id: _asInt(json['id']) ?? 0,
       method: _asString(json['payment_method']),
+      type: _asString(json['payment_type']),
       amount: _asDouble(json['amount']) ?? 0,
       status: _asString(json['status']),
       verificationStatus: _asString(json['verification_status']),
@@ -594,12 +723,14 @@ final class BookingPaymentModel extends Equatable {
       paymentProofUrl: _asString(json['payment_proof_url']),
       hasPaymentProof: _asBool(json['has_payment_proof']),
       note: _asString(json['payment_note']),
+      createdAt: _asNullableDate(json['created_at']),
     );
   }
 
   Map<String, dynamic> toJson() => <String, dynamic>{
     'id': id,
     'payment_method': method,
+    'payment_type': type,
     'amount': amount,
     'status': status,
     'verification_status': verificationStatus,
@@ -607,12 +738,14 @@ final class BookingPaymentModel extends Equatable {
     'payment_proof_url': paymentProofUrl,
     'has_payment_proof': hasPaymentProof,
     'payment_note': note,
+    'created_at': createdAt?.toIso8601String(),
   };
 
   @override
   List<Object?> get props => <Object?>[
     id,
     method,
+    type,
     amount,
     status,
     verificationStatus,
@@ -620,6 +753,7 @@ final class BookingPaymentModel extends Equatable {
     paymentProofUrl,
     hasPaymentProof,
     note,
+    createdAt,
   ];
 }
 
@@ -679,6 +813,8 @@ final class BookingExtraItemModel extends Equatable {
     required this.quantity,
     this.unitPrice = 0,
     this.totalAmount = 0,
+    this.productPrice,
+    this.productIsActive = true,
   });
 
   final int id;
@@ -687,6 +823,14 @@ final class BookingExtraItemModel extends Equatable {
   final int quantity;
   final double unitPrice;
   final double totalAmount;
+
+  /// The product's current catalogue price, which can differ from [unitPrice]
+  /// when the price changed after the booking was made.
+  final double? productPrice;
+
+  /// Whether the underlying product is still sellable. Archived products stay
+  /// on the booking but should not be offered again.
+  final bool productIsActive;
 
   factory BookingExtraItemModel.fromJson(Map<String, dynamic> json) {
     final Map<String, dynamic> product = _mapOf(json['product']);
@@ -725,6 +869,10 @@ final class BookingExtraItemModel extends Equatable {
                 json['subtotal'],
           ) ??
           (unitPrice * quantity),
+      productPrice: _asDouble(product['price']),
+      productIsActive: product.containsKey('is_active')
+          ? _asBool(product['is_active'])
+          : true,
     );
   }
 
@@ -735,6 +883,12 @@ final class BookingExtraItemModel extends Equatable {
     'quantity': quantity,
     'unit_price': unitPrice,
     'total_amount': totalAmount,
+    'product': <String, dynamic>{
+      'id': productId,
+      'name': name,
+      'price': productPrice ?? unitPrice,
+      'is_active': productIsActive,
+    },
   };
 
   @override
@@ -745,6 +899,8 @@ final class BookingExtraItemModel extends Equatable {
     quantity,
     unitPrice,
     totalAmount,
+    productPrice,
+    productIsActive,
   ];
 }
 
@@ -862,6 +1018,14 @@ int? _asInt(Object? value) {
   if (value is int) return value;
   if (value is num) return value.toInt();
   return int.tryParse(value.toString().trim());
+}
+
+/// Floors a money figure at zero. Deliberately not `clamp`, because `num.clamp`
+/// hands back the limit itself — the `int` literal `0` — which then fails the
+/// `double` return-type check of the getters below.
+double _atLeastZero(double value) {
+  if (value.isNaN) return 0;
+  return value < 0 ? 0 : value;
 }
 
 double? _asDouble(Object? value) {

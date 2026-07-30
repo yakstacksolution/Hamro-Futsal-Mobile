@@ -11,10 +11,12 @@ import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/validation/app_validators.dart';
 import 'package:hamro_footsall/features/auth/presentation/authentication_bloc/authentication_bloc.dart';
 import 'package:hamro_footsall/features/auth/presentation/widgets/auth_screen_frame.dart';
 import 'package:hamro_footsall/features/auth/presentation/widgets/login_form.dart';
 import 'package:hamro_footsall/features/auth/presentation/widgets/register_form.dart';
+import 'package:hamro_footsall/features/dashboard/presentation/page/dashboard_screen.dart';
 import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 enum AuthMode { login, register }
@@ -59,6 +61,12 @@ class _AuthScreenState extends State<AuthScreen> {
   final TextEditingController _loginPasswordController =
       TextEditingController();
   bool _canUseBiometricLogin = false;
+
+  void _goToHomeAfterLogin() {
+    DashboardScreen.selectedNavIndex.value = 0;
+    context.goNamed(AppRouterParams.dashboard.name);
+  }
+
   bool _isBiometricSubmitting = false;
 
   // Register
@@ -124,7 +132,7 @@ class _AuthScreenState extends State<AuthScreen> {
       AppSettings().token = session!;
       await FcmHelper().syncTokenAfterLogin();
       if (!mounted) return;
-      context.goNamed(AppRouterParams.dashboard.name);
+      _goToHomeAfterLogin();
     }
   }
 
@@ -180,10 +188,7 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   String? _validateName(String? value) {
-    final String text = value?.trim() ?? '';
-    if (text.isEmpty) return 'Full name is required';
-    if (text.length < 3) return 'Enter your full name';
-    return null;
+    return AppValidators.fullName(value);
   }
 
   String? _validateEmail(String? value) {
@@ -289,7 +294,7 @@ class _AuthScreenState extends State<AuthScreen> {
             MsgType.success,
             state.successMessage,
           );
-          context.goNamed(AppRouterParams.dashboard.name);
+          _goToHomeAfterLogin();
           return;
         }
 
@@ -302,7 +307,7 @@ class _AuthScreenState extends State<AuthScreen> {
             state.successMessage,
           );
           if (_isLogin) {
-            context.goNamed(AppRouterParams.dashboard.name);
+            _goToHomeAfterLogin();
             return;
           }
           context.goNamed(

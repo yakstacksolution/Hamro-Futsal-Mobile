@@ -10,13 +10,12 @@ import 'package:hamro_footsall/core/widgets/custom_bottom_sheet.dart';
 import 'package:hamro_footsall/core/widgets/custom_button.dart';
 import 'package:hamro_footsall/core/widgets/custom_text_field.dart';
 import 'package:hamro_footsall/features/bookings/data/model/booking_model.dart';
+import 'package:hamro_footsall/features/bookings/presentation/widgets/booking_details_widgets.dart';
 import 'package:hamro_footsall/features/products/data/model/product_models.dart';
 
-/// Whether a booking is eligible for adding products (only confirmed &
-/// completed bookings can have products/add-ons attached to them).
+/// Products can only be added before the booking is completed.
 bool bookingSupportsProducts(BookingModel booking) {
-  return booking.status == BookingStatus.confirmed ||
-      booking.status == BookingStatus.completed;
+  return booking.status == BookingStatus.confirmed;
 }
 
 /// Whether a booking can be marked as completed (only confirmed bookings).
@@ -61,17 +60,59 @@ class BookingCompleteResult {
 Future<bool> completeBooking(
   int bookingId, {
   BookingCompleteResult? result,
+  List<Map<String, dynamic>>? extraItems,
 }) async {
   final response = await Client.instance().getAuthManager().completeBooking(
     bookingId: bookingId,
+    // `confirm` is required by the API; completing always confirms.
+    confirm: true,
     paymentType: result?.paymentType.apiValue,
-    discount: result?.discount,
-    amountPaid: result?.amountPaid,
-    paymentStatus: result == null
-        ? null
-        : (result.isPartial ? 'partial' : 'full'),
+    discount: result?.discount ?? 0,
+    // Only sent for a partial settlement — a full payment omits it.
+    partialAmount: (result != null && result.isPartial)
+        ? result.amountPaid
+        : null,
+    extraItems: extraItems,
   );
   return response.isSuccess();
+}
+
+class BookingCollectDueResult {
+  const BookingCollectDueResult({
+    required this.amount,
+    required this.paymentMethod,
+    required this.paymentNote,
+  });
+
+  final double amount;
+  final BookingPaymentType paymentMethod;
+  final String paymentNote;
+}
+
+Future<bool> collectBookingDue(
+  int bookingId,
+  BookingCollectDueResult result,
+) async {
+  final response = await Client.instance().getAuthManager().collectBookingDue(
+    bookingId: bookingId,
+    data: <String, dynamic>{
+      'amount': result.amount,
+      'payment_method': result.paymentMethod.apiValue,
+      'payment_note': result.paymentNote.trim(),
+    },
+  );
+  return response.isSuccess();
+}
+
+Future<BookingCollectDueResult?> showCollectBookingDueSheet(
+  BuildContext context,
+  BookingModel booking,
+) {
+  return showAppBottomSheet<BookingCollectDueResult>(
+    context: context,
+    wrapWithCustomSheet: false,
+    builder: (_) => _CollectBookingDueSheet(booking: booking),
+  );
 }
 
 /// Bottom sheet shown before marking a booking as completed. Presents the
@@ -85,6 +126,7 @@ Future<BookingCompleteResult?> showBookingCompleteSheet(
 ) {
   return showAppBottomSheet<BookingCompleteResult>(
     context: context,
+    wrapWithCustomSheet: false,
     builder: (_) => _CompleteBookingSheet(booking: booking),
   );
 }
@@ -166,13 +208,17 @@ class _BookingProductsService {
   }
 }
 
-// ─── Entry-point tile shown on the booking details page ───────────────────────
+// ─── Products section shown on the booking details page ──────────────────────
 
+/// Lists the products already attached to a booking with their per-line
+/// calculation (`qty × unit price`) and the extras subtotal, followed by the
+/// "Add products" entry-point when the viewer is allowed to sell add-ons.
 class BookingProductsSection extends StatelessWidget {
   const BookingProductsSection({
     super.key,
     required this.booking,
     this.onChanged,
+    this.canAdd = true,
   });
 
   final BookingModel booking;
@@ -180,9 +226,122 @@ class BookingProductsSection extends StatelessWidget {
   /// Called after products are successfully added, so the caller can refresh.
   final VoidCallback? onChanged;
 
+  /// Whether the "Add products" entry-point is shown (vendor-side only).
+  final bool canAdd;
+
+  @override
+  Widget build(BuildContext context) {
+    final List<BookingExtraItemModel> items = booking.extraItems;
+    if (items.isEmpty) {
+      return canAdd
+          ? _AddProductsTile(booking: booking, onChanged: onChanged)
+          : const SizedBox.shrink();
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        _ExtraItemsCard(items: items, total: booking.extraItemsTotal),
+        if (canAdd) ...<Widget>[
+          const SizedBox(height: AppDimens.paddingX10),
+          _AddProductsTile(booking: booking, onChanged: onChanged),
+        ],
+      ],
+    );
+  }
+}
+
+/// Read-only breakdown of the products sold against a booking.
+class _ExtraItemsCard extends StatelessWidget {
+  const _ExtraItemsCard({required this.items, required this.total});
+
+  final List<BookingExtraItemModel> items;
+  final double total;
+
+  @override
+  Widget build(BuildContext context) {
+    return BookingDetailCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          for (int i = 0; i < items.length; i++) ...<Widget>[
+            if (i > 0) const SizedBox(height: AppDimens.paddingX12),
+            _ExtraItemRow(item: items[i]),
+          ],
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: AppDimens.paddingX12),
+            child: Divider(height: 1, color: LightColor.dividerColor),
+          ),
+          BookingAmountRow(
+            label: 'Products subtotal',
+            value: _formatMoney(total),
+            labelWeight: FontWeight.w600,
+            valueWeight: FontWeight.w700,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ExtraItemRow extends StatelessWidget {
+  const _ExtraItemRow({required this.item});
+
+  final BookingExtraItemModel item;
+
   @override
   Widget build(BuildContext context) {
     final FutsalTextTheme textTheme = FutsalTheme.getTextTheme(context);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                item.name.trim().isEmpty ? 'Product' : item.name,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: textTheme.bodyTextMedium?.copyWith(
+                  color: LightColor.primaryTextColor,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: AppDimens.paddingX2),
+              Text(
+                item.unitPrice > 0
+                    ? '${item.quantity} × ${_formatMoney(item.unitPrice)}'
+                    : 'Qty ${item.quantity}',
+                style: textTheme.bodyTextSmall?.copyWith(
+                  color: LightColor.secondaryTextColor,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: AppDimens.paddingX12),
+        Text(
+          _formatMoney(item.totalAmount),
+          style: textTheme.bodyTextMedium?.copyWith(
+            color: LightColor.primaryTextColor,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _AddProductsTile extends StatelessWidget {
+  const _AddProductsTile({required this.booking, this.onChanged});
+
+  final BookingModel booking;
+  final VoidCallback? onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final FutsalTextTheme textTheme = FutsalTheme.getTextTheme(context);
+    final bool hasItems = booking.extraItems.isNotEmpty;
     return Material(
       color: LightColor.cardColor,
       borderRadius: BorderRadius.circular(AppDimens.radiusX12),
@@ -193,61 +352,35 @@ class BookingProductsSection extends StatelessWidget {
           if (added == true) onChanged?.call();
         },
         child: Container(
-          padding: const EdgeInsets.all(AppDimens.paddingX16),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppDimens.paddingX16,
+            vertical: AppDimens.paddingX14,
+          ),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(AppDimens.radiusX12),
-            border: Border.all(
-              color: LightColor.secondaryColor.withValues(alpha: 0.22),
-            ),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: <Color>[
-                LightColor.secondaryColor.withValues(alpha: 0.08),
-                LightColor.secondaryColor.withValues(alpha: 0.02),
-              ],
-            ),
+            border: Border.all(color: LightColor.dividerColor),
           ),
           child: Row(
             children: <Widget>[
-              Container(
-                width: AppDimens.sizeX44,
-                height: AppDimens.sizeX44,
-                decoration: BoxDecoration(
-                  color: LightColor.secondaryColor.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(AppDimens.radiusX10),
-                ),
-                child: const Icon(
-                  Icons.add_shopping_cart_rounded,
-                  color: LightColor.secondaryColor,
-                  size: AppDimens.sizeX20,
-                ),
+              const Icon(
+                Icons.add_rounded,
+                color: LightColor.secondaryColor,
+                size: AppDimens.sizeX18,
               ),
-              const SizedBox(width: AppDimens.paddingX12),
+              const SizedBox(width: AppDimens.paddingX10),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      'Add products',
-                      style: textTheme.bodyTextMedium?.copyWith(
-                        color: LightColor.primaryTextColor,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: AppDimens.paddingX2),
-                    Text(
-                      'Sell water, drinks & add-ons for this booking.',
-                      style: textTheme.bodyTextSmall?.copyWith(
-                        color: LightColor.secondaryTextColor,
-                      ),
-                    ),
-                  ],
+                child: Text(
+                  hasItems ? 'Add more products' : 'Add products',
+                  style: textTheme.bodyTextMedium?.copyWith(
+                    color: LightColor.secondaryColor,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
               const Icon(
                 Icons.chevron_right_rounded,
-                color: LightColor.secondaryColor,
+                color: LightColor.iconGrey,
+                size: AppDimens.sizeX18,
               ),
             ],
           ),
@@ -608,6 +741,217 @@ String _formatMoney(double amount) {
   return 'Rs. ${amount.toStringAsFixed(hasDecimals ? 2 : 0)}';
 }
 
+class _CollectBookingDueSheet extends StatefulWidget {
+  const _CollectBookingDueSheet({required this.booking});
+
+  final BookingModel booking;
+
+  @override
+  State<_CollectBookingDueSheet> createState() =>
+      _CollectBookingDueSheetState();
+}
+
+class _CollectBookingDueSheetState extends State<_CollectBookingDueSheet> {
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  late final TextEditingController _amountController;
+  final TextEditingController _noteController = TextEditingController(
+    text: 'Collected remaining due amount in person',
+  );
+  final FocusNode _amountFocusNode = FocusNode();
+  final FocusNode _noteFocusNode = FocusNode();
+  BookingPaymentType _paymentMethod = BookingPaymentType.cash;
+
+  double get _due => widget.booking.amountDueForCollection;
+  double? get _enteredAmount =>
+      double.tryParse(_amountController.text.trim().replaceAll(',', ''));
+  bool get _canSubmit {
+    final double? amount = _enteredAmount;
+    return amount != null && amount > 0 && amount <= _due;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _amountController = TextEditingController(
+      text: _due.toStringAsFixed(_due % 1 == 0 ? 0 : 2),
+    );
+  }
+
+  @override
+  void dispose() {
+    _amountController.dispose();
+    _noteController.dispose();
+    _amountFocusNode.dispose();
+    _noteFocusNode.dispose();
+    super.dispose();
+  }
+
+  String? _validateAmount(String? value) {
+    final double? amount = double.tryParse(
+      value?.trim().replaceAll(',', '') ?? '',
+    );
+    if (amount == null || amount <= 0) return 'Enter a valid amount';
+    if (amount > _due) return 'Amount cannot exceed ${_formatMoney(_due)}';
+    return null;
+  }
+
+  void _submit() {
+    FocusScope.of(context).unfocus();
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+    Navigator.of(context).pop(
+      BookingCollectDueResult(
+        amount: double.parse(_amountController.text.trim().replaceAll(',', '')),
+        paymentMethod: _paymentMethod,
+        paymentNote: _noteController.text,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final MediaQueryData media = MediaQuery.of(context);
+    final FutsalTextTheme textTheme = FutsalTheme.getTextTheme(context);
+    final double sheetHeight =
+        (media.size.height * 0.55 - media.viewInsets.bottom).clamp(
+          media.size.height * 0.32,
+          media.size.height * 0.55,
+        );
+    return CustomBottomSheet(
+      padding: EdgeInsets.only(
+        top: AppDimens.paddingX12,
+        bottom: media.viewInsets.bottom,
+      ),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOutCubic,
+        height: sheetHeight,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppDimens.paddingX18,
+                AppDimens.paddingX8,
+                AppDimens.paddingX18,
+                AppDimens.paddingX16,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(
+                    'Collect due amount',
+                    style: textTheme.bodyTextLarge?.copyWith(
+                      color: LightColor.primaryTextColor,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: AppDimens.paddingX4),
+                  Text(
+                    '${_formatMoney(_due)} remains due for this completed booking.',
+                    style: textTheme.bodyTextSmall?.copyWith(
+                      color: LightColor.secondaryTextColor,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppDimens.paddingX18,
+                ),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: <Widget>[
+                      CustomTextField(
+                        key: const Key('collect-due-amount-field'),
+                        controller: _amountController,
+                        focusNode: _amountFocusNode,
+                        labelText: 'Amount',
+                        hintText: 'Enter collected amount',
+                        icon: Icons.payments_outlined,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        textInputAction: TextInputAction.next,
+                        ensureVisibleOnFocus: true,
+                        onSubmitted: (_) => _noteFocusNode.requestFocus(),
+                        inputFormatters: <TextInputFormatter>[
+                          FilteringTextInputFormatter.allow(
+                            RegExp(r'^\d*\.?\d{0,2}'),
+                          ),
+                        ],
+                        onChanged: (_) => setState(() {}),
+                        autovalidateMode: AutovalidateMode.onUserInteraction,
+                        validator: _validateAmount,
+                      ),
+                      const SizedBox(height: AppDimens.paddingX16),
+                      _SectionLabel('Payment method'),
+                      const SizedBox(height: AppDimens.paddingX8),
+                      _SegmentedChoice(
+                        labels: <String>[
+                          for (final BookingPaymentType type
+                              in BookingPaymentType.values)
+                            type.label,
+                        ],
+                        selectedIndex: BookingPaymentType.values.indexOf(
+                          _paymentMethod,
+                        ),
+                        onSelected: (int index) => setState(
+                          () =>
+                              _paymentMethod = BookingPaymentType.values[index],
+                        ),
+                      ),
+                      const SizedBox(height: AppDimens.paddingX16),
+                      CustomTextField(
+                        controller: _noteController,
+                        focusNode: _noteFocusNode,
+                        labelText: 'Payment note',
+                        hintText: 'How was the due amount collected?',
+                        isRequired: false,
+                        minLines: 2,
+                        maxLines: 3,
+                        textCapitalization: TextCapitalization.sentences,
+                        textInputAction: TextInputAction.newline,
+                        ensureVisibleOnFocus: true,
+                        inputFormatters: <TextInputFormatter>[
+                          LengthLimitingTextInputFormatter(1000),
+                        ],
+                      ),
+                      const SizedBox(height: AppDimens.paddingX16),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            Container(
+              padding: EdgeInsets.fromLTRB(
+                AppDimens.paddingX18,
+                AppDimens.paddingX12,
+                AppDimens.paddingX18,
+                AppDimens.paddingX12 + media.padding.bottom,
+              ),
+              decoration: const BoxDecoration(
+                border: Border(top: BorderSide(color: LightColor.dividerColor)),
+              ),
+              child: CustomButton(
+                key: const Key('submit-collect-due-button'),
+                text: 'Collect ${_formatMoney(_enteredAmount ?? 0)}',
+                icon: Icons.payments_rounded,
+                onPressed: _canSubmit ? _submit : null,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _CompleteBookingSheet extends StatefulWidget {
   const _CompleteBookingSheet({required this.booking});
 
@@ -627,24 +971,34 @@ class _CompleteBookingSheetState extends State<_CompleteBookingSheet> {
   BookingModel get _booking => widget.booking;
 
   /// Gross amount owed before any completion-time discount.
-  double get _totalToCollect => _booking.balanceDue + _booking.extraItemsTotal;
+  double get _totalToCollect => _booking.amountDueForCompletion;
 
   double _parse(TextEditingController c) =>
       double.tryParse(c.text.trim().replaceAll(',', '')) ?? 0;
 
+  /// Bounds a money figure without `num.clamp`, which returns the limit itself
+  /// — an `int` when the limit is the literal `0` — and would then fail the
+  /// `double` return-type check of the getters below.
+  double _bound(double value, double max) {
+    if (value.isNaN || value < 0) return 0;
+    return value > max ? max : value;
+  }
+
   /// Discount clamped to the range [0, totalToCollect].
-  double get _discount => _parse(_discountController).clamp(0, _totalToCollect);
+  double get _discount =>
+      _bound(_parse(_discountController), _totalToCollect);
 
   /// Net amount payable after the discount.
-  double get _netPayable => (_totalToCollect - _discount).clamp(0, double.infinity);
+  double get _netPayable =>
+      _bound(_totalToCollect - _discount, double.infinity);
 
   /// Amount being collected right now.
-  double get _amountPaid =>
-      _isPartial ? _parse(_amountController).clamp(0, _netPayable) : _netPayable;
+  double get _amountPaid => _isPartial
+      ? _bound(_parse(_amountController), _netPayable)
+      : _netPayable;
 
   /// Amount still owed after this settlement.
-  double get _remaining =>
-      (_netPayable - _amountPaid).clamp(0, double.infinity);
+  double get _remaining => _bound(_netPayable - _amountPaid, double.infinity);
 
   bool get _canComplete =>
       !_isPartial || (_amountPaid > 0 && _amountPaid <= _netPayable);
@@ -670,116 +1024,77 @@ class _CompleteBookingSheetState extends State<_CompleteBookingSheet> {
   @override
   Widget build(BuildContext context) {
     final FutsalTextTheme textTheme = FutsalTheme.getTextTheme(context);
-    final double maxHeight = MediaQuery.sizeOf(context).height * 0.85;
-    return ConstrainedBox(
-      constraints: BoxConstraints(maxHeight: maxHeight),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Container(
-                width: AppDimens.sizeX42,
-                height: AppDimens.sizeX42,
-                decoration: BoxDecoration(
-                  color: LightColor.secondaryColor.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(AppDimens.radiusX12),
-                ),
-                child: const Icon(
-                  Icons.receipt_long_rounded,
-                  color: LightColor.secondaryColor,
-                  size: AppDimens.sizeX20,
-                ),
+    final MediaQueryData media = MediaQuery.of(context);
+    // Fixed 80% of the screen so the sheet opens at the same size every time,
+    // shrinking only for the keyboard.
+    final double height = (media.size.height * 0.8 - media.viewInsets.bottom)
+        .clamp(media.size.height * 0.4, media.size.height * 0.8);
+    return CustomBottomSheet(
+      // Padding is handled per-slot so the footer can span the full width; the
+      // keyboard inset lifts the whole sheet instead of covering the actions.
+      padding: EdgeInsets.only(
+        top: AppDimens.paddingX12,
+        bottom: media.viewInsets.bottom,
+      ),
+      child: SizedBox(
+        height: height,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppDimens.paddingX18,
+                AppDimens.paddingX10,
+                AppDimens.paddingX18,
+                AppDimens.paddingX16,
               ),
-              const SizedBox(width: AppDimens.paddingX12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      'Complete booking',
-                      style: textTheme.bodyTextLarge?.copyWith(
-                        color: LightColor.primaryTextColor,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: AppDimens.paddingX2),
-                    Text(
-                      'Review the payment and record how it was collected. '
-                      'This can\'t be undone.',
-                      style: textTheme.bodyTextSmall?.copyWith(
-                        color: LightColor.secondaryTextColor,
-                        height: 1.35,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppDimens.paddingX18),
-          Flexible(
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  _ReceiptCard(
-                    booking: _booking,
-                    totalToCollect: _totalToCollect,
-                  ),
-                  const SizedBox(height: AppDimens.paddingX18),
-
-                  _SectionLabel('Discount'),
-                  const SizedBox(height: AppDimens.paddingX8),
-                  CustomTextField(
-                    controller: _discountController,
-                    labelText: 'Discount amount',
-                    hintText: 'e.g. 100',
-                    icon: Icons.local_offer_rounded,
-                    isRequired: false,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
+                  Text(
+                    'Complete booking',
+                    style: textTheme.bodyTextLarge?.copyWith(
+                      color: LightColor.primaryTextColor,
+                      fontWeight: FontWeight.w700,
                     ),
-                    inputFormatters: <TextInputFormatter>[
-                      FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
-                    ],
-                    onChanged: (_) => setState(() {}),
                   ),
-                  const SizedBox(height: AppDimens.paddingX18),
+                  const SizedBox(height: AppDimens.paddingX4),
+                  Text(
+                    'Review the payment and record how it was collected. '
+                    'This can\'t be undone.',
+                    style: textTheme.bodyTextSmall?.copyWith(
+                      color: LightColor.secondaryTextColor,
+                      height: 1.35,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(
+                  AppDimens.paddingX18,
+                  0,
+                  AppDimens.paddingX18,
+                  AppDimens.paddingX18,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    _ReceiptCard(
+                      booking: _booking,
+                      totalToCollect: _totalToCollect,
+                    ),
+                    const SizedBox(height: AppDimens.paddingX18),
 
-                  _SectionLabel('Payment option'),
-                  const SizedBox(height: AppDimens.paddingX8),
-                  Row(
-                    children: <Widget>[
-                      Expanded(
-                        child: _ChoiceOption(
-                          icon: Icons.check_circle_rounded,
-                          label: 'Full payment',
-                          isSelected: !_isPartial,
-                          onTap: () => setState(() => _isPartial = false),
-                        ),
-                      ),
-                      const SizedBox(width: AppDimens.paddingX10),
-                      Expanded(
-                        child: _ChoiceOption(
-                          icon: Icons.timelapse_rounded,
-                          label: 'Partial',
-                          isSelected: _isPartial,
-                          onTap: () => setState(() => _isPartial = true),
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (_isPartial) ...<Widget>[
-                    const SizedBox(height: AppDimens.paddingX12),
+                    _SectionLabel('Discount'),
+                    const SizedBox(height: AppDimens.paddingX8),
                     CustomTextField(
-                      controller: _amountController,
-                      labelText: 'Amount received now',
-                      hintText: 'Max ${_formatMoney(_netPayable)}',
-                      icon: Icons.payments_outlined,
+                      controller: _discountController,
+                      labelText: 'Discount amount',
+                      hintText: 'e.g. 100',
+                      icon: Icons.local_offer_rounded,
                       isRequired: false,
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
@@ -789,64 +1104,146 @@ class _CompleteBookingSheetState extends State<_CompleteBookingSheet> {
                       ],
                       onChanged: (_) => setState(() {}),
                     ),
-                  ],
-                  const SizedBox(height: AppDimens.paddingX14),
-                  _SettlementSummary(
-                    discount: _discount,
-                    netPayable: _netPayable,
-                    collectingNow: _amountPaid,
-                    remaining: _remaining,
-                  ),
-                  const SizedBox(height: AppDimens.paddingX18),
+                    const SizedBox(height: AppDimens.paddingX18),
 
-                  _SectionLabel('Payment type'),
-                  const SizedBox(height: AppDimens.paddingX8),
-                  Row(
-                    children: <Widget>[
-                      for (final BookingPaymentType type
-                          in BookingPaymentType.values) ...<Widget>[
-                        Expanded(
-                          child: _PaymentTypeOption(
-                            type: type,
-                            isSelected: _paymentType == type,
-                            onTap: () => setState(() => _paymentType = type),
-                          ),
+                    _SectionLabel('Payment option'),
+                    const SizedBox(height: AppDimens.paddingX8),
+                    _SegmentedChoice(
+                      labels: const <String>['Full payment', 'Partial'],
+                      selectedIndex: _isPartial ? 1 : 0,
+                      onSelected: (int i) =>
+                          setState(() => _isPartial = i == 1),
+                    ),
+                    if (_isPartial) ...<Widget>[
+                      const SizedBox(height: AppDimens.paddingX12),
+                      CustomTextField(
+                        controller: _amountController,
+                        labelText: 'Amount received now',
+                        hintText: 'Max ${_formatMoney(_netPayable)}',
+                        icon: Icons.payments_outlined,
+                        isRequired: false,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
                         ),
-                        if (type != BookingPaymentType.values.last)
-                          const SizedBox(width: AppDimens.paddingX10),
-                      ],
+                        inputFormatters: <TextInputFormatter>[
+                          FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+                        ],
+                        onChanged: (_) => setState(() {}),
+                      ),
                     ],
-                  ),
-                ],
+                    const SizedBox(height: AppDimens.paddingX14),
+                    _SettlementSummary(
+                      discount: _discount,
+                      netPayable: _netPayable,
+                      collectingNow: _amountPaid,
+                      remaining: _remaining,
+                    ),
+                    const SizedBox(height: AppDimens.paddingX18),
+
+                    _SectionLabel('Payment type'),
+                    const SizedBox(height: AppDimens.paddingX8),
+                    _SegmentedChoice(
+                      labels: <String>[
+                        for (final BookingPaymentType type
+                            in BookingPaymentType.values)
+                          type.label,
+                      ],
+                      selectedIndex: BookingPaymentType.values.indexOf(
+                        _paymentType,
+                      ),
+                      onSelected: (int i) => setState(
+                        () => _paymentType = BookingPaymentType.values[i],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
+            // Pinned footer — same treatment as the booking details action bar.
+            _CompleteSheetFooter(
+              onCancel: () => Navigator.of(context).pop(),
+              onComplete: _canComplete ? _onComplete : null,
+              amount: _amountPaid,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Bottom action bar of the complete sheet: full-width hairline on top, the
+/// amount being collected, and the primary action.
+class _CompleteSheetFooter extends StatelessWidget {
+  const _CompleteSheetFooter({
+    required this.onCancel,
+    required this.onComplete,
+    required this.amount,
+  });
+
+  final VoidCallback onCancel;
+  final VoidCallback? onComplete;
+  final double amount;
+
+  @override
+  Widget build(BuildContext context) {
+    final FutsalTextTheme textTheme = FutsalTheme.getTextTheme(context);
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.fromLTRB(
+        AppDimens.paddingX18,
+        AppDimens.paddingX12,
+        AppDimens.paddingX18,
+        AppDimens.paddingX12 + MediaQuery.viewPaddingOf(context).bottom,
+      ),
+      decoration: const BoxDecoration(
+        color: LightColor.cardColor,
+        border: Border(top: BorderSide(color: LightColor.dividerColor)),
+      ),
+      child: Row(
+        children: <Widget>[
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Text(
+                  'Collecting now',
+                  style: textTheme.bodyTextSmall?.copyWith(
+                    color: LightColor.secondaryTextColor,
+                  ),
+                ),
+                Text(
+                  _formatMoney(amount),
+                  style: textTheme.bodyTextMedium?.copyWith(
+                    color: LightColor.primaryTextColor,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: AppDimens.paddingX12),
-          const Divider(height: 1, color: LightColor.dividerColor),
-          const SizedBox(height: AppDimens.paddingX12),
-          Row(
-            children: <Widget>[
-              Expanded(
-                child: CustomButton(
-                  text: 'Cancel',
-                  isOutlined: true,
-                  foregroundColor: LightColor.secondaryTextColor,
-                  borderColor: LightColor.dividerColor,
-                  minHeight: AppDimens.sizeX48,
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-              ),
-              const SizedBox(width: AppDimens.paddingX12),
-              Expanded(
-                child: CustomButton(
-                  text: 'Complete',
-                  icon: Icons.check_rounded,
-                  backgroundColor: LightColor.purpleColor,
-                  minHeight: AppDimens.sizeX48,
-                  onPressed: _canComplete ? _onComplete : null,
-                ),
-              ),
-            ],
+          const SizedBox(width: AppDimens.paddingX12),
+          SizedBox(
+            width: 92,
+            child: CustomButton(
+              text: 'Cancel',
+              isOutlined: true,
+              foregroundColor: LightColor.secondaryTextColor,
+              borderColor: LightColor.dividerColor,
+              minHeight: AppDimens.sizeX42,
+              onPressed: onCancel,
+            ),
+          ),
+          const SizedBox(width: AppDimens.paddingX10),
+          SizedBox(
+            width: 122,
+            child: CustomButton(
+              text: 'Complete',
+              backgroundColor: LightColor.secondaryColor,
+              minHeight: AppDimens.sizeX42,
+              onPressed: onComplete,
+            ),
           ),
         ],
       ),
@@ -863,79 +1260,80 @@ class _SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
-      style: FutsalTheme.getTextTheme(context).bodyTextMedium?.copyWith(
-        color: LightColor.primaryTextColor,
-        fontWeight: FontWeight.w700,
+      style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
+        color: LightColor.secondaryTextColor,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 0.2,
       ),
     );
   }
 }
 
-class _ChoiceOption extends StatelessWidget {
-  const _ChoiceOption({
-    required this.icon,
-    required this.label,
-    required this.isSelected,
-    required this.onTap,
+/// Segmented control used for the payment option (full/partial) and the
+/// payment type (cash/online). One bordered track, the active segment filled —
+/// clearer than two separate boxes and it reads as a single choice.
+class _SegmentedChoice extends StatelessWidget {
+  const _SegmentedChoice({
+    required this.labels,
+    required this.selectedIndex,
+    required this.onSelected,
   });
 
-  final IconData icon;
-  final String label;
-  final bool isSelected;
-  final VoidCallback onTap;
+  final List<String> labels;
+  final int selectedIndex;
+  final ValueChanged<int> onSelected;
 
   @override
   Widget build(BuildContext context) {
     final FutsalTextTheme textTheme = FutsalTheme.getTextTheme(context);
-    return Material(
-      color: isSelected
-          ? LightColor.secondaryColor.withValues(alpha: 0.12)
-          : LightColor.background,
-      borderRadius: BorderRadius.circular(AppDimens.radiusX12),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(AppDimens.radiusX12),
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(
-            vertical: AppDimens.paddingX14,
-            horizontal: AppDimens.paddingX12,
-          ),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppDimens.radiusX12),
-            border: Border.all(
-              color: isSelected
-                  ? LightColor.secondaryColor
-                  : LightColor.dividerColor,
-              width: isSelected ? 1.4 : 1,
-            ),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              Icon(
-                icon,
-                size: AppDimens.sizeX18,
-                color: isSelected
-                    ? LightColor.secondaryColor
-                    : LightColor.secondaryTextColor,
-              ),
-              const SizedBox(width: AppDimens.paddingX8),
-              Flexible(
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: textTheme.bodyTextMedium?.copyWith(
-                    color: isSelected
-                        ? LightColor.secondaryColor
-                        : LightColor.primaryTextColor,
-                    fontWeight: FontWeight.w700,
+    return Container(
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: LightColor.inputFillColor,
+        borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+      ),
+      child: Row(
+        children: <Widget>[
+          for (int i = 0; i < labels.length; i++)
+            Expanded(
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => onSelected(i),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  curve: Curves.easeOut,
+                  padding: const EdgeInsets.symmetric(
+                    vertical: AppDimens.paddingX10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: i == selectedIndex
+                        ? LightColor.cardColor
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+                    border: Border.all(
+                      color: i == selectedIndex
+                          ? LightColor.secondaryColor
+                          : Colors.transparent,
+                    ),
+                  ),
+                  child: Text(
+                    labels[i],
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: textTheme.bodyTextMedium?.copyWith(
+                      color: i == selectedIndex
+                          ? LightColor.secondaryColor
+                          : LightColor.secondaryTextColor,
+                      fontWeight: i == selectedIndex
+                          ? FontWeight.w700
+                          : FontWeight.w500,
+                    ),
                   ),
                 ),
               ),
-            ],
-          ),
-        ),
+            ),
+        ],
       ),
     );
   }
@@ -961,11 +1359,9 @@ class _SettlementSummary extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppDimens.paddingX14),
       decoration: BoxDecoration(
-        color: LightColor.secondaryColor.withValues(alpha: 0.08),
+        color: LightColor.cardColor,
         borderRadius: BorderRadius.circular(AppDimens.radiusX12),
-        border: Border.all(
-          color: LightColor.secondaryColor.withValues(alpha: 0.25),
-        ),
+        border: Border.all(color: LightColor.dividerColor),
       ),
       child: Column(
         children: <Widget>[
@@ -1005,10 +1401,8 @@ class _SettlementRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final FutsalTextTheme textTheme = FutsalTheme.getTextTheme(context);
     final Color valueColor = highlightRemaining
-        ? LightColor.redColor
-        : (emphasize
-              ? LightColor.secondaryColor
-              : LightColor.primaryTextColor);
+        ? const Color(0xFFB45309)
+        : LightColor.primaryTextColor;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: AppDimens.paddingX4),
       child: Row(
@@ -1018,7 +1412,7 @@ class _SettlementRow extends StatelessWidget {
               label,
               style: textTheme.bodyTextSmall?.copyWith(
                 color: LightColor.secondaryTextColor,
-                fontWeight: emphasize ? FontWeight.w700 : FontWeight.w500,
+                fontWeight: emphasize ? FontWeight.w600 : FontWeight.w500,
               ),
             ),
           ),
@@ -1026,7 +1420,7 @@ class _SettlementRow extends StatelessWidget {
             _formatMoney(amount),
             style: textTheme.bodyTextSmall?.copyWith(
               color: valueColor,
-              fontWeight: emphasize ? FontWeight.w800 : FontWeight.w700,
+              fontWeight: emphasize ? FontWeight.w700 : FontWeight.w600,
             ),
           ),
         ],
@@ -1050,8 +1444,8 @@ class _ReceiptCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppDimens.paddingX16),
       decoration: BoxDecoration(
-        color: LightColor.background,
-        borderRadius: BorderRadius.circular(AppDimens.radiusX14),
+        color: LightColor.cardColor,
+        borderRadius: BorderRadius.circular(AppDimens.radiusX12),
         border: Border.all(color: LightColor.dividerColor),
       ),
       child: Column(
@@ -1059,16 +1453,29 @@ class _ReceiptCard extends StatelessWidget {
         children: <Widget>[
           const _ReceiptSectionLabel('Booking payment'),
           const SizedBox(height: AppDimens.paddingX10),
-          _ReceiptRow(label: 'Booking amount', amount: booking.amount),
+          _ReceiptRow(
+            label: 'Subtotal',
+            amount: booking.subtotal > 0
+                ? booking.subtotal
+                : booking.bookingTotal,
+          ),
           if (booking.discountAmount > 0)
             _ReceiptRow(label: 'Discount', amount: -booking.discountAmount),
           if (booking.taxAmount > 0)
             _ReceiptRow(label: 'Tax', amount: booking.taxAmount),
-          if (booking.paidAmount > 0)
-            _ReceiptRow(label: 'Already paid', amount: booking.paidAmount),
+          _ReceiptRow(
+            label: 'Booking total',
+            amount: booking.bookingTotal,
+            emphasize: true,
+          ),
+          if (booking.effectivePaidAmount > 0)
+            _ReceiptRow(
+              label: 'Already paid',
+              amount: booking.effectivePaidAmount,
+            ),
           _ReceiptRow(
             label: 'Balance due',
-            amount: booking.balanceDue,
+            amount: booking.remainingBookingBalance,
             emphasize: true,
           ),
 
@@ -1084,10 +1491,7 @@ class _ReceiptCard extends StatelessWidget {
                   '${booking.extraItemsCount} item'
                   '${booking.extraItemsCount == 1 ? '' : 's'}',
                   style: FutsalTheme.getTextTheme(context).bodyTextSmall
-                      ?.copyWith(
-                        color: LightColor.secondaryColor,
-                        fontWeight: FontWeight.w700,
-                      ),
+                      ?.copyWith(color: LightColor.secondaryTextColor),
                 ),
             ],
           ),
@@ -1095,9 +1499,9 @@ class _ReceiptCard extends StatelessWidget {
           if (items.isEmpty)
             Text(
               'No extra items on this booking.',
-              style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
-                color: LightColor.secondaryTextColor,
-              ),
+              style: FutsalTheme.getTextTheme(
+                context,
+              ).bodyTextSmall?.copyWith(color: LightColor.secondaryTextColor),
             )
           else ...<Widget>[
             for (final BookingExtraItemModel item in items)
@@ -1116,37 +1520,29 @@ class _ReceiptCard extends StatelessWidget {
           ],
 
           const SizedBox(height: AppDimens.paddingX14),
-          Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppDimens.paddingX12,
-              vertical: AppDimens.paddingX12,
-            ),
-            decoration: BoxDecoration(
-              color: LightColor.secondaryColor.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(AppDimens.radiusX10),
-            ),
-            child: Row(
-              children: <Widget>[
-                Expanded(
-                  child: Text(
-                    'Total to collect',
-                    style: FutsalTheme.getTextTheme(context).bodyTextMedium
-                        ?.copyWith(
-                          color: LightColor.primaryTextColor,
-                          fontWeight: FontWeight.w800,
-                        ),
-                  ),
-                ),
-                Text(
-                  _formatMoney(totalToCollect),
-                  style: FutsalTheme.getTextTheme(context).bodyTextLarge
+          const _ReceiptDivider(),
+          const SizedBox(height: AppDimens.paddingX14),
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: Text(
+                  'Total to collect',
+                  style: FutsalTheme.getTextTheme(context).bodyTextMedium
                       ?.copyWith(
-                        color: LightColor.secondaryColor,
-                        fontWeight: FontWeight.w800,
+                        color: LightColor.primaryTextColor,
+                        fontWeight: FontWeight.w700,
                       ),
                 ),
-              ],
-            ),
+              ),
+              Text(
+                _formatMoney(totalToCollect),
+                style: FutsalTheme.getTextTheme(context).bodyTextLarge
+                    ?.copyWith(
+                      color: LightColor.primaryTextColor,
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+            ],
           ),
         ],
       ),
@@ -1162,11 +1558,11 @@ class _ReceiptSectionLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Text(
-      text.toUpperCase(),
-      style: FutsalTheme.getTextTheme(context).bodyMiniSubTitle?.copyWith(
+      text,
+      style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
         color: LightColor.secondaryTextColor,
-        fontWeight: FontWeight.w800,
-        letterSpacing: 0.4,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 0.2,
       ),
     );
   }
@@ -1212,9 +1608,7 @@ class _ReceiptRow extends StatelessWidget {
                 Text(
                   label,
                   style: textTheme.bodyTextSmall?.copyWith(
-                    color: emphasize
-                        ? LightColor.primaryTextColor
-                        : labelColor,
+                    color: emphasize ? LightColor.primaryTextColor : labelColor,
                     fontWeight: emphasize ? FontWeight.w700 : FontWeight.w500,
                   ),
                 ),
@@ -1235,74 +1629,10 @@ class _ReceiptRow extends StatelessWidget {
             _formatMoney(amount),
             style: textTheme.bodyTextSmall?.copyWith(
               color: LightColor.primaryTextColor,
-              fontWeight: emphasize ? FontWeight.w800 : FontWeight.w600,
+              fontWeight: emphasize ? FontWeight.w700 : FontWeight.w600,
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _PaymentTypeOption extends StatelessWidget {
-  const _PaymentTypeOption({
-    required this.type,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  final BookingPaymentType type;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final FutsalTextTheme textTheme = FutsalTheme.getTextTheme(context);
-    return Material(
-      color: isSelected
-          ? LightColor.secondaryColor.withValues(alpha: 0.12)
-          : LightColor.background,
-      borderRadius: BorderRadius.circular(AppDimens.radiusX12),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(AppDimens.radiusX12),
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(
-            vertical: AppDimens.paddingX14,
-            horizontal: AppDimens.paddingX12,
-          ),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppDimens.radiusX12),
-            border: Border.all(
-              color: isSelected
-                  ? LightColor.secondaryColor
-                  : LightColor.dividerColor,
-              width: isSelected ? 1.4 : 1,
-            ),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              Icon(
-                type.icon,
-                size: AppDimens.sizeX18,
-                color: isSelected
-                    ? LightColor.secondaryColor
-                    : LightColor.secondaryTextColor,
-              ),
-              const SizedBox(width: AppDimens.paddingX8),
-              Text(
-                type.label,
-                style: textTheme.bodyTextMedium?.copyWith(
-                  color: isSelected
-                      ? LightColor.secondaryColor
-                      : LightColor.primaryTextColor,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

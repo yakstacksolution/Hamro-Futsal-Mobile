@@ -13,6 +13,7 @@ void main() {
     final BookingModel booking = BookingModel.fromJson(<String, dynamic>{
       'id': 7,
       'booking_code': 'BK-9BSUCLB3',
+      'booking_type': 'online',
       'is_recurring': true,
       'recurrence_type': 'weekly',
       'recurrence_start_date': '2026-07-01',
@@ -59,8 +60,10 @@ void main() {
     expect(find.byKey(const Key('cancel-booking-button')), findsOneWidget);
     expect(find.text('Dhananjay sports'), findsWidgets);
     expect(find.text('Shidartha'), findsWidgets);
-    expect(find.text('6:00 PM – 7:00 PM'), findsOneWidget);
+    expect(find.text('Wed, 12 Aug 2026 · 6:00 PM – 7:00 PM'), findsOneWidget);
     expect(find.text('Weekly'), findsOneWidget);
+    expect(find.text('Booked via'), findsOneWidget);
+    expect(find.text('Online'), findsOneWidget);
 
     await tester.scrollUntilVisible(
       find.text('Payment summary'),
@@ -73,7 +76,7 @@ void main() {
     expect(find.text('NPR 1080'), findsOneWidget);
     expect(find.text('Partial'), findsOneWidget);
     expect(find.text('Balance due later'), findsOneWidget);
-    expect(find.text('Payment method: Cash'), findsOneWidget);
+    expect(find.text('Paid via Cash'), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('cancel-booking-button')));
     await tester.tap(find.byKey(const Key('chat-venue-button')));

@@ -55,6 +55,8 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
   bool _agreedToTerms = false;
   bool _submitted = false;
 
+  bool get _isManual => widget.draft.manualBooking != null;
+
   @override
   void initState() {
     super.initState();
@@ -97,7 +99,7 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
 
   double get _subtotal => widget.draft.subtotal;
 
-  bool get _canConfirm => _paymentDoc != null && _agreedToTerms;
+  bool get _canConfirm => _isManual || (_paymentDoc != null && _agreedToTerms);
 
   /// Effective server quote: from the coupon-apply response once a coupon is
   /// applied, otherwise from the initial booking-hold quote. [holdQuote] is the
@@ -217,7 +219,7 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
 
   Future<void> _confirmBooking() async {
     setState(() => _submitted = true);
-    if (_paymentDoc == null) {
+    if (!_isManual && _paymentDoc == null) {
       AppUtils().showSnackBar(
         context,
         MsgType.error,
@@ -226,7 +228,7 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
       );
       return;
     }
-    if (!_agreedToTerms) {
+    if (!_isManual && !_agreedToTerms) {
       AppUtils().showSnackBar(
         context,
         MsgType.error,
@@ -252,7 +254,9 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
         draft: widget.draft,
         pricing: _pricingFor(coupon, quote: quote),
         couponCode: coupon.hasApplied ? coupon.appliedCode : null,
-        paymentMethodLabel: 'Online (QR) · proof attached',
+        paymentMethodLabel: _isManual
+            ? 'Paid at counter'
+            : 'Online (QR) · proof attached',
         paymentProofName: _paymentDoc?.name,
       ),
     );
@@ -265,6 +269,7 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
     HapticFeedback.mediumImpact();
     final BookingDraft draft = widget.draft;
     final CouponState coupon = context.read<CouponBloc>().state;
+    final manual = draft.manualBooking;
 
     context.read<CreateBookingBloc>().add(
       SubmitBookingEvent(
@@ -274,10 +279,18 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
           bookingDate: _apiDate(draft.selectedDate),
           startTime: draft.apiTime ?? '',
           endTime: draft.apiEndTime,
-          paymentMethod: _paymentMethod,
+          paymentMethod: manual?.paymentMethod ?? _paymentMethod,
           couponCode: coupon.hasApplied ? coupon.appliedCode : null,
           repeatWeeks: draft.isRecurring ? draft.sessions : null,
           paymentProofPath: _paymentDoc?.path,
+          paymentNote: manual?.paymentNote,
+          bookingType: manual == null ? null : 'manual',
+          customerName: manual?.customerName,
+          customerPhone: manual?.customerPhone,
+          customerEmail: manual?.customerEmail,
+          paymentType: manual?.paymentType,
+          paymentStatus: manual?.paymentStatus,
+          bookingStatus: manual?.bookingStatus,
         ),
       ),
     );
@@ -390,40 +403,42 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
                 _PriceBreakdown(lines: pricing.lines, ready: pricing.ready),
                 const SizedBox(height: AppDimens.sizeX20),
 
-                const _SectionLabel('Payment'),
-                Builder(
-                  builder: (context) {
-                    final PaymentQrState qrState = context
-                        .watch<PaymentQrBloc>()
-                        .state;
-                    return PaymentQrCard(
-                      qr: qrState.qr,
-                      isLoading: qrState.isLoading,
-                      fallbackPayeeName: _payeeName,
-                      fallbackPayeeId: _payeeId,
-                      amountLabel: StringConstants.advanceToPay,
-                      amountValue: 'Rs ${pricing.advance.toStringAsFixed(0)}',
-                    );
-                  },
-                ),
-                const SizedBox(height: AppDimens.sizeX20),
+                if (!_isManual) ...<Widget>[
+                  const _SectionLabel('Payment'),
+                  Builder(
+                    builder: (context) {
+                      final PaymentQrState qrState = context
+                          .watch<PaymentQrBloc>()
+                          .state;
+                      return PaymentQrCard(
+                        qr: qrState.qr,
+                        isLoading: qrState.isLoading,
+                        fallbackPayeeName: _payeeName,
+                        fallbackPayeeId: _payeeId,
+                        amountLabel: StringConstants.advanceToPay,
+                        amountValue: 'Rs ${pricing.advance.toStringAsFixed(0)}',
+                      );
+                    },
+                  ),
+                  const SizedBox(height: AppDimens.sizeX20),
 
-                const _SectionLabel('Payment proof'),
-                _UploadCard(
-                  file: _paymentDoc,
-                  highlightMissing: _submitted && _paymentDoc == null,
-                  onPick: _pickPaymentDoc,
-                  onRemove: () => setState(() => _paymentDoc = null),
-                ),
-                const SizedBox(height: AppDimens.sizeX12),
-                const _PaymentNoteCard(),
-                const SizedBox(height: AppDimens.sizeX16),
+                  const _SectionLabel('Payment proof'),
+                  _UploadCard(
+                    file: _paymentDoc,
+                    highlightMissing: _submitted && _paymentDoc == null,
+                    onPick: _pickPaymentDoc,
+                    onRemove: () => setState(() => _paymentDoc = null),
+                  ),
+                  const SizedBox(height: AppDimens.sizeX12),
+                  const _PaymentNoteCard(),
+                  const SizedBox(height: AppDimens.sizeX16),
 
-                _TermsCheckbox(
-                  value: _agreedToTerms,
-                  highlightMissing: _submitted && !_agreedToTerms,
-                  onChanged: (bool v) => setState(() => _agreedToTerms = v),
-                ),
+                  _TermsCheckbox(
+                    value: _agreedToTerms,
+                    highlightMissing: _submitted && !_agreedToTerms,
+                    onChanged: (bool v) => setState(() => _agreedToTerms = v),
+                  ),
+                ],
               ],
             ),
           ),

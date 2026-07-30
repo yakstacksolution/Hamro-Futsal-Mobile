@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart' show TimeOfDay;
+import 'package:hamro_footsall/core/widgets/custom_time_field.dart';
 import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_models.dart';
 
 class VendorValidationResult {
@@ -13,6 +15,68 @@ class VendorValidationResult {
 
 class VendorOnboardingValidator {
   const VendorOnboardingValidator._();
+
+  /// Validates one slot against the other schedules for the same court.
+  ///
+  /// Adjacent ranges (05:00–06:00 and 06:00–07:00) are allowed. Exact
+  /// duplicates, partial overlaps and ranges contained by another slot are
+  /// rejected whenever the schedules share at least one booking day.
+  static String? validateSlotTiming(
+    SlotPricingDraft candidate,
+    Iterable<SlotPricingDraft> courtSlots,
+  ) {
+    final TimeOfDay? start = timeOfDayFromString(candidate.startTime);
+    final TimeOfDay? end = timeOfDayFromString(candidate.endTime);
+    if (start == null || end == null) {
+      return 'Select a valid start and end time.';
+    }
+
+    final int startMinutes = minutesFromTimeOfDay(start);
+    final int endMinutes = minutesFromTimeOfDay(end);
+    if (startMinutes == endMinutes) {
+      return 'Start and end time cannot be the same.';
+    }
+    if (startMinutes > endMinutes) {
+      return 'End time must be later than start time.';
+    }
+
+    final Set<String> candidateDays = candidate.days
+        .map((String day) => day.trim().toLowerCase())
+        .where((String day) => day.isNotEmpty)
+        .toSet();
+    for (final SlotPricingDraft existing in courtSlots) {
+      if (identical(existing, candidate)) continue;
+      if (candidate.id.isNotEmpty && existing.id == candidate.id) continue;
+      final Set<String> existingDays = existing.days
+          .map((String day) => day.trim().toLowerCase())
+          .where((String day) => day.isNotEmpty)
+          .toSet();
+      if (!candidateDays.any(existingDays.contains)) continue;
+
+      final TimeOfDay? existingStart = timeOfDayFromString(existing.startTime);
+      final TimeOfDay? existingEnd = timeOfDayFromString(existing.endTime);
+      if (existingStart == null || existingEnd == null) continue;
+      final int existingStartMinutes = minutesFromTimeOfDay(existingStart);
+      final int existingEndMinutes = minutesFromTimeOfDay(existingEnd);
+      if (existingStartMinutes >= existingEndMinutes) continue;
+
+      final bool overlaps =
+          startMinutes < existingEndMinutes &&
+          existingStartMinutes < endMinutes;
+      if (!overlaps) continue;
+
+      final bool duplicate =
+          startMinutes == existingStartMinutes &&
+          endMinutes == existingEndMinutes;
+      final String name = existing.label.trim().isEmpty
+          ? 'another slot'
+          : '"${existing.label.trim()}"';
+      return duplicate
+          ? 'This time slot already exists on the selected day(s).'
+          : 'This time overlaps with $name on the selected day(s).';
+    }
+    return null;
+  }
 
   static bool canUnlockCourts(FutsalDraft draft) {
     return validateFutsalSubstep(draft, 0, 0).isValid &&
@@ -453,39 +517,9 @@ class VendorOnboardingValidator {
   }
 
   static bool _hasSlotOverlap(List<SlotPricingDraft> slots) {
-    for (int i = 0; i < slots.length; i++) {
-      for (int j = i + 1; j < slots.length; j++) {
-        if (_sharesDay(slots[i], slots[j]) && _overlaps(slots[i], slots[j])) {
-          return true;
-        }
-      }
+    for (final SlotPricingDraft slot in slots) {
+      if (validateSlotTiming(slot, slots) != null) return true;
     }
     return false;
-  }
-
-  static bool _sharesDay(SlotPricingDraft a, SlotPricingDraft b) {
-    return a.days.any(b.days.contains);
-  }
-
-  static bool _overlaps(SlotPricingDraft a, SlotPricingDraft b) {
-    final int? aStart = _timeToMinutes(a.startTime);
-    final int? aEnd = _timeToMinutes(a.endTime);
-    final int? bStart = _timeToMinutes(b.startTime);
-    final int? bEnd = _timeToMinutes(b.endTime);
-    if (aStart == null || aEnd == null || bStart == null || bEnd == null) {
-      return false;
-    }
-    if (aStart >= aEnd || bStart >= bEnd) return true;
-    return aStart < bEnd && bStart < aEnd;
-  }
-
-  static int? _timeToMinutes(String input) {
-    final List<String> parts = input.trim().split(':');
-    if (parts.length != 2) return null;
-    final int? hour = int.tryParse(parts[0]);
-    final int? minute = int.tryParse(parts[1]);
-    if (hour == null || minute == null) return null;
-    if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
-    return (hour * 60) + minute;
   }
 }

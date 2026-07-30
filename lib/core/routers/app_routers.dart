@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hamro_footsall/core/api/api_client/booking_type_payload.dart';
 import 'package:hamro_footsall/core/routers/app_router_params.dart';
 import 'package:hamro_footsall/core/routers/root_navigator_key.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
@@ -10,6 +11,7 @@ import 'package:hamro_footsall/features/auth/data/repositories/authentication_re
 import 'package:hamro_footsall/features/booking_overview/presentation/pages/booking_overview_screen.dart';
 import 'package:hamro_footsall/features/bookings/data/model/booking_model.dart';
 import 'package:hamro_footsall/features/bookings/presentation/pages/booking_details_page.dart';
+import 'package:hamro_footsall/features/bookings/presentation/pages/manual_booking_page.dart';
 import 'package:hamro_footsall/features/change_password/data/repositories/change_password_repository_impl.dart';
 import 'package:hamro_footsall/features/change_password/domain/usecase/change_password_usecase.dart';
 import 'package:hamro_footsall/features/change_password/presentation/bloc/change_password_bloc/change_password_bloc.dart';
@@ -358,11 +360,24 @@ class AppRouters {
                       court: court,
                       initialDate: args.initialDate,
                       initialStartTime: args.initialStartTime,
+                      // Walk-ins arrive here from the manual booking form.
+                      bookingType: BookingTypePayload.of(
+                        isManual: args.manualBooking != null,
+                      ),
                     ),
                   ),
-              child: SlotsSelectionPage(court: court),
+              child: SlotsSelectionPage(
+                court: court,
+                manualBooking: args.manualBooking,
+              ),
             );
           },
+        ),
+
+        GoRoute(
+          name: AppRouterParams.manualBooking.name,
+          path: AppRouterParams.manualBooking.path,
+          builder: (context, state) => const ManualBookingPage(),
         ),
 
         GoRoute(

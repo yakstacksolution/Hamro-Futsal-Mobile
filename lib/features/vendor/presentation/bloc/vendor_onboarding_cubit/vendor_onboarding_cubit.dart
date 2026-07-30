@@ -1078,10 +1078,6 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     );
   }
 
-  /// Creates or updates a single slot via `update-court-slot`. A new slot has a
-  /// non-numeric local id, so no `slot_schedule_id` is sent and the backend
-  /// creates it; an existing slot sends its id and is updated. Refreshes the
-  /// list from the server on success. Returns an error message or null.
   Future<String?> saveCourtSlot(SlotPricingDraft slot) async {
     final CourtDraft? court = state.activeCourt;
     final int? courtId = court == null
@@ -1096,6 +1092,20 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
         ),
       );
       return message;
+    }
+
+    final String? timingError = VendorOnboardingValidator.validateSlotTiming(
+      slot,
+      court.slotConfigs,
+    );
+    if (timingError != null) {
+      emit(
+        state.copyWith(
+          errorMessage: timingError,
+          errorOrigin: VendorErrorOrigin.validation,
+        ),
+      );
+      return timingError;
     }
 
     emit(state.copyWith(isSubmitting: true, clearErrorMessage: true));

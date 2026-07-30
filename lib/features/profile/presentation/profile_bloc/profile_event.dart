@@ -11,6 +11,23 @@ final class FetchProfileEvent extends ProfileEvent {
   const FetchProfileEvent();
 }
 
+final class RequestVendorUpgradeEvent extends ProfileEvent {
+  const RequestVendorUpgradeEvent({
+    required this.businessName,
+    required this.phone,
+    required this.address,
+    this.message,
+  });
+
+  final String businessName;
+  final String phone;
+  final String address;
+  final String? message;
+
+  @override
+  List<Object?> get props => <Object?>[businessName, phone, address, message];
+}
+
 final class UpdateProfileEvent extends ProfileEvent {
   const UpdateProfileEvent({
     this.fullName,

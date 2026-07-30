@@ -20,6 +20,22 @@ final class ProfileRepositoryImpl extends ProfileRepository {
   }
 
   @override
+  Future<Either<AppException, String>> requestVendorUpgrade(
+    Map<String, dynamic> data,
+  ) async {
+    final Result response = await _remoteDataSource.requestVendorUpgrade(data);
+    if (response.isError()) return left(ResponseHelper.error(response));
+
+    final dynamic payload = response.getValue();
+    final String message = payload is Map
+        ? payload['message']?.toString().trim() ?? ''
+        : '';
+    return right(
+      message.isNotEmpty ? message : StringConstants.vendorRequestSubmitted,
+    );
+  }
+
+  @override
   Future<Either<AppException, ProfileModel>> updateProfile(
     Map<String, dynamic> data,
   ) async {

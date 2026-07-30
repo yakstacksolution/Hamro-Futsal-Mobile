@@ -9,10 +9,14 @@ import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/utils/scroll_behavior.dart';
 import 'package:hamro_footsall/core/widgets/custom_button.dart';
+import 'package:hamro_footsall/features/bookings/data/model/manual_booking_details.dart';
 import 'package:hamro_footsall/features/courts_details/presentation/page/court_details.dart';
+import 'package:hamro_footsall/features/futsal_details/data/model/booking_draft.dart';
 import 'package:hamro_footsall/features/futsal_details/data/model/booking_recurrence.dart';
+import 'package:hamro_footsall/features/futsal_details/data/model/create_booking_request.dart';
 import 'package:hamro_footsall/features/futsal_details/data/model/recurring_availability_model.dart';
 import 'package:hamro_footsall/features/futsal_details/data/model/venue_court_item_model.dart';
+import 'package:hamro_footsall/features/futsal_details/data/repositories/futsal_details_repository_impl.dart';
 import 'package:hamro_footsall/features/futsal_details/presentation/bloc/slots_selection/slots_selection_bloc.dart';
 import 'package:hamro_footsall/features/futsal_details/presentation/widgets/booking_options.dart';
 import 'package:hamro_footsall/features/futsal_details/presentation/widgets/compact_date_time_selector.dart';
@@ -22,9 +26,14 @@ import 'package:hamro_footsall/features/futsal_details/presentation/widgets/load
 import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class SlotsSelectionPage extends StatefulWidget {
-  const SlotsSelectionPage({super.key, required this.court});
+  const SlotsSelectionPage({
+    super.key,
+    required this.court,
+    this.manualBooking,
+  });
 
   final CourtDetailModel court;
+  final ManualBookingDetails? manualBooking;
 
   @override
   State<SlotsSelectionPage> createState() => _SlotsSelectionPageState();
@@ -34,6 +43,61 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
     with TickerProviderStateMixin, WidgetsBindingObserver {
   late final AnimationController _bottomBarController;
   late final Animation<Offset> _bottomBarSlide;
+  bool _isConfirmingManualBooking = false;
+
+  String _apiDate(DateTime date) {
+    final String month = date.month.toString().padLeft(2, '0');
+    final String day = date.day.toString().padLeft(2, '0');
+    return '${date.year.toString().padLeft(4, '0')}-$month-$day';
+  }
+
+  Future<void> _confirmManualBooking(BookingDraft draft) async {
+    final ManualBookingDetails? manual = draft.manualBooking;
+    if (manual == null || _isConfirmingManualBooking) return;
+
+    setState(() => _isConfirmingManualBooking = true);
+    final result = await FutsalDetailsRepositoryImpl().createBooking(
+      CreateBookingRequest(
+        venueId: draft.venueId,
+        courtId: draft.courtId,
+        bookingDate: _apiDate(draft.selectedDate),
+        startTime: draft.apiTime ?? '',
+        endTime: draft.apiEndTime,
+        paymentMethod: manual.paymentMethod,
+        repeatWeeks: draft.isRecurring ? draft.sessions : null,
+        paymentNote: manual.paymentNote,
+        bookingType: 'manual',
+        customerName: manual.customerName,
+        customerPhone: manual.customerPhone,
+        customerEmail: manual.customerEmail,
+        paymentType: manual.paymentType,
+        paymentStatus: manual.paymentStatus,
+        bookingStatus: manual.bookingStatus,
+      ),
+    );
+    if (!mounted) return;
+
+    result.fold(
+      (failure) {
+        setState(() => _isConfirmingManualBooking = false);
+        AppUtils().showSnackBar(
+          context,
+          MsgType.error,
+          failure.errorMessage,
+          key: 'manual_booking_failed',
+        );
+      },
+      (_) {
+        AppUtils().showSnackBar(
+          context,
+          MsgType.success,
+          'Booking confirmed successfully.',
+          key: 'manual_booking_success',
+        );
+        Navigator.of(context).pop(true);
+      },
+    );
+  }
 
   @override
   void initState() {
@@ -456,12 +520,22 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
                       width: AppDimens.sizeX116,
                       height: AppDimens.sizeX42,
                       child: CustomButton(
-                        text: state.buttonText,
-                        onPressed: canBook
+                        text: canBook && widget.manualBooking != null
+                            ? (_isConfirmingManualBooking
+                                  ? 'Confirming…'
+                                  : 'Confirm Booking')
+                            : state.buttonText,
+                        isLoading: _isConfirmingManualBooking,
+                        onPressed: canBook && !_isConfirmingManualBooking
                             ? () async {
                                 HapticFeedback.mediumImpact();
-                                final draft = state.bookingDraft;
+                                final draft = state.bookingDraft
+                                    ?.withManualBooking(widget.manualBooking);
                                 if (draft == null) return;
+                                if (widget.manualBooking != null) {
+                                  await _confirmManualBooking(draft);
+                                  return;
+                                }
                                 final bool? booked = await context
                                     .pushNamed<bool>(
                                       AppRouterParams.bookingCheckout.name,

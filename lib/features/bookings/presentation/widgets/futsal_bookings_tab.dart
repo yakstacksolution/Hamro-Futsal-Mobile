@@ -16,7 +16,7 @@ class FutsalBookingsTab extends StatelessWidget {
     super.key,
     this.filter,
     this.searchQuery = '',
-    this.dateOrder = BookingDateOrder.ascending,
+    this.dateOrder = BookingDateOrder.descending,
     this.fromDate,
     this.toDate,
   });
@@ -37,6 +37,15 @@ class FutsalBookingsTab extends StatelessWidget {
         .firstWhere((BookingState state) => state.refreshTick != startTick)
         .timeout(const Duration(seconds: 15), onTimeout: () => bloc.state);
   }
+
+  // Extra bottom room so the last card clears both the dashboard's bottom
+  // navigation bar and the "Manual Booking" button floating above it.
+  EdgeInsets _listPadding(BuildContext context) => EdgeInsets.fromLTRB(
+    AppDimens.paddingX16,
+    AppDimens.paddingX8,
+    AppDimens.paddingX16,
+    AppDimens.sizeX140 + MediaQuery.viewPaddingOf(context).bottom,
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -102,9 +111,12 @@ class FutsalBookingsTab extends StatelessWidget {
                 physics: const AlwaysScrollableScrollPhysics(
                   parent: BouncingScrollPhysics(),
                 ),
+                padding: _listPadding(context),
                 children: [
                   ConstrainedBox(
-                    constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight,
+                    ),
                     child: BookingEmptyView(
                       icon: Icons.sports_soccer_outlined,
                       title: hasCriteria
@@ -128,22 +140,16 @@ class FutsalBookingsTab extends StatelessWidget {
             physics: const AlwaysScrollableScrollPhysics(
               parent: BouncingScrollPhysics(),
             ),
-            padding: AppUtils().getPadding(
-              symmetricHorizontal: AppDimens.paddingX16,
-              top: AppDimens.paddingX8,
-              bottom: AppDimens.sizeX180,
-            ),
+            padding: _listPadding(context),
             itemCount: items.length,
             separatorBuilder: (_, __) =>
                 const SizedBox(height: AppDimens.paddingX10),
             itemBuilder: (_, i) => BookingCard(
               booking: items[i],
               showPlayer: true,
-              footer:
-                  (bookingSupportsProducts(items[i]) ||
-                      bookingCanComplete(items[i]))
-                  ? _BookingCardActions(booking: items[i])
-                  : null,
+              // Every card carries the footer — it holds the relative
+              // timestamp even when there are no actions (e.g. pending).
+              footer: _BookingCardActions(booking: items[i]),
               onTap: () async {
                 await context.pushNamed(
                   AppRouterParams.bookingDetails.name,
@@ -198,27 +204,59 @@ class _BookingCardActions extends StatelessWidget {
     if (ok) bloc.add(const FetchFutsalBookingsEvent(silent: true));
   }
 
+  Future<void> _collectDue(BuildContext context) async {
+    final BookingCollectDueResult? result = await showCollectBookingDueSheet(
+      context,
+      booking,
+    );
+    if (result == null || !context.mounted) return;
+    final bool ok = await collectBookingDue(booking.id, result);
+    if (!context.mounted) return;
+    AppUtils().showSnackBar(
+      context,
+      ok ? MsgType.success : MsgType.error,
+      ok
+          ? 'Due amount collected successfully.'
+          : 'Could not collect the due amount.',
+    );
+    if (ok) _refresh(context);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: AppDimens.paddingX8,
-      runSpacing: AppDimens.paddingX8,
+    return Row(
       children: <Widget>[
-        if (bookingSupportsProducts(booking))
-          BookingActionChip(
-            icon: Icons.add_shopping_cart_rounded,
-            label: booking.extraItemsCount > 0
-                ? 'Products · ${booking.extraItemsCount}'
-                : 'Add products',
-            onTap: () => _addProducts(context),
+        Expanded(
+          child: Wrap(
+            spacing: AppDimens.paddingX8,
+            runSpacing: AppDimens.paddingX8,
+            children: <Widget>[
+              if (bookingSupportsProducts(booking))
+                BookingActionChip(
+                  icon: Icons.add_shopping_cart_rounded,
+                  label: booking.extraItemsCount > 0
+                      ? 'Products · ${booking.extraItemsCount}'
+                      : 'Add products',
+                  onTap: () => _addProducts(context),
+                ),
+              if (bookingCanComplete(booking))
+                BookingActionChip(
+                  icon: Icons.check_circle_outline_rounded,
+                  label: 'Complete',
+                  onTap: () => _complete(context),
+                ),
+              if (booking.status == BookingStatus.completed &&
+                  booking.amountDueForCollection > 0)
+                BookingActionChip(
+                  icon: Icons.payments_outlined,
+                  label: 'Collect due',
+                  onTap: () => _collectDue(context),
+                ),
+            ],
           ),
-        if (bookingCanComplete(booking))
-          BookingActionChip(
-            icon: Icons.check_circle_outline_rounded,
-            label: 'Complete',
-            color: LightColor.purpleColor,
-            onTap: () => _complete(context),
-          ),
+        ),
+        const SizedBox(width: AppDimens.paddingX8),
+        BookingTimeAgoLabel(booking: booking),
       ],
     );
   }

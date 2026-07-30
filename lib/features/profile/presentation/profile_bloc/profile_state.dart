@@ -7,6 +7,8 @@ enum ProfileStatus {
   failure,
   updating,
   updateSuccess,
+  requestingVendor,
+  vendorRequestSuccess,
 }
 
 class ProfileState extends Equatable {
@@ -25,6 +27,7 @@ class ProfileState extends Equatable {
   final String? successMessage;
 
   bool get isUpdating => status == ProfileStatus.updating;
+  bool get isRequestingVendor => status == ProfileStatus.requestingVendor;
 
   ProfileState copyWith({
     ProfileStatus? status,

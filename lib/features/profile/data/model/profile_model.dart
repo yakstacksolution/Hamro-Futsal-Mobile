@@ -144,6 +144,7 @@ class UserData extends Equatable {
   final int profileCompletion;
   final bool businessVerified;
   final bool financeAccess;
+  final bool isVendorRequested;
 
   /// Venue ids the user has wishlisted (`wishlists` on `/auth/me`) — drives
   /// the heart state on venue cards.
@@ -180,6 +181,7 @@ class UserData extends Equatable {
     this.profileCompletion = 0,
     this.businessVerified = false,
     this.financeAccess = false,
+    this.isVendorRequested = false,
     this.wishlistVenueIds = const <int>[],
     this.notificationPreferences = const NotificationPreferences(),
   });
@@ -265,6 +267,7 @@ class UserData extends Equatable {
           json['finance_access'] == true ||
           (json['capabilities'] is List &&
               (json['capabilities'] as List).contains('vendor.finance.read')),
+      isVendorRequested: _asBool(json['is_vendor_requested']),
       wishlistVenueIds: _parseWishlistIds(json['wishlists']),
       notificationPreferences: NotificationPreferences.fromUserJson(json),
     );
@@ -300,6 +303,7 @@ class UserData extends Equatable {
       'profile_completion': profileCompletion,
       'business_verified': businessVerified,
       'finance_access': financeAccess,
+      'is_vendor_requested': isVendorRequested,
       'wishlists': wishlistVenueIds,
       'notification_preferences': notificationPreferences.toJson(),
     };
@@ -334,6 +338,7 @@ class UserData extends Equatable {
     profileCompletion,
     businessVerified,
     financeAccess,
+    isVendorRequested,
     wishlistVenueIds,
     notificationPreferences,
   ];
@@ -367,6 +372,7 @@ class UserData extends Equatable {
     int? profileCompletion,
     bool? businessVerified,
     bool? financeAccess,
+    bool? isVendorRequested,
     List<int>? wishlistVenueIds,
     NotificationPreferences? notificationPreferences,
   }) {
@@ -400,6 +406,7 @@ class UserData extends Equatable {
       profileCompletion: profileCompletion ?? this.profileCompletion,
       businessVerified: businessVerified ?? this.businessVerified,
       financeAccess: financeAccess ?? this.financeAccess,
+      isVendorRequested: isVendorRequested ?? this.isVendorRequested,
       wishlistVenueIds: wishlistVenueIds ?? this.wishlistVenueIds,
       notificationPreferences:
           notificationPreferences ?? this.notificationPreferences,
@@ -436,6 +443,7 @@ class UserData extends Equatable {
       profileCompletion: other.profileCompletion,
       businessVerified: other.businessVerified,
       financeAccess: other.financeAccess,
+      isVendorRequested: other.isVendorRequested,
       wishlistVenueIds: other.wishlistVenueIds.isNotEmpty
           ? other.wishlistVenueIds
           : null,
@@ -448,4 +456,11 @@ int? _asInt(Object? value) {
   if (value is int) return value;
   if (value is num) return value.toInt();
   return int.tryParse(value.toString().trim());
+}
+
+bool _asBool(Object? value) {
+  if (value is bool) return value;
+  if (value is num) return value != 0;
+  final String normalized = value?.toString().trim().toLowerCase() ?? '';
+  return normalized == '1' || normalized == 'true';
 }

@@ -8,11 +8,13 @@ import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/custom_image_view.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/widgets/loading_widget.dart';
+import 'package:hamro_footsall/core/widgets/custom_bottom_sheet.dart';
 import 'package:hamro_footsall/features/auth/data/repositories/authentication_repository_impl.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/page/dashboard_screen.dart';
 import 'package:hamro_footsall/features/profile/data/model/profile_model.dart';
 import 'package:hamro_footsall/features/profile/presentation/profile_bloc/profile_bloc.dart';
 import 'package:hamro_footsall/features/profile/presentation/widgets/profile_details_page.dart';
+import 'package:hamro_footsall/features/profile/presentation/widgets/vendor_request_bottom_sheet.dart';
 import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -78,15 +80,6 @@ class _ProfilePageState extends State<ProfilePage> {
     ),
   ];
 
-  /// Candidates see a single upgrade entry instead of the vendor tools.
-  late final List<_ProfileItem> _candidateVendorItems = <_ProfileItem>[
-    _ProfileItem(
-      title: StringConstants.upgradeToVendor,
-      icon: Icons.storefront_outlined,
-      onTap: () => context.pushNamed(AppRouterParams.vendorStepper.name),
-    ),
-  ];
-
   late final List<_ProfileItem> _supportItems = <_ProfileItem>[
     _ProfileItem(
       title: StringConstants.helpAndFaq,
@@ -128,15 +121,33 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
+  Future<void> _showVendorRequestSheet(UserData user) async {
+    final ProfileBloc bloc = context.read<ProfileBloc>();
+    await showAppBottomSheet<void>(
+      context: context,
+      bottomSpacing: 0,
+      builder: (_) => BlocProvider<ProfileBloc>.value(
+        value: bloc,
+        child: VendorRequestBottomSheet(user: user),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<ProfileBloc, ProfileState>(
       listenWhen: (previous, current) =>
-          previous.errorMessage != current.errorMessage &&
-          current.errorMessage != null,
+          previous.errorMessage != current.errorMessage ||
+          previous.successMessage != current.successMessage,
       listener: (context, state) {
         if (state.errorMessage != null) {
           AppUtils().showSnackBar(context, MsgType.error, state.errorMessage!);
+        } else if (state.successMessage != null) {
+          AppUtils().showSnackBar(
+            context,
+            MsgType.success,
+            state.successMessage!,
+          );
         }
       },
       builder: (context, state) {
@@ -145,6 +156,22 @@ class _ProfilePageState extends State<ProfilePage> {
             state.status == ProfileStatus.loading && profile == null;
 
         final bool isVendor = profile?.data.role == 'vendor';
+        final bool isVendorRequested = profile?.data.isVendorRequested == true;
+        final List<_ProfileItem> candidateVendorItems = <_ProfileItem>[
+          _ProfileItem(
+            title: isVendorRequested
+                ? StringConstants.vendorRequestAlreadySubmitted
+                : StringConstants.upgradeToVendor,
+            icon: isVendorRequested
+                ? Icons.hourglass_top_rounded
+                : Icons.storefront_outlined,
+            loading: state.isRequestingVendor,
+            enabled: !isVendorRequested && !state.isRequestingVendor,
+            onTap: profile == null
+                ? () {}
+                : () => _showVendorRequestSheet(profile.data),
+          ),
+        ];
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -184,7 +211,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   const SizedBox(height: AppDimens.paddingX20),
                   _SectionGroup(
                     label: StringConstants.vendor,
-                    items: isVendor ? _vendorItems : _candidateVendorItems,
+                    items: isVendor ? _vendorItems : candidateVendorItems,
                   ),
                   const SizedBox(height: AppDimens.paddingX20),
                   _SectionGroup(
@@ -575,7 +602,7 @@ class _SettingsRow extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: item.onTap,
+        onTap: item.enabled ? item.onTap : null,
         child: Padding(
           padding: const EdgeInsets.symmetric(
             horizontal: AppDimens.paddingX16,
@@ -623,6 +650,7 @@ class _ProfileItem {
     required this.onTap,
     this.destructive = false,
     this.loading = false,
+    this.enabled = true,
   });
 
   final String title;
@@ -630,4 +658,5 @@ class _ProfileItem {
   final VoidCallback onTap;
   final bool destructive;
   final bool loading;
+  final bool enabled;
 }

@@ -13,6 +13,7 @@ void main() {
       'vendor_status_reason': 'Update tax document',
       'profile_completion': 85,
       'business_verified': true,
+      'is_vendor_requested': true,
       'capabilities': <String>['vendor.finance.read'],
     });
 
@@ -21,5 +22,6 @@ void main() {
     expect(user.profileCompletion, 85);
     expect(user.businessVerified, isTrue);
     expect(user.financeAccess, isTrue);
+    expect(user.isVendorRequested, isTrue);
   });
 }

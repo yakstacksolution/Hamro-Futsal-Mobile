@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
@@ -79,6 +80,12 @@ class RegisterForm extends StatelessWidget {
             hintText: StringConstants.yourName,
             icon: Icons.person_outline_rounded,
             textInputAction: TextInputAction.next,
+            inputFormatters: <TextInputFormatter>[
+              FilteringTextInputFormatter.allow(
+                RegExp(r'[\p{L}\p{M} ]', unicode: true),
+              ),
+              LengthLimitingTextInputFormatter(80),
+            ],
             validator: nameValidator,
             onSubmitted: (_) {
               FocusScope.of(context).requestFocus(accountTypeFocus);

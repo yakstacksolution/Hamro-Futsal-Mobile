@@ -25,6 +25,14 @@ class ApiCallWrapper {
   ApiCallWrapper._privateConstructor();
   static final ApiCallWrapper _instance = ApiCallWrapper._privateConstructor();
 
+  /// Builds a standalone wrapper over a specific transport so tests can assert
+  /// what is actually put on the wire. Never returns the shared singleton, so
+  /// tests cannot leak a fake transport into app code.
+  @visibleForTesting
+  ApiCallWrapper.withHttp(IHttp http) {
+    _iHttp = http;
+  }
+
   factory ApiCallWrapper() {
     _instance._iHttp = DioHttp();
     return _instance;
@@ -158,7 +166,12 @@ class ApiCallWrapper {
     dynamic response;
     switch (method) {
       case HttpVerb.get:
-        response = await _iHttp.get(url: url, token: token, query: query);
+        response = await _iHttp.get(
+          url: url,
+          token: token,
+          query: query,
+          data: requestData,
+        );
         break;
       case HttpVerb.post:
         response = await _iHttp.post(

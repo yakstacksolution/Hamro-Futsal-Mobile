@@ -12,14 +12,24 @@ final class InitializeSlotsSelectionEvent extends SlotsSelectionEvent {
     required this.court,
     this.initialDate,
     this.initialStartTime,
+    this.bookingType = BookingTypePayload.regular,
   });
 
   final CourtDetailModel court;
   final DateTime? initialDate;
   final String? initialStartTime;
 
+  /// `manual` for a vendor-entered walk-in, `regular` for a player booking.
+  /// Availability lookups send it so the server can scope what is bookable.
+  final String bookingType;
+
   @override
-  List<Object?> get props => <Object?>[court, initialDate, initialStartTime];
+  List<Object?> get props => <Object?>[
+    court,
+    initialDate,
+    initialStartTime,
+    bookingType,
+  ];
 }
 
 final class SelectSlotsDateEvent extends SlotsSelectionEvent {

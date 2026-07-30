@@ -19,6 +19,7 @@ import 'package:hamro_footsall/features/bookings/data/repositories/booking_repos
 import 'package:hamro_footsall/features/bookings/domain/repository/booking_repository.dart';
 import 'package:hamro_footsall/features/bookings/domain/usecase/get_bookings_use_case.dart';
 import 'package:hamro_footsall/features/bookings/presentation/bloc/booking_details_bloc/booking_details_bloc.dart';
+import 'package:hamro_footsall/features/bookings/presentation/widgets/booking_details_widgets.dart';
 import 'package:hamro_footsall/features/bookings/presentation/widgets/booking_products_sheet.dart';
 import 'package:hamro_footsall/features/bookings/presentation/widgets/booking_shared_widgets.dart';
 import 'package:hamro_footsall/features/futsal_details/data/repositories/futsal_details_repository_impl.dart';
@@ -179,6 +180,25 @@ class _BookingDetailsView extends StatelessWidget {
       context,
       ok ? MsgType.success : MsgType.error,
       ok ? 'Booking marked as completed.' : 'Could not complete the booking.',
+    );
+    if (ok) bloc.add(FetchBookingDetailsEvent(booking.id));
+  }
+
+  Future<void> _collectDue(BuildContext context, BookingModel booking) async {
+    final BookingDetailsBloc bloc = context.read<BookingDetailsBloc>();
+    final BookingCollectDueResult? result = await showCollectBookingDueSheet(
+      context,
+      booking,
+    );
+    if (result == null || !context.mounted) return;
+    final bool ok = await collectBookingDue(booking.id, result);
+    if (!context.mounted) return;
+    AppUtils().showSnackBar(
+      context,
+      ok ? MsgType.success : MsgType.error,
+      ok
+          ? 'Due amount collected successfully.'
+          : 'Could not collect the due amount.',
     );
     if (ok) bloc.add(FetchBookingDetailsEvent(booking.id));
   }
@@ -423,6 +443,18 @@ class _BookingDetailsView extends StatelessWidget {
                       onComplete: () =>
                           _completeBooking(context, state.booking),
                       isLoading: isLoading,
+                      amountToCollect: state.booking.amountDueForCompletion,
+                    ),
+                  );
+                }
+                if (isFutsalView &&
+                    state.booking.status == BookingStatus.completed &&
+                    state.booking.amountDueForCollection > 0) {
+                  return SizedBox(
+                    height: 70 + MediaQuery.viewPaddingOf(context).bottom,
+                    child: _CollectDueActionBar(
+                      amount: state.booking.amountDueForCollection,
+                      onCollect: () => _collectDue(context, state.booking),
                     ),
                   );
                 }
@@ -455,7 +487,7 @@ class _BookingDetailsView extends StatelessWidget {
                     backgroundColor: LightColor.dividerColor,
                   ),
                 if (state.status == BookingDetailsStatus.failure)
-                  _ErrorBanner(
+                  BookingErrorBanner(
                     message:
                         state.errorMessage ??
                         'Could not load the latest booking details.',
@@ -465,20 +497,25 @@ class _BookingDetailsView extends StatelessWidget {
                   ),
                 Expanded(
                   child: ListView(
-                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
+                    padding: const EdgeInsets.fromLTRB(
+                      BookingDetailsSpacing.page,
+                      12,
+                      BookingDetailsSpacing.page,
+                      28,
+                    ),
                     children: [
                       _BookingSummary(
                         booking: booking,
                         isFutsalView: isFutsalView,
                       ),
-                      const SizedBox(height: 20),
-                      const _SectionTitle('Booking information'),
-                      const SizedBox(height: 8),
+                      const _SectionGap(),
+                      const BookingSectionHeader(title: 'Booking information'),
+                      const _HeaderGap(),
                       _BookingInformation(booking: booking),
                       if (isFutsalView) ...[
-                        const SizedBox(height: 20),
-                        const _SectionTitle('Customer'),
-                        const SizedBox(height: 8),
+                        const _SectionGap(),
+                        const BookingSectionHeader(title: 'Customer'),
+                        const _HeaderGap(),
                         _CustomerCard(
                           booking: booking,
                           onChat:
@@ -488,9 +525,9 @@ class _BookingDetailsView extends StatelessWidget {
                                   : null),
                         ),
                       ] else ...[
-                        const SizedBox(height: 20),
-                        const _SectionTitle('Venue Hosted by'),
-                        const SizedBox(height: 8),
+                        const _SectionGap(),
+                        const BookingSectionHeader(title: 'Venue Hosted by'),
+                        const _HeaderGap(),
                         _VenueHostCard(
                           booking: booking,
                           onChat:
@@ -500,27 +537,30 @@ class _BookingDetailsView extends StatelessWidget {
                                   : null),
                         ),
                       ],
-                      if (isFutsalView &&
-                          bookingSupportsProducts(booking)) ...[
-                        const SizedBox(height: 20),
-                        const _SectionTitle('Products'),
-                        const SizedBox(height: 8),
+                      // Vendors can sell add-ons; customers still see what was
+                      // charged to their booking.
+                      if ((isFutsalView && bookingSupportsProducts(booking)) ||
+                          booking.extraItems.isNotEmpty) ...[
+                        const _SectionGap(),
+                        const BookingSectionHeader(title: 'Products'),
+                        const _HeaderGap(),
                         BookingProductsSection(
                           booking: booking,
-                          onChanged: () =>
-                              context.read<BookingDetailsBloc>().add(
-                                FetchBookingDetailsEvent(booking.id),
-                              ),
+                          canAdd:
+                              isFutsalView && bookingSupportsProducts(booking),
+                          onChanged: () => context
+                              .read<BookingDetailsBloc>()
+                              .add(FetchBookingDetailsEvent(booking.id)),
                         ),
                       ],
-                      const SizedBox(height: 20),
-                      const _SectionTitle('Payment summary'),
-                      const SizedBox(height: 8),
+                      const _SectionGap(),
+                      const BookingSectionHeader(title: 'Payment summary'),
+                      const _HeaderGap(),
                       _PaymentCard(booking: booking),
                       if (booking.payment != null) ...[
-                        const SizedBox(height: 20),
-                        const _SectionTitle('Payment proof'),
-                        const SizedBox(height: 8),
+                        const _SectionGap(),
+                        const BookingSectionHeader(title: 'Payment proof'),
+                        const _HeaderGap(),
                         Builder(
                           builder: (context) {
                             final String verification =
@@ -905,6 +945,23 @@ class _RejectBookingSheetState extends State<_RejectBookingSheet> {
   }
 }
 
+/// Fixed vertical rhythm helpers so every section is spaced identically.
+class _SectionGap extends StatelessWidget {
+  const _SectionGap();
+
+  @override
+  Widget build(BuildContext context) =>
+      const SizedBox(height: BookingDetailsSpacing.sectionGap);
+}
+
+class _HeaderGap extends StatelessWidget {
+  const _HeaderGap();
+
+  @override
+  Widget build(BuildContext context) =>
+      const SizedBox(height: BookingDetailsSpacing.headerGap);
+}
+
 class _BookingDecisionBar extends StatelessWidget {
   const _BookingDecisionBar({
     required this.onAccept,
@@ -922,53 +979,35 @@ class _BookingDecisionBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: LightColor.cardColor,
-      elevation: 12,
-      shadowColor: LightColor.shadowColor,
-      child: SafeArea(
-        top: false,
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
-          decoration: BoxDecoration(
-            border: Border(
-              top: BorderSide(
-                color: LightColor.dividerColor.withValues(alpha: 0.8),
-              ),
+    return BookingActionBar(
+      child: Row(
+        children: [
+          Expanded(
+            child: CustomButton(
+              key: const Key('reject-booking-button'),
+              text: StringConstants.reject,
+              icon: Icons.close_rounded,
+              onPressed: isLoading ? null : onReject ?? () {},
+              isOutlined: true,
+              foregroundColor: LightColor.redColor,
+              borderColor: LightColor.redColor,
+              minHeight: AppDimens.sizeX42,
             ),
           ),
-          child: Row(
-            children: [
-              Expanded(
-                child: CustomButton(
-                  key: const Key('reject-booking-button'),
-                  text: StringConstants.reject,
-                  icon: Icons.close_rounded,
-                  onPressed: isLoading ? null : onReject ?? () {},
-                  isOutlined: true,
-                  foregroundColor: LightColor.redColor,
-                  borderColor: LightColor.redColor,
-                  minHeight: AppDimens.sizeX42,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: CustomButton(
-                  key: const Key('accept-booking-button'),
-                  text: StringConstants.accept,
-                  icon: Icons.check_rounded,
-                  onPressed: (isLoading || !canAccept)
-                      ? null
-                      : onAccept ?? () {},
-                  backgroundColor: canAccept
-                      ? LightColor.secondaryColor
-                      : LightColor.buttonDisabledColor,
-                  minHeight: AppDimens.sizeX42,
-                ),
-              ),
-            ],
+          const SizedBox(width: 12),
+          Expanded(
+            child: CustomButton(
+              key: const Key('accept-booking-button'),
+              text: StringConstants.accept,
+              icon: Icons.check_rounded,
+              onPressed: (isLoading || !canAccept) ? null : onAccept ?? () {},
+              backgroundColor: canAccept
+                  ? LightColor.secondaryColor
+                  : LightColor.buttonDisabledColor,
+              minHeight: AppDimens.sizeX42,
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -982,31 +1021,15 @@ class _CancelBookingBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: LightColor.cardColor,
-      elevation: 12,
-      shadowColor: LightColor.shadowColor,
-      child: SafeArea(
-        top: false,
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
-          decoration: BoxDecoration(
-            border: Border(
-              top: BorderSide(
-                color: LightColor.dividerColor.withValues(alpha: 0.8),
-              ),
-            ),
-          ),
-          child: CustomButton(
-            key: const Key('cancel-booking-button'),
-            text: StringConstants.cancelBooking,
-            onPressed: isLoading ? null : onCancel ?? () {},
-            isOutlined: true,
-            foregroundColor: LightColor.redColor,
-            borderColor: LightColor.redColor,
-            minHeight: AppDimens.sizeX42,
-          ),
-        ),
+    return BookingActionBar(
+      child: CustomButton(
+        key: const Key('cancel-booking-button'),
+        text: StringConstants.cancelBooking,
+        onPressed: isLoading ? null : onCancel ?? () {},
+        isOutlined: true,
+        foregroundColor: LightColor.redColor,
+        borderColor: LightColor.redColor,
+        minHeight: AppDimens.sizeX42,
       ),
     );
   }
@@ -1016,37 +1039,107 @@ class _ConfirmedActionsBar extends StatelessWidget {
   const _ConfirmedActionsBar({
     required this.onComplete,
     required this.isLoading,
+    this.amountToCollect = 0,
   });
 
   final VoidCallback onComplete;
   final bool isLoading;
 
+  /// Shown beside the action so the vendor sees what they are collecting.
+  final double amountToCollect;
+
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: LightColor.cardColor,
-      elevation: 12,
-      shadowColor: LightColor.shadowColor,
-      child: SafeArea(
-        top: false,
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
-          decoration: BoxDecoration(
-            border: Border(
-              top: BorderSide(
-                color: LightColor.dividerColor.withValues(alpha: 0.8),
+    final FutsalTextTheme textTheme = FutsalTheme.getTextTheme(context);
+    return BookingActionBar(
+      child: Row(
+        children: [
+          if (amountToCollect > 0) ...[
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'To collect',
+                    style: textTheme.bodyTextSmall?.copyWith(
+                      color: LightColor.secondaryTextColor,
+                    ),
+                  ),
+                  Text(
+                    bookingCurrency(amountToCollect),
+                    style: textTheme.bodyTextMedium?.copyWith(
+                      color: LightColor.primaryTextColor,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
               ),
             ),
+            const SizedBox(width: 12),
+          ],
+          Expanded(
+            flex: amountToCollect > 0 ? 2 : 1,
+            child: CustomButton(
+              key: const Key('complete-booking-button'),
+              text: 'Complete',
+              icon: Icons.check_circle_outline_rounded,
+              onPressed: isLoading ? null : onComplete,
+              backgroundColor: LightColor.secondaryColor,
+              minHeight: AppDimens.sizeX42,
+            ),
           ),
-          child: CustomButton(
-            key: const Key('complete-booking-button'),
-            text: 'Complete',
-            icon: Icons.check_circle_outline_rounded,
-            onPressed: isLoading ? null : onComplete,
-            backgroundColor: LightColor.purpleColor,
-            minHeight: AppDimens.sizeX42,
+        ],
+      ),
+    );
+  }
+}
+
+class _CollectDueActionBar extends StatelessWidget {
+  const _CollectDueActionBar({required this.amount, required this.onCollect});
+
+  final double amount;
+  final VoidCallback onCollect;
+
+  @override
+  Widget build(BuildContext context) {
+    final FutsalTextTheme textTheme = FutsalTheme.getTextTheme(context);
+    return BookingActionBar(
+      child: Row(
+        children: <Widget>[
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  'Due amount',
+                  style: textTheme.bodyTextSmall?.copyWith(
+                    color: LightColor.secondaryTextColor,
+                  ),
+                ),
+                Text(
+                  bookingCurrency(amount),
+                  style: textTheme.bodyTextMedium?.copyWith(
+                    color: LightColor.primaryTextColor,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
+          const SizedBox(width: AppDimens.paddingX12),
+          Expanded(
+            flex: 2,
+            child: CustomButton(
+              key: const Key('collect-due-button'),
+              text: 'Collect due',
+              icon: Icons.payments_outlined,
+              onPressed: onCollect,
+              minHeight: AppDimens.sizeX42,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1072,7 +1165,7 @@ class _BookingSummary extends StatelessWidget {
         ? booking.futsalName
         : booking.courtName;
 
-    return _Card(
+    return BookingDetailCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1089,15 +1182,17 @@ class _BookingSummary extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: textTheme.bodyTextLarge?.copyWith(
                         color: LightColor.primaryTextColor,
-                        fontSize: AppDimens.fontHeadingSmall,
+                        fontSize: AppDimens.fontHeadingSubTitle,
                         fontWeight: FontWeight.w700,
-                        height: 1.2,
+                        height: 1.25,
                       ),
                     ),
                     if (subtitle.trim().isNotEmpty) ...[
                       const SizedBox(height: 4),
                       Text(
                         subtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: textTheme.bodyTextSmall?.copyWith(
                           color: LightColor.secondaryTextColor,
                         ),
@@ -1110,34 +1205,29 @@ class _BookingSummary extends StatelessWidget {
               BookingStatusChip(status: booking.status),
             ],
           ),
+          const SizedBox(height: 14),
+          Text(
+            booking.displayTimeRange.isEmpty
+                ? bookingFormatDate(booking.date)
+                : '${bookingFormatDate(booking.date)} · '
+                      '${booking.displayTimeRange}',
+            style: textTheme.bodyTextSmall?.copyWith(
+              color: LightColor.primaryTextColor,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
           if (booking.bookingRef.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            const Divider(height: 1, color: LightColor.dividerColor),
-            const SizedBox(height: 12),
-            _InlineValue(
-              label: StringConstants.bookingId,
-              value: booking.bookingRef,
-              valueWeight: FontWeight.w600,
+            const SizedBox(height: 4),
+            Text(
+              '${StringConstants.bookingId} ${booking.bookingRef}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: textTheme.bodyTextSmall?.copyWith(
+                color: LightColor.secondaryTextColor,
+              ),
             ),
           ],
         ],
-      ),
-    );
-  }
-}
-
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle(this.title);
-
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      title,
-      style: FutsalTheme.getTextTheme(context).bodyTextMedium?.copyWith(
-        color: LightColor.primaryTextColor,
-        fontWeight: FontWeight.w700,
       ),
     );
   }
@@ -1150,97 +1240,41 @@ class _BookingInformation extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final String? bookingType = bookingTypeLabel(booking.bookingType);
     final List<Widget> rows = <Widget>[
-      _DetailRow(label: StringConstants.date, value: _formatDate(booking.date)),
-      _DetailRow(
-        label: StringConstants.time,
-        value: booking.displayTimeRange.isEmpty
-            ? '—'
-            : booking.displayTimeRange,
-      ),
-      _DetailRow(
+      // Time is already the hero fact — not repeated here.
+      BookingDetailRow(
         label: StringConstants.venue,
         value: booking.futsalName.isEmpty ? '—' : booking.futsalName,
         subtitle: booking.futsalAddress,
       ),
-      _DetailRow(
+      BookingDetailRow(
         label: StringConstants.court,
         value: booking.courtName.isEmpty ? '—' : booking.courtName,
       ),
+      if (bookingType != null)
+        BookingDetailRow(
+          label: StringConstants.bookedVia,
+          value: bookingType,
+        ),
       if (booking.isRecurring)
-        _DetailRow(
+        BookingDetailRow(
           label: StringConstants.recurrence,
           value: _recurrenceLabel(booking),
           subtitle:
               booking.recurrenceStartDate != null &&
                   booking.recurrenceEndDate != null
-              ? '${_formatShortDate(booking.recurrenceStartDate!)} – '
-                    '${_formatShortDate(booking.recurrenceEndDate!)}'
+              ? '${bookingFormatShortDate(booking.recurrenceStartDate!)} – '
+                    '${bookingFormatShortDate(booking.recurrenceEndDate!)}'
               : null,
         ),
       if (booking.notes?.trim().isNotEmpty == true)
-        _DetailRow(label: StringConstants.notes, value: booking.notes!),
+        BookingDetailRow(label: StringConstants.notes, value: booking.notes!),
     ];
 
-    return _Card(
+    return BookingDetailCard(
       padding: EdgeInsets.zero,
-      child: Column(children: _withDividers(rows)),
-    );
-  }
-}
-
-class _DetailRow extends StatelessWidget {
-  const _DetailRow({required this.label, required this.value, this.subtitle});
-
-  final String label;
-  final String value;
-  final String? subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    final FutsalTextTheme textTheme = FutsalTheme.getTextTheme(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 92,
-            child: Text(
-              label,
-              style: textTheme.bodyTextSmall?.copyWith(
-                color: LightColor.secondaryTextColor,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  value,
-                  textAlign: TextAlign.right,
-                  style: textTheme.bodyTextMedium?.copyWith(
-                    color: LightColor.primaryTextColor,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                if (subtitle?.trim().isNotEmpty == true) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle!,
-                    textAlign: TextAlign.right,
-                    style: textTheme.bodyTextSmall?.copyWith(
-                      color: LightColor.secondaryTextColor,
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ],
-      ),
+      child: Column(children: bookingRowsWithDividers(rows)),
     );
   }
 }
@@ -1258,7 +1292,7 @@ class _CustomerCard extends StatelessWidget {
         ? booking.playerName!
         : 'Unknown customer';
 
-    return _Card(
+    return BookingDetailCard(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -1322,7 +1356,7 @@ class _VenueHostCard extends StatelessWidget {
         ? booking.futsalAddress!.trim()
         : booking.courtName.trim();
 
-    return _Card(
+    return BookingDetailCard(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -1377,15 +1411,11 @@ class _BookingChatButton extends StatelessWidget {
     return Tooltip(
       message: tooltip,
       child: Material(
-        color: LightColor.secondaryColor.withValues(alpha: 0.10),
+        color: LightColor.cardColor,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppDimens.radiusX8),
-          side: BorderSide(
-            color: LightColor.secondaryColor.withValues(alpha: 0.18),
-          ),
+          side: const BorderSide(color: LightColor.dividerColor),
         ),
-        elevation: onTap == null ? 0 : 1,
-        shadowColor: LightColor.secondaryColor.withValues(alpha: 0.18),
         child: InkWell(
           key: buttonKey,
           borderRadius: BorderRadius.circular(AppDimens.radiusX12),
@@ -1418,8 +1448,23 @@ class _PaymentCard extends StatelessWidget {
         : booking.amount;
     final String? couponCode = booking.coupon?.code?.trim();
     final String? paymentStatus = booking.paymentStatus?.trim();
+    final double extras = booking.extraItemsTotal;
+    // Extras are billed on top of the booking amount (same rule the complete-
+    // booking sheet settles on).
+    final double grandTotal = booking.grandTotal;
+    final double outstanding = switch (booking.status) {
+      BookingStatus.completed => booking.amountDueForCollection,
+      BookingStatus.confirmed => booking.amountDueForCompletion,
+      _ => booking.remainingBookingBalance,
+    };
+    final double paid = booking.effectivePaidAmount;
+    final bool hasSettlement =
+        booking.payableNow > 0 ||
+        booking.balanceDueLater > 0 ||
+        paid > 0 ||
+        outstanding > 0;
 
-    return _Card(
+    return BookingDetailCard(
       child: Column(
         children: [
           if (paymentStatus?.isNotEmpty == true) ...[
@@ -1432,89 +1477,132 @@ class _PaymentCard extends StatelessWidget {
                   ),
                 ),
                 const Spacer(),
-                _PaymentStatusChip(status: paymentStatus!),
+                BookingStatusPill(
+                  label: bookingTitleCase(paymentStatus!),
+                  color: bookingPaymentStatusColor(paymentStatus),
+                ),
               ],
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: BookingDetailsSpacing.rowGap + 4),
           ],
-          _InlineValue(
-            label: StringConstants.subtotal,
-            value: _currency(subtotal),
+
+          // ── Charges ──
+          BookingAmountRow(
+            label: booking.slotCount > 0 && booking.pricePerSlot > 0
+                ? '${StringConstants.subtotal} '
+                      '(${booking.slotCount} × ${bookingCurrency(booking.pricePerSlot)})'
+                : StringConstants.subtotal,
+            value: bookingCurrency(subtotal),
           ),
           if (booking.discountAmount > 0) ...[
-            const SizedBox(height: 9),
-            _InlineValue(
+            const SizedBox(height: BookingDetailsSpacing.rowGap),
+            BookingAmountRow(
               label: couponCode?.isNotEmpty == true
                   ? 'Discount ($couponCode)'
                   : 'Discount',
-              value: '- ${_currency(booking.discountAmount)}',
+              value: '- ${bookingCurrency(booking.discountAmount)}',
               valueColor: LightColor.secondaryColor,
             ),
           ],
           if (booking.taxAmount > 0) ...[
-            const SizedBox(height: 9),
-            _InlineValue(
+            const SizedBox(height: BookingDetailsSpacing.rowGap),
+            BookingAmountRow(
               label: StringConstants.tax,
-              value: _currency(booking.taxAmount),
+              value: bookingCurrency(booking.taxAmount),
             ),
           ],
-          const SizedBox(height: 14),
-          const Divider(height: 1, color: LightColor.dividerColor),
-          const SizedBox(height: 14),
-          _InlineValue(
-            label: StringConstants.total,
-            value: _currency(booking.amount),
+          const _CardDivider(),
+          BookingAmountRow(
+            label: extras > 0 ? 'Booking total' : StringConstants.total,
+            value: bookingCurrency(booking.bookingTotal),
             labelWeight: FontWeight.w700,
             valueWeight: FontWeight.w700,
-            valueSize: 16,
+            valueSize: extras > 0 ? null : AppDimens.fontBodyTextLarge,
           ),
-          if (booking.payableNow > 0) ...[
-            const SizedBox(height: 10),
-            _InlineValue(
+          if (extras > 0) ...[
+            const SizedBox(height: BookingDetailsSpacing.rowGap),
+            BookingAmountRow(
+              label:
+                  'Products (${booking.extraItemsCount} '
+                  '${booking.extraItemsCount == 1 ? 'item' : 'items'})',
+              value: '+ ${bookingCurrency(extras)}',
+            ),
+            const SizedBox(height: 12),
+            BookingTotalHighlight(
+              label: 'Grand total',
+              value: bookingCurrency(grandTotal),
+            ),
+          ],
+
+          // ── Settlement ──
+          if (hasSettlement) const _CardDivider(),
+          if (booking.payableNow > 0)
+            BookingAmountRow(
               label: StringConstants.payableNow,
-              value: _currency(booking.payableNow),
+              value: bookingCurrency(booking.payableNow),
             ),
-          ],
           if (booking.balanceDueLater > 0) ...[
-            const SizedBox(height: 9),
-            _InlineValue(
+            if (booking.payableNow > 0)
+              const SizedBox(height: BookingDetailsSpacing.rowGap),
+            BookingAmountRow(
               label: StringConstants.balanceDueLater,
-              value: _currency(booking.balanceDueLater),
+              value: bookingCurrency(booking.balanceDueLater),
             ),
           ],
-          if (booking.paidAmount > 0) ...[
-            const SizedBox(height: 9),
-            _InlineValue(
+          if (paid > 0) ...[
+            if (booking.payableNow > 0 || booking.balanceDueLater > 0)
+              const SizedBox(height: BookingDetailsSpacing.rowGap),
+            BookingAmountRow(
               label: StringConstants.paidAmount,
-              value: _currency(booking.paidAmount),
+              value: bookingCurrency(paid),
               valueColor: LightColor.secondaryColor,
             ),
           ],
-          if (booking.balanceDue > 0) ...[
-            const SizedBox(height: 9),
-            _InlineValue(
+          if (outstanding > 0) ...[
+            const SizedBox(height: 12),
+            BookingTotalHighlight(
               label: StringConstants.balanceDue,
-              value: _currency(booking.balanceDue),
-              valueColor: const Color(0xFFE65100),
+              caption: extras > 0 ? 'Includes products sold' : null,
+              value: bookingCurrency(outstanding),
+              color: const Color(0xFFB45309),
             ),
           ],
           if (booking.payment?.method?.trim().isNotEmpty == true) ...[
-            const SizedBox(height: 14),
-            const Divider(height: 1, color: LightColor.dividerColor),
-            const SizedBox(height: 12),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Payment method: ${_titleCase(booking.payment!.method!)}',
-                style: textTheme.bodyTextSmall?.copyWith(
-                  color: LightColor.secondaryTextColor,
-                  fontWeight: FontWeight.w500,
+            const _CardDivider(),
+            Row(
+              children: [
+                const Icon(
+                  Icons.credit_card_rounded,
+                  size: AppDimens.sizeX14,
+                  color: LightColor.iconGrey,
                 ),
-              ),
+                const SizedBox(width: 6),
+                Text(
+                  'Paid via ${bookingTitleCase(booking.payment!.method!)}',
+                  style: textTheme.bodyTextSmall?.copyWith(
+                    color: LightColor.secondaryTextColor,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ),
           ],
         ],
       ),
+    );
+  }
+}
+
+/// Hairline separator between the groups of a card (charges / totals /
+/// settlement), with the vertical rhythm baked in.
+class _CardDivider extends StatelessWidget {
+  const _CardDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: 14),
+      child: Divider(height: 1, color: LightColor.dividerColor),
     );
   }
 }
@@ -1546,7 +1634,7 @@ class _PaymentProofCard extends StatelessWidget {
     final String verification = payment.verificationStatus?.trim() ?? 'pending';
     final bool showDecisionActions = onAccept != null && onReject != null;
 
-    return _Card(
+    return BookingDetailCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1562,7 +1650,10 @@ class _PaymentProofCard extends StatelessWidget {
                   ),
                 ),
               ),
-              _VerificationChip(status: verification),
+              BookingStatusPill(
+                label: bookingTitleCase(verification),
+                color: bookingVerificationColor(verification),
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -1680,174 +1771,6 @@ class _PaymentProofCard extends StatelessWidget {
   }
 }
 
-class _InlineValue extends StatelessWidget {
-  const _InlineValue({
-    required this.label,
-    required this.value,
-    this.labelWeight,
-    this.valueWeight = FontWeight.w500,
-    this.valueColor,
-    this.valueSize,
-  });
-
-  final String label;
-  final String value;
-  final FontWeight? labelWeight;
-  final FontWeight valueWeight;
-  final Color? valueColor;
-  final double? valueSize;
-
-  @override
-  Widget build(BuildContext context) {
-    final FutsalTextTheme textTheme = FutsalTheme.getTextTheme(context);
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            label,
-            style: textTheme.bodyTextSmall?.copyWith(
-              color: LightColor.secondaryTextColor,
-              fontWeight: labelWeight,
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Text(
-          value,
-          textAlign: TextAlign.right,
-          style: textTheme.bodyTextMedium?.copyWith(
-            color: valueColor ?? LightColor.primaryTextColor,
-            fontWeight: valueWeight,
-            fontSize: valueSize,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _Card extends StatelessWidget {
-  const _Card({required this.child, this.padding = const EdgeInsets.all(16)});
-
-  final Widget child;
-  final EdgeInsetsGeometry padding;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: padding,
-      decoration: BoxDecoration(
-        color: LightColor.cardColor,
-        borderRadius: BorderRadius.circular(AppDimens.radiusX12),
-        border: Border.all(color: LightColor.dividerColor),
-      ),
-      child: child,
-    );
-  }
-}
-
-class _PaymentStatusChip extends StatelessWidget {
-  const _PaymentStatusChip({required this.status});
-
-  final String status;
-
-  @override
-  Widget build(BuildContext context) {
-    final Color color = status.toLowerCase() == 'paid'
-        ? LightColor.secondaryColor
-        : const Color(0xFFE65100);
-    return _StatusPill(label: _titleCase(status), color: color);
-  }
-}
-
-class _VerificationChip extends StatelessWidget {
-  const _VerificationChip({required this.status});
-
-  final String status;
-
-  @override
-  Widget build(BuildContext context) {
-    final String normalized = status.trim().toLowerCase();
-    final bool verified =
-        normalized == 'verified' ||
-        normalized == 'approved' ||
-        normalized == 'accepted';
-    final bool rejected = normalized == 'rejected' || normalized == 'declined';
-    final Color color = verified
-        ? LightColor.secondaryColor
-        : rejected
-        ? LightColor.redColor
-        : const Color(0xFFE65100);
-    return _StatusPill(label: _titleCase(status), color: color);
-  }
-}
-
-class _StatusPill extends StatelessWidget {
-  const _StatusPill({required this.label, required this.color});
-
-  final String label;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(AppDimens.radiusX20),
-      ),
-      child: Text(
-        label,
-        style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
-          color: color,
-          fontSize: AppDimens.fontBodySubTitle,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
-  }
-}
-
-class _ErrorBanner extends StatelessWidget {
-  const _ErrorBanner({required this.message, required this.onRetry});
-
-  final String message;
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.fromLTRB(20, 8, 20, 4),
-      padding: const EdgeInsets.fromLTRB(12, 8, 4, 8),
-      decoration: BoxDecoration(
-        color: LightColor.redColor.withValues(alpha: 0.07),
-        borderRadius: BorderRadius.circular(AppDimens.radiusX8),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              message,
-              style: FutsalTheme.getTextTheme(
-                context,
-              ).bodyTextSmall?.copyWith(color: LightColor.primaryTextColor),
-            ),
-          ),
-          TextButton(
-            onPressed: onRetry,
-            child: const Text(
-              StringConstants.retry,
-              style: TextStyle(color: LightColor.redColor),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _PaymentProofViewer extends StatelessWidget {
   const _PaymentProofViewer({required this.imageUrl});
 
@@ -1889,80 +1812,17 @@ class _PaymentProofViewer extends StatelessWidget {
   }
 }
 
-List<Widget> _withDividers(List<Widget> rows) {
-  final List<Widget> children = <Widget>[];
-  for (int index = 0; index < rows.length; index++) {
-    children.add(rows[index]);
-    if (index < rows.length - 1) {
-      children.add(
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16),
-          child: Divider(height: 1, color: LightColor.dividerColor),
-        ),
-      );
-    }
-  }
-  return children;
-}
-
-String _formatDate(DateTime date) {
-  const List<String> days = <String>[
-    'Mon',
-    'Tue',
-    'Wed',
-    'Thu',
-    'Fri',
-    'Sat',
-    'Sun',
-  ];
-  const List<String> months = <String>[
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-  return '${days[date.weekday - 1]}, ${date.day} '
-      '${months[date.month - 1]} ${date.year}';
-}
-
-String _formatShortDate(DateTime date) {
-  return '${date.day.toString().padLeft(2, '0')}/'
-      '${date.month.toString().padLeft(2, '0')}/${date.year}';
-}
-
 String _recurrenceLabel(BookingModel booking) {
   final String type = booking.recurrenceType?.trim() ?? '';
-  final String recurrence = type.isEmpty ? 'Recurring' : _titleCase(type);
+  final String recurrence = type.isEmpty ? 'Recurring' : bookingTitleCase(type);
   return booking.isSeriesAnchor ? '$recurrence · Series booking' : recurrence;
 }
-
-String _currency(double value) => 'NPR ${value.toStringAsFixed(0)}';
 
 String _amountInputValue(double value) {
   if (value <= 0) return '';
   return value == value.roundToDouble()
       ? value.toStringAsFixed(0)
       : value.toStringAsFixed(2);
-}
-
-String _titleCase(String value) {
-  return value
-      .trim()
-      .split(RegExp(r'[_\s-]+'))
-      .where((String part) => part.isNotEmpty)
-      .map(
-        (String part) =>
-            part[0].toUpperCase() + part.substring(1).toLowerCase(),
-      )
-      .join(' ');
 }
 
 String? _paymentProofUrl(BookingPaymentModel payment) {

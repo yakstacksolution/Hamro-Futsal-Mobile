@@ -11,6 +11,34 @@ import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboar
 
 void main() {
   test(
+    'normalizes legacy Other gender to the supported others value',
+    () async {
+      final _FakeProfileRepository repository = _FakeProfileRepository();
+      final ProfileBloc bloc = ProfileBloc(ProfileUseCase(repository));
+      addTearDown(bloc.close);
+
+      bloc.add(const FetchProfileEvent());
+      await bloc.stream.firstWhere(
+        (ProfileState state) => state.status == ProfileStatus.success,
+      );
+
+      final Completer<Either<AppException, ProfileModel>> update =
+          Completer<Either<AppException, ProfileModel>>();
+      repository.updateResponse = update;
+      bloc.add(const UpdateProfileEvent(gender: 'Other'));
+
+      await bloc.stream.firstWhere(
+        (ProfileState state) => state.status == ProfileStatus.updating,
+      );
+      expect(repository.lastUpdate?['gender'], 'others');
+      update.complete(right(_profile(profilePhoto: null)));
+      await bloc.stream.firstWhere(
+        (ProfileState state) => state.status == ProfileStatus.updateSuccess,
+      );
+    },
+  );
+
+  test(
     'shows a selected profile photo while the update is in flight',
     () async {
       final _FakeProfileRepository repository = _FakeProfileRepository();
@@ -85,6 +113,13 @@ class _FakeProfileRepository implements ProfileRepository {
         ),
       ),
     );
+  }
+
+  @override
+  Future<Either<AppException, String>> requestVendorUpgrade(
+    Map<String, dynamic> data,
+  ) async {
+    return right('Request submitted');
   }
 
   @override

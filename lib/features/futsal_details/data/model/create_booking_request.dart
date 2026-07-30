@@ -11,6 +11,13 @@ class CreateBookingRequest {
     this.repeatWeeks,
     this.paymentProofPath,
     this.paymentNote,
+    this.bookingType,
+    this.customerName,
+    this.customerPhone,
+    this.customerEmail,
+    this.paymentType,
+    this.paymentStatus,
+    this.bookingStatus,
   });
 
   final int? venueId;
@@ -28,6 +35,13 @@ class CreateBookingRequest {
 
   final String? paymentProofPath;
   final String? paymentNote;
+  final String? bookingType;
+  final String? customerName;
+  final String? customerPhone;
+  final String? customerEmail;
+  final String? paymentType;
+  final String? paymentStatus;
+  final String? bookingStatus;
 
   Map<String, dynamic> toFields() => <String, dynamic>{
     'venue_id': venueId,
@@ -40,5 +54,12 @@ class CreateBookingRequest {
     'coupon_code': couponCode,
     'repeat_weeks': repeatWeeks,
     'payment_note': paymentNote,
+    'booking_type': bookingType,
+    'customer_name': customerName,
+    'customer_phone': customerPhone,
+    'customer_email': customerEmail,
+    'payment_type': paymentType,
+    'payment_status': paymentStatus,
+    'booking_status': bookingStatus,
   };
 }

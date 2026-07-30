@@ -182,7 +182,11 @@ final class StringConstants {
       'Book courts, manage matches, and keep your futsal plans moving without the back-and-forth.';
   static const String bookNow = 'Book Now';
   static const String booked = 'Booked';
+  static const String bookedVia = 'Booked via';
   static const String booking = 'Booking';
+  static const String manualBooking = 'Manual Booking';
+  static const String bookingTypeManual = 'Walk-in';
+  static const String bookingTypeOnline = 'Online';
   static const String bookingUnitSuffix = ' / booking';
   static const String bookingAlerts = 'Booking Alerts';
   static const String bookingAndCancellationTerms =
@@ -1183,4 +1187,8 @@ final class StringConstants {
   static const String searchTransactions = 'Search transactions';
   static const String totalEarnings = 'Total earnings';
   static const String totalSpent = 'Total spent';
+  static const String vendorRequestSubmitted =
+      'Your vendor upgrade request has been sent to the super admin.';
+  static const String vendorRequestAlreadySubmitted =
+      'You have already requested to become a vendor.';
 }

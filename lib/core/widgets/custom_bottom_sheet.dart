@@ -13,6 +13,7 @@ Future<T?> showAppBottomSheet<T>({
   bool isDismissible = true,
   bool enableDrag = true,
   bool wrapWithCustomSheet = true,
+  double bottomSpacing = AppDimens.paddingX18,
 }) {
   assert(
     child != null || builder != null,
@@ -29,7 +30,7 @@ Future<T?> showAppBottomSheet<T>({
     builder: (BuildContext sheetContext) {
       final Widget content = builder != null ? builder(sheetContext) : child!;
       if (wrapWithCustomSheet) {
-        return CustomBottomSheet(child: content);
+        return CustomBottomSheet(bottomSpacing: bottomSpacing, child: content);
       }
       return content;
     },
@@ -45,6 +46,7 @@ class CustomBottomSheet extends StatelessWidget {
     this.showDragHandle = true,
     this.radius = AppDimens.radiusX14,
     this.backgroundColor = LightColor.cardColor,
+    this.bottomSpacing = AppDimens.paddingX18,
   });
 
   final Widget child;
@@ -53,6 +55,7 @@ class CustomBottomSheet extends StatelessWidget {
   final bool showDragHandle;
   final double radius;
   final Color backgroundColor;
+  final double bottomSpacing;
 
   @override
   Widget build(BuildContext context) {
@@ -83,10 +86,7 @@ class CustomBottomSheet extends StatelessWidget {
                 left: AppDimens.paddingX18,
                 top: AppDimens.paddingX12,
                 right: AppDimens.paddingX18,
-                bottom:
-                    AppDimens.paddingX18 +
-                    mediaQuery.viewInsets.bottom +
-                    mediaQuery.padding.bottom,
+                bottom: bottomSpacing + mediaQuery.viewInsets.bottom,
               ),
           child: DefaultTextStyle(
             style:

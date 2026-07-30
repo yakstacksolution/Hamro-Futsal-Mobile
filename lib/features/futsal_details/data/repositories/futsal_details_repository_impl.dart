@@ -1,4 +1,5 @@
 import 'package:dartz/dartz.dart';
+import 'package:hamro_footsall/core/api/api_client/booking_type_payload.dart';
 import 'package:hamro_footsall/core/helper/exception_helper.dart';
 import 'package:hamro_footsall/core/helper/response_helper.dart';
 import 'package:hamro_footsall/features/futsal_details/data/data_source/futsal_details_remote_data_source.dart';
@@ -102,12 +103,14 @@ final class FutsalDetailsRepositoryImpl extends FutsalDetailsRepository {
     required String selectDate,
     String? slotStartTime,
     String? slotEndTime,
+    String bookingType = BookingTypePayload.regular,
   }) async {
     final response = await _remoteDataSource.getAvailableCourts(
       venueId: venueId,
       selectDate: selectDate,
       slotStartTime: slotStartTime,
       slotEndTime: slotEndTime,
+      bookingType: bookingType,
     );
     if (response.isError()) {
       return left(ResponseHelper.error(response));

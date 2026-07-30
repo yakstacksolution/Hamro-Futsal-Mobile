@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:hamro_footsall/core/api/api_client/booking_type_payload.dart';
 import 'package:hamro_footsall/core/api/api_client/result.dart';
 import 'package:hamro_footsall/core/api/client.dart';
 import 'package:hamro_footsall/features/futsal_details/data/model/create_booking_request.dart';
@@ -12,6 +13,7 @@ abstract class FutsalDetailsRemoteDataSource {
     required String selectDate,
     String? slotStartTime,
     String? slotEndTime,
+    String bookingType,
   });
   Future<Result> getVenueSlots({required int venueId, required String date});
   Future<Result> getCourtPaymentQr({required int courtId});
@@ -43,11 +45,13 @@ final class FutsalDetailsRemoteDataSourceImpl
     required String selectDate,
     String? slotStartTime,
     String? slotEndTime,
+    String bookingType = BookingTypePayload.regular,
   }) async => await Client.instance().getAuthManager().getAvailableCourts(
     venueId: venueId,
     selectDate: selectDate,
     slotStartTime: slotStartTime,
     slotEndTime: slotEndTime,
+    bookingType: bookingType,
   );
 
   @override

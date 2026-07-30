@@ -35,7 +35,7 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
   static const List<String> _genderOptions = <String>[
     'Male',
     'Female',
-    'Other',
+    'Others',
   ];
 
   late String _selectedGender;
@@ -294,6 +294,9 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
                                   ),
                                   const SizedBox(height: AppDimens.paddingX16),
                                   CustomDropdownField<String>(
+                                    key: const Key(
+                                      'personal-details-gender-field',
+                                    ),
                                     labelText: StringConstants.gender,
                                     icon: Icons.wc_rounded,
                                     hintText: StringConstants.selectGender,
@@ -455,11 +458,14 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
 
   String _resolvedGender(UserData? user) {
     final String? raw = user?.gender?.trim();
-    if (raw == null || raw.isEmpty) return 'Other';
+    if (raw == null || raw.isEmpty) return 'Others';
+    if (raw.toLowerCase() == 'other' || raw.toLowerCase() == 'others') {
+      return 'Others';
+    }
     final String normalized =
         raw[0].toUpperCase() + raw.substring(1).toLowerCase();
     if (_genderOptions.contains(normalized)) return normalized;
-    return 'Other';
+    return 'Others';
   }
 
   String? _resolvedAvatar(UserData? user) {

@@ -1,6 +1,7 @@
 import 'package:hamro_footsall/core/api/api_client/api_call_wrapper.dart';
 import 'package:hamro_footsall/core/api/api_client/api_client.dart';
 import 'package:hamro_footsall/core/api/api_client/api_constants.dart';
+import 'package:hamro_footsall/core/api/api_client/booking_type_payload.dart';
 import 'package:hamro_footsall/core/api/api_client/result.dart';
 import 'package:hamro_footsall/core/api/manager/service_manager.dart';
 
@@ -55,6 +56,10 @@ class AuthManager extends ServiceManager {
 
   Future<Result> getProfile() async {
     return await _apiClient.getProfile();
+  }
+
+  Future<Result> requestVendorUpgrade(Map<String, dynamic> data) async {
+    return await _apiClient.requestVendorUpgrade(data: data);
   }
 
   Future<Result> updateNotificationPreferences(
@@ -240,23 +245,35 @@ class AuthManager extends ServiceManager {
     required int bookingId,
     required Map<String, dynamic> data,
   }) async {
-    return await _apiClient.addBookingProducts(bookingId: bookingId, data: data);
+    return await _apiClient.addBookingProducts(
+      bookingId: bookingId,
+      data: data,
+    );
   }
 
   Future<Result> completeBooking({
     required int bookingId,
+    bool confirm = true,
     String? paymentType,
     double? discount,
-    double? amountPaid,
-    String? paymentStatus,
+    double? partialAmount,
+    List<Map<String, dynamic>>? extraItems,
   }) async {
     return await _apiClient.completeBooking(
       bookingId: bookingId,
+      confirm: confirm,
       paymentType: paymentType,
       discount: discount,
-      amountPaid: amountPaid,
-      paymentStatus: paymentStatus,
+      partialAmount: partialAmount,
+      extraItems: extraItems,
     );
+  }
+
+  Future<Result> collectBookingDue({
+    required int bookingId,
+    required Map<String, dynamic> data,
+  }) async {
+    return await _apiClient.collectBookingDue(bookingId: bookingId, data: data);
   }
 
   Future<Result> getSettlementAccount() async {
@@ -405,12 +422,14 @@ class AuthManager extends ServiceManager {
     required String selectDate,
     String? slotStartTime,
     String? slotEndTime,
+    String bookingType = BookingTypePayload.regular,
   }) async {
     return await _apiClient.getAvailableCourts(
       venueId: venueId,
       selectDate: selectDate,
       slotStartTime: slotStartTime,
       slotEndTime: slotEndTime,
+      bookingType: bookingType,
     );
   }
 

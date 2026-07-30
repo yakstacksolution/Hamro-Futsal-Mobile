@@ -29,10 +29,16 @@ class DioHttp implements IHttp {
   }
 
   @override
-  get({String? url, String? token, Map? query}) async {
-    _applyHeaders(url: url, token: token);
+  get({String? url, String? token, Map? query, dynamic data}) async {
+    _applyHeaders(url: url, token: token, data: data);
     await addUserAgent();
-    return dio.get(url!, queryParameters: query as Map<String, dynamic>?);
+    // A few endpoints expect their filters in a JSON body on GET, so the body
+    // is only attached when one is supplied.
+    return dio.get(
+      url!,
+      queryParameters: query as Map<String, dynamic>?,
+      data: data,
+    );
   }
 
   @override

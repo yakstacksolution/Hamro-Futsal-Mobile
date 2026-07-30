@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hamro_footsall/core/routers/app_router_params.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
-import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/features/bookings/data/model/booking_model.dart';
 import 'package:hamro_footsall/features/bookings/presentation/bloc/booking_bloc/booking_bloc.dart';
@@ -15,7 +14,7 @@ class MyBookingsTab extends StatelessWidget {
     super.key,
     this.filter,
     this.searchQuery = '',
-    this.dateOrder = BookingDateOrder.ascending,
+    this.dateOrder = BookingDateOrder.descending,
     this.fromDate,
     this.toDate,
   });
@@ -36,6 +35,13 @@ class MyBookingsTab extends StatelessWidget {
         .firstWhere((BookingState state) => state.refreshTick != startTick)
         .timeout(const Duration(seconds: 15), onTimeout: () => bloc.state);
   }
+
+  EdgeInsets _listPadding(BuildContext context) => EdgeInsets.fromLTRB(
+    AppDimens.paddingX16,
+    AppDimens.paddingX8,
+    AppDimens.paddingX16,
+    AppDimens.sizeX100 + MediaQuery.viewPaddingOf(context).bottom,
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -86,6 +92,7 @@ class MyBookingsTab extends StatelessWidget {
                 physics: const AlwaysScrollableScrollPhysics(
                   parent: BouncingScrollPhysics(),
                 ),
+                padding: _listPadding(context),
                 children: [
                   ConstrainedBox(
                     constraints: BoxConstraints(
@@ -114,11 +121,7 @@ class MyBookingsTab extends StatelessWidget {
             physics: const AlwaysScrollableScrollPhysics(
               parent: BouncingScrollPhysics(),
             ),
-            padding: AppUtils().getPadding(
-              symmetricHorizontal: AppDimens.paddingX16,
-              top: AppDimens.paddingX8,
-              bottom: AppDimens.sizeX180,
-            ),
+            padding: _listPadding(context),
             itemCount: items.length,
             separatorBuilder: (_, __) =>
                 const SizedBox(height: AppDimens.paddingX10),

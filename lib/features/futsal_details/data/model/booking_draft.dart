@@ -1,6 +1,8 @@
+import 'package:hamro_footsall/features/bookings/data/model/manual_booking_details.dart';
+
 /// All the data needed by the booking checkout page, captured from the slot
-/// selection screen when the user taps "Book Now". Kept independent of the
-/// bloc so the checkout page can be navigated to with a single [extra] object.
+/// selection screen when the user taps its booking action. Kept independent of
+/// the bloc so the checkout page can be navigated to with a single [extra].
 class BookingDraft {
   const BookingDraft({
     this.venueId,
@@ -21,6 +23,7 @@ class BookingDraft {
     required this.sessionDates,
     required this.pricePerSession,
     required this.subtotal,
+    this.manualBooking,
   });
 
   final int? venueId;
@@ -62,4 +65,29 @@ class BookingDraft {
 
   /// Total price before any coupon discount (sum across sessions).
   final double subtotal;
+
+  /// Present only when a vendor is creating a walk-in booking.
+  final ManualBookingDetails? manualBooking;
+
+  BookingDraft withManualBooking(ManualBookingDetails? details) => BookingDraft(
+    venueId: venueId,
+    courtId: courtId,
+    courtName: courtName,
+    courtImage: courtImage,
+    matchType: matchType,
+    courtType: courtType,
+    maxPlayers: maxPlayers,
+    selectedDate: selectedDate,
+    selectedTime: selectedTime,
+    apiTime: apiTime,
+    apiEndTime: apiEndTime,
+    endTime: endTime,
+    isRecurring: isRecurring,
+    recurrenceLabel: recurrenceLabel,
+    sessions: sessions,
+    sessionDates: sessionDates,
+    pricePerSession: pricePerSession,
+    subtotal: subtotal,
+    manualBooking: details,
+  );
 }

@@ -4,6 +4,7 @@ import 'package:bloc/bloc.dart';
 import 'package:dartz/dartz.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter/foundation.dart';
+import 'package:hamro_footsall/core/api/api_client/booking_type_payload.dart';
 import 'package:hamro_footsall/core/helper/exception_helper.dart';
 import 'package:hamro_footsall/core/utils/string_constants.dart';
 import 'package:hamro_footsall/features/courts_details/presentation/page/court_details.dart';
@@ -54,6 +55,10 @@ class SlotsSelectionBloc
   int _recurringRequestSerial = 0;
   String? _preferredInitialStartTime;
 
+  /// Which flow opened this screen — walk-ins ask the API for manual-booking
+  /// availability. Set once on initialize and reused by every refresh.
+  String _bookingType = BookingTypePayload.regular;
+
   /// Live slot-availability wiring for the current venue.
   StreamSubscription<SlotAvailabilityUpdate>? _availabilitySub;
   Timer? _availabilityDebounce;
@@ -72,6 +77,7 @@ class SlotsSelectionBloc
   ) async {
     _sourceCourt = event.court;
     _preferredInitialStartTime = event.initialStartTime;
+    _bookingType = event.bookingType;
     final DateTime today = _dateOnly(DateTime.now());
     final DateTime? preferredDate = event.initialDate == null
         ? null
@@ -534,9 +540,9 @@ class SlotsSelectionBloc
         await _getAvailableCourtsUseCase.getAvailableCourts(
           venueId: venueId,
           selectDate: _formatApiDate(current.selectedDate),
-
           slotStartTime: slotStartTime,
           slotEndTime: slotEndTime,
+          bookingType: _bookingType,
         );
 
     if (requestId != _courtsRequestSerial || emit.isDone) return;

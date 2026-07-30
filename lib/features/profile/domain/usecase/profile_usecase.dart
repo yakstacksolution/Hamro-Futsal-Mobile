@@ -11,6 +11,10 @@ final class ProfileUseCase {
   Future<Either<AppException, ProfileModel>> getProfile() async =>
       await repository.getProfile();
 
+  Future<Either<AppException, String>> requestVendorUpgrade(
+    Map<String, dynamic> data,
+  ) async => await repository.requestVendorUpgrade(data);
+
   Future<Either<AppException, ProfileModel>> updateProfile(
     Map<String, dynamic> data,
   ) async => await repository.updateProfile(data);

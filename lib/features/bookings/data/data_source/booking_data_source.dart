@@ -39,10 +39,10 @@ final class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
       await Client.instance().getAuthManager().cancelBooking(bookingId);
 
   @override
-  Future<Result> getBookingCancelBoundary(int bookingId) async => await Client
-      .instance()
-      .getAuthManager()
-      .getBookingCancelBoundary(bookingId);
+  Future<Result> getBookingCancelBoundary(int bookingId) async =>
+      await Client.instance().getAuthManager().getBookingCancelBoundary(
+        bookingId,
+      );
 
   @override
   Future<Result> verifyBookingPayment(
@@ -67,10 +67,16 @@ final class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
   );
 
   @override
-  Future<Result> acceptBooking(int bookingId, Map<String, dynamic> data) async =>
+  Future<Result> acceptBooking(
+    int bookingId,
+    Map<String, dynamic> data,
+  ) async =>
       await Client.instance().getAuthManager().acceptBooking(bookingId, data);
 
   @override
-  Future<Result> rejectBooking(int bookingId, Map<String, dynamic> data) async =>
+  Future<Result> rejectBooking(
+    int bookingId,
+    Map<String, dynamic> data,
+  ) async =>
       await Client.instance().getAuthManager().rejectBooking(bookingId, data);
 }

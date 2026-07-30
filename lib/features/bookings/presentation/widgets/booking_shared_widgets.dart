@@ -4,6 +4,7 @@ import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/features/bookings/data/model/booking_model.dart';
+import 'package:hamro_footsall/features/bookings/presentation/widgets/booking_details_widgets.dart';
 import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 Color bookingStatusColor(BookingStatus status) => switch (status) {
@@ -25,6 +26,75 @@ List<BookingModel> sortBookingsForDisplay(Iterable<BookingModel> bookings) {
     return aIsPast ? b.date.compareTo(a.date) : a.date.compareTo(b.date);
   });
   return sorted;
+}
+
+/// Human-readable age of a booking: minutes/hours ago for the first 12 hours,
+/// then the absolute date and time. Uses `created_at` when the API reports it,
+/// otherwise the booking's slot.
+String bookingTimeAgo(BookingModel booking, {DateTime? now}) {
+  final DateTime reference = now ?? DateTime.now();
+  final DateTime moment = booking.createdAt ?? booking.date;
+  final Duration diff = reference.difference(moment);
+  final bool past = !diff.isNegative;
+  final Duration span = diff.abs();
+
+  if (span.inMinutes < 1) return 'Just now';
+  if (span.inMinutes < 60) {
+    final String value = '${span.inMinutes} m';
+    return past ? '$value ago' : 'in $value';
+  }
+  if (span.inHours <= 12) {
+    final String value = '${span.inHours} hr';
+    return past ? '$value ago' : 'in $value';
+  }
+  // Older (or further out) than half a day — an exact stamp is more useful
+  // than an ever-growing relative count.
+  return bookingDateTimeStamp(moment, reference: reference);
+}
+
+/// `12 Aug, 6:00 PM` — the year is appended only when it differs from [reference].
+String bookingDateTimeStamp(DateTime moment, {DateTime? reference}) {
+  const List<String> months = <String>[
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
+  final DateTime now = reference ?? DateTime.now();
+  final int hour12 = moment.hour % 12 == 0 ? 12 : moment.hour % 12;
+  final String minute = moment.minute.toString().padLeft(2, '0');
+  final String meridiem = moment.hour < 12 ? 'AM' : 'PM';
+  final String year = moment.year == now.year ? '' : ' ${moment.year}';
+  return '${moment.day} ${months[moment.month - 1]}$year, '
+      '$hour12:$minute $meridiem';
+}
+
+/// Muted relative timestamp shown alongside a booking card's actions.
+class BookingTimeAgoLabel extends StatelessWidget {
+  const BookingTimeAgoLabel({super.key, required this.booking});
+
+  final BookingModel booking;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      bookingTimeAgo(booking),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
+        color: LightColor.hintTextColor,
+        fontSize: AppDimens.fontBodySubTitle,
+      ),
+    );
+  }
 }
 
 class BookingStatusChip extends StatelessWidget {
@@ -371,6 +441,26 @@ class BookingCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
     final Color dot = bookingStatusColor(booking.status);
+    final String? bookingType = bookingTypeLabel(booking.bookingType);
+    // Badges are shared between the "with ref" and "without ref" layouts below.
+    final List<Widget> badges = <Widget>[
+      if (bookingType != null)
+        BookingInfoChip(
+          icon: _isManual(booking.bookingType)
+              ? Icons.storefront_outlined
+              : Icons.phone_iphone_rounded,
+          label: bookingType,
+          color: _isManual(booking.bookingType)
+              ? const Color(0xFFE65100)
+              : LightColor.blueColor,
+        ),
+      if (booking.isRecurring)
+        BookingInfoChip(
+          icon: Icons.repeat_rounded,
+          label: '${_capitalize(booking.recurrenceType ?? 'Recurring')} booking',
+          color: LightColor.purpleColor,
+        ),
+    ];
 
     return Material(
       color: LightColor.cardColor,
@@ -505,22 +595,21 @@ class BookingCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                    if (booking.isRecurring)
-                      BookingInfoChip(
-                        icon: Icons.repeat_rounded,
-                        label:
-                            '${_capitalize(booking.recurrenceType ?? 'Recurring')} booking',
-                        color: LightColor.purpleColor,
+                    if (badges.isNotEmpty)
+                      Wrap(
+                        spacing: AppDimens.paddingX6,
+                        runSpacing: AppDimens.paddingX4,
+                        alignment: WrapAlignment.end,
+                        children: badges,
                       ),
                   ],
                 ),
-              ] else if (booking.isRecurring) ...[
+              ] else if (badges.isNotEmpty) ...[
                 const SizedBox(height: AppDimens.paddingX8),
-                BookingInfoChip(
-                  icon: Icons.repeat_rounded,
-                  label:
-                      '${_capitalize(booking.recurrenceType ?? 'Recurring')} booking',
-                  color: LightColor.purpleColor,
+                Wrap(
+                  spacing: AppDimens.paddingX6,
+                  runSpacing: AppDimens.paddingX4,
+                  children: badges,
                 ),
               ],
               if (footer != null) ...[
@@ -534,6 +623,15 @@ class BookingCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  static bool _isManual(String? type) {
+    return const <String>{
+      'manual',
+      'walk_in',
+      'walkin',
+      'offline',
+    }.contains(type?.trim().toLowerCase() ?? '');
   }
 
   Widget _separator() => Padding(

@@ -17,9 +17,68 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
   ProfileBloc(this._profileUseCase) : super(const ProfileState()) {
     on<FetchProfileEvent>(_onFetchProfile);
     on<UpdateProfileEvent>(_onUpdateProfile);
+    on<RequestVendorUpgradeEvent>(_onRequestVendorUpgrade);
   }
 
   final ProfileUseCase _profileUseCase;
+
+  FutureOr<void> _onRequestVendorUpgrade(
+    RequestVendorUpgradeEvent event,
+    Emitter<ProfileState> emit,
+  ) async {
+    if (state.profile?.data.role != 'candidate' ||
+        state.profile?.data.isVendorRequested == true ||
+        state.isRequestingVendor) {
+      return;
+    }
+
+    try {
+      emit(
+        state.copyWith(
+          status: ProfileStatus.requestingVendor,
+          clearErrorMessage: true,
+          clearSuccessMessage: true,
+        ),
+      );
+      final Either<AppException, String> response = await _profileUseCase
+          .requestVendorUpgrade(<String, dynamic>{
+            'business_name': event.businessName.trim(),
+            'phone': event.phone.trim(),
+            'address': event.address.trim(),
+            'message': event.message?.trim().isEmpty == true
+                ? null
+                : event.message?.trim(),
+          });
+      response.fold(
+        (AppException failure) => emit(
+          state.copyWith(
+            status: ProfileStatus.failure,
+            errorMessage: failure.errorMessage,
+          ),
+        ),
+        (String message) {
+          final ProfileModel? profile = state.profile;
+          emit(
+            state.copyWith(
+              status: ProfileStatus.vendorRequestSuccess,
+              profile: profile?.copyWith(
+                data: profile.data.copyWith(isVendorRequested: true),
+              ),
+              successMessage: message,
+              clearErrorMessage: true,
+            ),
+          );
+        },
+      );
+    } catch (error) {
+      emit(
+        state.copyWith(
+          status: ProfileStatus.failure,
+          errorMessage: error.toString(),
+        ),
+      );
+    }
+  }
 
   FutureOr<void> _onFetchProfile(
     FetchProfileEvent event,
@@ -160,6 +219,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
 
   Map<String, dynamic> _buildUpdatePayload(UpdateProfileEvent event) {
     final DateTime? dob = event.dateOfBirth;
+    final String gender = event.gender?.trim().toLowerCase() ?? '';
     return <String, dynamic>{
       'full_name': event.fullName ?? '',
       'email': event.email ?? '',
@@ -169,7 +229,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
           : '${dob.year.toString().padLeft(4, '0')}-'
                 '${dob.month.toString().padLeft(2, '0')}-'
                 '${dob.day.toString().padLeft(2, '0')}',
-      'gender': event.gender?.toLowerCase() ?? '',
+      'gender': gender == 'other' ? 'others' : gender,
       'address': event.address ?? '',
       if (event.profilePhoto?.isNotEmpty == true)
         'profile_photo': int.parse(event.profilePhoto!),

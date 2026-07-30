@@ -184,5 +184,63 @@ void main() {
       expect(booking.extraItemsCount, 3);
       expect(booking.extraItemsTotal, 150);
     });
+
+    test('adds products once when calculating confirmed completion amount', () {
+      final BookingModel booking = BookingModel.fromJson(<String, dynamic>{
+        'id': 26,
+        'booking_status': 'confirmed',
+        'total_amount': 2000,
+        'paid_amount': 500,
+        'balance_due': 1500,
+        'extra_items': <Map<String, dynamic>>[
+          <String, dynamic>{
+            'product_id': 9,
+            'name': 'Water',
+            'quantity': 2,
+            'unit_price': 50,
+          },
+        ],
+      });
+
+      expect(booking.bookingTotal, 2000);
+      expect(booking.grandTotal, 2100);
+      expect(booking.amountDueForCompletion, 1600);
+    });
+
+    test('does not add products again to a completed booking due', () {
+      final BookingModel booking = BookingModel.fromJson(<String, dynamic>{
+        'id': 26,
+        'booking_status': 'completed',
+        'payment_status': 'partial',
+        'total_amount': 2000,
+        'paid_amount': 600,
+        // The server's final due already includes every completed charge.
+        'balance_due': 1500,
+        'extra_items': <Map<String, dynamic>>[
+          <String, dynamic>{
+            'product_id': 9,
+            'name': 'Water',
+            'quantity': 2,
+            'unit_price': 50,
+          },
+        ],
+      });
+
+      expect(booking.extraItemsTotal, 100);
+      expect(booking.amountDueForCollection, 1500);
+    });
+
+    test('fully paid completed booking has no collectible due', () {
+      final BookingModel booking = BookingModel.fromJson(<String, dynamic>{
+        'id': 26,
+        'booking_status': 'completed',
+        'payment_status': 'paid',
+        'total_amount': 2000,
+        'paid_amount': 2000,
+        'balance_due': 0,
+      });
+
+      expect(booking.amountDueForCollection, 0);
+    });
   });
 }

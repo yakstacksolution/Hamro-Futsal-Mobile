@@ -1,3 +1,4 @@
+import 'package:hamro_footsall/core/api/api_client/booking_type_payload.dart';
 import 'package:hamro_footsall/core/api/api_client/result.dart';
 import 'package:hamro_footsall/core/helper/share_preferences.dart';
 import 'package:hamro_footsall/core/api/api_client/api_call_wrapper.dart';
@@ -33,6 +34,10 @@ class ApiClient {
 
   Future<Result> getProfile() {
     return _get(url: '$_baseUrl/auth/me');
+  }
+
+  Future<Result> requestVendorUpgrade({required Map<String, dynamic> data}) {
+    return _post(url: '$_baseUrl/auth/vendor-request', data: data);
   }
 
   Future<Result> updateNotificationPreferences({
@@ -236,21 +241,29 @@ class ApiClient {
   // Marks a confirmed booking as completed.
   Future<Result> completeBooking({
     required int bookingId,
+    bool confirm = true,
     String? paymentType,
     double? discount,
-    double? amountPaid,
-    String? paymentStatus,
+    double? partialAmount,
+    List<Map<String, dynamic>>? extraItems,
   }) {
     final Map<String, dynamic> data = <String, dynamic>{
+      // Required by the API — the request is rejected with 422 without it.
+      'confirm': confirm,
       if (paymentType != null) 'payment_type': paymentType,
-      if (discount != null) 'discount': discount,
-      if (amountPaid != null) 'amount_paid': amountPaid,
-      if (paymentStatus != null) 'payment_status': paymentStatus,
+      'discount': discount ?? 0,
+      if (partialAmount != null) 'partial_amount': partialAmount,
+      if (extraItems != null && extraItems.isNotEmpty)
+        'extra_items': extraItems,
     };
-    return _post(
-      url: '$_baseUrl/bookings/$bookingId/complete',
-      data: data.isEmpty ? null : data,
-    );
+    return _post(url: '$_baseUrl/bookings/$bookingId/complete', data: data);
+  }
+
+  Future<Result> collectBookingDue({
+    required int bookingId,
+    required Map<String, dynamic> data,
+  }) {
+    return _post(url: '$_baseUrl/bookings/$bookingId/collect-due', data: data);
   }
 
   // Vendor ↔ super-admin financial account (balance, ledger, settlements).
@@ -417,6 +430,7 @@ class ApiClient {
     required String selectDate,
     String? slotStartTime,
     String? slotEndTime,
+    String bookingType = BookingTypePayload.regular,
   }) {
     return _get(
       url: '$_baseUrl/available-courts',
@@ -428,6 +442,9 @@ class ApiClient {
         if (slotEndTime != null && slotEndTime.trim().isNotEmpty)
           'slot_end_time': slotEndTime,
       },
+      // Sent as a body so the server can widen availability for walk-ins
+      // (vendor-entered bookings) versus regular player bookings.
+      data: <String, dynamic>{'booking_type': bookingType},
     );
   }
 
@@ -750,12 +767,17 @@ class ApiClient {
     return _delete(url: '$_baseUrl/opponent-requests/$requestId');
   }
 
-  Future<Result> _get({required String url, Map<String, dynamic>? query}) {
+  Future<Result> _get({
+    required String url,
+    Map<String, dynamic>? query,
+    dynamic data,
+  }) {
     return _apiCallWrapper.makeRequest(
       url: url,
       token: AppSettings().tokenModel.accessToken,
       method: HttpVerb.get,
       query: query,
+      data: data,
     );
   }
 

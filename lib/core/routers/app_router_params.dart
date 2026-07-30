@@ -144,6 +144,11 @@ class AppRouterParams {
     path: '/dashboard/slots-selection',
   );
 
+  static const RouteConfig manualBooking = RouteConfig(
+    name: 'manualBooking',
+    path: '/dashboard/manual-booking',
+  );
+
   static const RouteConfig venueFilter = RouteConfig(
     name: 'venueFilter',
     path: '/dashboard/venue-filter',
