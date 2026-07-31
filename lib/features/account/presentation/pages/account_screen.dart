@@ -4,6 +4,7 @@ import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/utils/responsive.dart';
 import 'package:hamro_footsall/core/utils/string_constants.dart';
 import 'package:hamro_footsall/core/widgets/custom_app_bar.dart';
 import 'package:hamro_footsall/features/account/data/model/account_models.dart';
@@ -30,13 +31,16 @@ class AccountScreen extends StatelessWidget {
       create: (_) =>
           AccountBloc(AccountUseCase(AccountRepositoryImpl()))
             ..add(const LoadAccountEvent()),
-      child: const _AccountView(),
+      child: const AccountView(),
     );
   }
 }
 
-class _AccountView extends StatelessWidget {
-  const _AccountView();
+/// The account body, split out from [AccountScreen] so it can be rendered
+/// against an injected [AccountBloc] (the screen itself fetches on create).
+@visibleForTesting
+class AccountView extends StatelessWidget {
+  const AccountView({super.key});
 
   void _pushDetail(BuildContext context, Widget page) {
     final bloc = context.read<AccountBloc>();
@@ -91,6 +95,57 @@ class _AccountView extends StatelessWidget {
                 !state.hasPendingSettlement &&
                 state.submitStatus != AccountStatus.loading;
             final recent = state.entries.take(_kRecentActivityCount).toList();
+            final Widget balance = AccountBalanceCard(
+              availableBalance: summary.availableBalance,
+              pendingClearance: summary.pendingClearance,
+              // onRequestSettlement: canSettle
+              //     ? () => openSettlementSheet(context)
+              //     : null,
+              onRequestSettlement: () => openSettlementSheet(context),
+              disabledReason: settlementBlockedReason(state),
+            );
+            final Widget shortcuts = _ShortcutsCard(
+              state: state,
+              onFutsalBreakdown: () =>
+                  _pushDetail(context, const _VenueBreakdownPage()),
+              onSettlements: () =>
+                  _pushDetail(context, const _SettlementsPage()),
+            );
+            final Widget activity = _ListCard(
+              child: state.statementStatus == AccountStatus.loading
+                  ? const AccountListLoading(itemCount: 4)
+                  : recent.isEmpty
+                  ? const AccountEmptyState(
+                      icon: Icons.receipt_long_outlined,
+                      title: 'No account activity yet',
+                      body:
+                          'Booking income, platform commission and payouts will appear here.',
+                    )
+                  : Column(
+                      children: [
+                        for (int i = 0; i < recent.length; i++) ...[
+                          if (i > 0)
+                            const Divider(
+                              height: AppDimens.paddingX20,
+                              thickness: 1,
+                              color: LightColor.dividerColor,
+                            ),
+                          AccountEntryTile(entry: recent[i]),
+                        ],
+                      ],
+                    ),
+            );
+            final Widget activityHeader = _RecentActivityHeader(
+              hasMore: state.entries.length > recent.length,
+              onViewAll: () => _pushDetail(context, const _StatementPage()),
+            );
+
+            final bool desktop = context.isDesktop;
+            final double horizontal = context.responsive<double>(
+              mobile: AppDimens.paddingX20,
+              tablet: AppDimens.paddingX32,
+            );
+
             return RefreshIndicator(
               color: LightColor.secondaryColor,
               onRefresh: () async => context.read<AccountBloc>().add(
@@ -100,64 +155,53 @@ class _AccountView extends StatelessWidget {
                 physics: const AlwaysScrollableScrollPhysics(
                   parent: BouncingScrollPhysics(),
                 ),
-                padding: const EdgeInsets.fromLTRB(
-                  AppDimens.paddingX20,
+                padding: EdgeInsets.fromLTRB(
+                  horizontal,
                   AppDimens.paddingX16,
-                  AppDimens.paddingX20,
+                  horizontal,
                   AppDimens.paddingX50,
                 ),
-                children: [
-                  AccountBalanceCard(
-                    availableBalance: summary.availableBalance,
-                    pendingClearance: summary.pendingClearance,
-                    // onRequestSettlement: canSettle
-                    //     ? () => openSettlementSheet(context)
-                    //     : null,
-                    onRequestSettlement: () => openSettlementSheet(context),
-                    disabledReason: settlementBlockedReason(state),
-                  ),
-                  const SizedBox(height: AppDimens.paddingX12),
-                  AccountStatsRow(summary: summary),
-                  const SizedBox(height: AppDimens.paddingX16),
-                  _ShortcutsCard(
-                    state: state,
-                    onFutsalBreakdown: () =>
-                        _pushDetail(context, const _VenueBreakdownPage()),
-                    onSettlements: () =>
-                        _pushDetail(context, const _SettlementsPage()),
-                  ),
-                  const SizedBox(height: AppDimens.paddingX20),
-                  _RecentActivityHeader(
-                    hasMore: state.entries.length > recent.length,
-                    onViewAll: () =>
-                        _pushDetail(context, const _StatementPage()),
-                  ),
-                  const SizedBox(height: AppDimens.paddingX10),
-                  _ListCard(
-                    child: state.statementStatus == AccountStatus.loading
-                        ? const AccountListLoading(itemCount: 4)
-                        : recent.isEmpty
-                        ? const AccountEmptyState(
-                            icon: Icons.receipt_long_outlined,
-                            title: 'No account activity yet',
-                            body:
-                                'Booking income, platform commission and payouts will appear here.',
-                          )
-                        : Column(
-                            children: [
-                              for (int i = 0; i < recent.length; i++) ...[
-                                if (i > 0)
-                                  const Divider(
-                                    height: AppDimens.paddingX20,
-                                    thickness: 1,
-                                    color: LightColor.dividerColor,
-                                  ),
-                                AccountEntryTile(entry: recent[i]),
-                              ],
-                            ],
-                          ),
-                  ),
-                ],
+                children: desktop
+                    // Balance, stats and the statement carry the page; the
+                    // shortcuts become a side column instead of a band the
+                    // reader has to scroll past.
+                    ? <Widget>[
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: <Widget>[
+                                  balance,
+                                  const SizedBox(height: AppDimens.paddingX12),
+                                  AccountStatsRow(summary: summary),
+                                  const SizedBox(height: AppDimens.paddingX20),
+                                  activityHeader,
+                                  const SizedBox(height: AppDimens.paddingX10),
+                                  activity,
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: AppDimens.paddingX20),
+                            SizedBox(
+                              width: AppDimens.accountShortcutsColumnWidth,
+                              child: shortcuts,
+                            ),
+                          ],
+                        ),
+                      ]
+                    : <Widget>[
+                        balance,
+                        const SizedBox(height: AppDimens.paddingX12),
+                        AccountStatsRow(summary: summary),
+                        const SizedBox(height: AppDimens.paddingX16),
+                        shortcuts,
+                        const SizedBox(height: AppDimens.paddingX20),
+                        activityHeader,
+                        const SizedBox(height: AppDimens.paddingX10),
+                        activity,
+                      ],
               ),
             );
           },
@@ -165,6 +209,17 @@ class _AccountView extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Horizontal inset that keeps a detail list (statement, settlements, futsal
+/// breakdown) capped at [AppDimens.accountListMaxWidth] and centred. These
+/// pages are full-screen, so the screen width is the pane width.
+double _detailListInset(BuildContext context) {
+  const double base = AppDimens.paddingX20;
+  if (!context.isTabletOrWider) return base;
+  final double slack =
+      (context.screenWidth - AppDimens.accountListMaxWidth) / 2;
+  return slack > base ? slack : AppDimens.paddingX32;
 }
 
 /// Why the settlement CTA is disabled right now; empty when it isn't.
@@ -364,7 +419,13 @@ class _VenueBreakdownPage extends StatelessWidget {
             }
             return ListView.separated(
               physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.all(AppDimens.paddingX20),
+              // Capped and centred: a settlement/statement row is one line of
+              // text, and stretching it across a wide window makes the label
+              // and the amount unreadably far apart.
+              padding: EdgeInsets.symmetric(
+                horizontal: _detailListInset(context),
+                vertical: AppDimens.paddingX20,
+              ),
               itemCount: venues.length,
               separatorBuilder: (_, __) =>
                   const SizedBox(height: AppDimens.paddingX12),
@@ -521,7 +582,13 @@ class _StatementPage extends StatelessWidget {
             }
             return ListView.separated(
               physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.all(AppDimens.paddingX20),
+              // Capped and centred: a settlement/statement row is one line of
+              // text, and stretching it across a wide window makes the label
+              // and the amount unreadably far apart.
+              padding: EdgeInsets.symmetric(
+                horizontal: _detailListInset(context),
+                vertical: AppDimens.paddingX20,
+              ),
               itemCount: state.entries.length,
               separatorBuilder: (_, __) => const Divider(
                 height: AppDimens.paddingX24,
@@ -567,7 +634,13 @@ class _SettlementsPage extends StatelessWidget {
             }
             return ListView.separated(
               physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.all(AppDimens.paddingX20),
+              // Capped and centred: a settlement/statement row is one line of
+              // text, and stretching it across a wide window makes the label
+              // and the amount unreadably far apart.
+              padding: EdgeInsets.symmetric(
+                horizontal: _detailListInset(context),
+                vertical: AppDimens.paddingX20,
+              ),
               itemCount: state.settlements.length,
               separatorBuilder: (_, __) => const Divider(
                 height: AppDimens.paddingX24,

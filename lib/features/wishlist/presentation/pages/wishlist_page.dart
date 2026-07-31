@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:hamro_footsall/core/helper/wishlist_store.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
-import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/utils/responsive.dart';
 import 'package:hamro_footsall/core/widgets/custom_button.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/page/dashboard_screen.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/page/footsall_home_page.dart';
+import 'package:hamro_footsall/features/dashboard/presentation/widgets/dashboard_layout.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/widgets/loading/home_body_loading.dart';
 import 'package:hamro_footsall/features/public/data/model/public_venue_model.dart';
 import 'package:hamro_footsall/features/public/data/repositories/public_repository_impl.dart';
@@ -115,9 +116,15 @@ class _WishlistPageState extends State<WishlistPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: AppUtils().getPadding(
-            left: AppDimens.paddingX20,
-            right: AppDimens.paddingX20,
+          padding: EdgeInsets.only(
+            left: context.responsive<double>(
+              mobile: AppDimens.paddingX20,
+              tablet: AppDimens.paddingX32,
+            ),
+            right: context.responsive<double>(
+              mobile: AppDimens.paddingX20,
+              tablet: AppDimens.paddingX32,
+            ),
             top: AppDimens.paddingX24,
           ),
           child: Column(
@@ -172,20 +179,56 @@ class _WishlistPageState extends State<WishlistPage> {
     return RefreshIndicator(
       color: LightColor.secondaryColor,
       onRefresh: _fetch,
-      child: ListView.separated(
-        physics: const BouncingScrollPhysics(
-          parent: AlwaysScrollableScrollPhysics(),
-        ),
-        padding: AppUtils().getPadding(
-          left: AppDimens.paddingX20,
-          right: AppDimens.paddingX20,
-          top: AppDimens.paddingX10,
-          bottom: AppDimens.sizeX120,
-        ),
-        itemCount: venues.length,
-        separatorBuilder: (_, __) => const SizedBox(height: AppDimens.sizeX20),
-        // Same card the home listing uses.
-        itemBuilder: (_, i) => CourtCard(publicListingVenueModel: venues[i]),
+      child: LayoutBuilder(
+        builder: (BuildContext context, BoxConstraints constraints) {
+          // Same helper as the home feed, so both listings agree on how many
+          // cards fit -- and both use the same CourtCard.
+          final int columns = venueGridColumns(context, constraints.maxWidth);
+          final EdgeInsets padding = EdgeInsets.only(
+            left: context.responsive<double>(
+              mobile: AppDimens.paddingX20,
+              tablet: AppDimens.paddingX32,
+            ),
+            right: context.responsive<double>(
+              mobile: AppDimens.paddingX20,
+              tablet: AppDimens.paddingX32,
+            ),
+            top: AppDimens.paddingX10,
+            bottom: AppDimens.sizeX120,
+          );
+          const ScrollPhysics physics = BouncingScrollPhysics(
+            parent: AlwaysScrollableScrollPhysics(),
+          );
+
+          if (columns == 1) {
+            return ListView.separated(
+              physics: physics,
+              padding: padding,
+              itemCount: venues.length,
+              separatorBuilder: (_, __) =>
+                  const SizedBox(height: AppDimens.sizeX20),
+              // Same card the home listing uses.
+              itemBuilder: (_, i) =>
+                  CourtCard(publicListingVenueModel: venues[i]),
+            );
+          }
+
+          return GridView.builder(
+            physics: physics,
+            padding: padding,
+            itemCount: venues.length,
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: columns,
+              crossAxisSpacing: AppDimens.sizeX20,
+              mainAxisSpacing: AppDimens.sizeX20,
+              mainAxisExtent: AppDimens.courtCardGridExtent,
+            ),
+            itemBuilder: (_, i) => CourtCard(
+              publicListingVenueModel: venues[i],
+              flexibleCover: true,
+            ),
+          );
+        },
       ),
     );
   }
@@ -211,7 +254,7 @@ class _MessageView extends StatelessWidget {
     final textTheme = FutsalTheme.getTextTheme(context);
     return Center(
       child: Padding(
-        padding: AppUtils().getPadding(all: AppDimens.paddingX32),
+        padding: const EdgeInsets.all(AppDimens.paddingX32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [

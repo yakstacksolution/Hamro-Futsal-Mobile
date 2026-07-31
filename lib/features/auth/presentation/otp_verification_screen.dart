@@ -9,6 +9,7 @@ import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart' hide LightColor;
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/utils/responsive.dart';
 import 'package:hamro_footsall/features/auth/presentation/authentication_bloc/authentication_bloc.dart';
 import 'package:hamro_footsall/features/auth/presentation/widgets/auth_screen_frame.dart';
 import 'package:hamro_footsall/core/utils/string_constants.dart';
@@ -196,16 +197,29 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                   onSecondaryTap: _resendOtp,
                   formFields: <Widget>[
                     SizedBox(height: AppDimens.sizeX12),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: List<Widget>.generate(_otpLength, (int index) {
-                        return _OtpDigitField(
-                          controller: _controllers[index],
-                          focusNode: _focusNodes[index],
-                          onChanged: (String value) =>
-                              _onOtpChanged(index, value),
-                        );
-                      }),
+                    // On wide cards, cap and centre the row so the digit boxes
+                    // stay a readable group instead of spreading to the edges.
+                    Center(
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxWidth: context.isTabletOrWider
+                              ? AppDimens.otpRowMaxWidth
+                              : double.infinity,
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: List<Widget>.generate(_otpLength, (
+                            int index,
+                          ) {
+                            return _OtpDigitField(
+                              controller: _controllers[index],
+                              focusNode: _focusNodes[index],
+                              onChanged: (String value) =>
+                                  _onOtpChanged(index, value),
+                            );
+                          }),
+                        ),
+                      ),
                     ),
                     SizedBox(height: AppDimens.sizeX14),
                     Text(
@@ -241,10 +255,13 @@ class _OtpDigitField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final AppUtils appUtils = AppUtils();
     final textTheme = FutsalTheme.getTextTheme(context);
     return SizedBox(
-      width: AppDimens.sizeX64,
+      width: context.responsive<double>(
+        mobile: AppDimens.sizeX64,
+        tablet: AppDimens.sizeX76,
+        desktop: AppDimens.sizeX84,
+      ),
       child: TextField(
         controller: controller,
         focusNode: focusNode,
@@ -266,8 +283,12 @@ class _OtpDigitField extends StatelessWidget {
           counterText: '',
           filled: true,
           fillColor: LightColor.background.withValues(alpha: 0.9),
-          contentPadding: appUtils.getPadding(
-            symmetricVertical: AppDimens.paddingX14,
+          // Plain EdgeInsets: AppUtils.getPadding scales by screenWidth/375,
+          // which inflates ~2.7x on a tablet.
+          contentPadding: EdgeInsets.symmetric(
+            vertical: context.isTabletOrWider
+                ? AppDimens.paddingX18
+                : AppDimens.paddingX14,
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(AppDimens.radiusX12),

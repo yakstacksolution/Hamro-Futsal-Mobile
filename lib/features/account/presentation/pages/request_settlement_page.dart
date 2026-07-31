@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/utils/responsive.dart';
 import 'package:hamro_footsall/core/utils/string_constants.dart';
 import 'package:hamro_footsall/core/widgets/custom_app_bar.dart';
 import 'package:hamro_footsall/core/widgets/custom_button.dart';
@@ -121,75 +122,104 @@ class _RequestSettlementPageState extends State<RequestSettlementPage> {
         top: false,
         child: Form(
           key: _formKey,
-          child: ListView(
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(
-              AppDimens.paddingX20,
-              AppDimens.paddingX16,
-              AppDimens.paddingX20,
-              AppDimens.paddingX32,
-            ),
-            children: [
-              Text(
-                widget.scopeLabel,
-                style: textTheme.bodyTextSmall?.copyWith(
-                  color: LightColor.secondaryTextColor,
-                  fontWeight: FontWeight.w600,
+          child: Center(
+            child: ConstrainedBox(
+              // Forms stay one readable column; fields are never paired.
+              constraints: BoxConstraints(
+                maxWidth: context.isTabletOrWider
+                    ? AppDimens.formContentMaxWidth
+                    : double.infinity,
+              ),
+              child: ListView(
+                physics: const BouncingScrollPhysics(),
+                padding: EdgeInsets.fromLTRB(
+                  context.responsive<double>(
+                    mobile: AppDimens.paddingX20,
+                    tablet: AppDimens.paddingX32,
+                  ),
+                  AppDimens.paddingX16,
+                  context.responsive<double>(
+                    mobile: AppDimens.paddingX20,
+                    tablet: AppDimens.paddingX32,
+                  ),
+                  AppDimens.paddingX32,
                 ),
+                children: [
+                  Text(
+                    widget.scopeLabel,
+                    style: textTheme.bodyTextSmall?.copyWith(
+                      color: LightColor.secondaryTextColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: AppDimens.paddingX12),
+                  PaymentQrCard(
+                    qr: widget.summary.settlementQr,
+                    fallbackPayeeName: StringConstants.hamroFutsal,
+                    amountLabel: 'Maximum payable',
+                    amountValue: AccountFmt.npr(widget.availableBalance),
+                  ),
+                  const SizedBox(height: AppDimens.paddingX20),
+                  CustomTextField(
+                    labelText: 'Settlement amount (NPR)',
+                    controller: _amountCtrl,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    icon: Icons.payments_outlined,
+                    validator: _validateAmount,
+                    autovalidateMode: AutovalidateMode.onUserInteraction,
+                    ensureVisibleOnFocus: true,
+                  ),
+                  const SizedBox(height: AppDimens.paddingX16),
+                  CustomTextField(
+                    labelText: 'Transaction reference',
+                    hintText: 'Bank / eSewa / Khalti transaction ID',
+                    controller: _refCtrl,
+                    icon: Icons.tag_rounded,
+                    validator: (value) => (value?.trim().isEmpty ?? true)
+                        ? 'Enter the payment transaction reference.'
+                        : null,
+                    autovalidateMode: AutovalidateMode.onUserInteraction,
+                    ensureVisibleOnFocus: true,
+                  ),
+                  const SizedBox(height: AppDimens.paddingX16),
+                  _ProofPicker(
+                    proof: _proof,
+                    showError: _proofMissing,
+                    onTap: _pickProof,
+                  ),
+                  const SizedBox(height: AppDimens.paddingX16),
+                  CustomTextField(
+                    labelText: 'Note (optional)',
+                    hintText: 'Payment remark',
+                    controller: _noteCtrl,
+                    maxLines: 2,
+                    isRequired: false,
+                    textCapitalization: TextCapitalization.sentences,
+                    ensureVisibleOnFocus: true,
+                  ),
+                  const SizedBox(height: AppDimens.paddingX24),
+                  if (context.isTabletOrWider)
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: SizedBox(
+                        width: AppDimens.formActionMaxWidth,
+                        child: CustomButton(
+                          text: 'Submit Settlement Request',
+                          icon: Icons.lock_outline_rounded,
+                          onPressed: _submit,
+                        ),
+                      ),
+                    )
+                  else
+                    CustomButton(
+                      text: 'Submit Settlement Request',
+                      icon: Icons.lock_outline_rounded,
+                      onPressed: _submit,
+                    ),
+                ],
               ),
-              const SizedBox(height: AppDimens.paddingX12),
-              PaymentQrCard(
-                qr: widget.summary.settlementQr,
-                fallbackPayeeName: StringConstants.hamroFutsal,
-                amountLabel: 'Maximum payable',
-                amountValue: AccountFmt.npr(widget.availableBalance),
-              ),
-              const SizedBox(height: AppDimens.paddingX20),
-              CustomTextField(
-                labelText: 'Settlement amount (NPR)',
-                controller: _amountCtrl,
-                keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                icon: Icons.payments_outlined,
-                validator: _validateAmount,
-                autovalidateMode: AutovalidateMode.onUserInteraction,
-                ensureVisibleOnFocus: true,
-              ),
-              const SizedBox(height: AppDimens.paddingX16),
-              CustomTextField(
-                labelText: 'Transaction reference',
-                hintText: 'Bank / eSewa / Khalti transaction ID',
-                controller: _refCtrl,
-                icon: Icons.tag_rounded,
-                validator: (value) => (value?.trim().isEmpty ?? true)
-                    ? 'Enter the payment transaction reference.'
-                    : null,
-                autovalidateMode: AutovalidateMode.onUserInteraction,
-                ensureVisibleOnFocus: true,
-              ),
-              const SizedBox(height: AppDimens.paddingX16),
-              _ProofPicker(
-                proof: _proof,
-                showError: _proofMissing,
-                onTap: _pickProof,
-              ),
-              const SizedBox(height: AppDimens.paddingX16),
-              CustomTextField(
-                labelText: 'Note (optional)',
-                hintText: 'Payment remark',
-                controller: _noteCtrl,
-                maxLines: 2,
-                isRequired: false,
-                textCapitalization: TextCapitalization.sentences,
-                ensureVisibleOnFocus: true,
-              ),
-              const SizedBox(height: AppDimens.paddingX24),
-              CustomButton(
-                text: 'Submit Settlement Request',
-                icon: Icons.lock_outline_rounded,
-                onPressed: _submit,
-              ),
-            ],
+            ),
           ),
         ),
       ),

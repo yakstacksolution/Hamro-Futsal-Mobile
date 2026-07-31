@@ -7,6 +7,7 @@ import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/utils/responsive.dart';
 import 'package:hamro_footsall/core/utils/scroll_behavior.dart';
 import 'package:hamro_footsall/core/widgets/custom_button.dart';
 import 'package:hamro_footsall/features/bookings/data/model/manual_booking_details.dart';
@@ -144,9 +145,9 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
         if (selectedCourt == null) return const SizedBox.shrink();
 
         return Padding(
-          padding: AppUtils().getPadding(
-            top: AppDimens.paddingX12,
+          padding: const EdgeInsets.only(
             left: AppDimens.paddingX20,
+            top: AppDimens.paddingX12,
             right: AppDimens.paddingX20,
           ),
           child: BookingTypeCard(
@@ -213,9 +214,9 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
         }
 
         return Padding(
-          padding: AppUtils().getPadding(
-            top: AppDimens.paddingX12,
+          padding: const EdgeInsets.only(
             left: AppDimens.paddingX20,
+            top: AppDimens.paddingX12,
             right: AppDimens.paddingX20,
           ),
           child: child,
@@ -226,13 +227,13 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
 
   Widget _buildDateTimeSection() {
     return Padding(
-      padding: AppUtils().getPadding(
-        top: AppDimens.paddingX12,
+      padding: const EdgeInsets.only(
         left: AppDimens.paddingX20,
+        top: AppDimens.paddingX12,
         right: AppDimens.paddingX20,
       ),
       child: Container(
-        padding: AppUtils().getPadding(all: AppDimens.paddingX12),
+        padding: const EdgeInsets.all(AppDimens.paddingX12),
         decoration: BoxDecoration(
           color: LightColor.cardColor,
           borderRadius: BorderRadius.circular(AppDimens.radiusX10),
@@ -303,9 +304,9 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
 
   Widget _buildCourtsSection() {
     return Padding(
-      padding: AppUtils().getPadding(
-        top: AppDimens.paddingX20,
+      padding: const EdgeInsets.only(
         left: AppDimens.paddingX20,
+        top: AppDimens.paddingX20,
         right: AppDimens.paddingX20,
       ),
       child: BlocBuilder<SlotsSelectionBloc, SlotsSelectionState>(
@@ -323,7 +324,7 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
                     ),
                   ),
                   Container(
-                    padding: AppUtils().getPadding(
+                    padding: const EdgeInsets.symmetric(
                       horizontal: AppDimens.paddingX8,
                       vertical: AppDimens.paddingX2,
                     ),
@@ -359,28 +360,39 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
                       : null,
                 )
               else
-                ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: state.courts.length,
-                  itemBuilder: (BuildContext context, int i) {
-                    return CourtSlotCard(
-                      court: state.courts[i],
-                      selectedDate: state.selectedDate,
-                      selectedTime: state.selectedTime,
-                      slotLabel: state.slotLabel,
-                      recurringDates: state.isRecurring
-                          ? state.sessionDates
-                          : null,
-                      selected: state.selectedCourtIndex == i,
-                      onTap: state.courts[i].isAvailable
-                          ? () {
-                              HapticFeedback.selectionClick();
-                              context.read<SlotsSelectionBloc>().add(
-                                SelectSlotsCourtEvent(i),
-                              );
-                            }
-                          : null,
+                LayoutBuilder(
+                  builder: (BuildContext context, BoxConstraints constraints) {
+                    // Wrap, not GridView: card height varies with the slot
+                    // content, and a fixed mainAxisExtent would clip the tall
+                    // ones. A Wrap row is as tall as its tallest card.
+                    final int columns = columnsFor(
+                      availableWidth: constraints.maxWidth,
+                      minItemWidth: AppDimens.courtSlotCardMinWidth,
+                      spacing: AppDimens.sizeX12,
+                      maxColumns: 2,
+                    );
+                    if (columns == 1) {
+                      return Column(
+                        children: <Widget>[
+                          for (int i = 0; i < state.courts.length; i++)
+                            _courtCard(context, state, i),
+                        ],
+                      );
+                    }
+                    final double tile =
+                        (constraints.maxWidth -
+                            AppDimens.sizeX12 * (columns - 1)) /
+                        columns;
+                    return Wrap(
+                      spacing: AppDimens.sizeX12,
+                      runSpacing: AppDimens.sizeX12,
+                      children: <Widget>[
+                        for (int i = 0; i < state.courts.length; i++)
+                          SizedBox(
+                            width: tile,
+                            child: _courtCard(context, state, i),
+                          ),
+                      ],
                     );
                   },
                 ),
@@ -389,6 +401,33 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
         },
       ),
     );
+  }
+
+  Widget _courtCard(BuildContext context, SlotsSelectionState state, int i) {
+    return CourtSlotCard(
+      court: state.courts[i],
+      selectedDate: state.selectedDate,
+      selectedTime: state.selectedTime,
+      slotLabel: state.slotLabel,
+      recurringDates: state.isRecurring ? state.sessionDates : null,
+      selected: state.selectedCourtIndex == i,
+      onTap: state.courts[i].isAvailable
+          ? () {
+              HapticFeedback.selectionClick();
+              context.read<SlotsSelectionBloc>().add(SelectSlotsCourtEvent(i));
+            }
+          : null,
+    );
+  }
+
+  /// Keeps the bottom bar's summary and CTA together in the middle of a wide
+  /// window instead of pinned to opposite edges.
+  double _bottomBarInset(BuildContext context) {
+    const double base = AppDimens.paddingX12;
+    if (!context.isTabletOrWider) return base;
+    final double slack =
+        (context.screenWidth - AppDimens.slotsSelectionColumnMaxWidth) / 2;
+    return slack > base ? slack : AppDimens.paddingX32;
   }
 
   Widget _buildBottomBar() {
@@ -403,7 +442,10 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
                 (state.selectedCourt?.isAvailable ?? false);
 
             return Container(
-              padding: AppUtils().getPadding(all: AppDimens.paddingX12),
+              padding: EdgeInsets.symmetric(
+                horizontal: _bottomBarInset(context),
+                vertical: AppDimens.paddingX12,
+              ),
               decoration: BoxDecoration(
                 color: LightColor.cardColor,
                 borderRadius: BorderRadius.only(
@@ -430,7 +472,7 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: <Widget>[
                           Padding(
-                            padding: AppUtils().getPadding(
+                            padding: const EdgeInsets.only(
                               left: AppDimens.paddingX6,
                             ),
                             child: Row(
@@ -447,7 +489,7 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
                                 SizedBox(width: AppDimens.sizeX4),
                                 Flexible(
                                   child: Padding(
-                                    padding: AppUtils().getPadding(
+                                    padding: const EdgeInsets.only(
                                       bottom: AppDimens.paddingX2,
                                     ),
                                     child: Text(
@@ -469,7 +511,7 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
                           SizedBox(height: AppDimens.sizeX4),
                           AnimatedContainer(
                             duration: const Duration(milliseconds: 220),
-                            padding: AppUtils().getPadding(
+                            padding: const EdgeInsets.symmetric(
                               horizontal: AppDimens.paddingX10,
                               vertical: AppDimens.paddingX2,
                             ),
@@ -593,16 +635,62 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
         ),
         body: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              _buildDateTimeSection(),
-              _buildBookingTypeSection(),
-              _buildRecurringAvailabilitySection(),
-              _buildCourtsSection(),
-              const SizedBox(height: AppDimens.sizeX20),
-            ],
-          ),
+          child: context.isDesktop
+              // Choose when on the left, pick a court on the right, so the
+              // court list is visible without scrolling past the controls.
+              ? Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      maxWidth: AppDimens.slotsSelectionMaxWidth,
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Expanded(
+                          flex: 4,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: <Widget>[
+                              _buildDateTimeSection(),
+                              _buildBookingTypeSection(),
+                              _buildRecurringAvailabilitySection(),
+                              const SizedBox(height: AppDimens.sizeX20),
+                            ],
+                          ),
+                        ),
+                        Expanded(
+                          flex: 5,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: <Widget>[
+                              _buildCourtsSection(),
+                              const SizedBox(height: AppDimens.sizeX20),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              : Center(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: context.isTablet
+                          ? AppDimens.slotsSelectionColumnMaxWidth
+                          : double.infinity,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        _buildDateTimeSection(),
+                        _buildBookingTypeSection(),
+                        _buildRecurringAvailabilitySection(),
+                        _buildCourtsSection(),
+                        const SizedBox(height: AppDimens.sizeX20),
+                      ],
+                    ),
+                  ),
+                ),
         ),
         bottomNavigationBar: _buildBottomBar(),
       ),
@@ -620,7 +708,7 @@ class _LiveViewersBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: AppUtils().getPadding(
+      padding: const EdgeInsets.symmetric(
         horizontal: AppDimens.paddingX10,
         vertical: AppDimens.paddingX4,
       ),
@@ -672,7 +760,7 @@ class _AvailabilityMessage extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: AppUtils().getPadding(all: AppDimens.paddingX12),
+      padding: const EdgeInsets.all(AppDimens.paddingX12),
       decoration: BoxDecoration(
         color: LightColor.greyBorderColor.withValues(alpha: 1.2),
         borderRadius: BorderRadius.circular(AppDimens.radiusX10),
@@ -740,7 +828,7 @@ class _RecurringAvailabilityResult extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: AppUtils().getPadding(all: AppDimens.paddingX12),
+      padding: const EdgeInsets.all(AppDimens.paddingX12),
       decoration: BoxDecoration(
         color: LightColor.cardColor,
         borderRadius: BorderRadius.circular(AppDimens.radiusX10),
@@ -774,7 +862,7 @@ class _RecurringAvailabilityResult extends StatelessWidget {
             const SizedBox(height: AppDimens.sizeX10),
             ...model.sessions.map(
               (AvailabilitySession s) => Padding(
-                padding: AppUtils().getPadding(bottom: AppDimens.paddingX8),
+                padding: const EdgeInsets.only(bottom: AppDimens.paddingX8),
                 child: _RecurringAvailabilityRow(session: s),
               ),
             ),

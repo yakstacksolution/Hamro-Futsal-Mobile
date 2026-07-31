@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
-import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/widgets/custom_html_viewer.dart';
 
@@ -65,14 +64,14 @@ class _CourtDescriptionSectionState extends State<CourtDescriptionSection> {
     _scheduleOverflowCheck(collapsedMaxHeight);
 
     return Padding(
-      padding: AppUtils().getPadding(
-        top: AppDimens.paddingX12,
+      padding: const EdgeInsets.only(
         left: AppDimens.paddingX16,
+        top: AppDimens.paddingX12,
         right: AppDimens.paddingX16,
       ),
       child: Container(
         width: double.infinity,
-        padding: AppUtils().getPadding(all: AppDimens.paddingX16),
+        padding: const EdgeInsets.all(AppDimens.paddingX16),
         decoration: BoxDecoration(
           gradient: const LinearGradient(
             begin: Alignment.topLeft,
@@ -137,7 +136,9 @@ class _CourtDescriptionSectionState extends State<CourtDescriptionSection> {
             ),
             const SizedBox(height: AppDimens.sizeX12),
             Container(
-              padding: AppUtils().getPadding(horizontal: AppDimens.paddingX6),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppDimens.paddingX6,
+              ),
               child: _buildBody(trimmed, bodyStyle, collapsedMaxHeight),
             ),
             if (_exceedsCollapsedHeight) _buildToggle(context),
@@ -200,9 +201,9 @@ class _CourtDescriptionSectionState extends State<CourtDescriptionSection> {
 
   Widget _buildToggle(BuildContext context) {
     return Padding(
-      padding: AppUtils().getPadding(
-        top: AppDimens.paddingX8,
+      padding: const EdgeInsets.only(
         left: AppDimens.paddingX6,
+        top: AppDimens.paddingX8,
       ),
       child: GestureDetector(
         onTap: () => setState(() => _expanded = !_expanded),

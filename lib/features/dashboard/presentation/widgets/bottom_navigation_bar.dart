@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
-import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/custom_image_view.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
-import 'package:hamro_footsall/core/utils/image_constants.dart';
-import 'package:hamro_footsall/core/utils/string_constants.dart';
+import 'package:hamro_footsall/features/dashboard/presentation/widgets/dashboard_nav_destinations.dart';
 
 class CustomBottomNavigationBar extends StatelessWidget {
   const CustomBottomNavigationBar({
@@ -16,34 +14,6 @@ class CustomBottomNavigationBar extends StatelessWidget {
 
   final int currentIndex;
   final ValueChanged<int> onTap;
-
-  static const List<_NavItem> _items = <_NavItem>[
-    _NavItem(
-      icon: ImageConstants.navHome,
-      activeIcon: ImageConstants.navHomeFill,
-      label: StringConstants.home,
-    ),
-    _NavItem(
-      icon: ImageConstants.navBooking,
-      activeIcon: ImageConstants.navBookingFill,
-      label: StringConstants.bookings,
-    ),
-    _NavItem(
-      icon: ImageConstants.navMessage,
-      activeIcon: ImageConstants.navMessageFill,
-      label: StringConstants.chat,
-    ),
-    _NavItem(
-      icon: ImageConstants.navHeart,
-      activeIcon: ImageConstants.navHeartFill,
-      label: StringConstants.wishlist,
-    ),
-    _NavItem(
-      icon: ImageConstants.navProfile,
-      activeIcon: ImageConstants.navProfileFill,
-      label: StringConstants.profile,
-    ),
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -57,16 +27,20 @@ class CustomBottomNavigationBar extends StatelessWidget {
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: AppUtils().getPadding(
-            symmetricHorizontal: AppDimens.paddingX12,
-            symmetricVertical: AppDimens.paddingX8,
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppDimens.paddingX12,
+            vertical: AppDimens.paddingX8,
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: <Widget>[
-              for (int index = 0; index < _items.length; index++)
+              for (
+                int index = 0;
+                index < dashboardNavDestinations.length;
+                index++
+              )
                 _NavBarItem(
-                  item: _items[index],
+                  item: dashboardNavDestinations[index],
                   isActive: currentIndex == index,
                   onTap: () => onTap(index),
                 ),
@@ -85,7 +59,7 @@ class _NavBarItem extends StatefulWidget {
     required this.onTap,
   });
 
-  final _NavItem item;
+  final DashboardNavDestination item;
   final bool isActive;
   final VoidCallback onTap;
 
@@ -135,8 +109,8 @@ class _NavBarItemState extends State<_NavBarItem>
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 220),
           curve: Curves.easeInOut,
-          padding: AppUtils().getPadding(
-            symmetricHorizontal: widget.isActive
+          padding: EdgeInsets.symmetric(
+            horizontal: widget.isActive
                 ? AppDimens.paddingX12
                 : AppDimens.paddingX8,
             vertical: AppDimens.paddingX8,
@@ -166,7 +140,7 @@ class _NavBarItemState extends State<_NavBarItem>
                 curve: Curves.easeInOut,
                 child: widget.isActive
                     ? Padding(
-                        padding: AppUtils().getPadding(
+                        padding: const EdgeInsets.only(
                           left: AppDimens.paddingX6,
                         ),
                         child: Text(
@@ -186,19 +160,4 @@ class _NavBarItemState extends State<_NavBarItem>
       ),
     );
   }
-}
-
-class _NavItem {
-  const _NavItem({
-    required this.icon,
-    required this.activeIcon,
-    required this.label,
-  });
-
-  /// Asset path for the inactive (outline) icon.
-  final String icon;
-
-  /// Asset path for the active (filled) icon.
-  final String activeIcon;
-  final String label;
 }

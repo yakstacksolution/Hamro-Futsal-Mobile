@@ -11,6 +11,7 @@ import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/utils/responsive.dart';
 import 'package:hamro_footsall/core/validation/app_validators.dart';
 import 'package:hamro_footsall/features/auth/presentation/authentication_bloc/authentication_bloc.dart';
 import 'package:hamro_footsall/features/auth/presentation/widgets/auth_screen_frame.dart';
@@ -35,6 +36,19 @@ class _AuthScreenState extends State<AuthScreen> {
     'Player',
     'Footsall Vendor',
   ];
+
+  /// Maps the selected account type to the brand panel's audience. Nothing
+  /// selected yet means the generic pitch.
+  static AuthAudience _audienceFor(String? accountType) {
+    switch (accountType) {
+      case 'Player':
+        return AuthAudience.player;
+      case 'Footsall Vendor':
+        return AuthAudience.vendor;
+      default:
+        return AuthAudience.general;
+    }
+  }
 
   static final RegExp _emailRegex = RegExp(
     r'^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$',
@@ -348,10 +362,12 @@ class _AuthScreenState extends State<AuthScreen> {
             final bool isAnimating = _isAnimatingNotifier.value;
 
             return AuthScreenFrame(
+              audience: isLogin
+                  ? AuthAudience.general
+                  : _audienceFor(_selectedAccountTypeNotifier.value),
               isLoading:
                   state.loginStatus == AuthStatus.loading ||
                   state.registrationStatus == AuthStatus.loading,
-              // Google sign-in tracks its own loading state via the footer.
               isRotate: isLogin,
               title: isLogin ? 'Welcome Back' : 'Create Your Account',
               subtitle: isLogin
@@ -589,7 +605,9 @@ class _GoogleLoginSection extends StatelessWidget {
             onTap: enabled ? onTap : null,
             borderRadius: BorderRadius.circular(AppDimens.radiusX8),
             child: Container(
-              height: AppDimens.sizeX44,
+              height: context.isTabletOrWider
+                  ? AppDimens.sizeX52
+                  : AppDimens.sizeX44,
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(AppDimens.radiusX8),
@@ -632,7 +650,9 @@ class _GoogleLoginSection extends StatelessWidget {
               onTap: enabled ? onBiometricTap : null,
               borderRadius: BorderRadius.circular(AppDimens.radiusX8),
               child: Container(
-                height: AppDimens.sizeX44,
+                height: context.isTabletOrWider
+                    ? AppDimens.sizeX52
+                    : AppDimens.sizeX44,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(AppDimens.radiusX8),

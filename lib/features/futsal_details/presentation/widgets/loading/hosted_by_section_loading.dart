@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:shimmer/shimmer.dart';
 
@@ -9,13 +8,13 @@ class HostedBySectionLoading extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: AppUtils().getPadding(
-        top: AppDimens.paddingX12,
+      padding: const EdgeInsets.only(
         left: AppDimens.paddingX20,
+        top: AppDimens.paddingX12,
         right: AppDimens.paddingX20,
       ),
       child: Container(
-        padding: AppUtils().getPadding(all: AppDimens.paddingX16),
+        padding: const EdgeInsets.all(AppDimens.paddingX16),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(AppDimens.radiusX10),
@@ -90,7 +89,7 @@ class _MetricTileSkeleton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Expanded(
       child: Container(
-        padding: AppUtils().getPadding(
+        padding: const EdgeInsets.symmetric(
           horizontal: AppDimens.paddingX10,
           vertical: AppDimens.paddingX10,
         ),

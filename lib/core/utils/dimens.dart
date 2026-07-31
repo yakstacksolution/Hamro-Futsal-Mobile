@@ -134,9 +134,11 @@ class AppDimens {
   static const double sizeX70 = 70;
   static const double sizeX72 = 72;
   static const double sizeX75 = 75;
+  static const double sizeX76 = 76;
   static const double sizeX78 = 78;
 
   static const double sizeX80 = 80;
+  static const double sizeX84 = 84;
   static const double sizeX90 = 90;
   static const double sizeX92 = 92;
   static const double sizeX94 = 94;
@@ -180,4 +182,71 @@ class AppDimens {
   static const double sizeX375 = 375;
   static const double sizeX380 = 380;
   static const double sizeX390 = 390;
+
+  /// Max width of the auth card per breakpoint. The mobile value preserves the
+  /// original phone layout; tablet gets a roomier column, and on the two-pane
+  /// desktop layout the card is narrower again because it shares the width
+  /// with the brand panel.
+  static const double authCardMaxWidth = 520;
+  static const double authCardMaxWidthTablet = 600;
+  static const double authCardMaxWidthDesktop = 560;
+
+  /// Keeps the OTP digit boxes grouped instead of spreading across a wide card.
+  static const double otpRowMaxWidth = 360;
+
+  /// Caps the brand panel's text measure so lines stay readable and the block
+  /// reads as one group rather than stretching across the whole pane.
+  static const double authBrandPanelContentMaxWidth = 380;
+
+  /// Dashboard side navigation: icon-only rail on tablet, labelled sidebar on
+  /// desktop. Replaces the bottom bar at those widths.
+  static const double dashboardRailWidth = 72;
+  static const double dashboardRailExtendedWidth = 240;
+
+  /// Stops the dashboard content from stretching indefinitely on very wide
+  /// monitors (which would otherwise yield many thin card columns).
+  static const double dashboardContentMaxWidth = 1400;
+
+  /// Forms stay a single readable column at every width — fields are never
+  /// paired side by side — so they need a ceiling and a sensible action width.
+  static const double formContentMaxWidth = 640;
+  static const double formActionMaxWidth = 260;
+
+  /// Profile details: the summary card becomes a side column on desktop.
+  static const double profileSummaryColumnWidth = 320;
+
+  /// Filters & sorting: one capped column on tablet, two panes on desktop so
+  /// the sections do not become one very long scroll.
+  static const double filterColumnMaxWidth = 720;
+  static const double filterDesktopMaxWidth = 1080;
+  static const double courtTypeCardMinWidth = 150;
+
+  /// Slot selection: two panes on desktop (choose when / pick a court), one
+  /// capped column on tablet. Court cards go two-up once each still gets
+  /// [courtSlotCardMinWidth].
+  static const double slotsSelectionMaxWidth = 1200;
+  static const double slotsSelectionColumnMaxWidth = 720;
+  static const double courtSlotCardMinWidth = 320;
+
+  /// Finance & payouts: shortcuts move into a side column on desktop, and the
+  /// detail lists (statement, settlements, breakdown) stay readable rather
+  /// than stretching a one-line row across the window.
+  static const double accountShortcutsColumnWidth = 340;
+  static const double accountListMaxWidth = 900;
+
+  /// Smallest comfortable KPI tile; the snapshot grid derives its column count
+  /// from this rather than being fixed at two.
+  static const double bookingKpiMinTileWidth = 190;
+
+  /// Venue details page: single-column cap on tablet, sticky booking card
+  /// width on desktop, and the hero gallery's ceiling once it becomes 16:9.
+  static const double venueContentMaxWidth = 800;
+  static const double venueBookingPanelWidth = 360;
+  static const double venueHeroMaxHeight = 460;
+  static const double venueThumbnailSize = 72;
+
+  /// Row height for a venue card in the grid layout. Comfortably exceeds the
+  /// card's text block (~150 with the wide card's larger padding and type), so
+  /// the flexible cover always has room and the cell can never overflow.
+  static const double courtCardGridExtent = 340;
 }

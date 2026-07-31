@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:hamro_footsall/core/helper/recent_search_store.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
-import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/utils/string_constants.dart';
 
@@ -258,8 +257,8 @@ class _ExpandableFocusSearchBarState extends State<ExpandableFocusSearchBar>
               builder: (context, recents, _) {
                 if (recents.isEmpty) return const SizedBox.shrink();
                 return Container(
-                  margin: AppUtils().getMargin(top: AppDimens.sizeX8),
-                  padding: AppUtils().getPadding(all: AppDimens.paddingX16),
+                  margin: const EdgeInsets.only(top: AppDimens.sizeX8),
+                  padding: const EdgeInsets.all(AppDimens.paddingX16),
                   decoration: BoxDecoration(
                     color: LightColor.cardColor,
                     borderRadius: BorderRadius.circular(AppDimens.radiusX14),
@@ -313,7 +312,7 @@ class _ExpandableFocusSearchBarState extends State<ExpandableFocusSearchBar>
     return GestureDetector(
       onTap: () => _submit(text),
       child: Padding(
-        padding: AppUtils().getPadding(vertical: AppDimens.sizeX10),
+        padding: const EdgeInsets.symmetric(vertical: AppDimens.sizeX10),
 
         child: Row(
           children: [
@@ -362,7 +361,7 @@ class _ExpandableFocusSearchBarState extends State<ExpandableFocusSearchBar>
       child: Container(
         width: AppDimens.sizeX36,
         height: AppDimens.sizeX36,
-        margin: AppUtils().getMargin(left: AppDimens.sizeX2),
+        margin: const EdgeInsets.only(left: AppDimens.sizeX2),
         decoration: BoxDecoration(
           color: LightColor.secondaryColor,
           borderRadius: BorderRadius.circular(AppDimens.radiusX6),

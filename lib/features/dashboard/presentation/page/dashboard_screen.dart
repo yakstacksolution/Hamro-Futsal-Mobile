@@ -15,7 +15,9 @@ import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/utils/responsive.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/widgets/bottom_navigation_bar.dart';
+import 'package:hamro_footsall/features/dashboard/presentation/widgets/dashboard_side_nav.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/widgets/category_filter_widget.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/widgets/search_bar_widget.dart';
 import 'package:hamro_footsall/features/public/presentation/models/venue_filter.dart';
@@ -142,7 +144,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       onTap: onTap ?? () {},
       borderRadius: BorderRadius.circular(AppDimens.radiusX8),
       child: Container(
-        padding: AppUtils().getPadding(all: AppDimens.paddingX10),
+        padding: const EdgeInsets.all(AppDimens.paddingX10),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(AppDimens.radiusX8),
           color: LightColor.whiteColor,
@@ -163,9 +165,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
         : 'there';
 
     return Padding(
-      padding: appUtils.getPadding(
-        symmetricHorizontal: AppDimens.paddingX20,
-        symmetricVertical: AppDimens.paddingX10,
+      padding: EdgeInsets.symmetric(
+        horizontal: context.responsive<double>(
+          mobile: AppDimens.paddingX20,
+          tablet: AppDimens.paddingX32,
+        ),
+        vertical: AppDimens.paddingX10,
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -251,7 +256,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           }
         },
         child: SafeArea(
-          bottom: false,
+          // With no bottom bar on wide layouts, the bottom inset must be
+          // respected instead of being covered by the bar.
+          bottom: context.isTabletOrWider,
           child: AnimatedBuilder(
             animation: Listenable.merge(<Listenable>[
               _selectedNavIndexNotifier,
@@ -260,6 +267,38 @@ class _DashboardScreenState extends State<DashboardScreen> {
             builder: (BuildContext context, Widget? child) {
               final int selectedNavIndex = _selectedNavIndexNotifier.value;
 
+              // Tablet/desktop: side navigation beside a content pane that
+              // fills the available height naturally. No fixed-height slab and
+              // no bottom bar.
+              if (context.isTabletOrWider) {
+                return Row(
+                  children: <Widget>[
+                    DashboardSideNav(
+                      currentIndex: selectedNavIndex,
+                      extended: context.isDesktop,
+                      onTap: _onBottomIconPressed,
+                    ),
+                    Expanded(
+                      child: DecoratedBox(
+                        decoration: _shellGradient,
+                        // Stop stretching on very wide monitors, which would
+                        // otherwise give many thin card columns. Applied here
+                        // so the header and the feed stay aligned.
+                        child: Center(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(
+                              maxWidth: AppDimens.dashboardContentMaxWidth,
+                            ),
+                            child: _buildContent(selectedNavIndex),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              }
+
+              // Phone: unchanged.
               return Stack(
                 fit: StackFit.expand,
                 children: <Widget>[
@@ -269,60 +308,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         0,
                         MediaQuery.of(context).size.height - AppDimens.sizeX24,
                       ),
-                      padding: AppUtils().getPadding(
+                      padding: const EdgeInsets.only(
                         bottom: AppDimens.paddingX10,
                       ),
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: <Color>[
-                            LightColor.background,
-                            LightColor.cardColor,
-                          ],
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                        ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 280),
-                            switchInCurve: Curves.easeOutCubic,
-                            switchOutCurve: Curves.easeInCubic,
-                            transitionBuilder:
-                                (Widget child, Animation<double> anim) {
-                                  return FadeTransition(
-                                    opacity: anim,
-                                    child: SizeTransition(
-                                      sizeFactor: anim,
-                                      alignment: Alignment.topCenter,
-                                      child: child,
-                                    ),
-                                  );
-                                },
-                            child: selectedNavIndex == 0
-                                ? _homeHeader()
-                                : const SizedBox.shrink(
-                                    key: ValueKey<String>('no-home-header'),
-                                  ),
-                          ),
-                          Expanded(
-                            child: IndexedStack(
-                              index: selectedNavIndex,
-                              sizing: StackFit.expand,
-                              children: <Widget>[
-                                FootsallHomePage(
-                                  filter: _venueFilterNotifier.value,
-                                ),
-                                const BookingsPage(),
-                                MessagesPage(),
-                                const WishlistPage(),
-                                ProfilePage(),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
+                      decoration: _shellGradient,
+                      child: _buildContent(selectedNavIndex),
                     ),
                   ),
                   Positioned(
@@ -343,6 +333,54 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  static const BoxDecoration _shellGradient = BoxDecoration(
+    gradient: LinearGradient(
+      colors: <Color>[LightColor.background, LightColor.cardColor],
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+    ),
+  );
+
+  /// Header (home tab only) plus the tab stack. Shared by every breakpoint.
+  Widget _buildContent(int selectedNavIndex) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 280),
+          switchInCurve: Curves.easeOutCubic,
+          switchOutCurve: Curves.easeInCubic,
+          transitionBuilder: (Widget child, Animation<double> anim) {
+            return FadeTransition(
+              opacity: anim,
+              child: SizeTransition(
+                sizeFactor: anim,
+                alignment: Alignment.topCenter,
+                child: child,
+              ),
+            );
+          },
+          child: selectedNavIndex == 0
+              ? _homeHeader()
+              : const SizedBox.shrink(key: ValueKey<String>('no-home-header')),
+        ),
+        Expanded(
+          child: IndexedStack(
+            index: selectedNavIndex,
+            sizing: StackFit.expand,
+            children: <Widget>[
+              FootsallHomePage(filter: _venueFilterNotifier.value),
+              const BookingsPage(),
+              MessagesPage(),
+              const WishlistPage(),
+              ProfilePage(),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _homeHeader() {
     return Column(
       key: const ValueKey<String>('home-header'),
@@ -350,9 +388,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
       children: <Widget>[
         _appBar(),
         Padding(
-          padding: AppUtils().getPadding(
-            left: AppDimens.paddingX20,
-            right: AppDimens.paddingX20,
+          padding: EdgeInsets.symmetric(
+            horizontal: context.responsive<double>(
+              mobile: AppDimens.paddingX20,
+              tablet: AppDimens.paddingX32,
+            ),
           ),
           child: Column(
             children: [

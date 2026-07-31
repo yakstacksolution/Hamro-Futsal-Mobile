@@ -2,7 +2,6 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
-import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 
 class VenueStatusWidget extends StatelessWidget {
@@ -16,7 +15,7 @@ class VenueStatusWidget extends StatelessWidget {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
         child: Container(
-          padding: AppUtils().getPadding(
+          padding: const EdgeInsets.symmetric(
             horizontal: AppDimens.paddingX10,
             vertical: AppDimens.paddingX4,
           ),

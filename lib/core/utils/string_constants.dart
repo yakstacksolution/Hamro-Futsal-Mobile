@@ -1191,4 +1191,37 @@ final class StringConstants {
       'Your vendor upgrade request has been sent to the super admin.';
   static const String vendorRequestAlreadySubmitted =
       'You have already requested to become a vendor.';
+
+  // Auth brand panel (tablet landscape / desktop layouts only).
+  // Generic copy, used on sign-in, forgot-password and OTP where the audience
+  // is not yet known.
+  static const String authBrandTagline =
+      'Book your court. Gather your squad. Play.';
+  static const String authBrandHighlightBook = 'Book nearby courts';
+  static const String authBrandHighlightManage = 'Manage your bookings';
+  static const String authBrandHighlightPlay = 'Challenge opponents';
+
+  // Shown while registering once "Player" is chosen.
+  static const String authPlayerHeadline = 'Play more, arrange less';
+  static const String authPlayerTagline =
+      'Find a court, rally your squad and get on the pitch — without a single '
+      'phone call.';
+  static const String authPlayerHighlightDiscover =
+      'Browse nearby futsals with live prices and open slots';
+  static const String authPlayerHighlightBook =
+      'Book and pay in a few taps, then manage it all in one place';
+  static const String authPlayerHighlightCompete =
+      'Challenge other teams and keep track of every match';
+
+  // Shown while registering once "Footsall Vendor" is chosen.
+  static const String authVendorHeadline = 'Fill your courts, effortlessly';
+  static const String authVendorTagline =
+      'List your futsal, take bookings around the clock and run the whole '
+      'operation from one dashboard.';
+  static const String authVendorHighlightList =
+      'List your courts with photos, pricing and opening hours';
+  static const String authVendorHighlightAutomate =
+      'Accept bookings and payments automatically, day or night';
+  static const String authVendorHighlightInsights =
+      'Track earnings, occupancy and your best customers at a glance';
 }

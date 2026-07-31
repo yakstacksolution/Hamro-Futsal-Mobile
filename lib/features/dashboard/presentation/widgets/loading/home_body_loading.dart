@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/utils/responsive.dart';
+import 'package:hamro_footsall/features/dashboard/presentation/widgets/dashboard_layout.dart';
 import 'package:shimmer/shimmer.dart';
 
 class HomeBodyLoading extends StatelessWidget {
@@ -11,42 +12,76 @@ class HomeBodyLoading extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: AppUtils().getPadding(
-        left: AppDimens.paddingX20,
-        right: AppDimens.paddingX20,
-      ),
-      child: Shimmer.fromColors(
-        baseColor: Colors.grey.shade300,
-        highlightColor: Colors.grey.shade100,
-        child: ListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          padding: const EdgeInsets.only(top: AppDimens.sizeX22),
-          itemCount: itemCount,
-          itemBuilder: (BuildContext context, int index) {
-            return Padding(
-              padding: AppUtils().getPadding(bottom: AppDimens.sizeX20),
-              child: const _CourtCardSkeleton(),
-            );
-          },
+      padding: EdgeInsets.symmetric(
+        horizontal: context.responsive<double>(
+          mobile: AppDimens.paddingX20,
+          tablet: AppDimens.paddingX32,
         ),
+      ),
+      child: LayoutBuilder(
+        builder: (BuildContext context, BoxConstraints constraints) {
+          // Same helper as the real feed, so the two always agree.
+          final int columns = venueGridColumns(context, constraints.maxWidth);
+          return Shimmer.fromColors(
+            baseColor: Colors.grey.shade300,
+            highlightColor: Colors.grey.shade100,
+            child: columns == 1
+                ? ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    padding: const EdgeInsets.only(top: AppDimens.sizeX22),
+                    itemCount: itemCount,
+                    itemBuilder: (BuildContext context, int index) {
+                      return const Padding(
+                        padding: EdgeInsets.only(bottom: AppDimens.sizeX20),
+                        child: _CourtCardSkeleton(),
+                      );
+                    },
+                  )
+                : GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    padding: const EdgeInsets.only(top: AppDimens.sizeX22),
+                    itemCount: itemCount * columns,
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: columns,
+                      crossAxisSpacing: AppDimens.sizeX20,
+                      mainAxisSpacing: AppDimens.sizeX20,
+                      mainAxisExtent: AppDimens.courtCardGridExtent,
+                    ),
+                    itemBuilder: (BuildContext context, int index) =>
+                        const _CourtCardSkeleton(flexibleCover: true),
+                  ),
+          );
+        },
       ),
     );
   }
 }
 
 class _CourtCardSkeleton extends StatelessWidget {
-  const _CourtCardSkeleton();
+  const _CourtCardSkeleton({this.flexibleCover = false});
+
+  /// Matches `CourtCard.flexibleCover`: fills the fixed grid cell height.
+  final bool flexibleCover;
 
   @override
   Widget build(BuildContext context) {
+    const Widget cover = _Block(
+      height: double.infinity,
+      radius: AppDimens.radiusX18,
+    );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         // Cover image.
-        _Block(height: AppDimens.sizeX200, radius: AppDimens.radiusX18),
+        if (flexibleCover)
+          const Expanded(child: cover)
+        else
+          _Block(height: AppDimens.sizeX200, radius: AppDimens.radiusX18),
         Padding(
-          padding: AppUtils().getPadding(all: AppDimens.sizeX14),
+          padding: const EdgeInsets.all(AppDimens.sizeX14),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[

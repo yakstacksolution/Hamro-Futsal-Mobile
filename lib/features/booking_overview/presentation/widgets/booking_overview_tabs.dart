@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/utils/responsive.dart';
 import 'package:hamro_footsall/features/booking_overview/presentation/models/booking_analytics.dart';
 import 'package:hamro_footsall/features/booking_overview/presentation/widgets/booking_overview_chart_widgets.dart';
 import 'package:hamro_footsall/features/booking_overview/presentation/widgets/booking_overview_common.dart';
@@ -18,11 +18,7 @@ class BookingOverviewTab extends StatelessWidget {
     return ListView(
       key: const PageStorageKey('booking_overview'),
       physics: const BouncingScrollPhysics(),
-      padding: AppUtils().getPadding(
-        symmetricHorizontal: AppDimens.paddingX20,
-        top: AppDimens.paddingX4,
-        bottom: AppDimens.paddingX20,
-      ),
+      padding: _tabPadding(context),
       children: [
         BookingSectionLabel('Net earnings'),
         BookingHeroCard(analytics: analytics),
@@ -47,18 +43,14 @@ class BookingAnalyticsTab extends StatelessWidget {
     return ListView(
       key: const PageStorageKey('booking_analytics'),
       physics: const BouncingScrollPhysics(),
-      padding: AppUtils().getPadding(
-        symmetricHorizontal: AppDimens.paddingX20,
-        top: AppDimens.paddingX4,
-        bottom: AppDimens.paddingX20,
+      padding: _tabPadding(context),
+      children: _pairSections(
+        context,
+        firstLabel: 'Revenue trend',
+        first: BookingTrendCard(analytics: analytics),
+        secondLabel: 'Booking statuses',
+        second: BookingStatusCard(analytics: analytics),
       ),
-      children: [
-        BookingSectionLabel('Revenue trend'),
-        BookingTrendCard(analytics: analytics),
-        const SizedBox(height: AppDimens.paddingX18),
-        BookingSectionLabel('Booking statuses'),
-        BookingStatusCard(analytics: analytics),
-      ],
     );
   }
 }
@@ -74,21 +66,79 @@ class BookingRankingsTab extends StatelessWidget {
     return ListView(
       key: const PageStorageKey('booking_rankings'),
       physics: const BouncingScrollPhysics(),
-      padding: AppUtils().getPadding(
-        symmetricHorizontal: AppDimens.paddingX20,
-        top: AppDimens.paddingX4,
-        bottom: AppDimens.paddingX20,
-      ),
-      children: [
+      padding: _tabPadding(context),
+      children: <Widget>[
         BookingSectionLabel('Performance by venue'),
         BookingVenuePerformanceCard(analytics: analytics),
         const SizedBox(height: AppDimens.paddingX18),
-        BookingSectionLabel('Top courts'),
-        BookingTopCourtsCard(analytics: analytics),
-        const SizedBox(height: AppDimens.paddingX18),
-        BookingSectionLabel('Top customers'),
-        BookingTopCustomersCard(analytics: analytics),
+        // The two leaderboards are independent lists, so they pair well.
+        ..._pairSections(
+          context,
+          firstLabel: 'Top courts',
+          first: BookingTopCourtsCard(analytics: analytics),
+          secondLabel: 'Top customers',
+          second: BookingTopCustomersCard(analytics: analytics),
+        ),
       ],
     );
   }
+}
+
+/// Horizontal inset for every tab body; wider once there is room for it.
+EdgeInsets _tabPadding(BuildContext context) {
+  final double horizontal = context.responsive<double>(
+    mobile: AppDimens.paddingX20,
+    tablet: AppDimens.paddingX32,
+  );
+  return EdgeInsets.only(
+    left: horizontal,
+    right: horizontal,
+    top: AppDimens.paddingX4,
+    bottom: AppDimens.paddingX20,
+  );
+}
+
+/// Places two independent, self-contained cards side by side once the pane is
+/// wide enough, and stacks them (labels above each) otherwise.
+///
+/// Stacking is the phone layout and must stay byte-identical, so the mobile
+/// branch returns exactly the widgets the caller would have listed inline.
+List<Widget> _pairSections(
+  BuildContext context, {
+  required String firstLabel,
+  required Widget first,
+  required String secondLabel,
+  required Widget second,
+}) {
+  if (!context.isDesktop) {
+    return <Widget>[
+      BookingSectionLabel(firstLabel),
+      first,
+      const SizedBox(height: AppDimens.paddingX18),
+      BookingSectionLabel(secondLabel),
+      second,
+    ];
+  }
+  return <Widget>[
+    IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[BookingSectionLabel(firstLabel), first],
+            ),
+          ),
+          const SizedBox(width: AppDimens.paddingX18),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[BookingSectionLabel(secondLabel), second],
+            ),
+          ),
+        ],
+      ),
+    ),
+  ];
 }

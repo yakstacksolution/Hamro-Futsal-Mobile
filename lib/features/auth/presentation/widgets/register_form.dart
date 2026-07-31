@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
-import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/widgets/custom_checkbox.dart';
 import 'package:hamro_footsall/core/widgets/custom_dropdown_field.dart';
@@ -191,9 +190,9 @@ class RegisterForm extends StatelessWidget {
             },
             builder: (FormFieldState<bool> field) {
               return Container(
-                padding: AppUtils().getPadding(
-                  symmetricHorizontal: AppDimens.paddingX8,
-                  symmetricVertical: AppDimens.paddingX6,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppDimens.paddingX8,
+                  vertical: AppDimens.paddingX6,
                 ),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(AppDimens.radiusX8),
@@ -231,8 +230,8 @@ class RegisterForm extends StatelessWidget {
                     ),
                     if (field.hasError)
                       Padding(
-                        padding: AppUtils().getPadding(
-                          symmetricHorizontal: AppDimens.paddingX12,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppDimens.paddingX12,
                         ),
                         child: Text(
                           field.errorText!,

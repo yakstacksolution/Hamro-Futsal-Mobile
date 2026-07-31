@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_text.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
-import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/custom_image_view.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/utils/string_constants.dart';
@@ -36,13 +35,13 @@ class CourtHostedBySection extends StatelessWidget {
     final textTheme = FutsalTheme.getTextTheme(context);
 
     return Padding(
-      padding: AppUtils().getPadding(
-        top: AppDimens.paddingX12,
+      padding: const EdgeInsets.only(
         left: AppDimens.paddingX16,
+        top: AppDimens.paddingX12,
         right: AppDimens.paddingX16,
       ),
       child: Container(
-        padding: AppUtils().getPadding(all: AppDimens.paddingX16),
+        padding: const EdgeInsets.all(AppDimens.paddingX16),
         decoration: BoxDecoration(
           gradient: const LinearGradient(
             begin: Alignment.topLeft,
@@ -92,9 +91,7 @@ class CourtHostedBySection extends StatelessWidget {
                           ),
                           const SizedBox(width: AppDimens.sizeX6),
                           Container(
-                            padding: AppUtils().getPadding(
-                              all: AppDimens.paddingX4,
-                            ),
+                            padding: const EdgeInsets.all(AppDimens.paddingX4),
                             decoration: const BoxDecoration(
                               color: LightColor.secondaryColor,
                               shape: BoxShape.circle,
@@ -244,7 +241,7 @@ class _HostMetricTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Expanded(
       child: Container(
-        padding: AppUtils().getPadding(
+        padding: const EdgeInsets.symmetric(
           horizontal: AppDimens.paddingX10,
           vertical: AppDimens.paddingX10,
         ),

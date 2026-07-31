@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
-import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/utils/responsive.dart';
 import 'package:hamro_footsall/core/widgets/custom_app_bar.dart';
 import 'package:hamro_footsall/features/booking_overview/data/repositories/booking_overview_repository_impl.dart';
 import 'package:hamro_footsall/features/booking_overview/data/model/booking_overview_model.dart';
@@ -165,13 +165,22 @@ class _BookingOverviewViewState extends State<_BookingOverviewView>
       range: range,
     );
 
+    // Full width on every size: this is a dashboard of cards and charts, and
+    // capping it left large empty margins rather than denser information.
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // Shared filters — pinned above the tabs so they apply everywhere.
         Padding(
-          padding: AppUtils().getPadding(
-            symmetricHorizontal: AppDimens.paddingX20,
+          padding: EdgeInsets.only(
+            left: context.responsive<double>(
+              mobile: AppDimens.paddingX20,
+              tablet: AppDimens.paddingX32,
+            ),
+            right: context.responsive<double>(
+              mobile: AppDimens.paddingX20,
+              tablet: AppDimens.paddingX32,
+            ),
             top: AppDimens.paddingX4,
           ),
           child: Column(

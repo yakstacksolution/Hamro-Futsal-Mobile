@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:shimmer/shimmer.dart';
 
@@ -29,7 +28,7 @@ class TabSelectionLoading extends StatelessWidget {
           itemBuilder: (BuildContext context, int i) {
             return Container(
               width: _chipWidths[i],
-              margin: AppUtils().getMargin(right: AppDimens.marginX10),
+              margin: const EdgeInsets.only(right: AppDimens.marginX10),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(AppDimens.radiusX8),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/utils/responsive.dart';
 import 'package:hamro_footsall/features/booking_overview/presentation/models/booking_analytics.dart';
 import 'package:hamro_footsall/features/booking_overview/presentation/utils/booking_ui_utils.dart';
 import 'package:hamro_footsall/features/booking_overview/presentation/widgets/booking_overview_common.dart';
@@ -198,7 +199,21 @@ class BookingKpiGrid extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         const spacing = AppDimens.paddingX10;
-        final w = (constraints.maxWidth - spacing) / 2;
+        final int fits = columnsFor(
+          availableWidth: constraints.maxWidth,
+          minItemWidth: AppDimens.bookingKpiMinTileWidth,
+          spacing: spacing,
+          maxColumns: items.length,
+        );
+        // Snap down to a divisor of the tile count so every row is full --
+        // otherwise six KPIs at five columns strand one tile on its own row.
+        // Two is the floor, matching the original phone layout.
+        int columns = 2;
+        for (int c = 2; c <= fits; c++) {
+          if (items.length % c == 0) columns = c;
+        }
+        final double w =
+            (constraints.maxWidth - spacing * (columns - 1)) / columns;
         return Wrap(
           spacing: spacing,
           runSpacing: spacing,

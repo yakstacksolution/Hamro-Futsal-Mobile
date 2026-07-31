@@ -6,7 +6,6 @@ import 'package:latlong2/latlong.dart';
 import 'package:hamro_footsall/core/routers/app_router_params.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
-import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/utils/string_constants.dart';
 
@@ -58,13 +57,13 @@ class CourtLocationMapSection extends StatelessWidget {
     final String addressText = address?.trim() ?? '';
 
     return Padding(
-      padding: AppUtils().getPadding(
-        top: AppDimens.paddingX12,
+      padding: const EdgeInsets.only(
         left: AppDimens.paddingX16,
+        top: AppDimens.paddingX12,
         right: AppDimens.paddingX16,
       ),
       child: Container(
-        padding: AppUtils().getPadding(all: AppDimens.paddingX16),
+        padding: const EdgeInsets.all(AppDimens.paddingX16),
         decoration: BoxDecoration(
           gradient: const LinearGradient(
             begin: Alignment.topLeft,
@@ -85,7 +84,7 @@ class CourtLocationMapSection extends StatelessWidget {
           children: <Widget>[
             Container(
               width: double.infinity,
-              padding: AppUtils().getPadding(all: AppDimens.paddingX12),
+              padding: const EdgeInsets.all(AppDimens.paddingX12),
               decoration: BoxDecoration(
                 color: LightColor.secondaryColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(AppDimens.radiusX8),
@@ -122,7 +121,7 @@ class CourtLocationMapSection extends StatelessWidget {
             if (addressText.isNotEmpty) ...[
               const SizedBox(height: AppDimens.sizeX12),
               Padding(
-                padding: AppUtils().getPadding(left: AppDimens.paddingX6),
+                padding: const EdgeInsets.only(left: AppDimens.paddingX6),
                 child: Text(
                   addressText,
                   style: textTheme.bodyTextSmall?.copyWith(
@@ -187,7 +186,7 @@ class CourtLocationMapSection extends StatelessWidget {
                       left: AppDimens.sizeX6,
                       bottom: AppDimens.sizeX6,
                       child: Container(
-                        padding: AppUtils().getPadding(
+                        padding: const EdgeInsets.symmetric(
                           horizontal: AppDimens.paddingX6,
                           vertical: AppDimens.paddingX2,
                         ),
@@ -220,7 +219,7 @@ class CourtLocationMapSection extends StatelessWidget {
                           ),
                           onTap: () => _openFullMap(context),
                           child: Padding(
-                            padding: AppUtils().getPadding(
+                            padding: const EdgeInsets.symmetric(
                               horizontal: AppDimens.paddingX10,
                               vertical: AppDimens.paddingX8,
                             ),

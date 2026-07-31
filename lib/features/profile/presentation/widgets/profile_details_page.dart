@@ -5,6 +5,7 @@ import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/custom_image_view.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/utils/responsive.dart';
 import 'package:hamro_footsall/core/widgets/custom_app_bar.dart';
 import 'package:hamro_footsall/core/widgets/custom_button.dart';
 import 'package:hamro_footsall/core/widgets/custom_date_picker.dart';
@@ -229,155 +230,7 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
                 GestureDetector(
                   onTap: () => FocusScope.of(context).unfocus(),
                   behavior: HitTestBehavior.opaque,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: SingleChildScrollView(
-                          physics: const BouncingScrollPhysics(),
-                          padding: AppUtils().getPadding(
-                            symmetricHorizontal: AppDimens.paddingX20,
-                            top: AppDimens.paddingX16,
-                            bottom: AppDimens.paddingX32,
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _ProfileSummaryCard(
-                                name: _resolvedFullName(widget.user),
-                                address: _resolvedAddress(widget.user),
-                                avatarUrl: _avatarUrl ?? '',
-                                onChangeImageTap: _changeProfilePhoto,
-                              ),
-                              const SizedBox(height: AppDimens.paddingX20),
-                              _sectionLabel(context, 'Personal information'),
-                              const SizedBox(height: AppDimens.paddingX10),
-                              _SectionCard(
-                                children: [
-                                  CustomTextField(
-                                    controller: _fullnameController,
-                                    focusNode: _fullnameFocus,
-                                    keyboardType: TextInputType.text,
-                                    textCapitalization:
-                                        TextCapitalization.words,
-                                    textInputAction: TextInputAction.next,
-                                    onSubmitted: (_) => _pickDateOfBirth(),
-                                    labelText:
-                                        StringConstants.fullNameSentenceCase,
-                                    hintText: StringConstants.enterYourFullName,
-                                    icon: Icons.person_outline_rounded,
-                                  ),
-                                  const SizedBox(height: AppDimens.paddingX16),
-                                  CustomTextField(
-                                    controller: _dobController,
-                                    focusNode: _dobFocus,
-                                    keyboardType: TextInputType.datetime,
-                                    labelText: StringConstants.dateOfBirth,
-                                    hintText: StringConstants.selectDateOfBirth,
-                                    icon: Icons.cake_outlined,
-                                    readOnly: true,
-                                    onTap: _pickDateOfBirth,
-                                    suffixIcon: GestureDetector(
-                                      behavior: HitTestBehavior.opaque,
-                                      onTap: _pickDateOfBirth,
-                                      child: const Padding(
-                                        padding: EdgeInsets.symmetric(
-                                          horizontal: 12,
-                                        ),
-                                        child: Icon(
-                                          Icons.calendar_month_outlined,
-                                          color: LightColor.secondaryTextColor,
-                                          size: AppDimens.sizeX18,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: AppDimens.paddingX16),
-                                  CustomDropdownField<String>(
-                                    key: const Key(
-                                      'personal-details-gender-field',
-                                    ),
-                                    labelText: StringConstants.gender,
-                                    icon: Icons.wc_rounded,
-                                    hintText: StringConstants.selectGender,
-                                    initialValue: _selectedGender,
-                                    focusNode: _genderFocus,
-                                    items: _genderOptions
-                                        .map(
-                                          (option) => DropdownMenuItem<String>(
-                                            value: option,
-                                            child: Text(option),
-                                          ),
-                                        )
-                                        .toList(),
-                                    onChanged: (value) {
-                                      if (value == null) return;
-                                      setState(() => _selectedGender = value);
-                                    },
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: AppDimens.paddingX20),
-                              _sectionLabel(context, 'Contact information'),
-                              const SizedBox(height: AppDimens.paddingX10),
-                              _SectionCard(
-                                children: [
-                                  CustomTextField(
-                                    controller: _emailController,
-                                    focusNode: _emailFocus,
-                                    keyboardType: TextInputType.emailAddress,
-                                    textInputAction: TextInputAction.next,
-                                    onSubmitted: (_) => FocusScope.of(
-                                      context,
-                                    ).requestFocus(_phoneFocus),
-                                    labelText: StringConstants
-                                        .emailAddressSentenceCase,
-                                    hintText: StringConstants.nameExampleCom,
-                                    icon: Icons.email_outlined,
-                                    readOnly: true,
-                                  ),
-                                  const SizedBox(height: AppDimens.paddingX16),
-                                  CustomTextField(
-                                    controller: _phoneController,
-                                    focusNode: _phoneFocus,
-                                    keyboardType: TextInputType.phone,
-                                    textInputAction: TextInputAction.next,
-                                    onSubmitted: (_) => FocusScope.of(
-                                      context,
-                                    ).requestFocus(_addressFocus),
-                                    labelText:
-                                        StringConstants.phoneNumberSentenceCase,
-                                    hintText: '+977 #########',
-                                    icon: Icons.phone_outlined,
-                                  ),
-                                  const SizedBox(height: AppDimens.paddingX16),
-                                  CustomTextField(
-                                    controller: _addressController,
-                                    focusNode: _addressFocus,
-                                    keyboardType: TextInputType.streetAddress,
-                                    textCapitalization:
-                                        TextCapitalization.words,
-                                    textInputAction: TextInputAction.done,
-                                    onSubmitted: (_) =>
-                                        FocusScope.of(context).unfocus(),
-                                    labelText: StringConstants.address,
-                                    hintText: StringConstants.enterYourAddress,
-                                    icon: Icons.location_on_outlined,
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: AppDimens.paddingX28),
-                              CustomButton(
-                                text: StringConstants.saveChanges,
-                                isLoading: isUpdating,
-                                onPressed: _onSavePressed,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                  child: _buildBody(context, isUpdating: isUpdating),
                 ),
                 if (isFetching)
                   Positioned.fill(
@@ -394,6 +247,228 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
         ),
       ),
     );
+  }
+
+  /// Summary banner (phone/tablet) or side column (desktop), plus the form.
+  Widget _buildBody(BuildContext context, {required bool isUpdating}) {
+    final Widget summary = _ProfileSummaryCard(
+      name: _resolvedFullName(widget.user),
+      address: _resolvedAddress(widget.user),
+      avatarUrl: _avatarUrl ?? '',
+      onChangeImageTap: _changeProfilePhoto,
+    );
+
+    final EdgeInsets padding = EdgeInsets.only(
+      left: context.responsive<double>(
+        mobile: AppDimens.paddingX20,
+        tablet: AppDimens.paddingX32,
+      ),
+      right: context.responsive<double>(
+        mobile: AppDimens.paddingX20,
+        tablet: AppDimens.paddingX32,
+      ),
+      top: AppDimens.paddingX16,
+      bottom: AppDimens.paddingX32,
+    );
+
+    if (context.isDesktop) {
+      // Summary beside the form rather than stacked above it. The form itself
+      // stays one field per row at every width.
+      return SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        padding: padding,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(
+              maxWidth:
+                  AppDimens.profileSummaryColumnWidth +
+                  AppDimens.formContentMaxWidth +
+                  AppDimens.paddingX32,
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                SizedBox(
+                  width: AppDimens.profileSummaryColumnWidth,
+                  child: summary,
+                ),
+                const SizedBox(width: AppDimens.paddingX32),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: _formSections(context, isUpdating: isUpdating),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            padding: padding,
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(
+                  maxWidth: AppDimens.formContentMaxWidth,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    summary,
+                    const SizedBox(height: AppDimens.paddingX20),
+                    ..._formSections(context, isUpdating: isUpdating),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// The two section cards plus the save action. Identical at every width —
+  /// one field per row, never paired.
+  List<Widget> _formSections(BuildContext context, {required bool isUpdating}) {
+    return <Widget>[
+      _sectionLabel(context, 'Personal information'),
+      const SizedBox(height: AppDimens.paddingX10),
+      _SectionCard(
+        children: [
+          CustomTextField(
+            controller: _fullnameController,
+            focusNode: _fullnameFocus,
+            keyboardType: TextInputType.text,
+            textCapitalization: TextCapitalization.words,
+            textInputAction: TextInputAction.next,
+            onSubmitted: (_) => _pickDateOfBirth(),
+            labelText: StringConstants.fullNameSentenceCase,
+            hintText: StringConstants.enterYourFullName,
+            icon: Icons.person_outline_rounded,
+          ),
+          const SizedBox(height: AppDimens.paddingX16),
+          CustomTextField(
+            controller: _dobController,
+            focusNode: _dobFocus,
+            keyboardType: TextInputType.datetime,
+            labelText: StringConstants.dateOfBirth,
+            hintText: StringConstants.selectDateOfBirth,
+            icon: Icons.cake_outlined,
+            readOnly: true,
+            onTap: _pickDateOfBirth,
+            suffixIcon: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: _pickDateOfBirth,
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 12),
+                child: Icon(
+                  Icons.calendar_month_outlined,
+                  color: LightColor.secondaryTextColor,
+                  size: AppDimens.sizeX18,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: AppDimens.paddingX16),
+          CustomDropdownField<String>(
+            key: const Key('personal-details-gender-field'),
+            labelText: StringConstants.gender,
+            icon: Icons.wc_rounded,
+            hintText: StringConstants.selectGender,
+            initialValue: _selectedGender,
+            focusNode: _genderFocus,
+            items: _genderOptions
+                .map(
+                  (option) => DropdownMenuItem<String>(
+                    value: option,
+                    child: Text(option),
+                  ),
+                )
+                .toList(),
+            onChanged: (value) {
+              if (value == null) return;
+              setState(() => _selectedGender = value);
+            },
+          ),
+        ],
+      ),
+      const SizedBox(height: AppDimens.paddingX20),
+      _sectionLabel(context, 'Contact information'),
+      const SizedBox(height: AppDimens.paddingX10),
+      _SectionCard(
+        children: [
+          CustomTextField(
+            controller: _emailController,
+            focusNode: _emailFocus,
+            keyboardType: TextInputType.emailAddress,
+            textInputAction: TextInputAction.next,
+            onSubmitted: (_) =>
+                FocusScope.of(context).requestFocus(_phoneFocus),
+            labelText: StringConstants.emailAddressSentenceCase,
+            hintText: StringConstants.nameExampleCom,
+            icon: Icons.email_outlined,
+            readOnly: true,
+          ),
+          const SizedBox(height: AppDimens.paddingX16),
+          CustomTextField(
+            controller: _phoneController,
+            focusNode: _phoneFocus,
+            keyboardType: TextInputType.phone,
+            textInputAction: TextInputAction.next,
+            onSubmitted: (_) =>
+                FocusScope.of(context).requestFocus(_addressFocus),
+            labelText: StringConstants.phoneNumberSentenceCase,
+            hintText: '+977 #########',
+            icon: Icons.phone_outlined,
+          ),
+          const SizedBox(height: AppDimens.paddingX16),
+          CustomTextField(
+            controller: _addressController,
+            focusNode: _addressFocus,
+            keyboardType: TextInputType.streetAddress,
+            textCapitalization: TextCapitalization.words,
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) => FocusScope.of(context).unfocus(),
+            labelText: StringConstants.address,
+            hintText: StringConstants.enterYourAddress,
+            icon: Icons.location_on_outlined,
+          ),
+        ],
+      ),
+      const SizedBox(height: AppDimens.paddingX28),
+      // Full width on a phone; capped and trailing-aligned once the column is
+      // wide, where an edge-to-edge button looks like a banner.
+      if (context.isTabletOrWider)
+        Align(
+          alignment: Alignment.centerRight,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(
+              maxWidth: AppDimens.formActionMaxWidth,
+            ),
+            child: SizedBox(
+              width: AppDimens.formActionMaxWidth,
+              child: CustomButton(
+                text: StringConstants.saveChanges,
+                isLoading: isUpdating,
+                onPressed: _onSavePressed,
+              ),
+            ),
+          ),
+        )
+      else
+        CustomButton(
+          text: StringConstants.saveChanges,
+          isLoading: isUpdating,
+          onPressed: _onSavePressed,
+        ),
+    ];
   }
 
   void _syncFromProfile(UserData? user) {
@@ -424,7 +499,7 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
   Widget _sectionLabel(BuildContext context, String label) {
     final textTheme = FutsalTheme.getTextTheme(context);
     return Padding(
-      padding: AppUtils().getPadding(left: AppDimens.paddingX4),
+      padding: const EdgeInsets.only(left: AppDimens.paddingX4),
       child: Text(
         label,
         style: textTheme.bodyTextSmall?.copyWith(
@@ -499,10 +574,7 @@ class _ProfileSummaryCard extends StatelessWidget {
     final String addressLabel = address.isEmpty ? 'Address not set' : address;
 
     return Container(
-      padding: AppUtils().getPadding(
-        symmetricHorizontal: AppDimens.paddingX16,
-        symmetricVertical: AppDimens.paddingX16,
-      ),
+      padding: const EdgeInsets.all(AppDimens.paddingX16),
       decoration: BoxDecoration(
         color: LightColor.cardColor,
         borderRadius: BorderRadius.circular(AppDimens.radiusX14),
@@ -642,9 +714,9 @@ class _SectionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: AppUtils().getPadding(
-        symmetricHorizontal: AppDimens.paddingX16,
-        symmetricVertical: AppDimens.paddingX18,
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppDimens.paddingX16,
+        vertical: AppDimens.paddingX18,
       ),
       decoration: BoxDecoration(
         color: LightColor.cardColor,

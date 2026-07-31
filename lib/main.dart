@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_quill/flutter_quill.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hamro_footsall/core/api/client.dart';
 import 'package:hamro_footsall/core/helper/fcm_helper.dart';
@@ -83,19 +84,36 @@ class _MyAppState extends State<MyApp> {
         _router.goNamed(AppRouterParams.login.name);
       },
     );
-    return MaterialApp.router(
-      title: StringConstants.hamroFutsal,
-      debugShowCheckedModeBanner: false,
-      theme: FutsalTheme.setTheme(context),
-      themeMode: ThemeMode.light,
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        FlutterQuillLocalizations.delegate,
-      ],
-      supportedLocales: const [Locale('en')],
-      routerConfig: _router,
+    return ScreenUtilInit(
+      designSize: const Size(375, 812),
+      minTextAdapt: true,
+      splitScreenMode: true,
+      builder: (BuildContext context, Widget? child) {
+        return MaterialApp.router(
+          title: StringConstants.hamroFutsal,
+          debugShowCheckedModeBanner: false,
+          theme: FutsalTheme.setTheme(context),
+          themeMode: ThemeMode.light,
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            FlutterQuillLocalizations.delegate,
+          ],
+          supportedLocales: const [Locale('en')],
+          routerConfig: _router,
+          // Cap runaway system font scaling, which the wider layouts have less
+          // slack for. Only the ceiling is clamped: setting a floor of 1.0
+          // would scale text *up* for anyone who has chosen a smaller system
+          // font, changing every screen.
+          builder: (BuildContext context, Widget? child) {
+            return MediaQuery.withClampedTextScaling(
+              maxScaleFactor: 1.3,
+              child: child ?? const SizedBox.shrink(),
+            );
+          },
+        );
+      },
     );
   }
 }

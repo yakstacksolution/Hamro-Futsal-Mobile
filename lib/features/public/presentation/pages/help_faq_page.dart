@@ -418,22 +418,25 @@ class _SocialChannel {
 
 /// Known social platforms, keyed by the help item's title. Detection is
 /// substring-based so titles like "Facebook Page" still match.
-const Map<String, ({IconData icon, Color color})> _socialCatalog =
-    <String, ({IconData icon, Color color})>{
-      'facebook': (icon: Icons.facebook_rounded, color: Color(0xFF1877F2)),
-      'messenger': (icon: Icons.messenger_outline_rounded, color: Color(0xFF0084FF)),
-      'instagram': (icon: Icons.camera_alt_rounded, color: Color(0xFFE1306C)),
-      'whatsapp': (icon: Icons.chat_rounded, color: Color(0xFF25D366)),
-      'viber': (icon: Icons.phone_in_talk_rounded, color: Color(0xFF7360F2)),
-      'telegram': (icon: Icons.send_rounded, color: Color(0xFF229ED9)),
-      'youtube': (icon: Icons.play_circle_fill_rounded, color: Color(0xFFFF0000)),
-      'tiktok': (icon: Icons.music_note_rounded, color: Color(0xFF010101)),
-      'twitter': (icon: Icons.alternate_email_rounded, color: Color(0xFF1DA1F2)),
-      'linkedin': (icon: Icons.business_center_rounded, color: Color(0xFF0A66C2)),
-      'website': (icon: Icons.language_rounded, color: Color(0xFF2C7969)),
-      'email': (icon: Icons.email_rounded, color: Color(0xFFEA4335)),
-      'phone': (icon: Icons.phone_rounded, color: Color(0xFF2C7969)),
-    };
+const Map<String, ({IconData icon, Color color})>
+_socialCatalog = <String, ({IconData icon, Color color})>{
+  'facebook': (icon: Icons.facebook_rounded, color: Color(0xFF1877F2)),
+  'messenger': (
+    icon: Icons.messenger_outline_rounded,
+    color: Color(0xFF0084FF),
+  ),
+  'instagram': (icon: Icons.camera_alt_rounded, color: Color(0xFFE1306C)),
+  'whatsapp': (icon: Icons.chat_rounded, color: Color(0xFF25D366)),
+  'viber': (icon: Icons.phone_in_talk_rounded, color: Color(0xFF7360F2)),
+  'telegram': (icon: Icons.send_rounded, color: Color(0xFF229ED9)),
+  'youtube': (icon: Icons.play_circle_fill_rounded, color: Color(0xFFFF0000)),
+  'tiktok': (icon: Icons.music_note_rounded, color: Color(0xFF010101)),
+  'twitter': (icon: Icons.alternate_email_rounded, color: Color(0xFF1DA1F2)),
+  'linkedin': (icon: Icons.business_center_rounded, color: Color(0xFF0A66C2)),
+  'website': (icon: Icons.language_rounded, color: Color(0xFF2C7969)),
+  'email': (icon: Icons.email_rounded, color: Color(0xFFEA4335)),
+  'phone': (icon: Icons.phone_rounded, color: Color(0xFF2C7969)),
+};
 
 /// Fallback presentation for a link-only help item not in [_socialCatalog].
 const ({IconData icon, Color color}) _genericChannel = (

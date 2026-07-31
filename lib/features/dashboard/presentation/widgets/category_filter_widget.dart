@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
-import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/widgets/loading/tab_selection_loading.dart';
 import 'package:hamro_footsall/features/public/data/model/category_filter_model.dart';
@@ -97,10 +96,10 @@ class _CategoryFilterRowState extends State<_CategoryFilterRow> {
             onTap: () => _toggle(widget.filters[i]),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 220),
-              margin: AppUtils().getMargin(right: AppDimens.marginX10),
-              padding: AppUtils().getPadding(
-                symmetricHorizontal: AppDimens.paddingX18,
-                symmetricVertical: AppDimens.paddingX8,
+              margin: const EdgeInsets.only(right: AppDimens.marginX10),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppDimens.paddingX18,
+                vertical: AppDimens.paddingX8,
               ),
               decoration: BoxDecoration(
                 color: selected

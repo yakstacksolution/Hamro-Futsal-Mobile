@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geolocator/geolocator.dart';
@@ -11,9 +12,11 @@ import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'dart:ui';
 import 'package:hamro_footsall/core/utils/custom_image_view.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/utils/responsive.dart';
 import 'package:hamro_footsall/core/utils/image_constants.dart';
 import 'package:hamro_footsall/core/widgets/loading_widget.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/page/dashboard_screen.dart';
+import 'package:hamro_footsall/features/dashboard/presentation/widgets/dashboard_layout.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/widgets/loading/home_body_loading.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/widgets/venue_status_widget.dart';
 import 'package:hamro_footsall/features/public/data/model/public_venue_model.dart';
@@ -137,9 +140,11 @@ class _CourtsListScreenState extends State<CourtsListScreen>
             return showSkeleton
                 ? const HomeBodyLoading()
                 : Padding(
-                    padding: AppUtils().getPadding(
-                      left: AppDimens.paddingX20,
-                      right: AppDimens.paddingX20,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: context.responsive<double>(
+                        mobile: AppDimens.paddingX20,
+                        tablet: AppDimens.paddingX32,
+                      ),
                     ),
                     child: RefreshIndicator(
                       onRefresh: _refresh,
@@ -174,7 +179,7 @@ class _CourtsListScreenState extends State<CourtsListScreen>
           child: Align(
             alignment: Alignment.topCenter,
             child: Padding(
-              padding: AppUtils().getPadding(top: AppDimens.sizeX80),
+              padding: const EdgeInsets.only(top: AppDimens.sizeX80),
               child: _VenueMessageView(
                 icon: Icons.wifi_off_rounded,
                 title: StringConstants.unableToLoadVenues,
@@ -199,7 +204,7 @@ class _CourtsListScreenState extends State<CourtsListScreen>
           child: Align(
             alignment: Alignment.topCenter,
             child: Padding(
-              padding: AppUtils().getPadding(top: AppDimens.sizeX80),
+              padding: const EdgeInsets.only(top: AppDimens.sizeX80),
               child: const _VenueMessageView(
                 icon: Icons.stadium_outlined,
                 title: StringConstants.noVenuesFound,
@@ -220,7 +225,7 @@ class _CourtsListScreenState extends State<CourtsListScreen>
           child: Align(
             alignment: Alignment.topCenter,
             child: Padding(
-              padding: AppUtils().getPadding(top: AppDimens.sizeX80),
+              padding: const EdgeInsets.only(top: AppDimens.sizeX80),
               child: const _VenueMessageView(
                 icon: Icons.filter_alt_off_rounded,
                 title: StringConstants.noMatchingVenues,
@@ -232,32 +237,75 @@ class _CourtsListScreenState extends State<CourtsListScreen>
       ];
     }
 
+    // One column on phone (unchanged), a grid from tablet up.
+
+    Widget animateIn(int index, Widget child) {
+      return TweenAnimationBuilder<double>(
+        tween: Tween<double>(begin: 0, end: 1),
+        duration: Duration(milliseconds: 500 + index * 120),
+        curve: Curves.easeOutCubic,
+        builder: (BuildContext context, double value, Widget? animated) =>
+            Transform.translate(
+              offset: Offset(0, 30 * (1 - value)),
+              child: Opacity(opacity: value, child: animated),
+            ),
+        child: child,
+      );
+    }
+
     return <Widget>[
-      SliverPadding(
-        padding: AppUtils().getPadding(bottom: AppDimens.sizeX20),
-        sliver: SliverList.builder(
-          itemCount: filtered.length,
-          itemBuilder: (BuildContext context, int index) {
-            return TweenAnimationBuilder<double>(
-              tween: Tween<double>(begin: 0, end: 1),
-              duration: Duration(milliseconds: 500 + index * 120),
-              curve: Curves.easeOutCubic,
-              builder: (BuildContext context, double value, Widget? child) =>
-                  Transform.translate(
-                    offset: Offset(0, 30 * (1 - value)),
-                    child: Opacity(opacity: value, child: child),
+      SliverLayoutBuilder(
+        builder: (BuildContext context, SliverConstraints sliverConstraints) {
+          final int columns = venueGridColumns(
+            context,
+            sliverConstraints.crossAxisExtent,
+          );
+          return SliverPadding(
+            padding: const EdgeInsets.only(bottom: AppDimens.sizeX20),
+            sliver: columns == 1
+                ? SliverList.builder(
+                    itemCount: filtered.length,
+                    itemBuilder: (BuildContext context, int index) {
+                      return animateIn(
+                        index,
+                        Padding(
+                          padding: const EdgeInsets.only(
+                            bottom: AppDimens.sizeX20,
+                          ),
+                          child: CourtCard(
+                            publicListingVenueModel: filtered[index],
+                          ),
+                        ),
+                      );
+                    },
+                  )
+                : SliverGrid.builder(
+                    itemCount: filtered.length,
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: columns,
+                      crossAxisSpacing: AppDimens.sizeX20,
+                      mainAxisSpacing: AppDimens.sizeX20,
+                      // A fixed row height rather than childAspectRatio: card
+                      // height then does not depend on column width, so it cannot
+                      // overflow at some widths. The cover flexes to fill it.
+                      mainAxisExtent: AppDimens.courtCardGridExtent,
+                    ),
+                    itemBuilder: (BuildContext context, int index) {
+                      return animateIn(
+                        index,
+                        CourtCard(
+                          publicListingVenueModel: filtered[index],
+                          flexibleCover: true,
+                        ),
+                      );
+                    },
                   ),
-              child: Padding(
-                padding: AppUtils().getPadding(bottom: AppDimens.sizeX20),
-                child: CourtCard(publicListingVenueModel: filtered[index]),
-              ),
-            );
-          },
-        ),
+          );
+        },
       ),
       SliverToBoxAdapter(
         child: Padding(
-          padding: AppUtils().getPadding(
+          padding: const EdgeInsets.only(
             top: AppDimens.sizeX4,
             bottom: AppDimens.sizeX120,
           ),
@@ -296,7 +344,7 @@ class _VenueMessageView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: AppUtils().getPadding(all: AppDimens.paddingX24),
+      padding: const EdgeInsets.all(AppDimens.paddingX24),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
@@ -333,7 +381,7 @@ class _VenueMessageView extends StatelessWidget {
               style: OutlinedButton.styleFrom(
                 foregroundColor: LightColor.secondaryColor,
                 side: const BorderSide(color: LightColor.secondaryColor),
-                padding: AppUtils().getPadding(
+                padding: const EdgeInsets.symmetric(
                   horizontal: AppDimens.paddingX20,
                   vertical: AppDimens.paddingX10,
                 ),
@@ -348,7 +396,21 @@ class _VenueMessageView extends StatelessWidget {
 
 class CourtCard extends StatefulWidget {
   final PublicListingVenueModel publicListingVenueModel;
-  const CourtCard({super.key, required this.publicListingVenueModel});
+
+  /// When true the cover image flexes to fill whatever height is left over
+  /// instead of being pinned to [AppDimens.sizeX200].
+  ///
+  /// Set this in the grid layout, where the cell height is fixed: the text
+  /// block below takes its natural height and the cover absorbs the rest, so
+  /// the card can never overflow its cell. The list layout leaves it false and
+  /// keeps the original fixed-height cover.
+  final bool flexibleCover;
+
+  const CourtCard({
+    super.key,
+    required this.publicListingVenueModel,
+    this.flexibleCover = false,
+  });
 
   @override
   State<CourtCard> createState() => _CourtCardState();
@@ -356,6 +418,11 @@ class CourtCard extends StatefulWidget {
 
 class _CourtCardState extends State<CourtCard> {
   bool _isPressed = false;
+  bool _isHovered = false;
+
+  /// The richer treatment is only used from tablet up; phones keep the
+  /// original card exactly as it was.
+  bool get _wide => context.isTabletOrWider;
 
   Future<void> _toggleWishlist() async {
     final int? venueId = widget.publicListingVenueModel.id;
@@ -382,9 +449,215 @@ class _CourtCardState extends State<CourtCard> {
     );
   }
 
+  Widget _cover() {
+    final Widget image = Stack(
+      fit: StackFit.expand,
+      children: [
+        CustomImageView(
+          url: widget.publicListingVenueModel.featureImage,
+          fit: BoxFit.cover,
+          width: double.infinity,
+          height: double.infinity,
+        ),
+        Positioned(
+          top: 12,
+          right: 12,
+          child: ValueListenableBuilder<Set<int>>(
+            valueListenable: WishlistStore.instance.ids,
+            builder: (context, ids, _) {
+              final bool saved =
+                  widget.publicListingVenueModel.id != null &&
+                  ids.contains(widget.publicListingVenueModel.id);
+              return GestureDetector(
+                onTap: _toggleWishlist,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                    child: Container(
+                      height: AppDimens.sizeX36,
+                      width: AppDimens.sizeX36,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.85),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.6),
+                        ),
+                      ),
+                      child: Icon(
+                        saved
+                            ? Icons.favorite_rounded
+                            : Icons.favorite_border_rounded,
+                        color: saved
+                            ? LightColor.secondaryColor
+                            : LightColor.secondaryTextColor,
+                        size: AppDimens.sizeX22,
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+
+    final Widget clipped = ClipRRect(
+      borderRadius: BorderRadius.vertical(
+        top: Radius.circular(_wide ? AppDimens.radiusX24 : AppDimens.radiusX18),
+      ),
+      child: image,
+    );
+
+    // Grid cells have a fixed height, so the cover flexes; list items keep the
+    // original pinned height.
+    return widget.flexibleCover
+        ? Expanded(child: clipped)
+        : ClipRRect(
+            borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(AppDimens.radiusX18),
+            ),
+            child: SizedBox(height: AppDimens.sizeX200, child: image),
+          );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    final bool wide = _wide;
+    // Hover only means something with a pointer, i.e. desktop; it also drives
+    // the click cursor, which the phone card has no use for.
+    final bool lifted = wide && _isHovered;
+
+    final Widget card = AnimatedScale(
+      scale: _isPressed
+          ? 0.985
+          : lifted
+          ? 1.01
+          : 1,
+      duration: const Duration(milliseconds: 160),
+      curve: Curves.easeOutCubic,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOutCubic,
+        decoration: BoxDecoration(
+          color: LightColor.whiteColor,
+          borderRadius: BorderRadius.circular(
+            wide ? AppDimens.radiusX24 : AppDimens.radiusX18,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: lifted ? 0.12 : 0.03),
+              blurRadius: lifted ? AppDimens.sizeX24 : AppDimens.sizeX8,
+              spreadRadius: 0.5,
+              offset: Offset(0, lifted ? 6 : 1),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _cover(),
+
+            Padding(
+              padding: EdgeInsets.all(
+                wide ? AppDimens.sizeX18 : AppDimens.sizeX14,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.publicListingVenueModel.name ?? '',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: FutsalTheme.getTextTheme(context).bodyTextLarge
+                        ?.copyWith(
+                          color: LightColor.primaryTextColor,
+                          fontWeight: FontWeight.w700,
+                          fontSize: wide ? AppDimens.fontHeadingSubTitle : null,
+                        ),
+                  ),
+                  SizedBox(height: wide ? AppDimens.sizeX8 : AppDimens.sizeX6),
+
+                  Row(
+                    children: [
+                      CustomImageView(
+                        imagePath: ImageConstants.locationIcon,
+                        height: AppDimens.sizeX14,
+                        width: AppDimens.sizeX14,
+                        fit: BoxFit.contain,
+                        color: LightColor.secondaryTextColor,
+                      ),
+                      const SizedBox(width: AppDimens.sizeX6),
+                      Flexible(
+                        child: Text(
+                          widget.publicListingVenueModel.address ?? '',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: FutsalTheme.getTextTheme(context).bodyTextSmall
+                              ?.copyWith(color: LightColor.secondaryTextColor),
+                        ),
+                      ),
+                      _DistanceLabel(court: widget.publicListingVenueModel),
+                    ],
+                  ),
+                  const SizedBox(height: AppDimens.sizeX12),
+                  // Price left, status right. The column count is derived from
+                  // a minimum card width (see venueGridColumns), so the cell is
+                  // always wide enough for both on one line.
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // One rich text rather than a Row of two: the "/ hour"
+                      // suffix sits at the end, so it is what ellipsizes first
+                      // if the cell is ever tighter than expected -- the price
+                      // digits stay visible.
+                      Flexible(
+                        child: Text.rich(
+                          TextSpan(
+                            children: <InlineSpan>[
+                              TextSpan(
+                                text:
+                                    widget.publicListingVenueModel.price == null
+                                    ? 'Rs. --'
+                                    : 'Rs. ${widget.publicListingVenueModel.price!.toStringAsFixed(0)}',
+                                style: FutsalTheme.getTextTheme(context)
+                                    .headingSubTitle
+                                    ?.copyWith(
+                                      color: LightColor.secondaryColor,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                              ),
+                              TextSpan(
+                                text: ' ${StringConstants.perHourSuffix}',
+                                style: FutsalTheme.getTextTheme(context)
+                                    .bodyTextMedium
+                                    ?.copyWith(
+                                      color: LightColor.secondaryTextColor,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                              ),
+                            ],
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: AppDimens.sizeX8),
+                      VenueStatusWidget(
+                        isOpen: widget.publicListingVenueModel.isOpen ?? false,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    final Widget tappable = GestureDetector(
       onTapDown: (_) => setState(() => _isPressed = true),
       onTapCancel: () => setState(() => _isPressed = false),
       onTapUp: (_) {
@@ -395,178 +668,17 @@ class _CourtCardState extends State<CourtCard> {
           extra: _courtWithDistance(),
         );
       },
-      child: AnimatedScale(
-        scale: _isPressed ? 0.985 : 1,
-        duration: const Duration(milliseconds: 160),
-        curve: Curves.easeOutCubic,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 220),
-          curve: Curves.easeOutCubic,
-          decoration: BoxDecoration(
-            color: LightColor.whiteColor,
-            borderRadius: BorderRadius.circular(AppDimens.radiusX18),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.03),
-                blurRadius: AppDimens.sizeX8,
-                spreadRadius: 0.5,
-                offset: const Offset(0, 1),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ClipRRect(
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(AppDimens.radiusX18),
-                ),
-                child: SizedBox(
-                  height: AppDimens.sizeX200,
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      CustomImageView(
-                        url: widget.publicListingVenueModel.featureImage,
-                        fit: BoxFit.cover,
-                        width: double.infinity,
-                        height: double.infinity,
-                      ),
-                      Positioned(
-                        top: 12,
-                        right: 12,
-                        child: ValueListenableBuilder<Set<int>>(
-                          valueListenable: WishlistStore.instance.ids,
-                          builder: (context, ids, _) {
-                            final bool saved =
-                                widget.publicListingVenueModel.id != null &&
-                                ids.contains(widget.publicListingVenueModel.id);
-                            return GestureDetector(
-                              onTap: _toggleWishlist,
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(12),
-                                child: BackdropFilter(
-                                  filter: ImageFilter.blur(
-                                    sigmaX: 10,
-                                    sigmaY: 10,
-                                  ),
-                                  child: Container(
-                                    height: AppDimens.sizeX36,
-                                    width: AppDimens.sizeX36,
-                                    decoration: BoxDecoration(
-                                      color: Colors.white.withValues(
-                                        alpha: 0.85,
-                                      ),
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                        color: Colors.white.withValues(
-                                          alpha: 0.6,
-                                        ),
-                                      ),
-                                    ),
-                                    child: Icon(
-                                      saved
-                                          ? Icons.favorite_rounded
-                                          : Icons.favorite_border_rounded,
-                                      color: saved
-                                          ? LightColor.secondaryColor
-                                          : LightColor.secondaryTextColor,
-                                      size: AppDimens.sizeX22,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+      child: card,
+    );
 
-              Padding(
-                padding: AppUtils().getPadding(all: AppDimens.sizeX14),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.publicListingVenueModel.name ?? '',
-                      style: FutsalTheme.getTextTheme(context).bodyTextLarge
-                          ?.copyWith(
-                            color: LightColor.primaryTextColor,
-                            fontWeight: FontWeight.w600,
-                          ),
-                    ),
-                    const SizedBox(height: AppDimens.sizeX6),
+    if (!wide) return tappable;
 
-                    Row(
-                      children: [
-                        CustomImageView(
-                          imagePath: ImageConstants.locationIcon,
-                          height: AppDimens.sizeX14,
-                          width: AppDimens.sizeX14,
-                          fit: BoxFit.contain,
-                          color: LightColor.secondaryTextColor,
-                        ),
-                        const SizedBox(width: AppDimens.sizeX6),
-                        Flexible(
-                          child: Text(
-                            widget.publicListingVenueModel.address ?? '',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: FutsalTheme.getTextTheme(context)
-                                .bodyTextSmall
-                                ?.copyWith(
-                                  color: LightColor.secondaryTextColor,
-                                ),
-                          ),
-                        ),
-                        _DistanceLabel(court: widget.publicListingVenueModel),
-                      ],
-                    ),
-                    const SizedBox(height: AppDimens.sizeX12),
-                    Row(
-                      children: [
-                        Row(
-                          children: [
-                            Text(
-                              widget.publicListingVenueModel.price == null
-                                  ? 'Rs. --'
-                                  : 'Rs. ${widget.publicListingVenueModel.price!.toStringAsFixed(0)}',
-                              style: FutsalTheme.getTextTheme(context)
-                                  .headingSubTitle
-                                  ?.copyWith(
-                                    color: LightColor.secondaryColor,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                            ),
-                            const SizedBox(width: AppDimens.sizeX4),
-                            Text(
-                              StringConstants.perHourSuffix,
-                              style: FutsalTheme.getTextTheme(context)
-                                  .bodyTextMedium
-                                  ?.copyWith(
-                                    color: LightColor.secondaryTextColor,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                            ),
-                          ],
-                        ),
-                        const Spacer(),
-                        VenueStatusWidget(
-                          isOpen:
-                              widget.publicListingVenueModel.isOpen ?? false,
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+    // Pointer affordances for tablet/desktop: a click cursor and a hover lift.
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: tappable,
     );
   }
 }

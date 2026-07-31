@@ -33,10 +33,9 @@ final class PublicOptionModel extends Equatable {
                 '')
             .toString()
             .trim();
-    final String image =
-        (json['image'] ?? json['icon'] ?? json['logo'] ?? '')
-            .toString()
-            .trim();
+    final String image = (json['image'] ?? json['icon'] ?? json['logo'] ?? '')
+        .toString()
+        .trim();
 
     return PublicOptionModel(id: id, name: name, image: image, raw: json);
   }

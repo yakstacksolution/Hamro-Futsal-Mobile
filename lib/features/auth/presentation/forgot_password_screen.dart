@@ -3,7 +3,6 @@ import 'package:go_router/go_router.dart';
 import 'package:hamro_footsall/core/routers/app_router_params.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart' hide LightColor;
-import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/widgets/custom_text_field.dart';
 import 'package:hamro_footsall/features/auth/presentation/widgets/auth_screen_frame.dart';
@@ -60,9 +59,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         ),
         const SizedBox(height: AppDimens.sizeX14),
         Container(
-          padding: AppUtils().getPadding(
-            symmetricHorizontal: AppDimens.paddingX12,
-            symmetricVertical: AppDimens.paddingX10,
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppDimens.paddingX12,
+            vertical: AppDimens.paddingX10,
           ),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(AppDimens.radiusX12),

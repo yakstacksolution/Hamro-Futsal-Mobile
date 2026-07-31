@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
-import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/utils/string_constants.dart';
 
@@ -36,9 +35,9 @@ class CourtReviewsSection extends StatelessWidget {
     final textTheme = FutsalTheme.getTextTheme(context);
 
     return Padding(
-      padding: AppUtils().getPadding(
-        top: AppDimens.paddingX12,
+      padding: const EdgeInsets.only(
         left: AppDimens.paddingX20,
+        top: AppDimens.paddingX12,
         right: AppDimens.paddingX20,
       ),
       child: Column(
@@ -56,7 +55,7 @@ class CourtReviewsSection extends StatelessWidget {
                 ),
               ),
               Container(
-                padding: AppUtils().getPadding(
+                padding: const EdgeInsets.symmetric(
                   horizontal: AppDimens.paddingX10,
                   vertical: AppDimens.paddingX4,
                 ),
@@ -87,7 +86,7 @@ class CourtReviewsSection extends StatelessWidget {
     final textTheme = FutsalTheme.getTextTheme(context);
 
     return Container(
-      padding: AppUtils().getPadding(all: AppDimens.paddingX16),
+      padding: const EdgeInsets.all(AppDimens.paddingX16),
       decoration: BoxDecoration(
         color: LightColor.secondaryColor,
         borderRadius: BorderRadius.circular(AppDimens.radiusX10),
@@ -155,8 +154,8 @@ class CourtReviewsSection extends StatelessWidget {
     final textTheme = FutsalTheme.getTextTheme(context);
 
     return Container(
-      margin: AppUtils().getMargin(bottom: AppDimens.marginX12),
-      padding: AppUtils().getPadding(all: AppDimens.paddingX16),
+      margin: const EdgeInsets.only(bottom: AppDimens.marginX12),
+      padding: const EdgeInsets.all(AppDimens.paddingX16),
       decoration: BoxDecoration(
         color: LightColor.cardColor,
         borderRadius: BorderRadius.circular(AppDimens.radiusX10),
@@ -213,7 +212,7 @@ class CourtReviewsSection extends StatelessWidget {
                 ),
               ),
               Container(
-                padding: AppUtils().getPadding(
+                padding: const EdgeInsets.symmetric(
                   horizontal: AppDimens.paddingX8,
                   vertical: AppDimens.paddingX4,
                 ),
@@ -272,7 +271,7 @@ class _RatingBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: AppUtils().getPadding(bottom: AppDimens.paddingX4),
+      padding: const EdgeInsets.only(bottom: AppDimens.paddingX4),
       child: Row(
         children: [
           Text(

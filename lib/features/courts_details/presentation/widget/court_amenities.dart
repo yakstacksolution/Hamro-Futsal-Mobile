@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
-import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/utils/string_constants.dart';
 
@@ -19,13 +18,13 @@ class CourtAmenitiesSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: AppUtils().getPadding(
-        top: AppDimens.paddingX12,
+      padding: const EdgeInsets.only(
         left: AppDimens.paddingX16,
+        top: AppDimens.paddingX12,
         right: AppDimens.paddingX16,
       ),
       child: Container(
-        padding: AppUtils().getPadding(all: AppDimens.paddingX16),
+        padding: const EdgeInsets.all(AppDimens.paddingX16),
         decoration: BoxDecoration(
           gradient: const LinearGradient(
             begin: Alignment.topLeft,
@@ -149,7 +148,7 @@ class _FeaturesGridState extends State<_FeaturesGrid> {
 
     if (features.isEmpty) {
       return Container(
-        padding: AppUtils().getPadding(
+        padding: const EdgeInsets.symmetric(
           horizontal: AppDimens.paddingX14,
           vertical: AppDimens.paddingX18,
         ),
@@ -184,7 +183,7 @@ class _FeaturesGridState extends State<_FeaturesGrid> {
       children: [
         Container(
           width: double.infinity,
-          padding: AppUtils().getPadding(all: AppDimens.paddingX12),
+          padding: const EdgeInsets.all(AppDimens.paddingX12),
           decoration: BoxDecoration(
             color: LightColor.secondaryColor.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(AppDimens.radiusX8),
@@ -215,7 +214,7 @@ class _FeaturesGridState extends State<_FeaturesGrid> {
                 ),
               ),
               Container(
-                padding: AppUtils().getPadding(
+                padding: const EdgeInsets.symmetric(
                   horizontal: AppDimens.paddingX10,
                   vertical: AppDimens.paddingX4,
                 ),
@@ -240,12 +239,12 @@ class _FeaturesGridState extends State<_FeaturesGrid> {
             children: _categories.map((cat) {
               final isActive = cat == _selectedCategory;
               return Padding(
-                padding: AppUtils().getPadding(right: AppDimens.paddingX6),
+                padding: const EdgeInsets.only(right: AppDimens.paddingX6),
                 child: GestureDetector(
                   onTap: () => setState(() => _selectedCategory = cat),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 180),
-                    padding: AppUtils().getPadding(
+                    padding: const EdgeInsets.symmetric(
                       horizontal: AppDimens.paddingX14,
                       vertical: AppDimens.paddingX8,
                     ),
@@ -277,7 +276,7 @@ class _FeaturesGridState extends State<_FeaturesGrid> {
               ? Container(
                   key: const ValueKey('empty'),
                   width: double.infinity,
-                  padding: AppUtils().getPadding(
+                  padding: const EdgeInsets.symmetric(
                     vertical: AppDimens.paddingX20,
                   ),
                   decoration: BoxDecoration(
@@ -314,7 +313,7 @@ class _FeaturesGridState extends State<_FeaturesGrid> {
     return IntrinsicWidth(
       child: Container(
         constraints: const BoxConstraints(minWidth: AppDimens.sizeX90),
-        padding: AppUtils().getPadding(
+        padding: const EdgeInsets.symmetric(
           horizontal: AppDimens.paddingX10,
           vertical: AppDimens.paddingX8,
         ),

@@ -267,9 +267,7 @@ class SettlementBreakdownModel {
       data['entries'] ?? data['statement'] ?? data['transactions'],
     );
     return SettlementBreakdownModel(
-      venues: venuesRaw
-          .map(VenueAccountModel.fromJson)
-          .toList(growable: false),
+      venues: venuesRaw.map(VenueAccountModel.fromJson).toList(growable: false),
       entries: entriesRaw
           .map(AccountEntryModel.fromJson)
           .toList(growable: false),
@@ -312,9 +310,7 @@ class SettlementPreviewModel {
             data['available_balance'] ??
             data['amount'],
       ),
-      commissionAmount: _asInt(
-        data['commission_amount'] ?? data['commission'],
-      ),
+      commissionAmount: _asInt(data['commission_amount'] ?? data['commission']),
       grossAmount: _asInt(
         data['gross_amount'] ?? data['total_amount'] ?? data['total_earned'],
       ),

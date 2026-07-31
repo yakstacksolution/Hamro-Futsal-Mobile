@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
-import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/widgets/custom_html_viewer.dart';
 import 'package:hamro_footsall/features/courts_details/presentation/page/court_details.dart';
@@ -16,9 +15,9 @@ class CourtIntroWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: AppUtils().getPadding(
-        top: AppDimens.paddingX18,
+      padding: const EdgeInsets.only(
         left: AppDimens.paddingX16,
+        top: AppDimens.paddingX18,
         right: AppDimens.paddingX16,
       ),
       child: Column(
@@ -99,7 +98,7 @@ class CourtIntroWidget extends StatelessWidget {
 
   Widget _buildLocationCard(BuildContext context) {
     return Container(
-      padding: AppUtils().getPadding(all: AppDimens.paddingX14),
+      padding: const EdgeInsets.all(AppDimens.paddingX14),
       decoration: BoxDecoration(
         color: LightColor.whiteColor,
         borderRadius: BorderRadius.circular(AppDimens.sizeX8),
@@ -182,7 +181,7 @@ class CourtIntroWidget extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: AppUtils().getPadding(all: AppDimens.paddingX16),
+      padding: const EdgeInsets.all(AppDimens.paddingX16),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
@@ -257,7 +256,9 @@ class CourtIntroWidget extends StatelessWidget {
           const SizedBox(height: AppDimens.sizeX12),
 
           Container(
-            padding: AppUtils().getPadding(horizontal: AppDimens.paddingX6),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppDimens.paddingX6,
+            ),
             child: hasDescription
                 ? CustomHtmlReader(
                     html: description,
@@ -292,7 +293,7 @@ class CourtIntroWidget extends StatelessWidget {
     BuildContext context,
   ) {
     return Container(
-      padding: AppUtils().getPadding(
+      padding: const EdgeInsets.symmetric(
         horizontal: AppDimens.paddingX8,
         vertical: AppDimens.paddingX6,
       ),

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
-import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/features/booking_overview/data/model/booking_overview_model.dart';
 import 'package:hamro_footsall/features/booking_overview/presentation/models/booking_analytics.dart';
@@ -45,9 +44,9 @@ class _VenueRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
     return Padding(
-      padding: AppUtils().getPadding(
-        symmetricHorizontal: AppDimens.paddingX14,
-        symmetricVertical: AppDimens.paddingX12,
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppDimens.paddingX14,
+        vertical: AppDimens.paddingX12,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -149,9 +148,9 @@ class BookingTopCourtsCard extends StatelessWidget {
         children: [
           for (int i = 0; i < rows.length; i++) ...[
             Padding(
-              padding: AppUtils().getPadding(
-                symmetricHorizontal: AppDimens.paddingX14,
-                symmetricVertical: AppDimens.paddingX12,
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppDimens.paddingX14,
+                vertical: AppDimens.paddingX12,
               ),
               child: Row(
                 children: [
@@ -240,9 +239,9 @@ class BookingTopCustomersCard extends StatelessWidget {
         children: [
           for (int i = 0; i < rows.length; i++) ...[
             Padding(
-              padding: AppUtils().getPadding(
-                symmetricHorizontal: AppDimens.paddingX14,
-                symmetricVertical: AppDimens.paddingX12,
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppDimens.paddingX14,
+                vertical: AppDimens.paddingX12,
               ),
               child: Row(
                 children: [
