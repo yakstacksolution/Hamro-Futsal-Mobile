@@ -10,6 +10,7 @@ import 'package:hamro_footsall/features/message/data/data_source/message_remote_
 import 'package:hamro_footsall/features/message/data/model/chat_message_model.dart';
 import 'package:hamro_footsall/features/message/data/model/chat_send_request.dart';
 import 'package:hamro_footsall/features/message/data/model/conversation_model.dart';
+import 'package:hamro_footsall/features/message/data/model/message_profile_model.dart';
 import 'package:hamro_footsall/features/message/domain/repository/message_repository.dart';
 import 'package:jwt_decode/jwt_decode.dart';
 
@@ -197,6 +198,35 @@ final class MessageRepositoryImpl extends MessageRepository {
       return right(value.toLowerCase() == 'online');
     }
     return left(_parseError('user presence'));
+  }
+
+  @override
+  Future<Either<AppException, MessageProfileModel>> getMessageProfile(
+    int userId,
+  ) async {
+    final response = await _remoteDataSource.getMessageProfile(userId);
+    if (response.isError()) return left(ResponseHelper.error(response));
+    try {
+      // The profile may be returned bare or wrapped in a `data` envelope, and
+      // without an `id` when the resource only exposes the display fields.
+      dynamic node = response.getValue();
+      Map<String, dynamic>? profile = _findObject(node);
+      for (
+        var depth = 0;
+        profile == null && depth < 3 && node is Map;
+        depth++
+      ) {
+        final map = Map<String, dynamic>.from(node);
+        if (map.containsKey('name')) {
+          profile = map;
+          break;
+        }
+        node = map['data'] ?? map['user'] ?? map['profile'];
+      }
+      return right(MessageProfileModel.fromJson(profile!));
+    } catch (_) {
+      return left(_parseError('the profile'));
+    }
   }
 
   @override

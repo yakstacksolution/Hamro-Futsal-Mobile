@@ -136,18 +136,20 @@ final class DeleteOpponentRequestEvent extends OpponentMatchEvent {
   List<Object?> get props => [request];
 }
 
-/// Requester approves the accepter's advance proof — confirms the match.
-final class VerifyOpponentPaymentEvent extends OpponentMatchEvent {
-  const VerifyOpponentPaymentEvent(this.request);
+/// Requester picks this request's opponent — the match is confirmed and
+/// every other invitation is rejected.
+final class SelectOpponentEvent extends OpponentMatchEvent {
+  const SelectOpponentEvent(this.request);
   final OpponentRequestModel request;
 
   @override
   List<Object?> get props => [request];
 }
 
-/// Requester rejects the proof with [reason] — the request re-opens.
-final class RejectOpponentPaymentEvent extends OpponentMatchEvent {
-  const RejectOpponentPaymentEvent(this.request, this.reason);
+/// Requester turns the acceptance down with [reason] — the request re-opens
+/// for other teams.
+final class RejectInvitationEvent extends OpponentMatchEvent {
+  const RejectInvitationEvent(this.request, this.reason);
   final OpponentRequestModel request;
   final String reason;
 

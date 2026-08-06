@@ -1,4 +1,3 @@
-import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:hamro_footsall/core/api/api_client/result.dart';
 import 'package:hamro_footsall/core/api/client.dart';
@@ -102,19 +101,19 @@ final class OpponentMatchLocalDataSourceImpl
 }
 
 /// Opponent requests over `/opponent-requests` — list/create plus the
-/// two-phase accept (hold quote, then multipart accept with payment proof).
+/// single-call accept (the accepting team, no payment).
 abstract class OpponentRequestRemoteDataSource {
   Future<Result> fetchRequests({Map<String, dynamic>? query});
   Future<Result> fetchRequest(String requestId);
   Future<Result> createRequest(Map<String, dynamic> data);
-  Future<Result> createAcceptQuote(String requestId, Map<String, dynamic> data);
   Future<Result> accept(AcceptOpponentRequestRequest request);
   Future<Result> decline(String requestId);
   Future<Result> delete(String requestId);
 
-  /// Requester's review of the accepter's advance-payment proof.
-  Future<Result> verifyPayment(String requestId);
-  Future<Result> rejectPayment(String requestId, String reason);
+  /// Requester confirms the chosen opponent (closing the request for the
+  /// other invitations) or releases it back to the pool.
+  Future<Result> selectOpponent(String requestId);
+  Future<Result> rejectInvitation(String requestId, String reason);
 }
 
 final class OpponentRequestRemoteDataSourceImpl
@@ -134,27 +133,12 @@ final class OpponentRequestRemoteDataSourceImpl
       await Client.instance().getAuthManager().createOpponentRequest(data);
 
   @override
-  Future<Result> createAcceptQuote(
-    String requestId,
-    Map<String, dynamic> data,
-  ) async => await Client.instance().getAuthManager().createOpponentAcceptQuote(
-    requestId,
-    data,
-  );
-
-  @override
   Future<Result> accept(AcceptOpponentRequestRequest request) async {
     final Map<String, dynamic> fields = request.toFields()
       ..removeWhere((_, dynamic value) => value == null);
-    if (request.paymentProofPath.isNotEmpty) {
-      fields['payment_proof'] = await MultipartFile.fromFile(
-        request.paymentProofPath,
-        filename: request.paymentProofPath.split('/').last,
-      );
-    }
     return await Client.instance().getAuthManager().acceptOpponentRequest(
       request.requestId,
-      FormData.fromMap(fields),
+      fields,
     );
   }
 
@@ -169,11 +153,11 @@ final class OpponentRequestRemoteDataSourceImpl
       await Client.instance().getAuthManager().deleteOpponentRequest(requestId);
 
   @override
-  Future<Result> verifyPayment(String requestId) async =>
+  Future<Result> selectOpponent(String requestId) async =>
       await Client.instance().getAuthManager().verifyOpponentPayment(requestId);
 
   @override
-  Future<Result> rejectPayment(String requestId, String reason) async =>
+  Future<Result> rejectInvitation(String requestId, String reason) async =>
       await Client.instance().getAuthManager().rejectOpponentPayment(requestId, {
         'reason': reason,
       });
@@ -235,16 +219,6 @@ final class OpponentRequestFallbackDataSourceImpl
   );
 
   @override
-  Future<Result> createAcceptQuote(
-    String requestId,
-    Map<String, dynamic> data,
-  ) => _withFallback(
-    'accept-quote',
-    () => _remote.createAcceptQuote(requestId, data),
-    () => _mock.createAcceptQuote(requestId, data),
-  );
-
-  @override
   Future<Result> accept(AcceptOpponentRequestRequest request) => _withFallback(
     'accept',
     () => _remote.accept(request),
@@ -266,18 +240,18 @@ final class OpponentRequestFallbackDataSourceImpl
   );
 
   @override
-  Future<Result> verifyPayment(String requestId) => _withFallback(
-    'payment-verify',
-    () => _remote.verifyPayment(requestId),
-    () => _mock.verifyPayment(requestId),
+  Future<Result> selectOpponent(String requestId) => _withFallback(
+    'select-opponent',
+    () => _remote.selectOpponent(requestId),
+    () => _mock.selectOpponent(requestId),
   );
 
   @override
-  Future<Result> rejectPayment(String requestId, String reason) =>
+  Future<Result> rejectInvitation(String requestId, String reason) =>
       _withFallback(
-        'payment-reject',
-        () => _remote.rejectPayment(requestId, reason),
-        () => _mock.rejectPayment(requestId, reason),
+        'reject-invitation',
+        () => _remote.rejectInvitation(requestId, reason),
+        () => _mock.rejectInvitation(requestId, reason),
       );
 }
 
@@ -285,16 +259,11 @@ final class OpponentRequestFallbackDataSourceImpl
 /// is byte-for-byte what the Laravel side is expected to return, so this class
 /// doubles as the living API-contract example while the backend is built.
 ///
-/// Special ids: accept-quoting request `409` simulates losing the
-/// double-accept race.
+/// Special id: accepting request `409` simulates losing the double-accept
+/// race.
 final class OpponentRequestMockDataSourceImpl
     implements OpponentRequestRemoteDataSource {
   static List<Map<String, dynamic>>? _requests;
-
-  static const String _qrUrl =
-      'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d0/'
-      'QR_code_for_mobile_English_Wikipedia.svg/'
-      '440px-QR_code_for_mobile_English_Wikipedia.svg.png';
 
   List<Map<String, dynamic>> get _store => _requests ??= _seed();
 
@@ -316,7 +285,7 @@ final class OpponentRequestMockDataSourceImpl
       String format = '5v5',
       String level = 'Intermediate',
       Map<String, dynamic>? acceptedBy,
-      Map<String, dynamic>? payment,
+      List<Map<String, dynamic>>? invitations,
     }) => {
       'id': id,
       'status': status,
@@ -343,13 +312,35 @@ final class OpponentRequestMockDataSourceImpl
         'accepter_pct': 50,
         'loser_pct': null,
         'accepter_share': (totalFee / 2).round(),
-        'advance_payable_now': (totalFee / 4).round(),
       },
       'message': 'Looking for a friendly, competitive futsal match!',
       'accept_deadline': deadline == null ? null : iso(deadline),
       'created_at': iso(now.subtract(const Duration(minutes: 4))),
       'accepted_by': acceptedBy,
-      'payment': payment,
+      'invitations': invitations,
+    };
+
+    Map<String, dynamic> invitation({
+      required String id,
+      required String teamName,
+      required int captainUserId,
+      required String captainName,
+      int playerCount = 7,
+      int share = 600,
+      String status = 'pending',
+      String message = '',
+      int minutesAgo = 3,
+    }) => {
+      'id': id,
+      'team_id': id,
+      'team_name': teamName,
+      'status': status,
+      'captain_name': captainName,
+      'user_id': captainUserId,
+      'player_count': playerCount,
+      'accepter_share': share,
+      'message': message,
+      'accepted_at': iso(now.subtract(Duration(minutes: minutesAgo))),
     };
 
     return [
@@ -382,46 +373,63 @@ final class OpponentRequestMockDataSourceImpl
         level: 'Advanced',
       ),
       request(id: 43, isMine: true, status: 'open', teamName: 'My Team'),
-      // My request that a team has accepted & paid — awaiting MY review of
-      // their advance proof.
+      // My published request with competing invitations — the requester picks.
       request(
         id: 47,
         isMine: true,
-        status: 'accept_pending_payment',
+        status: 'invitation_sent',
         teamName: 'My Team',
         acceptedBy: {'user_id': 22, 'team_id': 9, 'team_name': 'Thamel Tigers'},
-        payment: {
-          'status': 'pending',
-          'amount': 300,
-          'proof_url': _qrUrl,
-          'rejected_reason': null,
-        },
+        invitations: [
+          invitation(
+            id: '9',
+            teamName: 'Thamel Tigers',
+            captainUserId: 22,
+            captainName: 'Bikash Shrestha',
+            message: 'We can arrive 15 minutes early to warm up.',
+          ),
+          invitation(
+            id: '11',
+            teamName: 'Patan Panthers',
+            captainUserId: 31,
+            captainName: 'Nabin Karki',
+            playerCount: 8,
+            minutesAgo: 1,
+          ),
+        ],
       ),
+      // A request I accepted — waiting for the requester to pick.
       request(
         id: 44,
         isMine: false,
-        status: 'accept_pending_payment',
+        status: 'invitation_sent',
         teamName: 'Lalitpur Lions',
         acceptedBy: {'user_id': 1, 'team_id': 5, 'team_name': 'My Team'},
-        payment: {
-          'status': 'pending',
-          'amount': 300,
-          'proof_url': '',
-          'rejected_reason': null,
-        },
+        invitations: [
+          invitation(
+            id: '5',
+            teamName: 'My Team',
+            captainUserId: 1,
+            captainName: 'You',
+          ),
+        ],
       ),
+      // Confirmed match: my team was selected.
       request(
         id: 45,
         isMine: false,
         status: 'accepted',
         teamName: 'Kathmandu Kings',
         acceptedBy: {'user_id': 1, 'team_id': 5, 'team_name': 'My Team'},
-        payment: {
-          'status': 'verified',
-          'amount': 300,
-          'proof_url': '',
-          'rejected_reason': null,
-        },
+        invitations: [
+          invitation(
+            id: '5',
+            teamName: 'My Team',
+            captainUserId: 1,
+            captainName: 'You',
+            status: 'selected',
+          ),
+        ],
       ),
       request(
         id: 46,
@@ -429,12 +437,6 @@ final class OpponentRequestMockDataSourceImpl
         status: 'open',
         teamName: 'Pokhara Strikers',
         deadline: now.add(const Duration(minutes: 18)),
-        payment: {
-          'status': 'rejected',
-          'amount': 300,
-          'proof_url': '',
-          'rejected_reason': 'Proof amount does not match the advance.',
-        },
       ),
     ];
   }
@@ -506,7 +508,6 @@ final class OpponentRequestMockDataSourceImpl
         'accepter_pct': 100 - pct,
         'loser_pct': data['loser_pct'],
         'accepter_share': (totalFee * (100 - pct) / 100).round(),
-        'advance_payable_now': (totalFee / 4).round(),
       },
       'message': data['message'],
       'accept_deadline': now
@@ -514,66 +515,23 @@ final class OpponentRequestMockDataSourceImpl
           .toIso8601String(),
       'created_at': now.toIso8601String(),
       'accepted_by': null,
-      'payment': null,
+      'invitations': null,
     };
     _store.insert(0, created);
     return Result.success({'data': created});
   }
 
   @override
-  Future<Result> createAcceptQuote(
-    String requestId,
-    Map<String, dynamic> data,
-  ) async {
-    await Future.delayed(const Duration(milliseconds: 600));
-    if (requestId == '409') {
+  Future<Result> accept(AcceptOpponentRequestRequest request) async {
+    await Future.delayed(const Duration(milliseconds: 700));
+    if (request.requestId == '409') {
       return Result.error(
-        DataError('This request was just accepted by another team.', 409, {
-          'message': 'This request was just accepted by another team.',
+        DataError('This request was just settled with another team.', 409, {
+          'message': 'This request was just settled with another team.',
           'error_code': 'ALREADY_ACCEPTED',
         }),
       );
     }
-    // Unknown ids (e.g. a request that DID load from the real backend)
-    // still get a plausible quote so the flow keeps working.
-    final r = _find(requestId);
-    final pricing = r == null
-        ? const {
-            'total_fee': 1200,
-            'accepter_share': 600,
-            'advance_payable_now': 300,
-          }
-        : Map<String, dynamic>.from(r['pricing'] as Map);
-    final int advance = (pricing['advance_payable_now'] as num).toInt();
-    final int share = (pricing['accepter_share'] as num).toInt();
-    return Result.success({
-      'data': {
-        'accept_hold': {
-          'token': 'ah_mock_$requestId',
-          'expires_at': DateTime.now()
-              .add(const Duration(minutes: 10))
-              .toIso8601String(),
-        },
-        'quote': {
-          'total_fee': pricing['total_fee'],
-          'accepter_share': share,
-          'advance_payable_now': advance,
-          'balance_due_later': share - advance,
-        },
-        'payment_qr': {
-          'payment_qr_media': {'full_url': _qrUrl},
-          'payee_name': 'Hamro Futsal Pvt. Ltd.',
-          'account_number': '9800000000',
-          'bank_name': 'eSewa',
-          'note': 'Pay the advance and upload the screenshot.',
-        },
-      },
-    });
-  }
-
-  @override
-  Future<Result> accept(AcceptOpponentRequestRequest request) async {
-    await Future.delayed(const Duration(milliseconds: 700));
     // Unknown ids get a synthesized row so an accept still succeeds even
     // when the request itself came from the real backend.
     final r =
@@ -584,18 +542,25 @@ final class OpponentRequestMockDataSourceImpl
           _store.insert(0, synthesized);
           return synthesized;
         })();
-    r['status'] = 'accept_pending_payment';
+    // The acceptance becomes an invitation waiting on the requester's pick.
+    r['status'] = 'invitation_sent';
     r['accepted_by'] = {
       'user_id': 1,
       'team_id': request.teamId,
       'team_name': 'My Team',
     };
-    r['payment'] = {
+    final List<dynamic> invitations = List<dynamic>.from(
+      (r['invitations'] as List<dynamic>?) ?? const <dynamic>[],
+    )..add({
+      'id': 'inv_${request.teamId}',
+      'team_id': request.teamId,
+      'team_name': 'My Team',
       'status': 'pending',
-      'amount': (r['pricing'] as Map)['advance_payable_now'],
-      'proof_url': request.paymentProofPath,
-      'rejected_reason': null,
-    };
+      'message': request.message,
+      'accepter_share': (r['pricing'] as Map)['accepter_share'],
+      'accepted_at': DateTime.now().toIso8601String(),
+    });
+    r['invitations'] = invitations;
     return Result.success({'data': r});
   }
 
@@ -615,13 +580,22 @@ final class OpponentRequestMockDataSourceImpl
   }
 
   @override
-  Future<Result> verifyPayment(String requestId) async {
+  Future<Result> selectOpponent(String requestId) async {
     await Future.delayed(const Duration(milliseconds: 400));
     final r = _find(requestId);
     if (r != null) {
       r['status'] = 'accepted';
-      final payment = r['payment'];
-      if (payment is Map) payment['status'] = 'verified';
+      // The chosen team is selected; every other invitation is rejected.
+      final invitations = r['invitations'];
+      if (invitations is List) {
+        for (final dynamic i in invitations) {
+          if (i is! Map) continue;
+          i['status'] = i['status'] == 'pending' ? 'rejected' : i['status'];
+        }
+        if (invitations.isNotEmpty && invitations.first is Map) {
+          (invitations.first as Map)['status'] = 'selected';
+        }
+      }
     }
     return Result.success({
       'data': r ?? {'id': requestId, 'status': 'accepted'},
@@ -629,23 +603,25 @@ final class OpponentRequestMockDataSourceImpl
   }
 
   @override
-  Future<Result> rejectPayment(String requestId, String reason) async {
+  Future<Result> rejectInvitation(String requestId, String reason) async {
     await Future.delayed(const Duration(milliseconds: 400));
     final r = _find(requestId);
     if (r != null) {
-      // Rejected proof re-opens the request to every team; the rejection
-      // reason stays on the payment for the accepter to see.
+      // Turning the invitation down re-opens the request to every team.
       r['status'] = 'open';
       r['accept_deadline'] = DateTime.now()
           .add(const Duration(minutes: 20))
           .toIso8601String();
       r['accepted_by'] = null;
-      r['payment'] = {
-        'status': 'rejected',
-        'amount': (r['pricing'] as Map)['advance_payable_now'],
-        'proof_url': '',
-        'rejected_reason': reason,
-      };
+      final invitations = r['invitations'];
+      if (invitations is List) {
+        for (final dynamic i in invitations) {
+          if (i is Map) {
+            i['status'] = 'rejected';
+            i['message'] = reason;
+          }
+        }
+      }
     }
     return Result.success({
       'data': r ?? {'id': requestId, 'status': 'open'},

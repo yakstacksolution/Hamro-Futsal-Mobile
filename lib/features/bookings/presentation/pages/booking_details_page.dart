@@ -222,59 +222,59 @@ class _BookingDetailsView extends StatelessWidget {
     }
   }
 
-  /// Resolves the venue owner's user id through the same hosted-by endpoint
-  /// used by the futsal details page. A booking's `vendor_id` may identify the
-  /// vendor record rather than the user accepted by the conversations API.
-  Future<void> _chatWithVenue(
+  /// The conversations API requires `vendor_id`, and it must be the booking's
+  /// vendor record id. Both booking payloads (list item and details) carry it,
+  /// and the details bloc preserves it across refreshes — so the booking is the
+  /// source of truth. The hosted-by endpoint is only a fallback for older
+  /// payloads that omit the field.
+  Future<int?> _resolveVendorId(
     BuildContext context,
     BookingModel booking,
   ) async {
+    final int? vendorId = booking.vendorId;
+    if (vendorId != null && vendorId > 0) return vendorId;
+
     final int? venueId = booking.venueId;
-    if (venueId == null || venueId <= 0) {
-      AppUtils().showSnackBar(
-        context,
-        MsgType.error,
-        'Venue information is unavailable for this booking.',
-      );
-      return;
-    }
+    if (venueId == null || venueId <= 0) return null;
 
     final result = await GetHostedByUseCase(FutsalDetailsRepositoryImpl())(
       venueId: venueId,
     );
-    if (!context.mounted) return;
+    if (!context.mounted) return null;
+    // Same id the futsal details page passes as `vendor_id` when a player
+    // messages a venue host.
+    return result.fold((_) => null, (hostedBy) => hostedBy.id);
+  }
 
-    await result.fold(
-      (failure) async =>
-          AppUtils().showSnackBar(context, MsgType.error, failure.errorMessage),
-      (hostedBy) async {
-        final int? hostUserId = hostedBy.id;
-        if (hostUserId == null || hostUserId <= 0) {
-          AppUtils().showSnackBar(
-            context,
-            MsgType.error,
-            'The venue host is unavailable for messaging.',
-          );
-          return;
-        }
-        await ChatLauncher.startDirect(
-          context,
-          vendorId: hostUserId,
-          venueId: venueId,
-        );
-      },
+  /// Customer → vendor: the venue owner is the peer, addressed by `vendor_id`.
+  Future<void> _chatWithVenue(
+    BuildContext context,
+    BookingModel booking,
+  ) async {
+    final int? vendorId = await _resolveVendorId(context, booking);
+    if (!context.mounted) return;
+    if (vendorId == null || vendorId <= 0) {
+      AppUtils().showSnackBar(
+        context,
+        MsgType.error,
+        'Vendor information is unavailable for messaging.',
+      );
+      return;
+    }
+    await ChatLauncher.startDirect(
+      context,
+      vendorId: vendorId,
+      venueId: booking.venueId,
     );
   }
 
-  /// Starts the vendor-to-customer conversation with the complete direct-chat
-  /// contract. The API still requires the venue owner's user id as
-  /// `vendor_id`, even though the other participant is supplied as `user_id`.
+  /// Vendor → customer: the peer is supplied as `user_id`, while `vendor_id`
+  /// still identifies which vendor the conversation belongs to.
   Future<void> _chatWithCustomer(
     BuildContext context,
     BookingModel booking,
   ) async {
     final int? customerId = booking.playerId;
-    final int? venueId = booking.venueId;
     if (customerId == null || customerId <= 0) {
       AppUtils().showSnackBar(
         context,
@@ -284,32 +284,22 @@ class _BookingDetailsView extends StatelessWidget {
       return;
     }
 
-    int? vendorUserId;
-    if (venueId != null && venueId > 0) {
-      final result = await GetHostedByUseCase(FutsalDetailsRepositoryImpl())(
-        venueId: venueId,
+    final int? vendorId = await _resolveVendorId(context, booking);
+    if (!context.mounted) return;
+    if (vendorId == null || vendorId <= 0) {
+      AppUtils().showSnackBar(
+        context,
+        MsgType.error,
+        'Vendor information is unavailable for messaging.',
       );
-      if (!context.mounted) return;
-      result.fold((_) {}, (hostedBy) => vendorUserId = hostedBy.id);
-    }
-    vendorUserId ??= booking.vendorId;
-    if (vendorUserId == null || vendorUserId! <= 0) {
-      if (context.mounted) {
-        AppUtils().showSnackBar(
-          context,
-          MsgType.error,
-          'Vendor information is unavailable for messaging.',
-        );
-      }
       return;
     }
 
-    if (!context.mounted) return;
     await ChatLauncher.startDirectUser(
       context,
       userId: customerId,
-      vendorId: vendorUserId,
-      venueId: venueId,
+      vendorId: vendorId,
+      venueId: booking.venueId,
     );
   }
 
@@ -526,7 +516,9 @@ class _BookingDetailsView extends StatelessWidget {
                         ),
                       ] else ...[
                         const _SectionGap(),
-                        const BookingSectionHeader(title: 'Venue Hosted by'),
+                        const BookingSectionHeader(
+                          title: StringConstants.vendor,
+                        ),
                         const _HeaderGap(),
                         _VenueHostCard(
                           booking: booking,

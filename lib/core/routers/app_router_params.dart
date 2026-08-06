@@ -154,6 +154,16 @@ class AppRouterParams {
     path: '/dashboard/venue-filter',
   );
 
+  static const RouteConfig rewards = RouteConfig(
+    name: 'rewards',
+    path: '/dashboard/rewards',
+  );
+
+  static const RouteConfig rewardHistory = RouteConfig(
+    name: 'rewardHistory',
+    path: '/dashboard/rewards/history',
+  );
+
   static const RouteConfig bookingCheckout = RouteConfig(
     name: 'bookingCheckout',
     path: '/dashboard/booking-checkout',

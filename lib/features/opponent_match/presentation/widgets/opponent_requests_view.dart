@@ -12,6 +12,8 @@ import 'package:hamro_footsall/features/opponent_match/data/model/opponent_match
 import 'package:hamro_footsall/features/opponent_match/presentation/bloc/accept_request_bloc/accept_request_bloc.dart';
 import 'package:hamro_footsall/features/opponent_match/presentation/bloc/opponent_match_bloc/opponent_match_bloc.dart';
 import 'package:hamro_footsall/features/opponent_match/presentation/pages/accept_opponent_request_page.dart';
+import 'package:hamro_footsall/features/opponent_match/presentation/pages/opponent_invitations_page.dart';
+import 'package:hamro_footsall/features/opponent_match/presentation/pages/opponent_match_details_page.dart';
 import 'package:hamro_footsall/features/opponent_match/presentation/utils/opponent_ui_utils.dart';
 import 'package:hamro_footsall/features/opponent_match/presentation/widgets/opponent_common.dart';
 import 'package:hamro_footsall/core/utils/string_constants.dart';
@@ -73,7 +75,7 @@ class OpponentRequestsView extends StatelessWidget {
   int _chatPeerId(OpponentRequestModel r) =>
       _isMine(r) ? r.acceptedByUserId : r.requesterUserId;
 
-  /// Accept → full "Accept & Pay" page (team confirm + advance payment).
+  /// Accept → the accept page (pick my team, send the acceptance).
   /// A successful accept pops with the updated request, patched in place.
   Future<void> _openAcceptFlow(
     BuildContext context,
@@ -97,6 +99,30 @@ class OpponentRequestsView extends StatelessWidget {
     if (updated != null) bloc.add(RequestAcceptedEvent(updated));
   }
 
+  /// My request → review the invitations that came in and pick one opponent.
+  void _openInvitations(BuildContext context, OpponentRequestModel request) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => BlocProvider.value(
+          value: context.read<OpponentMatchBloc>(),
+          child: OpponentInvitationsPage(requestId: request.id),
+        ),
+      ),
+    );
+  }
+
+  /// Confirmed match → the fixture both teams see, with the match chat.
+  void _openMatchDetails(BuildContext context, OpponentRequestModel request) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => BlocProvider.value(
+          value: context.read<OpponentMatchBloc>(),
+          child: OpponentMatchDetailsPage(requestId: request.id),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<OpponentMatchBloc, OpponentMatchState>(
@@ -107,20 +133,20 @@ class OpponentRequestsView extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Padding(
-              padding: EdgeInsets.fromLTRB(
-                AppDimens.paddingX20,
-                0,
-                AppDimens.paddingX20,
-                AppDimens.paddingX10,
-              ),
-              child: OpponentGuidanceCard(
-                icon: Icons.sports_soccer_rounded,
-                title: 'Find a team or respond to a challenge',
-                message:
-                    'Need Opponent shows teams you can play. My Requests shows challenges sent by your team. To accept, choose your team and pay the displayed advance by QR.',
-              ),
-            ),
+            // const Padding(
+            //   padding: EdgeInsets.fromLTRB(
+            //     AppDimens.paddingX20,
+            //     0,
+            //     AppDimens.paddingX20,
+            //     AppDimens.paddingX10,
+            //   ),
+            //   child: OpponentGuidanceCard(
+            //     icon: Icons.sports_soccer_rounded,
+            //     title: 'Find a team or respond to a challenge',
+            //     message:
+            //         'Need Opponent shows teams you can play. My Requests shows challenges sent by your team. To accept, just choose the team that will play — the court fee is settled at the venue.',
+            //   ),
+            // ),
             SizedBox(
               height: AppDimens.sizeX32,
               child: ListView.separated(
@@ -171,6 +197,12 @@ class OpponentRequestsView extends StatelessWidget {
                               : null,
                           onDelete: () =>
                               bloc.add(DeleteOpponentRequestEvent(request)),
+                          onIgnore: () =>
+                              bloc.add(DeclineRequestEvent(request)),
+                          onInvitations: () =>
+                              _openInvitations(context, request),
+                          onMatchDetails: () =>
+                              _openMatchDetails(context, request),
                           // The deadline passed on-device: re-fetch so the
                           // card reflects the server's (swept) status.
                           onExpire: () =>
@@ -193,6 +225,9 @@ class OpponentRequestCard extends StatefulWidget {
     required this.onAccept,
     required this.onDelete,
     required this.onExpire,
+    required this.onIgnore,
+    required this.onInvitations,
+    required this.onMatchDetails,
     this.onMessage,
   });
 
@@ -200,6 +235,15 @@ class OpponentRequestCard extends StatefulWidget {
   final VoidCallback onAccept;
   final VoidCallback onDelete;
   final VoidCallback onExpire;
+
+  /// Declines an incoming request so it leaves my "Need Opponent" list.
+  final VoidCallback onIgnore;
+
+  /// Opens the invitation review for a request I published.
+  final VoidCallback onInvitations;
+
+  /// Opens the confirmed-match view once an opponent is locked in.
+  final VoidCallback onMatchDetails;
 
   /// Opens a direct chat with the request's counterparty (the requester on
   /// incoming requests, the accepting captain on my own); hidden when null.
@@ -280,6 +324,25 @@ class _OpponentRequestCardState extends State<OpponentRequestCard> {
     return '$m:$s';
   }
 
+  /// Footer label for the invitation review action on my own requests.
+  String _invitationsLabel(OpponentRequestModel request) {
+    final int count = request.invitations.length;
+    if (count == 0) return 'Awaiting Invitations';
+    return count == 1 ? 'Review Invitation' : 'Review $count Invitations';
+  }
+
+  Future<void> _confirmIgnore(BuildContext context) async {
+    final bool confirmed = await showDeleteDialog(
+      context: context,
+      title: 'Ignore this request?',
+      message:
+          '${widget.request.team} will not receive an acceptance from you and '
+          'the request leaves your list.',
+      confirmText: 'Ignore',
+    );
+    if (confirmed) widget.onIgnore();
+  }
+
   Future<void> _confirmDelete(BuildContext context) async {
     final bool confirmed = await showDeleteDialog(
       context: context,
@@ -314,7 +377,13 @@ class _OpponentRequestCardState extends State<OpponentRequestCard> {
       borderRadius: BorderRadius.circular(AppDimens.radiusX14),
       child: InkWell(
         borderRadius: BorderRadius.circular(AppDimens.radiusX14),
-        onTap: () {},
+        // Tapping follows the request's stage: the confirmed match, or the
+        // invitations I still have to choose between.
+        onTap: request.isMatchConfirmed
+            ? widget.onMatchDetails
+            : _isMine(request)
+            ? widget.onInvitations
+            : null,
         onLongPress: () => _confirmDelete(context),
         child: Container(
           decoration: BoxDecoration(
@@ -444,16 +513,19 @@ class _OpponentRequestCardState extends State<OpponentRequestCard> {
                 label: priceText,
                 emphasised: true,
               ),
-              const SizedBox(height: AppDimens.paddingX12),
-              // A rejected advance re-opens the request — surface why.
-              if (request.payment?.status == OpponentPaymentStatus.rejected &&
-                  request.payment!.rejectedReason.isNotEmpty) ...[
-                _FooterNote(
-                  icon: Icons.error_outline_rounded,
-                  label: request.payment!.rejectedReason,
-                  color: LightColor.redColor,
+              if (_isMine(request) && request.invitations.isNotEmpty) ...[
+                const SizedBox(height: AppDimens.paddingX6),
+                _InfoMini(
+                  icon: Icons.groups_2_outlined,
+                  label: request.isMatchConfirmed
+                      ? 'Opponent: ${request.selectedInvitation?.teamName ?? request.acceptedByTeamName}'
+                      : '${request.invitations.length} '
+                            '${request.invitations.length == 1 ? 'team wants' : 'teams want'} '
+                            'to play — pick one',
+                  emphasised: true,
                 ),
               ],
+              const SizedBox(height: AppDimens.paddingX12),
               if (isExpired) ...[
                 const Divider(
                   height: 1,
@@ -464,41 +536,118 @@ class _OpponentRequestCardState extends State<OpponentRequestCard> {
                   icon: Icons.hourglass_disabled_rounded,
                   label: StringConstants.closedAcceptWindowExpired,
                 ),
-              ] else if (request.status == RequestStatus.paymentPending) ...[
-                const Divider(
-                  height: 1,
-                  thickness: 1,
-                  color: LightColor.dividerColor,
-                ),
-                const _FooterNote(
-                  icon: Icons.hourglass_top_rounded,
-                  label: StringConstants.advancePendingVerification,
-                  color: LightColor.warningColor,
-                ),
-              ] else if (request.status.isOpen)
-                // Incoming requests are accept-only: letting the countdown
-                // run out closes the request automatically.
+              ] else if (request.isMatchConfirmed)
+                // Match created & venue linked — both teams open the same
+                // confirmed-match view (fixture, venue, chat room).
                 Padding(
                   padding: const EdgeInsets.only(bottom: AppDimens.paddingX6),
                   child: _ActionButton(
-                    icon: Icons.qr_code_2_rounded,
-                    label: 'Accept & Pay Advance',
+                    icon: Icons.emoji_events_outlined,
+                    label: 'View Match Details',
                     foreground: LightColor.whiteColor,
                     background: LightColor.secondaryColor,
                     glow: true,
-                    onTap: widget.onAccept,
+                    onTap: widget.onMatchDetails,
+                  ),
+                )
+              else if (request.status == RequestStatus.invitationSent) ...[
+                if (_isMine(request))
+                  // A team accepted: review the invitation(s) and select the
+                  // opponent.
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: AppDimens.paddingX6),
+                    child: _ActionButton(
+                      icon: Icons.mark_email_unread_outlined,
+                      label: _invitationsLabel(request),
+                      foreground: LightColor.whiteColor,
+                      background: LightColor.secondaryColor,
+                      glow: true,
+                      onTap: widget.onInvitations,
+                    ),
+                  )
+                else ...[
+                  const Divider(
+                    height: 1,
+                    thickness: 1,
+                    color: LightColor.dividerColor,
+                  ),
+                  const _FooterNote(
+                    icon: Icons.hourglass_top_rounded,
+                    label:
+                        'Acceptance sent — waiting for the requester to '
+                        'pick an opponent',
+                    color: LightColor.secondaryColor,
+                  ),
+                ],
+              ] else if (request.status.isOpen)
+                // Accept → choose my team and send the acceptance. Ignore →
+                // the request drops off my list; the countdown closes it
+                // anyway if nobody replies.
+                Padding(
+                  padding: const EdgeInsets.only(bottom: AppDimens.paddingX6),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _ActionButton(
+                          icon: Icons.close_rounded,
+                          label: 'Ignore',
+                          foreground: LightColor.secondaryTextColor,
+                          background: LightColor.dividerColor.withValues(
+                            alpha: 0.45,
+                          ),
+                          onTap: () => _confirmIgnore(context),
+                        ),
+                      ),
+                      const SizedBox(width: AppDimens.paddingX8),
+                      Expanded(
+                        flex: 2,
+                        child: _ActionButton(
+                          icon: Icons.handshake_outlined,
+                          label: 'Accept Request',
+                          foreground: LightColor.whiteColor,
+                          background: LightColor.secondaryColor,
+                          glow: true,
+                          onTap: widget.onAccept,
+                        ),
+                      ),
+                    ],
                   ),
                 )
               else if (request.status == RequestStatus.sent)
-                // My request: still waiting on the opponent — removable.
+                // My published request: visible to eligible teams. Review the
+                // invitations as they arrive; removable until one is picked.
                 Padding(
                   padding: const EdgeInsets.only(bottom: AppDimens.paddingX6),
-                  child: _ActionButton(
-                    icon: Icons.delete_outline_rounded,
-                    label: StringConstants.removeRequestAction,
-                    foreground: LightColor.redColor,
-                    background: LightColor.redLightColor,
-                    onTap: () => _confirmDelete(context),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: _ActionButton(
+                          icon: Icons.mark_email_unread_outlined,
+                          label: _invitationsLabel(request),
+                          foreground: request.invitations.isEmpty
+                              ? LightColor.secondaryColor
+                              : LightColor.whiteColor,
+                          background: request.invitations.isEmpty
+                              ? LightColor.secondaryColor.withValues(
+                                  alpha: 0.10,
+                                )
+                              : LightColor.secondaryColor,
+                          glow: request.invitations.isNotEmpty,
+                          onTap: widget.onInvitations,
+                        ),
+                      ),
+                      const SizedBox(width: AppDimens.paddingX8),
+                      Expanded(
+                        child: _ActionButton(
+                          icon: Icons.delete_outline_rounded,
+                          label: StringConstants.remove,
+                          foreground: LightColor.redColor,
+                          background: LightColor.redLightColor,
+                          onTap: () => _confirmDelete(context),
+                        ),
+                      ),
+                    ],
                   ),
                 )
               else ...[

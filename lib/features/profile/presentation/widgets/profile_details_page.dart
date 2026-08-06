@@ -45,6 +45,13 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
   int? _avatarMediaId;
   bool _isPhotoOnlyUpdate = false;
 
+  /// The form starts read-only; the app bar's Edit action unlocks it. Cancel
+  /// restores the last values received from the profile.
+  bool _isEditing = false;
+
+  /// Last profile snapshot applied to the controllers, used to undo an edit.
+  UserData? _syncedUser;
+
   late final TextEditingController _fullnameController;
   late final TextEditingController _dobController;
   late final TextEditingController _emailController;
@@ -66,6 +73,7 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
     final UserData? user =
         context.read<ProfileBloc>().state.profile?.data ?? widget.user;
 
+    _syncedUser = user;
     _selectedGender = _resolvedGender(user);
     _dateOfBirth = user?.dateOfBirth;
     _avatarUrl = _resolvedAvatar(user);
@@ -184,6 +192,21 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
       appBar: CustomAppBar(
         title: StringConstants.personalDetails,
         centerTitle: false,
+        actions: <Widget>[
+          TextButton(
+            onPressed: _isEditing ? _cancelEditing : _startEditing,
+            child: Text(
+              _isEditing ? StringConstants.cancel : StringConstants.edit,
+              style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: _isEditing
+                    ? LightColor.secondaryTextColor
+                    : LightColor.secondaryColor,
+              ),
+            ),
+          ),
+          const SizedBox(width: AppDimens.paddingX8),
+        ],
       ),
       body: SafeArea(
         child: BlocConsumer<ProfileBloc, ProfileState>(
@@ -201,6 +224,8 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
             if (state.status == ProfileStatus.updateSuccess) {
               final bool wasPhotoOnly = _isPhotoOnlyUpdate;
               _isPhotoOnlyUpdate = false;
+              // The edit is committed — drop back to the read-only view.
+              if (!wasPhotoOnly) setState(() => _isEditing = false);
               AppUtils().showSnackBar(
                 context,
                 MsgType.success,
@@ -255,7 +280,7 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
       name: _resolvedFullName(widget.user),
       address: _resolvedAddress(widget.user),
       avatarUrl: _avatarUrl ?? '',
-      onChangeImageTap: _changeProfilePhoto,
+      onChangeImageTap: _isEditing ? _changeProfilePhoto : null,
     );
 
     final EdgeInsets padding = EdgeInsets.only(
@@ -352,6 +377,7 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
             labelText: StringConstants.fullNameSentenceCase,
             hintText: StringConstants.enterYourFullName,
             icon: Icons.person_outline_rounded,
+            readOnly: !_isEditing,
           ),
           const SizedBox(height: AppDimens.paddingX16),
           CustomTextField(
@@ -362,10 +388,10 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
             hintText: StringConstants.selectDateOfBirth,
             icon: Icons.cake_outlined,
             readOnly: true,
-            onTap: _pickDateOfBirth,
+            onTap: _isEditing ? _pickDateOfBirth : null,
             suffixIcon: GestureDetector(
               behavior: HitTestBehavior.opaque,
-              onTap: _pickDateOfBirth,
+              onTap: _isEditing ? _pickDateOfBirth : null,
               child: const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 12),
                 child: Icon(
@@ -392,6 +418,7 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
                   ),
                 )
                 .toList(),
+            enabled: _isEditing,
             onChanged: (value) {
               if (value == null) return;
               setState(() => _selectedGender = value);
@@ -427,6 +454,7 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
             labelText: StringConstants.phoneNumberSentenceCase,
             hintText: '+977 #########',
             icon: Icons.phone_outlined,
+            readOnly: !_isEditing,
           ),
           const SizedBox(height: AppDimens.paddingX16),
           CustomTextField(
@@ -439,40 +467,72 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
             labelText: StringConstants.address,
             hintText: StringConstants.enterYourAddress,
             icon: Icons.location_on_outlined,
+            readOnly: !_isEditing,
           ),
         ],
       ),
-      const SizedBox(height: AppDimens.paddingX28),
-      // Full width on a phone; capped and trailing-aligned once the column is
-      // wide, where an edge-to-edge button looks like a banner.
-      if (context.isTabletOrWider)
-        Align(
-          alignment: Alignment.centerRight,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(
-              maxWidth: AppDimens.formActionMaxWidth,
-            ),
-            child: SizedBox(
-              width: AppDimens.formActionMaxWidth,
-              child: CustomButton(
-                text: StringConstants.saveChanges,
-                isLoading: isUpdating,
-                onPressed: _onSavePressed,
+      // The save action only exists in edit mode — the read-only view has
+      // nothing to commit.
+      if (!_isEditing)
+        const SizedBox.shrink()
+      else ...<Widget>[
+        const SizedBox(height: AppDimens.paddingX28),
+        // Full width on a phone; capped and trailing-aligned once the column is
+        // wide, where an edge-to-edge button looks like a banner.
+        if (context.isTabletOrWider)
+          Align(
+            alignment: Alignment.centerRight,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                maxWidth: AppDimens.formActionMaxWidth,
+              ),
+              child: SizedBox(
+                width: AppDimens.formActionMaxWidth,
+                child: CustomButton(
+                  text: StringConstants.saveChanges,
+                  isLoading: isUpdating,
+                  onPressed: _onSavePressed,
+                ),
               ),
             ),
+          )
+        else
+          CustomButton(
+            text: StringConstants.saveChanges,
+            isLoading: isUpdating,
+            onPressed: _onSavePressed,
           ),
-        )
-      else
-        CustomButton(
-          text: StringConstants.saveChanges,
-          isLoading: isUpdating,
-          onPressed: _onSavePressed,
-        ),
+      ],
     ];
   }
 
+  void _startEditing() {
+    setState(() => _isEditing = true);
+  }
+
+  /// Discards anything typed since Edit was tapped by replaying the last
+  /// profile snapshot into the controllers.
+  void _cancelEditing() {
+    FocusScope.of(context).unfocus();
+    setState(() {
+      _isEditing = false;
+      _avatarMediaId = null;
+    });
+    _applyProfile(_syncedUser);
+  }
+
   void _syncFromProfile(UserData? user) {
+    // A background fetch must not overwrite what the user is currently typing.
+    if (_isEditing) {
+      _syncedUser = user ?? _syncedUser;
+      return;
+    }
+    _applyProfile(user);
+  }
+
+  void _applyProfile(UserData? user) {
     if (user == null) return;
+    _syncedUser = user;
     setState(() {
       _selectedGender = _resolvedGender(user);
       _dateOfBirth = user.dateOfBirth;
@@ -566,7 +626,9 @@ class _ProfileSummaryCard extends StatelessWidget {
   final String name;
   final String address;
   final String avatarUrl;
-  final VoidCallback onChangeImageTap;
+
+  /// Null while the form is read-only, which hides the button entirely.
+  final VoidCallback? onChangeImageTap;
 
   @override
   Widget build(BuildContext context) {
@@ -646,8 +708,10 @@ class _ProfileSummaryCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: AppDimens.paddingX10),
-                _ChangePhotoButton(onTap: onChangeImageTap),
+                if (onChangeImageTap != null) ...<Widget>[
+                  const SizedBox(height: AppDimens.paddingX10),
+                  _ChangePhotoButton(onTap: onChangeImageTap!),
+                ],
               ],
             ),
           ),

@@ -424,8 +424,11 @@ class CreateFootsallCourtsBloc extends ChangeNotifier {
     }
   }
 
+  /// Advance payment is a platform rule — the court policy cannot opt out, so
+  /// the flag only ever settles on true.
   void toggleRequiresAdvancePayment(bool value) {
-    _emit(_state.copyWith(requiresAdvancePayment: value));
+    if (_state.requiresAdvancePayment) return;
+    _emit(_state.copyWith(requiresAdvancePayment: true));
   }
 
   void toggleSupportsRefunds(bool value) {

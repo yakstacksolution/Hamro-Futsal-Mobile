@@ -17,6 +17,7 @@ import 'package:hamro_footsall/features/bookings/presentation/widgets/futsal_boo
 import 'package:hamro_footsall/features/bookings/presentation/widgets/my_bookings_tab.dart';
 import 'package:hamro_footsall/features/profile/presentation/profile_bloc/profile_bloc.dart';
 import 'package:hamro_footsall/core/utils/string_constants.dart';
+import 'package:hamro_footsall/features/bookings/presentation/widgets/booking_shared_widgets.dart';
 
 enum _BookingTab { futsal, mine }
 
@@ -28,7 +29,26 @@ class BookingsPage extends StatelessWidget {
     final ProfileState profileState = context.watch<ProfileBloc>().state;
     final String role =
         profileState.profile?.data.role.trim().toLowerCase() ?? '';
+
     if (role.isEmpty) {
+      // Which list to show depends on the account role, so the page waits for
+      // the profile. If that fetch failed — or came back without a role —
+      // there is nothing left to wait for, so show the error with a retry
+      // instead of spinning forever.
+      final bool fetchFailed = profileState.status == ProfileStatus.failure;
+      final bool roleMissing = profileState.profile != null;
+      if (fetchFailed || roleMissing) {
+        return BookingErrorView(
+          message: fetchFailed
+              ? (profileState.errorMessage ??
+                    'We could not load your account details, so your bookings '
+                        'cannot be shown.')
+              : 'Your account role is missing, so we cannot tell which '
+                    'bookings to show.',
+          onRetry: () =>
+              context.read<ProfileBloc>().add(const FetchProfileEvent()),
+        );
+      }
       return const Center(
         child: CircularProgressIndicator(color: LightColor.secondaryColor),
       );
@@ -56,9 +76,13 @@ class _BookingsView extends StatefulWidget {
   State<_BookingsView> createState() => _BookingsViewState();
 }
 
-class _BookingsViewState extends State<_BookingsView> {
+class _BookingsViewState extends State<_BookingsView>
+    with SingleTickerProviderStateMixin {
   _BookingTab _activeTab = _BookingTab.futsal;
-  late final PageController _pageController;
+  // A TabController keeps the bar and the view in lock-step: tapping a tab and
+  // swiping both drive the same index, so the underline, filters, date control
+  // and the walk-in FAB switch with the gesture instead of after it settles.
+  late final TabController _tabController;
   BookingStatus? _selectedFilter;
   // Newest bookings first — the most recent activity is what vendors and
   // players look for when they open the list.
@@ -101,7 +125,11 @@ class _BookingsViewState extends State<_BookingsView> {
     final DateTime now = DateTime.now();
     _futsalDate = DateTime(now.year, now.month, now.day);
     if (widget.isCandidate) _activeTab = _BookingTab.mine;
-    _pageController = PageController();
+    _tabController = TabController(
+      length: _BookingTab.values.length,
+      initialIndex: _activeTab.index,
+      vsync: this,
+    )..addListener(_handleTabChanged);
 
     // Tabs stay alive inside the dashboard's IndexedStack, so re-fetch the
     // latest bookings automatically whenever this tab becomes visible again
@@ -112,7 +140,9 @@ class _BookingsViewState extends State<_BookingsView> {
   @override
   void dispose() {
     DashboardScreen.selectedNavIndex.removeListener(_refreshOnTabVisible);
-    _pageController.dispose();
+    _tabController
+      ..removeListener(_handleTabChanged)
+      ..dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -144,15 +174,14 @@ class _BookingsViewState extends State<_BookingsView> {
 
   void _selectTab(_BookingTab tab) {
     if (widget.isCandidate || tab == _activeTab) return;
-    _pageController.animateToPage(
-      tab == _BookingTab.futsal ? 0 : 1,
-      duration: const Duration(milliseconds: 250),
-      curve: Curves.easeOut,
-    );
+    _tabController.animateTo(tab.index);
   }
 
-  void _onPageChanged(int page) {
-    final _BookingTab tab = page == 0 ? _BookingTab.futsal : _BookingTab.mine;
+  /// Single source of truth for the visible tab — fires for taps and swipes
+  /// alike, as soon as the controller commits to the new index.
+  void _handleTabChanged() {
+    if (widget.isCandidate) return;
+    final _BookingTab tab = _BookingTab.values[_tabController.index];
     if (tab == _activeTab) return;
 
     setState(() {
@@ -362,9 +391,8 @@ class _BookingsViewState extends State<_BookingsView> {
                   fromDate: _fromDate,
                   toDate: _toDate,
                 )
-              : PageView(
-                  controller: _pageController,
-                  onPageChanged: _onPageChanged,
+              : TabBarView(
+                  controller: _tabController,
                   children: [
                     FutsalBookingsTab(
                       filter: _selectedFilter,

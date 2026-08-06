@@ -10,9 +10,9 @@ import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/widgets/custom_app_bar.dart';
 import 'package:hamro_footsall/core/widgets/custom_button.dart';
 import 'package:hamro_footsall/core/widgets/custom_date_picker.dart';
-import 'package:hamro_footsall/core/widgets/custom_dropdown_field.dart';
 import 'package:hamro_footsall/core/widgets/custom_text_field.dart';
 import 'package:hamro_footsall/core/widgets/custom_time_picker_bottom_sheet.dart';
+import 'package:hamro_footsall/features/bookings/data/model/booking_model.dart';
 import 'package:hamro_footsall/features/courts_details/presentation/page/court_details.dart';
 import 'package:hamro_footsall/features/futsal_details/data/model/booking_draft.dart';
 import 'package:hamro_footsall/features/futsal_details/data/model/slots_selection_route_args.dart';
@@ -21,6 +21,7 @@ import 'package:hamro_footsall/features/opponent_match/domain/entities/opponent_
 import 'package:hamro_footsall/features/opponent_match/presentation/bloc/opponent_match_bloc/opponent_match_bloc.dart';
 import 'package:hamro_footsall/features/opponent_match/presentation/models/opponent_cost_split.dart';
 import 'package:hamro_footsall/features/opponent_match/presentation/utils/opponent_ui_utils.dart';
+import 'package:hamro_footsall/features/opponent_match/presentation/widgets/existing_booking_sheet.dart';
 import 'package:hamro_footsall/features/opponent_match/presentation/widgets/opponent_common.dart';
 import 'package:hamro_footsall/features/opponent_match/presentation/widgets/opponent_cost_split_card.dart';
 import 'package:hamro_footsall/core/utils/string_constants.dart';
@@ -30,9 +31,36 @@ import 'package:hamro_footsall/features/public/domain/usecase/get_public_venues_
 import 'package:hamro_footsall/features/public/presentation/bloc/public_venue/public_venue_bloc.dart';
 import 'package:hamro_footsall/features/opponent_match/presentation/widgets/venue_search_sheet.dart';
 
+/// "Venue already booked?" — the branch that opens the venue step.
 enum _VenuePlan { alreadyBooked, findAvailable }
 
-/// Full-page form to compose and send one opponent request.
+/// How an already-booked venue is supplied: reuse one of my bookings, or type
+/// the details of a court booked outside the app.
+enum _BookedSource { existingBooking, manual }
+
+/// The wizard steps, in the order of the opponent-request journey:
+/// team → match details → venue → cost split → publish.
+enum _Step { team, details, venue, cost, publish }
+
+extension _StepX on _Step {
+  String get title => switch (this) {
+    _Step.team => 'Your team',
+    _Step.details => 'Match details',
+    _Step.venue => 'Venue',
+    _Step.cost => 'Cost split',
+    _Step.publish => 'Publish',
+  };
+
+  String get shortLabel => switch (this) {
+    _Step.team => 'Team',
+    _Step.details => 'Match',
+    _Step.venue => 'Venue',
+    _Step.cost => 'Cost',
+    _Step.publish => 'Publish',
+  };
+}
+
+/// Full-page wizard to compose and publish one opponent request.
 ///
 /// Teams are managed on the "My Teams" tab — here you only pick one.
 /// Pops with `true` after the request is dispatched.
@@ -52,8 +80,9 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
   final _venueNameCtrl = TextEditingController();
   final _venueLocationCtrl = TextEditingController();
   final _courtFeeCtrl = TextEditingController();
-  final _preferredVenueCtrl = TextEditingController();
   late final PublicVenueBloc _publicVenueBloc;
+
+  _Step _step = _Step.team;
 
   TeamModel? _team;
   MatchFormat _format = MatchFormat.fiveASide;
@@ -64,7 +93,16 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
   DateTime _date = DateTime.now();
   TimeOfDay _time = const TimeOfDay(hour: 18, minute: 0);
   _VenuePlan _venuePlan = _VenuePlan.alreadyBooked;
+  _BookedSource _bookedSource = _BookedSource.existingBooking;
+
+  /// The booking picked on the already-booked path.
+  BookingModel? _existingBooking;
+
+  /// The venue picked on the find-available path, and the slot confirmed for
+  /// it. [_confirmedSlot] is what "Confirm venue booking" produced.
   PublicListingVenueModel? _preferredVenue;
+  BookingDraft? _confirmedSlot;
+
   SplitMode _split = SplitMode.even;
   SplitBasis _basis = SplitBasis.teams;
   int _myPercent = 50;
@@ -86,13 +124,27 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
     _venueNameCtrl.dispose();
     _venueLocationCtrl.dispose();
     _courtFeeCtrl.dispose();
-    _preferredVenueCtrl.dispose();
     _publicVenueBloc.close();
     super.dispose();
   }
 
-  /// The court fee the requester says they paid — already-booked path only.
+  // ───────────────────────────── derived state ─────────────────────────────
+
+  /// The court fee the requester typed — manual already-booked path only.
   int? get _enteredCourtFee => int.tryParse(_courtFeeCtrl.text.trim());
+
+  /// The real court fee behind the current venue choice, when one is known.
+  /// Drives the cost-split preview; for platform bookings the server still
+  /// owns the authoritative figure.
+  int? get _resolvedCourtFee {
+    if (_venuePlan == _VenuePlan.alreadyBooked) {
+      return _bookedSource == _BookedSource.existingBooking
+          ? _existingBooking?.bookingTotal.round()
+          : _enteredCourtFee;
+    }
+    final double subtotal = _confirmedSlot?.subtotal ?? 0;
+    return subtotal > 0 ? subtotal.round() : null;
+  }
 
   OpponentCostSplit get _cost => OpponentCostSplit(
     format: _format,
@@ -101,12 +153,134 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
     myPercent: _myPercent,
     loserPercent: _loserPercent,
     playerCount: _team?.players.length ?? 0,
-    // For an externally-booked court the requester's entered fee is the real
-    // amount; the format table is only the find-available fallback.
-    overrideCourtFee: _venuePlan == _VenuePlan.alreadyBooked
-        ? _enteredCourtFee
-        : null,
+    // A real booked court's fee is the actual amount; the format table is only
+    // the fallback while no venue has been settled.
+    overrideCourtFee: _resolvedCourtFee,
   );
+
+  /// Match kickoff, resolved from whichever venue branch supplied it.
+  DateTime get _kickoff {
+    final BookingModel? booking = _existingBooking;
+    if (_venuePlan == _VenuePlan.alreadyBooked &&
+        _bookedSource == _BookedSource.existingBooking &&
+        booking != null) {
+      return _combine(booking.date, _parseApiTime(booking.startTime) ?? _time);
+    }
+    final BookingDraft? slot = _confirmedSlot;
+    if (_venuePlan == _VenuePlan.findAvailable && slot != null) {
+      return _bookingDateTime(slot);
+    }
+    return _combine(_date, _time);
+  }
+
+  /// Human-readable slot for the current venue choice.
+  String get _slotLabel {
+    final BookingModel? booking = _existingBooking;
+    if (_venuePlan == _VenuePlan.alreadyBooked &&
+        _bookedSource == _BookedSource.existingBooking &&
+        booking != null) {
+      return booking.displayTimeRange;
+    }
+    final BookingDraft? slot = _confirmedSlot;
+    if (_venuePlan == _VenuePlan.findAvailable && slot != null) {
+      final String? end = slot.endTime?.trim();
+      return end == null || end.isEmpty
+          ? slot.selectedTime
+          : '${slot.selectedTime} – $end';
+    }
+    return OpponentFmt.slot(_time);
+  }
+
+  /// The venue line the request is published with; empty while unresolved.
+  String get _venueLabelText {
+    if (_venuePlan == _VenuePlan.alreadyBooked) {
+      if (_bookedSource == _BookedSource.existingBooking) {
+        final BookingModel? booking = _existingBooking;
+        if (booking == null) return '';
+        return <String>[
+          booking.courtName,
+          booking.futsalName,
+          booking.futsalAddress ?? '',
+        ].where((s) => s.trim().isNotEmpty).join(', ');
+      }
+      return <String>[
+        _venueNameCtrl.text.trim(),
+        _venueLocationCtrl.text.trim(),
+      ].where((s) => s.isNotEmpty).join(', ');
+    }
+    final PublicListingVenueModel? venue = _preferredVenue;
+    final BookingDraft? slot = _confirmedSlot;
+    if (venue == null || slot == null) return '';
+    return _venueLabel(venue, courtName: slot.courtName);
+  }
+
+  /// Whether the venue step has everything the request needs.
+  bool get _venueSettled {
+    if (_venuePlan == _VenuePlan.alreadyBooked) {
+      if (_bookedSource == _BookedSource.existingBooking) {
+        return _existingBooking != null;
+      }
+      return _venueNameCtrl.text.trim().isNotEmpty &&
+          _venueLocationCtrl.text.trim().isNotEmpty &&
+          (_enteredCourtFee ?? 0) > 0;
+    }
+    return _preferredVenue?.id != null && _confirmedSlot != null;
+  }
+
+  bool _stepComplete(_Step step) => switch (step) {
+    _Step.team => _team != null,
+    _Step.details => true,
+    _Step.venue => _venueSettled,
+    _Step.cost => true,
+    _Step.publish => true,
+  };
+
+  // ───────────────────────────── step handling ─────────────────────────────
+
+  void _goTo(_Step step) {
+    setState(() {
+      _submitted = false;
+      _step = step;
+    });
+  }
+
+  void _next() {
+    if (_step == _Step.publish) {
+      _publish();
+      return;
+    }
+    setState(() => _submitted = true);
+    if (_step == _Step.venue &&
+        _venuePlan == _VenuePlan.alreadyBooked &&
+        _bookedSource == _BookedSource.manual &&
+        !(_formKey.currentState?.validate() ?? false)) {
+      return;
+    }
+    if (!_stepComplete(_step)) {
+      AppUtils().showSnackBar(context, MsgType.info, _stepHint(_step));
+      return;
+    }
+    HapticFeedback.selectionClick();
+    _goTo(_Step.values[_step.index + 1]);
+  }
+
+  void _back() {
+    if (_step == _Step.team) {
+      Navigator.of(context).pop();
+      return;
+    }
+    _goTo(_Step.values[_step.index - 1]);
+  }
+
+  String _stepHint(_Step step) => switch (step) {
+    _Step.team => 'Select the team that will play.',
+    _Step.venue => _venuePlan == _VenuePlan.alreadyBooked
+        ? 'Select the booking that hosts this match.'
+        : 'Pick a venue, then confirm a court slot.',
+    _ => 'Complete this step to continue.',
+  };
+
+  // ───────────────────────────── venue pickers ─────────────────────────────
 
   Future<void> _pickDate() async {
     final picked = await showCustomDatePicker(
@@ -128,21 +302,113 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
     if (picked != null) setState(() => _time = picked);
   }
 
-  /// Levels come from the API; until they land (or if the fetch failed) the
-  /// static defaults keep the picker usable.
-  List<OpponentLevelModel> _levelOptions(OpponentMatchState state) =>
-      state.levels.isEmpty ? OpponentLevelModel.defaults : state.levels;
-
-  /// The active selection — the user's pick, or the first option.
-  OpponentLevelModel _resolveLevel(List<OpponentLevelModel> levels) =>
-      _level ?? levels.first;
-
   void _selectVenuePlan(_VenuePlan plan) {
-    setState(() => _venuePlan = plan);
+    setState(() {
+      _venuePlan = plan;
+      _submitted = false;
+    });
     if (plan == _VenuePlan.findAvailable &&
         _publicVenueBloc.state.status == PublicVenueStatus.idle) {
       _publicVenueBloc.add(const FetchPublicVenuesEvent());
     }
+  }
+
+  Future<void> _pickExistingBooking() async {
+    final BookingModel? booking = await showExistingBookingSheet(context);
+    if (booking == null || !mounted) return;
+    setState(() {
+      _existingBooking = booking;
+      _date = booking.date;
+      _time = _parseApiTime(booking.startTime) ?? _time;
+    });
+  }
+
+  Future<void> _pickPreferredVenue() async {
+    if (_publicVenueBloc.state.status == PublicVenueStatus.idle) {
+      _publicVenueBloc.add(const FetchPublicVenuesEvent());
+    }
+    final PublicListingVenueModel? selected = await showVenueSearchSheet(
+      context,
+      bloc: _publicVenueBloc,
+    );
+    if (selected == null || !mounted) return;
+    setState(() {
+      _preferredVenue = selected;
+      // A new venue invalidates the slot confirmed for the previous one.
+      _confirmedSlot = null;
+    });
+  }
+
+  /// Court → date & time → confirm, on the venue's live slot calendar. The
+  /// returned draft is the confirmed venue booking for this request.
+  Future<void> _confirmVenueBooking() async {
+    final PublicListingVenueModel? venue = _preferredVenue;
+    if (venue == null || venue.id == null) {
+      AppUtils().showSnackBar(
+        context,
+        MsgType.info,
+        'Select a bookable venue first.',
+      );
+      return;
+    }
+    HapticFeedback.mediumImpact();
+    final BookingDraft? booking = await context.pushNamed<BookingDraft>(
+      AppRouterParams.slotsSelection.name,
+      extra: SlotsSelectionRouteArgs(
+        court: _courtFromVenue(venue),
+        initialDate: _date,
+        initialStartTime: _apiTime(_time),
+      ),
+    );
+    if (booking == null || !mounted) return;
+    setState(() {
+      _confirmedSlot = booking;
+      _date = booking.selectedDate;
+      _time = _parseApiTime(booking.apiTime ?? '') ?? _time;
+    });
+  }
+
+  // ───────────────────────────── publish ─────────────────────────────
+
+  void _publish() {
+    setState(() => _submitted = true);
+    if (!_venueSettled) {
+      AppUtils().showSnackBar(context, MsgType.info, _stepHint(_Step.venue));
+      _goTo(_Step.venue);
+      return;
+    }
+    if (_team == null) {
+      AppUtils().showSnackBar(context, MsgType.info, _stepHint(_Step.team));
+      _goTo(_Step.team);
+      return;
+    }
+
+    if (_venuePlan == _VenuePlan.alreadyBooked) {
+      final BookingModel? booking = _existingBooking;
+      final bool fromBooking =
+          _bookedSource == _BookedSource.existingBooking && booking != null;
+      _send(
+        _request(
+          venue: _venueLabelText,
+          bookedDateTime: fromBooking ? _kickoff : null,
+          bookedSlot: fromBooking ? booking.displayTimeRange : null,
+          bookedTotalFee: fromBooking ? booking.bookingTotal.round() : null,
+          bookedEndTime: fromBooking ? booking.endTime : null,
+        ),
+      );
+      return;
+    }
+
+    final BookingDraft booking = _confirmedSlot!;
+    _send(
+      _request(
+        venue: _venueLabelText,
+        bookedDateTime: _bookingDateTime(booking),
+        bookedSlot: _slotLabel,
+        bookedTotalFee: booking.subtotal > 0 ? booking.subtotal.round() : null,
+        bookedEndTime: booking.apiEndTime,
+      ),
+    );
   }
 
   CreateOpponentRequestEntity _request({
@@ -160,9 +426,7 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
     final int yourShare = cost.isResultBased
         ? (totalFee * _loserPercent / 100).round()
         : (totalFee * (cost.myPct ?? 0) / 100).round();
-    final dateTime =
-        bookedDateTime ??
-        DateTime(_date.year, _date.month, _date.day, _time.hour, _time.minute);
+    final dateTime = bookedDateTime ?? _combine(_date, _time);
     return CreateOpponentRequestEntity(
       team: team.name,
       dateTime: dateTime,
@@ -184,7 +448,11 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
           : (cost.isResultBased ? 'custom_result' : 'custom_team'),
       loserPct: cost.isResultBased ? _loserPercent : null,
       endTime: bookedEndTime,
-      claimedTotalFee: _venuePlan == _VenuePlan.alreadyBooked
+      // Only an externally-booked court reports its own fee; for platform
+      // venues the server prices the booking itself.
+      claimedTotalFee:
+          _venuePlan == _VenuePlan.alreadyBooked &&
+              _bookedSource == _BookedSource.manual
           ? _enteredCourtFee
           : null,
     );
@@ -201,109 +469,45 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
         '${OpponentFmt.npr(totalFee)} ($percent%)';
   }
 
-  Future<void> _continue() async {
-    setState(() => _submitted = true);
-    if (_venuePlan == _VenuePlan.findAvailable &&
-        (_publicVenueBloc.state.status == PublicVenueStatus.idle ||
-            _publicVenueBloc.state.status == PublicVenueStatus.loading)) {
-      AppUtils().showSnackBar(
-        context,
-        MsgType.info,
-        'Available venues are still loading.',
-      );
-      return;
-    }
-    if (!(_formKey.currentState?.validate() ?? false)) return;
-
-    if (_venuePlan == _VenuePlan.alreadyBooked) {
-      final String venue = <String>[
-        _venueNameCtrl.text.trim(),
-        _venueLocationCtrl.text.trim(),
-      ].where((String value) => value.isNotEmpty).join(', ');
-      _send(_request(venue: venue));
-      return;
-    }
-
-    final PublicListingVenueModel? venue = _preferredVenue;
-    if (venue == null || venue.id == null) return;
-    HapticFeedback.mediumImpact();
-    final BookingDraft? booking = await context.pushNamed<BookingDraft>(
-      AppRouterParams.slotsSelection.name,
-      extra: SlotsSelectionRouteArgs(
-        court: _courtFromVenue(venue),
-        initialDate: _date,
-        initialStartTime: _apiTime(_time),
-      ),
-    );
-    if (booking == null || !mounted) return;
-
-    final DateTime bookedDateTime = _bookingDateTime(booking);
-    final String? endTime = booking.endTime?.trim();
-    final String slot = endTime == null || endTime.isEmpty
-        ? booking.selectedTime
-        : '${booking.selectedTime} – $endTime';
-    _send(
-      _request(
-        venue: _venueLabel(venue, courtName: booking.courtName),
-        bookedDateTime: bookedDateTime,
-        bookedSlot: slot,
-        bookedTotalFee: booking.subtotal > 0 ? booking.subtotal.round() : null,
-        bookedEndTime: booking.apiEndTime,
-      ),
-    );
-  }
-
   void _send(CreateOpponentRequestEntity request) {
     HapticFeedback.mediumImpact();
     context.read<OpponentMatchBloc>().add(SendOpponentRequestEvent(request));
     Navigator.of(context).pop(true);
   }
 
+  // ───────────────────────────── helpers ─────────────────────────────
+
+  /// Levels come from the API; until they land (or if the fetch failed) the
+  /// static defaults keep the picker usable.
+  List<OpponentLevelModel> _levelOptions(OpponentMatchState state) =>
+      state.levels.isEmpty ? OpponentLevelModel.defaults : state.levels;
+
+  /// The active selection — the user's pick, or the first option.
+  OpponentLevelModel _resolveLevel(List<OpponentLevelModel> levels) =>
+      _level ?? levels.first;
+
+  DateTime _combine(DateTime date, TimeOfDay time) =>
+      DateTime(date.year, date.month, date.day, time.hour, time.minute);
+
   String _apiTime(TimeOfDay time) =>
       '${time.hour.toString().padLeft(2, '0')}:'
       '${time.minute.toString().padLeft(2, '0')}';
 
-  DateTime _bookingDateTime(BookingDraft booking) {
-    final String raw = booking.apiTime ?? '';
-    final List<String> parts = raw.split(':');
-    final int hour = parts.isEmpty
-        ? _time.hour
-        : int.tryParse(parts[0]) ?? _time.hour;
-    final int minute = parts.length < 2
-        ? _time.minute
-        : int.tryParse(parts[1]) ?? _time.minute;
-    return DateTime(
-      booking.selectedDate.year,
-      booking.selectedDate.month,
-      booking.selectedDate.day,
-      hour,
-      minute,
+  /// `18:30` → 6:30 PM; null when the value isn't `HH:mm`.
+  TimeOfDay? _parseApiTime(String raw) {
+    final parts = raw.trim().split(':');
+    if (parts.length < 2) return null;
+    final int? hour = int.tryParse(parts[0]);
+    final int? minute = int.tryParse(
+      parts[1].length > 2 ? parts[1].substring(0, 2) : parts[1],
     );
+    if (hour == null || minute == null || hour > 23 || minute > 59) return null;
+    return TimeOfDay(hour: hour, minute: minute);
   }
 
-  Future<void> _pickPreferredVenue() async {
-    // Ensure the venue list is being (or has been) loaded before opening.
-    if (_publicVenueBloc.state.status == PublicVenueStatus.idle) {
-      _publicVenueBloc.add(const FetchPublicVenuesEvent());
-    }
-
-    final PublicListingVenueModel? selected = await showVenueSearchSheet(
-      context,
-      bloc: _publicVenueBloc,
-    );
-    if (selected == null || !mounted) return;
-
-    setState(() {
-      _preferredVenue = selected;
-      final String name = selected.name?.trim() ?? '';
-      final String location = selected.exactLocation?.trim().isNotEmpty == true
-          ? selected.exactLocation!.trim()
-          : selected.address?.trim() ?? '';
-      _preferredVenueCtrl.text = <String>[
-        name,
-        location,
-      ].where((String value) => value.isNotEmpty).join(', ');
-    });
+  DateTime _bookingDateTime(BookingDraft booking) {
+    final TimeOfDay time = _parseApiTime(booking.apiTime ?? '') ?? _time;
+    return _combine(booking.selectedDate, time);
   }
 
   String _venueLabel(
@@ -372,6 +576,8 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
     );
   }
 
+  // ───────────────────────────── build ─────────────────────────────
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -381,351 +587,705 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
         top: false,
         child: BlocBuilder<OpponentMatchBloc, OpponentMatchState>(
           builder: (context, state) {
-            return Form(
-              key: _formKey,
-              child: ListView(
-                physics: const BouncingScrollPhysics(),
-                padding: AppUtils().getPadding(
-                  symmetricHorizontal: AppDimens.paddingX20,
-                  top: AppDimens.paddingX6,
-                  bottom: AppDimens.paddingX28,
+            return Column(
+              children: [
+                _StepTracker(
+                  current: _step,
+                  isComplete: _stepComplete,
+                  onTap: (step) {
+                    // Only steps already satisfied can be jumped to, so the
+                    // wizard can't be skipped forward.
+                    if (step.index <= _step.index) _goTo(step);
+                  },
                 ),
-                children: [
-                  const OpponentGuidanceCard(
-                    icon: Icons.campaign_outlined,
-                    title: 'Create an opponent request',
-                    message:
-                        'Tell other teams when and where you want to play. After you send it, track the response under My Requests.',
-                  ),
-                  const SizedBox(height: AppDimens.paddingX18),
-                  const OpponentSectionLabel('Team'),
-                  OpponentCard(
-                    child: CustomDropdownField<TeamModel>(
-                      labelText: StringConstants.yourTeam,
-                      hintText: StringConstants.selectYourTeam,
-                      icon: Icons.groups_2_outlined,
-                      initialValue: _team,
-                      autovalidateMode: _submitted
-                          ? AutovalidateMode.always
-                          : AutovalidateMode.disabled,
-                      validator: (v) => v == null ? 'Pick a team' : null,
-                      onChanged: (t) => setState(() => _team = t),
-                      items: state.teams
-                          .map(
-                            (t) => DropdownMenuItem<TeamModel>(
-                              value: t,
-                              child: Text(
-                                '${t.name} · ${t.players.length} players',
-                              ),
-                            ),
-                          )
-                          .toList(),
+                Expanded(
+                  child: Form(
+                    key: _formKey,
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 180),
+                      child: ListView(
+                        key: ValueKey<_Step>(_step),
+                        physics: const BouncingScrollPhysics(),
+                        padding: AppUtils().getPadding(
+                          symmetricHorizontal: AppDimens.paddingX20,
+                          top: AppDimens.paddingX6,
+                          bottom: AppDimens.paddingX28,
+                        ),
+                        children: switch (_step) {
+                          _Step.team => _teamStep(state),
+                          _Step.details => _detailsStep(state),
+                          _Step.venue => _venueStep(),
+                          _Step.cost => _costStep(),
+                          _Step.publish => _publishStep(state),
+                        },
+                      ),
                     ),
                   ),
-                  const SizedBox(height: AppDimens.paddingX18),
-
-                  const OpponentSectionLabel('Match format'),
-                  OpponentCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const OpponentFieldLabel('Match Type'),
-                        Row(
-                          children: MatchFormat.values
-                              .map(
-                                (f) => Expanded(
-                                  child: Padding(
-                                    padding: AppUtils().getPadding(
-                                      right: AppDimens.paddingX6,
-                                    ),
-                                    child: OpponentPillChip(
-                                      label: f.label,
-                                      active: _format == f,
-                                      onTap: () => setState(() => _format = f),
-                                    ),
-                                  ),
-                                ),
-                              )
-                              .toList(),
-                        ),
-                        const SizedBox(height: AppDimens.paddingX14),
-                        const OpponentFieldLabel('Opponent Level'),
-                        Row(
-                          children: _levelOptions(state)
-                              .map(
-                                (l) => Expanded(
-                                  child: Padding(
-                                    padding: AppUtils().getPadding(
-                                      right: AppDimens.paddingX6,
-                                    ),
-                                    child: OpponentPillChip(
-                                      label: l.name,
-                                      active:
-                                          _resolveLevel(_levelOptions(state)) ==
-                                          l,
-                                      compact: true,
-                                      onTap: () => setState(() => _level = l),
-                                    ),
-                                  ),
-                                ),
-                              )
-                              .toList(),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: AppDimens.paddingX18),
-
-                  const OpponentSectionLabel('Schedule & venue'),
-                  OpponentCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        OpponentPickerRow(
-                          icon: Icons.calendar_month_outlined,
-                          label: StringConstants.matchDate,
-                          value: OpponentFmt.shortDate(_date),
-                          onTap: _pickDate,
-                        ),
-                        const OpponentRowDivider(),
-                        OpponentPickerRow(
-                          icon: Icons.schedule_outlined,
-                          label: StringConstants.matchTime,
-                          value: OpponentFmt.time(_time),
-                          onTap: _pickTime,
-                        ),
-                        const OpponentRowDivider(),
-                        const SizedBox(height: AppDimens.paddingX12),
-                        const OpponentFieldLabel('Venue arrangement'),
-                        _VenuePlanOption(
-                          title: 'I have already booked a venue',
-                          subtitle: 'Add the venue name and match location.',
-                          icon: Icons.event_available_outlined,
-                          selected: _venuePlan == _VenuePlan.alreadyBooked,
-                          onTap: () =>
-                              _selectVenuePlan(_VenuePlan.alreadyBooked),
-                        ),
-                        const SizedBox(height: AppDimens.paddingX10),
-                        _VenuePlanOption(
-                          title: 'Find an available court slot',
-                          subtitle:
-                              'Choose a venue, select a live slot, and book it.',
-                          icon: Icons.search_rounded,
-                          selected: _venuePlan == _VenuePlan.findAvailable,
-                          onTap: () =>
-                              _selectVenuePlan(_VenuePlan.findAvailable),
-                        ),
-                        const SizedBox(height: AppDimens.paddingX14),
-                        AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 180),
-                          child: _venuePlan == _VenuePlan.alreadyBooked
-                              ? Column(
-                                  key: const ValueKey<String>('booked'),
-                                  children: <Widget>[
-                                    CustomTextField(
-                                      controller: _venueNameCtrl,
-                                      labelText: 'Venue name',
-                                      hintText: 'Enter the booked venue',
-                                      icon: Icons.stadium_outlined,
-                                      textCapitalization:
-                                          TextCapitalization.words,
-                                      autovalidateMode: _submitted
-                                          ? AutovalidateMode.always
-                                          : AutovalidateMode.disabled,
-                                      validator: (String? value) =>
-                                          value?.trim().isEmpty ?? true
-                                          ? 'Enter the venue name'
-                                          : null,
-                                    ),
-                                    const SizedBox(
-                                      height: AppDimens.paddingX14,
-                                    ),
-                                    CustomTextField(
-                                      controller: _venueLocationCtrl,
-                                      labelText: 'Venue location',
-                                      hintText: 'Area, city or full address',
-                                      icon: Icons.location_on_outlined,
-                                      textCapitalization:
-                                          TextCapitalization.words,
-                                      autovalidateMode: _submitted
-                                          ? AutovalidateMode.always
-                                          : AutovalidateMode.disabled,
-                                      validator: (String? value) =>
-                                          value?.trim().isEmpty ?? true
-                                          ? 'Enter the venue location'
-                                          : null,
-                                    ),
-                                    const SizedBox(
-                                      height: AppDimens.paddingX14,
-                                    ),
-                                    CustomTextField(
-                                      controller: _courtFeeCtrl,
-                                      labelText:
-                                          StringConstants.totalCourtFeeRs,
-                                      hintText: 'What you paid for the court',
-                                      icon: Icons.payments_outlined,
-                                      keyboardType: TextInputType.number,
-                                      inputFormatters: [
-                                        FilteringTextInputFormatter.digitsOnly,
-                                      ],
-                                      // The cost-split card recomputes from
-                                      // the real fee as it's typed.
-                                      onChanged: (_) => setState(() {}),
-                                      autovalidateMode: _submitted
-                                          ? AutovalidateMode.always
-                                          : AutovalidateMode.disabled,
-                                      validator: (String? value) =>
-                                          (int.tryParse(value?.trim() ?? '') ??
-                                                  0) <=
-                                              0
-                                          ? 'Enter the total court fee'
-                                          : null,
-                                    ),
-                                  ],
-                                )
-                              : BlocBuilder<PublicVenueBloc, PublicVenueState>(
-                                  key: const ValueKey<String>('available'),
-                                  bloc: _publicVenueBloc,
-                                  builder:
-                                      (
-                                        BuildContext context,
-                                        PublicVenueState venueState,
-                                      ) {
-                                        if ((venueState.status ==
-                                                    PublicVenueStatus.idle ||
-                                                venueState.status ==
-                                                    PublicVenueStatus
-                                                        .loading) &&
-                                            venueState.venues.isEmpty) {
-                                          return const Center(
-                                            child: Padding(
-                                              padding: EdgeInsets.all(
-                                                AppDimens.paddingX12,
-                                              ),
-                                              child:
-                                                  CircularProgressIndicator(),
-                                            ),
-                                          );
-                                        }
-                                        return Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: <Widget>[
-                                            // Searchable picker — tapping
-                                            // opens a filterable venue sheet.
-                                            CustomTextField(
-                                              controller: _preferredVenueCtrl,
-                                              labelText: StringConstants
-                                                  .preferredVenue,
-                                              hintText: StringConstants
-                                                  .searchVenueToCheckSlots,
-                                              icon: Icons.stadium_outlined,
-                                              suffixIcon: const Icon(
-                                                Icons.search_rounded,
-                                                color: LightColor
-                                                    .secondaryTextColor,
-                                              ),
-                                              readOnly: true,
-                                              onTap: _pickPreferredVenue,
-                                              autovalidateMode: _submitted
-                                                  ? AutovalidateMode.always
-                                                  : AutovalidateMode.disabled,
-                                              validator: (_) =>
-                                                  _preferredVenue == null
-                                                  ? 'Select a venue'
-                                                  : _preferredVenue!.id == null
-                                                  ? 'This venue cannot be booked'
-                                                  : null,
-                                            ),
-                                            if (venueState.status ==
-                                                PublicVenueStatus
-                                                    .failure) ...<Widget>[
-                                              const SizedBox(
-                                                height: AppDimens.paddingX8,
-                                              ),
-                                              TextButton.icon(
-                                                onPressed: () =>
-                                                    _publicVenueBloc.add(
-                                                      const FetchPublicVenuesEvent(),
-                                                    ),
-                                                icon: const Icon(
-                                                  Icons.refresh_rounded,
-                                                ),
-                                                label: Text(
-                                                  venueState.errorMessage ??
-                                                      'Could not load venues. Retry',
-                                                ),
-                                              ),
-                                            ],
-                                          ],
-                                        );
-                                      },
-                                ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: AppDimens.paddingX18),
-
-                  const OpponentSectionLabel('Message'),
-                  OpponentCard(
-                    child: CustomTextField(
-                      controller: _messageCtrl,
-                      labelText: StringConstants.message,
-                      hintText: StringConstants.message,
-                      icon: Icons.chat_bubble_outline_rounded,
-                      maxLines: 3,
-                      minLines: 3,
-                      textInputAction: TextInputAction.newline,
-                      textCapitalization: TextCapitalization.sentences,
-                      isRequired: false,
-                    ),
-                  ),
-                  const SizedBox(height: AppDimens.paddingX18),
-
-                  const OpponentSectionLabel('Cost split'),
-                  OpponentCostSplitCard(
-                    cost: _cost,
-                    onSplit: (v) => setState(() => _split = v),
-                    onBasisChange: (v) => setState(() => _basis = v),
-                    onPercentChange: (v) => setState(() => _myPercent = v),
-                    onLoserPctChange: (v) => setState(() => _loserPercent = v),
-                  ),
-                  const SizedBox(height: AppDimens.paddingX8),
-                  Text(
-                    StringConstants.finalPricingConfirmedByServer,
-                    style: FutsalTheme.getTextTheme(context).bodyMiniSubTitle
-                        ?.copyWith(color: LightColor.hintTextColor),
-                  ),
-                ],
-              ),
+                ),
+              ],
             );
           },
         ),
       ),
       bottomNavigationBar: _BottomBar(
-        text: _venuePlan == _VenuePlan.alreadyBooked
-            ? StringConstants.sendOpponentRequest
-            : 'Find available slots',
-        icon: _venuePlan == _VenuePlan.alreadyBooked
-            ? Icons.send_rounded
+        text: _step == _Step.publish
+            ? 'Publish Opponent Request'
+            : 'Continue',
+        icon: _step == _Step.publish
+            ? Icons.campaign_rounded
             : Icons.arrow_forward_rounded,
-        onSend: _continue,
+        onNext: _next,
+        onBack: _back,
+        backText: _step == _Step.team ? 'Cancel' : 'Back',
+      ),
+    );
+  }
+
+  // ── Step 1: team ──
+
+  List<Widget> _teamStep(OpponentMatchState state) => <Widget>[
+    const OpponentGuidanceCard(
+      icon: Icons.groups_2_outlined,
+      title: 'Choose the team that will play',
+      message:
+          'Pick one of your teams. Its roster size drives the per-player share '
+          'shown later. Create or edit teams on the My Teams tab.',
+    ),
+    const SizedBox(height: AppDimens.paddingX18),
+    const OpponentSectionLabel('Select / create team'),
+    if (state.teams.isEmpty)
+      OpponentCard(
+        child: Text(
+          'You have no teams yet — create one on the My Teams tab first.',
+          style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
+            color: LightColor.secondaryTextColor,
+          ),
+        ),
+      )
+    else
+      ...state.teams.map(
+        (team) => Padding(
+          padding: AppUtils().getPadding(bottom: AppDimens.paddingX10),
+          child: _SelectableTile(
+            title: team.name,
+            subtitle:
+                '${team.players.length} '
+                '${team.players.length == 1 ? 'player' : 'players'}'
+                '${team.positionSummary.isEmpty ? '' : ' · ${team.positionSummary}'}',
+            icon: Icons.shield_outlined,
+            selected: team.id == _team?.id,
+            onTap: () => setState(() => _team = team),
+          ),
+        ),
+      ),
+    if (_submitted && _team == null) ...<Widget>[
+      const SizedBox(height: AppDimens.paddingX8),
+      _ValidationNote(message: _stepHint(_Step.team)),
+    ],
+  ];
+
+  // ── Step 2: match details ──
+
+  List<Widget> _detailsStep(OpponentMatchState state) => <Widget>[
+    const OpponentGuidanceCard(
+      icon: Icons.sports_soccer_rounded,
+      title: 'Enter match request details',
+      message:
+          'Tell other teams what kind of match you want. Date and time can '
+          'still change when you attach a booking in the next step.',
+    ),
+    const SizedBox(height: AppDimens.paddingX18),
+    const OpponentSectionLabel('Match format'),
+    OpponentCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const OpponentFieldLabel('Match Type'),
+          Row(
+            children: MatchFormat.values
+                .map(
+                  (f) => Expanded(
+                    child: Padding(
+                      padding: AppUtils().getPadding(
+                        right: AppDimens.paddingX6,
+                      ),
+                      child: OpponentPillChip(
+                        label: f.label,
+                        active: _format == f,
+                        onTap: () => setState(() => _format = f),
+                      ),
+                    ),
+                  ),
+                )
+                .toList(),
+          ),
+          const SizedBox(height: AppDimens.paddingX14),
+          const OpponentFieldLabel('Opponent Level'),
+          Row(
+            children: _levelOptions(state)
+                .map(
+                  (l) => Expanded(
+                    child: Padding(
+                      padding: AppUtils().getPadding(
+                        right: AppDimens.paddingX6,
+                      ),
+                      child: OpponentPillChip(
+                        label: l.name,
+                        active: _resolveLevel(_levelOptions(state)) == l,
+                        compact: true,
+                        onTap: () => setState(() => _level = l),
+                      ),
+                    ),
+                  ),
+                )
+                .toList(),
+          ),
+        ],
+      ),
+    ),
+    const SizedBox(height: AppDimens.paddingX18),
+    const OpponentSectionLabel('Preferred schedule'),
+    OpponentCard(
+      padding: EdgeInsets.zero,
+      child: Column(
+        children: [
+          OpponentPickerRow(
+            icon: Icons.calendar_month_outlined,
+            label: StringConstants.matchDate,
+            value: OpponentFmt.shortDate(_date),
+            onTap: _pickDate,
+          ),
+          const OpponentRowDivider(),
+          OpponentPickerRow(
+            icon: Icons.schedule_outlined,
+            label: StringConstants.matchTime,
+            value: OpponentFmt.time(_time),
+            onTap: _pickTime,
+          ),
+        ],
+      ),
+    ),
+  ];
+
+  // ── Step 3: venue ──
+
+  List<Widget> _venueStep() => <Widget>[
+    const OpponentGuidanceCard(
+      icon: Icons.stadium_outlined,
+      title: 'Venue already booked?',
+      message:
+          'A published request always carries a venue, so opponents know '
+          'exactly where and when they are playing.',
+    ),
+    const SizedBox(height: AppDimens.paddingX18),
+    const OpponentSectionLabel('Venue arrangement'),
+    _VenuePlanOption(
+      title: 'Yes — I already booked a venue',
+      subtitle: 'Attach one of your bookings, or enter an outside booking.',
+      icon: Icons.event_available_outlined,
+      selected: _venuePlan == _VenuePlan.alreadyBooked,
+      onTap: () => _selectVenuePlan(_VenuePlan.alreadyBooked),
+    ),
+    const SizedBox(height: AppDimens.paddingX10),
+    _VenuePlanOption(
+      title: 'No — find and book a court now',
+      subtitle: 'Browse venues, pick a court, date and time, then confirm.',
+      icon: Icons.search_rounded,
+      selected: _venuePlan == _VenuePlan.findAvailable,
+      onTap: () => _selectVenuePlan(_VenuePlan.findAvailable),
+    ),
+    const SizedBox(height: AppDimens.paddingX18),
+    if (_venuePlan == _VenuePlan.alreadyBooked)
+      ..._alreadyBookedBranch()
+    else
+      ..._findAvailableBranch(),
+  ];
+
+  List<Widget> _alreadyBookedBranch() => <Widget>[
+    const OpponentSectionLabel('Select existing booking'),
+    OpponentCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: OpponentPillChip(
+                  label: 'My bookings',
+                  active: _bookedSource == _BookedSource.existingBooking,
+                  compact: true,
+                  onTap: () => setState(
+                    () => _bookedSource = _BookedSource.existingBooking,
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppDimens.paddingX8),
+              Expanded(
+                child: OpponentPillChip(
+                  label: 'Booked elsewhere',
+                  active: _bookedSource == _BookedSource.manual,
+                  compact: true,
+                  onTap: () =>
+                      setState(() => _bookedSource = _BookedSource.manual),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppDimens.paddingX14),
+          if (_bookedSource == _BookedSource.existingBooking)
+            ..._existingBookingFields()
+          else
+            ..._manualVenueFields(),
+        ],
+      ),
+    ),
+    if (_submitted && !_venueSettled) ...<Widget>[
+      const SizedBox(height: AppDimens.paddingX8),
+      _ValidationNote(message: _stepHint(_Step.venue)),
+    ],
+  ];
+
+  List<Widget> _existingBookingFields() {
+    final BookingModel? booking = _existingBooking;
+    return <Widget>[
+      _PickerTile(
+        icon: Icons.event_available_outlined,
+        label: booking == null
+            ? 'Choose from your bookings'
+            : <String>[
+                booking.courtName,
+                booking.futsalName,
+              ].where((s) => s.trim().isNotEmpty).join(' · '),
+        value: booking == null
+            ? 'Court, date, time and fee are filled in for you'
+            : '${OpponentFmt.shortDate(booking.date)}'
+                  '${booking.displayTimeRange.isEmpty ? '' : ' · ${booking.displayTimeRange}'}'
+                  ' · ${OpponentFmt.npr(booking.bookingTotal.round())}',
+        selected: booking != null,
+        actionLabel: booking == null ? 'Select' : 'Change',
+        onTap: _pickExistingBooking,
+      ),
+      if (booking != null) ...<Widget>[
+        const SizedBox(height: AppDimens.paddingX12),
+        _ConfirmedVenueCard(
+          title: 'Booking attached',
+          venue: _venueLabelText,
+          when: OpponentFmt.friendlyDateTime(_kickoff),
+          slot: _slotLabel,
+          fee: booking.bookingTotal.round(),
+          reference: booking.bookingRef,
+        ),
+      ],
+    ];
+  }
+
+  List<Widget> _manualVenueFields() => <Widget>[
+    CustomTextField(
+      controller: _venueNameCtrl,
+      labelText: 'Venue name',
+      hintText: 'Enter the booked venue',
+      icon: Icons.stadium_outlined,
+      textCapitalization: TextCapitalization.words,
+      onChanged: (_) => setState(() {}),
+      autovalidateMode: _submitted
+          ? AutovalidateMode.always
+          : AutovalidateMode.disabled,
+      validator: (String? value) =>
+          value?.trim().isEmpty ?? true ? 'Enter the venue name' : null,
+    ),
+    const SizedBox(height: AppDimens.paddingX14),
+    CustomTextField(
+      controller: _venueLocationCtrl,
+      labelText: 'Venue location',
+      hintText: 'Area, city or full address',
+      icon: Icons.location_on_outlined,
+      textCapitalization: TextCapitalization.words,
+      onChanged: (_) => setState(() {}),
+      autovalidateMode: _submitted
+          ? AutovalidateMode.always
+          : AutovalidateMode.disabled,
+      validator: (String? value) =>
+          value?.trim().isEmpty ?? true ? 'Enter the venue location' : null,
+    ),
+    const SizedBox(height: AppDimens.paddingX14),
+    CustomTextField(
+      controller: _courtFeeCtrl,
+      labelText: StringConstants.totalCourtFeeRs,
+      hintText: 'What you paid for the court',
+      icon: Icons.payments_outlined,
+      keyboardType: TextInputType.number,
+      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+      // The cost-split preview recomputes from the real fee as it's typed.
+      onChanged: (_) => setState(() {}),
+      autovalidateMode: _submitted
+          ? AutovalidateMode.always
+          : AutovalidateMode.disabled,
+      validator: (String? value) =>
+          (int.tryParse(value?.trim() ?? '') ?? 0) <= 0
+          ? 'Enter the total court fee'
+          : null,
+    ),
+  ];
+
+  List<Widget> _findAvailableBranch() => <Widget>[
+    const OpponentSectionLabel('Browse venues'),
+    OpponentCard(
+      child: BlocBuilder<PublicVenueBloc, PublicVenueState>(
+        bloc: _publicVenueBloc,
+        builder: (context, venueState) {
+          if ((venueState.status == PublicVenueStatus.idle ||
+                  venueState.status == PublicVenueStatus.loading) &&
+              venueState.venues.isEmpty) {
+            return const Center(
+              child: Padding(
+                padding: EdgeInsets.all(AppDimens.paddingX12),
+                child: CircularProgressIndicator(
+                  color: LightColor.secondaryColor,
+                ),
+              ),
+            );
+          }
+          final PublicListingVenueModel? venue = _preferredVenue;
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              _PickerTile(
+                icon: Icons.stadium_outlined,
+                label: venue == null
+                    ? StringConstants.preferredVenue
+                    : venue.name?.trim() ?? StringConstants.preferredVenue,
+                value: venue == null
+                    ? StringConstants.searchVenueToCheckSlots
+                    : (venue.exactLocation?.trim().isNotEmpty == true
+                          ? venue.exactLocation!.trim()
+                          : venue.address?.trim() ?? ''),
+                selected: venue != null,
+                actionLabel: venue == null ? 'Search' : 'Change',
+                onTap: _pickPreferredVenue,
+              ),
+              if (venueState.status == PublicVenueStatus.failure) ...<Widget>[
+                const SizedBox(height: AppDimens.paddingX8),
+                TextButton.icon(
+                  onPressed: () =>
+                      _publicVenueBloc.add(const FetchPublicVenuesEvent()),
+                  icon: const Icon(Icons.refresh_rounded),
+                  label: Text(
+                    venueState.errorMessage ??
+                        'Could not load venues. Retry',
+                  ),
+                ),
+              ],
+              const SizedBox(height: AppDimens.paddingX14),
+              _PickerTile(
+                icon: Icons.event_seat_outlined,
+                label: 'Select court, date & time',
+                value: _confirmedSlot == null
+                    ? 'Opens the venue\'s live slot calendar'
+                    : '${_confirmedSlot!.courtName} · '
+                          '${OpponentFmt.shortDate(_confirmedSlot!.selectedDate)} · '
+                          '$_slotLabel',
+                selected: _confirmedSlot != null,
+                enabled: venue?.id != null,
+                actionLabel: _confirmedSlot == null ? 'Open' : 'Change',
+                onTap: _confirmVenueBooking,
+              ),
+            ],
+          );
+        },
+      ),
+    ),
+    if (_confirmedSlot != null) ...<Widget>[
+      const SizedBox(height: AppDimens.paddingX14),
+      _ConfirmedVenueCard(
+        title: 'Venue booking confirmed',
+        venue: _venueLabelText,
+        when: OpponentFmt.friendlyDateTime(_kickoff),
+        slot: _slotLabel,
+        fee: _confirmedSlot!.subtotal.round(),
+      ),
+    ],
+    if (_submitted && !_venueSettled) ...<Widget>[
+      const SizedBox(height: AppDimens.paddingX8),
+      _ValidationNote(message: _stepHint(_Step.venue)),
+    ],
+  ];
+
+  // ── Step 4: cost split ──
+
+  List<Widget> _costStep() => <Widget>[
+    const OpponentGuidanceCard(
+      icon: Icons.pie_chart_outline_rounded,
+      title: 'Configure the cost split rule',
+      message:
+          'Decide how the court fee is divided with the opponent. The '
+          'accepting team sees this exact rule before it pays.',
+    ),
+    const SizedBox(height: AppDimens.paddingX18),
+    const OpponentSectionLabel('Cost split'),
+    OpponentCostSplitCard(
+      cost: _cost,
+      onSplit: (v) => setState(() => _split = v),
+      onBasisChange: (v) => setState(() => _basis = v),
+      onPercentChange: (v) => setState(() => _myPercent = v),
+      onLoserPctChange: (v) => setState(() => _loserPercent = v),
+    ),
+    const SizedBox(height: AppDimens.paddingX8),
+    Text(
+      StringConstants.finalPricingConfirmedByServer,
+      style: FutsalTheme.getTextTheme(context).bodyMiniSubTitle?.copyWith(
+        color: LightColor.hintTextColor,
+      ),
+    ),
+  ];
+
+  // ── Step 5: message + publish ──
+
+  List<Widget> _publishStep(OpponentMatchState state) {
+    final cost = _cost;
+    final int totalFee = _resolvedCourtFee ?? cost.courtFee;
+    final level = _resolveLevel(_levelOptions(state));
+    return <Widget>[
+      const OpponentGuidanceCard(
+        icon: Icons.campaign_outlined,
+        title: 'Review and publish',
+        message:
+            'Once published, every eligible team can see this request and '
+            'send you an invitation. You pick the opponent you want.',
+      ),
+      const SizedBox(height: AppDimens.paddingX18),
+      const OpponentSectionLabel('Add a message (optional)'),
+      OpponentCard(
+        child: CustomTextField(
+          controller: _messageCtrl,
+          labelText: StringConstants.message,
+          hintText: StringConstants.message,
+          icon: Icons.chat_bubble_outline_rounded,
+          maxLines: 3,
+          minLines: 3,
+          textInputAction: TextInputAction.newline,
+          textCapitalization: TextCapitalization.sentences,
+          isRequired: false,
+        ),
+      ),
+      const SizedBox(height: AppDimens.paddingX18),
+      const OpponentSectionLabel('Request summary'),
+      OpponentCard(
+        child: Column(
+          children: <Widget>[
+            _SummaryRow(
+              icon: Icons.shield_outlined,
+              label: 'Team',
+              value: _team == null
+                  ? '—'
+                  : '${_team!.name} · ${_team!.players.length} players',
+              onEdit: () => _goTo(_Step.team),
+            ),
+            const SizedBox(height: AppDimens.paddingX10),
+            _SummaryRow(
+              icon: Icons.sports_soccer_rounded,
+              label: 'Match',
+              value: '${_format.label} · ${level.name}',
+              onEdit: () => _goTo(_Step.details),
+            ),
+            const SizedBox(height: AppDimens.paddingX10),
+            _SummaryRow(
+              icon: Icons.schedule_outlined,
+              label: 'Kickoff',
+              value:
+                  '${OpponentFmt.friendlyDateTime(_kickoff)}'
+                  '${_slotLabel.isEmpty ? '' : ' · $_slotLabel'}',
+              onEdit: () => _goTo(_Step.venue),
+            ),
+            const SizedBox(height: AppDimens.paddingX10),
+            _SummaryRow(
+              icon: Icons.location_on_outlined,
+              label: 'Venue',
+              value: _venueLabelText.isEmpty ? 'Not set' : _venueLabelText,
+              onEdit: () => _goTo(_Step.venue),
+            ),
+            const SizedBox(height: AppDimens.paddingX10),
+            _SummaryRow(
+              icon: Icons.payments_outlined,
+              label: 'Cost split',
+              value:
+                  '${OpponentFmt.npr(totalFee)} total · '
+                  '${cost.isResultBased ? 'Loser pays $_loserPercent%' : 'You pay ${cost.myPct ?? 0}%'}',
+              onEdit: () => _goTo(_Step.cost),
+            ),
+          ],
+        ),
+      ),
+      const SizedBox(height: AppDimens.paddingX12),
+      OpponentCard(
+        child: Row(
+          children: <Widget>[
+            const Icon(
+              Icons.visibility_outlined,
+              size: AppDimens.sizeX18,
+              color: LightColor.secondaryColor,
+            ),
+            const SizedBox(width: AppDimens.paddingX10),
+            Expanded(
+              child: Text(
+                'After publishing, the request becomes visible to all eligible '
+                'teams and their invitations arrive under My Requests.',
+                style: FutsalTheme.getTextTheme(context).bodyTextSmall
+                    ?.copyWith(
+                      color: LightColor.secondaryTextColor,
+                      height: 1.4,
+                    ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ];
+  }
+}
+
+/// Horizontal step tracker across the top of the wizard.
+class _StepTracker extends StatelessWidget {
+  const _StepTracker({
+    required this.current,
+    required this.isComplete,
+    required this.onTap,
+  });
+
+  final _Step current;
+  final bool Function(_Step) isComplete;
+  final ValueChanged<_Step> onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    return Container(
+      padding: AppUtils().getPadding(
+        symmetricHorizontal: AppDimens.paddingX16,
+        symmetricVertical: AppDimens.paddingX12,
+      ),
+      color: LightColor.cardColor,
+      child: Column(
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              for (final step in _Step.values) ...<Widget>[
+                Expanded(
+                  child: InkWell(
+                    onTap: () => onTap(step),
+                    borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+                    child: _StepDot(
+                      step: step,
+                      current: current,
+                      complete: step.index < current.index && isComplete(step),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: AppDimens.paddingX8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              Text(
+                'Step ${current.index + 1} of ${_Step.values.length} · ',
+                style: textTheme.bodyMiniSubTitle?.copyWith(
+                  color: LightColor.hintTextColor,
+                ),
+              ),
+              Text(
+                current.title,
+                style: textTheme.bodyTextSmall?.copyWith(
+                  color: LightColor.primaryTextColor,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
 }
 
+class _StepDot extends StatelessWidget {
+  const _StepDot({
+    required this.step,
+    required this.current,
+    required this.complete,
+  });
+
+  final _Step step;
+  final _Step current;
+  final bool complete;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    final bool active = step == current;
+    final Color color = active || complete
+        ? LightColor.secondaryColor
+        : LightColor.hintTextColor;
+    return Column(
+      children: <Widget>[
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          width: AppDimens.sizeX24,
+          height: AppDimens.sizeX24,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: complete || active
+                ? LightColor.secondaryColor
+                : LightColor.background,
+            shape: BoxShape.circle,
+            border: Border.all(color: color),
+          ),
+          child: complete
+              ? const Icon(
+                  Icons.check_rounded,
+                  size: 13,
+                  color: LightColor.whiteColor,
+                )
+              : Text(
+                  '${step.index + 1}',
+                  style: textTheme.bodyMiniSubTitle?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: active
+                        ? LightColor.whiteColor
+                        : LightColor.hintTextColor,
+                  ),
+                ),
+        ),
+        const SizedBox(height: AppDimens.sizeX4),
+        Text(
+          step.shortLabel,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: textTheme.bodyMiniSubTitle?.copyWith(
+            color: color,
+            fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Back + primary action footer for the wizard.
 class _BottomBar extends StatelessWidget {
   const _BottomBar({
     required this.text,
     required this.icon,
-    required this.onSend,
+    required this.onNext,
+    required this.onBack,
+    required this.backText,
   });
 
   final String text;
   final IconData icon;
-  final VoidCallback onSend;
+  final VoidCallback onNext;
+  final VoidCallback onBack;
+  final String backText;
 
   @override
   Widget build(BuildContext context) {
@@ -750,16 +1310,46 @@ class _BottomBar extends StatelessWidget {
       ),
       child: SafeArea(
         top: false,
-        child: SizedBox(
-          height: AppDimens.sizeX54,
-          width: double.infinity,
-          child: CustomButton(text: text, icon: icon, onPressed: onSend),
+        child: Row(
+          children: <Widget>[
+            Expanded(
+              child: SizedBox(
+                height: AppDimens.sizeX54,
+                child: OutlinedButton(
+                  onPressed: onBack,
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: LightColor.dividerColor),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+                    ),
+                  ),
+                  child: Text(
+                    backText,
+                    style: FutsalTheme.getTextTheme(context).bodyTextSmall
+                        ?.copyWith(
+                          color: LightColor.secondaryTextColor,
+                          fontWeight: FontWeight.w700,
+                        ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: AppDimens.paddingX12),
+            Expanded(
+              flex: 2,
+              child: SizedBox(
+                height: AppDimens.sizeX54,
+                child: CustomButton(text: text, icon: icon, onPressed: onNext),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
+/// Radio-style option row for the "venue already booked?" decision.
 class _VenuePlanOption extends StatelessWidget {
   const _VenuePlanOption({
     required this.title,
@@ -790,7 +1380,7 @@ class _VenuePlanOption extends StatelessWidget {
           decoration: BoxDecoration(
             color: selected
                 ? LightColor.secondaryColor.withValues(alpha: 0.08)
-                : LightColor.background,
+                : LightColor.cardColor,
             borderRadius: BorderRadius.circular(AppDimens.radiusX10),
             border: Border.all(
               color: selected
@@ -806,7 +1396,7 @@ class _VenuePlanOption extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: selected
                       ? LightColor.secondaryColor.withValues(alpha: 0.13)
-                      : LightColor.cardColor,
+                      : LightColor.background,
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -854,6 +1444,394 @@ class _VenuePlanOption extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Selectable card used for the team list.
+class _SelectableTile extends StatelessWidget {
+  const _SelectableTile({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(AppDimens.radiusX12),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppDimens.radiusX12),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          padding: AppUtils().getPadding(all: AppDimens.paddingX12),
+          decoration: BoxDecoration(
+            color: selected
+                ? LightColor.secondaryColor.withValues(alpha: 0.08)
+                : LightColor.cardColor,
+            borderRadius: BorderRadius.circular(AppDimens.radiusX12),
+            border: Border.all(
+              color: selected
+                  ? LightColor.secondaryColor
+                  : LightColor.dividerColor,
+            ),
+          ),
+          child: Row(
+            children: <Widget>[
+              Icon(
+                icon,
+                size: AppDimens.sizeX20,
+                color: selected
+                    ? LightColor.secondaryColor
+                    : LightColor.secondaryTextColor,
+              ),
+              const SizedBox(width: AppDimens.paddingX12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: textTheme.bodyTextMedium?.copyWith(
+                        color: LightColor.primaryTextColor,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: AppDimens.sizeX2),
+                    Text(
+                      subtitle,
+                      style: textTheme.bodyMiniSubTitle?.copyWith(
+                        color: LightColor.secondaryTextColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                selected
+                    ? Icons.radio_button_checked_rounded
+                    : Icons.radio_button_off_rounded,
+                color: selected
+                    ? LightColor.secondaryColor
+                    : LightColor.hintTextColor,
+                size: AppDimens.sizeX20,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Tap-to-open row with a trailing action label, used for the venue and
+/// booking pickers.
+class _PickerTile extends StatelessWidget {
+  const _PickerTile({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.selected,
+    required this.actionLabel,
+    required this.onTap,
+    this.enabled = true,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final bool selected;
+  final String actionLabel;
+  final VoidCallback onTap;
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    final Color accent = !enabled
+        ? LightColor.hintTextColor
+        : selected
+        ? LightColor.secondaryColor
+        : LightColor.secondaryTextColor;
+    return Opacity(
+      opacity: enabled ? 1 : 0.55,
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+        child: InkWell(
+          onTap: enabled ? onTap : null,
+          borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+          child: Container(
+            padding: AppUtils().getPadding(all: AppDimens.paddingX12),
+            decoration: BoxDecoration(
+              color: LightColor.background,
+              borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+              border: Border.all(
+                color: selected
+                    ? LightColor.secondaryColor.withValues(alpha: 0.55)
+                    : LightColor.dividerColor,
+              ),
+            ),
+            child: Row(
+              children: <Widget>[
+                Icon(icon, size: AppDimens.sizeX20, color: accent),
+                const SizedBox(width: AppDimens.paddingX12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: textTheme.bodyTextSmall?.copyWith(
+                          color: LightColor.primaryTextColor,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: AppDimens.sizeX2),
+                      Text(
+                        value,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: textTheme.bodyMiniSubTitle?.copyWith(
+                          color: LightColor.secondaryTextColor,
+                          height: 1.3,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: AppDimens.paddingX8),
+                Text(
+                  actionLabel,
+                  style: textTheme.bodyMiniSubTitle?.copyWith(
+                    color: LightColor.secondaryColor,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  size: AppDimens.sizeX18,
+                  color: LightColor.hintTextColor,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Confirmation card shown once the venue behind the request is settled.
+class _ConfirmedVenueCard extends StatelessWidget {
+  const _ConfirmedVenueCard({
+    required this.title,
+    required this.venue,
+    required this.when,
+    required this.slot,
+    required this.fee,
+    this.reference = '',
+  });
+
+  final String title;
+  final String venue;
+  final String when;
+  final String slot;
+  final int fee;
+  final String reference;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    return Container(
+      width: double.infinity,
+      padding: AppUtils().getPadding(all: AppDimens.paddingX14),
+      decoration: BoxDecoration(
+        color: LightColor.secondaryColor.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(AppDimens.radiusX12),
+        border: Border.all(
+          color: LightColor.secondaryColor.withValues(alpha: 0.35),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              const Icon(
+                Icons.check_circle_rounded,
+                size: AppDimens.sizeX18,
+                color: LightColor.secondaryColor,
+              ),
+              const SizedBox(width: AppDimens.paddingX8),
+              Text(
+                title,
+                style: textTheme.bodyTextSmall?.copyWith(
+                  color: LightColor.secondaryColor,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppDimens.paddingX10),
+          _MiniLine(icon: Icons.location_on_outlined, text: venue),
+          const SizedBox(height: AppDimens.paddingX6),
+          _MiniLine(
+            icon: Icons.schedule_outlined,
+            text: slot.isEmpty ? when : '$when · $slot',
+          ),
+          if (fee > 0) ...<Widget>[
+            const SizedBox(height: AppDimens.paddingX6),
+            _MiniLine(
+              icon: Icons.payments_outlined,
+              text: '${OpponentFmt.npr(fee)} court fee',
+            ),
+          ],
+          if (reference.trim().isNotEmpty) ...<Widget>[
+            const SizedBox(height: AppDimens.paddingX6),
+            _MiniLine(
+              icon: Icons.confirmation_number_outlined,
+              text: 'Booking ${reference.trim()}',
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _MiniLine extends StatelessWidget {
+  const _MiniLine({required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Icon(icon, size: 14, color: LightColor.secondaryTextColor),
+        const SizedBox(width: AppDimens.paddingX8),
+        Expanded(
+          child: Text(
+            text,
+            style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
+              color: LightColor.primaryTextColor,
+              fontWeight: FontWeight.w600,
+              height: 1.35,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Review row on the publish step, with a shortcut back to its step.
+class _SummaryRow extends StatelessWidget {
+  const _SummaryRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.onEdit,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final VoidCallback onEdit;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Icon(icon, size: AppDimens.sizeX18, color: LightColor.hintTextColor),
+        const SizedBox(width: AppDimens.paddingX10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                label,
+                style: textTheme.bodyMiniSubTitle?.copyWith(
+                  color: LightColor.hintTextColor,
+                ),
+              ),
+              const SizedBox(height: AppDimens.sizeX2),
+              Text(
+                value,
+                style: textTheme.bodyTextSmall?.copyWith(
+                  color: LightColor.primaryTextColor,
+                  fontWeight: FontWeight.w600,
+                  height: 1.35,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: AppDimens.paddingX8),
+        InkWell(
+          onTap: onEdit,
+          borderRadius: BorderRadius.circular(AppDimens.radiusX6),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            child: Text(
+              'Edit',
+              style: textTheme.bodyMiniSubTitle?.copyWith(
+                color: LightColor.secondaryColor,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ValidationNote extends StatelessWidget {
+  const _ValidationNote({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: <Widget>[
+        const Icon(
+          Icons.error_outline_rounded,
+          size: AppDimens.sizeX16,
+          color: LightColor.redColor,
+        ),
+        const SizedBox(width: AppDimens.paddingX6),
+        Expanded(
+          child: Text(
+            message,
+            style: FutsalTheme.getTextTheme(context).bodyMiniSubTitle?.copyWith(
+              color: LightColor.redColor,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

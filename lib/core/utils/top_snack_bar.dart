@@ -166,6 +166,8 @@ class _TopSnackBarState extends State<_TopSnackBar>
       children: <Widget>[
         Positioned(
           top: widget.padding.top,
+          left: widget.padding.left,
+          right: widget.padding.right,
           child: SlideTransition(
             position: _offsetAnimation,
             child: SafeArea(
@@ -257,7 +259,7 @@ class CustomSnackBar extends StatefulWidget {
   const CustomSnackBar.success({
     super.key,
     required this.message,
-    this.messagePadding = const EdgeInsets.symmetric(horizontal: 24),
+    this.messagePadding = const EdgeInsets.only(left: 10),
     this.textStyle = const TextStyle(
       color: LightColor.secondaryDark,
       fontSize: 12,
@@ -269,13 +271,13 @@ class CustomSnackBar extends StatefulWidget {
     this.boxShadow = kDefaultBoxShadow,
     this.borderRadius = kDefaultBorderRadius,
     this.textScaleFactor = 1.0,
-    this.textAlign = TextAlign.center,
+    this.textAlign = TextAlign.left,
     this.svgIcon = "done",
   });
 
   const CustomSnackBar.error({
     super.key,
-    this.messagePadding = const EdgeInsets.symmetric(horizontal: 24),
+    this.messagePadding = const EdgeInsets.only(left: 10),
     this.textStyle = const TextStyle(color: LightColor.redColor, fontSize: 12),
     this.color = LightColor.redColor,
     this.maxLines = 2,
@@ -283,14 +285,14 @@ class CustomSnackBar extends StatefulWidget {
     this.boxShadow = kDefaultBoxShadow,
     this.borderRadius = kDefaultBorderRadius,
     this.textScaleFactor = 1.0,
-    this.textAlign = TextAlign.center,
+    this.textAlign = TextAlign.left,
     this.svgIcon = "close",
     required this.message,
   });
 
   const CustomSnackBar.info({
     super.key,
-    this.messagePadding = const EdgeInsets.symmetric(horizontal: 24),
+    this.messagePadding = const EdgeInsets.only(left: 10),
     this.textStyle = const TextStyle(
       color: LightColor.primaryDark,
       fontSize: 12,
@@ -302,7 +304,7 @@ class CustomSnackBar extends StatefulWidget {
     this.boxShadow = kDefaultBoxShadow,
     this.borderRadius = kDefaultBorderRadius,
     this.textScaleFactor = 1.0,
-    this.textAlign = TextAlign.center,
+    this.textAlign = TextAlign.left,
     this.svgIcon = "info",
     required this.message,
   });
@@ -317,12 +319,14 @@ class CustomSnackBarState extends State<CustomSnackBar> {
     return Material(
       color: LightColor.transparentColor,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 16),
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         clipBehavior: Clip.antiAlias,
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: widget.backgroundColor,
           borderRadius: widget.borderRadius,
+          boxShadow: widget.boxShadow,
         ),
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
@@ -336,12 +340,19 @@ class CustomSnackBarState extends State<CustomSnackBar> {
                 height: AppDimens.sizeX18,
                 colorFilter: ColorFilter.mode(widget.color, BlendMode.srcIn),
               ),
-              SizedBox(width: AppDimens.sizeX8),
-              Text(
-                widget.message,
-                style: widget.textStyle,
-                textAlign: widget.textAlign,
-                textScaler: TextScaler.linear(widget.textScaleFactor),
+              Expanded(
+                child: Padding(
+                  padding: widget.messagePadding,
+                  child: Text(
+                    widget.message,
+                    maxLines: widget.maxLines,
+                    overflow: TextOverflow.ellipsis,
+                    softWrap: true,
+                    style: widget.textStyle.copyWith(height: 1.3),
+                    textAlign: widget.textAlign,
+                    textScaler: TextScaler.linear(widget.textScaleFactor),
+                  ),
+                ),
               ),
             ],
           ),

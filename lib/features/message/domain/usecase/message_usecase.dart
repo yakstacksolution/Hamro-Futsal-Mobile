@@ -5,6 +5,7 @@ import 'package:hamro_footsall/core/helper/exception_helper.dart';
 import 'package:hamro_footsall/features/message/data/model/chat_message_model.dart';
 import 'package:hamro_footsall/features/message/data/model/chat_send_request.dart';
 import 'package:hamro_footsall/features/message/data/model/conversation_model.dart';
+import 'package:hamro_footsall/features/message/data/model/message_profile_model.dart';
 import 'package:hamro_footsall/features/message/domain/repository/message_repository.dart';
 
 final class MessageUseCase {
@@ -52,6 +53,10 @@ final class MessageUseCase {
 
   Future<Either<AppException, bool>> getUserPresence(int userId) async =>
       await repository.getUserPresence(userId);
+
+  Future<Either<AppException, MessageProfileModel>> getMessageProfile(
+    int userId,
+  ) async => await repository.getMessageProfile(userId);
 
   Future<Either<AppException, bool>> setPresence(bool online) async =>
       await repository.setPresence(online);

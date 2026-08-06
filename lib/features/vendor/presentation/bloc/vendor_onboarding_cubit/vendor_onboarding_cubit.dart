@@ -727,23 +727,22 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     );
   }
 
+  /// Advance payment cannot be switched off — every court collects at least
+  /// [kMinimumAdvancePercent]% up front. Kept as a method so any remaining
+  /// caller simply re-asserts the requirement (and back-fills the defaults)
+  /// instead of disabling it.
   void toggleCourtAdvancePayment(bool value) {
     final CourtDraft? court = state.activeCourt;
     if (court == null) return;
     final AdvancePaymentType resolvedType =
-        court.advancePaymentType ?? AdvancePaymentType.flat;
-    final double? defaultPrice = value
-        ? _defaultAdvancePrice(resolvedType, court.basePrice)
-        : null;
+        court.advancePaymentType ?? AdvancePaymentType.percentage;
     updateActiveCourt(
       court.copyWith(
-        advancePaymentRequired: value,
-        advancePaymentType: value ? resolvedType : null,
-        advancePrice: defaultPrice,
-        advancePriceUserEdited: false,
-        clearAdvancePaymentType: !value,
-        clearAdvancePrice: !value || defaultPrice == null,
-        clearPaymentQr: !value,
+        advancePaymentRequired: true,
+        advancePaymentType: resolvedType,
+        advancePrice:
+            court.advancePrice ??
+            _defaultAdvancePrice(resolvedType, court.basePrice),
       ),
     );
   }
@@ -795,13 +794,15 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     );
   }
 
+  /// The advance a court starts with: [kMinimumAdvancePercent]% of the price,
+  /// which is also the lowest value the vendor may keep.
   double? _defaultAdvancePrice(AdvancePaymentType type, double? basePrice) {
     switch (type) {
       case AdvancePaymentType.flat:
         if (basePrice == null || basePrice <= 0) return null;
-        return basePrice / 2;
+        return basePrice * kMinimumAdvancePercent / 100;
       case AdvancePaymentType.percentage:
-        return 50;
+        return kMinimumAdvancePercent;
     }
   }
 

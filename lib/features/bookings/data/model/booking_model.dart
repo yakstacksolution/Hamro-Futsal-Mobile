@@ -407,10 +407,10 @@ class BookingModel extends Equatable {
       ),
       amount:
           _asDouble(
-            json['amount'] ??
-                json['total_amount'] ??
+            json['total_amount'] ??
                 json['booking_total'] ??
                 json['final_amount'] ??
+                json['amount'] ??
                 json['price'] ??
                 totals['booking_total'] ??
                 totals['total_amount'] ??
@@ -430,6 +430,9 @@ class BookingModel extends Equatable {
             vendor['user_id'],
       ),
       playerId: _asInt(
+        // In the booking-details response, top-level `user_id` is the customer
+        // who placed the booking. It must never be treated as `vendor_id`;
+        // doing so can falsely report that a customer is chatting with themself.
         json['user_id'] ??
             json['player_id'] ??
             json['customer_id'] ??
@@ -520,6 +523,7 @@ class BookingModel extends Equatable {
     'court_id': courtId,
     'vendor_id': vendorId,
     'user_id': playerId,
+    'player_id': playerId,
     'player_name': playerName,
     'player_phone': playerPhone,
     'player_email': playerEmail,

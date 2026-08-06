@@ -46,6 +46,8 @@ import 'package:hamro_footsall/features/profile/presentation/pages/feedback_deta
 import 'package:hamro_footsall/features/profile/presentation/pages/feedback_page.dart';
 import 'package:hamro_footsall/features/profile/presentation/pages/my_feedback_page.dart';
 import 'package:hamro_footsall/features/profile/presentation/pages/settings_page.dart';
+import 'package:hamro_footsall/features/rewards/presentation/pages/reward_history_page.dart';
+import 'package:hamro_footsall/features/rewards/presentation/pages/rewards_page.dart';
 import 'package:hamro_footsall/features/products/presentation/pages/products_screen.dart';
 import 'package:hamro_footsall/features/public/presentation/models/venue_filter.dart';
 import 'package:hamro_footsall/features/public/presentation/pages/venue_filter_page.dart';
@@ -293,6 +295,18 @@ class AppRouters {
           name: AppRouterParams.account.name,
           path: AppRouterParams.account.path,
           builder: (context, state) => const AccountScreen(),
+        ),
+
+        GoRoute(
+          name: AppRouterParams.rewards.name,
+          path: AppRouterParams.rewards.path,
+          builder: (context, state) => const RewardsPage(),
+        ),
+
+        GoRoute(
+          name: AppRouterParams.rewardHistory.name,
+          path: AppRouterParams.rewardHistory.path,
+          builder: (context, state) => RewardHistoryPage.standalone(),
         ),
 
         GoRoute(

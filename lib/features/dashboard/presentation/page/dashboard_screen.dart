@@ -2,7 +2,6 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:hamro_footsall/core/helper/venue_distance_helper.dart';
 import 'package:hamro_footsall/core/socket/reverb_connection.dart';
 import 'package:hamro_footsall/features/bookings/presentation/pages/bookings_page.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/page/footsall_home_page.dart';
@@ -23,6 +22,7 @@ import 'package:hamro_footsall/features/dashboard/presentation/widgets/search_ba
 import 'package:hamro_footsall/features/public/presentation/models/venue_filter.dart';
 import 'package:hamro_footsall/features/profile/presentation/profile_bloc/profile_bloc.dart';
 import 'package:hamro_footsall/features/profile/presentation/pages/profile_page.dart';
+import 'package:hamro_footsall/core/helper/device_location_helper.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -47,8 +47,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void initState() {
     super.initState();
     ReverbConnection.instance.connect();
-    VenueDistanceHelper.instance.ensurePosition();
+    DeviceLocationHelper.instance.ensurePosition();
     _refreshNotificationBadge();
+    _selectedNavIndexNotifier.addListener(_onNavIndexChanged);
+  }
+
+  /// Leaving the home tab drops the search term.
+  ///
+  /// The search field lives in the home header, which is torn down while
+  /// another tab is showing, so its text is gone when the user comes back.
+  /// Clearing the term with it keeps the two in step: an empty field means the
+  /// full venue list, which is re-fetched right away (the home tab stays alive
+  /// inside the IndexedStack, so it sees the new filter immediately).
+  void _onNavIndexChanged() {
+    if (_selectedNavIndexNotifier.value == 0) return;
+    final VenueFilter filter = _venueFilterNotifier.value;
+    if (filter.search == null) return;
+    _venueFilterNotifier.value = filter.copyWith(clearSearch: true);
   }
 
   Future<void> _refreshNotificationBadge() async {
@@ -113,7 +128,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   VenueFilter _withCurrentLocation(VenueFilter filter) {
-    final position = VenueDistanceHelper.instance.position.value;
+    final position = DeviceLocationHelper.instance.position.value;
     if (position == null) {
       return filter.copyWith(clearLocation: true, clearRadius: true);
     }
@@ -218,6 +233,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   void dispose() {
+    // The nav-index notifier is static and shared, so only the listener goes.
+    _selectedNavIndexNotifier.removeListener(_onNavIndexChanged);
     _venueFilterNotifier.dispose();
     super.dispose();
   }

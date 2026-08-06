@@ -51,9 +51,8 @@ class CourtBookingPaymentSection extends StatelessWidget {
           ),
           const SizedBox(height: AppDimens.sizeX12),
           if (subsectionIndex == 0)
-            _AdvancePaymentToggleSection(
+            _AdvancePaymentSection(
               court: court,
-              onChanged: cubit.toggleCourtAdvancePayment,
               onTypeChanged: cubit.setCourtAdvancePaymentType,
               onPriceChanged: (String raw) =>
                   cubit.setCourtAdvancePrice(parseDouble(raw)),
@@ -110,32 +109,28 @@ class _CourtPaymentSectionMeta {
   final IconData icon;
 }
 
-class _AdvancePaymentToggleSection extends StatefulWidget {
-  const _AdvancePaymentToggleSection({
+class _AdvancePaymentSection extends StatefulWidget {
+  const _AdvancePaymentSection({
     required this.court,
-    required this.onChanged,
     required this.onTypeChanged,
     required this.onPriceChanged,
   });
 
   final CourtDraft court;
-  final ValueChanged<bool> onChanged;
   final ValueChanged<AdvancePaymentType> onTypeChanged;
   final ValueChanged<String> onPriceChanged;
 
   @override
-  State<_AdvancePaymentToggleSection> createState() =>
-      _AdvancePaymentToggleSectionState();
+  State<_AdvancePaymentSection> createState() => _AdvancePaymentSectionState();
 }
 
-class _AdvancePaymentToggleSectionState
-    extends State<_AdvancePaymentToggleSection> {
+class _AdvancePaymentSectionState extends State<_AdvancePaymentSection> {
   late final TextEditingController _priceController = TextEditingController(
     text: formatDouble(widget.court.advancePrice),
   );
 
   @override
-  void didUpdateWidget(covariant _AdvancePaymentToggleSection oldWidget) {
+  void didUpdateWidget(covariant _AdvancePaymentSection oldWidget) {
     super.didUpdateWidget(oldWidget);
     final String desired = formatDouble(widget.court.advancePrice);
     // Only sync the field from state when the value didn't come from the
@@ -155,21 +150,38 @@ class _AdvancePaymentToggleSectionState
     super.dispose();
   }
 
+  String get _minimumPercentLabel => kMinimumAdvancePercent.toStringAsFixed(0);
+
+  /// The lowest flat amount allowed for this court: the minimum share of the
+  /// base price. Null while no base price has been entered.
+  double? get _minimumFlatAmount {
+    final double? base = widget.court.basePrice;
+    if (base == null || base <= 0) return null;
+    return base * kMinimumAdvancePercent / 100;
+  }
+
   String? _priceError() {
     final CourtDraft court = widget.court;
-    if (!court.advancePaymentRequired) return null;
     final AdvancePaymentType? type = court.advancePaymentType;
     final double? price = court.advancePrice;
     if (type == null) return null;
-    if (price == null) return null;
+    if (price == null) return 'Enter the advance amount.';
     if (price <= 0) return 'Amount must be greater than zero.';
-    if (type == AdvancePaymentType.percentage && price > 100) {
-      return 'Percentage cannot exceed 100.';
+    if (type == AdvancePaymentType.percentage) {
+      if (price < kMinimumAdvancePercent) {
+        return 'The advance must be at least $_minimumPercentLabel%.';
+      }
+      if (price > 100) return 'Percentage cannot exceed 100.';
     }
     if (type == AdvancePaymentType.flat) {
       final double? base = court.basePrice;
       if (base != null && price > base) {
         return 'Flat amount cannot exceed the base price (${formatDouble(base)}).';
+      }
+      final double? minimum = _minimumFlatAmount;
+      if (minimum != null && price < minimum) {
+        return 'The advance must be at least $_minimumPercentLabel% of the '
+            'base price (${formatDouble(minimum)}).';
       }
     }
     return null;
@@ -178,12 +190,14 @@ class _AdvancePaymentToggleSectionState
   String _priceHint(AdvancePaymentType? type) {
     switch (type) {
       case AdvancePaymentType.percentage:
-        return 'Enter a percentage from 0 to 100';
+        return 'Minimum $_minimumPercentLabel%, up to 100%';
       case AdvancePaymentType.flat:
+        final double? minimum = _minimumFlatAmount;
         final double? base = widget.court.basePrice;
-        return base == null
-            ? 'Enter the flat advance amount'
-            : 'Up to ${formatDouble(base)}';
+        if (minimum == null || base == null) {
+          return 'Enter the flat advance amount';
+        }
+        return 'From ${formatDouble(minimum)} to ${formatDouble(base)}';
       case null:
         return 'Enter the advance amount';
     }
@@ -198,65 +212,82 @@ class _AdvancePaymentToggleSectionState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
+        // Advance payment is a platform rule, not a per-court choice: the row
+        // states the requirement instead of offering a switch.
         Container(
           padding: AppUtils().getPadding(all: AppDimens.paddingX12),
           decoration: BoxDecoration(
+            color: LightColor.secondaryColor.withValues(alpha: 0.07),
             borderRadius: BorderRadius.circular(AppDimens.radiusX10),
-            border: Border.all(color: LightColor.borderColor, width: 0.7),
+            border: Border.all(
+              color: LightColor.secondaryColor.withValues(alpha: 0.35),
+              width: 0.7,
+            ),
           ),
           child: Row(
             children: <Widget>[
-              Expanded(
-                child: Text(
-                  StringConstants.advancePaymentRequired,
-                  style: textTheme.bodyTextMedium?.copyWith(
-                    color: LightColor.primaryTextColor,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
+              const Icon(
+                Icons.lock_rounded,
+                size: AppDimens.sizeX18,
+                color: LightColor.secondaryColor,
               ),
-              VendorSwitchButton(
-                value: court.advancePaymentRequired,
-                onChanged: widget.onChanged,
+              const SizedBox(width: AppDimens.sizeX10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      StringConstants.advancePaymentRequired,
+                      style: textTheme.bodyTextMedium?.copyWith(
+                        color: LightColor.primaryTextColor,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: AppDimens.sizeX2),
+                    Text(
+                      'Every court collects an advance of at least '
+                      '$_minimumPercentLabel% before a booking is confirmed.',
+                      style: textTheme.bodyTextSmall?.copyWith(
+                        color: LightColor.secondaryTextColor,
+                        height: 1.3,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
         ),
-        if (court.advancePaymentRequired) ...<Widget>[
-          const SizedBox(height: AppDimens.sizeX16),
+        const SizedBox(height: AppDimens.sizeX16),
+        Text(
+          StringConstants.advancePaymentType,
+          style: textTheme.bodyTextSmall?.copyWith(
+            color: LightColor.primaryTextColor,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: AppDimens.sizeX8),
+        _AdvanceTypeSelector(selected: type, onSelected: widget.onTypeChanged),
+        const SizedBox(height: AppDimens.sizeX16),
+        VendorInputField(
+          controller: _priceController,
+          initialValue: '',
+          label: type == AdvancePaymentType.percentage
+              ? 'Advance percentage (%)'
+              : 'Advance amount',
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          hintText: _priceHint(type),
+          onChanged: widget.onPriceChanged,
+        ),
+        if (error != null) ...<Widget>[
+          const SizedBox(height: AppDimens.sizeX6),
           Text(
-            StringConstants.advancePaymentType,
+            error,
             style: textTheme.bodyTextSmall?.copyWith(
-              color: LightColor.primaryTextColor,
-              fontWeight: FontWeight.w600,
+              color: LightColor.redColor,
+              fontWeight: FontWeight.w500,
             ),
           ),
-          const SizedBox(height: AppDimens.sizeX8),
-          _AdvanceTypeSelector(
-            selected: type,
-            onSelected: widget.onTypeChanged,
-          ),
-          const SizedBox(height: AppDimens.sizeX16),
-          VendorInputField(
-            controller: _priceController,
-            initialValue: '',
-            label: type == AdvancePaymentType.percentage
-                ? 'Advance percentage (%)'
-                : 'Advance amount',
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            hintText: _priceHint(type),
-            onChanged: widget.onPriceChanged,
-          ),
-          if (error != null) ...<Widget>[
-            const SizedBox(height: AppDimens.sizeX6),
-            Text(
-              error,
-              style: textTheme.bodyTextSmall?.copyWith(
-                color: LightColor.redColor,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
         ],
       ],
     );

@@ -1,35 +1,25 @@
-/// Everything sent to `POST /opponent-requests/{id}/accept` (multipart).
+/// Everything sent to `POST /opponent-requests/{id}/accept`.
 ///
-/// Deliberately carries NO amount fields — the advance is bound server-side
-/// to [holdToken], so a tampered client cannot change what it owes.
+/// Accepting is free: it only tells the requester which of my teams wants to
+/// play. No hold token, no advance, no payment proof — the court fee is
+/// settled with the venue, and the requester still has to pick an opponent.
 class AcceptOpponentRequestRequest {
   const AcceptOpponentRequestRequest({
     required this.requestId,
     required this.teamId,
-    required this.holdToken,
-    required this.paymentProofPath,
-    this.paymentMethod = 'qr',
-    this.paymentNote,
+    this.message,
   });
 
   final String requestId;
 
-  /// The accepter's team confirmed on the team-confirmation step.
+  /// The accepter's team confirmed on the accept screen.
   final String teamId;
 
-  /// Single-use accept-hold token from the accept quote.
-  final String holdToken;
-  final String paymentMethod;
-  final String? paymentNote;
+  /// Optional note the accepting captain sends with the acceptance.
+  final String? message;
 
-  /// Local file path of the payment-proof screenshot; attached as the
-  /// `payment_proof` multipart file in the data source.
-  final String paymentProofPath;
-
-  Map<String, dynamic> toFields() => {
-    'accept_hold_token': holdToken,
+  Map<String, dynamic> toFields() => <String, dynamic>{
     'team_id': teamId,
-    'payment_method': paymentMethod,
-    'payment_note': paymentNote,
+    'message': message,
   };
 }

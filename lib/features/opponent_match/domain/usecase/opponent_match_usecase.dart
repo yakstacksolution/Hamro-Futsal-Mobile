@@ -1,7 +1,6 @@
 import 'package:dartz/dartz.dart';
 import 'package:hamro_footsall/core/helper/exception_helper.dart';
 import 'package:hamro_footsall/features/opponent_match/data/model/accept_opponent_request_request.dart';
-import 'package:hamro_footsall/features/opponent_match/data/model/opponent_accept_quote_model.dart';
 import 'package:hamro_footsall/features/opponent_match/data/model/opponent_match_model.dart';
 import 'package:hamro_footsall/features/opponent_match/domain/entities/opponent_match_entities.dart';
 import 'package:hamro_footsall/features/opponent_match/domain/repository/opponent_match_repository.dart';
@@ -68,19 +67,14 @@ final class OpponentMatchUseCase {
     String id,
   ) async => await repository.deleteRequest(id);
 
-  Future<Either<AppException, List<OpponentRequestModel>>> verifyPayment(
+  Future<Either<AppException, List<OpponentRequestModel>>> selectOpponent(
     String id,
-  ) async => await repository.verifyPayment(id);
+  ) async => await repository.selectOpponent(id);
 
-  Future<Either<AppException, List<OpponentRequestModel>>> rejectPayment(
+  Future<Either<AppException, List<OpponentRequestModel>>> rejectInvitation(
     String id,
     String reason,
-  ) async => await repository.rejectPayment(id, reason);
-
-  Future<Either<AppException, OpponentAcceptQuoteModel>> getAcceptQuote(
-    String requestId,
-    String teamId,
-  ) async => await repository.getAcceptQuote(requestId, teamId);
+  ) async => await repository.rejectInvitation(id, reason);
 
   Future<Either<AppException, OpponentRequestModel>> acceptRequest(
     AcceptOpponentRequestRequest request,

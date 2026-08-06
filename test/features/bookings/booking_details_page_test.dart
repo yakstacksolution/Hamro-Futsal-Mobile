@@ -70,7 +70,7 @@ void main() {
       260,
       scrollable: find.byType(Scrollable).last,
     );
-    expect(find.text('Venue Hosted by'), findsOneWidget);
+    expect(find.text('Vendor'), findsOneWidget);
     expect(find.byKey(const Key('chat-venue-button')), findsOneWidget);
     expect(find.text('Discount (FIRSTBOOK)'), findsOneWidget);
     expect(find.text('NPR 1080'), findsOneWidget);

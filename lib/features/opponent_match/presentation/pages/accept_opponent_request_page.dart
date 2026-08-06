@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -12,10 +11,8 @@ import 'package:hamro_footsall/core/utils/string_constants.dart';
 import 'package:hamro_footsall/core/widgets/custom_app_bar.dart';
 import 'package:hamro_footsall/core/widgets/custom_button.dart';
 import 'package:hamro_footsall/core/widgets/custom_text_field.dart';
-import 'package:hamro_footsall/core/widgets/payment_qr_card.dart';
 import 'package:hamro_footsall/features/message/presentation/pages/chat_launcher.dart';
 import 'package:hamro_footsall/features/opponent_match/data/model/accept_opponent_request_request.dart';
-import 'package:hamro_footsall/features/opponent_match/data/model/opponent_accept_quote_model.dart';
 import 'package:hamro_footsall/features/opponent_match/data/model/opponent_match_model.dart';
 import 'package:hamro_footsall/features/opponent_match/presentation/bloc/accept_request_bloc/accept_request_bloc.dart';
 import 'package:hamro_footsall/features/opponent_match/presentation/bloc/opponent_match_bloc/opponent_match_bloc.dart';
@@ -23,11 +20,9 @@ import 'package:hamro_footsall/features/opponent_match/presentation/models/oppon
 import 'package:hamro_footsall/features/opponent_match/presentation/utils/opponent_ui_utils.dart';
 import 'package:hamro_footsall/features/opponent_match/presentation/widgets/opponent_common.dart';
 
-/// Two-step "Accept & Pay" flow for an incoming opponent request:
-///
-/// 1. Pick which of my teams plays (roster + per-player share preview).
-/// 2. Pay the server-quoted advance — QR + payment-proof upload — inside the
-///    accept hold's countdown, then submit.
+/// The opponent team's side of the flow: view the request, select your own
+/// team, and send the acceptance. No money changes hands here — the requester
+/// receives it as an invitation and picks one opponent.
 ///
 /// Pops with the updated [OpponentRequestModel] on success; the caller feeds
 /// it back to the list via [RequestAcceptedEvent].
@@ -42,14 +37,11 @@ class AcceptOpponentRequestPage extends StatefulWidget {
 }
 
 class _AcceptOpponentRequestPageState extends State<AcceptOpponentRequestPage> {
-  static const List<String> _docExtensions = ['jpg', 'jpeg', 'png', 'pdf'];
-  static const int _maxDocBytes = 10 * 1024 * 1024;
-
   final _noteCtrl = TextEditingController();
 
   TeamModel? _team;
-  PlatformFile? _paymentDoc;
-  bool _agreedToTerms = false;
+  Timer? _ticker;
+  Duration _remaining = Duration.zero;
 
   @override
   void initState() {
@@ -58,12 +50,36 @@ class _AcceptOpponentRequestPageState extends State<AcceptOpponentRequestPage> {
     if (teams.isEmpty) {
       context.read<OpponentMatchBloc>().add(const LoadTeamsEvent());
     }
+    _tick();
+    _ticker = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
   }
 
   @override
   void dispose() {
+    _ticker?.cancel();
     _noteCtrl.dispose();
     super.dispose();
+  }
+
+  /// Countdown on the request's own accept window (server-owned). Nothing to
+  /// do with payments — it is simply how long the request stays open.
+  void _tick() {
+    final DateTime? deadline = widget.request.acceptDeadline;
+    if (deadline == null) return;
+    final Duration remaining = deadline.difference(DateTime.now());
+    if (remaining.inSeconds <= 0) {
+      _ticker?.cancel();
+      _ticker = null;
+      if (mounted) setState(() => _remaining = Duration.zero);
+      return;
+    }
+    if (mounted) setState(() => _remaining = remaining);
+  }
+
+  String get _remainingLabel {
+    final m = _remaining.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final s = _remaining.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return '$m:$s';
   }
 
   /// `5v5` → 5; 0 when the request carries no parsable format.
@@ -72,8 +88,8 @@ class _AcceptOpponentRequestPageState extends State<AcceptOpponentRequestPage> {
     return int.tryParse(match?.group(1) ?? '') ?? 0;
   }
 
-  void _continueToPayment() {
-    final team = _team;
+  void _sendAcceptance() {
+    final TeamModel? team = _team;
     if (team == null) {
       AppUtils().showSnackBar(
         context,
@@ -84,67 +100,19 @@ class _AcceptOpponentRequestPageState extends State<AcceptOpponentRequestPage> {
     }
     HapticFeedback.mediumImpact();
     context.read<AcceptOpponentRequestBloc>().add(
-      LoadAcceptQuoteEvent(requestId: widget.request.id, teamId: team.id),
-    );
-  }
-
-  Future<void> _pickPaymentDoc() async {
-    final FilePickerResult? result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: _docExtensions,
-    );
-    final PlatformFile? file = result?.files.singleOrNull;
-    if (file == null || !mounted || file.path == null) return;
-    if (file.size > _maxDocBytes) {
-      AppUtils().showSnackBar(
-        context,
-        MsgType.error,
-        'Payment proof must be smaller than 10 MB.',
-        key: 'doc_too_large',
-      );
-      return;
-    }
-    setState(() => _paymentDoc = file);
-  }
-
-  void _submit(OpponentAcceptQuoteModel quote) {
-    if (_paymentDoc?.path == null) {
-      AppUtils().showSnackBar(
-        context,
-        MsgType.error,
-        'Please upload your payment proof.',
-        key: 'doc_required',
-      );
-      return;
-    }
-    if (!_agreedToTerms) {
-      AppUtils().showSnackBar(
-        context,
-        MsgType.error,
-        'Please accept the advance-payment policy.',
-        key: 'terms_required',
-      );
-      return;
-    }
-    HapticFeedback.mediumImpact();
-    context.read<AcceptOpponentRequestBloc>().add(
       SubmitAcceptEvent(
         AcceptOpponentRequestRequest(
           requestId: widget.request.id,
-          teamId: _team?.id ?? '',
-          holdToken: quote.holdToken,
-          paymentProofPath: _paymentDoc!.path!,
-          paymentNote: _noteCtrl.text.trim().isEmpty
-              ? null
-              : _noteCtrl.text.trim(),
+          teamId: team.id,
+          message: _noteCtrl.text.trim().isEmpty ? null : _noteCtrl.text.trim(),
         ),
       ),
     );
   }
 
-  /// 409 (taken by another team) and 410 (expired) end the flow — tell the
-  /// user, pop, and let the list refresh to the server's truth.
-  void _handleTerminalError(AcceptRequestState state) {
+  /// 409 (already settled with another team) and 410 (expired) end the flow —
+  /// tell the user, pop, and let the list refresh to the server's truth.
+  void _handleError(AcceptRequestState state) {
     final String message = switch (state.errorStatusCode) {
       409 =>
         state.errorMessage ?? StringConstants.requestJustAcceptedByAnotherTeam,
@@ -157,31 +125,16 @@ class _AcceptOpponentRequestPageState extends State<AcceptOpponentRequestPage> {
     if (terminal) Navigator.of(context).pop();
   }
 
-  void _onHoldExpired() {
-    AppUtils().showSnackBar(
-      context,
-      MsgType.info,
-      'The payment window expired — please confirm your team again.',
-      key: 'hold_expired',
-    );
-    setState(() {
-      _paymentDoc = null;
-      _agreedToTerms = false;
-    });
-    context.read<AcceptOpponentRequestBloc>().add(
-      const ResetAcceptQuoteEvent(),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
+    final bool showCountdown =
+        widget.request.acceptDeadline != null && _remaining.inSeconds > 0;
     return Scaffold(
       backgroundColor: LightColor.background,
       appBar: CustomAppBar(
-        title: StringConstants.acceptAndPay,
+        title: 'Accept request',
         actions: [
-          // Vet the requester (confirm squad, timing, split) before paying
-          // the advance.
+          // Vet the requester (confirm squad, timing, split) before accepting.
           if (widget.request.requesterUserId > 0)
             IconButton(
               tooltip: 'Message ${widget.request.requesterName}'.trim(),
@@ -202,50 +155,137 @@ class _AcceptOpponentRequestPageState extends State<AcceptOpponentRequestPage> {
               AppUtils().showSnackBar(
                 context,
                 MsgType.success,
-                StringConstants.advanceSubmittedPendingVerification,
+                'Acceptance sent — the requester will confirm the opponent.',
               );
               Navigator.of(context).pop(state.result);
               return;
             }
-            if (state.submitStatus == AcceptRequestStatus.failure ||
-                state.quoteStatus == AcceptRequestStatus.failure) {
-              _handleTerminalError(state);
+            if (state.submitStatus == AcceptRequestStatus.failure) {
+              _handleError(state);
             }
           },
           builder: (context, state) {
-            final quote = state.quote;
-            final bool onPayStep =
-                state.quoteStatus == AcceptRequestStatus.success &&
-                quote != null;
-            return AnimatedSwitcher(
-              duration: const Duration(milliseconds: 200),
-              child: onPayStep
-                  ? _PaymentStep(
-                      key: const ValueKey('pay'),
-                      request: widget.request,
-                      quote: quote,
-                      team: _team,
-                      paymentDoc: _paymentDoc,
-                      agreedToTerms: _agreedToTerms,
-                      noteCtrl: _noteCtrl,
-                      submitting:
-                          state.submitStatus == AcceptRequestStatus.loading,
-                      onPick: _pickPaymentDoc,
-                      onRemoveDoc: () => setState(() => _paymentDoc = null),
-                      onTerms: (v) => setState(() => _agreedToTerms = v),
-                      onHoldExpired: _onHoldExpired,
-                      onSubmit: () => _submit(quote),
-                    )
-                  : _TeamStep(
-                      key: const ValueKey('team'),
-                      request: widget.request,
-                      selected: _team,
-                      formatSize: _formatSize,
-                      loadingQuote:
-                          state.quoteStatus == AcceptRequestStatus.loading,
-                      onSelect: (t) => setState(() => _team = t),
-                      onContinue: _continueToPayment,
+            return BlocBuilder<OpponentMatchBloc, OpponentMatchState>(
+              builder: (context, matchState) {
+                final teams = matchState.teams;
+                return Column(
+                  children: [
+                    Expanded(
+                      child: ListView(
+                        physics: const BouncingScrollPhysics(),
+                        padding: AppUtils().getPadding(
+                          symmetricHorizontal: AppDimens.paddingX20,
+                          top: AppDimens.paddingX12,
+                          bottom: AppDimens.paddingX20,
+                        ),
+                        children: [
+                          const OpponentGuidanceCard(
+                            icon: Icons.handshake_outlined,
+                            title: 'Accept this challenge — no payment needed',
+                            message:
+                                'Chat with the requester first if you want, '
+                                'then choose the team that will play and send '
+                                'your acceptance. They may receive several '
+                                'acceptances and pick one opponent. The court '
+                                'fee is settled at the venue.',
+                          ),
+                          if (widget.request.requesterUserId > 0) ...[
+                            const SizedBox(height: AppDimens.paddingX12),
+                            _ChatFirstTile(
+                              name: widget.request.requesterName.isEmpty
+                                  ? widget.request.team
+                                  : widget.request.requesterName,
+                              onTap: () => ChatLauncher.startDirectUser(
+                                context,
+                                userId: widget.request.requesterUserId,
+                              ),
+                            ),
+                          ],
+                          if (showCountdown) ...[
+                            const SizedBox(height: AppDimens.paddingX14),
+                            OpponentCountdownPill(
+                              value: _remainingLabel,
+                              urgent: _remaining.inMinutes < 5,
+                            ),
+                          ],
+                          const SizedBox(height: AppDimens.paddingX18),
+                          const OpponentSectionLabel('Match details'),
+                          _RequestSummaryCard(request: widget.request),
+                          const SizedBox(height: AppDimens.paddingX18),
+                          const OpponentSectionLabel(
+                            StringConstants.whichTeamWillPlay,
+                          ),
+                          if (matchState.teamsStatus ==
+                                  OpponentMatchStatus.loading &&
+                              teams.isEmpty)
+                            const Padding(
+                              padding: EdgeInsets.all(AppDimens.paddingX24),
+                              child: Center(
+                                child: CircularProgressIndicator(
+                                  color: LightColor.secondaryColor,
+                                ),
+                              ),
+                            )
+                          else if (teams.isEmpty)
+                            OpponentCard(
+                              child: Text(
+                                'You have no teams yet — create one on the My '
+                                'Teams tab first.',
+                                style: FutsalTheme.getTextTheme(context)
+                                    .bodyTextSmall
+                                    ?.copyWith(
+                                      color: LightColor.secondaryTextColor,
+                                    ),
+                              ),
+                            )
+                          else
+                            ...teams.map(
+                              (team) => Padding(
+                                padding: AppUtils().getPadding(
+                                  bottom: AppDimens.paddingX10,
+                                ),
+                                child: _TeamOption(
+                                  team: team,
+                                  request: widget.request,
+                                  formatSize: _formatSize,
+                                  selected: team.id == _team?.id,
+                                  onTap: () => setState(() => _team = team),
+                                ),
+                              ),
+                            ),
+                          const SizedBox(height: AppDimens.paddingX8),
+                          const OpponentSectionLabel(
+                            'Message to the requester (optional)',
+                          ),
+                          OpponentCard(
+                            child: CustomTextField(
+                              controller: _noteCtrl,
+                              labelText: StringConstants.message,
+                              hintText:
+                                  'Anything the other captain should know…',
+                              icon: Icons.chat_bubble_outline_rounded,
+                              maxLines: 3,
+                              minLines: 3,
+                              textInputAction: TextInputAction.newline,
+                              textCapitalization: TextCapitalization.sentences,
+                              isRequired: false,
+                            ),
+                          ),
+                          const SizedBox(height: AppDimens.paddingX12),
+                          _NextStepsCard(request: widget.request),
+                        ],
+                      ),
                     ),
+                    _BottomAction(
+                      text: 'Send Acceptance',
+                      icon: Icons.send_rounded,
+                      busy: state.submitStatus == AcceptRequestStatus.loading,
+                      enabled: _team != null,
+                      onTap: _sendAcceptance,
+                    ),
+                  ],
+                );
+              },
             );
           },
         ),
@@ -254,203 +294,168 @@ class _AcceptOpponentRequestPageState extends State<AcceptOpponentRequestPage> {
   }
 }
 
-class _AcceptProgress extends StatelessWidget {
-  const _AcceptProgress({required this.currentStep});
+/// "Talk before you commit" shortcut into the direct chat with the requester.
+class _ChatFirstTile extends StatelessWidget {
+  const _ChatFirstTile({required this.name, required this.onTap});
 
-  final int currentStep;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: <Widget>[
-        Expanded(
-          child: _ProgressStep(
-            number: 1,
-            label: 'Choose team',
-            active: currentStep >= 1,
-            complete: currentStep > 1,
-          ),
-        ),
-        Container(
-          width: AppDimens.sizeX24,
-          height: 2,
-          color: currentStep > 1
-              ? LightColor.secondaryColor
-              : LightColor.dividerColor,
-        ),
-        Expanded(
-          child: _ProgressStep(
-            number: 2,
-            label: 'Pay advance',
-            active: currentStep >= 2,
-            complete: false,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _ProgressStep extends StatelessWidget {
-  const _ProgressStep({
-    required this.number,
-    required this.label,
-    required this.active,
-    required this.complete,
-  });
-
-  final int number;
-  final String label;
-  final bool active;
-  final bool complete;
+  final String name;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
-    final Color color = active
-        ? LightColor.secondaryColor
-        : LightColor.hintTextColor;
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: <Widget>[
-        Container(
-          width: AppDimens.sizeX28,
-          height: AppDimens.sizeX28,
-          alignment: Alignment.center,
+    return Material(
+      color: LightColor.cardColor,
+      borderRadius: BorderRadius.circular(AppDimens.radiusX12),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppDimens.radiusX12),
+        child: Container(
+          padding: AppUtils().getPadding(all: AppDimens.paddingX12),
           decoration: BoxDecoration(
-            color: active ? LightColor.secondaryColor : LightColor.cardColor,
-            shape: BoxShape.circle,
-            border: Border.all(color: color),
+            borderRadius: BorderRadius.circular(AppDimens.radiusX12),
+            border: Border.all(color: LightColor.dividerColor),
           ),
-          child: complete
-              ? const Icon(
-                  Icons.check_rounded,
-                  size: AppDimens.sizeX16,
-                  color: LightColor.whiteColor,
-                )
-              : Text(
-                  '$number',
-                  style: textTheme.bodyTextSmall?.copyWith(
-                    color: active
-                        ? LightColor.whiteColor
-                        : LightColor.hintTextColor,
-                    fontWeight: FontWeight.w700,
-                  ),
+          child: Row(
+            children: [
+              Container(
+                width: AppDimens.sizeX38,
+                height: AppDimens.sizeX38,
+                decoration: BoxDecoration(
+                  color: LightColor.secondaryColor.withValues(alpha: 0.10),
+                  shape: BoxShape.circle,
                 ),
-        ),
-        const SizedBox(width: AppDimens.paddingX6),
-        Flexible(
-          child: Text(
-            label,
-            overflow: TextOverflow.ellipsis,
-            style: textTheme.bodyTextSmall?.copyWith(
-              color: color,
-              fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-            ),
+                child: const Icon(
+                  Icons.chat_bubble_outline_rounded,
+                  size: AppDimens.sizeX18,
+                  color: LightColor.secondaryColor,
+                ),
+              ),
+              const SizedBox(width: AppDimens.paddingX12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Message $name first',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: textTheme.bodyTextSmall?.copyWith(
+                        color: LightColor.primaryTextColor,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: AppDimens.sizeX2),
+                    Text(
+                      'Agree the squad, timing and who pays what before you '
+                      'accept.',
+                      style: textTheme.bodyMiniSubTitle?.copyWith(
+                        color: LightColor.secondaryTextColor,
+                        height: 1.3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.chevron_right_rounded,
+                size: AppDimens.sizeX18,
+                color: LightColor.hintTextColor,
+              ),
+            ],
           ),
         ),
-      ],
+      ),
     );
   }
 }
 
-/// ─────────────────────── Step 1: team confirmation ───────────────────────
-
-class _TeamStep extends StatelessWidget {
-  const _TeamStep({
-    super.key,
-    required this.request,
-    required this.selected,
-    required this.formatSize,
-    required this.loadingQuote,
-    required this.onSelect,
-    required this.onContinue,
-  });
+/// What the request is: teams, kickoff, venue and the agreed split.
+class _RequestSummaryCard extends StatelessWidget {
+  const _RequestSummaryCard({required this.request});
 
   final OpponentRequestModel request;
-  final TeamModel? selected;
-  final int formatSize;
-  final bool loadingQuote;
-  final ValueChanged<TeamModel> onSelect;
-  final VoidCallback onContinue;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
-    return BlocBuilder<OpponentMatchBloc, OpponentMatchState>(
-      builder: (context, state) {
-        final teams = state.teams;
-        return Column(
-          children: [
-            Expanded(
-              child: ListView(
-                physics: const BouncingScrollPhysics(),
-                padding: AppUtils().getPadding(
-                  symmetricHorizontal: AppDimens.paddingX20,
-                  top: AppDimens.paddingX10,
-                  bottom: AppDimens.paddingX20,
+    return OpponentCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: LightColor.secondaryColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(AppDimens.radiusX12),
                 ),
-                children: [
-                  const _AcceptProgress(currentStep: 1),
-                  const SizedBox(height: AppDimens.paddingX14),
-                  const OpponentGuidanceCard(
-                    icon: Icons.groups_2_outlined,
-                    title: 'Choose the team that will play',
-                    message:
-                        'Review the match details, then select one of your teams. You will see the exact advance amount before paying.',
+                child: Text(
+                  request.initials,
+                  style: textTheme.bodyTextMedium?.copyWith(
+                    color: LightColor.secondaryColor,
+                    fontWeight: FontWeight.w800,
                   ),
-                  const SizedBox(height: AppDimens.paddingX18),
-                  _RequestSummaryCard(request: request),
-                  const SizedBox(height: AppDimens.paddingX18),
-                  const OpponentSectionLabel(StringConstants.whichTeamWillPlay),
-                  if (state.teamsStatus == OpponentMatchStatus.loading &&
-                      teams.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.all(AppDimens.paddingX24),
-                      child: Center(child: CircularProgressIndicator()),
-                    )
-                  else if (teams.isEmpty)
-                    OpponentCard(
-                      child: Text(
-                        'You have no teams yet — create one on the My Teams '
-                        'tab first.',
-                        style: textTheme.bodyTextSmall?.copyWith(
+                ),
+              ),
+              const SizedBox(width: AppDimens.paddingX12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      request.team,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: textTheme.bodyTextMedium?.copyWith(
+                        color: LightColor.primaryTextColor,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    if (request.summary.isNotEmpty) ...[
+                      const SizedBox(height: AppDimens.sizeX2),
+                      Text(
+                        request.summary,
+                        style: textTheme.bodyMiniSubTitle?.copyWith(
                           color: LightColor.secondaryTextColor,
                         ),
                       ),
-                    )
-                  else
-                    ...teams.map(
-                      (team) => Padding(
-                        padding: AppUtils().getPadding(
-                          bottom: AppDimens.paddingX10,
-                        ),
-                        child: _TeamOption(
-                          team: team,
-                          request: request,
-                          formatSize: formatSize,
-                          selected: team.id == selected?.id,
-                          onTap: () => onSelect(team),
-                        ),
-                      ),
-                    ),
-                ],
+                    ],
+                  ],
+                ),
               ),
-            ),
-            _BottomAction(
-              text: StringConstants.confirmTeamAndContinue,
-              icon: Icons.arrow_forward_rounded,
-              busy: loadingQuote,
-              enabled: selected != null,
-              onTap: onContinue,
-            ),
-          ],
-        );
-      },
+            ],
+          ),
+          const SizedBox(height: AppDimens.paddingX12),
+          _Line(
+            icon: Icons.schedule_outlined,
+            text: [
+              OpponentFmt.friendlyDateTime(request.dateTime),
+              request.slot,
+            ].where((s) => s.isNotEmpty).join(' · '),
+          ),
+          const SizedBox(height: AppDimens.paddingX6),
+          _Line(icon: Icons.location_on_outlined, text: request.venue),
+          const SizedBox(height: AppDimens.paddingX6),
+          _Line(
+            icon: Icons.payments_outlined,
+            text: request.myPct == null
+                ? '${OpponentFmt.npr(request.totalFee)} court fee · '
+                      'loser pays ${OpponentFmt.npr(request.yourShare)}'
+                : '${OpponentFmt.npr(request.totalFee)} court fee · '
+                      'your share ${OpponentFmt.npr(request.yourShare)} '
+                      '(${request.myPct}%)',
+          ),
+        ],
+      ),
     );
   }
 }
 
+/// Selectable roster card with this team's share of the court fee.
 class _TeamOption extends StatelessWidget {
   const _TeamOption({
     required this.team,
@@ -572,6 +577,12 @@ class _TeamOption extends StatelessWidget {
                   fontWeight: FontWeight.w700,
                 ),
               ),
+              Text(
+                'Settled with the venue on match day.',
+                style: textTheme.bodyMiniSubTitle?.copyWith(
+                  color: LightColor.hintTextColor,
+                ),
+              ),
               if (tooSmall) ...[
                 const SizedBox(height: AppDimens.paddingX6),
                 Text(
@@ -591,336 +602,9 @@ class _TeamOption extends StatelessWidget {
   }
 }
 
-/// ─────────────────────── Step 2: advance payment ───────────────────────
-
-class _PaymentStep extends StatefulWidget {
-  const _PaymentStep({
-    super.key,
-    required this.request,
-    required this.quote,
-    required this.team,
-    required this.paymentDoc,
-    required this.agreedToTerms,
-    required this.noteCtrl,
-    required this.submitting,
-    required this.onPick,
-    required this.onRemoveDoc,
-    required this.onTerms,
-    required this.onHoldExpired,
-    required this.onSubmit,
-  });
-
-  final OpponentRequestModel request;
-  final OpponentAcceptQuoteModel quote;
-  final TeamModel? team;
-  final PlatformFile? paymentDoc;
-  final bool agreedToTerms;
-  final TextEditingController noteCtrl;
-  final bool submitting;
-  final VoidCallback onPick;
-  final VoidCallback onRemoveDoc;
-  final ValueChanged<bool> onTerms;
-  final VoidCallback onHoldExpired;
-  final VoidCallback onSubmit;
-
-  @override
-  State<_PaymentStep> createState() => _PaymentStepState();
-}
-
-class _PaymentStepState extends State<_PaymentStep> {
-  Timer? _ticker;
-  Duration _remaining = Duration.zero;
-
-  @override
-  void initState() {
-    super.initState();
-    _tick();
-    _ticker = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
-  }
-
-  @override
-  void dispose() {
-    _ticker?.cancel();
-    super.dispose();
-  }
-
-  void _tick() {
-    final expiresAt = widget.quote.holdExpiresAt;
-    if (expiresAt == null) return;
-    final remaining = expiresAt.difference(DateTime.now());
-    if (remaining.inSeconds <= 0) {
-      _ticker?.cancel();
-      _ticker = null;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) widget.onHoldExpired();
-      });
-      return;
-    }
-    if (mounted) setState(() => _remaining = remaining);
-  }
-
-  String get _remainingLabel {
-    final m = _remaining.inMinutes.remainder(60).toString().padLeft(2, '0');
-    final s = _remaining.inSeconds.remainder(60).toString().padLeft(2, '0');
-    return '$m:$s';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = FutsalTheme.getTextTheme(context);
-    final quote = widget.quote;
-    return Column(
-      children: [
-        Expanded(
-          child: ListView(
-            physics: const BouncingScrollPhysics(),
-            padding: AppUtils().getPadding(
-              symmetricHorizontal: AppDimens.paddingX20,
-              top: AppDimens.paddingX10,
-              bottom: AppDimens.paddingX20,
-            ),
-            children: [
-              const _AcceptProgress(currentStep: 2),
-              const SizedBox(height: AppDimens.paddingX14),
-              if (quote.holdExpiresAt != null)
-                OpponentCountdownPill(
-                  value: _remainingLabel,
-                  urgent: _remaining.inMinutes < 2,
-                  label: StringConstants.completePaymentWithin,
-                ),
-              const SizedBox(height: AppDimens.paddingX14),
-              OpponentCard(
-                child: Column(
-                  children: [
-                    _QuoteRow(
-                      label: 'Total court fee',
-                      value: OpponentFmt.npr(quote.totalFee),
-                    ),
-                    const SizedBox(height: AppDimens.paddingX8),
-                    _QuoteRow(
-                      label:
-                          '${StringConstants.yourTeamShare}'
-                          '${widget.team == null ? '' : ' (${widget.team!.name})'}',
-                      value: OpponentFmt.npr(quote.accepterShare),
-                    ),
-                    const SizedBox(height: AppDimens.paddingX8),
-                    _QuoteRow(
-                      label: StringConstants.advanceToPay,
-                      value: OpponentFmt.npr(quote.advancePayableNow),
-                      emphasised: true,
-                    ),
-                    const SizedBox(height: AppDimens.paddingX8),
-                    _QuoteRow(
-                      label: 'Balance due later',
-                      value: OpponentFmt.npr(quote.balanceDueLater),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: AppDimens.paddingX18),
-              const OpponentGuidanceCard(
-                icon: Icons.qr_code_scanner_rounded,
-                title: 'Pay the advance in 3 simple steps',
-                message:
-                    '1. Scan the QR and pay the exact amount.\n2. Take a screenshot or save the receipt.\n3. Upload the proof below and submit your acceptance.',
-              ),
-              const SizedBox(height: AppDimens.paddingX18),
-              const OpponentSectionLabel('1. Scan QR and pay'),
-              PaymentQrCard(
-                qr: quote.paymentQr,
-                amountLabel: StringConstants.advanceToPay,
-                amountValue: OpponentFmt.npr(quote.advancePayableNow),
-              ),
-              const SizedBox(height: AppDimens.paddingX18),
-              const OpponentSectionLabel('2. Upload payment proof'),
-              _ProofTile(
-                file: widget.paymentDoc,
-                onPick: widget.onPick,
-                onRemove: widget.onRemoveDoc,
-              ),
-              const SizedBox(height: AppDimens.paddingX14),
-              CustomTextField(
-                controller: widget.noteCtrl,
-                labelText: 'Payment note',
-                hintText: 'Transaction id, remarks… (optional)',
-                icon: Icons.sticky_note_2_outlined,
-                isRequired: false,
-              ),
-              const SizedBox(height: AppDimens.paddingX14),
-              OpponentCard(
-                child: Text(
-                  StringConstants.advancePolicyNote,
-                  style: textTheme.bodyTextSmall?.copyWith(
-                    color: LightColor.secondaryTextColor,
-                    height: 1.4,
-                  ),
-                ),
-              ),
-              const SizedBox(height: AppDimens.paddingX12),
-              InkWell(
-                onTap: () => widget.onTerms(!widget.agreedToTerms),
-                borderRadius: BorderRadius.circular(AppDimens.radiusX8),
-                child: Padding(
-                  padding: AppUtils().getPadding(all: AppDimens.paddingX4),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(
-                        widget.agreedToTerms
-                            ? Icons.check_box_rounded
-                            : Icons.check_box_outline_blank_rounded,
-                        color: widget.agreedToTerms
-                            ? LightColor.secondaryColor
-                            : LightColor.hintTextColor,
-                        size: AppDimens.sizeX20,
-                      ),
-                      const SizedBox(width: AppDimens.paddingX8),
-                      Expanded(
-                        child: Text(
-                          StringConstants
-                              .iConfirmMyTeamWillPlayAndAcceptAdvancePolicy,
-                          style: textTheme.bodyTextSmall?.copyWith(
-                            color: LightColor.primaryTextColor,
-                            height: 1.4,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        _BottomAction(
-          text: 'Submit Proof & Accept Match',
-          icon: Icons.check_rounded,
-          busy: widget.submitting,
-          enabled: widget.paymentDoc != null && widget.agreedToTerms,
-          onTap: widget.onSubmit,
-        ),
-      ],
-    );
-  }
-}
-
-class _QuoteRow extends StatelessWidget {
-  const _QuoteRow({
-    required this.label,
-    required this.value,
-    this.emphasised = false,
-  });
-
-  final String label;
-  final String value;
-  final bool emphasised;
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = FutsalTheme.getTextTheme(context);
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            label,
-            style: textTheme.bodyTextSmall?.copyWith(
-              color: LightColor.secondaryTextColor,
-              fontWeight: emphasised ? FontWeight.w700 : FontWeight.w500,
-            ),
-          ),
-        ),
-        Text(
-          value,
-          style:
-              (emphasised ? textTheme.bodyTextMedium : textTheme.bodyTextSmall)
-                  ?.copyWith(
-                    color: emphasised
-                        ? LightColor.secondaryColor
-                        : LightColor.primaryTextColor,
-                    fontWeight: emphasised ? FontWeight.w800 : FontWeight.w600,
-                  ),
-        ),
-      ],
-    );
-  }
-}
-
-class _ProofTile extends StatelessWidget {
-  const _ProofTile({
-    required this.file,
-    required this.onPick,
-    required this.onRemove,
-  });
-
-  final PlatformFile? file;
-  final VoidCallback onPick;
-  final VoidCallback onRemove;
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = FutsalTheme.getTextTheme(context);
-    final picked = file;
-    return Material(
-      color: LightColor.cardColor,
-      borderRadius: BorderRadius.circular(AppDimens.radiusX12),
-      child: InkWell(
-        onTap: onPick,
-        borderRadius: BorderRadius.circular(AppDimens.radiusX12),
-        child: Container(
-          padding: AppUtils().getPadding(all: AppDimens.paddingX14),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppDimens.radiusX12),
-            border: Border.all(
-              color: picked == null
-                  ? LightColor.dividerColor
-                  : LightColor.secondaryColor.withValues(alpha: 0.6),
-            ),
-          ),
-          child: Row(
-            children: [
-              Icon(
-                picked == null ? Icons.upload_file_rounded : Icons.task_rounded,
-                color: picked == null
-                    ? LightColor.hintTextColor
-                    : LightColor.secondaryColor,
-              ),
-              const SizedBox(width: AppDimens.paddingX10),
-              Expanded(
-                child: Text(
-                  picked?.name ??
-                      'Upload the payment screenshot (jpg, png or pdf).',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: textTheme.bodyTextSmall?.copyWith(
-                    color: picked == null
-                        ? LightColor.secondaryTextColor
-                        : LightColor.primaryTextColor,
-                    fontWeight: picked == null
-                        ? FontWeight.w500
-                        : FontWeight.w600,
-                  ),
-                ),
-              ),
-              if (picked != null)
-                IconButton(
-                  onPressed: onRemove,
-                  visualDensity: VisualDensity.compact,
-                  icon: const Icon(
-                    Icons.close_rounded,
-                    size: AppDimens.sizeX18,
-                    color: LightColor.hintTextColor,
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _RequestSummaryCard extends StatelessWidget {
-  const _RequestSummaryCard({required this.request});
+/// What happens after the acceptance is sent — the diagram's tail end.
+class _NextStepsCard extends StatelessWidget {
+  const _NextStepsCard({required this.request});
 
   final OpponentRequestModel request;
 
@@ -932,32 +616,105 @@ class _RequestSummaryCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            request.team,
-            style: textTheme.bodyTextMedium?.copyWith(
+            'What happens next',
+            style: textTheme.bodyTextSmall?.copyWith(
               color: LightColor.primaryTextColor,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w800,
             ),
           ),
-          const SizedBox(height: AppDimens.paddingX6),
-          Text(
-            '${OpponentFmt.friendlyDateTime(request.dateTime)}'
-            '${request.summary.isEmpty ? '' : ' · ${request.summary}'}',
-            style: textTheme.bodyTextSmall?.copyWith(
-              color: LightColor.secondaryTextColor,
-            ),
+          const SizedBox(height: AppDimens.paddingX10),
+          const _StepLine(
+            index: 1,
+            text: '${'Your acceptance reaches'} '
+                'the requester as an invitation.',
           ),
-          const SizedBox(height: AppDimens.paddingX4),
-          Text(
-            [
-              request.slot,
-              request.venue,
-            ].where((s) => s.isNotEmpty).join(' · '),
-            style: textTheme.bodyTextSmall?.copyWith(
-              color: LightColor.secondaryTextColor,
-            ),
+          const SizedBox(height: AppDimens.paddingX8),
+          const _StepLine(
+            index: 2,
+            text: 'They may wait for other teams, then select one opponent.',
+          ),
+          const SizedBox(height: AppDimens.paddingX8),
+          _StepLine(
+            index: 3,
+            text:
+                'If your team is picked, the match is created at '
+                '${request.venue.isEmpty ? 'the venue' : request.venue} and a '
+                'chat room opens for both teams.',
           ),
         ],
       ),
+    );
+  }
+}
+
+class _StepLine extends StatelessWidget {
+  const _StepLine({required this.index, required this.text});
+
+  final int index;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: AppDimens.sizeX20,
+          height: AppDimens.sizeX20,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: LightColor.secondaryColor.withValues(alpha: 0.12),
+            shape: BoxShape.circle,
+          ),
+          child: Text(
+            '$index',
+            style: textTheme.bodyMiniSubTitle?.copyWith(
+              color: LightColor.secondaryColor,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+        const SizedBox(width: AppDimens.paddingX10),
+        Expanded(
+          child: Text(
+            text,
+            style: textTheme.bodyTextSmall?.copyWith(
+              color: LightColor.secondaryTextColor,
+              height: 1.4,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _Line extends StatelessWidget {
+  const _Line({required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    if (text.trim().isEmpty) return const SizedBox.shrink();
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 14, color: LightColor.hintTextColor),
+        const SizedBox(width: AppDimens.paddingX8),
+        Expanded(
+          child: Text(
+            text,
+            style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
+              color: LightColor.secondaryTextColor,
+              fontWeight: FontWeight.w500,
+              height: 1.35,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

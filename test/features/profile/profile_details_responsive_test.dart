@@ -16,7 +16,13 @@ const Size _phone = Size(411, 891);
 const Size _tabletPortrait = Size(800, 1280);
 const Size _desktopWindow = Size(1440, 900);
 
-Future<void> _pumpAt(WidgetTester tester, Size size) async {
+Future<void> _pumpAt(
+  WidgetTester tester,
+  Size size, {
+  /// The form is read-only until Edit is tapped, so anything asserting on the
+  /// inputs or the save action has to unlock it first.
+  bool editing = false,
+}) async {
   tester.view.devicePixelRatio = 1.0;
   tester.view.physicalSize = size;
   addTearDown(tester.view.reset);
@@ -36,6 +42,11 @@ Future<void> _pumpAt(WidgetTester tester, Size size) async {
     ),
   );
   await tester.pump();
+
+  if (editing) {
+    await tester.tap(find.text(StringConstants.edit));
+    await tester.pump();
+  }
 }
 
 /// Every labelled input on the page, top to bottom.
@@ -63,6 +74,11 @@ void main() {
         expect(find.text(StringConstants.personalDetails), findsOneWidget);
         expect(find.text('Personal information'), findsOneWidget);
         expect(find.text('Contact information'), findsOneWidget);
+        // Read-only until Edit is tapped: no save action on arrival.
+        expect(find.text(StringConstants.saveChanges), findsNothing);
+
+        await tester.tap(find.text(StringConstants.edit));
+        await tester.pump();
         expect(find.text(StringConstants.saveChanges), findsOneWidget);
       });
 
@@ -87,7 +103,7 @@ void main() {
     testWidgets('phone stretches the save button edge to edge', (
       WidgetTester tester,
     ) async {
-      await _pumpAt(tester, _phone);
+      await _pumpAt(tester, _phone, editing: true);
 
       final double buttonWidth = tester
           .getSize(find.byType(CustomButton).first)
@@ -103,7 +119,7 @@ void main() {
       testWidgets('$label caps the save button instead of stretching it', (
         WidgetTester tester,
       ) async {
-        await _pumpAt(tester, size);
+        await _pumpAt(tester, size, editing: true);
 
         expect(
           tester.getSize(find.byType(CustomButton).first).width,

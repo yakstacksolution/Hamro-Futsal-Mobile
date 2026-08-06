@@ -4,7 +4,6 @@ import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/utils/responsive.dart';
-import 'package:hamro_footsall/core/widgets/custom_button.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/page/dashboard_screen.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/page/footsall_home_page.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/widgets/dashboard_layout.dart';
@@ -13,6 +12,7 @@ import 'package:hamro_footsall/features/public/data/model/public_venue_model.dar
 import 'package:hamro_footsall/features/public/data/repositories/public_repository_impl.dart';
 import 'package:hamro_footsall/features/wishlist/domain/usecase/get_wishlist_use_case.dart';
 import 'package:hamro_footsall/core/utils/string_constants.dart';
+import 'package:hamro_footsall/core/widgets/app_message_view.dart';
 
 /// Candidate's saved venues tab — `GET /auth/wishlist`.
 ///
@@ -160,7 +160,7 @@ class _WishlistPageState extends State<WishlistPage> {
       return const HomeBodyLoading();
     }
     if (_error != null && _venues.isEmpty) {
-      return _MessageView(
+      return AppMessageView(
         icon: Icons.wifi_off_rounded,
         title: StringConstants.unableToLoadWishlist,
         message: _error!,
@@ -169,7 +169,7 @@ class _WishlistPageState extends State<WishlistPage> {
       );
     }
     if (venues.isEmpty) {
-      return const _MessageView(
+      return const AppMessageView(
         icon: Icons.favorite_outline_rounded,
         title: StringConstants.noFavouritesYet,
         message: StringConstants.tapTheHeartOnAVenueToSaveItHereForQuickBooking,
@@ -229,74 +229,6 @@ class _WishlistPageState extends State<WishlistPage> {
             ),
           );
         },
-      ),
-    );
-  }
-}
-
-class _MessageView extends StatelessWidget {
-  const _MessageView({
-    required this.icon,
-    required this.title,
-    required this.message,
-    this.actionLabel,
-    this.onAction,
-  });
-
-  final IconData icon;
-  final String title;
-  final String message;
-  final String? actionLabel;
-  final VoidCallback? onAction;
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = FutsalTheme.getTextTheme(context);
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppDimens.paddingX32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 72,
-              height: 72,
-              decoration: BoxDecoration(
-                color: LightColor.secondaryColor.withValues(alpha: 0.08),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                icon,
-                size: 32,
-                color: LightColor.secondaryColor.withValues(alpha: 0.7),
-              ),
-            ),
-            const SizedBox(height: AppDimens.paddingX14),
-            Text(
-              title,
-              style: textTheme.bodyTextMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: LightColor.primaryTextColor,
-              ),
-            ),
-            const SizedBox(height: AppDimens.paddingX6),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: textTheme.bodyTextSmall?.copyWith(
-                color: LightColor.secondaryTextColor,
-              ),
-            ),
-            if (actionLabel != null) ...[
-              const SizedBox(height: AppDimens.paddingX18),
-              CustomButton(
-                text: actionLabel!,
-                icon: Icons.refresh_rounded,
-                onPressed: onAction,
-              ),
-            ],
-          ],
-        ),
       ),
     );
   }

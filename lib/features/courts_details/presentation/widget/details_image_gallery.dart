@@ -90,164 +90,176 @@ class _DetailsImageGalleryState extends State<DetailsImageGallery> {
             : 340;
         return SizedBox(
           height: height,
-          child: Stack(
-            children: [
-              widget.images.isEmpty
-                  ? Container(color: LightColor.inputFillColor)
-                  : PageView.builder(
-                      controller: _imagePageController,
-                      itemCount: widget.images.length,
-                      onPageChanged: (i) =>
-                          setState(() => _currentImageIndex = i),
-                      itemBuilder: (context, index) {
-                        return Stack(
-                          fit: StackFit.expand,
-                          children: [
-                            CustomImageView(
-                              url: widget.images[index],
-                              fit: BoxFit.cover,
-                              width: double.infinity,
-                              height: double.infinity,
-                            ),
-                            Positioned(
-                              bottom: 0,
-                              left: 0,
-                              right: 0,
-                              height: 120,
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    begin: Alignment.topCenter,
-                                    end: Alignment.bottomCenter,
-                                    colors: [
-                                      LightColor.transparentColor,
-                                      LightColor.primaryTextColor.withValues(
-                                        alpha: 0.5,
-                                      ),
-                                    ],
-                                  ),
-                                ),
+          child: BackdropGroup(
+            // All frosted controls can reuse one backdrop capture while the
+            // hero moves beneath them, avoiding several blur passes per frame.
+            child: Stack(
+              children: [
+                widget.images.isEmpty
+                    ? Container(color: LightColor.inputFillColor)
+                    : PageView.builder(
+                        controller: _imagePageController,
+                        // Build neighbouring slides early so their resized image
+                        // starts loading before the user's swipe reaches it.
+                        allowImplicitScrolling: true,
+                        itemCount: widget.images.length,
+                        onPageChanged: (i) =>
+                            setState(() => _currentImageIndex = i),
+                        itemBuilder: (context, index) {
+                          return Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              CustomImageView(
+                                url: widget.images[index],
+                                fit: BoxFit.cover,
+                                width: double.infinity,
+                                height: double.infinity,
+                                cacheWidth: constraints.maxWidth,
+                                cacheHeight: height,
                               ),
-                            ),
-                          ],
-                        );
-                      },
-                    ),
-
-              Positioned(
-                top: MediaQuery.of(context).padding.top + 8,
-                left: wide ? AppDimens.paddingX24 : 16,
-                right: wide ? AppDimens.paddingX24 : 16,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _glassButton(
-                      icon: Icons.arrow_back_ios_new_rounded,
-                      onTap: () => Navigator.of(context).pop(),
-                    ),
-                    Row(
-                      children: [
-                        _glassButton(icon: Icons.share_outlined, onTap: () {}),
-                        const SizedBox(width: 10),
-                        // Heart follows the shared wishlist store when a venue id
-                        // is available.
-                        ValueListenableBuilder<Set<int>>(
-                          valueListenable: WishlistStore.instance.ids,
-                          builder: (context, ids, _) {
-                            final bool saved = widget.venueId != null
-                                ? ids.contains(widget.venueId)
-                                : _isSaved;
-                            return _glassButton(
-                              icon: saved
-                                  ? Icons.favorite_rounded
-                                  : Icons.favorite_border_rounded,
-                              iconColor: saved
-                                  ? LightColor.secondaryColor
-                                  : LightColor.primaryTextColor,
-                              onTap: _toggleWishlist,
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-
-              Positioned(
-                bottom: 16,
-                left: 16,
-                right: 16,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    if (widget.images.isNotEmpty && !wide)
-                      Row(
-                        children: List.generate(widget.images.length, (i) {
-                          final active = i == _currentImageIndex;
-                          return AnimatedContainer(
-                            duration: const Duration(milliseconds: 300),
-                            margin: const EdgeInsets.only(right: 6),
-                            width: active ? 24 : 8,
-                            height: 6,
-                            decoration: BoxDecoration(
-                              color: active
-                                  ? LightColor.whiteColor
-                                  : LightColor.whiteColor.withValues(
-                                      alpha: 0.4,
+                              Positioned(
+                                bottom: 0,
+                                left: 0,
+                                right: 0,
+                                height: 120,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                      colors: [
+                                        LightColor.transparentColor,
+                                        LightColor.primaryTextColor.withValues(
+                                          alpha: 0.5,
+                                        ),
+                                      ],
                                     ),
-                              borderRadius: BorderRadius.circular(100),
-                            ),
-                          );
-                        }),
-                      ),
-                    if (widget.images.isNotEmpty)
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(20),
-                        child: BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: LightColor.primaryTextColor.withValues(
-                                alpha: 0.35,
-                              ),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: LightColor.whiteColor.withValues(
-                                  alpha: 0.15,
-                                ),
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(
-                                  Icons.photo,
-                                  color: LightColor.whiteColor,
-                                  size: 14,
-                                ),
-                                const SizedBox(width: 5),
-                                Text(
-                                  '${_currentImageIndex + 1}/${widget.images.length}',
-                                  style: const TextStyle(
-                                    color: LightColor.whiteColor,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w700,
                                   ),
                                 ),
-                              ],
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+
+                Positioned(
+                  top: MediaQuery.of(context).padding.top + 8,
+                  left: wide ? AppDimens.paddingX24 : 16,
+                  right: wide ? AppDimens.paddingX24 : 16,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      _glassButton(
+                        icon: Icons.arrow_back_ios_new_rounded,
+                        onTap: () => Navigator.of(context).pop(),
+                      ),
+                      Row(
+                        children: [
+                          _glassButton(
+                            icon: Icons.share_outlined,
+                            onTap: () {},
+                          ),
+                          const SizedBox(width: 10),
+                          // Heart follows the shared wishlist store when a venue id
+                          // is available.
+                          ValueListenableBuilder<Set<int>>(
+                            valueListenable: WishlistStore.instance.ids,
+                            builder: (context, ids, _) {
+                              final bool saved = widget.venueId != null
+                                  ? ids.contains(widget.venueId)
+                                  : _isSaved;
+                              return _glassButton(
+                                icon: saved
+                                    ? Icons.favorite_rounded
+                                    : Icons.favorite_border_rounded,
+                                iconColor: saved
+                                    ? LightColor.secondaryColor
+                                    : LightColor.primaryTextColor,
+                                onTap: _toggleWishlist,
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                Positioned(
+                  bottom: 16,
+                  left: 16,
+                  right: 16,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      if (widget.images.isNotEmpty && !wide)
+                        Row(
+                          children: List.generate(widget.images.length, (i) {
+                            final active = i == _currentImageIndex;
+                            return AnimatedContainer(
+                              duration: const Duration(milliseconds: 300),
+                              margin: const EdgeInsets.only(right: 6),
+                              width: active ? 24 : 8,
+                              height: 6,
+                              decoration: BoxDecoration(
+                                color: active
+                                    ? LightColor.whiteColor
+                                    : LightColor.whiteColor.withValues(
+                                        alpha: 0.4,
+                                      ),
+                                borderRadius: BorderRadius.circular(100),
+                              ),
+                            );
+                          }),
+                        ),
+                      if (widget.images.isNotEmpty)
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(20),
+                          child: BackdropFilter.grouped(
+                            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: LightColor.primaryTextColor.withValues(
+                                  alpha: 0.35,
+                                ),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: LightColor.whiteColor.withValues(
+                                    alpha: 0.15,
+                                  ),
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.photo,
+                                    color: LightColor.whiteColor,
+                                    size: 14,
+                                  ),
+                                  const SizedBox(width: 5),
+                                  Text(
+                                    '${_currentImageIndex + 1}/${widget.images.length}',
+                                    style: const TextStyle(
+                                      color: LightColor.whiteColor,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },
@@ -288,6 +300,8 @@ class _DetailsImageGalleryState extends State<DetailsImageGallery> {
                   fit: BoxFit.cover,
                   width: double.infinity,
                   height: double.infinity,
+                  cacheWidth: AppDimens.venueThumbnailSize,
+                  cacheHeight: AppDimens.venueThumbnailSize,
                 ),
               ),
             ),
@@ -306,7 +320,7 @@ class _DetailsImageGalleryState extends State<DetailsImageGallery> {
       onTap: onTap,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(10),
-        child: BackdropFilter(
+        child: BackdropFilter.grouped(
           filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
           child: Container(
             width: 44,

@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
-import 'package:hamro_footsall/core/helper/venue_distance_helper.dart';
+import 'package:hamro_footsall/core/helper/device_location_helper.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/custom_image_view.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
@@ -21,6 +21,7 @@ import 'package:hamro_footsall/features/message/presentation/bloc/message_bloc/m
 import 'package:hamro_footsall/features/message/presentation/widgets/chat_bubble.dart';
 import 'package:hamro_footsall/features/message/presentation/widgets/chat_input_bar.dart';
 import 'package:hamro_footsall/features/message/presentation/widgets/group_conversation_sheet.dart';
+import 'package:hamro_footsall/features/message/presentation/pages/user_profile_page.dart';
 import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class ChatPage extends StatefulWidget {
@@ -187,9 +188,9 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
   }
 
   Future<void> _shareLocation() async {
-    await VenueDistanceHelper.instance.ensurePosition();
+    await DeviceLocationHelper.instance.ensurePosition();
     if (!mounted) return;
-    final position = VenueDistanceHelper.instance.position.value;
+    final position = DeviceLocationHelper.instance.position.value;
     if (position == null) {
       AppUtils().showSnackBar(
         context,
@@ -688,6 +689,9 @@ class _ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
           final active = state.activeConversation ?? conversation;
           final title = active.displayTitle(state.currentUserId);
           final avatar = active.displayAvatar(state.currentUserId);
+          final peer = active.isGroup
+              ? null
+              : active.otherParticipant(state.currentUserId);
           final String subtitle;
           if (state.peerTyping) {
             subtitle = 'typing…';
@@ -702,7 +706,7 @@ class _ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
             };
           }
 
-          return Row(
+          final header = Row(
             children: [
               if (active.isGroup || avatar.isEmpty)
                 Container(
@@ -771,6 +775,23 @@ class _ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
                 ),
               ),
             ],
+          );
+
+          // Direct chats: tapping the header opens the other user's
+          // view-only profile. Groups have no single counterpart.
+          if (peer == null || peer.userId <= 0) return header;
+          return InkWell(
+            onTap: () => openUserProfilePage(
+              context: context,
+              userId: peer.userId,
+              fallbackName: title,
+              fallbackImageUrl: avatar,
+            ),
+            child: Semantics(
+              button: true,
+              label: StringConstants.viewProfile,
+              child: header,
+            ),
           );
         },
       ),

@@ -632,9 +632,7 @@ class _SummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
-    final String timeRange = draft.endTime == null
-        ? draft.selectedTime
-        : '${draft.selectedTime} – ${draft.endTime}';
+    final String timeRange = draft.displayTimeRange;
 
     return _Surface(
       child: Column(
@@ -1557,9 +1555,7 @@ class _BookingOverviewSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
-    final String timeRange = draft.endTime == null
-        ? draft.selectedTime
-        : '${draft.selectedTime} – ${draft.endTime}';
+    final String timeRange = draft.displayTimeRange;
     final String recurrence = draft.recurrenceLabel?.trim().isNotEmpty == true
         ? draft.recurrenceLabel!.trim()
         : '${draft.sessions} sessions';

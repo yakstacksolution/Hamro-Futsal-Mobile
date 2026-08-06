@@ -3,6 +3,7 @@ import 'package:hamro_footsall/core/widgets/custom_text_field.dart';
 import 'package:hamro_footsall/features/courts/presentation/bloc/create_footsall_courts_bloc.dart';
 import 'package:hamro_footsall/features/courts/presentation/widgets/create_footsall_courts/policy_toggle_tile.dart';
 import 'package:hamro_footsall/core/utils/string_constants.dart';
+import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_drafts.dart';
 
 class PoliciesSection extends StatelessWidget {
   const PoliciesSection({super.key, required this.bloc});
@@ -21,12 +22,18 @@ class PoliciesSection extends StatelessWidget {
           onChanged: bloc.toggleAllowCancellation,
         ),
         const SizedBox(height: 12),
+        // Not optional: every court collects an advance of at least
+        // kMinimumAdvancePercent% before a booking is confirmed. The tile is
+        // rendered read-only (null onChanged) rather than hidden, so the
+        // policy stays visible to the vendor.
         PolicyToggleTile(
           title: StringConstants.requireAdvancePayment,
           subtitle:
-              StringConstants.collectPaymentOrDepositBeforeABookingIsConfirmed,
-          value: bloc.state.requiresAdvancePayment,
-          onChanged: bloc.toggleRequiresAdvancePayment,
+              'Required on every court — at least '
+              '${kMinimumAdvancePercent.toStringAsFixed(0)}% is collected '
+              'before a booking is confirmed.',
+          value: true,
+          onChanged: null,
         ),
         const SizedBox(height: 12),
         PolicyToggleTile(

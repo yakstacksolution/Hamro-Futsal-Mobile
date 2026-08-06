@@ -18,10 +18,17 @@ abstract class PublicRepository {
   Future<Either<AppException, List<PublicOptionModel>>> getAmenities();
   Future<Either<AppException, List<PublicOptionModel>>> getFacilities();
   Future<Either<AppException, List<PublicTemplateModel>>> getTemplates();
+
+  /// `GET /venues` — one page of the public listing.
+  ///
+  /// [latitude]/[longitude] are the origin the server measures `distance_km`
+  /// from; they fall back to the device fix when omitted.
   Future<Either<AppException, PublicListingVenuePage>> getVenueList({
     int page,
     int perPage,
     VenueFilter? filter,
+    double? latitude,
+    double? longitude,
   });
   Future<Either<AppException, List<CategoryFilterModel>>> getCategoryFilter();
 

@@ -29,8 +29,8 @@ class OpponentMatchBloc extends Bloc<OpponentMatchEvent, OpponentMatchState> {
     on<DeclineRequestEvent>(_onDeclineRequest);
     on<RequestAcceptedEvent>(_onRequestAccepted);
     on<DeleteOpponentRequestEvent>(_onDeleteRequest);
-    on<VerifyOpponentPaymentEvent>(_onVerifyPayment);
-    on<RejectOpponentPaymentEvent>(_onRejectPayment);
+    on<SelectOpponentEvent>(_onSelectOpponent);
+    on<RejectInvitationEvent>(_onRejectInvitation);
   }
 
   final OpponentMatchUseCase useCase;
@@ -205,7 +205,7 @@ class OpponentMatchBloc extends Bloc<OpponentMatchEvent, OpponentMatchState> {
   }
 
   /// Patch the accepted request into the list right away so the card shows
-  /// "payment pending" without waiting for the round-trip refresh.
+  /// "invitation sent" without waiting for the round-trip refresh.
   Future<void> _onRequestAccepted(
     RequestAcceptedEvent event,
     Emitter<OpponentMatchState> emit,
@@ -225,19 +225,19 @@ class OpponentMatchBloc extends Bloc<OpponentMatchEvent, OpponentMatchState> {
     _applyRequests(await useCase.deleteRequest(event.request.id), emit);
   }
 
-  Future<void> _onVerifyPayment(
-    VerifyOpponentPaymentEvent event,
+  Future<void> _onSelectOpponent(
+    SelectOpponentEvent event,
     Emitter<OpponentMatchState> emit,
   ) async {
-    _applyRequests(await useCase.verifyPayment(event.request.id), emit);
+    _applyRequests(await useCase.selectOpponent(event.request.id), emit);
   }
 
-  Future<void> _onRejectPayment(
-    RejectOpponentPaymentEvent event,
+  Future<void> _onRejectInvitation(
+    RejectInvitationEvent event,
     Emitter<OpponentMatchState> emit,
   ) async {
     _applyRequests(
-      await useCase.rejectPayment(event.request.id, event.reason),
+      await useCase.rejectInvitation(event.request.id, event.reason),
       emit,
     );
   }

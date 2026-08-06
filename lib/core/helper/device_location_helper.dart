@@ -3,20 +3,37 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 
-class VenueDistanceHelper {
-  VenueDistanceHelper._();
+/// The device's location, shared app-wide.
+///
+/// Venue distances are computed server-side now (`distance_km` in the venue
+/// listing), so this helper only acquires and publishes a fix — the coordinates
+/// sent as `latitude`/`longitude` with `GET /venues`, and used by the chat
+/// location share.
+///
+/// [position] is a notifier so widgets can rebuild on the first GPS lock
+/// without polling, and [ensurePosition] de-duplicates concurrent callers.
+class DeviceLocationHelper {
+  DeviceLocationHelper._();
 
-  static final VenueDistanceHelper instance = VenueDistanceHelper._();
+  static final DeviceLocationHelper instance = DeviceLocationHelper._();
 
+  /// The latest known fix, or null before one is acquired (or when permission
+  /// is denied / location services are off).
   final ValueNotifier<Position?> position = ValueNotifier<Position?>(null);
 
   Future<void>? _inFlight;
   DateTime? _lastFreshFixAt;
 
+  /// How long a fix is reused before a new one is requested.
   static const Duration _staleAfter = Duration(minutes: 5);
 
+  /// Cap on a single fix attempt, so a cold GPS start cannot hang a caller.
   static const Duration _fixTimeout = Duration(seconds: 10);
 
+  /// Publishes a fix on [position] if the current one is missing or stale.
+  ///
+  /// Never throws: a denied permission or a dead GPS leaves [position] as-is,
+  /// and callers fall back to whatever they can do without coordinates.
   Future<void> ensurePosition() {
     final DateTime? lastFix = _lastFreshFixAt;
     final bool isFresh =
@@ -88,44 +105,14 @@ class VenueDistanceHelper {
   /// denied location permission.
   Future<void> openAppSettings() => Geolocator.openAppSettings();
 
-  void _log(String message) {
-    if (kDebugMode) debugPrint('[VenueDistanceHelper] $message');
-  }
-
-  /// Geodesic distance in meters from the current fix to ([latitude],
-  /// [longitude]), or null when there is no fix or the venue has no
-  /// coordinates.
-  double? distanceMeters(double latitude, double longitude) {
-    final Position? fix = position.value;
-    if (fix == null || (latitude == 0 && longitude == 0)) return null;
-    return Geolocator.distanceBetween(
-      fix.latitude,
-      fix.longitude,
-      latitude,
-      longitude,
-    );
-  }
-
-  String? formatDistance(dynamic latitude, dynamic longitude) {
-    final double? lat = _toDouble(latitude);
-    final double? lng = _toDouble(longitude);
-
-    if (lat == null || lng == null) return null;
-
-    final double? meters = distanceMeters(lat, lng);
-    if (meters == null) return null;
-
-    if (meters < 1000) return '${meters.round()} m';
-
-    final double km = meters / 1000;
+  /// `1.2 km` / `450 m` — the venue distance as returned by the API.
+  static String? formatKm(double? km) {
+    if (km == null || km.isNaN || km < 0) return null;
+    if (km < 1) return '${(km * 1000).round()} m';
     return km < 10 ? '${km.toStringAsFixed(1)} km' : '${km.round()} km';
   }
 
-  double? _toDouble(dynamic value) {
-    if (value == null) return null;
-    if (value is double) return value;
-    if (value is int) return value.toDouble();
-    if (value is String) return double.tryParse(value);
-    return null;
+  void _log(String message) {
+    if (kDebugMode) debugPrint('[DeviceLocation] $message');
   }
 }

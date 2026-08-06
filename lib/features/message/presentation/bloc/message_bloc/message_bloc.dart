@@ -5,6 +5,7 @@ import 'package:equatable/equatable.dart';
 import 'package:hamro_footsall/features/message/data/model/chat_message_model.dart';
 import 'package:hamro_footsall/features/message/data/model/chat_send_request.dart';
 import 'package:hamro_footsall/features/message/data/model/conversation_model.dart';
+import 'package:hamro_footsall/features/message/data/model/message_profile_model.dart';
 import 'package:hamro_footsall/features/message/data/service/chat_socket_service.dart';
 import 'package:hamro_footsall/features/message/domain/usecase/message_usecase.dart';
 
@@ -23,6 +24,8 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
     on<CreateGroupConversationEvent>(_onCreateGroup);
     on<AddGroupMembersEvent>(_onAddGroupMembers);
     on<ClearCreatedGroupEvent>(_onClearCreatedGroup);
+    on<LoadMessageProfileEvent>(_onLoadMessageProfile);
+    on<ClearMessageProfileEvent>(_onClearMessageProfile);
     on<SetConversationArchivedEvent>(_onSetArchived);
     on<SetConversationMutedEvent>(_onSetMuted);
     on<SetParticipantBlockedEvent>(_onSetParticipantBlocked);
@@ -258,6 +261,32 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
       ),
     );
   }
+
+  Future<void> _onLoadMessageProfile(
+    LoadMessageProfileEvent event,
+    Emitter<MessageState> emit,
+  ) async {
+    emit(
+      state.copyWith(clearProfile: true, profileStatus: MessageStatus.loading),
+    );
+    final result = await useCase.getMessageProfile(event.userId);
+    result.fold(
+      (failure) => emit(
+        state.copyWith(
+          profileStatus: MessageStatus.failure,
+          profileErrorMessage: failure.errorMessage,
+        ),
+      ),
+      (profile) => emit(
+        state.copyWith(profileStatus: MessageStatus.success, profile: profile),
+      ),
+    );
+  }
+
+  void _onClearMessageProfile(
+    ClearMessageProfileEvent event,
+    Emitter<MessageState> emit,
+  ) => emit(state.copyWith(clearProfile: true));
 
   Future<void> _onSetArchived(
     SetConversationArchivedEvent event,

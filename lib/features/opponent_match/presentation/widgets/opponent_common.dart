@@ -6,8 +6,8 @@ import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/utils/string_constants.dart';
 import 'package:hamro_footsall/features/opponent_match/data/model/opponent_match_model.dart';
 
-/// Countdown pill used for the accept window on request cards and the
-/// payment-hold window on the accept page. Turns red when [urgent].
+/// Countdown pill used for the accept window on request cards and on the
+/// accept page. Turns red when [urgent].
 class OpponentCountdownPill extends StatelessWidget {
   const OpponentCountdownPill({
     super.key,
@@ -473,9 +473,9 @@ class OpponentStatusBadge extends StatelessWidget {
         LightColor.secondaryColor.withValues(alpha: 0.10),
         status.label,
       ),
-      RequestStatus.paymentPending => (
-        LightColor.warningColor,
-        LightColor.warningLightColor,
+      RequestStatus.invitationSent => (
+        LightColor.secondaryColor,
+        LightColor.secondaryColor.withValues(alpha: 0.10),
         status.label,
       ),
       RequestStatus.expired || RequestStatus.cancelled => (

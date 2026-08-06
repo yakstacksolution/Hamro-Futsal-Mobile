@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:hamro_footsall/features/public/data/model/public_venue_model.dart';
+import 'package:hamro_footsall/core/api/api_client/api_constants.dart';
 
 /// User-selected filters for the public venue list.
 ///
@@ -101,14 +102,30 @@ class VenueFilter extends Equatable {
     );
   }
 
-  Map<String, dynamic> toVenueListPayload({int page = 1, int perPage = 10}) {
+  /// Query for `GET /venues`.
+  ///
+  /// [latitude]/[longitude] override the filter's own coordinates. The listing
+  /// needs an origin to return `distance_km`, so the caller passes the device
+  /// fix here whenever the filter itself carries no location.
+  Map<String, dynamic> toVenueListPayload({
+    int page = 1,
+    int perPage = kVenueListPerPage,
+    double? latitude,
+    double? longitude,
+  }) {
+    final double? originLatitude = latitude ?? this.latitude;
+    final double? originLongitude = longitude ?? this.longitude;
+
     final Map<String, dynamic> payload = <String, dynamic>{
       'page': page,
       'per_page': perPage,
     };
 
-    if (latitude != null) payload['latitude'] = latitude;
-    if (longitude != null) payload['longitude'] = longitude;
+    // Both coordinates or neither: a lone axis is meaningless to the server.
+    if (originLatitude != null && originLongitude != null) {
+      payload['latitude'] = originLatitude;
+      payload['longitude'] = originLongitude;
+    }
     if (radius != null) payload['radius'] = radius;
     if (categoryFilterIds.isNotEmpty) {
       payload['filter'] = categoryFilterIds.toList(growable: false);

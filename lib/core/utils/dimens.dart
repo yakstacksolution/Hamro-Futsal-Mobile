@@ -215,6 +215,26 @@ class AppDimens {
   /// Profile details: the summary card becomes a side column on desktop.
   static const double profileSummaryColumnWidth = 320;
 
+  /// In-app update surfaces. All three are centred once the window is wider —
+  /// a full-bleed update wall or sheet on a tablet stretches the copy far past
+  /// a comfortable measure. The sheet is the widest because it carries two
+  /// side-by-side actions; the banner is a single line.
+  static const double updateWallMaxWidth = 480;
+  static const double updateSheetMaxWidth = 520;
+  static const double updateBannerMaxWidth = 560;
+
+  /// Below this height the update wall drops its badge — on a landscape phone
+  /// the artwork would push the actions off-screen.
+  static const double updateCompactHeightBreakpoint = 620;
+
+  /// Release-note list bounds. The box takes a share of the screen height
+  /// between these so a long changelog scrolls instead of growing the sheet.
+  static const double updateNotesMinHeight = 120;
+  static const double updateNotesMaxHeight = 220;
+
+  /// Ceiling for the optional-update sheet, as a share of the screen height.
+  static const double updateSheetHeightFactor = 0.85;
+
   /// Filters & sorting: one capped column on tablet, two panes on desktop so
   /// the sections do not become one very long scroll.
   static const double filterColumnMaxWidth = 720;

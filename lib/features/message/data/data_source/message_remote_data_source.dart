@@ -26,6 +26,7 @@ abstract class MessageRemoteDataSource {
   );
   Future<Result> getConversationDetails(int conversationId);
   Future<Result> getUserPresence(int userId);
+  Future<Result> getMessageProfile(int userId);
   Future<Result> setPresence(bool online);
   Future<Result> sendPresenceHeartbeat(String socketId);
   Future<Result> getMessages(int conversationId);
@@ -94,6 +95,10 @@ final class MessageRemoteDataSourceImpl extends MessageRemoteDataSource {
   @override
   Future<Result> getUserPresence(int userId) async =>
       await Client.instance().getAuthManager().getUserPresence(userId);
+
+  @override
+  Future<Result> getMessageProfile(int userId) async =>
+      await Client.instance().getAuthManager().getMessageProfile(userId);
 
   @override
   Future<Result> setPresence(bool online) async =>

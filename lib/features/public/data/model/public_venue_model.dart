@@ -78,7 +78,7 @@ final class PublicListingVenueModel extends Equatable {
     this.maxPlayer,
     this.minTime,
     this.maxTime,
-    this.distanceMeters,
+    this.distanceKm,
   });
 
   final int? id;
@@ -97,7 +97,14 @@ final class PublicListingVenueModel extends Equatable {
   final int? maxPlayer;
   final String? minTime;
   final String? maxTime;
-  final double? distanceMeters;
+
+  /// Road/haversine distance from the requested origin, in kilometres, as
+  /// returned by the API (`distance_km`). Null when the request carried no
+  /// `latitude`/`longitude`, or the venue has no coordinates.
+  final double? distanceKm;
+
+  /// [distanceKm] in metres, for callers that work in metres.
+  double? get distanceMeters => distanceKm == null ? null : distanceKm! * 1000;
 
   factory PublicListingVenueModel.fromJson(Map<String, dynamic> json) {
     return PublicListingVenueModel(
@@ -119,9 +126,7 @@ final class PublicListingVenueModel extends Equatable {
       ),
       minTime: _parseString(json['min_time'] ?? json['opening_time']),
       maxTime: _parseString(json['max_time'] ?? json['closing_time']),
-      distanceMeters: _parseDouble(
-        json['distance_meters'] ?? json['distance_meter'] ?? json['distance'],
-      ),
+      distanceKm: _parseDistanceKm(json),
     );
   }
 
@@ -142,7 +147,7 @@ final class PublicListingVenueModel extends Equatable {
     int? maxPlayer,
     String? minTime,
     String? maxTime,
-    double? distanceMeters,
+    double? distanceKm,
   }) {
     return PublicListingVenueModel(
       id: id ?? this.id,
@@ -161,7 +166,7 @@ final class PublicListingVenueModel extends Equatable {
       maxPlayer: maxPlayer ?? this.maxPlayer,
       minTime: minTime ?? this.minTime,
       maxTime: maxTime ?? this.maxTime,
-      distanceMeters: distanceMeters ?? this.distanceMeters,
+      distanceKm: distanceKm ?? this.distanceKm,
     );
   }
 
@@ -187,7 +192,7 @@ final class PublicListingVenueModel extends Equatable {
       'max_player': maxPlayer,
       'min_time': minTime,
       'max_time': maxTime,
-      'distance_meters': distanceMeters,
+      'distance_km': distanceKm,
     };
   }
 
@@ -225,6 +230,21 @@ final class PublicListingVenueModel extends Equatable {
     if (value == null) return null;
     if (value is num) return value.toInt();
     return int.tryParse(value.toString());
+  }
+
+  /// Reads the distance in kilometres.
+  ///
+  /// `distance_km` is what the venue listing sends; the metre-based keys are
+  /// kept as a fallback for older responses and are converted on the way in, so
+  /// the rest of the app only deals with kilometres.
+  static double? _parseDistanceKm(Map<String, dynamic> json) {
+    final double? km = _parseDouble(json['distance_km'] ?? json['distanceKm']);
+    if (km != null) return km;
+
+    final double? meters = _parseDouble(
+      json['distance_meters'] ?? json['distance_meter'] ?? json['distance'],
+    );
+    return meters == null ? null : meters / 1000;
   }
 
   static bool? _parseBool(dynamic value) {
@@ -279,7 +299,7 @@ final class PublicListingVenueModel extends Equatable {
     maxPlayer,
     minTime,
     maxTime,
-    distanceMeters,
+    distanceKm,
   ];
 }
 
@@ -304,8 +324,20 @@ final class PublicListingVenuePage extends Equatable {
   final int? lastPage;
   final Map<String, dynamic> paginationMetaData;
 
+  /// 1-based index of the first/last row on this page (`pagination.from` /
+  /// `pagination.to`); null when the API omits them.
+  int? get from =>
+      PublicListingVenueModel._parseInt(paginationMetaData['from']);
+
+  int? get to => PublicListingVenueModel._parseInt(paginationMetaData['to']);
+
   /// Whether there is at least one more page to load after this one.
+  ///
+  /// An empty page always ends the list: without this, a server that answers
+  /// `has_more_pages: true` with no rows would keep the loader spinning.
   bool get hasMore {
+    if (venues.isEmpty) return false;
+
     // Prefer the API's explicit signal, then last_page, then a size estimate.
     final bool? hasMorePages = PublicListingVenueModel._parseBool(
       paginationMetaData['has_more_pages'],

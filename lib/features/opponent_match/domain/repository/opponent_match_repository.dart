@@ -1,7 +1,6 @@
 import 'package:dartz/dartz.dart';
 import 'package:hamro_footsall/core/helper/exception_helper.dart';
 import 'package:hamro_footsall/features/opponent_match/data/model/accept_opponent_request_request.dart';
-import 'package:hamro_footsall/features/opponent_match/data/model/opponent_accept_quote_model.dart';
 import 'package:hamro_footsall/features/opponent_match/data/model/opponent_match_model.dart';
 import 'package:hamro_footsall/features/opponent_match/domain/entities/opponent_match_entities.dart';
 
@@ -40,26 +39,21 @@ abstract class OpponentMatchRepository {
     String id,
   );
 
-  /// Requester approves the accepter's advance — the match is confirmed.
-  Future<Either<AppException, List<OpponentRequestModel>>> verifyPayment(
+  /// Requester confirms the accepting team — the match is created and the
+  /// venue linked.
+  Future<Either<AppException, List<OpponentRequestModel>>> selectOpponent(
     String id,
   );
 
-  /// Requester rejects the proof with [reason] — the request re-opens.
-  Future<Either<AppException, List<OpponentRequestModel>>> rejectPayment(
+  /// Requester turns the acceptance down with [reason] — the request re-opens
+  /// for other teams.
+  Future<Either<AppException, List<OpponentRequestModel>>> rejectInvitation(
     String id,
     String reason,
   );
 
-  /// Step 1 of accepting: places the accept hold and returns the
-  /// server-authoritative advance quote + payment QR.
-  Future<Either<AppException, OpponentAcceptQuoteModel>> getAcceptQuote(
-    String requestId,
-    String teamId,
-  );
-
-  /// Step 2 of accepting: submits the hold token + payment proof; returns the
-  /// updated request (`paymentPending` until the advance is verified).
+  /// Accepts the request with one of my teams; returns the updated request
+  /// (`invitationSent` until the requester picks an opponent).
   Future<Either<AppException, OpponentRequestModel>> acceptRequest(
     AcceptOpponentRequestRequest request,
   );

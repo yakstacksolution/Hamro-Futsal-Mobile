@@ -13,7 +13,12 @@ Future<T?> showAppBottomSheet<T>({
   bool isDismissible = true,
   bool enableDrag = true,
   bool wrapWithCustomSheet = true,
+  Color barrierColor = const Color(0x1F000000),
   double bottomSpacing = AppDimens.paddingX18,
+  Duration transitionDuration = const Duration(milliseconds: 280),
+  Duration reverseTransitionDuration = const Duration(milliseconds: 220),
+  Duration keyboardAnimationDuration = const Duration(milliseconds: 250),
+  Curve keyboardAnimationCurve = Curves.easeOutCubic,
 }) {
   assert(
     child != null || builder != null,
@@ -27,14 +32,58 @@ Future<T?> showAppBottomSheet<T>({
     isDismissible: isDismissible,
     enableDrag: enableDrag,
     backgroundColor: Colors.transparent,
+    barrierColor: barrierColor,
+    sheetAnimationStyle: AnimationStyle(
+      duration: transitionDuration,
+      reverseDuration: reverseTransitionDuration,
+    ),
     builder: (BuildContext sheetContext) {
       final Widget content = builder != null ? builder(sheetContext) : child!;
-      if (wrapWithCustomSheet) {
-        return CustomBottomSheet(bottomSpacing: bottomSpacing, child: content);
-      }
-      return content;
+      final Widget sheet = wrapWithCustomSheet
+          ? CustomBottomSheet(bottomSpacing: bottomSpacing, child: content)
+          : content;
+
+      return KeyboardAwareBottomSheet(
+        duration: keyboardAnimationDuration,
+        curve: keyboardAnimationCurve,
+        child: sheet,
+      );
     },
   );
+}
+
+/// Animates a bottom sheet with the system keyboard instead of jumping when
+/// [MediaQueryData.viewInsets] changes.
+///
+/// Keep this widget outside the sheet's size constraint so the complete sheet
+/// moves above the keyboard, rather than only adding padding inside its body.
+class KeyboardAwareBottomSheet extends StatelessWidget {
+  const KeyboardAwareBottomSheet({
+    super.key,
+    required this.child,
+    this.duration = const Duration(milliseconds: 250),
+    this.curve = Curves.easeOutCubic,
+  });
+
+  final Widget child;
+  final Duration duration;
+  final Curve curve;
+
+  @override
+  Widget build(BuildContext context) {
+    final double keyboardHeight = MediaQuery.viewInsetsOf(context).bottom;
+
+    return AnimatedPadding(
+      duration: duration,
+      curve: curve,
+      padding: EdgeInsets.only(bottom: keyboardHeight),
+      child: MediaQuery.removeViewInsets(
+        context: context,
+        removeBottom: true,
+        child: child,
+      ),
+    );
+  }
 }
 
 class CustomBottomSheet extends StatelessWidget {
@@ -59,7 +108,6 @@ class CustomBottomSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final mediaQuery = MediaQuery.of(context);
     final AppUtils appUtils = AppUtils();
     final textTheme = FutsalTheme.getTextTheme(context);
 
@@ -86,7 +134,7 @@ class CustomBottomSheet extends StatelessWidget {
                 left: AppDimens.paddingX18,
                 top: AppDimens.paddingX12,
                 right: AppDimens.paddingX18,
-                bottom: bottomSpacing + mediaQuery.viewInsets.bottom,
+                bottom: bottomSpacing,
               ),
           child: DefaultTextStyle(
             style:

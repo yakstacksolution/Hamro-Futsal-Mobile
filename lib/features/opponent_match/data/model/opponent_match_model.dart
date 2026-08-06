@@ -160,7 +160,7 @@ class OpponentLevelModel {
 enum RequestStatus {
   fresh,
   pending,
-  paymentPending,
+  invitationSent,
   accepted,
   rejected,
   sent,
@@ -172,7 +172,7 @@ extension RequestStatusX on RequestStatus {
   String get label => switch (this) {
     RequestStatus.fresh => 'New',
     RequestStatus.pending => 'Pending',
-    RequestStatus.paymentPending => 'Payment pending',
+    RequestStatus.invitationSent => 'Invitation sent',
     RequestStatus.accepted => 'Accepted',
     RequestStatus.rejected => 'Rejected',
     RequestStatus.sent => 'Sent',
@@ -186,8 +186,8 @@ extension RequestStatusX on RequestStatus {
 
   bool get isSettled => !isOpen;
 
-  /// Maps a wire status (`open | accept_pending_payment | accepted |
-  /// declined | expired | cancelled`) onto the UI lifecycle. An `open`
+  /// Maps a wire status (`open | invitation_sent | accepted | declined |
+  /// expired | cancelled`) onto the UI lifecycle. An `open`
   /// request is [sent] when it's mine, [fresh] while its accept deadline is
   /// still running, [pending] when the server gave no deadline, and shows as
   /// [expired] once the deadline has passed (until the server sweep catches
@@ -204,9 +204,13 @@ extension RequestStatusX on RequestStatus {
         return acceptDeadline.isAfter(DateTime.now())
             ? RequestStatus.fresh
             : RequestStatus.expired;
+      // An acceptance is in — the requester still has to pick an opponent.
+      // The legacy payment-hold statuses map here too.
+      case 'invitation_sent':
+      case 'accept_pending_selection':
       case 'accept_pending_payment':
       case 'payment_pending':
-        return RequestStatus.paymentPending;
+        return RequestStatus.invitationSent;
       case 'accepted':
         return RequestStatus.accepted;
       case 'declined':
@@ -223,52 +227,99 @@ extension RequestStatusX on RequestStatus {
   }
 }
 
-/// Verification lifecycle of the advance paid when accepting a request.
-enum OpponentPaymentStatus { pending, verified, rejected }
+/// Where an invitation (an opponent team's acceptance) stands while the
+/// requester decides between the teams that replied.
+enum InvitationStatus { pending, selected, rejected }
 
-extension OpponentPaymentStatusX on OpponentPaymentStatus {
+extension InvitationStatusX on InvitationStatus {
   String get label => switch (this) {
-    OpponentPaymentStatus.pending => 'Pending verification',
-    OpponentPaymentStatus.verified => 'Verified',
-    OpponentPaymentStatus.rejected => 'Rejected',
+    InvitationStatus.pending => 'Awaiting your pick',
+    InvitationStatus.selected => 'Selected',
+    InvitationStatus.rejected => 'Auto-rejected',
   };
 
-  static OpponentPaymentStatus fromApi(dynamic raw) =>
+  static InvitationStatus fromApi(dynamic raw) =>
       switch (raw?.toString().trim().toLowerCase() ?? '') {
-        'verified' || 'approved' || 'paid' => OpponentPaymentStatus.verified,
-        'rejected' || 'failed' || 'declined' => OpponentPaymentStatus.rejected,
-        _ => OpponentPaymentStatus.pending,
+        'selected' || 'confirmed' || 'accepted' => InvitationStatus.selected,
+        'rejected' ||
+        'declined' ||
+        'auto_rejected' => InvitationStatus.rejected,
+        _ => InvitationStatus.pending,
       };
 }
 
-/// The advance payment attached to an accepted (or accept-pending) request.
-class OpponentPaymentModel {
-  const OpponentPaymentModel({
-    required this.status,
-    this.amount = 0,
-    this.proofUrl = '',
-    this.rejectedReason = '',
+/// One opponent team's acceptance of my request. The requester reviews every
+/// invitation and picks a single opponent; the rest are rejected by the server.
+class OpponentInvitationModel {
+  const OpponentInvitationModel({
+    required this.id,
+    required this.teamId,
+    required this.teamName,
+    this.status = InvitationStatus.pending,
+    this.captainName = '',
+    this.captainUserId = 0,
+    this.playerCount = 0,
+    this.share = 0,
+    this.message = '',
+    this.acceptedAt,
   });
 
-  final OpponentPaymentStatus status;
-  final int amount;
-  final String proofUrl;
+  final String id;
+  final String teamId;
+  final String teamName;
+  final InvitationStatus status;
 
-  /// Why verification failed — only set when [status] is rejected.
-  final String rejectedReason;
+  /// The accepting captain — chat target for the requester.
+  final String captainName;
+  final int captainUserId;
 
-  factory OpponentPaymentModel.fromJson(Map<String, dynamic> json) {
-    return OpponentPaymentModel(
-      status: OpponentPaymentStatusX.fromApi(json['status']),
-      amount: _asInt(json['amount']),
-      proofUrl: (json['proof_url'] ?? json['proofUrl'] ?? '')
-          .toString()
-          .trim(),
-      rejectedReason:
-          (json['rejected_reason'] ?? json['rejectedReason'] ?? '')
+  /// Size of the accepting roster, when the API reports it.
+  final int playerCount;
+
+  /// What this team owes of the court fee.
+  final int share;
+
+  /// Optional note the accepting captain attached.
+  final String message;
+  final DateTime? acceptedAt;
+
+  factory OpponentInvitationModel.fromJson(Map<String, dynamic> json) {
+    final team = _asMap(json['team'] ?? json['accepted_by']);
+    final captain = _asMap(json['captain'] ?? json['user']);
+    return OpponentInvitationModel(
+      id: (json['id'] ?? json['invitation_id'] ?? '').toString(),
+      teamId: (json['team_id'] ?? team['id'] ?? team['team_id'] ?? '')
+          .toString(),
+      teamName:
+          (json['team_name'] ?? team['name'] ?? team['team_name'] ?? '')
               .toString()
               .trim(),
+      status: InvitationStatusX.fromApi(json['status']),
+      captainName:
+          (json['captain_name'] ?? captain['name'] ?? team['captain_name'] ?? '')
+              .toString()
+              .trim(),
+      captainUserId: _asInt(
+        json['user_id'] ?? captain['id'] ?? captain['user_id'] ?? team['user_id'],
+      ),
+      playerCount: _asInt(
+        json['player_count'] ?? json['members_count'] ?? team['player_count'],
+      ),
+      share: _asInt(json['share'] ?? json['accepter_share'] ?? json['amount']),
+      message: (json['message'] ?? json['note'] ?? '').toString().trim(),
+      acceptedAt: _asDate(json['accepted_at'] ?? json['created_at']),
     );
+  }
+
+  String get initials {
+    final parts = teamName
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((p) => p.isNotEmpty)
+        .toList();
+    if (parts.isEmpty) return '?';
+    if (parts.length == 1) return parts.first.substring(0, 1).toUpperCase();
+    return (parts[0].substring(0, 1) + parts[1].substring(0, 1)).toUpperCase();
   }
 }
 
@@ -434,11 +485,10 @@ class OpponentRequestModel {
     this.requesterTeamId = '',
     this.isMine = false,
     this.acceptDeadline,
-    this.advancePayableNow = 0,
     this.acceptedByTeamId = '',
     this.acceptedByTeamName = '',
     this.acceptedByUserId = 0,
-    this.payment,
+    this.invitations = const <OpponentInvitationModel>[],
   });
 
   final String id;
@@ -471,19 +521,36 @@ class OpponentRequestModel {
   /// Server-owned accept window; drives the countdown on `fresh` requests.
   final DateTime? acceptDeadline;
 
-  /// Server-computed advance the accepter pays now (display only — the
-  /// authoritative figure is re-quoted by `accept-quote`).
-  final int advancePayableNow;
-
-  /// Set once a team has accepted (or is pending payment verification).
+  /// Set once a team has accepted (before the requester picks an opponent
+  /// this is simply the latest acceptance).
   final String acceptedByTeamId;
   final String acceptedByTeamName;
 
   /// The accepting captain's user id — chat target for the requester.
   final int acceptedByUserId;
 
-  /// The accepter's advance payment, once submitted.
-  final OpponentPaymentModel? payment;
+  /// Every opponent team that accepted this request. The API sends the list
+  /// once it supports competing acceptances; until then it carries the single
+  /// `accepted_by` team (see [_invitationsFrom]) so the review UI works either
+  /// way.
+  final List<OpponentInvitationModel> invitations;
+
+  /// Invitations still waiting on the requester's pick.
+  List<OpponentInvitationModel> get pendingInvitations => invitations
+      .where((i) => i.status == InvitationStatus.pending)
+      .toList(growable: false);
+
+  /// The team the requester picked, when the choice has been made.
+  OpponentInvitationModel? get selectedInvitation {
+    for (final i in invitations) {
+      if (i.status == InvitationStatus.selected) return i;
+    }
+    return null;
+  }
+
+  /// True once the match is locked in: an opponent is confirmed and the venue
+  /// is linked to the request.
+  bool get isMatchConfirmed => status == RequestStatus.accepted;
 
   /// A request row from `GET /opponent-requests`. Tolerant of flat or nested
   /// (`requester`/`match`/`pricing`) payload shapes.
@@ -492,7 +559,6 @@ class OpponentRequestModel {
     final match = _asMap(json['match']);
     final pricing = _asMap(json['pricing']);
     final acceptedBy = _asMap(json['accepted_by']);
-    final payment = _asMap(json['payment']);
 
     final bool isMine = json['is_mine'] == true || json['isMine'] == true;
     final DateTime? acceptDeadline = _asDate(
@@ -556,17 +622,55 @@ class OpponentRequestModel {
       requesterTeamId: (requester['team_id'] ?? '').toString(),
       isMine: isMine,
       acceptDeadline: acceptDeadline,
-      advancePayableNow: _asInt(pricing['advance_payable_now']),
       acceptedByTeamId: (acceptedBy['team_id'] ?? '').toString(),
       acceptedByTeamName: (acceptedBy['team_name'] ?? '').toString().trim(),
       acceptedByUserId: _asInt(acceptedBy['user_id']),
-      payment: payment.isEmpty ? null : OpponentPaymentModel.fromJson(payment),
+      invitations: _invitationsFrom(json, acceptedBy, accepterShare),
     );
+  }
+
+  /// Reads the competing acceptances. When the payload only carries a single
+  /// `accepted_by` team, that team becomes the one invitation — already
+  /// `selected` on an accepted request, still `pending` while the requester
+  /// has not chosen yet.
+  static List<OpponentInvitationModel> _invitationsFrom(
+    Map<String, dynamic> json,
+    Map<String, dynamic> acceptedBy,
+    int accepterShare,
+  ) {
+    final dynamic raw =
+        json['invitations'] ?? json['acceptances'] ?? json['accepted_teams'];
+    if (raw is List && raw.isNotEmpty) {
+      return raw
+          .whereType<Map>()
+          .map(
+            (m) => OpponentInvitationModel.fromJson(Map<String, dynamic>.from(m)),
+          )
+          .where((i) => i.teamName.isNotEmpty || i.teamId.isNotEmpty)
+          .toList(growable: false);
+    }
+    if (acceptedBy.isEmpty) return const <OpponentInvitationModel>[];
+    final String status = (json['status'] ?? '').toString().trim().toLowerCase();
+    return <OpponentInvitationModel>[
+      OpponentInvitationModel(
+        id: (acceptedBy['team_id'] ?? '').toString(),
+        teamId: (acceptedBy['team_id'] ?? '').toString(),
+        teamName: (acceptedBy['team_name'] ?? '').toString().trim(),
+        status: status == 'accepted'
+            ? InvitationStatus.selected
+            : InvitationStatus.pending,
+        captainName: (acceptedBy['name'] ?? '').toString().trim(),
+        captainUserId: _asInt(acceptedBy['user_id']),
+        playerCount: _asInt(acceptedBy['player_count']),
+        share: accepterShare,
+        acceptedAt: _asDate(acceptedBy['accepted_at']),
+      ),
+    ];
   }
 
   OpponentRequestModel copyWith({
     RequestStatus? status,
-    OpponentPaymentModel? payment,
+    List<OpponentInvitationModel>? invitations,
   }) => OpponentRequestModel(
     id: id,
     team: team,
@@ -584,11 +688,10 @@ class OpponentRequestModel {
     requesterTeamId: requesterTeamId,
     isMine: isMine,
     acceptDeadline: acceptDeadline,
-    advancePayableNow: advancePayableNow,
     acceptedByTeamId: acceptedByTeamId,
     acceptedByTeamName: acceptedByTeamName,
     acceptedByUserId: acceptedByUserId,
-    payment: payment ?? this.payment,
+    invitations: invitations ?? this.invitations,
   );
 
   String get initials {

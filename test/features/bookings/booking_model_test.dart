@@ -3,6 +3,85 @@ import 'package:hamro_footsall/features/bookings/data/model/booking_model.dart';
 
 void main() {
   group('BookingModel', () {
+    test('parses the live booking-details response identities and totals', () {
+      final BookingModel booking = BookingModel.fromResponse(<String, dynamic>{
+        'status': 'success',
+        'message': 'Booking fetched successfully.',
+        'data': <String, dynamic>{
+          'id': 36,
+          'user_id': 19,
+          'venue_id': 37,
+          'vendor_id': 19,
+          'booking_code': 'BK-LHXCJVCO',
+          'booking_type': 'online',
+          'series_parent_id': 36,
+          'is_recurring': false,
+          'is_series_anchor': true,
+          'booking_date': '2026-08-05',
+          'start_time': '13:00:00',
+          'end_time': '14:00:00',
+          'slot_count': 1,
+          'price_per_slot': 1600,
+          'subtotal': 1600,
+          'advance_amount': 800,
+          'payable_now': 800,
+          'balance_due_later': 800,
+          'total_amount': 1600,
+          'payment_status': 'partial',
+          'booking_status': 'pending',
+          'status': 'pending',
+          'customer_name': 'Rosnnnnn',
+          'customer_phone': '9000',
+          'customer_email': 'test01@gmail.com',
+          'venue': <String, dynamic>{'id': 37, 'name': 'Arena futsa'},
+          'court': <String, dynamic>{'id': 38, 'name': 'Delxu court'},
+          'payments': <Map<String, dynamic>>[
+            <String, dynamic>{
+              'id': 49,
+              'payment_method': 'cash',
+              'payment_type': 'cash',
+              'amount': 800,
+              'status': 'pending',
+              'verification_status': 'pending',
+              'payment_proof': 'payment-proofs/19/proof.jpg',
+              'payment_proof_url': '/storage/payment-proofs/19/proof.jpg',
+              'has_payment_proof': true,
+            },
+          ],
+          'paid_amount': 0,
+          'balance_due': 1600,
+          'booking_slots': <Map<String, dynamic>>[
+            <String, dynamic>{
+              'id': 36,
+              'slot_date': '2026-08-05',
+              'slot_start': '13:00:00',
+              'slot_end': '14:00:00',
+              'slot_price': 1600,
+              'status': 'active',
+            },
+          ],
+          'extra_items': <dynamic>[],
+        },
+      });
+
+      expect(booking.id, 36);
+      expect(booking.playerId, 19);
+      expect(booking.vendorId, 19);
+      expect(booking.venueId, 37);
+      expect(booking.courtId, 38);
+      expect(booking.bookingRef, 'BK-LHXCJVCO');
+      expect(booking.futsalName, 'Arena futsa');
+      expect(booking.courtName, 'Delxu court');
+      expect(booking.amount, 1600);
+      expect(booking.payableNow, 800);
+      expect(booking.balanceDueLater, 800);
+      expect(booking.payment?.id, 49);
+      expect(booking.payment?.hasPaymentProof, isTrue);
+      expect(booking.bookingSlots.single.price, 1600);
+      expect(booking.toJson()['user_id'], 19);
+      expect(booking.toJson()['vendor_id'], 19);
+    });
+
     test('parses customer user id from candidate-shaped futsal payload', () {
       final BookingModel booking = BookingModel.fromJson(<String, dynamic>{
         'id': 9,

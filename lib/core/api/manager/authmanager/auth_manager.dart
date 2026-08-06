@@ -72,6 +72,10 @@ class AuthManager extends ServiceManager {
     return await _apiClient.updateFcmToken(data: data);
   }
 
+  Future<Result> getAppVersion(Map<String, dynamic> query) async {
+    return await _apiClient.getAppVersion(query: query);
+  }
+
   Future<Result> getNotifications(String filter, int perPage) async {
     return await _apiClient.getNotifications(filter: filter, perPage: perPage);
   }
@@ -328,6 +332,10 @@ class AuthManager extends ServiceManager {
     return await _apiClient.getUserPresence(userId: userId);
   }
 
+  Future<Result> getMessageProfile(int userId) async {
+    return await _apiClient.getMessageProfile(userId: userId);
+  }
+
   Future<Result> setPresence(bool online) async {
     return await _apiClient.setPresence(online: online);
   }
@@ -466,6 +474,18 @@ class AuthManager extends ServiceManager {
 
   Future<Result> applyCoupon({required Map<String, dynamic> data}) async {
     return await _apiClient.applyCoupon(data: data);
+  }
+
+  Future<Result> getRewards() async {
+    return await _apiClient.getRewards();
+  }
+
+  Future<Result> getRewardHistory({int page = 1, int perPage = 20}) async {
+    return await _apiClient.getRewardHistory(page: page, perPage: perPage);
+  }
+
+  Future<Result> generateRewardCoupon({Map<String, dynamic>? data}) async {
+    return await _apiClient.generateRewardCoupon(data: data);
   }
 
   Future<Result> getVenueCourt() async {

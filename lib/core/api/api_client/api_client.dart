@@ -1,3 +1,4 @@
+import 'package:hamro_footsall/core/api/api_client/api_constants.dart';
 import 'package:hamro_footsall/core/api/api_client/booking_type_payload.dart';
 import 'package:hamro_footsall/core/api/api_client/result.dart';
 import 'package:hamro_footsall/core/helper/share_preferences.dart';
@@ -46,9 +47,12 @@ class ApiClient {
     return _post(url: '$_baseUrl/auth/notification-preferences', data: data);
   }
 
-  /// Registers/updates the device's FCM token for push notifications.
   Future<Result> updateFcmToken({required Map<String, dynamic> data}) {
     return _post(url: '$_baseUrl/auth/fcm-token', data: data);
+  }
+
+  Future<Result> getAppVersion({required Map<String, dynamic> query}) {
+    return _get(url: '$_baseUrl/app-version', query: query);
   }
 
   // ── Notifications ──
@@ -165,7 +169,7 @@ class ApiClient {
 
   Future<Result> getPublicVenueList({
     int page = 1,
-    int perPage = 10,
+    int perPage = kVenueListPerPage,
     Map<String, dynamic>? data,
   }) {
     return _get(
@@ -326,6 +330,11 @@ class ApiClient {
     return _get(url: '$_baseUrl/presence/$userId');
   }
 
+  /// Public profile of a chat counterpart — name, address, gender and image.
+  Future<Result> getMessageProfile({required int userId}) {
+    return _get(url: '$_baseUrl/message-profile/$userId');
+  }
+
   Future<Result> setPresence({required bool online}) {
     return _post(url: '$_baseUrl/presence/${online ? 'online' : 'offline'}');
   }
@@ -481,6 +490,24 @@ class ApiClient {
 
   Future<Result> applyCoupon({required Map<String, dynamic> data}) {
     return _post(url: '$_baseUrl/bookings/apply-coupon', data: data);
+  }
+
+  Future<Result> getRewards() {
+    return _get(url: '$_baseUrl/customer/rewards');
+  }
+
+  Future<Result> getRewardHistory({int page = 1, int perPage = 20}) {
+    return _get(
+      url: '$_baseUrl/customer/rewards/history',
+      query: <String, dynamic>{'page': page, 'per_page': perPage},
+    );
+  }
+
+  Future<Result> generateRewardCoupon({Map<String, dynamic>? data}) {
+    return _post(
+      url: '$_baseUrl/customer/rewards/generate-coupon',
+      data: data ?? <String, dynamic>{},
+    );
   }
 
   Future<Result> getVenueCourt() {

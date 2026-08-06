@@ -517,6 +517,11 @@ class FutsalDraft {
   }
 }
 
+/// Advance payment is mandatory on every court, and never below this share of
+/// the court's price. A percentage advance is entered directly; a flat advance
+/// must be at least this share of the base price.
+const double kMinimumAdvancePercent = 20;
+
 enum AdvancePaymentType {
   flat,
   percentage;
@@ -649,9 +654,9 @@ class CourtDraft {
     this.availability = const AvailabilityDraft(),
     this.enableOnlineBooking = true,
     this.isPaymentRequired = true,
-    this.advancePaymentRequired = false,
-    this.advancePaymentType,
-    this.advancePrice,
+    this.advancePaymentRequired = true,
+    this.advancePaymentType = AdvancePaymentType.percentage,
+    this.advancePrice = kMinimumAdvancePercent,
     this.advancePriceUserEdited = false,
     this.paymentQr,
     Set<int> amenities = const <int>{},
@@ -980,10 +985,12 @@ class CourtDraft {
           json['isPaymentRequired'] as bool? ??
           json['is_payment_required'] as bool? ??
           true,
-      advancePaymentRequired: json['advancePaymentRequired'] as bool? ?? false,
-      advancePaymentType: AdvancePaymentType.fromString(
-        json['advancePaymentType'] as String?,
-      ),
+      // Advance payment is mandatory, so a draft saved before that rule (or
+      // one with it switched off) is read back as required.
+      advancePaymentRequired: true,
+      advancePaymentType:
+          AdvancePaymentType.fromString(json['advancePaymentType'] as String?) ??
+          AdvancePaymentType.percentage,
       advancePrice: _asDouble(json['advancePrice'] ?? json['paymentPercent']),
       advancePriceUserEdited: json['advancePriceUserEdited'] as bool? ?? false,
       paymentQr: _uploadFromJson(json['paymentQr']),

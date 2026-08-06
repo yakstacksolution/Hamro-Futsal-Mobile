@@ -15,6 +15,7 @@ import 'package:hamro_footsall/features/profile/data/model/profile_model.dart';
 import 'package:hamro_footsall/features/profile/presentation/profile_bloc/profile_bloc.dart';
 import 'package:hamro_footsall/features/profile/presentation/widgets/profile_details_page.dart';
 import 'package:hamro_footsall/features/profile/presentation/widgets/vendor_request_bottom_sheet.dart';
+import 'package:hamro_footsall/features/rewards/presentation/widgets/profile_rewards_badge.dart';
 import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -28,6 +29,11 @@ class _ProfilePageState extends State<ProfilePage> {
   bool _isLoggingOut = false;
 
   late final List<_ProfileItem> _generalItems = <_ProfileItem>[
+    _ProfileItem(
+      title: StringConstants.myRewards,
+      icon: Icons.workspace_premium_outlined,
+      onTap: () => context.pushNamed(AppRouterParams.rewards.name),
+    ),
     _ProfileItem(
       title: StringConstants.settings,
       icon: Icons.settings_outlined,
@@ -203,7 +209,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   //   _VendorStatusCard(user: profile.data),
                   //   const SizedBox(height: AppDimens.paddingX20),
                   // ],
-                  const SizedBox(height: AppDimens.paddingX24),
+                  const SizedBox(height: AppDimens.paddingX20),
                   _SectionGroup(
                     label: StringConstants.general,
                     items: _generalItems,
@@ -250,13 +256,23 @@ class _ProfilePageState extends State<ProfilePage> {
         right: AppDimens.paddingX20,
         top: AppDimens.paddingX24,
       ),
-      child: Text(
-        StringConstants.profile,
-        style: textTheme.bodyTextLarge?.copyWith(
-          fontSize: AppDimens.fontHeadingSmall,
-          fontWeight: FontWeight.w700,
-          color: LightColor.primaryTextColor,
-        ),
+      child: Row(
+        children: <Widget>[
+          Expanded(
+            child: Text(
+              StringConstants.profile,
+              style: textTheme.bodyTextLarge?.copyWith(
+                fontSize: AppDimens.fontHeadingSmall,
+                fontWeight: FontWeight.w700,
+                color: LightColor.primaryTextColor,
+              ),
+            ),
+          ),
+          const SizedBox(width: AppDimens.paddingX12),
+          // Points balance rides the heading rather than taking a card of its
+          // own further down the page.
+          const ProfileRewardsBadge(),
+        ],
       ),
     );
   }

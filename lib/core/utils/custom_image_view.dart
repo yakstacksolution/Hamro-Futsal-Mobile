@@ -26,6 +26,8 @@ class CustomImageView extends StatelessWidget {
   final Uint8List? imageBytes;
   final double? height;
   final double? width;
+  final double? cacheHeight;
+  final double? cacheWidth;
   final Color? color;
   final BoxFit? fit;
   final Alignment? alignment;
@@ -46,6 +48,8 @@ class CustomImageView extends StatelessWidget {
     this.imageBytes,
     this.height,
     this.width,
+    this.cacheHeight,
+    this.cacheWidth,
     this.color,
     this.fit,
     this.alignment,
@@ -220,8 +224,18 @@ class CustomImageView extends StatelessWidget {
           cacheManager: customCacheManager,
           fadeInDuration: const Duration(milliseconds: 150),
           fadeOutDuration: const Duration(milliseconds: 100),
-          memCacheHeight: _toCacheDimension(height, devicePixelRatio),
-          memCacheWidth: _toCacheDimension(width, devicePixelRatio),
+          // The displayed widget can intentionally use infinity to fill its
+          // parent. Callers that know the finite layout bounds can still keep
+          // the decoded bitmap close to its on-screen size via these hints.
+          // This avoids decoding multi-megapixel venue photos while scrolling.
+          memCacheHeight: _toCacheDimension(
+            cacheHeight ?? height,
+            devicePixelRatio,
+          ),
+          memCacheWidth: _toCacheDimension(
+            cacheWidth ?? width,
+            devicePixelRatio,
+          ),
           placeholder: (_, __) => _buildPlaceholder(context),
           errorWidget: (_, error, __) {
             return _buildPlaceholder(context);

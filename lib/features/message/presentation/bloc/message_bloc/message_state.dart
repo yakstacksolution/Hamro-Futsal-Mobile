@@ -18,6 +18,9 @@ final class MessageState extends Equatable {
     this.createdGroup,
     this.actionBusy = false,
     this.actionMessage,
+    this.profileStatus = MessageStatus.initial,
+    this.profile,
+    this.profileErrorMessage,
     this.errorMessage,
   });
 
@@ -40,6 +43,11 @@ final class MessageState extends Equatable {
   final ConversationModel? createdGroup;
   final bool actionBusy;
   final String? actionMessage;
+
+  /// Other user's view-only profile, shown in the profile bottom sheet.
+  final MessageStatus profileStatus;
+  final MessageProfileModel? profile;
+  final String? profileErrorMessage;
   final String? errorMessage;
 
   int get unreadTotal => conversations.fold(0, (sum, c) => sum + c.unreadCount);
@@ -62,6 +70,10 @@ final class MessageState extends Equatable {
     bool? actionBusy,
     String? actionMessage,
     bool clearActionMessage = false,
+    MessageStatus? profileStatus,
+    MessageProfileModel? profile,
+    String? profileErrorMessage,
+    bool clearProfile = false,
     String? errorMessage,
     bool clearErrorMessage = false,
   }) {
@@ -88,6 +100,15 @@ final class MessageState extends Equatable {
       actionMessage: clearActionMessage
           ? null
           : actionMessage ?? this.actionMessage,
+      // An explicit status wins, so a reload can clear the previous profile
+      // and move to `loading` in the same emit.
+      profileStatus:
+          profileStatus ??
+          (clearProfile ? MessageStatus.initial : this.profileStatus),
+      profile: clearProfile ? null : profile ?? this.profile,
+      profileErrorMessage: clearProfile
+          ? null
+          : profileErrorMessage ?? this.profileErrorMessage,
       errorMessage: clearErrorMessage
           ? null
           : errorMessage ?? this.errorMessage,
@@ -110,6 +131,9 @@ final class MessageState extends Equatable {
     createdGroup,
     actionBusy,
     actionMessage,
+    profileStatus,
+    profile,
+    profileErrorMessage,
     errorMessage,
   ];
 }

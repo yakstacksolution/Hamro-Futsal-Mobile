@@ -6,6 +6,7 @@ import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/features/bookings/data/model/booking_model.dart';
 import 'package:hamro_footsall/features/bookings/presentation/widgets/booking_details_widgets.dart';
 import 'package:hamro_footsall/core/utils/string_constants.dart';
+import 'package:hamro_footsall/core/widgets/app_message_view.dart';
 
 Color bookingStatusColor(BookingStatus status) => switch (status) {
   BookingStatus.confirmed => LightColor.secondaryColor,
@@ -343,82 +344,34 @@ class BookingEmptyView extends StatelessWidget {
   }
 }
 
+/// Load-failure state for the booking lists.
+///
+/// Thin wrapper over [AppMessageView] so bookings and the wishlist share one
+/// error treatment. [title] defaults to the bookings wording; pass your own
+/// where the surface differs.
 class BookingErrorView extends StatelessWidget {
   const BookingErrorView({
     super.key,
     required this.message,
     required this.onRetry,
+    this.title = StringConstants.unableToLoadBookings,
   });
+
   final String message;
   final VoidCallback onRetry;
+  final String title;
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = FutsalTheme.getTextTheme(context);
-    return Center(
-      child: Padding(
-        padding: AppUtils().getPadding(all: AppDimens.paddingX32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                color: LightColor.redColor.withValues(alpha: 0.08),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.wifi_off_rounded,
-                size: 36,
-                color: LightColor.redColor,
-              ),
-            ),
-            const SizedBox(height: AppDimens.paddingX16),
-            Text(
-              StringConstants.somethingWentWrong,
-              style: textTheme.bodyTextMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: LightColor.primaryTextColor,
-              ),
-            ),
-            const SizedBox(height: AppDimens.paddingX6),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: textTheme.bodyTextSmall?.copyWith(
-                color: LightColor.secondaryTextColor,
-              ),
-            ),
-            const SizedBox(height: AppDimens.paddingX20),
-            GestureDetector(
-              onTap: onRetry,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  color: LightColor.secondaryColor,
-                  borderRadius: BorderRadius.circular(AppDimens.radiusX8),
-                ),
-                child: Text(
-                  StringConstants.tryAgain,
-                  style: textTheme.bodyTextSmall?.copyWith(
-                    color: LightColor.whiteColor,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
+    return AppMessageView(
+      icon: Icons.wifi_off_rounded,
+      title: title,
+      message: message,
+      actionLabel: StringConstants.retry,
+      onAction: onRetry,
     );
   }
 }
-
-// ─── Minimal booking card (shared by both tabs) ───────────────────────────────
 
 class BookingCard extends StatelessWidget {
   const BookingCard({
@@ -457,7 +410,8 @@ class BookingCard extends StatelessWidget {
       if (booking.isRecurring)
         BookingInfoChip(
           icon: Icons.repeat_rounded,
-          label: '${_capitalize(booking.recurrenceType ?? 'Recurring')} booking',
+          label:
+              '${_capitalize(booking.recurrenceType ?? 'Recurring')} booking',
           color: LightColor.purpleColor,
         ),
     ];

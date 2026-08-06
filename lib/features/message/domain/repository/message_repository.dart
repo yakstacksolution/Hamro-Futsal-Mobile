@@ -5,6 +5,7 @@ import 'package:hamro_footsall/core/helper/exception_helper.dart';
 import 'package:hamro_footsall/features/message/data/model/chat_message_model.dart';
 import 'package:hamro_footsall/features/message/data/model/chat_send_request.dart';
 import 'package:hamro_footsall/features/message/data/model/conversation_model.dart';
+import 'package:hamro_footsall/features/message/data/model/message_profile_model.dart';
 
 abstract class MessageRepository {
   /// Id of the signed-in user (from the access token) — used to tell own
@@ -32,6 +33,12 @@ abstract class MessageRepository {
     int conversationId,
   );
   Future<Either<AppException, bool>> getUserPresence(int userId);
+
+  /// View-only profile of another user, opened from a conversation.
+  Future<Either<AppException, MessageProfileModel>> getMessageProfile(
+    int userId,
+  );
+
   Future<Either<AppException, bool>> setPresence(bool online);
   Future<Either<AppException, bool>> sendPresenceHeartbeat(String socketId);
   Future<Either<AppException, List<ChatMessageModel>>> getMessages(

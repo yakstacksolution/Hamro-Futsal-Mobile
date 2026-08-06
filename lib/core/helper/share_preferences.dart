@@ -18,6 +18,12 @@ class _SettingsPreferenceKeys {
   static const appLanguage = 'settings_app_language';
 }
 
+class _AppUpdatePreferenceKeys {
+  static const snoozedVersion = 'app_update_snoozed_version';
+  static const snoozedUntil = 'app_update_snoozed_until';
+  static const lastCheckedAt = 'app_update_last_checked_at';
+}
+
 class AppSettings {
   static final AppSettings _instance = AppSettings._internal();
   late final Preferences _preferences;
@@ -102,6 +108,44 @@ class AppSettings {
       _preferences.setString(_SettingsPreferenceKeys.appLanguage, val);
   String get appLanguage =>
       _preferences.getString(_SettingsPreferenceKeys.appLanguage) ?? 'English';
+
+  // ---------------------------------------------------------------------------
+  // In-app update bookkeeping. "Later" on an optional update snoozes *that
+  // specific version* until a deadline, so a newer release still prompts
+  // immediately instead of inheriting the old snooze.
+  // ---------------------------------------------------------------------------
+
+  set updateSnoozedVersion(String val) =>
+      _preferences.setString(_AppUpdatePreferenceKeys.snoozedVersion, val);
+  String? get updateSnoozedVersion =>
+      _preferences.getString(_AppUpdatePreferenceKeys.snoozedVersion);
+
+  set updateSnoozedUntil(DateTime val) => _preferences.setInt(
+    _AppUpdatePreferenceKeys.snoozedUntil,
+    val.millisecondsSinceEpoch,
+  );
+  DateTime? get updateSnoozedUntil {
+    final int? millis = _preferences.getInt(
+      _AppUpdatePreferenceKeys.snoozedUntil,
+    );
+    return millis == null ? null : DateTime.fromMillisecondsSinceEpoch(millis);
+  }
+
+  set updateLastCheckedAt(DateTime val) => _preferences.setInt(
+    _AppUpdatePreferenceKeys.lastCheckedAt,
+    val.millisecondsSinceEpoch,
+  );
+  DateTime? get updateLastCheckedAt {
+    final int? millis = _preferences.getInt(
+      _AppUpdatePreferenceKeys.lastCheckedAt,
+    );
+    return millis == null ? null : DateTime.fromMillisecondsSinceEpoch(millis);
+  }
+
+  void clearUpdateSnooze() {
+    _preferences.remove(_AppUpdatePreferenceKeys.snoozedVersion);
+    _preferences.remove(_AppUpdatePreferenceKeys.snoozedUntil);
+  }
 
   void logout() {
     _preferences.remove(_AuthPreferenceKeys.tokenModel);

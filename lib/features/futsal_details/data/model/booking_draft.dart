@@ -49,6 +49,18 @@ class BookingDraft {
   /// Display end time of the slot, when known.
   final String? endTime;
 
+  /// Complete time label for display. Some slot responses put the full range
+  /// in [selectedTime], while others provide its end separately in [endTime].
+  String get displayTimeRange {
+    final String start = selectedTime.trim();
+    final String? end = endTime?.trim();
+    final bool alreadyContainsRange = RegExp(r'\s[-–—]\s').hasMatch(start);
+    if (end == null || end.isEmpty || alreadyContainsRange || start == end) {
+      return start;
+    }
+    return '$start – $end';
+  }
+
   final bool isRecurring;
 
   /// Recurrence label, e.g. "1 Month". Null for single bookings.

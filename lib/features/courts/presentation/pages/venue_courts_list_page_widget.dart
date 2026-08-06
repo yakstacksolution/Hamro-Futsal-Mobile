@@ -147,7 +147,26 @@ class _VenueCourtsListPageState extends State<VenueCourtsListPage> {
   }
 }
 
+/// Courts whose editor is currently opening, keyed by venue + court, so a
+/// second tap while the route is being pushed is ignored instead of stacking
+/// another editor on top.
+final Set<String> _openingCourtEditors = <String>{};
+
 Future<void> _launchCourtEditor(
+  BuildContext context, {
+  required int? venueId,
+  CourtDraft? court,
+}) async {
+  final String guardKey = '${venueId ?? 0}:${court?.id ?? 'new'}';
+  if (!_openingCourtEditors.add(guardKey)) return;
+  try {
+    await _launchCourtEditorInternal(context, venueId: venueId, court: court);
+  } finally {
+    _openingCourtEditors.remove(guardKey);
+  }
+}
+
+Future<void> _launchCourtEditorInternal(
   BuildContext context, {
   required int? venueId,
   CourtDraft? court,

@@ -43,11 +43,31 @@ class VendorCourtManager extends StatelessWidget {
   final VendorOnboardingCubit cubit;
   final VendorOnboardingState state;
 
+  /// Courts whose editor is currently being opened.
+  ///
+  /// Opening awaits two network calls before the route is pushed, and this
+  /// widget is rebuilt (and re-created) by the onboarding builder, so the guard
+  /// has to outlive the widget instance — same approach as `ChatLauncher`.
+  /// Without it, every tap during that window pushed another editor route.
+  static final Set<String> _openingCourtIds = <String>{};
+
+  /// True while the add-court sheet or a delete confirmation is on screen, so a
+  /// second tap cannot stack another one.
+  static bool _isAddCourtSheetOpen = false;
+  static final Set<String> _removingCourtIds = <String>{};
+
   Future<void> _showAddCourtSheet(BuildContext context) async {
-    final String? courtName = await showAppBottomSheet<String>(
-      context: context,
-      child: const _AddCourtSheet(),
-    );
+    if (_isAddCourtSheetOpen) return;
+    _isAddCourtSheetOpen = true;
+    final String? courtName;
+    try {
+      courtName = await showAppBottomSheet<String>(
+        context: context,
+        child: const _AddCourtSheet(),
+      );
+    } finally {
+      _isAddCourtSheetOpen = false;
+    }
 
     if (courtName != null) {
       cubit.addCourt(name: courtName);
@@ -63,6 +83,24 @@ class VendorCourtManager extends StatelessWidget {
     String courtId, {
     bool resolveRemote = true,
   }) async {
+    // Ignore repeat taps on a card whose editor is already on its way.
+    if (!_openingCourtIds.add(courtId)) return;
+    try {
+      await _openCourtEditorInternal(
+        context,
+        courtId,
+        resolveRemote: resolveRemote,
+      );
+    } finally {
+      _openingCourtIds.remove(courtId);
+    }
+  }
+
+  Future<void> _openCourtEditorInternal(
+    BuildContext context,
+    String courtId, {
+    required bool resolveRemote,
+  }) async {
     // Find the court being opened in the shared onboarding state.
     CourtDraft? court;
     for (final CourtDraft item in cubit.state.courts) {
@@ -74,12 +112,49 @@ class VendorCourtManager extends StatelessWidget {
     if (court == null) return;
 
     final int? venueId = cubit.state.remoteFutsalId;
-    final CourtDraft resolvedCourt = resolveRemote
-        ? await _resolveRemoteCourt(court, venueId)
-        : court;
-    final CourtDraft editorCourt = resolveRemote
-        ? await _fetchCourtDetailsForEditor(resolvedCourt)
-        : resolvedCourt;
+    final CourtDraft editorCourt;
+    if (resolveRemote) {
+      // The remote lookups take a moment; block the UI with the same loader the
+      // delete flow uses so the tap has visible feedback instead of a card that
+      // looks unresponsive.
+      // Hold the dialog's own context so the loader — and only the loader — is
+      // the route that gets popped again.
+      final Completer<BuildContext> loaderContext = Completer<BuildContext>();
+      unawaited(
+        showDialog<void>(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext dialogContext) {
+            if (!loaderContext.isCompleted) {
+              loaderContext.complete(dialogContext);
+            }
+            return const Center(
+              child: CustomLoading(
+                color: LightColor.secondaryColor,
+                size: 36,
+                strokeWidth: 3.5,
+                secondCircleColor: LightColor.secondaryLight,
+                thirdCircleColor: LightColor.secondaryLight,
+              ),
+            );
+          },
+        ),
+      );
+      try {
+        final CourtDraft resolvedCourt = await _resolveRemoteCourt(
+          court,
+          venueId,
+        );
+        editorCourt = await _fetchCourtDetailsForEditor(resolvedCourt);
+      } finally {
+        if (loaderContext.isCompleted) {
+          final BuildContext dialogContext = await loaderContext.future;
+          if (dialogContext.mounted) Navigator.of(dialogContext).pop();
+        }
+      }
+    } else {
+      editorCourt = court;
+    }
     if (!context.mounted) return;
 
     final VendorOnboardingCubit editorCubit = VendorOnboardingCubit(
@@ -171,6 +246,20 @@ class VendorCourtManager extends StatelessWidget {
   }
 
   Future<void> _confirmRemoveCourt(
+    BuildContext context,
+    CourtDraft court,
+    String courtName,
+  ) async {
+    // One confirmation (and one delete request) per court at a time.
+    if (!_removingCourtIds.add(court.id)) return;
+    try {
+      await _confirmRemoveCourtInternal(context, court, courtName);
+    } finally {
+      _removingCourtIds.remove(court.id);
+    }
+  }
+
+  Future<void> _confirmRemoveCourtInternal(
     BuildContext context,
     CourtDraft court,
     String courtName,

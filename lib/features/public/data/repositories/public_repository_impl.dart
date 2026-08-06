@@ -1,4 +1,6 @@
 import 'package:dartz/dartz.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:hamro_footsall/core/helper/device_location_helper.dart';
 import 'package:hamro_footsall/core/helper/exception_helper.dart';
 import 'package:hamro_footsall/core/helper/response_helper.dart';
 import 'package:hamro_footsall/features/public/data/model/category_filter_model.dart';
@@ -13,6 +15,7 @@ import 'package:hamro_footsall/features/public/data/model/public_venue_model.dar
 import 'package:hamro_footsall/features/public/domain/repository/public_repository.dart';
 import 'package:hamro_footsall/features/public/presentation/models/venue_filter.dart';
 import 'package:hamro_footsall/core/utils/string_constants.dart';
+import 'package:hamro_footsall/core/api/api_client/api_constants.dart';
 
 final class PublicRepositoryImpl extends PublicRepository {
   PublicRepositoryImpl({PublicRemoteDataSource? remoteDataSource})
@@ -257,16 +260,24 @@ final class PublicRepositoryImpl extends PublicRepository {
   @override
   Future<Either<AppException, PublicListingVenuePage>> getVenueList({
     int page = 1,
-    int perPage = 10,
+    int perPage = kVenueListPerPage,
     VenueFilter? filter,
+    double? latitude,
+    double? longitude,
   }) async {
     final int safePage = page < 1 ? 1 : page;
-    final int safePerPage = perPage < 1 ? 10 : perPage;
+    final int safePerPage = perPage < 1 ? kVenueListPerPage : perPage;
+
+    // Fall back to the last known device fix so the request always carries an
+    // origin when one is available, whoever the caller is.
+    final Position? fix = DeviceLocationHelper.instance.position.value;
 
     final response = await _remoteDataSource.getVenueList(
       page: safePage,
       perPage: safePerPage,
       filter: filter,
+      latitude: latitude ?? fix?.latitude,
+      longitude: longitude ?? fix?.longitude,
     );
     if (response.isError()) {
       return left(ResponseHelper.error(response));

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hamro_footsall/features/app_update/presentation/bloc/app_update_bloc.dart';
 import 'package:hamro_footsall/core/routers/app_router_params.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
@@ -39,6 +41,35 @@ class _SettingsPageState extends State<SettingsPage> {
 
   @override
   Widget build(BuildContext context) {
+    return BlocConsumer<AppUpdateBloc, AppUpdateState>(
+      // Only a user-initiated check reports back here: "up to date" and lookup
+      // failures. An available update is presented by AppUpdateGate instead.
+      listenWhen: (AppUpdateState previous, AppUpdateState current) =>
+          current.wasManualCheck && previous.status != current.status,
+      listener: (BuildContext context, AppUpdateState state) {
+        if (state.status == AppUpdateStatus.upToDate &&
+            state.infoMessage != null) {
+          AppUtils().showSnackBar(context, MsgType.success, state.infoMessage!);
+        } else if (state.status == AppUpdateStatus.failure &&
+            state.errorMessage != null) {
+          AppUtils().showSnackBar(context, MsgType.error, state.errorMessage!);
+        }
+      },
+      // Rebuilt as well as listened to, so the "Check for updates" row can show
+      // the check running.
+      builder: (BuildContext context, AppUpdateState state) =>
+          _buildScaffold(context, isCheckingUpdate: state.isChecking),
+    );
+  }
+
+  Widget _buildScaffold(
+    BuildContext context, {
+    required bool isCheckingUpdate,
+  }) {
+    final List<_Section> sections = _sections(
+      isCheckingUpdate: isCheckingUpdate,
+    );
+
     return Scaffold(
       backgroundColor: LightColor.background,
       appBar: const CustomAppBar(title: StringConstants.settings),
@@ -55,11 +86,11 @@ class _SettingsPageState extends State<SettingsPage> {
               top: AppDimens.paddingX12,
               bottom: AppDimens.paddingX32,
             ),
-            itemCount: _sections.length,
+            itemCount: sections.length,
             separatorBuilder: (_, _) =>
                 const SizedBox(height: AppDimens.paddingX16),
             itemBuilder: (context, index) =>
-                _SettingsSection(section: _sections[index]),
+                _SettingsSection(section: sections[index]),
           ),
         ),
       ),
@@ -68,7 +99,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
   /// Declarative description of the whole page. Adding a row is a one-line
   /// change here — no widget plumbing required.
-  List<_Section> get _sections => <_Section>[
+  List<_Section> _sections({required bool isCheckingUpdate}) => <_Section>[
     _Section(
       label: StringConstants.account,
       items: <_SettingsItem>[
@@ -136,6 +167,19 @@ class _SettingsPageState extends State<SettingsPage> {
           subtitle: StringConstants.appDisplayLanguage,
           trailingValue: _controller.language,
           onTap: _showLanguagePicker,
+        ),
+        _SettingsItem.nav(
+          icon: Icons.system_update_rounded,
+          title: isCheckingUpdate
+              ? StringConstants.checkingForUpdates
+              : StringConstants.checkForUpdates,
+          subtitle: StringConstants.seeIfANewerVersionIsAvailable,
+          loading: isCheckingUpdate,
+          // A manual check bypasses the throttle and the "Later" snooze; the
+          // app-wide gate presents whatever it finds.
+          onTap: () => context.read<AppUpdateBloc>().add(
+            const CheckAppUpdateEvent(manual: true),
+          ),
         ),
       ],
     ),
@@ -319,7 +363,7 @@ class _SettingsRow extends StatelessWidget {
       child: InkWell(
         onTap: isToggle
             ? () => item.onChanged?.call(!(item.value ?? false))
-            : item.onTap,
+            : (item.loading ? null : item.onTap),
         child: Padding(
           padding: const EdgeInsets.symmetric(
             horizontal: AppDimens.paddingX14,
@@ -395,6 +439,21 @@ class _SettingsTrailing extends StatelessWidget {
       );
     }
 
+    if (item.loading) {
+      // Sized to the chevron it replaces, so the row does not shift.
+      return const SizedBox(
+        width: AppDimens.sizeX20,
+        height: AppDimens.sizeX20,
+        child: Padding(
+          padding: EdgeInsets.all(2),
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            color: LightColor.secondaryColor,
+          ),
+        ),
+      );
+    }
+
     final textTheme = FutsalTheme.getTextTheme(context);
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -436,6 +495,7 @@ class _SettingsItem {
     required this.title,
     this.subtitle,
     this.trailingValue,
+    this.loading = false,
     this.onTap,
     this.value,
     this.onChanged,
@@ -446,6 +506,7 @@ class _SettingsItem {
     required String title,
     String? subtitle,
     String? trailingValue,
+    bool loading = false,
     required VoidCallback onTap,
   }) => _SettingsItem._(
     kind: _ItemKind.nav,
@@ -453,6 +514,7 @@ class _SettingsItem {
     title: title,
     subtitle: subtitle,
     trailingValue: trailingValue,
+    loading: loading,
     onTap: onTap,
   );
 
@@ -476,6 +538,9 @@ class _SettingsItem {
   final String title;
   final String? subtitle;
   final String? trailingValue;
+
+  /// Nav rows only: swaps the chevron for a spinner and blocks re-tapping.
+  final bool loading;
   final VoidCallback? onTap;
   final bool? value;
   final ValueChanged<bool>? onChanged;

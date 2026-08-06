@@ -44,7 +44,7 @@ class VenueStatusWidget extends StatelessWidget {
               ),
               const SizedBox(width: AppDimens.sizeX4),
               Text(
-                isOpen ? 'Open Now' : 'Closed',
+                isOpen ? 'Open Now' : 'Closed Now',
                 style: FutsalTheme.getTextTheme(context).bodyTextSmall
                     ?.copyWith(
                       fontSize: AppDimens.sizeX10,

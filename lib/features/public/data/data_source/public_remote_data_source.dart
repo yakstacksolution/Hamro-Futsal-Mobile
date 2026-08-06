@@ -1,6 +1,7 @@
 import 'package:hamro_footsall/core/api/api_client/result.dart';
 import 'package:hamro_footsall/core/api/client.dart';
 import 'package:hamro_footsall/features/public/presentation/models/venue_filter.dart';
+import 'package:hamro_footsall/core/api/api_client/api_constants.dart';
 
 abstract class PublicRemoteDataSource {
   Future<Result> getServices();
@@ -10,7 +11,13 @@ abstract class PublicRemoteDataSource {
   Future<Result> getAmenities();
   Future<Result> getFacilities();
   Future<Result> getTemplates();
-  Future<Result> getVenueList({int page, int perPage, VenueFilter? filter});
+  Future<Result> getVenueList({
+    int page,
+    int perPage,
+    VenueFilter? filter,
+    double? latitude,
+    double? longitude,
+  });
   Future<Result> getCategoryFilter();
   Future<Result> getWishlist();
   Future<Result> toggleWishlist(int venueId);
@@ -50,12 +57,19 @@ final class PublicRemoteDataSourceImpl extends PublicRemoteDataSource {
   @override
   Future<Result> getVenueList({
     int page = 1,
-    int perPage = 10,
+    int perPage = kVenueListPerPage,
     VenueFilter? filter,
+    double? latitude,
+    double? longitude,
   }) async => await Client.instance().getAuthManager().getPublicVenueList(
-    page: page,
-    perPage: perPage,
-    data: filter?.toVenueListPayload(page: page, perPage: perPage),
+    // Always send a built payload so `latitude`/`longitude` reach the API even
+    // when no filter is active — without an origin there is no `distance_km`.
+    data: (filter ?? VenueFilter.empty).toVenueListPayload(
+      page: page,
+      perPage: perPage,
+      latitude: latitude,
+      longitude: longitude,
+    ),
   );
 
   @override

@@ -70,6 +70,20 @@ final class AddGroupMembersEvent extends MessageEvent {
   List<Object?> get props => [conversationId, participantIds];
 }
 
+/// Loads the view-only profile of another user for the profile sheet.
+final class LoadMessageProfileEvent extends MessageEvent {
+  const LoadMessageProfileEvent(this.userId);
+  final int userId;
+
+  @override
+  List<Object?> get props => [userId];
+}
+
+/// Drops the loaded profile when the sheet closes.
+final class ClearMessageProfileEvent extends MessageEvent {
+  const ClearMessageProfileEvent();
+}
+
 final class SetConversationArchivedEvent extends MessageEvent {
   const SetConversationArchivedEvent(this.conversationId, this.archived);
   final int conversationId;

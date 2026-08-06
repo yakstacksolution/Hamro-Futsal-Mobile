@@ -1,5 +1,12 @@
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
+/// `per_page` sent to `GET /venues`.
+///
+/// Single source of truth for the venue-listing page size: the API client, the
+/// repository, the use case, the filter payload and [PublicVenueBloc] all
+/// default to it, so the wire value can never drift between them.
+const int kVenueListPerPage = 5;
+
 class APIEndpoint {
   static final String _appUrl = dotenv.env['API_URL']!;
   static final String _chatUrl = dotenv.env['CHAT_URL']!;

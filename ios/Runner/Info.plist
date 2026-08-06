@@ -68,5 +68,13 @@
 				</array>
 			</dict>
 		</array>
+		<!-- Schemes the app asks iOS about before opening. `itms-apps` lets the
+		     in-app update prompt open the App Store listing in the App Store app
+		     instead of bouncing through Safari. -->
+		<key>LSApplicationQueriesSchemes</key>
+		<array>
+			<string>itms-apps</string>
+			<string>https</string>
+		</array>
 	</dict>
 </plist>

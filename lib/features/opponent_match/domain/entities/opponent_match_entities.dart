@@ -57,7 +57,7 @@ class CreateOpponentRequestEntity {
   final int? claimedTotalFee;
 
   /// Body for `POST /opponent-requests`. Platform-venue fees are intentionally
-  /// NOT serialized — the server computes total fee, shares and the advance;
+  /// NOT serialized — the server computes the total fee and both shares;
   /// only [claimedTotalFee] travels, for externally-booked courts.
   Map<String, dynamic> toJson() => {
     'team_id': teamId,

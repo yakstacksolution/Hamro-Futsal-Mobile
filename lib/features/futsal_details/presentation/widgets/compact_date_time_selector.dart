@@ -35,23 +35,47 @@ class CompactDateTimeSelector extends StatelessWidget {
         const SizedBox(height: AppDimens.sizeX12),
         SizedBox(height: AppDimens.sizeX56, child: _buildDateStrip(context)),
         const SizedBox(height: AppDimens.sizeX18),
-        _sectionLabel(context, Icons.schedule_rounded, 'Choose Preferred Time'),
+        _sectionLabel(
+          context,
+          Icons.schedule_rounded,
+          'Choose Preferred Time',
+          isRequired: true,
+        ),
         const SizedBox(height: AppDimens.sizeX12),
         _buildTimeSlots(context),
       ],
     );
   }
 
-  Widget _sectionLabel(BuildContext context, IconData icon, String label) {
+  Widget _sectionLabel(
+    BuildContext context,
+    IconData icon,
+    String label, {
+    bool isRequired = false,
+  }) {
+    final TextStyle? labelStyle = FutsalTheme.getTextTheme(context)
+        .bodyTextSmall
+        ?.copyWith(
+          color: LightColor.primaryTextColor,
+          fontWeight: FontWeight.w600,
+        );
+
     return Row(
       children: <Widget>[
         Icon(icon, size: AppDimens.sizeX16, color: LightColor.secondaryColor),
         const SizedBox(width: AppDimens.sizeX6),
-        Text(
-          label,
-          style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
-            color: LightColor.primaryTextColor,
-            fontWeight: FontWeight.w600,
+        Text.rich(
+          TextSpan(
+            text: label,
+            style: labelStyle,
+            children: isRequired
+                ? <InlineSpan>[
+                    const TextSpan(
+                      text: ' *',
+                      style: TextStyle(color: LightColor.redColor),
+                    ),
+                  ]
+                : const <InlineSpan>[],
           ),
         ),
       ],

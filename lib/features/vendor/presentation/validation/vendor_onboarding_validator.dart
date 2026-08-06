@@ -276,33 +276,52 @@ class VendorOnboardingValidator {
       case 1:
         switch (subsectionIndex) {
           case 0:
-            if (draft.advancePaymentRequired) {
-              if (draft.advancePaymentType == null) {
+            // Advance payment is mandatory and never below the minimum share.
+            if (draft.advancePaymentType == null) {
+              return VendorValidationResult.invalid(
+                key,
+                'Select an advance payment type.',
+              );
+            }
+            final double? price = draft.advancePrice;
+            if (price == null || price <= 0) {
+              return VendorValidationResult.invalid(
+                key,
+                'Enter the advance payment amount.',
+              );
+            }
+            if (draft.advancePaymentType == AdvancePaymentType.percentage) {
+              if (price < kMinimumAdvancePercent) {
                 return VendorValidationResult.invalid(
                   key,
-                  'Select an advance payment type.',
+                  'The advance must be at least '
+                  '${kMinimumAdvancePercent.toStringAsFixed(0)}%.',
                 );
               }
-              final double? price = draft.advancePrice;
-              if (price == null || price <= 0) {
-                return VendorValidationResult.invalid(
-                  key,
-                  'Enter the advance payment amount.',
-                );
-              }
-              if (draft.advancePaymentType == AdvancePaymentType.percentage &&
-                  price > 100) {
+              if (price > 100) {
                 return VendorValidationResult.invalid(
                   key,
                   'Percentage cannot exceed 100.',
                 );
               }
-              if (draft.advancePaymentType == AdvancePaymentType.flat) {
-                final double? basePrice = draft.basePrice;
-                if (basePrice != null && price > basePrice) {
+            }
+            if (draft.advancePaymentType == AdvancePaymentType.flat) {
+              final double? basePrice = draft.basePrice;
+              if (basePrice != null) {
+                if (price > basePrice) {
                   return VendorValidationResult.invalid(
                     key,
                     'Flat amount cannot exceed the base price.',
+                  );
+                }
+                final double minimum =
+                    basePrice * kMinimumAdvancePercent / 100;
+                if (price < minimum) {
+                  return VendorValidationResult.invalid(
+                    key,
+                    'The advance must be at least '
+                    '${kMinimumAdvancePercent.toStringAsFixed(0)}% of the base '
+                    'price (${minimum.toStringAsFixed(0)}).',
                   );
                 }
               }
@@ -438,8 +457,7 @@ class VendorOnboardingValidator {
       case 1:
         switch (subsectionIndex) {
           case 0:
-            return draft.advancePaymentRequired ||
-                draft.advancePrice != null ||
+            return draft.advancePrice != null ||
                 draft.advancePaymentType != null;
           case 1:
             return draft.paymentQr != null;

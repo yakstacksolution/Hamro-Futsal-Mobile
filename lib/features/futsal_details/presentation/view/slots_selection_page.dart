@@ -440,6 +440,9 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
             final bool canBook =
                 state.hasSlotSelection &&
                 (state.selectedCourt?.isAvailable ?? false);
+            final bool canPressAction =
+                !_isConfirmingManualBooking &&
+                (!state.hasSlotSelection || canBook);
 
             return Container(
               padding: EdgeInsets.symmetric(
@@ -568,8 +571,18 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
                                   : 'Confirm Booking')
                             : state.buttonText,
                         isLoading: _isConfirmingManualBooking,
-                        onPressed: canBook && !_isConfirmingManualBooking
+                        onPressed: canPressAction
                             ? () async {
+                                if (!state.hasSlotSelection) {
+                                  AppUtils().showSnackBar(
+                                    context,
+                                    MsgType.error,
+                                    StringConstants.pleaseSelectTimeSlot,
+                                    key: 'slot_selection_required',
+                                  );
+                                  return;
+                                }
+
                                 HapticFeedback.mediumImpact();
                                 final draft = state.bookingDraft
                                     ?.withManualBooking(widget.manualBooking);
@@ -588,10 +601,10 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
                                 }
                               }
                             : null,
-                        backgroundColor: canBook
+                        backgroundColor: canPressAction
                             ? LightColor.secondaryColor
                             : LightColor.dividerColor,
-                        foregroundColor: canBook
+                        foregroundColor: canPressAction
                             ? LightColor.inverseTextColor
                             : LightColor.hintTextColor,
                         minWidth: AppDimens.sizeX120,

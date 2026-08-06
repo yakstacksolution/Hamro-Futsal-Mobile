@@ -31,20 +31,8 @@ final class StringConstants {
   static const String couldNotRejectPayment = 'Could not reject the payment.';
   static const String noPaymentToVerify =
       'This booking has no payment to verify.';
-  static const String acceptAndPay = 'Accept & Pay';
   static const String acceptWithin = 'Accept within';
-  static const String advancePendingVerification =
-      'Advance pending verification';
-  static const String advancePolicyNote =
-      'The advance is fixed regardless of the match result. If your team '
-      'no-shows, the advance is forfeited; if the requester cancels or '
-      'no-shows, it is refunded.';
-  static const String advanceSubmittedPendingVerification =
-      'Advance submitted — the match is confirmed once the payment is '
-      'verified.';
   static const String approvePayment = 'Approve payment';
-  static const String completePaymentWithin = 'Complete payment within';
-  static const String confirmTeamAndContinue = 'Confirm team & continue';
   static const String createYourTeamFirst = 'Create your team first';
   static const String matchConfirmed = 'Match confirmed';
   static const String rejectPayment = 'Reject payment';
@@ -52,9 +40,6 @@ final class StringConstants {
   static const String rejectionReasonHint =
       'Why is this proof invalid? (e.g. wrong amount)';
   static const String search = 'Search';
-  static const String reviewPayment = 'Review payment';
-  static const String reviewTheirAdvancePayment =
-      'Review their advance payment';
   static const String searchVenueToCheckSlots = 'Search venue to check slots';
   static const String totalCourtFeeRs = 'Total court fee (Rs)';
   static const String youNeedATeamToChallengeOpponents =
@@ -62,9 +47,6 @@ final class StringConstants {
       'with its players first.';
   static const String finalPricingConfirmedByServer =
       'Final pricing is confirmed by the server.';
-  static const String iConfirmMyTeamWillPlayAndAcceptAdvancePolicy =
-      'I confirm my team will show up for this match and accept the '
-      'advance-payment policy.';
   static const String requestExpiredMessage =
       'This request has expired and can no longer be accepted.';
   static const String requestJustAcceptedByAnotherTeam =
@@ -235,6 +217,8 @@ final class StringConstants {
   static const String chatWithCustomer = 'Chat with customer';
   static const String chatWithHost = 'Chat with host';
   static const String chatWithVenue = 'Chat with venue';
+  static const String cannotChatWithYourself =
+      'You cannot start a conversation with yourself.';
   static const String checkYourConnectionAndTryAgain =
       'Check your connection and try again.';
   static const String checkYourInboxAndSpamFolder =
@@ -283,6 +267,8 @@ final class StringConstants {
   static const String continueWithGoogle = 'Continue with Google';
   static const String conversationSettings = 'Conversation settings';
   static const String coordinates = 'Coordinates';
+  static const String notProvided = 'Not provided';
+  static const String viewProfile = 'View profile';
   static const String couldNotApplyTheCouponPleaseTryAgain =
       'Could not apply the coupon. Please try again.';
   static const String couldNotCheckAvailabilityPleaseTryAgain =
@@ -751,7 +737,7 @@ final class StringConstants {
   static const String paymentStatus = 'Payment status';
   static const String pending = 'Pending';
   static const String percentage = 'Percentage';
-  static const String personalDetails = 'Personal details';
+  static const String personalDetails = 'Personal Details';
   static const String phoneNumber = 'Phone Number';
   static const String photosAndMemories = 'Photos & Memories';
   static const String pickDatesAndSlotsQuickly =
@@ -996,6 +982,7 @@ final class StringConstants {
       'Try searching with another name or email.';
   static const String typing = 'typing…';
   static const String unableToLoadVenues = 'Unable to load venues';
+  static const String unableToLoadBookings = 'Unable to load bookings';
   static const String unableToLoadWishlist = 'Unable to load wishlist';
   static const String underReview = 'Under review';
   static const String unarchive = 'Unarchive';
@@ -1224,4 +1211,86 @@ final class StringConstants {
       'Accept bookings and payments automatically, day or night';
   static const String authVendorHighlightInsights =
       'Track earnings, occupancy and your best customers at a glance';
+
+  // ── In-app update ──
+  static const String updateAvailable = 'Update available';
+  static const String updateRequired = 'Update required';
+  static const String whatsNew = "What's new";
+  static const String updateNow = 'Update now';
+  static const String later = 'Later';
+  static const String checkForUpdates = 'Check for updates';
+  static const String checkingForUpdates = 'Checking for updates…';
+  static const String seeIfANewerVersionIsAvailable =
+      'See if a newer version is available';
+  static const String youAreOnTheLatestVersion =
+      "You're on the latest version.";
+  static const String updateCheckFailed =
+      "Couldn't check for updates. Please check your connection and try again.";
+  static const String couldNotOpenTheStore =
+      "Couldn't open the store. Please update from the store app.";
+  static const String updateRequiredToContinue =
+      'This update is required to keep using Hamro Futsal.';
+  static const String updateDownloadFailed =
+      'The update download failed. Please try again.';
+  static const String updateInstallFailed =
+      "Couldn't install the update. Please update from the store instead.";
+  static const String downloadingUpdate = 'Downloading update…';
+  static const String updateDownloaded = 'Update downloaded';
+  static const String restartToInstall = 'Restart to install';
+  static const String restartNow = 'Restart now';
+  static const String installingUpdate = 'Installing update…';
+  static const String updateReadyMessage =
+      'The update is ready. Restart the app to finish installing it.';
+  static const String openStore = 'Open store';
+  static const String openPlayStore = 'Open Play Store';
+  static const String openAppStore = 'Open App Store';
+  static const String newVersionAvailableMessage =
+      'A newer version of Hamro Futsal is available. Update to get the latest '
+      'features and fixes.';
+  static const String forcedUpdateMessage =
+      'This version of Hamro Futsal is no longer supported. Update to the '
+      'latest version to continue booking and managing your courts.';
+  static const String installedVersion = 'Installed';
+  static const String latestVersion = 'Latest';
+  static const String downloadSize = 'Download size';
+  static const String updateInBackgroundHint =
+      'The update downloads in the background — you can keep using the app.';
+
+  // Rewards
+  static const String rewards = 'Rewards';
+  static const String myRewards = 'My rewards';
+  static const String rewardPoints = 'Reward points';
+  static const String availablePoints = 'Available points';
+  static const String pointsEarned = 'Earned';
+  static const String pointsRedeemed = 'Redeemed';
+  static const String rewardTier = 'Tier';
+  static const String rewardHistory = 'Reward history';
+  static const String viewAllRewardHistory = 'View all activity';
+  static const String recentRewardActivity = 'Recent activity';
+  static const String generateCoupon = 'Generate coupon';
+  static const String generatingCoupon = 'Generating coupon…';
+  static const String couponGenerated = 'Coupon generated';
+  static const String copyCode = 'Copy code';
+  static const String codeCopied = 'Coupon code copied';
+  static const String rewardCouponReady =
+      'Your coupon is ready. Apply it at checkout to get your discount.';
+  static const String rewardProgrammeNote =
+      'Earn points on every completed booking and convert them into discount '
+      'coupons.';
+  static const String noRewardPointsYet = 'No points yet';
+  static const String noRewardPointsYetMessage =
+      'Complete a booking to start earning reward points.';
+  static const String noRewardHistory = 'No reward activity';
+  static const String noRewardHistoryMessage =
+      'Your points earned and redeemed will show up here.';
+  static const String pleaseSelectTimeSlot =
+      'Please select a preferred time slot to continue.';
+  static const String couldNotLoadRewards =
+      'Could not load your rewards. Please try again.';
+  static const String couldNotLoadRewardHistory =
+      'Could not load your reward history. Please try again.';
+  static const String couldNotGenerateRewardCoupon =
+      'Could not generate a coupon right now. Please try again.';
+  static const String needMorePointsToRedeem = 'Need more points to redeem';
+  static const String rewardPointsExpiring = 'points expiring on';
 }
