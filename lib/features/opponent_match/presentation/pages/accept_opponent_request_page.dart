@@ -625,7 +625,8 @@ class _NextStepsCard extends StatelessWidget {
           const SizedBox(height: AppDimens.paddingX10),
           const _StepLine(
             index: 1,
-            text: '${'Your acceptance reaches'} '
+            text:
+                '${'Your acceptance reaches'} '
                 'the requester as an invitation.',
           ),
           const SizedBox(height: AppDimens.paddingX8),

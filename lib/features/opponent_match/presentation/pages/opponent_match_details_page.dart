@@ -159,10 +159,8 @@ class OpponentMatchDetailsPage extends StatelessWidget {
                       _ChatCard(
                         opponentName: opponentName,
                         enabled: peer > 0,
-                        onOpen: () => ChatLauncher.startDirectUser(
-                          context,
-                          userId: peer,
-                        ),
+                        onOpen: () =>
+                            ChatLauncher.startDirectUser(context, userId: peer),
                       ),
                     ],
                   ),

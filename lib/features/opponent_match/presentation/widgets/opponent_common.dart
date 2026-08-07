@@ -213,6 +213,11 @@ class OpponentFieldLabel extends StatelessWidget {
 }
 
 /// Equal-width selectable pill used for match type / level / split choices.
+///
+/// Sized by its parent by default (one [Expanded] per option in a row). Pass
+/// [padding] to make it size to its own label instead, which is what a [Wrap]
+/// needs when the option count is server-driven and a fixed row would squeeze
+/// longer labels into an ellipsis.
 class OpponentPillChip extends StatelessWidget {
   const OpponentPillChip({
     super.key,
@@ -220,11 +225,13 @@ class OpponentPillChip extends StatelessWidget {
     required this.active,
     required this.onTap,
     this.compact = false,
+    this.padding,
   });
 
   final String label;
   final bool active, compact;
   final VoidCallback onTap;
+  final EdgeInsetsGeometry? padding;
 
   @override
   Widget build(BuildContext context) {
@@ -238,6 +245,7 @@ class OpponentPillChip extends StatelessWidget {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
           height: compact ? AppDimens.sizeX36 : AppDimens.sizeX40,
+          padding: padding,
           alignment: Alignment.center,
           decoration: BoxDecoration(
             color: active ? LightColor.secondaryColor : LightColor.background,

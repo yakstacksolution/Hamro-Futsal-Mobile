@@ -143,10 +143,9 @@ final class OpponentRequestRemoteDataSourceImpl
   }
 
   @override
-  Future<Result> decline(String requestId) async =>
-      await Client.instance().getAuthManager().declineOpponentRequest(
-        requestId,
-      );
+  Future<Result> decline(String requestId) async => await Client.instance()
+      .getAuthManager()
+      .declineOpponentRequest(requestId);
 
   @override
   Future<Result> delete(String requestId) async =>
@@ -158,9 +157,10 @@ final class OpponentRequestRemoteDataSourceImpl
 
   @override
   Future<Result> rejectInvitation(String requestId, String reason) async =>
-      await Client.instance().getAuthManager().rejectOpponentPayment(requestId, {
-        'reason': reason,
-      });
+      await Client.instance().getAuthManager().rejectOpponentPayment(
+        requestId,
+        {'reason': reason},
+      );
 }
 
 /// Live API with a static fallback: every call hits `/opponent-requests`
@@ -510,9 +510,7 @@ final class OpponentRequestMockDataSourceImpl
         'accepter_share': (totalFee * (100 - pct) / 100).round(),
       },
       'message': data['message'],
-      'accept_deadline': now
-          .add(const Duration(minutes: 20))
-          .toIso8601String(),
+      'accept_deadline': now.add(const Duration(minutes: 20)).toIso8601String(),
       'created_at': now.toIso8601String(),
       'accepted_by': null,
       'invitations': null,
@@ -549,17 +547,18 @@ final class OpponentRequestMockDataSourceImpl
       'team_id': request.teamId,
       'team_name': 'My Team',
     };
-    final List<dynamic> invitations = List<dynamic>.from(
-      (r['invitations'] as List<dynamic>?) ?? const <dynamic>[],
-    )..add({
-      'id': 'inv_${request.teamId}',
-      'team_id': request.teamId,
-      'team_name': 'My Team',
-      'status': 'pending',
-      'message': request.message,
-      'accepter_share': (r['pricing'] as Map)['accepter_share'],
-      'accepted_at': DateTime.now().toIso8601String(),
-    });
+    final List<dynamic> invitations =
+        List<dynamic>.from(
+          (r['invitations'] as List<dynamic>?) ?? const <dynamic>[],
+        )..add({
+          'id': 'inv_${request.teamId}',
+          'team_id': request.teamId,
+          'team_name': 'My Team',
+          'status': 'pending',
+          'message': request.message,
+          'accepter_share': (r['pricing'] as Map)['accepter_share'],
+          'accepted_at': DateTime.now().toIso8601String(),
+        });
     r['invitations'] = invitations;
     return Result.success({'data': r});
   }

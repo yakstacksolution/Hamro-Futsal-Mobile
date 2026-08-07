@@ -29,8 +29,9 @@ Future<BookingModel?> showExistingBookingSheet(BuildContext context) {
       ),
     ),
     builder: (_) => BlocProvider<BookingBloc>(
-      create: (_) => BookingBloc(GetBookingsUseCase(BookingRepositoryImpl()))
-        ..add(const FetchMyBookingsEvent()),
+      create: (_) =>
+          BookingBloc(GetBookingsUseCase(BookingRepositoryImpl()))
+            ..add(const FetchMyBookingsEvent()),
       child: const _ExistingBookingSheet(),
     ),
   );
@@ -73,7 +74,9 @@ class _ExistingBookingSheetState extends State<_ExistingBookingSheet> {
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
     return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
       child: SizedBox(
         height: MediaQuery.of(context).size.height * 0.72,
         child: Column(
@@ -167,8 +170,7 @@ class _ExistingBookingSheetState extends State<_ExistingBookingSheet> {
                     itemCount: bookings.length,
                     separatorBuilder: (_, __) =>
                         const SizedBox(height: AppDimens.paddingX10),
-                    itemBuilder: (_, i) =>
-                        _BookingTile(booking: bookings[i]),
+                    itemBuilder: (_, i) => _BookingTile(booking: bookings[i]),
                   );
                 },
               ),

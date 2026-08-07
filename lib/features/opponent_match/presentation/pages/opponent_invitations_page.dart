@@ -63,9 +63,7 @@ class _OpponentInvitationsPageState extends State<OpponentInvitationsPage> {
     HapticFeedback.mediumImpact();
     // This is the server call that locks the match in for the chosen team and
     // closes the request for everyone else.
-    context.read<OpponentMatchBloc>().add(
-      SelectOpponentEvent(request),
-    );
+    context.read<OpponentMatchBloc>().add(SelectOpponentEvent(request));
     AppUtils().showSnackBar(
       context,
       MsgType.success,
@@ -172,9 +170,8 @@ class _OpponentInvitationsPageState extends State<OpponentInvitationsPage> {
                                     !request.isMatchConfirmed &&
                                     invitation.status ==
                                         InvitationStatus.pending,
-                                onSelect: () => setState(
-                                  () => _selectedId = invitation.id,
-                                ),
+                                onSelect: () =>
+                                    setState(() => _selectedId = invitation.id),
                                 onMessage: invitation.captainUserId > 0
                                     ? () => ChatLauncher.startDirectUser(
                                         context,
@@ -571,8 +568,8 @@ class _ConfirmedBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
-    final String opponent = request.selectedInvitation?.teamName.isNotEmpty ==
-            true
+    final String opponent =
+        request.selectedInvitation?.teamName.isNotEmpty == true
         ? request.selectedInvitation!.teamName
         : request.acceptedByTeamName;
     return Container(

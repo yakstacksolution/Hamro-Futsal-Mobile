@@ -24,6 +24,7 @@ import 'package:hamro_footsall/features/opponent_match/presentation/utils/oppone
 import 'package:hamro_footsall/features/opponent_match/presentation/widgets/existing_booking_sheet.dart';
 import 'package:hamro_footsall/features/opponent_match/presentation/widgets/opponent_common.dart';
 import 'package:hamro_footsall/features/opponent_match/presentation/widgets/opponent_cost_split_card.dart';
+import 'package:hamro_footsall/features/opponent_match/presentation/widgets/opponent_sheets.dart';
 import 'package:hamro_footsall/core/utils/string_constants.dart';
 import 'package:hamro_footsall/features/public/data/model/public_venue_model.dart';
 import 'package:hamro_footsall/features/public/data/repositories/public_repository_impl.dart';
@@ -39,21 +40,24 @@ enum _VenuePlan { alreadyBooked, findAvailable }
 enum _BookedSource { existingBooking, manual }
 
 /// The wizard steps, in the order of the opponent-request journey:
-/// team → match details → venue → cost split → publish.
-enum _Step { team, details, venue, cost, publish }
+/// team + match details → venue → cost split → publish.
+///
+/// Team selection and the match details used to be separate steps. They answer
+/// one question between them — who plays and what kind of match — and both are
+/// short pickers, so they share a step; the venue step keeps its own because of
+/// its two branches.
+enum _Step { match, venue, cost, publish }
 
 extension _StepX on _Step {
   String get title => switch (this) {
-    _Step.team => 'Your team',
-    _Step.details => 'Match details',
+    _Step.match => 'Team & match',
     _Step.venue => 'Venue',
     _Step.cost => 'Cost split',
     _Step.publish => 'Publish',
   };
 
   String get shortLabel => switch (this) {
-    _Step.team => 'Team',
-    _Step.details => 'Match',
+    _Step.match => 'Match',
     _Step.venue => 'Venue',
     _Step.cost => 'Cost',
     _Step.publish => 'Publish',
@@ -82,7 +86,7 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
   final _courtFeeCtrl = TextEditingController();
   late final PublicVenueBloc _publicVenueBloc;
 
-  _Step _step = _Step.team;
+  _Step _step = _Step.match;
 
   TeamModel? _team;
   MatchFormat _format = MatchFormat.fiveASide;
@@ -142,7 +146,9 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
           ? _existingBooking?.bookingTotal.round()
           : _enteredCourtFee;
     }
-    final double subtotal = _confirmedSlot?.subtotal ?? 0;
+    final BookingDraft? booking = _confirmedSlot;
+    if (booking?.bookingTotal != null) return booking!.bookingTotal!.round();
+    final double subtotal = booking?.subtotal ?? 0;
     return subtotal > 0 ? subtotal.round() : null;
   }
 
@@ -228,8 +234,7 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
   }
 
   bool _stepComplete(_Step step) => switch (step) {
-    _Step.team => _team != null,
-    _Step.details => true,
+    _Step.match => _team != null,
     _Step.venue => _venueSettled,
     _Step.cost => true,
     _Step.publish => true,
@@ -265,7 +270,7 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
   }
 
   void _back() {
-    if (_step == _Step.team) {
+    if (_step == _Step.match) {
       Navigator.of(context).pop();
       return;
     }
@@ -273,10 +278,11 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
   }
 
   String _stepHint(_Step step) => switch (step) {
-    _Step.team => 'Select the team that will play.',
-    _Step.venue => _venuePlan == _VenuePlan.alreadyBooked
-        ? 'Select the booking that hosts this match.'
-        : 'Pick a venue, then confirm a court slot.',
+    _Step.match => 'Select the team that will play.',
+    _Step.venue =>
+      _venuePlan == _VenuePlan.alreadyBooked
+          ? 'Select the booking that hosts this match.'
+          : 'Pick a venue, then confirm a court slot.',
     _ => 'Complete this step to continue.',
   };
 
@@ -311,6 +317,27 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
         _publicVenueBloc.state.status == PublicVenueStatus.idle) {
       _publicVenueBloc.add(const FetchPublicVenuesEvent());
     }
+  }
+
+  /// The same create-team sheet the Teams tab uses, so a user who reaches the
+  /// wizard without a team can make one here instead of backing all the way out.
+  /// The new team lands in `state.teams` and the list below picks it up.
+  void _openCreateTeamSheet() {
+    final bloc = context.read<OpponentMatchBloc>();
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: LightColor.transparentColor,
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+        child: CreateTeamSheet(
+          onCreate: (name) {
+            bloc.add(CreateTeamEvent(name));
+            Navigator.pop(ctx);
+          },
+        ),
+      ),
+    );
   }
 
   Future<void> _pickExistingBooking() async {
@@ -365,7 +392,16 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
       _confirmedSlot = booking;
       _date = booking.selectedDate;
       _time = _parseApiTime(booking.apiTime ?? '') ?? _time;
+      _submitted = false;
+      _step = _Step.cost;
     });
+    AppUtils().showSnackBar(
+      context,
+      MsgType.success,
+      'Booking complete.',
+      key: 'opponent_request_booking_complete',
+    );
+    HapticFeedback.selectionClick();
   }
 
   // ───────────────────────────── publish ─────────────────────────────
@@ -378,8 +414,8 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
       return;
     }
     if (_team == null) {
-      AppUtils().showSnackBar(context, MsgType.info, _stepHint(_Step.team));
-      _goTo(_Step.team);
+      AppUtils().showSnackBar(context, MsgType.info, _stepHint(_Step.match));
+      _goTo(_Step.match);
       return;
     }
 
@@ -394,6 +430,9 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
           bookedSlot: fromBooking ? booking.displayTimeRange : null,
           bookedTotalFee: fromBooking ? booking.bookingTotal.round() : null,
           bookedEndTime: fromBooking ? booking.endTime : null,
+          bookingId: fromBooking ? booking.id : null,
+          venueId: fromBooking ? booking.venueId : null,
+          courtId: fromBooking ? booking.courtId : null,
         ),
       );
       return;
@@ -405,8 +444,13 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
         venue: _venueLabelText,
         bookedDateTime: _bookingDateTime(booking),
         bookedSlot: _slotLabel,
-        bookedTotalFee: booking.subtotal > 0 ? booking.subtotal.round() : null,
+        bookedTotalFee:
+            booking.bookingTotal?.round() ??
+            (booking.subtotal > 0 ? booking.subtotal.round() : null),
         bookedEndTime: booking.apiEndTime,
+        bookingId: booking.bookingId,
+        venueId: booking.venueId,
+        courtId: booking.courtId,
       ),
     );
   }
@@ -417,6 +461,9 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
     String? bookedSlot,
     int? bookedTotalFee,
     String? bookedEndTime,
+    int? bookingId,
+    int? venueId,
+    int? courtId,
   }) {
     final TeamModel team = _team!;
     final state = context.read<OpponentMatchBloc>().state;
@@ -455,6 +502,9 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
               _bookedSource == _BookedSource.manual
           ? _enteredCourtFee
           : null,
+      bookingId: bookingId,
+      venueId: venueId,
+      courtId: courtId,
     );
   }
 
@@ -612,8 +662,7 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
                           bottom: AppDimens.paddingX28,
                         ),
                         children: switch (_step) {
-                          _Step.team => _teamStep(state),
-                          _Step.details => _detailsStep(state),
+                          _Step.match => _matchStep(state),
                           _Step.venue => _venueStep(),
                           _Step.cost => _costStep(),
                           _Step.publish => _publishStep(state),
@@ -628,39 +677,73 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
         ),
       ),
       bottomNavigationBar: _BottomBar(
-        text: _step == _Step.publish
-            ? 'Publish Opponent Request'
-            : 'Continue',
+        text: _step == _Step.publish ? 'Publish Opponent Request' : 'Continue',
         icon: _step == _Step.publish
             ? Icons.campaign_rounded
             : Icons.arrow_forward_rounded,
         onNext: _next,
         onBack: _back,
-        backText: _step == _Step.team ? 'Cancel' : 'Back',
+        backText: _step == _Step.match ? 'Cancel' : 'Back',
       ),
     );
   }
 
-  // ── Step 1: team ──
+  // ── Step 1: team + match details ──
 
-  List<Widget> _teamStep(OpponentMatchState state) => <Widget>[
+  /// Team, format/level and preferred schedule in one step. The team blocks
+  /// progress; everything below it has a sensible default.
+  List<Widget> _matchStep(OpponentMatchState state) => <Widget>[
     const OpponentGuidanceCard(
-      icon: Icons.groups_2_outlined,
-      title: 'Choose the team that will play',
+      icon: Icons.sports_soccer_rounded,
+      title: 'Who plays, and what match?',
       message:
-          'Pick one of your teams. Its roster size drives the per-player share '
-          'shown later. Create or edit teams on the My Teams tab.',
+          'Pick the team that will play — its roster size drives the per-player '
+          'share shown later — then describe the match you want. Date and time '
+          'can still change when you attach a booking next.',
     ),
     const SizedBox(height: AppDimens.paddingX18),
     const OpponentSectionLabel('Select / create team'),
-    if (state.teams.isEmpty)
-      OpponentCard(
-        child: Text(
-          'You have no teams yet — create one on the My Teams tab first.',
-          style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
-            color: LightColor.secondaryTextColor,
+    // Teams arrive asynchronously, so "no teams" is only true once the fetch
+    // has actually settled — otherwise a slow load looked like an empty roster.
+    if (state.teams.isEmpty &&
+        (state.teamsStatus == OpponentMatchStatus.initial ||
+            state.teamsStatus == OpponentMatchStatus.loading))
+      const OpponentCard(
+        child: Center(
+          child: Padding(
+            padding: EdgeInsets.symmetric(vertical: AppDimens.paddingX16),
+            child: SizedBox(
+              width: AppDimens.sizeX24,
+              height: AppDimens.sizeX24,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.4,
+                color: LightColor.secondaryColor,
+              ),
+            ),
           ),
         ),
+      )
+    else if (state.teams.isEmpty &&
+        state.teamsStatus == OpponentMatchStatus.failure)
+      _StepMessageCard(
+        icon: Icons.wifi_off_rounded,
+        title: 'Could not load your teams',
+        message: state.errorMessage ?? StringConstants.tryAgain,
+        actionLabel: StringConstants.retry,
+        actionIcon: Icons.refresh_rounded,
+        onAction: () =>
+            context.read<OpponentMatchBloc>().add(const LoadTeamsEvent()),
+      )
+    else if (state.teams.isEmpty)
+      _StepMessageCard(
+        icon: Icons.groups_2_outlined,
+        title: 'No teams yet',
+        message:
+            'A request is published in a team\'s name, so create the team '
+            'that will play this match.',
+        actionLabel: StringConstants.createTeam,
+        actionIcon: Icons.add_rounded,
+        onAction: _openCreateTeamSheet,
       )
     else
       ...state.teams.map(
@@ -680,20 +763,8 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
       ),
     if (_submitted && _team == null) ...<Widget>[
       const SizedBox(height: AppDimens.paddingX8),
-      _ValidationNote(message: _stepHint(_Step.team)),
+      _ValidationNote(message: _stepHint(_Step.match)),
     ],
-  ];
-
-  // ── Step 2: match details ──
-
-  List<Widget> _detailsStep(OpponentMatchState state) => <Widget>[
-    const OpponentGuidanceCard(
-      icon: Icons.sports_soccer_rounded,
-      title: 'Enter match request details',
-      message:
-          'Tell other teams what kind of match you want. Date and time can '
-          'still change when you attach a booking in the next step.',
-    ),
     const SizedBox(height: AppDimens.paddingX18),
     const OpponentSectionLabel('Match format'),
     OpponentCard(
@@ -701,41 +772,29 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const OpponentFieldLabel('Match Type'),
-          Row(
+          _PillWrap(
             children: MatchFormat.values
                 .map(
-                  (f) => Expanded(
-                    child: Padding(
-                      padding: AppUtils().getPadding(
-                        right: AppDimens.paddingX6,
-                      ),
-                      child: OpponentPillChip(
-                        label: f.label,
-                        active: _format == f,
-                        onTap: () => setState(() => _format = f),
-                      ),
-                    ),
+                  (f) => OpponentPillChip(
+                    label: f.label,
+                    active: _format == f,
+                    padding: _kPillPadding,
+                    onTap: () => setState(() => _format = f),
                   ),
                 )
                 .toList(),
           ),
           const SizedBox(height: AppDimens.paddingX14),
           const OpponentFieldLabel('Opponent Level'),
-          Row(
+          _PillWrap(
             children: _levelOptions(state)
                 .map(
-                  (l) => Expanded(
-                    child: Padding(
-                      padding: AppUtils().getPadding(
-                        right: AppDimens.paddingX6,
-                      ),
-                      child: OpponentPillChip(
-                        label: l.name,
-                        active: _resolveLevel(_levelOptions(state)) == l,
-                        compact: true,
-                        onTap: () => setState(() => _level = l),
-                      ),
-                    ),
+                  (l) => OpponentPillChip(
+                    label: l.name,
+                    active: _resolveLevel(_levelOptions(state)) == l,
+                    compact: true,
+                    padding: _kPillPadding,
+                    onTap: () => setState(() => _level = l),
                   ),
                 )
                 .toList(),
@@ -767,7 +826,7 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
     ),
   ];
 
-  // ── Step 3: venue ──
+  // ── Step 2: venue ──
 
   List<Widget> _venueStep() => <Widget>[
     const OpponentGuidanceCard(
@@ -964,23 +1023,19 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
                 onTap: _pickPreferredVenue,
               ),
               if (venueState.status == PublicVenueStatus.failure) ...<Widget>[
-                const SizedBox(height: AppDimens.paddingX8),
-                TextButton.icon(
-                  onPressed: () =>
+                const SizedBox(height: AppDimens.paddingX10),
+                _InlineRetry(
+                  message: venueState.errorMessage ?? 'Could not load venues.',
+                  onRetry: () =>
                       _publicVenueBloc.add(const FetchPublicVenuesEvent()),
-                  icon: const Icon(Icons.refresh_rounded),
-                  label: Text(
-                    venueState.errorMessage ??
-                        'Could not load venues. Retry',
-                  ),
                 ),
               ],
               const SizedBox(height: AppDimens.paddingX14),
               _PickerTile(
                 icon: Icons.event_seat_outlined,
-                label: 'Select court, date & time',
+                label: 'Find and book a court now',
                 value: _confirmedSlot == null
-                    ? 'Opens the venue\'s live slot calendar'
+                    ? 'Choose a court, date and available time slot'
                     : '${_confirmedSlot!.courtName} · '
                           '${OpponentFmt.shortDate(_confirmedSlot!.selectedDate)} · '
                           '$_slotLabel',
@@ -1001,7 +1056,10 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
         venue: _venueLabelText,
         when: OpponentFmt.friendlyDateTime(_kickoff),
         slot: _slotLabel,
-        fee: _confirmedSlot!.subtotal.round(),
+        fee: _resolvedCourtFee ?? 0,
+        reference: _confirmedSlot!.bookingId == null
+            ? ''
+            : '#${_confirmedSlot!.bookingId}',
       ),
     ],
     if (_submitted && !_venueSettled) ...<Widget>[
@@ -1010,7 +1068,7 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
     ],
   ];
 
-  // ── Step 4: cost split ──
+  // ── Step 3: cost split ──
 
   List<Widget> _costStep() => <Widget>[
     const OpponentGuidanceCard(
@@ -1032,13 +1090,13 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
     const SizedBox(height: AppDimens.paddingX8),
     Text(
       StringConstants.finalPricingConfirmedByServer,
-      style: FutsalTheme.getTextTheme(context).bodyMiniSubTitle?.copyWith(
-        color: LightColor.hintTextColor,
-      ),
+      style: FutsalTheme.getTextTheme(
+        context,
+      ).bodyMiniSubTitle?.copyWith(color: LightColor.hintTextColor),
     ),
   ];
 
-  // ── Step 5: message + publish ──
+  // ── Step 4: message + publish ──
 
   List<Widget> _publishStep(OpponentMatchState state) {
     final cost = _cost;
@@ -1078,14 +1136,14 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
               value: _team == null
                   ? '—'
                   : '${_team!.name} · ${_team!.players.length} players',
-              onEdit: () => _goTo(_Step.team),
+              onEdit: () => _goTo(_Step.match),
             ),
             const SizedBox(height: AppDimens.paddingX10),
             _SummaryRow(
               icon: Icons.sports_soccer_rounded,
               label: 'Match',
               value: '${_format.label} · ${level.name}',
-              onEdit: () => _goTo(_Step.details),
+              onEdit: () => _goTo(_Step.match),
             ),
             const SizedBox(height: AppDimens.paddingX10),
             _SummaryRow(
@@ -1143,6 +1201,112 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
   }
 }
 
+/// Empty / error state inside a step, with one call to action.
+class _StepMessageCard extends StatelessWidget {
+  const _StepMessageCard({
+    required this.icon,
+    required this.title,
+    required this.message,
+    required this.actionLabel,
+    required this.actionIcon,
+    required this.onAction,
+  });
+
+  final IconData icon;
+  final String title;
+  final String message;
+  final String actionLabel;
+  final IconData actionIcon;
+  final VoidCallback onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+
+    return OpponentCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Container(
+                width: AppDimens.sizeX36,
+                height: AppDimens.sizeX36,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: LightColor.secondaryColor.withValues(alpha: 0.10),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  icon,
+                  size: AppDimens.sizeX20,
+                  color: LightColor.secondaryColor,
+                ),
+              ),
+              const SizedBox(width: AppDimens.paddingX10),
+              Expanded(
+                child: Text(
+                  title,
+                  style: textTheme.bodyTextMedium?.copyWith(
+                    color: LightColor.primaryTextColor,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppDimens.paddingX8),
+          Text(
+            message,
+            style: textTheme.bodyTextSmall?.copyWith(
+              color: LightColor.secondaryTextColor,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: AppDimens.paddingX14),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: SizedBox(
+              height: AppDimens.sizeX44,
+              child: CustomButton(
+                text: actionLabel,
+                icon: actionIcon,
+                onPressed: onAction,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Horizontal padding that lets a pill size to its own label inside [_PillWrap].
+const EdgeInsets _kPillPadding = EdgeInsets.symmetric(
+  horizontal: AppDimens.paddingX14,
+);
+
+/// Wrapping row of option pills.
+///
+/// The level options come from `/opponent-levels`, so the count isn't known at
+/// build time. A fixed row of equal columns ellipsised longer names ("Interme…")
+/// once there were more than three; wrapping keeps every label readable and
+/// spills onto a second line instead.
+class _PillWrap extends StatelessWidget {
+  const _PillWrap({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: AppDimens.paddingX8,
+      runSpacing: AppDimens.paddingX8,
+      children: children,
+    );
+  }
+}
+
 /// Horizontal step tracker across the top of the wizard.
 class _StepTracker extends StatelessWidget {
   const _StepTracker({
@@ -1167,11 +1331,20 @@ class _StepTracker extends StatelessWidget {
       child: Column(
         children: <Widget>[
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               for (final step in _Step.values) ...<Widget>[
+                if (step.index > 0)
+                  // Connector sits on the dot's centre line and fills in as the
+                  // wizard advances, so progress reads at a glance.
+                  _StepConnector(passed: step.index <= current.index),
                 Expanded(
                   child: InkWell(
-                    onTap: () => onTap(step),
+                    // Forward steps aren't reachable yet; leaving them tappable
+                    // produced a tap that silently did nothing.
+                    onTap: step.index <= current.index
+                        ? () => onTap(step)
+                        : null,
                     borderRadius: BorderRadius.circular(AppDimens.radiusX8),
                     child: _StepDot(
                       step: step,
@@ -1203,6 +1376,30 @@ class _StepTracker extends StatelessWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Track between two step dots. [passed] tints it in the brand green.
+class _StepConnector extends StatelessWidget {
+  const _StepConnector({required this.passed});
+
+  final bool passed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      // Half the dot height, so the line meets the dots' centres.
+      padding: const EdgeInsets.only(top: AppDimens.sizeX12 - 1),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        height: AppDimens.sizeX2,
+        width: AppDimens.sizeX16,
+        decoration: BoxDecoration(
+          color: passed ? LightColor.secondaryColor : LightColor.dividerColor,
+          borderRadius: BorderRadius.circular(AppDimens.radiusX2),
+        ),
       ),
     );
   }
@@ -1803,6 +2000,68 @@ class _SummaryRow extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Inline "couldn't load — retry" strip used inside a step's card.
+class _InlineRetry extends StatelessWidget {
+  const _InlineRetry({required this.message, required this.onRetry});
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+
+    return Container(
+      padding: AppUtils().getPadding(
+        symmetricHorizontal: AppDimens.paddingX10,
+        symmetricVertical: AppDimens.paddingX8,
+      ),
+      decoration: BoxDecoration(
+        color: LightColor.redLightColor.withValues(alpha: 0.35),
+        borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+      ),
+      child: Row(
+        children: <Widget>[
+          const Icon(
+            Icons.cloud_off_rounded,
+            size: AppDimens.sizeX16,
+            color: LightColor.redColor,
+          ),
+          const SizedBox(width: AppDimens.paddingX8),
+          Expanded(
+            child: Text(
+              message,
+              style: textTheme.bodyMiniSubTitle?.copyWith(
+                color: LightColor.primaryTextColor,
+                fontWeight: FontWeight.w600,
+                height: 1.3,
+              ),
+            ),
+          ),
+          const SizedBox(width: AppDimens.paddingX6),
+          InkWell(
+            onTap: onRetry,
+            borderRadius: BorderRadius.circular(AppDimens.radiusX6),
+            child: Padding(
+              padding: AppUtils().getPadding(
+                symmetricHorizontal: AppDimens.paddingX6,
+                symmetricVertical: AppDimens.paddingX2,
+              ),
+              child: Text(
+                StringConstants.retry,
+                style: textTheme.bodyMiniSubTitle?.copyWith(
+                  color: LightColor.secondaryColor,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

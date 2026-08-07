@@ -290,17 +290,22 @@ class OpponentInvitationModel {
       id: (json['id'] ?? json['invitation_id'] ?? '').toString(),
       teamId: (json['team_id'] ?? team['id'] ?? team['team_id'] ?? '')
           .toString(),
-      teamName:
-          (json['team_name'] ?? team['name'] ?? team['team_name'] ?? '')
-              .toString()
-              .trim(),
+      teamName: (json['team_name'] ?? team['name'] ?? team['team_name'] ?? '')
+          .toString()
+          .trim(),
       status: InvitationStatusX.fromApi(json['status']),
       captainName:
-          (json['captain_name'] ?? captain['name'] ?? team['captain_name'] ?? '')
+          (json['captain_name'] ??
+                  captain['name'] ??
+                  team['captain_name'] ??
+                  '')
               .toString()
               .trim(),
       captainUserId: _asInt(
-        json['user_id'] ?? captain['id'] ?? captain['user_id'] ?? team['user_id'],
+        json['user_id'] ??
+            captain['id'] ??
+            captain['user_id'] ??
+            team['user_id'],
       ),
       playerCount: _asInt(
         json['player_count'] ?? json['members_count'] ?? team['player_count'],
@@ -591,10 +596,11 @@ class OpponentRequestModel {
     final int yourShare = isMine
         ? (isResultSplit ? 0 : (totalFee * requesterPct / 100).round())
         : accepterShare;
-    final int? myPct = isResultSplit ? null : (isMine ? requesterPct : accepterPct);
+    final int? myPct = isResultSplit
+        ? null
+        : (isMine ? requesterPct : accepterPct);
 
-    final String summary =
-        (json['summary'] ?? '').toString().trim().isNotEmpty
+    final String summary = (json['summary'] ?? '').toString().trim().isNotEmpty
         ? json['summary'].toString().trim()
         : [
             (match['level'] ?? '').toString().trim(),
@@ -644,13 +650,17 @@ class OpponentRequestModel {
       return raw
           .whereType<Map>()
           .map(
-            (m) => OpponentInvitationModel.fromJson(Map<String, dynamic>.from(m)),
+            (m) =>
+                OpponentInvitationModel.fromJson(Map<String, dynamic>.from(m)),
           )
           .where((i) => i.teamName.isNotEmpty || i.teamId.isNotEmpty)
           .toList(growable: false);
     }
     if (acceptedBy.isEmpty) return const <OpponentInvitationModel>[];
-    final String status = (json['status'] ?? '').toString().trim().toLowerCase();
+    final String status = (json['status'] ?? '')
+        .toString()
+        .trim()
+        .toLowerCase();
     return <OpponentInvitationModel>[
       OpponentInvitationModel(
         id: (acceptedBy['team_id'] ?? '').toString(),

@@ -27,10 +27,8 @@ Future<PublicListingVenueModel?> showVenueSearchSheet(
         topRight: Radius.circular(AppDimens.radiusX16),
       ),
     ),
-    builder: (_) => BlocProvider.value(
-      value: bloc,
-      child: const _VenueSearchSheet(),
-    ),
+    builder: (_) =>
+        BlocProvider.value(value: bloc, child: const _VenueSearchSheet()),
   );
 }
 
@@ -130,8 +128,7 @@ class _VenueSearchSheetState extends State<_VenueSearchSheet> {
                         ),
                         icon: const Icon(Icons.refresh_rounded),
                         label: Text(
-                          state.errorMessage ??
-                              'Could not load venues. Retry',
+                          state.errorMessage ?? 'Could not load venues. Retry',
                         ),
                       ),
                     );

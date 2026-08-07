@@ -23,6 +23,8 @@ class BookingDraft {
     required this.sessionDates,
     required this.pricePerSession,
     required this.subtotal,
+    this.bookingTotal,
+    this.bookingId,
     this.manualBooking,
   });
 
@@ -78,6 +80,13 @@ class BookingDraft {
   /// Total price before any coupon discount (sum across sessions).
   final double subtotal;
 
+  /// Final server-confirmed total after discounts and other adjustments.
+  /// Null until checkout has completed successfully.
+  final double? bookingTotal;
+
+  /// Server id of the booking created during checkout, when returned by API.
+  final int? bookingId;
+
   /// Present only when a vendor is creating a walk-in booking.
   final ManualBookingDetails? manualBooking;
 
@@ -100,6 +109,33 @@ class BookingDraft {
     sessionDates: sessionDates,
     pricePerSession: pricePerSession,
     subtotal: subtotal,
+    bookingTotal: bookingTotal,
+    bookingId: bookingId,
     manualBooking: details,
   );
+
+  BookingDraft withCompletedBooking({required double total, int? id}) =>
+      BookingDraft(
+        venueId: venueId,
+        courtId: courtId,
+        courtName: courtName,
+        courtImage: courtImage,
+        matchType: matchType,
+        courtType: courtType,
+        maxPlayers: maxPlayers,
+        selectedDate: selectedDate,
+        selectedTime: selectedTime,
+        apiTime: apiTime,
+        apiEndTime: apiEndTime,
+        endTime: endTime,
+        isRecurring: isRecurring,
+        recurrenceLabel: recurrenceLabel,
+        sessions: sessions,
+        sessionDates: sessionDates,
+        pricePerSession: pricePerSession,
+        subtotal: subtotal,
+        bookingTotal: total,
+        bookingId: id,
+        manualBooking: manualBooking,
+      );
 }

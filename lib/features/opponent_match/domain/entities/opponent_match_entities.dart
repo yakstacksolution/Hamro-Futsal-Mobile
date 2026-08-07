@@ -19,6 +19,9 @@ class CreateOpponentRequestEntity {
     this.loserPct,
     this.endTime,
     this.claimedTotalFee,
+    this.bookingId,
+    this.venueId,
+    this.courtId,
   });
 
   final String team;
@@ -56,9 +59,15 @@ class CreateOpponentRequestEntity {
   /// computes the fee itself and ignores this.
   final int? claimedTotalFee;
 
-  /// Body for `POST /opponent-requests`. Platform-venue fees are intentionally
-  /// NOT serialized — the server computes the total fee and both shares;
-  /// only [claimedTotalFee] travels, for externally-booked courts.
+  /// Identifiers of an in-app booking and its venue/court. They keep the
+  /// opponent request linked to the booking that was actually completed.
+  final int? bookingId;
+  final int? venueId;
+  final int? courtId;
+
+  /// Body for `POST /opponent-requests`. Platform bookings are linked by id so
+  /// the server can use their authoritative fee; [claimedTotalFee] is only for
+  /// courts booked outside the app.
   Map<String, dynamic> toJson() => {
     'team_id': teamId,
     'date':
@@ -77,6 +86,9 @@ class CreateOpponentRequestEntity {
     'loser_pct': loserPct,
     'message': message,
     'claimed_total_fee': claimedTotalFee,
+    'booking_id': bookingId,
+    'venue_id': venueId,
+    'court_id': courtId,
   };
 
   /// Local model used only by the mock fallback (`OPPONENT_MOCK`).

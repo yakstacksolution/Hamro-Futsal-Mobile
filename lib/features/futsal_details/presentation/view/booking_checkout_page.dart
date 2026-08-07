@@ -307,7 +307,12 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
         balanceDue: pricing.balanceDue,
       ),
     );
-    if (mounted) Navigator.of(context).pop(true);
+    if (mounted) {
+      final int? bookingId = context.read<CreateBookingBloc>().state.result?.id;
+      Navigator.of(context).pop(
+        widget.draft.withCompletedBooking(total: pricing.total, id: bookingId),
+      );
+    }
   }
 
   @override

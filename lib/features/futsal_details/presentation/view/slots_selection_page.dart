@@ -591,13 +591,13 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
                                   await _confirmManualBooking(draft);
                                   return;
                                 }
-                                final bool? booked = await context
-                                    .pushNamed<bool>(
+                                final BookingDraft? booked = await context
+                                    .pushNamed<BookingDraft>(
                                       AppRouterParams.bookingCheckout.name,
                                       extra: draft,
                                     );
-                                if (booked == true && context.mounted) {
-                                  Navigator.of(context).pop(draft);
+                                if (booked != null && context.mounted) {
+                                  Navigator.of(context).pop(booked);
                                 }
                               }
                             : null,
