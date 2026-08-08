@@ -37,6 +37,10 @@ class SettingsController extends ChangeNotifier {
   late bool _biometricLogin;
   late bool _darkMode;
   late String _language;
+  late NotificationPreferences _syncedNotificationPrefs;
+  bool _notificationPrefsEdited = false;
+  bool _notificationSyncing = false;
+  bool _disposed = false;
 
   bool get pushNotifications => _pushNotifications;
   bool get bookingAlerts => _bookingAlerts;
@@ -57,6 +61,7 @@ class SettingsController extends ChangeNotifier {
     _biometricLogin = _settings.biometricLogin;
     _darkMode = _settings.darkMode;
     _language = _settings.appLanguage;
+    _syncedNotificationPrefs = _currentNotificationPrefs;
   }
 
   /// The server is the source of truth for the notification flags — refresh
@@ -68,8 +73,15 @@ class SettingsController extends ChangeNotifier {
         // Offline or failed fetch: keep the locally cached values.
       },
       (profile) {
-        _applyNotificationPrefs(profile.data.notificationPreferences);
-        notifyListeners();
+        final NotificationPreferences serverPrefs =
+            profile.data.notificationPreferences;
+        _syncedNotificationPrefs = serverPrefs;
+        if (_notificationPrefsEdited) {
+          _scheduleNotificationSync();
+          return;
+        }
+        _applyNotificationPrefs(serverPrefs);
+        _notifyIfActive();
       },
     );
   }
@@ -93,53 +105,68 @@ class SettingsController extends ChangeNotifier {
         promotionalEmails: _promotionalEmails,
       );
 
-  /// Posts the full preference set; on failure restores [previous] so the
-  /// switch snaps back and the page can show the error.
-  Future<void> _syncNotificationPrefs(NotificationPreferences previous) async {
-    final result = await _profileUseCase.updateNotificationPreferences(
-      _currentNotificationPrefs,
-    );
-    result.fold((failure) {
-      _applyNotificationPrefs(previous);
-      notifyListeners();
-      onError?.call(failure.errorMessage);
-    }, (_) {});
+  /// Serializes full-set updates. If several switches are tapped quickly, the
+  /// newest state is posted after the in-flight request rather than racing it.
+  Future<void> _scheduleNotificationSync() async {
+    if (_notificationSyncing || _disposed) return;
+    _notificationSyncing = true;
+    while (!_disposed &&
+        _syncedNotificationPrefs != _currentNotificationPrefs) {
+      final NotificationPreferences target = _currentNotificationPrefs;
+      final result = await _profileUseCase.updateNotificationPreferences(
+        target,
+      );
+      if (_disposed) break;
+      result.fold((failure) {
+        // Only revert when the failed request still represents the visible
+        // state. A newer user choice must never be overwritten by an older
+        // response.
+        if (_currentNotificationPrefs == target) {
+          _applyNotificationPrefs(_syncedNotificationPrefs);
+          _notifyIfActive();
+        }
+        onError?.call(failure.errorMessage);
+      }, (_) => _syncedNotificationPrefs = target);
+    }
+    _notificationSyncing = false;
+  }
+
+  void _notificationChanged() {
+    _notificationPrefsEdited = true;
+    _notifyIfActive();
+    _scheduleNotificationSync();
+  }
+
+  void _notifyIfActive() {
+    if (!_disposed) notifyListeners();
   }
 
   void setPushNotifications(bool value) {
     if (_pushNotifications == value) return;
-    final previous = _currentNotificationPrefs;
     _pushNotifications = value;
     _settings.pushNotifications = value;
-    notifyListeners();
-    _syncNotificationPrefs(previous);
+    _notificationChanged();
   }
 
   void setBookingAlerts(bool value) {
     if (_bookingAlerts == value) return;
-    final previous = _currentNotificationPrefs;
     _bookingAlerts = value;
     _settings.bookingAlerts = value;
-    notifyListeners();
-    _syncNotificationPrefs(previous);
+    _notificationChanged();
   }
 
   void setOpponentRequests(bool value) {
     if (_opponentRequests == value) return;
-    final previous = _currentNotificationPrefs;
     _opponentRequests = value;
     _settings.opponentRequests = value;
-    notifyListeners();
-    _syncNotificationPrefs(previous);
+    _notificationChanged();
   }
 
   void setPromotionalEmails(bool value) {
     if (_promotionalEmails == value) return;
-    final previous = _currentNotificationPrefs;
     _promotionalEmails = value;
     _settings.promotionalEmails = value;
-    notifyListeners();
-    _syncNotificationPrefs(previous);
+    _notificationChanged();
   }
 
   Future<void> setBiometricLogin(bool value) async {
@@ -159,20 +186,27 @@ class SettingsController extends ChangeNotifier {
     }
     _biometricLogin = value;
     _settings.biometricLogin = value;
-    notifyListeners();
+    _notifyIfActive();
   }
 
   void setDarkMode(bool value) {
     if (_darkMode == value) return;
     _darkMode = value;
     _settings.darkMode = value;
-    notifyListeners();
+    _notifyIfActive();
   }
 
   void setLanguage(String value) {
     if (_language == value) return;
     _language = value;
     _settings.appLanguage = value;
-    notifyListeners();
+    _notifyIfActive();
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    onError = null;
+    super.dispose();
   }
 }

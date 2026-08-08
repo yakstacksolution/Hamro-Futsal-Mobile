@@ -34,6 +34,7 @@ class ChatPage extends StatefulWidget {
 }
 
 class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
+  static const Object _typingEntry = Object();
   final _scrollCtrl = ScrollController();
   late final MessageBloc _bloc;
   final List<PlatformFile> _attachments = <PlatformFile>[];
@@ -382,6 +383,12 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
       body: SafeArea(
         top: false,
         child: BlocConsumer<MessageBloc, MessageState>(
+          buildWhen: (MessageState previous, MessageState current) =>
+              previous.chatStatus != current.chatStatus ||
+              previous.activeConversation != current.activeConversation ||
+              previous.messages != current.messages ||
+              previous.sending != current.sending ||
+              previous.peerTyping != current.peerTyping,
           listenWhen: (prev, curr) =>
               curr.messages.length > prev.messages.length ||
               curr.actionMessage != prev.actionMessage ||
@@ -475,7 +482,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
 
     // Bubbles + day chips, newest at the bottom (reversed list keeps the
     // viewport pinned there).
-    final entries = <Widget>[];
+    final entries = <Object>[];
     DateTime? lastDay;
     for (final m in state.messages) {
       final day = DateTime(
@@ -484,30 +491,36 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
         m.createdAt.day,
       );
       if (lastDay == null || day != lastDay) {
-        entries.add(ChatDayChip(date: m.createdAt));
+        entries.add(day);
         lastDay = day;
       }
-      entries.add(
-        ChatBubble(
-          message: m,
-          isMe: m.isMine(state.currentUserId),
-          showSender: widget.conversation.isGroup,
-          onLongPress: () => _showMessageActions(m),
-          onMediaTap: _openMedia,
-          mediaBytesLoader: _loadMediaBytes,
-        ),
-      );
+      entries.add(m);
     }
-    if (state.peerTyping) entries.add(const _TypingBubble());
+    if (state.peerTyping) entries.add(_typingEntry);
     final reversed = entries.reversed.toList(growable: false);
 
     return ListView.builder(
       controller: _scrollCtrl,
       reverse: true,
       physics: const BouncingScrollPhysics(),
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       padding: const EdgeInsets.symmetric(vertical: AppDimens.paddingX12),
       itemCount: reversed.length,
-      itemBuilder: (_, i) => reversed[i],
+      itemBuilder: (_, int index) {
+        final Object entry = reversed[index];
+        if (entry is DateTime) return ChatDayChip(date: entry);
+        if (identical(entry, _typingEntry)) return const _TypingBubble();
+
+        final ChatMessageModel message = entry as ChatMessageModel;
+        return ChatBubble(
+          message: message,
+          isMe: message.isMine(state.currentUserId),
+          showSender: widget.conversation.isGroup,
+          onLongPress: () => _showMessageActions(message),
+          onMediaTap: _openMedia,
+          mediaBytesLoader: _loadMediaBytes,
+        );
+      },
     );
   }
 }

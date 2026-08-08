@@ -22,7 +22,8 @@ final class MessageState extends Equatable {
     this.profile,
     this.profileErrorMessage,
     this.errorMessage,
-  });
+    int? conversationsRefreshTick,
+  }) : _conversationsRefreshTick = conversationsRefreshTick;
 
   /// Signed-in user's id — own messages render right-aligned.
   final int currentUserId;
@@ -50,6 +51,14 @@ final class MessageState extends Equatable {
   final String? profileErrorMessage;
   final String? errorMessage;
 
+  /// Increments whenever a conversation fetch finishes, including failures.
+  /// This lets pull-to-refresh wait for the actual request to complete.
+  final int? _conversationsRefreshTick;
+
+  // A running app may still hold MessageState instances created before this
+  // field was introduced by hot reload. Treat their injected null as zero.
+  int get conversationsRefreshTick => _conversationsRefreshTick ?? 0;
+
   int get unreadTotal => conversations.fold(0, (sum, c) => sum + c.unreadCount);
 
   MessageState copyWith({
@@ -76,6 +85,7 @@ final class MessageState extends Equatable {
     bool clearProfile = false,
     String? errorMessage,
     bool clearErrorMessage = false,
+    int? conversationsRefreshTick,
   }) {
     return MessageState(
       currentUserId: currentUserId ?? this.currentUserId,
@@ -112,6 +122,8 @@ final class MessageState extends Equatable {
       errorMessage: clearErrorMessage
           ? null
           : errorMessage ?? this.errorMessage,
+      conversationsRefreshTick:
+          conversationsRefreshTick ?? this.conversationsRefreshTick,
     );
   }
 
@@ -135,5 +147,6 @@ final class MessageState extends Equatable {
     profile,
     profileErrorMessage,
     errorMessage,
+    conversationsRefreshTick,
   ];
 }

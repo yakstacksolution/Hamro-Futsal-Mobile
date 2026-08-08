@@ -10,6 +10,7 @@ import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/custom_image_view.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/utils/scroll_behavior.dart';
+import 'package:hamro_footsall/core/validation/receipt_validator.dart';
 import 'package:hamro_footsall/core/widgets/custom_app_bar.dart';
 import 'package:hamro_footsall/core/widgets/custom_button.dart';
 import 'package:hamro_footsall/core/widgets/custom_text_field.dart';
@@ -37,12 +38,7 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
     with WidgetsBindingObserver {
   final TextEditingController _couponCtrl = TextEditingController();
 
-  static const List<String> _docExtensions = <String>[
-    'jpg',
-    'jpeg',
-    'png',
-    'pdf',
-  ];
+  static const List<String> _docExtensions = <String>['jpg', 'jpeg', 'png'];
   static const int _maxDocBytes = 10 * 1024 * 1024;
 
   static const String _payeeName = 'Hamro Futsal Pvt. Ltd.';
@@ -52,6 +48,9 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
   static const String _paymentMethod = 'cash';
 
   PlatformFile? _paymentDoc;
+  ReceiptValidationResult? _receiptValidation;
+  bool _paymentDocValidationApplied = false;
+  bool _isValidatingReceipt = false;
   bool _agreedToTerms = false;
   bool _submitted = false;
 
@@ -99,7 +98,13 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
 
   double get _subtotal => widget.draft.subtotal;
 
-  bool get _canConfirm => _isManual || (_paymentDoc != null && _agreedToTerms);
+  bool get _canConfirm =>
+      _isManual ||
+      (_paymentDoc != null &&
+          (!_paymentDocValidationApplied ||
+              _receiptValidation?.accepted == true) &&
+          !_isValidatingReceipt &&
+          _agreedToTerms);
 
   /// Effective server quote: from the coupon-apply response once a coupon is
   /// applied, otherwise from the initial booking-hold quote. [holdQuote] is the
@@ -198,7 +203,7 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
     context.read<CouponBloc>().add(const RemoveCouponEvent());
   }
 
-  Future<void> _pickPaymentDoc() async {
+  Future<void> _pickPaymentDoc({bool applyValidate = true}) async {
     final FilePickerResult? result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: _docExtensions,
@@ -214,7 +219,76 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
       );
       return;
     }
-    setState(() => _paymentDoc = file);
+
+    if (!applyValidate) {
+      setState(() {
+        _paymentDoc = file;
+        _receiptValidation = null;
+        _paymentDocValidationApplied = false;
+        _isValidatingReceipt = false;
+      });
+      return;
+    }
+
+    final CouponState coupon = context.read<CouponBloc>().state;
+    final BookingQuoteModel? quote = context
+        .read<BookingHoldBloc>()
+        .state
+        .hold
+        ?.quote;
+    final double expectedAmount = _pricingFor(coupon, quote: quote).advance;
+    if (expectedAmount <= 0) {
+      AppUtils().showSnackBar(
+        context,
+        MsgType.error,
+        'The payment amount is not ready yet. Please try again.',
+        key: 'receipt_amount_not_ready',
+      );
+      return;
+    }
+
+    setState(() {
+      _isValidatingReceipt = true;
+      _receiptValidation = null;
+      _paymentDocValidationApplied = true;
+    });
+
+    final ReceiptValidationResult validation = await ReceiptValidator.validate(
+      image: File(file.path!),
+      expectedAmount: expectedAmount,
+      merchantNames: const <String>[
+        'Yak Stack Solution',
+        'YAK STACK SOLUTION',
+        'YakStack',
+        'Yak Stack Solution Pvt Ltd',
+      ],
+      requireDate: true,
+      requireQrCode: false,
+      minimumScore: 75,
+      duplicateChecker: (String transactionId) async {
+        // The Laravel API must check this transaction ID again before the
+        // booking/payment is accepted. Wire the API call here when available.
+        return false;
+      },
+    );
+
+    if (!mounted) return;
+    setState(() {
+      _isValidatingReceipt = false;
+      _receiptValidation = validation;
+      _paymentDoc = validation.accepted ? file : null;
+    });
+
+    AppUtils().showSnackBar(
+      context,
+      validation.accepted ? MsgType.success : MsgType.error,
+      validation.accepted
+          ? 'Receipt accepted for manual verification (score: ${validation.score}%).'
+          : validation.reason,
+      key: validation.accepted
+          ? 'receipt_validation_passed'
+          : 'receipt_validation_failed',
+    );
   }
 
   Future<void> _confirmBooking() async {
@@ -430,9 +504,14 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
                   const _SectionLabel('Payment proof'),
                   _UploadCard(
                     file: _paymentDoc,
+                    isValidating: _isValidatingReceipt,
                     highlightMissing: _submitted && _paymentDoc == null,
-                    onPick: _pickPaymentDoc,
-                    onRemove: () => setState(() => _paymentDoc = null),
+                    onPick: () => _pickPaymentDoc(applyValidate: false),
+                    onRemove: () => setState(() {
+                      _paymentDoc = null;
+                      _receiptValidation = null;
+                      _paymentDocValidationApplied = false;
+                    }),
                   ),
                   const SizedBox(height: AppDimens.sizeX12),
                   const _PaymentNoteCard(),
@@ -1244,12 +1323,14 @@ class _MiniRow extends StatelessWidget {
 class _UploadCard extends StatelessWidget {
   const _UploadCard({
     required this.file,
+    required this.isValidating,
     required this.highlightMissing,
     required this.onPick,
     required this.onRemove,
   });
 
   final PlatformFile? file;
+  final bool isValidating;
   final bool highlightMissing;
   final VoidCallback onPick;
   final VoidCallback onRemove;
@@ -1268,6 +1349,22 @@ class _UploadCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
+
+    if (isValidating) {
+      return const _Surface(
+        child: Row(
+          children: <Widget>[
+            SizedBox(
+              width: AppDimens.sizeX22,
+              height: AppDimens.sizeX22,
+              child: CircularProgressIndicator(strokeWidth: 2.5),
+            ),
+            SizedBox(width: AppDimens.sizeX12),
+            Expanded(child: Text('Checking payment receipt…')),
+          ],
+        ),
+      );
+    }
 
     if (file == null) {
       return GestureDetector(
@@ -1306,7 +1403,7 @@ class _UploadCard extends StatelessWidget {
               ),
               const SizedBox(height: AppDimens.sizeX2),
               Text(
-                StringConstants.jpgPngOrPdfUpTo10Mb,
+                StringConstants.jpgOrPngUpTo10Mb,
                 style: textTheme.bodyMiniSubTitle?.copyWith(
                   color: LightColor.hintTextColor,
                   fontWeight: FontWeight.w500,

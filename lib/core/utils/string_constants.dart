@@ -569,6 +569,7 @@ final class StringConstants {
       'Invalid profile response from server.';
   static const String italic = 'Italic';
   static const String jpgPngOrPdfUpTo10Mb = 'JPG, PNG or PDF · up to 10 MB';
+  static const String jpgOrPngUpTo10Mb = 'JPG or PNG · up to 10 MB';
   static const String kathmandu = 'Kathmandu';
   static const String keepYourAccountSecure = 'Keep your account secure';
   static const String language = 'Language';

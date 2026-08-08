@@ -83,7 +83,8 @@ class _BookingsViewState extends State<_BookingsView>
   // swiping both drive the same index, so the underline, filters, date control
   // and the walk-in FAB switch with the gesture instead of after it settles.
   late final TabController _tabController;
-  BookingStatus? _selectedFilter;
+  BookingStatus? _futsalSelectedFilter;
+  BookingStatus? _mySelectedFilter;
   // Newest bookings first — the most recent activity is what vendors and
   // players look for when they open the list.
   BookingDateOrder _dateOrder = BookingDateOrder.descending;
@@ -93,7 +94,8 @@ class _BookingsViewState extends State<_BookingsView>
   // The futsal date navigator only filters once the user interacts with it;
   // tapping "All" deactivates it again so All truly shows everything.
   bool _futsalDateActive = false;
-  final TextEditingController _searchController = TextEditingController();
+  final TextEditingController _futsalSearchController = TextEditingController();
+  final TextEditingController _mySearchController = TextEditingController();
 
   static const List<_Filter> _myBookingFilters = [
     _Filter(label: StringConstants.all, status: null),
@@ -115,6 +117,12 @@ class _BookingsViewState extends State<_BookingsView>
 
   List<_Filter> get _activeFilters =>
       _showsMyBookings ? _myBookingFilters : _futsalBookingFilters;
+
+  BookingStatus? get _activeSelectedFilter =>
+      _showsMyBookings ? _mySelectedFilter : _futsalSelectedFilter;
+
+  TextEditingController get _activeSearchController =>
+      _showsMyBookings ? _mySearchController : _futsalSearchController;
 
   bool get _showsMyBookings =>
       widget.isCandidate || _activeTab == _BookingTab.mine;
@@ -143,7 +151,8 @@ class _BookingsViewState extends State<_BookingsView>
     _tabController
       ..removeListener(_handleTabChanged)
       ..dispose();
-    _searchController.dispose();
+    _futsalSearchController.dispose();
+    _mySearchController.dispose();
     super.dispose();
   }
 
@@ -172,11 +181,6 @@ class _BookingsViewState extends State<_BookingsView>
     }
   }
 
-  void _selectTab(_BookingTab tab) {
-    if (widget.isCandidate || tab == _activeTab) return;
-    _tabController.animateTo(tab.index);
-  }
-
   /// Single source of truth for the visible tab — fires for taps and swipes
   /// alike, as soon as the controller commits to the new index.
   void _handleTabChanged() {
@@ -184,11 +188,7 @@ class _BookingsViewState extends State<_BookingsView>
     final _BookingTab tab = _BookingTab.values[_tabController.index];
     if (tab == _activeTab) return;
 
-    setState(() {
-      _activeTab = tab;
-      _selectedFilter = null;
-      _searchController.clear();
-    });
+    setState(() => _activeTab = tab);
 
     final BookingBloc bloc = context.read<BookingBloc>();
     if (tab == _BookingTab.mine &&
@@ -202,12 +202,16 @@ class _BookingsViewState extends State<_BookingsView>
 
   void _onFilterSelected(BookingStatus? status) {
     final bool isAll = status == null;
-    if (_selectedFilter == status && !isAll) return;
+    if (_activeSelectedFilter == status && !isAll) return;
 
     setState(() {
-      _selectedFilter = status;
+      if (_showsMyBookings) {
+        _mySelectedFilter = status;
+      } else {
+        _futsalSelectedFilter = status;
+      }
       if (isAll) {
-        _searchController.clear();
+        _activeSearchController.clear();
         if (_showsMyBookings) {
           _fromDate = null;
           _toDate = null;
@@ -266,8 +270,8 @@ class _BookingsViewState extends State<_BookingsView>
   }
 
   void _clearSearch() {
-    if (_searchController.text.isEmpty) return;
-    _searchController.clear();
+    if (_activeSearchController.text.isEmpty) return;
+    _activeSearchController.clear();
     setState(() {});
   }
 
@@ -385,8 +389,8 @@ class _BookingsViewState extends State<_BookingsView>
         Expanded(
           child: widget.isCandidate
               ? MyBookingsTab(
-                  filter: _selectedFilter,
-                  searchQuery: _searchController.text,
+                  filter: _mySelectedFilter,
+                  searchQuery: _mySearchController.text,
                   dateOrder: _dateOrder,
                   fromDate: _fromDate,
                   toDate: _toDate,
@@ -395,15 +399,15 @@ class _BookingsViewState extends State<_BookingsView>
                   controller: _tabController,
                   children: [
                     FutsalBookingsTab(
-                      filter: _selectedFilter,
-                      searchQuery: _searchController.text,
+                      filter: _futsalSelectedFilter,
+                      searchQuery: _futsalSearchController.text,
                       dateOrder: _dateOrder,
                       fromDate: _futsalDateActive ? _futsalDate : null,
                       toDate: _futsalDateActive ? _futsalDate : null,
                     ),
                     MyBookingsTab(
-                      filter: _selectedFilter,
-                      searchQuery: _searchController.text,
+                      filter: _mySelectedFilter,
+                      searchQuery: _mySearchController.text,
                       dateOrder: _dateOrder,
                       fromDate: _fromDate,
                       toDate: _toDate,
@@ -416,35 +420,47 @@ class _BookingsViewState extends State<_BookingsView>
   }
 
   Widget _tabBar(BuildContext context) {
-    return Padding(
-      padding: AppUtils().getPadding(symmetricHorizontal: AppDimens.paddingX20),
-      child: Row(
-        children: <Widget>[
-          _TabItem(
-            label: widget.isCandidate
-                ? StringConstants.myBookings
-                : StringConstants.futsalBookings,
-            isActive: widget.isCandidate || _activeTab == _BookingTab.futsal,
-            onTap: () => _selectTab(
-              widget.isCandidate ? _BookingTab.mine : _BookingTab.futsal,
-            ),
-          ),
-          if (!widget.isCandidate) ...<Widget>[
-            const SizedBox(width: AppDimens.paddingX24),
-            _TabItem(
-              label: StringConstants.myBookings,
-              isActive: _activeTab == _BookingTab.mine,
-              onTap: () => _selectTab(_BookingTab.mine),
-            ),
-          ],
-        ],
+    final textTheme = FutsalTheme.getTextTheme(context);
+    if (widget.isCandidate) {
+      return Padding(
+        padding: AppUtils().getPadding(
+          symmetricHorizontal: AppDimens.paddingX20,
+        ),
+        child: _TabItem(
+          label: StringConstants.myBookings,
+          isActive: true,
+          onTap: () {},
+        ),
+      );
+    }
+
+    // Match Help & FAQ: the TabController drives both the indicator and the
+    // horizontally swipeable booking pages, keeping taps and drag gestures in
+    // sync throughout the transition.
+    return TabBar(
+      controller: _tabController,
+      labelColor: LightColor.secondaryColor,
+      unselectedLabelColor: LightColor.secondaryTextColor,
+      indicatorColor: LightColor.secondaryColor,
+      indicatorSize: TabBarIndicatorSize.label,
+      dividerColor: LightColor.dividerColor,
+      labelStyle: textTheme.bodyTextSmall?.copyWith(
+        fontWeight: FontWeight.w700,
       ),
+      unselectedLabelStyle: textTheme.bodyTextSmall?.copyWith(
+        fontWeight: FontWeight.w500,
+      ),
+      tabs: const <Widget>[
+        Tab(text: StringConstants.futsalBookings, height: 40),
+        Tab(text: StringConstants.myBookings, height: 40),
+      ],
     );
   }
 
   Widget _searchAndFilterSection(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
-    final bool hasQuery = _searchController.text.trim().isNotEmpty;
+    final TextEditingController searchController = _activeSearchController;
+    final bool hasQuery = searchController.text.trim().isNotEmpty;
     final String hint = _showsMyBookings
         ? 'Search venue, court or booking ID'
         : 'Search court or booking ID';
@@ -479,7 +495,7 @@ class _BookingsViewState extends State<_BookingsView>
                   ),
                   child: TextField(
                     key: const Key('booking-search-field'),
-                    controller: _searchController,
+                    controller: searchController,
                     onChanged: (_) => setState(() {}),
                     textInputAction: TextInputAction.search,
                     style: textTheme.bodyTextSmall?.copyWith(
@@ -572,7 +588,7 @@ class _BookingsViewState extends State<_BookingsView>
         },
         itemBuilder: (context, index) {
           final filter = _activeFilters[index];
-          final isSelected = _selectedFilter == filter.status;
+          final isSelected = _activeSelectedFilter == filter.status;
 
           return _FilterChipItem(
             label: filter.label,

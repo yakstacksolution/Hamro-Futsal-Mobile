@@ -327,26 +327,45 @@ class _MessagesViewState extends State<_MessagesView>
       );
     }
     if (items.isEmpty) {
-      return MessageEmptyView(
-        isFiltered:
-            _selectedFilter != ConversationFilter.all ||
-            _query.trim().isNotEmpty,
+      return RefreshIndicator(
+        color: LightColor.secondaryColor,
+        onRefresh: () => _refreshConversations(state),
+        child: LayoutBuilder(
+          builder: (BuildContext context, BoxConstraints constraints) {
+            return ListView(
+              key: const PageStorageKey<String>('message-list-empty'),
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+              physics: const AlwaysScrollableScrollPhysics(
+                parent: BouncingScrollPhysics(),
+              ),
+              padding: _listPadding(context, state),
+              children: <Widget>[
+                ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                  child: MessageEmptyView(
+                    isFiltered:
+                        _selectedFilter != ConversationFilter.all ||
+                        _query.trim().isNotEmpty,
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
       );
     }
     return RefreshIndicator(
       color: LightColor.secondaryColor,
-      onRefresh: () async => context.read<MessageBloc>().add(
-        LoadConversationsEvent(silent: true, archived: state.showingArchived),
-      ),
+      onRefresh: () => _refreshConversations(state),
       child: ListView.separated(
-        physics: const BouncingScrollPhysics(
-          parent: AlwaysScrollableScrollPhysics(),
+        key: PageStorageKey<String>(
+          state.showingArchived ? 'archived-message-list' : 'message-list',
         ),
-        padding: AppUtils().getPadding(
-          symmetricHorizontal: AppDimens.paddingX16,
-          top: AppDimens.paddingX6,
-          bottom: state.showingArchived ? AppDimens.paddingX50 : 110,
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        physics: const AlwaysScrollableScrollPhysics(
+          parent: BouncingScrollPhysics(),
         ),
+        padding: _listPadding(context, state),
         itemCount: items.length,
         separatorBuilder: (_, __) =>
             const SizedBox(height: AppDimens.paddingX12),
@@ -357,6 +376,28 @@ class _MessagesViewState extends State<_MessagesView>
         ),
       ),
     );
+  }
+
+  EdgeInsets _listPadding(BuildContext context, MessageState state) =>
+      EdgeInsets.fromLTRB(
+        AppDimens.paddingX16,
+        AppDimens.paddingX6,
+        AppDimens.paddingX16,
+        (state.showingArchived ? AppDimens.paddingX50 : AppDimens.sizeX100) +
+            MediaQuery.viewPaddingOf(context).bottom,
+      );
+
+  Future<void> _refreshConversations(MessageState state) async {
+    final MessageBloc bloc = context.read<MessageBloc>();
+    final int startTick = bloc.state.conversationsRefreshTick;
+    bloc.add(
+      LoadConversationsEvent(silent: true, archived: state.showingArchived),
+    );
+    await bloc.stream
+        .firstWhere(
+          (MessageState next) => next.conversationsRefreshTick != startTick,
+        )
+        .timeout(const Duration(seconds: 15), onTimeout: () => bloc.state);
   }
 
   Widget _filterRow(MessageState state) {

@@ -66,10 +66,6 @@ class _SettingsPageState extends State<SettingsPage> {
     BuildContext context, {
     required bool isCheckingUpdate,
   }) {
-    final List<_Section> sections = _sections(
-      isCheckingUpdate: isCheckingUpdate,
-    );
-
     return Scaffold(
       backgroundColor: LightColor.background,
       appBar: const CustomAppBar(title: StringConstants.settings),
@@ -79,19 +75,27 @@ class _SettingsPageState extends State<SettingsPage> {
         // switch rebuilds this subtree rather than the whole Scaffold.
         child: AnimatedBuilder(
           animation: _controller,
-          builder: (context, _) => ListView.separated(
-            physics: const BouncingScrollPhysics(),
-            padding: AppUtils().getPadding(
-              symmetricHorizontal: AppDimens.paddingX16,
-              top: AppDimens.paddingX12,
-              bottom: AppDimens.paddingX32,
-            ),
-            itemCount: sections.length,
-            separatorBuilder: (_, _) =>
-                const SizedBox(height: AppDimens.paddingX16),
-            itemBuilder: (context, index) =>
-                _SettingsSection(section: sections[index]),
-          ),
+          builder: (context, _) {
+            // Build the row descriptions from the controller's latest values.
+            // Keeping this list outside AnimatedBuilder leaves every switch
+            // holding the value captured before notifyListeners().
+            final List<_Section> sections = _sections(
+              isCheckingUpdate: isCheckingUpdate,
+            );
+            return ListView.separated(
+              physics: const BouncingScrollPhysics(),
+              padding: AppUtils().getPadding(
+                symmetricHorizontal: AppDimens.paddingX16,
+                top: AppDimens.paddingX12,
+                bottom: AppDimens.paddingX32,
+              ),
+              itemCount: sections.length,
+              separatorBuilder: (_, _) =>
+                  const SizedBox(height: AppDimens.paddingX16),
+              itemBuilder: (context, index) =>
+                  _SettingsSection(section: sections[index]),
+            );
+          },
         ),
       ),
     );

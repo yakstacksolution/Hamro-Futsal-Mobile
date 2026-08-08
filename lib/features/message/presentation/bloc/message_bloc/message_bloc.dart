@@ -75,10 +75,14 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
     result.fold(
       (failure) => emit(
         event.silent
-            ? state.copyWith(errorMessage: failure.errorMessage)
+            ? state.copyWith(
+                errorMessage: failure.errorMessage,
+                conversationsRefreshTick: state.conversationsRefreshTick + 1,
+              )
             : state.copyWith(
                 conversationsStatus: MessageStatus.failure,
                 errorMessage: failure.errorMessage,
+                conversationsRefreshTick: state.conversationsRefreshTick + 1,
               ),
       ),
       (conversations) => emit(
@@ -87,6 +91,7 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
           conversations: conversations,
           showingArchived: event.archived,
           clearErrorMessage: true,
+          conversationsRefreshTick: state.conversationsRefreshTick + 1,
         ),
       ),
     );
