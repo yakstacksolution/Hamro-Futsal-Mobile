@@ -319,7 +319,7 @@ class _SettingsSection extends StatelessWidget {
             color: LightColor.cardColor,
             borderRadius: BorderRadius.circular(AppDimens.radiusX14),
             border: Border.all(color: LightColor.dividerColor),
-            boxShadow: const [
+            boxShadow: [
               BoxShadow(
                 color: LightColor.shadowColor,
                 blurRadius: 10,
@@ -334,7 +334,7 @@ class _SettingsSection extends StatelessWidget {
                 for (int i = 0; i < items.length; i++) ...[
                   _SettingsRow(item: items[i]),
                   if (i != items.length - 1)
-                    const Padding(
+                    Padding(
                       padding: EdgeInsets.only(left: AppDimens.paddingX50),
                       child: Divider(
                         height: 1,
@@ -473,7 +473,7 @@ class _SettingsTrailing extends StatelessWidget {
               ),
             ),
           ),
-        const Icon(
+        Icon(
           Icons.chevron_right_rounded,
           color: LightColor.iconGrey,
           size: AppDimens.sizeX20,

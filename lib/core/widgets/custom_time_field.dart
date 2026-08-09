@@ -22,9 +22,13 @@ class CustomTimeField extends StatefulWidget {
 }
 
 class _CustomTimeFieldState extends State<CustomTimeField> {
-  late final TextEditingController _controller = TextEditingController(
-    text: widget.value,
-  );
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.value);
+  }
 
   @override
   void didUpdateWidget(covariant CustomTimeField oldWidget) {

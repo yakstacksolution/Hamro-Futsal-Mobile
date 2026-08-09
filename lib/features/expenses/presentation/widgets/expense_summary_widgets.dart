@@ -38,7 +38,7 @@ class ExpenseHeroCard extends StatelessWidget {
                   color: LightColor.redColor.withValues(alpha: 0.10),
                   borderRadius: BorderRadius.circular(AppDimens.radiusX10),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.receipt_long_outlined,
                   size: 18,
                   color: LightColor.redColor,

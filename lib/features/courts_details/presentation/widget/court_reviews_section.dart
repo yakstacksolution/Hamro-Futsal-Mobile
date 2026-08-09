@@ -66,7 +66,7 @@ class CourtReviewsSection extends StatelessWidget {
                 child: Text(
                   'See All ($reviewCount)',
                   style: textTheme.bodySubTitle?.copyWith(
-                    color: LightColor.whiteColor,
+                    color: LightColor.inverseTextColor,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -183,7 +183,7 @@ class CourtReviewsSection extends StatelessWidget {
                   child: Text(
                     _safeInitial(review.name),
                     style: textTheme.bodyTextLarge?.copyWith(
-                      color: LightColor.whiteColor,
+                      color: LightColor.inverseTextColor,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
@@ -223,16 +223,16 @@ class CourtReviewsSection extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.star_rounded,
-                      color: LightColor.whiteColor,
+                      color: LightColor.inverseTextColor,
                       size: AppDimens.sizeX14,
                     ),
                     const SizedBox(width: AppDimens.sizeX3),
                     Text(
                       review.rating.toStringAsFixed(1),
                       style: textTheme.bodyTextSmall?.copyWith(
-                        color: LightColor.whiteColor,
+                        color: LightColor.inverseTextColor,
                         fontWeight: FontWeight.w800,
                       ),
                     ),

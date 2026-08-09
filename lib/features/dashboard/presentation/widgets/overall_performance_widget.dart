@@ -315,7 +315,7 @@ class _MetricCardState extends State<_MetricCard>
                       // Value
                       Text(
                         m.value,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 17,
                           fontWeight: FontWeight.w800,
                           color: LightColor.primaryTextColor,
@@ -331,7 +331,7 @@ class _MetricCardState extends State<_MetricCard>
                       // Title
                       Text(
                         m.title,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 10.5,
                           fontWeight: FontWeight.w600,
                           color: LightColor.secondaryTextColor,
@@ -347,7 +347,7 @@ class _MetricCardState extends State<_MetricCard>
                           Expanded(
                             child: Text(
                               m.caption,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 9,
                                 color: LightColor.secondaryTextColor,
                                 height: 1.4,

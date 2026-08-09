@@ -341,7 +341,7 @@ class _AuthBrandPanel extends StatelessWidget {
                           ),
                           child: Icon(
                             copy.icon,
-                            color: Colors.white,
+                            color: LightColor.onBrandSurface,
                             size: AppDimens.sizeX34,
                           ),
                         ),
@@ -349,7 +349,7 @@ class _AuthBrandPanel extends StatelessWidget {
                         Text(
                           copy.headline,
                           style: theme.headingLarge?.copyWith(
-                            color: Colors.white,
+                            color: LightColor.onBrandSurface,
                             fontWeight: FontWeight.w800,
                             fontSize: AppDimens.fontHeadingMedium,
                             height: 1.1,
@@ -359,7 +359,7 @@ class _AuthBrandPanel extends StatelessWidget {
                         Text(
                           copy.tagline,
                           style: theme.bodyTextLarge?.copyWith(
-                            color: LightColor.whiteColor.withValues(
+                            color: LightColor.inverseTextColor.withValues(
                               alpha: 0.88,
                             ),
                             fontWeight: FontWeight.w500,
@@ -374,7 +374,7 @@ class _AuthBrandPanel extends StatelessWidget {
                             children: <Widget>[
                               Icon(
                                 Icons.check_circle_rounded,
-                                color: LightColor.whiteColor.withValues(
+                                color: LightColor.inverseTextColor.withValues(
                                   alpha: 0.9,
                                 ),
                                 size: AppDimens.sizeX18,
@@ -384,7 +384,7 @@ class _AuthBrandPanel extends StatelessWidget {
                                 child: Text(
                                   copy.highlights[i],
                                   style: theme.bodyTextLarge?.copyWith(
-                                    color: LightColor.whiteColor.withValues(
+                                    color: LightColor.inverseTextColor.withValues(
                                       alpha: 0.92,
                                     ),
                                     fontWeight: FontWeight.w500,
@@ -477,7 +477,7 @@ class _AuthHeader extends StatelessWidget {
             height: circleSize,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              gradient: const LinearGradient(
+              gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: <Color>[
@@ -498,7 +498,7 @@ class _AuthHeader extends StatelessWidget {
                 ? _RotatingIcon(headerIcon)
                 : Icon(
                     headerIcon,
-                    color: Colors.white,
+                    color: LightColor.onBrandSurface,
                     size: wide ? AppDimens.sizeX34 : AppDimens.sizeX28,
                   ),
           ),
@@ -546,7 +546,7 @@ class _AuthBackground extends StatelessWidget {
           left: -52,
           child: _BackgroundBubble(
             size: AppDimens.sizeX190,
-            colors: const <Color>[LightColor.primarySoft, Color(0x1416A34A)],
+            colors: <Color>[LightColor.primarySoft, Color(0x1416A34A)],
           ),
         ),
         Positioned(
@@ -554,7 +554,7 @@ class _AuthBackground extends StatelessWidget {
           right: -70,
           child: _BackgroundBubble(
             size: AppDimens.sizeX230,
-            colors: const <Color>[LightColor.secondarySoft, Color(0x1410B981)],
+            colors: <Color>[LightColor.secondarySoft, Color(0x1410B981)],
           ),
         ),
         Positioned(
@@ -631,7 +631,7 @@ class _RotatingIconState extends State<_RotatingIcon>
           angle: _controller.value * 2 * pi,
           child: Icon(
             widget.icon,
-            color: Colors.white,
+            color: LightColor.onBrandSurface,
             size: AppDimens.sizeX34,
           ),
         );

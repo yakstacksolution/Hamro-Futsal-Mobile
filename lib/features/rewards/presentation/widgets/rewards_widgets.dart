@@ -41,7 +41,7 @@ class RewardBalanceCard extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(AppDimens.radiusX16),
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: <Color>[
@@ -84,7 +84,7 @@ class RewardBalanceCard extends StatelessWidget {
                             child: Text(
                               StringConstants.availablePoints,
                               style: textTheme.bodyTextSmall?.copyWith(
-                                color: Colors.white.withValues(alpha: 0.85),
+                                color: LightColor.onBrandSurface.withValues(alpha: 0.85),
                                 fontWeight: FontWeight.w600,
                                 letterSpacing: 0.3,
                               ),
@@ -95,7 +95,7 @@ class RewardBalanceCard extends StatelessWidget {
                           if (onTap != null && summary.tier.isEmpty)
                             Icon(
                               Icons.chevron_right_rounded,
-                              color: Colors.white.withValues(alpha: 0.9),
+                              color: LightColor.onBrandSurface.withValues(alpha: 0.9),
                               size: AppDimens.sizeX20,
                             ),
                         ],
@@ -112,7 +112,7 @@ class RewardBalanceCard extends StatelessWidget {
                                         ? textTheme.headingSmall
                                         : textTheme.headingMedium)
                                     ?.copyWith(
-                                      color: Colors.white,
+                                      color: LightColor.onBrandSurface,
                                       fontWeight: FontWeight.w800,
                                       height: 1.05,
                                     ),
@@ -125,7 +125,7 @@ class RewardBalanceCard extends StatelessWidget {
                             child: Text(
                               StringConstants.rewardPoints.toLowerCase(),
                               style: textTheme.bodyTextSmall?.copyWith(
-                                color: Colors.white.withValues(alpha: 0.8),
+                                color: LightColor.onBrandSurface.withValues(alpha: 0.8),
                               ),
                             ),
                           ),
@@ -165,7 +165,7 @@ class _Bloom extends StatelessWidget {
       height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: Colors.white.withValues(alpha: 0.07),
+        color: LightColor.onBrandSurface.withValues(alpha: 0.07),
       ),
     );
   }
@@ -180,13 +180,13 @@ class _CardIcon extends StatelessWidget {
       width: AppDimens.sizeX28,
       height: AppDimens.sizeX28,
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.18),
+        color: LightColor.onBrandSurface.withValues(alpha: 0.18),
         borderRadius: BorderRadius.circular(AppDimens.radiusX8),
       ),
       alignment: Alignment.center,
-      child: const Icon(
+      child: Icon(
         Icons.workspace_premium_rounded,
-        color: LightColor.whiteColor,
+        color: LightColor.inverseTextColor,
         size: AppDimens.sizeX18,
       ),
     );
@@ -212,7 +212,7 @@ class _TierBadge extends StatelessWidget {
       child: Text(
         tier.toUpperCase(),
         style: FutsalTheme.getTextTheme(context).bodySubTitle?.copyWith(
-          color: Colors.white,
+          color: LightColor.onBrandSurface,
           fontWeight: FontWeight.w800,
           letterSpacing: 0.6,
         ),
@@ -257,7 +257,7 @@ class _RedeemProgress extends StatelessWidget {
           child: LinearProgressIndicator(
             value: summary.progressToNextCoupon,
             minHeight: AppDimens.sizeX6,
-            backgroundColor: Colors.white.withValues(alpha: 0.22),
+            backgroundColor: LightColor.onBrandSurface.withValues(alpha: 0.22),
             valueColor: const AlwaysStoppedAnimation<Color>(
               LightColor.yellowColor,
             ),
@@ -267,7 +267,7 @@ class _RedeemProgress extends StatelessWidget {
         Text(
           caption,
           style: textTheme.bodyTextSmall?.copyWith(
-            color: Colors.white.withValues(alpha: 0.9),
+            color: LightColor.onBrandSurface.withValues(alpha: 0.9),
             height: 1.35,
           ),
         ),
@@ -296,7 +296,7 @@ class _RedeemButton extends StatelessWidget {
       child: Material(
         color: enabled
             ? LightColor.whiteColor
-            : Colors.white.withValues(alpha: 0.35),
+            : LightColor.onBrandSurface.withValues(alpha: 0.35),
         borderRadius: BorderRadius.circular(AppDimens.radiusX10),
         child: InkWell(
           borderRadius: BorderRadius.circular(AppDimens.radiusX10),
@@ -322,7 +322,7 @@ class _RedeemButton extends StatelessWidget {
                         size: AppDimens.sizeX18,
                         color: enabled
                             ? LightColor.secondaryColor
-                            : Colors.white.withValues(alpha: 0.9),
+                            : LightColor.onBrandSurface.withValues(alpha: 0.9),
                       ),
                       const SizedBox(width: AppDimens.paddingX8),
                       Text(
@@ -332,7 +332,7 @@ class _RedeemButton extends StatelessWidget {
                         style: textTheme.bodyTextMedium?.copyWith(
                           color: enabled
                               ? LightColor.secondaryColor
-                              : Colors.white.withValues(alpha: 0.9),
+                              : LightColor.onBrandSurface.withValues(alpha: 0.9),
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -473,7 +473,7 @@ class RewardExpiryNotice extends StatelessWidget {
       ),
       child: Row(
         children: <Widget>[
-          const Icon(
+          Icon(
             Icons.schedule_rounded,
             color: LightColor.warningColor,
             size: AppDimens.sizeX18,
@@ -619,7 +619,7 @@ class RewardHistoryCard extends StatelessWidget {
           for (int i = 0; i < entries.length; i++) ...<Widget>[
             RewardHistoryTile(entry: entries[i]),
             if (i != entries.length - 1)
-              const Padding(
+              Padding(
                 padding: EdgeInsets.only(left: AppDimens.paddingX50),
                 child: Divider(
                   height: 1,

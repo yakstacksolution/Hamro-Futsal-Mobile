@@ -86,7 +86,7 @@ class CustomHeaderWidget extends StatelessWidget {
   // ── Layers ──────────────────────────────────────────────────
 
   Widget _baseGradient() => Container(
-    decoration: const BoxDecoration(
+    decoration: BoxDecoration(
       gradient: LinearGradient(
         colors: [
           LightColor.secondaryColor,
@@ -107,7 +107,7 @@ class CustomHeaderWidget extends StatelessWidget {
           gradient: RadialGradient(
             center: Alignment(0.6, -0.5),
             radius: 1.2,
-            colors: [Colors.white, Colors.transparent],
+            colors: [LightColor.onBrandSurface, Colors.transparent],
           ),
         ),
       ),
@@ -236,7 +236,7 @@ class CustomHeaderWidget extends StatelessWidget {
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           border: Border.all(
-            color: Colors.white.withValues(alpha: 0.7),
+            color: LightColor.onBrandSurface.withValues(alpha: 0.7),
             width: 2.5,
           ),
           boxShadow: [
@@ -266,7 +266,7 @@ class CustomHeaderWidget extends StatelessWidget {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: LightColor.secondaryColor,
-            border: Border.all(color: Colors.white, width: 2),
+            border: Border.all(color: LightColor.onBrandSurface, width: 2),
           ),
         ),
       ),
@@ -279,7 +279,7 @@ class CustomHeaderWidget extends StatelessWidget {
       Text(
         name,
         style: TextStyle(
-          color: Colors.white,
+          color: LightColor.onBrandSurface,
           fontSize: _nameFontSize,
           fontWeight: FontWeight.w700,
           letterSpacing: 0.4,
@@ -293,10 +293,10 @@ class CustomHeaderWidget extends StatelessWidget {
           vertical: 4 * _scale,
         ),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.12),
+          color: LightColor.onBrandSurface.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: Colors.white.withValues(alpha: 0.2),
+            color: LightColor.onBrandSurface.withValues(alpha: 0.2),
             width: 1,
           ),
         ),
@@ -305,14 +305,14 @@ class CustomHeaderWidget extends StatelessWidget {
           children: [
             Icon(
               Icons.email_outlined,
-              color: Colors.white70,
+              color: LightColor.onBrandSurface.withValues(alpha: 0.7),
               size: _locationFontSize + 1,
             ),
             SizedBox(width: 4 * _scale),
             Text(
               location,
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.9),
+                color: LightColor.onBrandSurface.withValues(alpha: 0.9),
                 fontSize: _locationFontSize,
                 fontWeight: FontWeight.w400,
               ),
@@ -333,20 +333,20 @@ class CustomHeaderWidget extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            Colors.white.withValues(alpha: 0.22),
-            Colors.white.withValues(alpha: 0.10),
+            LightColor.onBrandSurface.withValues(alpha: 0.22),
+            LightColor.onBrandSurface.withValues(alpha: 0.10),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.35),
+          color: LightColor.onBrandSurface.withValues(alpha: 0.35),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.10),
+            color: LightColor.shadowOf(0.10),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -355,12 +355,12 @@ class CustomHeaderWidget extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.camera_alt_outlined, color: Colors.white, size: _iconSize),
+          Icon(Icons.camera_alt_outlined, color: LightColor.onBrandSurface, size: _iconSize),
           SizedBox(width: 6 * _scale),
           Text(
             StringConstants.changeImage,
             style: TextStyle(
-              color: Colors.white,
+              color: LightColor.onBrandSurface,
               fontSize: (11 * _scale).clamp(9, 14),
               fontWeight: FontWeight.w500,
               letterSpacing: 0.2,
@@ -393,14 +393,14 @@ class CustomHeaderWidget extends StatelessWidget {
         child: Container(
           padding: EdgeInsets.all(7 * _scale),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.15),
+            color: LightColor.onBrandSurface.withValues(alpha: 0.15),
             shape: BoxShape.circle,
             border: Border.all(
-              color: Colors.white.withValues(alpha: 0.2),
+              color: LightColor.onBrandSurface.withValues(alpha: 0.2),
               width: 1,
             ),
           ),
-          child: Icon(icon, color: Colors.white, size: size ?? _iconSize),
+          child: Icon(icon, color: LightColor.onBrandSurface, size: size ?? _iconSize),
         ),
       );
 }

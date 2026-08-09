@@ -268,7 +268,7 @@ class _ExactLocationPickerSheetState extends State<ExactLocationPickerSheet> {
                 width: AppDimens.sizeX44,
                 height: AppDimens.sizeX4,
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
+                  gradient: LinearGradient(
                     colors: <Color>[
                       LightColor.borderColor,
                       LightColor.secondaryColor,
@@ -443,9 +443,9 @@ class _ExactLocationPickerSheetState extends State<ExactLocationPickerSheet> {
                                     point: _selectedPoint!,
                                     width: AppDimens.sizeX48,
                                     height: AppDimens.sizeX48,
-                                    child: const Icon(
+                                    child: Icon(
                                       Icons.location_on,
-                                      color: Colors.red,
+                                      color: LightColor.redColor,
                                       size: AppDimens.sizeX36,
                                     ),
                                   ),

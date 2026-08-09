@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:hamro_footsall/core/theme/app_colors.dart';
 
 class TabSelectionLoading extends StatelessWidget {
   const TabSelectionLoading({super.key});
@@ -19,8 +20,8 @@ class TabSelectionLoading extends StatelessWidget {
     return SizedBox(
       height: AppDimens.sizeX40,
       child: Shimmer.fromColors(
-        baseColor: Colors.grey.shade300,
-        highlightColor: Colors.grey.shade100,
+        baseColor: LightColor.skeletonBaseColor,
+        highlightColor: LightColor.skeletonHighlightColor,
         child: ListView.builder(
           scrollDirection: Axis.horizontal,
           physics: const BouncingScrollPhysics(),
@@ -30,7 +31,7 @@ class TabSelectionLoading extends StatelessWidget {
               width: _chipWidths[i],
               margin: const EdgeInsets.only(right: AppDimens.marginX10),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: LightColor.skeletonBaseColor,
                 borderRadius: BorderRadius.circular(AppDimens.radiusX8),
               ),
             );

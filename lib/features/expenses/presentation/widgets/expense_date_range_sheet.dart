@@ -212,7 +212,7 @@ class _ExpenseDateRangeSheetState extends State<ExpenseDateRangeSheet> {
         IconButton(
           onPressed: () => Navigator.of(context).pop(),
           visualDensity: VisualDensity.compact,
-          icon: const Icon(Icons.close_rounded, color: LightColor.iconGrey),
+          icon: Icon(Icons.close_rounded, color: LightColor.iconGrey),
         ),
       ],
     );
@@ -349,7 +349,7 @@ class _ExpenseDateRangeSheetState extends State<ExpenseDateRangeSheet> {
     Color fg = LightColor.primaryTextColor;
     if (edge) {
       bg = LightColor.secondaryColor;
-      fg = LightColor.whiteColor;
+      fg = LightColor.inverseTextColor;
     } else if (inRange) {
       bg = LightColor.secondaryColor.withValues(alpha: 0.14);
       fg = LightColor.secondaryColor;
@@ -399,7 +399,7 @@ class _ExpenseDateRangeSheetState extends State<ExpenseDateRangeSheet> {
             onPressed: () => Navigator.of(context).pop(),
             style: OutlinedButton.styleFrom(
               foregroundColor: LightColor.secondaryTextColor,
-              side: const BorderSide(color: LightColor.dividerColor),
+              side: BorderSide(color: LightColor.dividerColor),
               padding: const EdgeInsets.symmetric(vertical: 12),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(AppDimens.radiusX12),
@@ -418,7 +418,7 @@ class _ExpenseDateRangeSheetState extends State<ExpenseDateRangeSheet> {
                 : null,
             style: FilledButton.styleFrom(
               backgroundColor: LightColor.secondaryColor,
-              foregroundColor: LightColor.whiteColor,
+              foregroundColor: LightColor.inverseTextColor,
               disabledBackgroundColor: LightColor.secondaryColor.withValues(
                 alpha: 0.4,
               ),
@@ -472,7 +472,7 @@ class _Pill extends StatelessWidget {
             label,
             style: textTheme.bodyTextSmall?.copyWith(
               color: selected
-                  ? LightColor.whiteColor
+                  ? LightColor.inverseTextColor
                   : LightColor.secondaryTextColor,
               fontWeight: FontWeight.w600,
               fontSize: AppDimens.fontBodySubTitle,

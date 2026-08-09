@@ -230,7 +230,7 @@ class _FaqTile extends StatelessWidget {
     final textTheme = FutsalTheme.getTextTheme(context);
     final RoundedRectangleBorder tileShape = RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(AppDimens.radiusX12),
-      side: const BorderSide(color: LightColor.dividerColor),
+      side: BorderSide(color: LightColor.dividerColor),
     );
 
     return Theme(
@@ -278,7 +278,7 @@ class _FaqTile extends StatelessWidget {
         ),
         expandedCrossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          const Divider(
+          Divider(
             height: AppDimens.paddingX16,
             thickness: 1,
             color: LightColor.dividerColor,
@@ -329,7 +329,7 @@ class _HelpTile extends StatelessWidget {
     final textTheme = FutsalTheme.getTextTheme(context);
     final RoundedRectangleBorder tileShape = RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(AppDimens.radiusX12),
-      side: const BorderSide(color: LightColor.dividerColor),
+      side: BorderSide(color: LightColor.dividerColor),
     );
 
     return Theme(
@@ -375,7 +375,7 @@ class _HelpTile extends StatelessWidget {
         ),
         expandedCrossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          const Divider(
+          Divider(
             height: AppDimens.paddingX16,
             thickness: 1,
             color: LightColor.dividerColor,
@@ -502,7 +502,7 @@ List<_SocialChannel> _socialChannelsFromHelps(List<PublicHelpModel> helps) {
             ? (key == null ? 'Link' : key[0].toUpperCase() + key.substring(1))
             : help.title.trim(),
         icon: meta.icon,
-        color: meta.color,
+        color: LightColor.brandSafe(meta.color),
         url: url,
       ),
     );
@@ -602,7 +602,7 @@ class _SocialTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
     return Material(
-      color: channel.color.withValues(alpha: 0.08),
+      color: LightColor.brandSafe(channel.color).withValues(alpha: 0.12),
       borderRadius: BorderRadius.circular(AppDimens.radiusX12),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -619,13 +619,13 @@ class _SocialTile extends StatelessWidget {
                 height: AppDimens.sizeX40,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: channel.color,
+                  color: LightColor.brandSafe(channel.color),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   channel.icon,
                   size: AppDimens.sizeX20,
-                  color: LightColor.whiteColor,
+                  color: LightColor.inverseTextColor,
                 ),
               ),
               const SizedBox(height: AppDimens.paddingX8),

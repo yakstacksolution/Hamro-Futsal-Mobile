@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:hamro_footsall/core/theme/app_colors.dart';
 
 class ExpensesPageLoadingWidget extends StatelessWidget {
   const ExpensesPageLoadingWidget({super.key});
@@ -9,8 +10,8 @@ class ExpensesPageLoadingWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Shimmer.fromColors(
-      baseColor: Colors.grey.shade300,
-      highlightColor: Colors.grey.shade100,
+      baseColor: LightColor.skeletonBaseColor,
+      highlightColor: LightColor.skeletonHighlightColor,
       child: SingleChildScrollView(
         physics: const NeverScrollableScrollPhysics(),
         child: Column(
@@ -109,7 +110,7 @@ class _Box extends StatelessWidget {
       width: width,
       height: height,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: LightColor.skeletonBaseColor,
         borderRadius: BorderRadius.circular(radius),
       ),
     );
@@ -134,7 +135,7 @@ class _ChipRow extends StatelessWidget {
         itemBuilder: (_, i) => Container(
           width: widths[i],
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: LightColor.skeletonBaseColor,
             borderRadius: BorderRadius.circular(AppDimens.radiusX20),
           ),
         ),

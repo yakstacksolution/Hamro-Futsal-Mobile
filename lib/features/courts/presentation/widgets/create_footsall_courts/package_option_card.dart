@@ -26,7 +26,7 @@ class PackageOptionCard extends StatelessWidget {
           duration: const Duration(milliseconds: 220),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: LightColor.elevatedCardColor,
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
               color: isSelected
@@ -55,7 +55,7 @@ class PackageOptionCard extends StatelessWidget {
                       children: <Widget>[
                         Text(
                           option.title,
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: LightColor.primaryTextColor,
                             fontSize: 16,
                             fontWeight: FontWeight.w800,
@@ -64,7 +64,7 @@ class PackageOptionCard extends StatelessWidget {
                         const SizedBox(height: 4),
                         Text(
                           option.subtitle,
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: LightColor.secondaryTextColor,
                             fontSize: 12.5,
                             height: 1.4,
@@ -83,7 +83,7 @@ class PackageOptionCard extends StatelessWidget {
                         color: LightColor.warningColor.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(999),
                       ),
-                      child: const Text(
+                      child: Text(
                         StringConstants.recommended,
                         style: TextStyle(
                           color: LightColor.warningColor,
@@ -119,7 +119,7 @@ class PackageOptionCard extends StatelessWidget {
                     Expanded(
                       child: Text(
                         feature,
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: LightColor.primaryTextColor,
                           fontSize: 13,
                           height: 1.35,

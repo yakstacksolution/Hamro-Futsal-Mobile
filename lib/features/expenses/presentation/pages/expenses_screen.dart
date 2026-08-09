@@ -150,7 +150,7 @@ class _ExpensesViewState extends State<_ExpensesView>
         child: FloatingActionButton.extended(
           onPressed: _openCreate,
           backgroundColor: LightColor.secondaryColor,
-          foregroundColor: LightColor.whiteColor,
+          foregroundColor: LightColor.inverseTextColor,
           elevation: 0,
           extendedPadding: const EdgeInsets.symmetric(horizontal: 16),
           shape: const StadiumBorder(),
@@ -159,7 +159,7 @@ class _ExpensesViewState extends State<_ExpensesView>
             StringConstants.newExpense,
             style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
               fontWeight: FontWeight.w700,
-              color: LightColor.whiteColor,
+              color: LightColor.inverseTextColor,
             ),
           ),
         ),
@@ -495,11 +495,7 @@ class _LoadError extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
-              Icons.cloud_off_rounded,
-              size: 40,
-              color: LightColor.iconGrey,
-            ),
+            Icon(Icons.cloud_off_rounded, size: 40, color: LightColor.iconGrey),
             const SizedBox(height: AppDimens.paddingX12),
             Text(
               message,

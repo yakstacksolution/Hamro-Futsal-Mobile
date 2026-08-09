@@ -14,7 +14,7 @@ class ChoosePackageSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        const Text(
+        Text(
           StringConstants
               .chooseThePackageThatMatchesYourCurrentStageAndOp2398b90f,
           style: TextStyle(
@@ -38,7 +38,7 @@ class ChoosePackageSection extends StatelessWidget {
             padding: const EdgeInsets.only(top: 4),
             child: Text(
               bloc.packageSelectionError()!,
-              style: const TextStyle(
+              style: TextStyle(
                 color: LightColor.secondaryTextColor,
                 fontSize: 12.5,
                 fontWeight: FontWeight.w600,

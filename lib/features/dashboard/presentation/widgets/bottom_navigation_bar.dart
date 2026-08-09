@@ -18,8 +18,8 @@ class CustomBottomNavigationBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DecoratedBox(
-      decoration: const BoxDecoration(
-        color: LightColor.whiteColor,
+      decoration: BoxDecoration(
+        color: context.appColors.surface,
         border: Border(
           top: BorderSide(color: LightColor.dividerColor, width: 1),
         ),
@@ -132,7 +132,7 @@ class _NavBarItemState extends State<_NavBarItem>
                 height: AppDimens.sizeX20,
                 fit: BoxFit.contain,
                 color: widget.isActive
-                    ? LightColor.whiteColor
+                    ? LightColor.inverseTextColor
                     : LightColor.secondaryTextColor,
               ),
               AnimatedSize(
@@ -147,7 +147,7 @@ class _NavBarItemState extends State<_NavBarItem>
                           widget.item.label,
                           style: FutsalTheme.getTextTheme(context).bodyTextSmall
                               ?.copyWith(
-                                color: LightColor.whiteColor,
+                                color: LightColor.inverseTextColor,
                                 fontWeight: FontWeight.w600,
                               ),
                         ),

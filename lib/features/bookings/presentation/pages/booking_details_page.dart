@@ -471,7 +471,7 @@ class _BookingDetailsView extends StatelessWidget {
             return Column(
               children: [
                 if (state.status == BookingDetailsStatus.loading)
-                  const LinearProgressIndicator(
+                  LinearProgressIndicator(
                     minHeight: 2,
                     color: LightColor.secondaryColor,
                     backgroundColor: LightColor.dividerColor,
@@ -677,10 +677,16 @@ class _PaymentProofAcceptSheet extends StatefulWidget {
 
 class _PaymentProofAcceptSheetState extends State<_PaymentProofAcceptSheet> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  late final TextEditingController _amountController = TextEditingController(
-    text: _amountInputValue(widget.payment.amount),
-  );
+  late final TextEditingController _amountController;
   final TextEditingController _noteController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _amountController = TextEditingController(
+      text: _amountInputValue(widget.payment.amount),
+    );
+  }
 
   @override
   void dispose() {
@@ -1245,10 +1251,7 @@ class _BookingInformation extends StatelessWidget {
         value: booking.courtName.isEmpty ? '—' : booking.courtName,
       ),
       if (bookingType != null)
-        BookingDetailRow(
-          label: StringConstants.bookedVia,
-          value: bookingType,
-        ),
+        BookingDetailRow(label: StringConstants.bookedVia, value: bookingType),
       if (booking.isRecurring)
         BookingDetailRow(
           label: StringConstants.recurrence,
@@ -1406,7 +1409,7 @@ class _BookingChatButton extends StatelessWidget {
         color: LightColor.cardColor,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppDimens.radiusX8),
-          side: const BorderSide(color: LightColor.dividerColor),
+          side: BorderSide(color: LightColor.dividerColor),
         ),
         child: InkWell(
           key: buttonKey,
@@ -1556,14 +1559,14 @@ class _PaymentCard extends StatelessWidget {
               label: StringConstants.balanceDue,
               caption: extras > 0 ? 'Includes products sold' : null,
               value: bookingCurrency(outstanding),
-              color: const Color(0xFFB45309),
+              color: LightColor.warningColor,
             ),
           ],
           if (booking.payment?.method?.trim().isNotEmpty == true) ...[
             const _CardDivider(),
             Row(
               children: [
-                const Icon(
+                Icon(
                   Icons.credit_card_rounded,
                   size: AppDimens.sizeX14,
                   color: LightColor.iconGrey,
@@ -1592,7 +1595,7 @@ class _CardDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
+    return Padding(
       padding: EdgeInsets.symmetric(vertical: 14),
       child: Divider(height: 1, color: LightColor.dividerColor),
     );
@@ -1681,7 +1684,7 @@ class _PaymentProofCard extends StatelessWidget {
                             vertical: 5,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.7),
+                            color: LightColor.shadowOf(0.7),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: const Text(
@@ -1728,7 +1731,7 @@ class _PaymentProofCard extends StatelessWidget {
           ],
           if (showDecisionActions) ...[
             const SizedBox(height: 14),
-            const Divider(height: 1, color: LightColor.dividerColor),
+            Divider(height: 1, color: LightColor.dividerColor),
             const SizedBox(height: 12),
             Row(
               children: [

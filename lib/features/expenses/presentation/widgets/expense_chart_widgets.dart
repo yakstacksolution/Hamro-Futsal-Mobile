@@ -69,7 +69,7 @@ class ExpenseTrendCard extends StatelessWidget {
                   axisLine: const AxisLine(width: 0),
                   majorTickLines: const MajorTickLines(size: 0),
                   majorGridLines: const MajorGridLines(width: 0),
-                  labelStyle: const TextStyle(
+                  labelStyle: TextStyle(
                     color: LightColor.hintTextColor,
                     fontSize: AppDimens.fontBodySubTitle,
                   ),
@@ -122,8 +122,8 @@ class ExpenseTrendCard extends StatelessWidget {
           ),
           child: Text(
             '${b.label} · ${ExpenseFmt.npr(b.value)}',
-            style: const TextStyle(
-              color: LightColor.whiteColor,
+            style: TextStyle(
+              color: LightColor.inverseTextColor,
               fontSize: AppDimens.fontBodySubTitle,
               fontWeight: FontWeight.w600,
             ),
@@ -244,11 +244,7 @@ class ExpenseCategoryCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: AppDimens.paddingX12),
-          const Divider(
-            height: 1,
-            thickness: 1,
-            color: LightColor.dividerColor,
-          ),
+          Divider(height: 1, thickness: 1, color: LightColor.dividerColor),
           const SizedBox(height: AppDimens.paddingX10),
           for (final e in entries)
             _CategoryRow(
@@ -282,8 +278,8 @@ class ExpenseCategoryCard extends StatelessWidget {
           child: Text(
             '${e.title} · ${ExpenseFmt.npr(e.amount)} '
             '(${e.percentage.toStringAsFixed(1)}%)',
-            style: const TextStyle(
-              color: LightColor.whiteColor,
+            style: TextStyle(
+              color: LightColor.inverseTextColor,
               fontSize: AppDimens.fontBodySubTitle,
               fontWeight: FontWeight.w600,
             ),

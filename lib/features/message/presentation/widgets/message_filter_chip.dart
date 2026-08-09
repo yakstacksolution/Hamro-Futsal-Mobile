@@ -49,7 +49,7 @@ class MessageFilterChip extends StatelessWidget {
                 label,
                 style: textTheme.bodyTextSmall?.copyWith(
                   color: isSelected
-                      ? LightColor.whiteColor
+                      ? LightColor.inverseTextColor
                       : LightColor.secondaryTextColor,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                   fontSize: AppDimens.fontBodySubTitle,
@@ -61,7 +61,7 @@ class MessageFilterChip extends StatelessWidget {
                   count.toString(),
                   style: textTheme.bodyTextSmall?.copyWith(
                     color: isSelected
-                        ? LightColor.whiteColor.withValues(alpha: 0.7)
+                        ? LightColor.inverseTextColor.withValues(alpha: 0.7)
                         : LightColor.hintTextColor,
                     fontWeight: FontWeight.w500,
                     fontSize: AppDimens.fontBodySubTitle,

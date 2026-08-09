@@ -125,7 +125,7 @@ class AccountView extends StatelessWidget {
                       children: [
                         for (int i = 0; i < recent.length; i++) ...[
                           if (i > 0)
-                            const Divider(
+                            Divider(
                               height: AppDimens.paddingX20,
                               thickness: 1,
                               color: LightColor.dividerColor,
@@ -339,7 +339,7 @@ class _ShortcutsCard extends StatelessWidget {
           children: [
             for (int i = 0; i < tiles.length; i++) ...[
               if (i > 0)
-                const Padding(
+                Padding(
                   padding: EdgeInsets.only(left: AppDimens.paddingX46),
                   child: Divider(
                     height: 1,
@@ -590,7 +590,7 @@ class _StatementPage extends StatelessWidget {
                 vertical: AppDimens.paddingX20,
               ),
               itemCount: state.entries.length,
-              separatorBuilder: (_, __) => const Divider(
+              separatorBuilder: (_, __) => Divider(
                 height: AppDimens.paddingX24,
                 thickness: 1,
                 color: LightColor.dividerColor,
@@ -642,7 +642,7 @@ class _SettlementsPage extends StatelessWidget {
                 vertical: AppDimens.paddingX20,
               ),
               itemCount: state.settlements.length,
-              separatorBuilder: (_, __) => const Divider(
+              separatorBuilder: (_, __) => Divider(
                 height: AppDimens.paddingX24,
                 thickness: 1,
                 color: LightColor.dividerColor,
@@ -691,11 +691,7 @@ class _AccountError extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
-              Icons.cloud_off_rounded,
-              size: 40,
-              color: LightColor.iconGrey,
-            ),
+            Icon(Icons.cloud_off_rounded, size: 40, color: LightColor.iconGrey),
             const SizedBox(height: AppDimens.paddingX12),
             Text(
               message ?? StringConstants.couldNotParseAccountFromServer,

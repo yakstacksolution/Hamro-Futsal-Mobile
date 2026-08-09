@@ -336,7 +336,7 @@ class _RowDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
+    return Padding(
       padding: EdgeInsets.symmetric(horizontal: AppDimens.paddingX14),
       child: Divider(height: 1, color: LightColor.dividerColor),
     );

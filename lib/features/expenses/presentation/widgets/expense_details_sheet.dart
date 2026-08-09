@@ -113,7 +113,7 @@ class ExpenseDetailsSheet extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: AppDimens.paddingX14),
-              const Divider(height: 1, color: LightColor.dividerColor),
+              Divider(height: 1, color: LightColor.dividerColor),
               const SizedBox(height: AppDimens.paddingX6),
               _DetailRow(label: StringConstants.purpose, value: expense.vendor),
               _DetailRow(label: StringConstants.date, value: _dateLabel),

@@ -28,9 +28,8 @@ extension BookingStatusLabel on BookingStatus {
 int _int(dynamic v) =>
     v is int ? v : (v is num ? v.toInt() : int.tryParse('${v ?? ''}') ?? 0);
 
-double _double(dynamic v) => v is num
-    ? v.toDouble()
-    : double.tryParse('${v ?? ''}') ?? 0;
+double _double(dynamic v) =>
+    v is num ? v.toDouble() : double.tryParse('${v ?? ''}') ?? 0;
 
 String _str(dynamic v) => v?.toString().trim() ?? '';
 
@@ -340,7 +339,9 @@ class VenuePerformanceRow {
     return VenuePerformanceRow(
       name: _str(json['name'] ?? json['venue_name']),
       area: _str(json['area'] ?? json['location'] ?? json['address']),
-      courtCount: _int(json['courts'] ?? json['court_count'] ?? json['courts_count']),
+      courtCount: _int(
+        json['courts'] ?? json['court_count'] ?? json['courts_count'],
+      ),
       bookings: _int(json['bookings'] ?? json['total_bookings']),
       revenue: _int(json['revenue']),
       occupancy: rawOcc > 1 ? rawOcc / 100 : rawOcc,

@@ -69,7 +69,9 @@ extension on _EquipKind {
     _EquipKind.tacticBoard => Icons.dashboard_rounded,
   };
 
-  Color get color => switch (this) {
+  Color get color => LightColor.categoryAccent(_baseColor);
+
+  Color get _baseColor => switch (this) {
     _EquipKind.football => const Color(0xFF2C7969),
     _EquipKind.bib => const Color(0xFF3B82F6),
     _EquipKind.gloves => const Color(0xFFE5407A),
@@ -447,7 +449,7 @@ class _RentalServicesScreenState extends State<RentalServicesScreen> {
           content: Text(
             msg,
             style: FutsalTheme.getTextTheme(context).bodyTextMedium?.copyWith(
-              color: LightColor.whiteColor,
+              color: LightColor.inverseTextColor,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -474,7 +476,7 @@ class _RentalServicesScreenState extends State<RentalServicesScreen> {
                   ? _openAddEquipment
                   : _openNewRental,
               backgroundColor: LightColor.secondaryColor,
-              foregroundColor: LightColor.whiteColor,
+              foregroundColor: LightColor.inverseTextColor,
               elevation: 2,
               icon: const Icon(Icons.add_rounded, size: 18),
               label: Text(
@@ -482,7 +484,7 @@ class _RentalServicesScreenState extends State<RentalServicesScreen> {
                 style: FutsalTheme.getTextTheme(context).bodyTextSmall
                     ?.copyWith(
                       fontWeight: FontWeight.w700,
-                      color: LightColor.whiteColor,
+                      color: LightColor.inverseTextColor,
                     ),
               ),
             ),
@@ -613,7 +615,7 @@ class _StatPill extends StatelessWidget {
         color: LightColor.cardColor,
         borderRadius: BorderRadius.circular(AppDimens.radiusX12),
         border: Border.all(color: LightColor.dividerColor),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
             color: LightColor.shadowColor,
             blurRadius: 8,
@@ -741,7 +743,7 @@ class _Chip extends StatelessWidget {
                 label,
                 style: textTheme.bodyTextSmall?.copyWith(
                   color: selected
-                      ? LightColor.whiteColor
+                      ? LightColor.inverseTextColor
                       : LightColor.secondaryTextColor,
                   fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
                   fontSize: AppDimens.fontBodySubTitle,
@@ -753,7 +755,7 @@ class _Chip extends StatelessWidget {
                   '$count',
                   style: textTheme.bodyTextSmall?.copyWith(
                     color: selected
-                        ? LightColor.whiteColor.withValues(alpha: 0.7)
+                        ? LightColor.inverseTextColor.withValues(alpha: 0.7)
                         : LightColor.hintTextColor,
                     fontWeight: FontWeight.w500,
                     fontSize: AppDimens.fontBodySubTitle,
@@ -835,7 +837,7 @@ class _EquipmentTile extends StatelessWidget {
         color: LightColor.cardColor,
         borderRadius: BorderRadius.circular(AppDimens.radiusX14),
         border: Border.all(color: LightColor.dividerColor),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
             color: LightColor.shadowColor,
             blurRadius: 10,
@@ -1105,7 +1107,7 @@ class _RentalTileState extends State<_RentalTile> {
               ? LightColor.redColor.withValues(alpha: 0.30)
               : LightColor.dividerColor,
         ),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
             color: LightColor.shadowColor,
             blurRadius: 10,
@@ -1249,11 +1251,7 @@ class _RentalTileState extends State<_RentalTile> {
             ],
           ),
           const SizedBox(height: AppDimens.paddingX12),
-          const Divider(
-            height: 1,
-            thickness: 1,
-            color: LightColor.dividerColor,
-          ),
+          Divider(height: 1, thickness: 1, color: LightColor.dividerColor),
           if (isOpen)
             Row(
               children: [
@@ -2083,7 +2081,7 @@ class _NewRentalPageState extends State<_NewRentalPage> {
                     muted: true,
                   ),
                   const SizedBox(height: AppDimens.paddingX10),
-                  const Divider(
+                  Divider(
                     height: 1,
                     thickness: 1,
                     color: LightColor.dividerColor,
@@ -2195,7 +2193,7 @@ class _SurfaceCard extends StatelessWidget {
         color: LightColor.cardColor,
         borderRadius: BorderRadius.circular(AppDimens.radiusX14),
         border: Border.all(color: LightColor.dividerColor),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
             color: LightColor.shadowColor,
             blurRadius: 10,

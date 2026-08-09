@@ -13,7 +13,7 @@ Future<T?> showAppBottomSheet<T>({
   bool isDismissible = true,
   bool enableDrag = true,
   bool wrapWithCustomSheet = true,
-  Color barrierColor = const Color(0x1F000000),
+  Color? barrierColor,
   double bottomSpacing = AppDimens.paddingX18,
   Duration transitionDuration = const Duration(milliseconds: 280),
   Duration reverseTransitionDuration = const Duration(milliseconds: 220),
@@ -32,7 +32,7 @@ Future<T?> showAppBottomSheet<T>({
     isDismissible: isDismissible,
     enableDrag: enableDrag,
     backgroundColor: Colors.transparent,
-    barrierColor: barrierColor,
+    barrierColor: barrierColor ?? LightColor.scrimColor,
     sheetAnimationStyle: AnimationStyle(
       duration: transitionDuration,
       reverseDuration: reverseTransitionDuration,
@@ -94,7 +94,7 @@ class CustomBottomSheet extends StatelessWidget {
     this.useSafeArea = true,
     this.showDragHandle = true,
     this.radius = AppDimens.radiusX14,
-    this.backgroundColor = LightColor.cardColor,
+    this.backgroundColor,
     this.bottomSpacing = AppDimens.paddingX18,
   });
 
@@ -103,7 +103,7 @@ class CustomBottomSheet extends StatelessWidget {
   final bool useSafeArea;
   final bool showDragHandle;
   final double radius;
-  final Color backgroundColor;
+  final Color? backgroundColor;
   final double bottomSpacing;
 
   @override
@@ -124,7 +124,7 @@ class CustomBottomSheet extends StatelessWidget {
         ],
       ),
       child: Material(
-        color: backgroundColor,
+        color: backgroundColor ?? context.appColors.surface,
         borderRadius: borderRadius,
         clipBehavior: Clip.antiAlias,
         child: Padding(
@@ -136,36 +136,43 @@ class CustomBottomSheet extends StatelessWidget {
                 right: AppDimens.paddingX18,
                 bottom: bottomSpacing,
               ),
-          child: DefaultTextStyle(
-            style:
-                textTheme.bodyTextMedium?.copyWith(
-                  color: LightColor.primaryTextColor,
-                ) ??
-                Theme.of(context).textTheme.bodyMedium ??
-                const TextStyle(),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                if (showDragHandle)
-                  Container(
-                    margin: appUtils.getMargin(bottom: AppDimens.marginX12),
-                    alignment: Alignment.center,
-                    child: Container(
-                      width: AppDimens.sizeX44,
-                      height: AppDimens.sizeX4,
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: <Color>[
-                            LightColor.dividerColor,
-                            LightColor.secondaryLight,
-                          ],
+          // Icons default to the same on-surface colour as the sheet's text
+          // (near-white in dark, near-black in light). Without this they fall
+          // through to the global `iconTheme`, which is the muted secondary
+          // tone and reads as washed-out on a dark sheet.
+          child: IconTheme.merge(
+            data: IconThemeData(color: context.appColors.primaryText),
+            child: DefaultTextStyle(
+              style:
+                  textTheme.bodyTextMedium?.copyWith(
+                    color: LightColor.primaryTextColor,
+                  ) ??
+                  Theme.of(context).textTheme.bodyMedium ??
+                  const TextStyle(),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  if (showDragHandle)
+                    Container(
+                      margin: appUtils.getMargin(bottom: AppDimens.marginX12),
+                      alignment: Alignment.center,
+                      child: Container(
+                        width: AppDimens.sizeX44,
+                        height: AppDimens.sizeX4,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: <Color>[
+                              LightColor.dividerColor,
+                              LightColor.secondaryLight,
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(999),
                         ),
-                        borderRadius: BorderRadius.circular(999),
                       ),
                     ),
-                  ),
-                Flexible(child: child),
-              ],
+                  Flexible(child: child),
+                ],
+              ),
             ),
           ),
         ),

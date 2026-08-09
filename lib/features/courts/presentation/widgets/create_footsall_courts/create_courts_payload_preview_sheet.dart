@@ -19,8 +19,8 @@ Future<void> showCreateCourtsPayloadPreviewSheet(
     builder: (BuildContext context) {
       return Container(
         height: MediaQuery.of(context).size.height * 0.72,
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: LightColor.elevatedCardColor,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
@@ -38,7 +38,7 @@ Future<void> showCreateCourtsPayloadPreviewSheet(
               ),
             ),
             const SizedBox(height: 14),
-            const Text(
+            Text(
               StringConstants.createShopPayload,
               style: TextStyle(
                 fontSize: 18,
@@ -47,7 +47,7 @@ Future<void> showCreateCourtsPayloadPreviewSheet(
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               StringConstants.matchesTheBackendSchemaYouShared,
               style: TextStyle(color: LightColor.secondaryTextColor),
             ),
@@ -57,14 +57,14 @@ Future<void> showCreateCourtsPayloadPreviewSheet(
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF7FAFF),
+                  color: LightColor.cardColor,
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(color: LightColor.borderColor),
                 ),
                 child: SingleChildScrollView(
                   child: SelectableText(
                     prettyJson,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'monospace',
                       fontSize: 12,
                       color: LightColor.primaryTextColor,
@@ -80,7 +80,7 @@ Future<void> showCreateCourtsPayloadPreviewSheet(
                 onPressed: () => Navigator.of(context).pop(),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: LightColor.secondaryColor,
-                  foregroundColor: Colors.white,
+                  foregroundColor: LightColor.inverseTextColor,
                   minimumSize: const Size.fromHeight(48),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),

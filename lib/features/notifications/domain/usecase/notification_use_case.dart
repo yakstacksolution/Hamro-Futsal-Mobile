@@ -13,8 +13,7 @@ final class NotificationUseCase {
     int perPage = 20,
   }) => _repository.getNotifications(filter: filter, perPage: perPage);
 
-  Future<Either<AppException, Unit>> markAllRead() =>
-      _repository.markAllRead();
+  Future<Either<AppException, Unit>> markAllRead() => _repository.markAllRead();
 
   Future<Either<AppException, Unit>> markRead(String notificationId) =>
       _repository.markRead(notificationId);

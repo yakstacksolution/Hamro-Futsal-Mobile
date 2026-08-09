@@ -254,7 +254,7 @@ class _SelectionCountPill extends StatelessWidget {
       child: Text(
         label,
         style: FutsalTheme.getTextTheme(context).bodyMiniSubTitle?.copyWith(
-          color: LightColor.whiteColor,
+          color: LightColor.inverseTextColor,
           fontWeight: FontWeight.w800,
         ),
       ),

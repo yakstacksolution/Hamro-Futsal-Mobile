@@ -63,7 +63,7 @@ class VendorBottomActionBar extends StatelessWidget {
                 ),
                 boxShadow: <BoxShadow>[
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.06),
+                    color: LightColor.shadowOf(0.06),
                     blurRadius: AppDimens.radiusX22,
                     offset: const Offset(0, AppDimens.sizeX10),
                   ),
@@ -268,8 +268,8 @@ class _AddCourtSheetState extends State<_AddCourtSheet> {
               child: CustomButton(
                 text: StringConstants.cancel,
                 isOutlined: true,
-                backgroundColor: Colors.white,
-                foregroundColor: LightColor.secondaryColor,
+                backgroundColor: LightColor.elevatedCardColor,
+                foregroundColor: LightColor.brandTextColor,
                 borderColor: LightColor.secondaryColor,
                 minHeight: AppDimens.sizeX46,
                 onPressed: () => Navigator.of(context).pop(),

@@ -39,7 +39,7 @@ class CourtRulesSection extends StatelessWidget {
           children: [
             Row(
               children: [
-                const Icon(
+                Icon(
                   Icons.gavel_rounded,
                   size: AppDimens.sizeX22,
                   color: LightColor.warningColor,
@@ -83,7 +83,7 @@ class CourtRulesSection extends StatelessWidget {
                               AppDimens.radiusX6,
                             ),
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.warning_amber_rounded,
                             size: AppDimens.sizeX14,
                             color: LightColor.warningColor,

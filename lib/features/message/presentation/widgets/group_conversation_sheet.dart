@@ -374,15 +374,6 @@ class _GroupConversationFormState extends State<_GroupConversationForm> {
     });
   }
 
-  void _clearSelectedMembers() {
-    HapticFeedback.selectionClick();
-
-    setState(() {
-      _error = null;
-      _selected.clear();
-    });
-  }
-
   void _clearSearch() {
     _search.clear();
     setState(() {});
@@ -915,7 +906,7 @@ class _BottomActionContainer extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: Theme.of(context).scaffoldBackgroundColor,
-        border: const Border(top: BorderSide(color: LightColor.dividerColor)),
+        border: Border(top: BorderSide(color: LightColor.dividerColor)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -943,16 +934,16 @@ class _ErrorBanner extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(AppDimens.paddingX10),
       decoration: BoxDecoration(
-        color: Colors.red.withValues(alpha: 0.07),
+        color: LightColor.redLightColor,
         borderRadius: BorderRadius.circular(AppDimens.radiusX8),
-        border: Border.all(color: Colors.redAccent.withValues(alpha: 0.20)),
+        border: Border.all(color: LightColor.redColor.withValues(alpha: 0.35)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(
+          Icon(
             Icons.error_outline_rounded,
-            color: Colors.redAccent,
+            color: LightColor.redColor,
             size: 18,
           ),
           const SizedBox(width: AppDimens.paddingX8),
@@ -960,7 +951,7 @@ class _ErrorBanner extends StatelessWidget {
             child: Text(
               message,
               style: textTheme.bodyTextSmall?.copyWith(
-                color: Colors.redAccent,
+                color: LightColor.redColor,
                 fontWeight: FontWeight.w600,
               ),
             ),

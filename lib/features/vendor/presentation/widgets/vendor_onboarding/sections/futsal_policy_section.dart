@@ -414,10 +414,10 @@ class _TemplateResetButton extends StatelessWidget {
             color: LightColor.secondaryLight,
             borderRadius: BorderRadius.circular(999),
           ),
-          child: const Icon(
+          child: Icon(
             Icons.refresh_rounded,
             size: AppDimens.sizeX16,
-            color: LightColor.whiteColor,
+            color: LightColor.inverseTextColor,
           ),
         ),
       ),

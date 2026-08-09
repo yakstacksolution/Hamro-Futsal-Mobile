@@ -88,7 +88,7 @@ class _VenueCourtsListPageState extends State<VenueCourtsListPage> {
               }).toList();
 
               return DecoratedBox(
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: <Color>[
                       LightColor.background,
@@ -377,16 +377,16 @@ class _AddFutsalButton extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              const Icon(
+              Icon(
                 Icons.add_rounded,
                 size: AppDimens.sizeX16,
-                color: LightColor.whiteColor,
+                color: LightColor.inverseTextColor,
               ),
               const SizedBox(width: AppDimens.paddingX4),
               Text(
                 StringConstants.newFutsal,
                 style: textTheme.bodyTextSmall?.copyWith(
-                  color: LightColor.whiteColor,
+                  color: LightColor.inverseTextColor,
                 ),
               ),
             ],
@@ -485,7 +485,7 @@ class _VenueSearchFieldState extends State<_VenueSearchField> {
                         color: LightColor.iconGrey.withValues(alpha: 0.12),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.close_rounded,
                         color: LightColor.iconGrey,
                         size: AppDimens.sizeX16,
@@ -505,7 +505,7 @@ class _VenueSearchFieldState extends State<_VenueSearchField> {
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppDimens.radiusX6),
-              borderSide: const BorderSide(
+              borderSide: BorderSide(
                 color: LightColor.dividerColor,
                 width: 0.8,
               ),
@@ -627,7 +627,7 @@ class _VenueFilterChip extends StatelessWidget {
                 label,
                 style: textTheme.bodyTextSmall?.copyWith(
                   color: isSelected
-                      ? LightColor.whiteColor
+                      ? LightColor.inverseTextColor
                       : LightColor.secondaryTextColor,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                   fontSize: AppDimens.fontBodySubTitle,
@@ -639,7 +639,7 @@ class _VenueFilterChip extends StatelessWidget {
                   count.toString(),
                   style: textTheme.bodyTextSmall?.copyWith(
                     color: isSelected
-                        ? LightColor.whiteColor.withValues(alpha: 0.7)
+                        ? LightColor.inverseTextColor.withValues(alpha: 0.7)
                         : LightColor.hintTextColor,
                     fontWeight: FontWeight.w500,
                     fontSize: AppDimens.fontBodySubTitle,
@@ -710,7 +710,7 @@ class _VenueCardV2State extends State<_VenueCardV2> {
               : LightColor.dividerColor,
           width: 1,
         ),
-        boxShadow: const <BoxShadow>[
+        boxShadow: <BoxShadow>[
           BoxShadow(
             color: LightColor.shadowColor,
             blurRadius: 10,
@@ -805,7 +805,7 @@ class _VenueCardV2State extends State<_VenueCardV2> {
                                     value: _VenueMenuAction.manageFutsal,
                                     child: Row(
                                       children: <Widget>[
-                                        const Icon(
+                                        Icon(
                                           Icons.edit_outlined,
                                           size: AppDimens.sizeX18,
                                           color: LightColor.primaryTextColor,
@@ -829,7 +829,7 @@ class _VenueCardV2State extends State<_VenueCardV2> {
                                     value: _VenueMenuAction.addCourt,
                                     child: Row(
                                       children: <Widget>[
-                                        const Icon(
+                                        Icon(
                                           Icons.add_circle_outline_rounded,
                                           size: AppDimens.sizeX18,
                                           color: LightColor.primaryTextColor,
@@ -853,7 +853,7 @@ class _VenueCardV2State extends State<_VenueCardV2> {
                                     value: _VenueMenuAction.deleteFutsal,
                                     child: Row(
                                       children: <Widget>[
-                                        const Icon(
+                                        Icon(
                                           Icons.delete,
                                           size: AppDimens.sizeX18,
                                           color: LightColor.primaryTextColor,
@@ -875,7 +875,7 @@ class _VenueCardV2State extends State<_VenueCardV2> {
                                   ),
                                 ],
 
-                                child: const Icon(
+                                child: Icon(
                                   Icons.more_vert_rounded,
                                   size: AppDimens.sizeX22,
                                   color: LightColor.secondaryTextColor,
@@ -894,7 +894,7 @@ class _VenueCardV2State extends State<_VenueCardV2> {
                           _InfoTag(
                             icon: Icons.grid_view_rounded,
                             label: '$totalCourts Courts',
-                            color: LightColor.primaryDark,
+                            color: LightColor.brandTextColor,
                           ),
                           const SizedBox(width: AppDimens.sizeX8),
                           _InfoTag(
@@ -924,11 +924,7 @@ class _VenueCardV2State extends State<_VenueCardV2> {
                   ],
                 ),
               ),
-              const Divider(
-                height: 1,
-                thickness: 1,
-                color: LightColor.dividerColor,
-              ),
+              Divider(height: 1, thickness: 1, color: LightColor.dividerColor),
               GestureDetector(
                 onTap: () {
                   setState(() => _expandedCourts = !_expandedCourts);
@@ -942,7 +938,7 @@ class _VenueCardV2State extends State<_VenueCardV2> {
                   ),
                   child: Row(
                     children: <Widget>[
-                      const Icon(
+                      Icon(
                         Icons.sports_soccer_rounded,
                         size: AppDimens.sizeX20,
                         color: LightColor.secondaryTextColor,
@@ -1082,22 +1078,22 @@ class _VenueApprovalBadge extends StatelessWidget {
           _VenueApprovalStatus.approved => (
             label: StringConstants.approved,
             background: LightColor.secondaryColor,
-            foreground: LightColor.whiteColor,
+            foreground: LightColor.inverseTextColor,
           ),
           _VenueApprovalStatus.pending => (
             label: StringConstants.pending,
             background: LightColor.ratingColor.withValues(alpha: 0.20),
-            foreground: const Color(0xFF92400E),
+            foreground: LightColor.onWarningLightColor,
           ),
           _VenueApprovalStatus.active => (
             label: StringConstants.active,
             background: LightColor.secondaryColor,
-            foreground: LightColor.whiteColor,
+            foreground: LightColor.inverseTextColor,
           ),
           _VenueApprovalStatus.inactive => (
             label: StringConstants.inactive,
             background: LightColor.redColor,
-            foreground: LightColor.whiteColor,
+            foreground: LightColor.inverseTextColor,
           ),
         };
 
@@ -1395,7 +1391,7 @@ class _CourtRowV2 extends StatelessWidget {
                           value: _VenueMenuAction.manageFutsal,
                           child: Row(
                             children: <Widget>[
-                              const Icon(
+                              Icon(
                                 Icons.edit_outlined,
                                 size: AppDimens.sizeX18,
                                 color: LightColor.primaryTextColor,
@@ -1441,7 +1437,7 @@ class _CourtRowV2 extends StatelessWidget {
                           value: _VenueMenuAction.deleteCourt,
                           child: Row(
                             children: <Widget>[
-                              const Icon(
+                              Icon(
                                 Icons.delete,
                                 size: AppDimens.sizeX18,
                                 color: LightColor.primaryTextColor,
@@ -1459,7 +1455,7 @@ class _CourtRowV2 extends StatelessWidget {
                         ),
                       ],
 
-                      child: const Icon(
+                      child: Icon(
                         Icons.more_vert_rounded,
                         size: AppDimens.sizeX22,
                         color: LightColor.secondaryTextColor,
@@ -1516,16 +1512,16 @@ class _CourtRowV2 extends StatelessWidget {
                         ),
                       ],
                       const SizedBox(width: AppDimens.sizeX6),
-                      const _CourtStatusChip(
+                      _CourtStatusChip(
                         icon: Icons.schedule_rounded,
                         label: StringConstants.booked,
                         color: LightColor.warningColor,
                       ),
                       const SizedBox(width: AppDimens.sizeX6),
-                      const _CourtStatusChip(
+                      _CourtStatusChip(
                         icon: Icons.sports_soccer_rounded,
                         label: StringConstants.text5v5,
-                        color: LightColor.primaryDark,
+                        color: LightColor.brandTextColor,
                       ),
                       const SizedBox(width: AppDimens.sizeX6),
                     ],
@@ -1851,7 +1847,7 @@ class _CourtDeleteDialogState extends State<_CourtDeleteDialog> {
                 isLoading: _isDeleting,
                 minHeight: AppDimens.sizeX42,
                 backgroundColor: LightColor.redColor,
-                foregroundColor: LightColor.whiteColor,
+                foregroundColor: LightColor.inverseTextColor,
                 onPressed: _isDeleting ? null : _delete,
               ),
             ),

@@ -392,7 +392,7 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
             suffixIcon: GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: _isEditing ? _pickDateOfBirth : null,
-              child: const Padding(
+              child: Padding(
                 padding: EdgeInsets.symmetric(horizontal: 12),
                 child: Icon(
                   Icons.calendar_month_outlined,
@@ -641,7 +641,7 @@ class _ProfileSummaryCard extends StatelessWidget {
         color: LightColor.cardColor,
         borderRadius: BorderRadius.circular(AppDimens.radiusX14),
         border: Border.all(color: LightColor.dividerColor),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
             color: LightColor.shadowColor,
             blurRadius: 10,
@@ -688,7 +688,7 @@ class _ProfileSummaryCard extends StatelessWidget {
                 const SizedBox(height: AppDimens.paddingX4),
                 Row(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.location_on_outlined,
                       size: AppDimens.sizeX14,
                       color: LightColor.hintTextColor,
@@ -786,7 +786,7 @@ class _SectionCard extends StatelessWidget {
         color: LightColor.cardColor,
         borderRadius: BorderRadius.circular(AppDimens.radiusX14),
         border: Border.all(color: LightColor.dividerColor),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
             color: LightColor.shadowColor,
             blurRadius: 10,

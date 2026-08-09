@@ -6,7 +6,7 @@ class CustomRadioGroup extends StatefulWidget {
   final String? initialValue;
   final ValueChanged<String>? onChanged;
   final Color activeColor;
-  final Color inactiveColor;
+  final Color? inactiveColor;
 
   const CustomRadioGroup({
     super.key,
@@ -14,7 +14,7 @@ class CustomRadioGroup extends StatefulWidget {
     this.initialValue,
     this.onChanged,
     this.activeColor = LightColor.secondaryColor,
-    this.inactiveColor = LightColor.hintTextColor,
+    this.inactiveColor,
   });
 
   @override
@@ -46,7 +46,7 @@ class _CustomRadioGroupState extends State<CustomRadioGroup> {
               label: label,
               isSelected: _selected == label,
               activeColor: widget.activeColor,
-              inactiveColor: widget.inactiveColor,
+              inactiveColor: widget.inactiveColor ?? context.appColors.hintText,
               onTap: () {
                 setState(() => _selected = label);
                 widget.onChanged?.call(label);
@@ -88,7 +88,7 @@ class CustomRadioButton extends StatelessWidget {
         curve: Curves.easeInOut,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: LightColor.elevatedCardColor,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: isSelected
@@ -100,7 +100,7 @@ class CustomRadioButton extends StatelessWidget {
             BoxShadow(
               color: isSelected
                   ? activeColor.withValues(alpha: 0.15)
-                  : Colors.black.withValues(alpha: 0.04),
+                  : LightColor.shadowOf(0.04),
               blurRadius: isSelected ? 12 : 8,
               offset: const Offset(0, 2),
             ),
@@ -126,9 +126,9 @@ class CustomRadioButton extends StatelessWidget {
                       child: Container(
                         width: 8,
                         height: 8,
-                        decoration: const BoxDecoration(
+                        decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: Colors.white,
+                          color: LightColor.inverseTextColor,
                         ),
                       ),
                     )
@@ -143,8 +143,8 @@ class CustomRadioButton extends StatelessWidget {
                 fontSize: 14,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                 color: isSelected
-                    ? const Color(0xFF2D3A1A)
-                    : Colors.grey.shade600,
+                    ? LightColor.brandTextColor
+                    : LightColor.secondaryTextColor,
               ),
               child: Text(label),
             ),

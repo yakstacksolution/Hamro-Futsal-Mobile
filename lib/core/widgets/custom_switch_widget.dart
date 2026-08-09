@@ -6,9 +6,9 @@ class CustomSwitchWidget extends StatelessWidget {
     super.key,
     required this.value,
     required this.onChanged,
-    this.activeColor = LightColor.secondaryColor,
-    this.inactiveColor = LightColor.dividerColor,
-    this.thumbColor = LightColor.whiteColor,
+    this.activeColor,
+    this.inactiveColor,
+    this.thumbColor,
     this.width = 40,
     this.height = 24,
     this.enabled = true,
@@ -16,9 +16,9 @@ class CustomSwitchWidget extends StatelessWidget {
 
   final bool value;
   final ValueChanged<bool>? onChanged;
-  final Color activeColor;
-  final Color inactiveColor;
-  final Color thumbColor;
+  final Color? activeColor;
+  final Color? inactiveColor;
+  final Color? thumbColor;
   final double width;
   final double height;
   final bool enabled;
@@ -44,7 +44,9 @@ class CustomSwitchWidget extends StatelessWidget {
         height: height,
         padding: const EdgeInsets.all(2),
         decoration: BoxDecoration(
-          color: value ? activeColor : inactiveColor,
+          color: value
+              ? activeColor ?? Theme.of(context).colorScheme.primary
+              : inactiveColor ?? context.appColors.divider,
           borderRadius: BorderRadius.circular(trackRadius),
         ),
         child: Stack(
@@ -56,9 +58,13 @@ class CustomSwitchWidget extends StatelessWidget {
               width: thumbSize,
               height: thumbSize,
               decoration: BoxDecoration(
-                color: thumbColor,
+                color:
+                    thumbColor ??
+                    (value
+                        ? Theme.of(context).colorScheme.onPrimary
+                        : context.appColors.surfaceElevated),
                 shape: BoxShape.circle,
-                boxShadow: const [
+                boxShadow: [
                   BoxShadow(
                     color: LightColor.shadowColor,
                     blurRadius: 4,

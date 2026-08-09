@@ -88,7 +88,7 @@ class _VendorCategorySwitcherState extends State<VendorCategorySwitcher>
           color: LightColor.secondaryColor,
           borderRadius: BorderRadius.circular(AppDimens.radiusX8),
         ),
-        labelColor: LightColor.whiteColor,
+        labelColor: LightColor.inverseTextColor,
         unselectedLabelColor: LightColor.primaryTextColor,
         labelStyle: labelStyle,
         unselectedLabelStyle: labelStyle,

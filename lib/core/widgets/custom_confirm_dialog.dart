@@ -38,7 +38,7 @@ class CustomConfirmDialog extends StatelessWidget {
     required this.message,
     this.confirmText = 'Confirm',
     this.cancelText = 'Cancel',
-    this.confirmColor = LightColor.redColor,
+    this.confirmColor,
     this.icon,
     this.iconWidget,
   });
@@ -47,13 +47,14 @@ class CustomConfirmDialog extends StatelessWidget {
   final String message;
   final String confirmText;
   final String cancelText;
-  final Color confirmColor;
+  final Color? confirmColor;
   final IconData? icon;
   final Widget? iconWidget;
 
   @override
   Widget build(BuildContext context) {
     final AppUtils appUtils = AppUtils();
+    final Color confirmColor = this.confirmColor ?? context.appColors.danger;
     final textTheme = FutsalTheme.getTextTheme(context);
     final double dialogWidth = MediaQuery.sizeOf(context).width;
     final bool stackActions = dialogWidth < 360;
@@ -66,13 +67,13 @@ class CustomConfirmDialog extends StatelessWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppDimens.radiusX16),
       ),
-      backgroundColor: LightColor.whiteColor,
+      backgroundColor: context.appColors.surfaceElevated,
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 360),
         child: Container(
           padding: appUtils.getPadding(all: AppDimens.paddingX20),
           decoration: BoxDecoration(
-            color: LightColor.whiteColor,
+            color: context.appColors.surfaceElevated,
             borderRadius: BorderRadius.circular(AppDimens.radiusX16),
           ),
           child: Column(

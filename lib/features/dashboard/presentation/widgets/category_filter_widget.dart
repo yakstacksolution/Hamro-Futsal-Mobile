@@ -118,7 +118,7 @@ class _CategoryFilterRowState extends State<_CategoryFilterRow> {
                 style: FutsalTheme.getTextTheme(context).bodyTextMedium
                     ?.copyWith(
                       color: selected
-                          ? LightColor.whiteColor
+                          ? LightColor.inverseTextColor
                           : LightColor.secondaryTextColor,
                     ),
               ),

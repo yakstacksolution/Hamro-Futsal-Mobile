@@ -29,11 +29,14 @@ class RecentBookingsWidget extends StatelessWidget {
 
   final int maxItems;
 
-  static const List<BoxShadow> _cardShadow = <BoxShadow>[
+  // A getter, not a field: a `static` initialiser runs once per app launch, so
+  // a cached shadow keeps the brightness it was first built under and never
+  // follows a theme toggle.
+  static List<BoxShadow> get _cardShadow => <BoxShadow>[
     BoxShadow(
       color: LightColor.shadowColor,
       blurRadius: AppDimens.radiusX18,
-      offset: Offset(0, 8),
+      offset: const Offset(0, 8),
       spreadRadius: 1,
     ),
   ];
@@ -143,7 +146,7 @@ class RecentBookingsWidget extends StatelessWidget {
         label: StringConstants.pending,
         value: pending.toString().padLeft(2, '0'),
         icon: Icons.timelapse_rounded,
-        color: const Color(0xFFE65100),
+        color: LightColor.warningColor,
       ),
     ];
   }
@@ -347,7 +350,7 @@ class _BookingTile extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.stadium_outlined,
                       size: 16,
                       color: LightColor.secondaryTextColor,
@@ -368,7 +371,7 @@ class _BookingTile extends StatelessWidget {
                 const SizedBox(height: 10),
                 Row(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.schedule_rounded,
                       size: 16,
                       color: LightColor.secondaryTextColor,
@@ -583,7 +586,7 @@ class _InlineEmpty extends StatelessWidget {
       ),
       child: Column(
         children: [
-          const Icon(
+          Icon(
             Icons.event_busy_rounded,
             color: LightColor.secondaryTextColor,
             size: 28,
@@ -624,7 +627,7 @@ class _InlineError extends StatelessWidget {
       ),
       child: Column(
         children: [
-          const Icon(
+          Icon(
             Icons.wifi_off_rounded,
             color: LightColor.redColor,
             size: 28,
@@ -653,7 +656,7 @@ class _InlineError extends StatelessWidget {
               child: Text(
                 StringConstants.retry,
                 style: textTheme.bodyTextSmall?.copyWith(
-                  color: LightColor.whiteColor,
+                  color: LightColor.inverseTextColor,
                   fontWeight: FontWeight.w700,
                 ),
               ),

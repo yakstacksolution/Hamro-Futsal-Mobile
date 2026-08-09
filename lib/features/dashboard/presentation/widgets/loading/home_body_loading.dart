@@ -3,6 +3,7 @@ import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/utils/responsive.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/widgets/dashboard_layout.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:hamro_footsall/core/theme/app_colors.dart';
 
 class HomeBodyLoading extends StatelessWidget {
   const HomeBodyLoading({super.key, this.itemCount = 4});
@@ -23,8 +24,8 @@ class HomeBodyLoading extends StatelessWidget {
           // Same helper as the real feed, so the two always agree.
           final int columns = venueGridColumns(context, constraints.maxWidth);
           return Shimmer.fromColors(
-            baseColor: Colors.grey.shade300,
-            highlightColor: Colors.grey.shade100,
+            baseColor: LightColor.skeletonBaseColor,
+            highlightColor: LightColor.skeletonHighlightColor,
             child: columns == 1
                 ? ListView.builder(
                     shrinkWrap: true,
@@ -130,7 +131,7 @@ class _Block extends StatelessWidget {
       height: height,
       width: width ?? double.infinity,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: LightColor.skeletonBaseColor,
         borderRadius: BorderRadius.circular(radius),
       ),
     );

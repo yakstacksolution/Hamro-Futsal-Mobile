@@ -1,102 +1,166 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hamro_footsall/core/api/api_client/result.dart';
 import 'package:hamro_footsall/features/account/data/data_source/account_remote_data_source.dart';
+import 'package:hamro_footsall/features/account/data/model/account_models.dart';
 import 'package:hamro_footsall/features/account/data/repositories/account_repository_impl.dart';
 
+// Rewritten against the current settlement API. The previous version targeted
+// getSummary/getStatement/requestSettlement, which no longer exist, and asserted
+// that backend failures fall back to dummy finance figures — the repository now
+// surfaces those as a Left instead, which is the behaviour pinned below.
+
 void main() {
-  test('loads finance values only from the remote data source', () async {
-    final remote = _FakeAccountRemoteDataSource();
-    final repository = AccountRepositoryImpl(remoteDataSource: remote);
+  group('AccountRepositoryImpl', () {
+    test('reads the account only through the injected data source', () async {
+      final _FakeAccountRemoteDataSource remote = _FakeAccountRemoteDataSource();
+      final AccountRepositoryImpl repository = AccountRepositoryImpl(
+        remoteDataSource: remote,
+      );
 
-    final summary = await repository.getSummary();
+      final result = await repository.getSettlementAccount();
+      final AccountSummaryModel summary = result.getOrElse(
+        () => throw StateError('expected a summary'),
+      );
 
-    expect(remote.summaryCalls, 1);
-    expect(
-      summary.getOrElse(() => throw StateError('summary')).availableBalance,
-      12500,
-    );
-    expect(
-      summary.getOrElse(() => throw StateError('summary')).reservedBalance,
-      2000,
-    );
-  });
+      expect(remote.accountCalls, 1);
+      expect(summary.availableBalance, 12500);
+      expect(summary.reservedBalance, 2000);
+      expect(summary.currency, 'NPR');
+      expect(summary.settlementEligible, isTrue);
+    });
 
-  test('settlement sends the required request data', () async {
-    final remote = _FakeAccountRemoteDataSource();
-    final repository = AccountRepositoryImpl(remoteDataSource: remote);
+    test('createSettlement forwards every required field', () async {
+      final _FakeAccountRemoteDataSource remote = _FakeAccountRemoteDataSource();
+      final AccountRepositoryImpl repository = AccountRepositoryImpl(
+        remoteDataSource: remote,
+      );
 
-    await repository.requestSettlement(
-      amount: 5000,
-      idempotencyKey: 'unique-1',
-      scope: 'venues',
-      venueIds: const <int>[101],
-      paymentProofPath: '/tmp/proof.png',
-      note: 'Weekly payout',
-    );
+      await repository.createSettlement(
+        amount: 5000,
+        transactionReference: 'unique-1',
+        paymentProofPath: '/tmp/proof.png',
+        venueId: 101,
+        note: 'Weekly payout',
+      );
 
-    expect(remote.lastSettlement?['amount'], 5000);
-    expect(remote.lastSettlement?['idempotency_key'], 'unique-1');
-    expect(remote.lastSettlement?['scope'], 'venues');
-    expect(remote.lastSettlement?['venue_ids'], const <int>[101]);
-    expect(remote.lastSettlement?['payment_proof_path'], '/tmp/proof.png');
-  });
+      expect(remote.lastSettlement?['amount'], 5000);
+      expect(remote.lastSettlement?['transaction_reference'], 'unique-1');
+      expect(remote.lastSettlement?['payment_proof_path'], '/tmp/proof.png');
+      expect(remote.lastSettlement?['venue_id'], 101);
+      expect(remote.lastSettlement?['note'], 'Weekly payout');
+    });
 
-  test('uses dummy finance responses when backend requests fail', () async {
-    final repository = AccountRepositoryImpl(
-      remoteDataSource: _ErrorAccountRemoteDataSource(),
-    );
+    test('omits optional fields that were not supplied', () async {
+      final _FakeAccountRemoteDataSource remote = _FakeAccountRemoteDataSource();
+      final AccountRepositoryImpl repository = AccountRepositoryImpl(
+        remoteDataSource: remote,
+      );
 
-    final summary = await repository.getSummary();
-    final statement = await repository.getStatement();
-    final settlements = await repository.getSettlements();
-    final requestedSettlement = await repository.requestSettlement(
-      amount: 5000,
-      idempotencyKey: 'dummy-request-1',
-      scope: 'all',
-      venueIds: const <int>[101, 102],
-      paymentProofPath: '/tmp/proof.png',
-    );
+      await repository.createSettlement(
+        amount: 250,
+        transactionReference: 'ref-2',
+        paymentProofPath: '/tmp/p.png',
+      );
 
-    expect(summary.isRight(), isTrue);
-    expect(
-      summary.getOrElse(() => throw StateError('summary')).availableBalance,
-      18500,
-    );
-    expect(statement.getOrElse(() => const []), hasLength(2));
-    expect(settlements.getOrElse(() => const []), hasLength(1));
-    expect(
-      requestedSettlement
-          .getOrElse(() => throw StateError('settlement'))
-          .amount,
-      5000,
-    );
+      expect(remote.lastSettlement?.containsKey('venue_id'), isFalse);
+      expect(remote.lastSettlement?.containsKey('note'), isFalse);
+    });
+
+    test('getSettlements passes the paging query through', () async {
+      final _FakeAccountRemoteDataSource remote = _FakeAccountRemoteDataSource();
+      final AccountRepositoryImpl repository = AccountRepositoryImpl(
+        remoteDataSource: remote,
+      );
+
+      await repository.getSettlements(perPage: 5, page: 3);
+
+      expect(remote.lastSettlementsQuery?['per_page'], 5);
+      expect(remote.lastSettlementsQuery?['page'], 3);
+    });
+
+    test('a backend failure surfaces as a Left, never as fabricated figures', () async {
+      final AccountRepositoryImpl repository = AccountRepositoryImpl(
+        remoteDataSource: _ErrorAccountRemoteDataSource(),
+      );
+
+      expect((await repository.getSettlementAccount()).isLeft(), isTrue);
+      expect((await repository.getSettlementBreakdown()).isLeft(), isTrue);
+      expect((await repository.getSettlementPreview()).isLeft(), isTrue);
+      expect((await repository.getSettlements()).isLeft(), isTrue);
+      expect(
+        (await repository.createSettlement(
+          amount: 5000,
+          transactionReference: 'dummy-request-1',
+          paymentProofPath: '/tmp/proof.png',
+        )).isLeft(),
+        isTrue,
+      );
+    });
+
+    test('a malformed payload is reported rather than thrown', () async {
+      final AccountRepositoryImpl repository = AccountRepositoryImpl(
+        remoteDataSource: _MalformedAccountRemoteDataSource(),
+      );
+
+      // `_unwrap` yields an empty map for a non-map body, so the model falls
+      // back to its defaults instead of blowing up the caller.
+      final result = await repository.getSettlementAccount();
+      expect(result.isRight(), isTrue);
+      expect(
+        result.getOrElse(() => throw StateError('summary')).availableBalance,
+        0,
+      );
+    });
   });
 }
 
 class _ErrorAccountRemoteDataSource implements AccountRemoteDataSource {
-  Result get error => Result.error(DataError('Backend unavailable', 500, null));
+  Result get _error =>
+      Result.error(DataError('Backend unavailable', 500, null));
 
   @override
-  Future<Result> getAccountSummary() async => error;
+  Future<Result> getSettlementAccount() async => _error;
 
   @override
-  Future<Result> getAccountStatement({Map<String, dynamic>? query}) async =>
-      error;
+  Future<Result> getSettlementBreakdown() async => _error;
 
   @override
-  Future<Result> getSettlements() async => error;
+  Future<Result> getSettlementPreview({int? venueId}) async => _error;
 
   @override
-  Future<Result> requestSettlement(Map<String, dynamic> data) async => error;
+  Future<Result> getSettlements({Map<String, dynamic>? query}) async => _error;
+
+  @override
+  Future<Result> createSettlement(Map<String, dynamic> data) async => _error;
+}
+
+class _MalformedAccountRemoteDataSource implements AccountRemoteDataSource {
+  Result get _junk => Result.success('not-a-map');
+
+  @override
+  Future<Result> getSettlementAccount() async => _junk;
+
+  @override
+  Future<Result> getSettlementBreakdown() async => _junk;
+
+  @override
+  Future<Result> getSettlementPreview({int? venueId}) async => _junk;
+
+  @override
+  Future<Result> getSettlements({Map<String, dynamic>? query}) async => _junk;
+
+  @override
+  Future<Result> createSettlement(Map<String, dynamic> data) async => _junk;
 }
 
 class _FakeAccountRemoteDataSource implements AccountRemoteDataSource {
-  int summaryCalls = 0;
+  int accountCalls = 0;
   Map<String, dynamic>? lastSettlement;
+  Map<String, dynamic>? lastSettlementsQuery;
 
   @override
-  Future<Result> getAccountSummary() async {
-    summaryCalls++;
+  Future<Result> getSettlementAccount() async {
+    accountCalls++;
     return Result.success(<String, dynamic>{
       'data': <String, dynamic>{
         'currency': 'NPR',
@@ -108,7 +172,21 @@ class _FakeAccountRemoteDataSource implements AccountRemoteDataSource {
   }
 
   @override
-  Future<Result> requestSettlement(Map<String, dynamic> data) async {
+  Future<Result> getSettlementBreakdown() async =>
+      Result.success(<String, dynamic>{'data': <dynamic>[]});
+
+  @override
+  Future<Result> getSettlementPreview({int? venueId}) async =>
+      Result.success(<String, dynamic>{'data': <String, dynamic>{}});
+
+  @override
+  Future<Result> getSettlements({Map<String, dynamic>? query}) async {
+    lastSettlementsQuery = query;
+    return Result.success(<String, dynamic>{'data': <dynamic>[]});
+  }
+
+  @override
+  Future<Result> createSettlement(Map<String, dynamic> data) async {
     lastSettlement = data;
     return Result.success(<String, dynamic>{
       'data': <String, dynamic>{
@@ -118,12 +196,4 @@ class _FakeAccountRemoteDataSource implements AccountRemoteDataSource {
       },
     });
   }
-
-  @override
-  Future<Result> getAccountStatement({Map<String, dynamic>? query}) async =>
-      Result.success(<String, dynamic>{'data': <dynamic>[]});
-
-  @override
-  Future<Result> getSettlements() async =>
-      Result.success(<String, dynamic>{'data': <dynamic>[]});
 }

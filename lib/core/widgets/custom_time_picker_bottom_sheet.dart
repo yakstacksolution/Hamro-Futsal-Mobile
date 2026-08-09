@@ -22,8 +22,8 @@ Future<TimeOfDay?> customCupertinoTimePicker(
     context: context,
     isDismissible: true,
     isScrollControlled: true,
-    backgroundColor: LightColor.whiteColor,
-    barrierColor: Colors.black.withValues(alpha: 0.3),
+    backgroundColor: context.appColors.surfaceElevated,
+    barrierColor: LightColor.scrimColor,
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.only(
         topLeft: Radius.circular(AppDimens.radiusX16),
@@ -201,7 +201,7 @@ Future<TimeOfDay?> customCupertinoTimePicker(
                 CustomButton(
                   text: StringConstants.select,
                   backgroundColor: LightColor.secondaryColor,
-                  foregroundColor: LightColor.whiteColor,
+                  foregroundColor: LightColor.inverseTextColor,
                   minHeight: AppDimens.sizeX46,
                   // margin: AppUtils().getMargin(
                   //   top: AppDimens.marginX16,

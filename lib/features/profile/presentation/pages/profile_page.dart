@@ -582,7 +582,7 @@ class _SectionGroup extends StatelessWidget {
                 for (int i = 0; i < items.length; i++) ...[
                   _SettingsRow(item: items[i]),
                   if (i != items.length - 1)
-                    const Padding(
+                    Padding(
                       padding: EdgeInsets.only(left: AppDimens.paddingX46),
                       child: Divider(
                         height: 1,
@@ -646,7 +646,7 @@ class _SettingsRow extends StatelessWidget {
                 ),
               ),
               if (!item.destructive)
-                const Icon(
+                Icon(
                   Icons.chevron_right_rounded,
                   color: LightColor.iconGrey,
                   size: AppDimens.sizeX20,

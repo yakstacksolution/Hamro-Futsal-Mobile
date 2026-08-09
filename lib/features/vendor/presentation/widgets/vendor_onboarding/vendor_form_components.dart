@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -216,7 +218,7 @@ class VendorOnboardingSectionHeader extends StatelessWidget {
             child: Icon(
               icon,
               size: AppDimens.sizeX18,
-              color: LightColor.secondaryColor,
+              color: LightColor.brandTextColor,
             ),
           ),
           const SizedBox(width: AppDimens.sizeX14),
@@ -294,7 +296,7 @@ class VendorGroupedContentCard extends StatelessWidget {
                 child: Icon(
                   icon,
                   size: AppDimens.sizeX16,
-                  color: LightColor.secondaryColor,
+                  color: LightColor.brandTextColor,
                 ),
               ),
               const SizedBox(width: AppDimens.sizeX8),
@@ -303,7 +305,7 @@ class VendorGroupedContentCard extends StatelessWidget {
                   title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: LightColor.primaryTextColor,
                     fontSize: 13,
                     fontWeight: FontWeight.w800,
@@ -339,10 +341,10 @@ class VendorTemplateResetButton extends StatelessWidget {
             color: LightColor.secondaryLight.withValues(alpha: 0.22),
             borderRadius: BorderRadius.circular(999),
           ),
-          child: const Icon(
+          child: Icon(
             Icons.refresh_rounded,
             size: AppDimens.sizeX16,
-            color: LightColor.secondaryColor,
+            color: LightColor.brandTextColor,
           ),
         ),
       ),
@@ -507,7 +509,7 @@ class VendorSelectableChip extends StatelessWidget {
                 icon,
                 size: AppDimens.sizeX16,
                 color: isSelected
-                    ? LightColor.secondaryColor
+                    ? LightColor.brandTextColor
                     : LightColor.secondaryTextColor,
               ),
               SizedBox(width: AppDimens.sizeX6),
@@ -516,13 +518,12 @@ class VendorSelectableChip extends StatelessWidget {
               child: Text(
                 label,
                 overflow: TextOverflow.ellipsis,
-                style: FutsalTheme.getTextTheme(context).bodySubTitle
-                    ?.copyWith(
-                      color: isSelected
-                          ? LightColor.secondaryDark
-                          : LightColor.primaryTextColor,
-                      fontWeight: FontWeight.w700,
-                    ),
+                style: FutsalTheme.getTextTheme(context).bodySubTitle?.copyWith(
+                  color: isSelected
+                      ? LightColor.brandTextColor
+                      : LightColor.primaryTextColor,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
           ],
@@ -557,7 +558,7 @@ class VendorMiniCheckbox extends StatelessWidget {
       activeColor: LightColor.secondaryColor,
       inactiveColor: Colors.transparent,
       borderColor: LightColor.borderColor,
-      checkColor: LightColor.whiteColor,
+      checkColor: LightColor.inverseTextColor,
     );
   }
 }
@@ -668,9 +669,8 @@ class VendorUploadSection extends StatelessWidget {
                     ),
                     child: Text(
                       actionLabel,
-                      style: FutsalTheme.getTextTheme(
-                        context,
-                      ).bodyTextSmall?.copyWith(color: LightColor.whiteColor),
+                      style: FutsalTheme.getTextTheme(context).bodyTextSmall
+                          ?.copyWith(color: LightColor.inverseTextColor),
                     ),
                   ),
                 ),
@@ -710,7 +710,7 @@ class VendorUploadSection extends StatelessWidget {
                           ),
                           child: Icon(
                             actionIcon,
-                            color: LightColor.secondaryColor,
+                            color: LightColor.brandTextColor,
                             size: AppDimens.sizeX22,
                           ),
                         ),
@@ -965,7 +965,7 @@ class _UploadImageView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (_rawImageSource.isEmpty) {
-      return const ColoredBox(
+      return ColoredBox(
         color: LightColor.background,
         child: Center(
           child: Icon(
@@ -1008,7 +1008,7 @@ class _ThumbDeleteButton extends StatelessWidget {
       child: Container(
         width: size,
         height: size,
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: LightColor.whiteColor,
           shape: BoxShape.circle,
         ),
@@ -1054,7 +1054,7 @@ class _DocumentGridTile extends StatelessWidget {
     final Widget badge = Container(
       width: AppDimens.sizeX22,
       height: AppDimens.sizeX22,
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: LightColor.whiteColor,
         shape: BoxShape.circle,
       ),
@@ -1099,9 +1099,9 @@ class _DocumentGridTile extends StatelessWidget {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: <Widget>[
-                      const Icon(
+                      Icon(
                         Icons.insert_drive_file_rounded,
-                        color: LightColor.secondaryColor,
+                        color: LightColor.brandTextColor,
                         size: AppDimens.sizeX28,
                       ),
                       const SizedBox(height: AppDimens.sizeX6),
@@ -1123,7 +1123,7 @@ class _DocumentGridTile extends StatelessWidget {
             child: switch (status) {
               UploadVerificationStatus.pending => _cornerBadge(
                 tooltip: StringConstants.underReview,
-                child: const Icon(
+                child: Icon(
                   Icons.hourglass_top_rounded,
                   color: LightColor.warningColor,
                   size: AppDimens.sizeX14,
@@ -1131,7 +1131,7 @@ class _DocumentGridTile extends StatelessWidget {
               ),
               UploadVerificationStatus.approved => _cornerBadge(
                 tooltip: StringConstants.approved,
-                child: const Icon(
+                child: Icon(
                   Icons.check_circle_rounded,
                   color: LightColor.successColor,
                   size: AppDimens.sizeX16,
@@ -1160,7 +1160,7 @@ class _DocumentGridTile extends StatelessWidget {
                       color: LightColor.redLightColor,
                       borderRadius: BorderRadius.circular(AppDimens.radiusX8),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.cached_rounded,
                       color: LightColor.redColor,
                       size: AppDimens.sizeX16,
@@ -1381,9 +1381,9 @@ class VendorUploadItem extends StatelessWidget {
                 ),
                 child: _hasImageContent
                     ? _UploadImageView(file: file)
-                    : const Icon(
+                    : Icon(
                         Icons.insert_drive_file_rounded,
-                        color: LightColor.secondaryColor,
+                        color: LightColor.brandTextColor,
                         size: AppDimens.sizeX22,
                       ),
               ),
@@ -1406,32 +1406,38 @@ class VendorUploadItem extends StatelessWidget {
                     const SizedBox(height: AppDimens.sizeX6),
                     Row(
                       children: <Widget>[
-                        Container(
-                          padding: AppUtils().getPadding(
-                            horizontal: AppDimens.sizeX8,
-                            vertical: AppDimens.sizeX4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: LightColor.inputFillColor,
-                            borderRadius: BorderRadius.circular(
-                              AppDimens.radiusX50,
+                        Flexible(
+                          child: Container(
+                            padding: AppUtils().getPadding(
+                              horizontal: AppDimens.sizeX8,
+                              vertical: AppDimens.sizeX4,
                             ),
-                          ),
-                          child: Text(
-                            file.name.split('.').last.toUpperCase(),
-                            style: FutsalTheme.getTextTheme(context)
-                                .bodyTextSmall
-                                ?.copyWith(
-                                  color: LightColor.secondaryTextColor,
-                                  fontWeight: FontWeight.w700,
-                                ),
+                            decoration: BoxDecoration(
+                              color: LightColor.inputFillColor,
+                              borderRadius: BorderRadius.circular(
+                                AppDimens.radiusX50,
+                              ),
+                            ),
+                            child: Text(
+                              file.name.split('.').last.toUpperCase(),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: FutsalTheme.getTextTheme(context)
+                                  .bodyTextSmall
+                                  ?.copyWith(
+                                    color: LightColor.secondaryTextColor,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                            ),
                           ),
                         ),
                         if (file.verificationStatus !=
                             UploadVerificationStatus.none) ...<Widget>[
                           const SizedBox(width: AppDimens.sizeX8),
-                          VerificationStatusBadge(
-                            status: file.verificationStatus,
+                          Flexible(
+                            child: VerificationStatusBadge(
+                              status: file.verificationStatus,
+                            ),
                           ),
                         ],
                       ],
@@ -1488,7 +1494,7 @@ class _RejectionCallout extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          const Icon(
+          Icon(
             Icons.error_outline_rounded,
             color: LightColor.redColor,
             size: AppDimens.sizeX18,
@@ -1551,7 +1557,7 @@ class _UploadActionButton extends StatelessWidget {
     return _IconActionButton(
       icon: Icons.delete_outline_rounded,
       background: LightColor.background,
-      foreground: LightColor.secondaryColor,
+      foreground: LightColor.brandTextColor,
       onTap: onRemove,
       tooltip: null,
     );
@@ -1619,11 +1625,15 @@ class VerificationStatusBadge extends StatelessWidget {
             color: palette.foreground,
           ),
           const SizedBox(width: AppDimens.sizeX4),
-          Text(
-            palette.label,
-            style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
-              color: palette.foreground,
-              fontWeight: FontWeight.w700,
+          Flexible(
+            child: Text(
+              palette.label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
+                color: palette.foreground,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
         ],
@@ -1634,28 +1644,28 @@ class VerificationStatusBadge extends StatelessWidget {
   _BadgePalette _paletteFor(UploadVerificationStatus status) {
     switch (status) {
       case UploadVerificationStatus.pending:
-        return const _BadgePalette(
+        return _BadgePalette(
           label: StringConstants.pending,
           icon: Icons.schedule_rounded,
           foreground: LightColor.warningColor,
           background: LightColor.warningLightColor,
         );
       case UploadVerificationStatus.approved:
-        return const _BadgePalette(
+        return _BadgePalette(
           label: StringConstants.approved,
           icon: Icons.verified_rounded,
-          foreground: LightColor.secondaryColor,
+          foreground: LightColor.brandTextColor,
           background: LightColor.secondarySoft,
         );
       case UploadVerificationStatus.rejected:
-        return const _BadgePalette(
+        return _BadgePalette(
           label: StringConstants.rejected,
           icon: Icons.error_outline_rounded,
           foreground: LightColor.redColor,
           background: LightColor.redLightColor,
         );
       case UploadVerificationStatus.none:
-        return const _BadgePalette(
+        return _BadgePalette(
           label: '',
           icon: Icons.help_outline_rounded,
           foreground: LightColor.secondaryTextColor,
@@ -1718,11 +1728,11 @@ InputDecoration vendorInputDecoration(String label) {
     fillColor: LightColor.background,
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(AppDimens.radiusX18),
-      borderSide: const BorderSide(color: LightColor.borderColor),
+      borderSide: BorderSide(color: LightColor.borderColor),
     ),
     enabledBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(AppDimens.radiusX18),
-      borderSide: const BorderSide(color: LightColor.borderColor),
+      borderSide: BorderSide(color: LightColor.borderColor),
     ),
     focusedBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(AppDimens.radiusX18),
@@ -1827,7 +1837,7 @@ class VendorSwitchButton extends StatelessWidget {
           child: Container(
             width: thumbSize,
             height: thumbSize,
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               color: LightColor.whiteColor,
               shape: BoxShape.circle,
             ),
@@ -2093,16 +2103,16 @@ class _VendorLocationSearchFieldState extends State<VendorLocationSearchField> {
                           final result = results[index];
                           return ListTile(
                             dense: true,
-                            leading: const Icon(
+                            leading: Icon(
                               Icons.location_on_outlined,
                               size: AppDimens.sizeX18,
-                              color: LightColor.secondaryColor,
+                              color: LightColor.brandTextColor,
                             ),
                             title: Text(
                               result.displayName,
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: AppDimens.sizeX12,
                                 color: LightColor.primaryTextColor,
                               ),

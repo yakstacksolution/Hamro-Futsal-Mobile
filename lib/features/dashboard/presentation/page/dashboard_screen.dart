@@ -86,11 +86,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
     await _refreshNotificationBadge();
   }
 
-  static const List<BoxShadow> _cardShadow = <BoxShadow>[
+  // A getter, not a field: a `static` initialiser runs once per app launch, so
+  // a cached shadow keeps the brightness it was first built under and never
+  // follows a theme toggle.
+  static List<BoxShadow> get _cardShadow => <BoxShadow>[
     BoxShadow(
       color: LightColor.shadowColor,
       blurRadius: AppDimens.radiusX18,
-      offset: Offset(0, 8),
+      offset: const Offset(0, 8),
       spreadRadius: 1,
     ),
   ];
@@ -150,11 +153,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildActionIcon(
-    IconData icon, {
-    Color color = LightColor.secondaryTextColor,
-    VoidCallback? onTap,
-  }) {
+  Widget _buildActionIcon(IconData icon, {Color? color, VoidCallback? onTap}) {
     return _tapable(
       onTap: onTap ?? () {},
       borderRadius: BorderRadius.circular(AppDimens.radiusX8),
@@ -165,7 +164,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           color: LightColor.whiteColor,
           boxShadow: _cardShadow,
         ),
-        child: Icon(icon, color: color),
+        child: Icon(icon, color: color ?? context.appColors.secondaryText),
       ),
     );
   }
@@ -350,7 +349,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  static const BoxDecoration _shellGradient = BoxDecoration(
+  static BoxDecoration get _shellGradient => BoxDecoration(
     gradient: LinearGradient(
       colors: <Color>[LightColor.background, LightColor.cardColor],
       begin: Alignment.topCenter,

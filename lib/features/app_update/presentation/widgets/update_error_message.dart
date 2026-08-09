@@ -42,7 +42,7 @@ class UpdateErrorMessage extends StatelessWidget {
         mainAxisSize: center ? MainAxisSize.min : MainAxisSize.max,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          const Icon(
+          Icon(
             Icons.error_outline_rounded,
             size: AppDimens.sizeX18,
             color: LightColor.redColor,

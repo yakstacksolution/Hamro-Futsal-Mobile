@@ -21,7 +21,7 @@ class ReviewSummaryTile extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: LightColor.elevatedCardColor,
         border: Border(
           left: const BorderSide(color: LightColor.secondaryColor, width: 2.5),
           right: BorderSide(
@@ -44,7 +44,7 @@ class ReviewSummaryTile extends StatelessWidget {
               children: <Widget>[
                 Text(
                   label,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 10.5,
                     color: LightColor.secondaryTextColor,
                     fontWeight: FontWeight.w600,

@@ -19,12 +19,12 @@ class LoadingWidget extends StatelessWidget {
           ? Colors.transparent
           : isButtonLoading == true
           ? Colors.transparent
-          : Colors.white,
+          : LightColor.background,
       body: Center(
         child: CustomLoading(
           color: isButtonLoading == false
               ? LightColor.secondaryColor
-              : LightColor.whiteColor,
+              : LightColor.inverseTextColor,
           size: 30,
           strokeWidth: isButtonLoading == true ? 2.5 : 4,
           secondCircleColor: LightColor.secondaryLight,

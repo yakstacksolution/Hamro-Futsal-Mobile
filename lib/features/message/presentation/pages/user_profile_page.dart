@@ -192,7 +192,7 @@ class _ProfileDetailsCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: LightColor.cardColor,
         borderRadius: BorderRadius.circular(AppDimens.radiusX16),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
             color: LightColor.shadowColor,
             blurRadius: AppDimens.radiusX16,
@@ -210,7 +210,7 @@ class _ProfileDetailsCard extends StatelessWidget {
               color: LightColor.primaryTextColor,
             ),
           ),
-          const Padding(
+          Padding(
             padding: EdgeInsets.symmetric(vertical: AppDimens.paddingX16),
             child: Divider(height: 1, color: LightColor.dividerColor),
           ),

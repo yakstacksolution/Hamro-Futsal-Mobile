@@ -27,6 +27,7 @@ class _AppUpdatePreferenceKeys {
 class AppSettings {
   static final AppSettings _instance = AppSettings._internal();
   late final Preferences _preferences;
+  bool _initialized = false;
 
   factory AppSettings() {
     return _instance;
@@ -36,7 +37,10 @@ class AppSettings {
 
   Future<void> init(Preferences preferences) async {
     _preferences = preferences;
+    _initialized = true;
   }
+
+  bool get isInitialized => _initialized;
 
   String get khaltiPublicKey =>
       'test_public_key_d5d9f63743584dc38753056b0cc737d5';

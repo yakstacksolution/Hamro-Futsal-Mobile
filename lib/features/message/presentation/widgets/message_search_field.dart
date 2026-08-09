@@ -26,7 +26,7 @@ class MessageSearchField extends StatelessWidget {
       height: 40,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(AppDimens.radiusX10),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
             color: LightColor.shadowColor,
             blurRadius: 8,
@@ -46,12 +46,12 @@ class MessageSearchField extends StatelessWidget {
         decoration: InputDecoration(
           isDense: true,
           filled: true,
-          fillColor: LightColor.whiteColor,
+          fillColor: context.appColors.inputFill,
           hintText: StringConstants.searchConversations,
           hintStyle: textTheme.bodyTextSmall?.copyWith(
             color: LightColor.hintTextColor,
           ),
-          prefixIcon: const Icon(
+          prefixIcon: Icon(
             Icons.search_rounded,
             color: LightColor.iconGrey,
             size: AppDimens.sizeX18,
@@ -65,7 +65,7 @@ class MessageSearchField extends StatelessWidget {
               : GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onTap: onClear,
-                  child: const Icon(
+                  child: Icon(
                     Icons.close_rounded,
                     color: LightColor.iconGrey,
                     size: AppDimens.sizeX16,

@@ -225,7 +225,7 @@ class _ExpenseCard extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(AppDimens.radiusX12),
             border: Border.all(color: LightColor.dividerColor),
-            boxShadow: const [
+            boxShadow: [
               BoxShadow(
                 color: LightColor.shadowColor,
                 blurRadius: 8,
@@ -326,7 +326,7 @@ class _ExpenseCard extends StatelessWidget {
                               const SizedBox(height: 4),
                               Row(
                                 children: [
-                                  const Icon(
+                                  Icon(
                                     Icons.location_on_outlined,
                                     size: 12,
                                     color: LightColor.hintTextColor,

@@ -318,7 +318,7 @@ class BookingErrorBanner extends StatelessWidget {
       ),
       child: Row(
         children: <Widget>[
-          const Icon(
+          Icon(
             Icons.error_outline_rounded,
             size: AppDimens.sizeX16,
             color: LightColor.redColor,
@@ -334,7 +334,7 @@ class BookingErrorBanner extends StatelessWidget {
           ),
           TextButton(
             onPressed: onRetry,
-            child: const Text(
+            child: Text(
               StringConstants.retry,
               style: TextStyle(color: LightColor.redColor),
             ),
@@ -387,7 +387,7 @@ List<Widget> bookingRowsWithDividers(List<Widget> rows) {
     children.add(rows[index]);
     if (index < rows.length - 1) {
       children.add(
-        const Padding(
+        Padding(
           padding: EdgeInsets.symmetric(horizontal: AppDimens.paddingX16),
           child: Divider(height: 1, color: LightColor.dividerColor),
         ),
@@ -406,8 +406,10 @@ String? bookingTypeLabel(String? type) {
   final String normalized = type?.trim().toLowerCase() ?? '';
   if (normalized.isEmpty) return null;
   return switch (normalized) {
-    'manual' || 'walk_in' || 'walkin' || 'offline' =>
-      StringConstants.bookingTypeManual,
+    'manual' ||
+    'walk_in' ||
+    'walkin' ||
+    'offline' => StringConstants.bookingTypeManual,
     'online' || 'app' || 'web' => StringConstants.bookingTypeOnline,
     _ => bookingTitleCase(normalized),
   };
@@ -474,7 +476,7 @@ Color bookingPaymentStatusColor(String status) {
   if (normalized == 'failed' || normalized == 'refunded') {
     return LightColor.redColor;
   }
-  return const Color(0xFFE65100);
+  return LightColor.warningColor;
 }
 
 /// Semantic colour for a payment-proof verification status.
@@ -488,5 +490,5 @@ Color bookingVerificationColor(String status) {
   if (normalized == 'rejected' || normalized == 'declined') {
     return LightColor.redColor;
   }
-  return const Color(0xFFE65100);
+  return LightColor.warningColor;
 }

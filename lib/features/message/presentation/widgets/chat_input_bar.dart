@@ -164,12 +164,15 @@ class _ChatInputBarState extends State<ChatInputBar> {
                         maxHeight: 118,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: context.appColors.inputFill,
                         borderRadius: BorderRadius.circular(
                           AppDimens.radiusX24,
                         ),
-                        border: Border.all(color: Colors.white, width: 1.5),
-                        boxShadow: const [
+                        border: Border.all(
+                          color: context.appColors.inputBorder,
+                          width: 1.5,
+                        ),
+                        boxShadow: [
                           BoxShadow(
                             color: LightColor.shadowColor,
                             blurRadius: 12,
@@ -203,7 +206,7 @@ class _ChatInputBarState extends State<ChatInputBar> {
                               ),
                               decoration: InputDecoration(
                                 filled: true,
-                                fillColor: Colors.white,
+                                fillColor: context.appColors.inputFill,
                                 isDense: true,
                                 border: InputBorder.none,
                                 enabledBorder: InputBorder.none,
@@ -288,7 +291,7 @@ class _ChatInputBarState extends State<ChatInputBar> {
                                   Icons.send_rounded,
                                   size: 20,
                                   color: _canSend
-                                      ? LightColor.whiteColor
+                                      ? LightColor.inverseTextColor
                                       : LightColor.hintTextColor,
                                 ),
                         ),

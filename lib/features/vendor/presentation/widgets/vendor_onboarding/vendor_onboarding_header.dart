@@ -25,10 +25,10 @@ class VendorOnboardingHeader extends StatelessWidget {
     final int progressPercent = (completion * 100).round();
     final bool isCourt = state.isInCourtCategory;
 
-    final Color foreground = LightColor.whiteColor.withValues(alpha: 0.96);
-    final Color mutedForeground = LightColor.whiteColor.withValues(alpha: 0.76);
-    final Color surface = LightColor.whiteColor.withValues(alpha: 0.12);
-    final Color border = LightColor.whiteColor.withValues(alpha: 0.10);
+    final Color foreground = LightColor.onBrandSurface.withValues(alpha: 0.96);
+    final Color mutedForeground = LightColor.onBrandSurface.withValues(alpha: 0.76);
+    final Color surface = LightColor.onBrandSurface.withValues(alpha: 0.12);
+    final Color border = LightColor.onBrandSurface.withValues(alpha: 0.10);
 
     return RepaintBoundary(
       child: LayoutBuilder(
@@ -41,7 +41,7 @@ class VendorOnboardingHeader extends StatelessWidget {
           return Container(
             padding: const EdgeInsets.all(AppDimens.paddingX12),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
+              gradient: LinearGradient(
                 colors: <Color>[
                   LightColor.secondaryColor,
                   LightColor.secondaryDark,
@@ -115,11 +115,11 @@ class VendorOnboardingHeader extends StatelessWidget {
                   child: LinearProgressIndicator(
                     minHeight: AppDimens.sizeX4,
                     value: completion,
-                    backgroundColor: LightColor.whiteColor.withValues(
+                    backgroundColor: LightColor.onBrandSurface.withValues(
                       alpha: 0.16,
                     ),
-                    valueColor: const AlwaysStoppedAnimation<Color>(
-                      LightColor.whiteColor,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      LightColor.onBrandSurface,
                     ),
                   ),
                 ),
@@ -188,7 +188,7 @@ class _HeaderIcon extends StatelessWidget {
       ),
       child: Icon(
         isCourt ? Icons.stadium_rounded : Icons.sports_soccer_rounded,
-        color: LightColor.whiteColor,
+        color: LightColor.inverseTextColor,
         size: AppDimens.sizeX18,
       ),
     );

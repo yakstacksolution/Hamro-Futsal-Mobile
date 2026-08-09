@@ -272,11 +272,7 @@ class _LoadError extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
-              Icons.cloud_off_rounded,
-              size: 40,
-              color: LightColor.iconGrey,
-            ),
+            Icon(Icons.cloud_off_rounded, size: 40, color: LightColor.iconGrey),
             const SizedBox(height: AppDimens.paddingX12),
             Text(
               message,

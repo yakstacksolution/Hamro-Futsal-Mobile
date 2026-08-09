@@ -87,7 +87,7 @@ class OpponentCard extends StatelessWidget {
         color: LightColor.cardColor,
         borderRadius: BorderRadius.circular(AppDimens.radiusX14),
         border: Border.all(color: LightColor.dividerColor),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
             color: LightColor.shadowColor,
             blurRadius: 10,
@@ -262,7 +262,7 @@ class OpponentPillChip extends StatelessWidget {
             style: textTheme.bodyTextSmall?.copyWith(
               fontWeight: FontWeight.w600,
               color: active
-                  ? LightColor.whiteColor
+                  ? LightColor.inverseTextColor
                   : LightColor.secondaryTextColor,
             ),
           ),
@@ -296,7 +296,7 @@ class OpponentCountChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
     final Color fg = isSelected
-        ? (filled ? LightColor.whiteColor : LightColor.secondaryColor)
+        ? (filled ? LightColor.inverseTextColor : LightColor.secondaryColor)
         : LightColor.secondaryTextColor;
     final Color bg = !isSelected
         ? Colors.transparent
@@ -349,7 +349,7 @@ class OpponentCountChip extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: isSelected
                         ? (filled
-                              ? LightColor.whiteColor.withValues(alpha: 0.22)
+                              ? LightColor.inverseTextColor.withValues(alpha: 0.22)
                               : LightColor.secondaryColor.withValues(
                                   alpha: 0.14,
                                 ))
@@ -428,7 +428,7 @@ class OpponentPickerRow extends StatelessWidget {
               ),
             ),
             const SizedBox(width: AppDimens.paddingX8),
-            const Icon(
+            Icon(
               Icons.chevron_right_rounded,
               size: 20,
               color: LightColor.hintTextColor,
@@ -445,7 +445,7 @@ class OpponentRowDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
+    return Padding(
       padding: EdgeInsets.symmetric(horizontal: AppDimens.paddingX14),
       child: Divider(height: 1, color: LightColor.dividerColor),
     );

@@ -8,6 +8,11 @@ class VenueStatusWidget extends StatelessWidget {
   final bool isOpen;
   const VenueStatusWidget({super.key, required this.isOpen});
 
+  /// The brand green is too dark to read on a dark pill, so the open state uses
+  /// the brightness-aware success token rather than `secondaryColor`.
+  Color get _statusColor =>
+      isOpen ? LightColor.successColor : LightColor.redColor;
+
   @override
   Widget build(BuildContext context) {
     return ClipRRect(
@@ -20,12 +25,13 @@ class VenueStatusWidget extends StatelessWidget {
             vertical: AppDimens.paddingX4,
           ),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.85),
+            // Tracks the card surface it sits on, so the pill reads as part of
+            // the card in both themes. Anchoring it to white left a glaring
+            // white chip on the dark card.
+            color: LightColor.elevatedCardColor.withValues(alpha: 0.85),
             borderRadius: BorderRadius.circular(AppDimens.sizeX30),
             border: Border.all(
-              color: isOpen
-                  ? LightColor.secondaryColor.withValues(alpha: 0.3)
-                  : LightColor.redColor.withValues(alpha: 0.3),
+              color: _statusColor.withValues(alpha: 0.3),
               width: 1,
             ),
           ),
@@ -36,9 +42,7 @@ class VenueStatusWidget extends StatelessWidget {
                 height: AppDimens.sizeX6,
                 width: AppDimens.sizeX6,
                 decoration: BoxDecoration(
-                  color: isOpen
-                      ? LightColor.secondaryColor
-                      : LightColor.redColor,
+                  color: _statusColor,
                   shape: BoxShape.circle,
                 ),
               ),
@@ -48,9 +52,7 @@ class VenueStatusWidget extends StatelessWidget {
                 style: FutsalTheme.getTextTheme(context).bodyTextSmall
                     ?.copyWith(
                       fontSize: AppDimens.sizeX10,
-                      color: isOpen
-                          ? LightColor.secondaryColor
-                          : LightColor.redColor,
+                      color: _statusColor,
                     ),
               ),
             ],

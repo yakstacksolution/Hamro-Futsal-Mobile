@@ -19,6 +19,7 @@ import 'package:hamro_footsall/features/auth/presentation/widgets/login_form.dar
 import 'package:hamro_footsall/features/auth/presentation/widgets/register_form.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/page/dashboard_screen.dart';
 import 'package:hamro_footsall/core/utils/string_constants.dart';
+import 'package:hamro_footsall/features/auth/domain/entities/auth_entities.dart';
 
 enum AuthMode { login, register }
 
@@ -32,18 +33,15 @@ class AuthScreen extends StatefulWidget {
 }
 
 class _AuthScreenState extends State<AuthScreen> {
-  static const List<String> _accountTypes = <String>[
-    'Player',
-    'Footsall Vendor',
-  ];
+  static const List<String> _accountTypes = AccountTypeLabels.all;
 
   /// Maps the selected account type to the brand panel's audience. Nothing
   /// selected yet means the generic pitch.
   static AuthAudience _audienceFor(String? accountType) {
     switch (accountType) {
-      case 'Player':
+      case AccountTypeLabels.player:
         return AuthAudience.player;
-      case 'Footsall Vendor':
+      case AccountTypeLabels.vendor:
         return AuthAudience.vendor;
       default:
         return AuthAudience.general;
@@ -578,9 +576,7 @@ class _GoogleLoginSection extends StatelessWidget {
       children: <Widget>[
         Row(
           children: <Widget>[
-            const Expanded(
-              child: Divider(height: 1, color: LightColor.dividerColor),
-            ),
+            Expanded(child: Divider(height: 1, color: LightColor.dividerColor)),
             Padding(
               padding: AppUtils().getPadding(
                 symmetricHorizontal: AppDimens.paddingX12,
@@ -592,9 +588,7 @@ class _GoogleLoginSection extends StatelessWidget {
                 ),
               ),
             ),
-            const Expanded(
-              child: Divider(height: 1, color: LightColor.dividerColor),
-            ),
+            Expanded(child: Divider(height: 1, color: LightColor.dividerColor)),
           ],
         ),
         const SizedBox(height: AppDimens.sizeX14),

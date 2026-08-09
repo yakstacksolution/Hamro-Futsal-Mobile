@@ -357,7 +357,7 @@ class _ChatFirstTile extends StatelessWidget {
                   ],
                 ),
               ),
-              const Icon(
+              Icon(
                 Icons.chevron_right_rounded,
                 size: AppDimens.sizeX18,
                 color: LightColor.hintTextColor,

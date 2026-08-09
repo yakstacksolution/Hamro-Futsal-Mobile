@@ -25,7 +25,7 @@ class BookingSurface extends StatelessWidget {
         color: LightColor.cardColor,
         borderRadius: BorderRadius.circular(AppDimens.radiusX14),
         border: Border.all(color: LightColor.dividerColor),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
             color: LightColor.shadowColor,
             blurRadius: 10,

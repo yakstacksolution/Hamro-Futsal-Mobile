@@ -12,8 +12,8 @@ class AvailableCourtsLoading extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Shimmer.fromColors(
-      baseColor: Colors.grey.shade300,
-      highlightColor: Colors.grey.shade100,
+      baseColor: LightColor.skeletonBaseColor,
+      highlightColor: LightColor.skeletonHighlightColor,
       child: ListView.builder(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
@@ -114,7 +114,7 @@ class _Block extends StatelessWidget {
       width: width,
       height: height,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: LightColor.skeletonBaseColor,
         borderRadius: BorderRadius.circular(radius),
       ),
     );

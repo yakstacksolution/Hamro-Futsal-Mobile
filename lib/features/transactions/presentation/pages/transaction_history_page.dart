@@ -259,7 +259,7 @@ class _TransactionSummary extends StatelessWidget {
         color: LightColor.cardColor,
         borderRadius: BorderRadius.circular(AppDimens.radiusX18),
         border: Border.all(color: LightColor.dividerColor),
-        boxShadow: const <BoxShadow>[
+        boxShadow: <BoxShadow>[
           BoxShadow(
             color: LightColor.shadowColor,
             blurRadius: AppDimens.radiusX18,
@@ -437,7 +437,7 @@ class _TransactionSearchField extends StatelessWidget {
       textInputAction: TextInputAction.search,
       decoration: InputDecoration(
         hintText: StringConstants.searchTransactions,
-        prefixIcon: const Icon(
+        prefixIcon: Icon(
           Icons.search_rounded,
           color: LightColor.secondaryTextColor,
         ),
@@ -445,7 +445,7 @@ class _TransactionSearchField extends StatelessWidget {
             ? null
             : IconButton(
                 onPressed: onClear,
-                icon: const Icon(
+                icon: Icon(
                   Icons.close_rounded,
                   color: LightColor.secondaryTextColor,
                 ),
@@ -457,11 +457,11 @@ class _TransactionSearchField extends StatelessWidget {
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppDimens.radiusX14),
-          borderSide: const BorderSide(color: LightColor.dividerColor),
+          borderSide: BorderSide(color: LightColor.dividerColor),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppDimens.radiusX14),
-          borderSide: const BorderSide(color: LightColor.dividerColor),
+          borderSide: BorderSide(color: LightColor.dividerColor),
         ),
       ),
     );
@@ -566,7 +566,7 @@ class _TransactionMonthSection extends StatelessWidget {
             color: LightColor.cardColor,
             borderRadius: BorderRadius.circular(AppDimens.radiusX16),
             border: Border.all(color: LightColor.dividerColor),
-            boxShadow: const <BoxShadow>[
+            boxShadow: <BoxShadow>[
               BoxShadow(
                 color: LightColor.shadowColor,
                 blurRadius: AppDimens.radiusX14,
@@ -582,7 +582,7 @@ class _TransactionMonthSection extends StatelessWidget {
                   onTap: () => onTransactionTap(transactions[index]),
                 ),
                 if (index < transactions.length - 1)
-                  const Divider(
+                  Divider(
                     height: AppDimens.sizeX1,
                     thickness: AppDimens.sizeX1,
                     indent: AppDimens.sizeX72,

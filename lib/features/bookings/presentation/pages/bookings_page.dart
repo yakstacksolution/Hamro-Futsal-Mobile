@@ -355,7 +355,7 @@ class _BookingsViewState extends State<_BookingsView>
                 heroTag: 'manual-booking-fab',
                 onPressed: _openManualBooking,
                 backgroundColor: LightColor.secondaryColor,
-                foregroundColor: LightColor.whiteColor,
+                foregroundColor: LightColor.inverseTextColor,
                 elevation: 0,
                 extendedPadding: const EdgeInsets.symmetric(horizontal: 16),
                 shape: const StadiumBorder(),
@@ -365,7 +365,7 @@ class _BookingsViewState extends State<_BookingsView>
                   style: FutsalTheme.getTextTheme(context).bodyTextSmall
                       ?.copyWith(
                         fontWeight: FontWeight.w700,
-                        color: LightColor.whiteColor,
+                        color: LightColor.inverseTextColor,
                       ),
                 ),
               ),
@@ -508,7 +508,7 @@ class _BookingsViewState extends State<_BookingsView>
                         color: LightColor.hintTextColor,
                         fontWeight: FontWeight.w400,
                       ),
-                      prefixIcon: const Icon(
+                      prefixIcon: Icon(
                         Icons.search_rounded,
                         size: AppDimens.sizeX20,
                         color: LightColor.secondaryTextColor,
@@ -518,7 +518,7 @@ class _BookingsViewState extends State<_BookingsView>
                               key: const Key('clear-booking-search'),
                               tooltip: StringConstants.clearSearch,
                               onPressed: _clearSearch,
-                              icon: const Icon(
+                              icon: Icon(
                                 Icons.close_rounded,
                                 size: AppDimens.sizeX18,
                                 color: LightColor.secondaryTextColor,
@@ -703,7 +703,7 @@ class _FilterChipItem extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: textTheme.bodyTextSmall?.copyWith(
               color: isSelected
-                  ? LightColor.whiteColor
+                  ? LightColor.inverseTextColor
                   : LightColor.secondaryTextColor,
               fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
               fontSize: AppDimens.fontBodySubTitle,
@@ -895,16 +895,16 @@ class _ActiveDateFilterBar extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
-                    const Icon(
+                    Icon(
                       Icons.close_rounded,
                       size: AppDimens.sizeX14,
-                      color: LightColor.whiteColor,
+                      color: LightColor.inverseTextColor,
                     ),
                     const SizedBox(width: AppDimens.paddingX4),
                     Text(
                       'Clear',
                       style: textTheme.bodySubTitle?.copyWith(
-                        color: LightColor.whiteColor,
+                        color: LightColor.inverseTextColor,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -1123,7 +1123,7 @@ class _BookingDateFilterSheetState extends State<_BookingDateFilterSheet> {
                 IconButton(
                   tooltip: StringConstants.close,
                   onPressed: () => Navigator.of(context).pop(),
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.close_rounded,
                     color: LightColor.secondaryTextColor,
                   ),
@@ -1187,7 +1187,7 @@ class _BookingDateFilterSheetState extends State<_BookingDateFilterSheet> {
               children: [
                 TextButton(
                   onPressed: _clear,
-                  child: const Text(
+                  child: Text(
                     StringConstants.clear,
                     style: TextStyle(color: LightColor.secondaryTextColor),
                   ),

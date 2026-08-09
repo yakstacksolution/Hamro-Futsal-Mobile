@@ -48,7 +48,8 @@ extension AccountEntryTypeUi on AccountEntryType {
 
   Color get color => switch (this) {
     AccountEntryType.bookingIncome => LightColor.secondaryColor,
-    AccountEntryType.opponentMatchIncome => LightColor.secondaryDark,
+    AccountEntryType.opponentMatchIncome =>
+      LightColor.categoryAccent(LightColor.secondaryDark),
     AccountEntryType.commission => LightColor.purpleColor,
     AccountEntryType.settlement => LightColor.blueColor,
     AccountEntryType.refund => LightColor.warningColor,

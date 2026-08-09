@@ -34,8 +34,8 @@ class DashboardSideNav extends StatelessWidget {
           ? AppDimens.dashboardRailExtendedWidth
           : AppDimens.dashboardRailWidth,
       child: DecoratedBox(
-        decoration: const BoxDecoration(
-          color: LightColor.whiteColor,
+        decoration: BoxDecoration(
+          color: context.appColors.surface,
           border: Border(
             right: BorderSide(color: LightColor.dividerColor, width: 1),
           ),
@@ -96,7 +96,7 @@ class _SideNavItem extends StatelessWidget {
     // Same active treatment as the bottom bar's item: secondary-colour pill,
     // filled icon, white content.
     final Color foreground = isActive
-        ? LightColor.whiteColor
+        ? LightColor.inverseTextColor
         : LightColor.secondaryTextColor;
 
     final Widget icon = CustomImageView(

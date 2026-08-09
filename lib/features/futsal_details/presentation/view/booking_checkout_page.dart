@@ -1144,7 +1144,7 @@ class _PriceDetailsSheet extends StatelessWidget {
         top: AppDimens.paddingX12,
         bottom: AppDimens.paddingX24,
       ),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: LightColor.cardColor,
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(AppDimens.radiusX24),
@@ -1432,7 +1432,7 @@ class _UploadCard extends StatelessWidget {
                     width: AppDimens.sizeX48,
                     height: AppDimens.sizeX48,
                     color: LightColor.inputFillColor,
-                    child: const Icon(
+                    child: Icon(
                       Icons.picture_as_pdf_outlined,
                       color: LightColor.secondaryTextColor,
                     ),
@@ -1478,7 +1478,7 @@ class _UploadCard extends StatelessWidget {
             onPressed: onRemove,
             tooltip: StringConstants.remove,
             visualDensity: VisualDensity.compact,
-            icon: const Icon(
+            icon: Icon(
               Icons.close_rounded,
               size: AppDimens.sizeX18,
               color: LightColor.hintTextColor,
@@ -1609,7 +1609,7 @@ class _TermsCheckbox extends StatelessWidget {
               ),
             ),
             child: value
-                ? const Icon(
+                ? Icon(
                     Icons.check_rounded,
                     size: AppDimens.sizeX14,
                     color: LightColor.inverseTextColor,
@@ -1675,7 +1675,7 @@ class _BookingOverviewSheet extends StatelessWidget {
         top: AppDimens.paddingX12,
         bottom: AppDimens.paddingX16,
       ),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: LightColor.cardColor,
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(AppDimens.radiusX24),
@@ -2112,7 +2112,7 @@ class _BookingSuccessSheet extends StatelessWidget {
     final textTheme = FutsalTheme.getTextTheme(context);
     return Container(
       padding: AppUtils().getPadding(all: AppDimens.paddingX24),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: LightColor.cardColor,
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(AppDimens.radiusX24),

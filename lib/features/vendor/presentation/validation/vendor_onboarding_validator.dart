@@ -314,8 +314,7 @@ class VendorOnboardingValidator {
                     'Flat amount cannot exceed the base price.',
                   );
                 }
-                final double minimum =
-                    basePrice * kMinimumAdvancePercent / 100;
+                final double minimum = basePrice * kMinimumAdvancePercent / 100;
                 if (price < minimum) {
                   return VendorValidationResult.invalid(
                     key,
@@ -379,6 +378,24 @@ class VendorOnboardingValidator {
               return VendorValidationResult.invalid(
                 key,
                 'Resolve overlapping slots before continuing.',
+              );
+            }
+            // Adding a slot only creates it in memory; it reaches the server
+            // when the user saves it. Advancing with an unsaved slot silently
+            // drops it, so block until every slot carries a remote id.
+            final SlotPricingDraft? unsaved = draft.slotConfigs
+                .cast<SlotPricingDraft?>()
+                .firstWhere(
+                  (SlotPricingDraft? slot) => !_isSlotPersisted(slot!),
+                  orElse: () => null,
+                );
+            if (unsaved != null) {
+              final String label = unsaved.label.trim().isEmpty
+                  ? 'this slot'
+                  : unsaved.label.trim();
+              return VendorValidationResult.invalid(
+                key,
+                'Save $label before continuing.',
               );
             }
             return VendorValidationResult.valid(key);
@@ -533,6 +550,13 @@ class VendorOnboardingValidator {
         .trim();
     return normalized.isNotEmpty;
   }
+
+  /// A slot that reached the server carries its numeric backend id. Locally
+  /// added slots use `<courtId>_slot_<timestamp>` until they are saved, which
+  /// is the same rule the cubit applies when deciding whether a delete needs an
+  /// API call.
+  static bool _isSlotPersisted(SlotPricingDraft slot) =>
+      int.tryParse(slot.id) != null;
 
   static bool _hasSlotOverlap(List<SlotPricingDraft> slots) {
     for (final SlotPricingDraft slot in slots) {

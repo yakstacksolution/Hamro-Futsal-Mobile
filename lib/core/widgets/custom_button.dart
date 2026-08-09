@@ -12,8 +12,8 @@ class CustomButton extends StatelessWidget {
     required this.onPressed,
     this.icon,
     this.isLoading = false,
-    this.backgroundColor = LightColor.secondaryColor,
-    this.foregroundColor = LightColor.inverseTextColor,
+    this.backgroundColor,
+    this.foregroundColor,
     this.borderColor,
     this.isOutlined = false,
     this.widthFactor,
@@ -30,8 +30,8 @@ class CustomButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final IconData? icon;
   final bool isLoading;
-  final Color backgroundColor;
-  final Color foregroundColor;
+  final Color? backgroundColor;
+  final Color? foregroundColor;
   final Color? borderColor;
   final bool isOutlined;
   final double? widthFactor;
@@ -46,11 +46,16 @@ class CustomButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppUtils appUtils = AppUtils();
-    final resolvedBackground = isOutlined
+    final ColorScheme scheme = Theme.of(context).colorScheme;
+    final Color resolvedBackground = isOutlined
         ? LightColor.transparentColor
-        : backgroundColor;
-    final resolvedBorderColor =
-        borderColor ?? (isOutlined ? foregroundColor : null);
+        : (backgroundColor ?? scheme.primary);
+    // Outlined buttons paint their label on the page, so they take the brand
+    // colour; filled buttons take the on-primary foreground.
+    final Color resolvedForeground =
+        foregroundColor ?? (isOutlined ? scheme.primary : scheme.onPrimary);
+    final Color? resolvedBorderColor =
+        borderColor ?? (isOutlined ? resolvedForeground : null);
 
     final content = isLoading
         ? SizedBox(
@@ -63,14 +68,18 @@ class CustomButton extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
               if (icon != null) ...<Widget>[
-                Icon(icon, size: AppDimens.sizeX18, color: foregroundColor),
+                // `resolvedForeground`, never the raw nullable field: an
+                // explicit style wins over the ButtonStyle, so passing null
+                // here silently fell back to the text theme's primaryText —
+                // dark-on-green in light mode.
+                Icon(icon, size: AppDimens.sizeX18, color: resolvedForeground),
                 SizedBox(width: AppDimens.sizeX6),
               ],
               Text(
                 text,
                 style: FutsalTheme.getTextTheme(context).bodyTextSmall
                     ?.copyWith(
-                      color: foregroundColor,
+                      color: resolvedForeground,
                       fontWeight: fontWeight,
                       fontSize: fontSize,
                     ),
@@ -86,11 +95,11 @@ class CustomButton extends StatelessWidget {
           padding: WidgetStateProperty.all<EdgeInsets>(EdgeInsets.zero),
           minimumSize: WidgetStateProperty.all<Size>(Size(minWidth, minHeight)),
           overlayColor: WidgetStateProperty.all(
-            foregroundColor.withValues(alpha: isOutlined ? 0.08 : 0.12),
+            resolvedForeground.withValues(alpha: isOutlined ? 0.08 : 0.12),
           ),
           textStyle: WidgetStateProperty.all<TextStyle>(
             FutsalTheme.getTextTheme(context).bodyTextLarge!.copyWith(
-              color: foregroundColor,
+              color: resolvedForeground,
               fontWeight: fontWeight,
               fontSize: fontSize,
             ),
@@ -107,7 +116,7 @@ class CustomButton extends StatelessWidget {
           ),
 
           backgroundColor: WidgetStateProperty.all<Color>(resolvedBackground),
-          foregroundColor: WidgetStateProperty.all<Color>(foregroundColor),
+          foregroundColor: WidgetStateProperty.all<Color>(resolvedForeground),
         ),
         child: Container(
           alignment: Alignment.center,

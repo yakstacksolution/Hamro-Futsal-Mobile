@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hamro_footsall/core/utils/custom_image_view.dart';
 import 'package:hamro_footsall/features/expenses/data/model/expense_model.dart';
 import 'package:hamro_footsall/features/expenses/presentation/bloc/expenses_bloc/expenses_bloc.dart';
+import 'package:hamro_footsall/core/theme/app_colors.dart';
 
 /// Visual identity (icon + accent color) for each expense category.
 extension ExpenseCategoryUi on ExpenseCategory {
@@ -19,7 +20,13 @@ extension ExpenseCategoryUi on ExpenseCategory {
     ExpenseCategory.other => Icons.more_horiz_rounded,
   };
 
-  Color get color => switch (this) {
+  /// Brightness-adapted accent for this category.
+  Color get color => LightColor.categoryAccent(_baseColor);
+
+  /// Tinted fill that pairs with [color].
+  Color get containerColor => LightColor.categoryContainer(_baseColor);
+
+  Color get _baseColor => switch (this) {
     ExpenseCategory.rent => const Color(0xFF2C7969),
     ExpenseCategory.maintenance => const Color(0xFFE0922A),
     ExpenseCategory.salaries => const Color(0xFF3B82F6),

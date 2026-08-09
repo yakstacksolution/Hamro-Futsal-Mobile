@@ -243,71 +243,69 @@ class SafeAreaValues {
   final bool maintainBottomViewPadding;
 }
 
+enum SnackBarVariant { success, error, info }
+
 class CustomSnackBar extends StatefulWidget {
   final String message;
-  final Color backgroundColor;
-  final TextStyle textStyle;
+
+  /// Explicit override; when null the colour is resolved from [variant] against
+  /// the active theme so the snack bar tracks light/dark.
+  final Color? backgroundColor;
+  final TextStyle? textStyle;
+  final SnackBarVariant variant;
   final int maxLines;
-  final List<BoxShadow> boxShadow;
+  final List<BoxShadow>? boxShadow;
   final BorderRadius borderRadius;
   final EdgeInsetsGeometry messagePadding;
   final double textScaleFactor;
   final TextAlign textAlign;
   final String svgIcon;
-  final Color color;
+  final Color? color;
 
   const CustomSnackBar.success({
     super.key,
     required this.message,
     this.messagePadding = const EdgeInsets.only(left: 10),
-    this.textStyle = const TextStyle(
-      color: LightColor.secondaryDark,
-      fontSize: 12,
-      fontWeight: FontWeight.w700,
-    ),
-    this.color = LightColor.secondaryDark,
+    this.textStyle,
+    this.color,
     this.maxLines = 2,
-    this.backgroundColor = LightColor.secondarySoft,
-    this.boxShadow = kDefaultBoxShadow,
+    this.backgroundColor,
+    this.boxShadow,
     this.borderRadius = kDefaultBorderRadius,
     this.textScaleFactor = 1.0,
     this.textAlign = TextAlign.left,
     this.svgIcon = "done",
-  });
+  }) : variant = SnackBarVariant.success;
 
   const CustomSnackBar.error({
     super.key,
     this.messagePadding = const EdgeInsets.only(left: 10),
-    this.textStyle = const TextStyle(color: LightColor.redColor, fontSize: 12),
-    this.color = LightColor.redColor,
+    this.textStyle,
+    this.color,
     this.maxLines = 2,
-    this.backgroundColor = LightColor.redLightColor,
-    this.boxShadow = kDefaultBoxShadow,
+    this.backgroundColor,
+    this.boxShadow,
     this.borderRadius = kDefaultBorderRadius,
     this.textScaleFactor = 1.0,
     this.textAlign = TextAlign.left,
     this.svgIcon = "close",
     required this.message,
-  });
+  }) : variant = SnackBarVariant.error;
 
   const CustomSnackBar.info({
     super.key,
     this.messagePadding = const EdgeInsets.only(left: 10),
-    this.textStyle = const TextStyle(
-      color: LightColor.primaryDark,
-      fontSize: 12,
-      // fontWeight: FontWeight.w700,
-    ),
-    this.color = LightColor.primaryDark,
+    this.textStyle,
+    this.color,
     this.maxLines = 2,
-    this.backgroundColor = LightColor.primarySoft,
-    this.boxShadow = kDefaultBoxShadow,
+    this.backgroundColor,
+    this.boxShadow,
     this.borderRadius = kDefaultBorderRadius,
     this.textScaleFactor = 1.0,
     this.textAlign = TextAlign.left,
     this.svgIcon = "info",
     required this.message,
-  });
+  }) : variant = SnackBarVariant.info;
 
   @override
   CustomSnackBarState createState() => CustomSnackBarState();
@@ -316,6 +314,23 @@ class CustomSnackBar extends StatefulWidget {
 class CustomSnackBarState extends State<CustomSnackBar> {
   @override
   Widget build(BuildContext context) {
+    final AppThemeColors c = context.appColors;
+    final (Color accent, Color surface) = switch (widget.variant) {
+      SnackBarVariant.success => (c.onSuccessContainer, c.successContainer),
+      SnackBarVariant.error => (c.onDangerContainer, c.dangerContainer),
+      SnackBarVariant.info => (c.onInfoContainer, c.infoContainer),
+    };
+    final Color foreground = widget.color ?? accent;
+    final TextStyle textStyle =
+        widget.textStyle ??
+        TextStyle(
+          color: foreground,
+          fontSize: 12,
+          fontWeight: widget.variant == SnackBarVariant.success
+              ? FontWeight.w700
+              : FontWeight.w500,
+        );
+
     return Material(
       color: LightColor.transparentColor,
       child: Container(
@@ -324,9 +339,9 @@ class CustomSnackBarState extends State<CustomSnackBar> {
         clipBehavior: Clip.antiAlias,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: widget.backgroundColor,
+          color: widget.backgroundColor ?? surface,
           borderRadius: widget.borderRadius,
-          boxShadow: widget.boxShadow,
+          boxShadow: widget.boxShadow ?? kDefaultBoxShadow,
         ),
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
@@ -338,7 +353,7 @@ class CustomSnackBarState extends State<CustomSnackBar> {
                 "assets/icons/${widget.svgIcon}.svg",
                 width: AppDimens.sizeX18,
                 height: AppDimens.sizeX18,
-                colorFilter: ColorFilter.mode(widget.color, BlendMode.srcIn),
+                colorFilter: ColorFilter.mode(foreground, BlendMode.srcIn),
               ),
               Expanded(
                 child: Padding(
@@ -348,7 +363,7 @@ class CustomSnackBarState extends State<CustomSnackBar> {
                     maxLines: widget.maxLines,
                     overflow: TextOverflow.ellipsis,
                     softWrap: true,
-                    style: widget.textStyle.copyWith(height: 1.3),
+                    style: textStyle.copyWith(height: 1.3),
                     textAlign: widget.textAlign,
                     textScaler: TextScaler.linear(widget.textScaleFactor),
                   ),
@@ -362,9 +377,9 @@ class CustomSnackBarState extends State<CustomSnackBar> {
   }
 }
 
-const kDefaultBoxShadow = [
+final kDefaultBoxShadow = <BoxShadow>[
   BoxShadow(
-    color: Color(0x14000000),
+    color: LightColor.shadowOf(0.08),
     offset: Offset(0, 8),
     spreadRadius: 1,
     blurRadius: 30,

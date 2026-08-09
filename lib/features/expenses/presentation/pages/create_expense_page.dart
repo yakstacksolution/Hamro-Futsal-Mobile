@@ -287,7 +287,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
                 if (state.categoriesStatus == ExpensesStatus.failure) {
                   return ExpenseSurface(
                     child: _CategoryStatusRow(
-                      leading: const Icon(
+                      leading: Icon(
                         Icons.error_outline_rounded,
                         size: 18,
                         color: LightColor.redColor,
@@ -488,7 +488,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
         ),
         boxShadow: <BoxShadow>[
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.12),
+            color: LightColor.shadowOf(0.12),
             blurRadius: AppDimens.radiusX28,
             offset: const Offset(0, AppDimens.sizeX10),
           ),
@@ -641,7 +641,7 @@ class _DocumentField extends StatelessWidget {
                     ),
                   ),
                 ),
-                const Icon(
+                Icon(
                   Icons.chevron_right_rounded,
                   size: 20,
                   color: LightColor.hintTextColor,
@@ -703,11 +703,7 @@ class _DocumentField extends StatelessWidget {
           visualDensity: VisualDensity.compact,
           tooltip: StringConstants.removeDocument,
           onPressed: onRemove,
-          icon: const Icon(
-            Icons.close_rounded,
-            color: LightColor.iconGrey,
-            size: 18,
-          ),
+          icon: Icon(Icons.close_rounded, color: LightColor.iconGrey, size: 18),
         ),
       ],
     );

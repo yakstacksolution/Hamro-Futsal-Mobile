@@ -460,7 +460,7 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
                 ),
                 boxShadow: <BoxShadow>[
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.12),
+                    color: LightColor.shadowOf(0.12),
                     blurRadius: AppDimens.radiusX28,
                     offset: const Offset(0, AppDimens.sizeX10),
                   ),
@@ -632,7 +632,7 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
           centerTitle: true,
           leading: IconButton(
             onPressed: () => Navigator.of(context).pop(),
-            icon: const Icon(
+            icon: Icon(
               Icons.arrow_back_ios_new_rounded,
               size: AppDimens.sizeX18,
               color: LightColor.primaryTextColor,
@@ -780,7 +780,7 @@ class _AvailabilityMessage extends StatelessWidget {
       ),
       child: Row(
         children: <Widget>[
-          const Icon(
+          Icon(
             Icons.info_outline_rounded,
             size: AppDimens.sizeX18,
             color: LightColor.primaryTextColor,

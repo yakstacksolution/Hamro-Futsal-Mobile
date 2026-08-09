@@ -76,7 +76,7 @@ class _FauxQrPainter extends CustomPainter {
     double cell,
     Paint dark,
   ) {
-    final Paint light = Paint()..color = LightColor.whiteColor;
+    final Paint light = Paint()..color = LightColor.onBrandSurface;
     // Outer 7x7 dark square.
     canvas.drawRRect(
       RRect.fromRectAndRadius(

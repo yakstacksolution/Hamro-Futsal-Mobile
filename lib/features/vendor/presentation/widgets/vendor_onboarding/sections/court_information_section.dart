@@ -448,7 +448,7 @@ class _CourtStatusToggle extends StatelessWidget {
             isActive ? StringConstants.active : StringConstants.inactive,
             style: textTheme.bodyTextSmall?.copyWith(
               color: isActive
-                  ? LightColor.secondaryColor
+                  ? LightColor.brandTextColor
                   : LightColor.secondaryTextColor,
               fontWeight: FontWeight.w600,
             ),

@@ -595,7 +595,7 @@ class _CourtCardState extends State<CourtCard> {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: lifted ? 0.12 : 0.03),
+              color: LightColor.shadowOf(lifted ? 0.12 : 0.03),
               blurRadius: lifted ? AppDimens.sizeX24 : AppDimens.sizeX8,
               spreadRadius: 0.5,
               offset: Offset(0, lifted ? 6 : 1),
@@ -760,14 +760,19 @@ class _WishlistButton extends StatelessWidget {
             height: AppDimens.sizeX36,
             width: AppDimens.sizeX36,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.92),
+              // The chip follows the card surface rather than being pinned to
+              // white: a white chip forced the heart to stay dark, and the
+              // unsaved grey then vanished against it in dark mode.
+              color: LightColor.elevatedCardColor.withValues(alpha: 0.92),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.6)),
+              border: Border.all(
+                color: LightColor.elevatedCardColor.withValues(alpha: 0.6),
+              ),
             ),
             child: Icon(
               saved ? Icons.favorite_rounded : Icons.favorite_border_rounded,
               color: saved
-                  ? LightColor.secondaryColor
+                  ? LightColor.successColor
                   : LightColor.secondaryTextColor,
               size: AppDimens.sizeX22,
             ),

@@ -32,7 +32,7 @@ class SelectionOptionChip extends StatelessWidget {
             ? LightColor.secondaryColor.withValues(alpha: 0.45)
             : LightColor.borderColor,
       ),
-      backgroundColor: Colors.white,
+      backgroundColor: LightColor.elevatedCardColor,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
       visualDensity: const VisualDensity(horizontal: -1, vertical: -1),

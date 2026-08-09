@@ -465,7 +465,7 @@ class _OpponentRequestCardState extends State<OpponentRequestCard> {
                         const SizedBox(height: 2),
                         Row(
                           children: [
-                            const Icon(
+                            Icon(
                               Icons.access_time_rounded,
                               size: 9,
                               color: LightColor.hintTextColor,
@@ -527,7 +527,7 @@ class _OpponentRequestCardState extends State<OpponentRequestCard> {
               ],
               const SizedBox(height: AppDimens.paddingX12),
               if (isExpired) ...[
-                const Divider(
+                Divider(
                   height: 1,
                   thickness: 1,
                   color: LightColor.dividerColor,
@@ -544,7 +544,7 @@ class _OpponentRequestCardState extends State<OpponentRequestCard> {
                   child: _ActionButton(
                     icon: Icons.emoji_events_outlined,
                     label: 'View Match Details',
-                    foreground: LightColor.whiteColor,
+                    foreground: LightColor.inverseTextColor,
                     background: LightColor.secondaryColor,
                     glow: true,
                     onTap: widget.onMatchDetails,
@@ -559,14 +559,14 @@ class _OpponentRequestCardState extends State<OpponentRequestCard> {
                     child: _ActionButton(
                       icon: Icons.mark_email_unread_outlined,
                       label: _invitationsLabel(request),
-                      foreground: LightColor.whiteColor,
+                      foreground: LightColor.inverseTextColor,
                       background: LightColor.secondaryColor,
                       glow: true,
                       onTap: widget.onInvitations,
                     ),
                   )
                 else ...[
-                  const Divider(
+                  Divider(
                     height: 1,
                     thickness: 1,
                     color: LightColor.dividerColor,
@@ -604,7 +604,7 @@ class _OpponentRequestCardState extends State<OpponentRequestCard> {
                         child: _ActionButton(
                           icon: Icons.handshake_outlined,
                           label: 'Accept Request',
-                          foreground: LightColor.whiteColor,
+                          foreground: LightColor.inverseTextColor,
                           background: LightColor.secondaryColor,
                           glow: true,
                           onTap: widget.onAccept,
@@ -627,7 +627,7 @@ class _OpponentRequestCardState extends State<OpponentRequestCard> {
                           label: _invitationsLabel(request),
                           foreground: request.invitations.isEmpty
                               ? LightColor.secondaryColor
-                              : LightColor.whiteColor,
+                              : LightColor.inverseTextColor,
                           background: request.invitations.isEmpty
                               ? LightColor.secondaryColor.withValues(
                                   alpha: 0.10,
@@ -651,7 +651,7 @@ class _OpponentRequestCardState extends State<OpponentRequestCard> {
                   ),
                 )
               else ...[
-                const Divider(
+                Divider(
                   height: 1,
                   thickness: 1,
                   color: LightColor.dividerColor,

@@ -2,6 +2,7 @@ import 'package:hamro_footsall/core/utils/custom_image_view.dart';
 import 'package:hamro_footsall/core/utils/image_constants.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:flutter/material.dart';
+import 'package:hamro_footsall/core/theme/app_colors.dart';
 
 class CustomPlaceHolder extends StatelessWidget {
   final double? height;
@@ -46,9 +47,9 @@ class CustomPlaceHolder extends StatelessWidget {
 
   Widget loadingWidget() {
     return Shimmer.fromColors(
-      baseColor: Colors.grey.shade300,
-      highlightColor: Colors.grey.shade100,
-      child: Container(width: width, height: height, color: Colors.white),
+      baseColor: LightColor.skeletonBaseColor,
+      highlightColor: LightColor.skeletonHighlightColor,
+      child: Container(width: width, height: height, color: LightColor.skeletonBaseColor),
     );
   }
 }

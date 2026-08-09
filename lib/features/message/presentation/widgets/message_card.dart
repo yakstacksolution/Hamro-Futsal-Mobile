@@ -42,7 +42,7 @@ class MessageCard extends StatelessWidget {
                   : LightColor.dividerColor,
               width: 1,
             ),
-            boxShadow: const [
+            boxShadow: [
               BoxShadow(
                 color: LightColor.shadowColor,
                 blurRadius: 10,
@@ -83,7 +83,7 @@ class MessageCard extends StatelessWidget {
                         ),
                         if (conversation.isPinned) ...[
                           const SizedBox(width: AppDimens.paddingX6),
-                          const Icon(
+                          Icon(
                             Icons.push_pin_rounded,
                             size: 12,
                             color: LightColor.hintTextColor,
@@ -91,7 +91,7 @@ class MessageCard extends StatelessWidget {
                         ],
                         if (conversation.isMuted) ...[
                           const SizedBox(width: AppDimens.paddingX4),
-                          const Icon(
+                          Icon(
                             Icons.volume_off_rounded,
                             size: 12,
                             color: LightColor.hintTextColor,
@@ -221,7 +221,7 @@ class _Avatar extends StatelessWidget {
             width: 12,
             height: 12,
             decoration: BoxDecoration(
-              color: isOnline ? Colors.green : Colors.grey,
+              color: isOnline ? LightColor.successColor : LightColor.iconGrey,
               shape: BoxShape.circle,
               border: Border.all(color: LightColor.cardColor, width: 2),
             ),
@@ -239,7 +239,7 @@ class _PresenceLabel extends StatelessWidget {
   Widget build(BuildContext context) => Text(
     isOnline ? 'Online' : 'Offline',
     style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
-      color: isOnline ? Colors.green : LightColor.hintTextColor,
+      color: isOnline ? LightColor.successColor : LightColor.hintTextColor,
       fontSize: AppDimens.fontBodySubTitle,
       fontWeight: FontWeight.w500,
     ),
@@ -287,8 +287,8 @@ class _UnreadBadge extends StatelessWidget {
       child: Text(
         count > 99 ? '99+' : count.toString(),
         textAlign: TextAlign.center,
-        style: const TextStyle(
-          color: LightColor.whiteColor,
+        style: TextStyle(
+          color: LightColor.inverseTextColor,
           fontSize: AppDimens.fontBodySubTitle,
           fontWeight: FontWeight.w700,
           height: 1.2,

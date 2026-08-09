@@ -232,8 +232,8 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
             ListTile(
               leading: const Icon(Icons.delete_outline_rounded),
               title: const Text(StringConstants.deleteMessageAction),
-              textColor: Colors.redAccent,
-              iconColor: Colors.redAccent,
+              textColor: LightColor.redColor,
+              iconColor: LightColor.redColor,
               onTap: () => Navigator.of(sheetContext).pop('delete'),
             ),
         ],
@@ -427,13 +427,13 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
               children: [
                 Expanded(child: _thread(state)),
                 if (blocked)
-                  const Padding(
+                  Padding(
                     padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
                     child: Text(
                       StringConstants
                           .youBlockedThisUserUnblockThemToSendMessages,
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.redAccent),
+                      style: TextStyle(color: LightColor.redColor),
                     ),
                   ),
                 ChatInputBar(
@@ -543,7 +543,7 @@ class _TypingBubble extends StatelessWidget {
           decoration: BoxDecoration(
             color: LightColor.cardColor,
             borderRadius: BorderRadius.circular(AppDimens.radiusX14),
-            boxShadow: const [
+            boxShadow: [
               BoxShadow(
                 color: LightColor.shadowColor,
                 blurRadius: 6,
@@ -627,7 +627,7 @@ class _ThreadError extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
+            Icon(
               Icons.cloud_off_rounded,
               size: 40,
               color: LightColor.hintTextColor,
@@ -684,7 +684,7 @@ class _ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
       ),
       leading: IconButton(
         onPressed: () => Navigator.of(context).pop(),
-        icon: const Icon(
+        icon: Icon(
           Icons.arrow_back_ios_new_rounded,
           size: 18,
           color: LightColor.primaryTextColor,

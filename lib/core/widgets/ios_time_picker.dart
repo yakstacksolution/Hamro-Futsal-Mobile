@@ -13,7 +13,7 @@ Future<TimeOfDay?> showIOSTimePicker({
 }) async {
   return showModalBottomSheet<TimeOfDay>(
     context: context,
-    backgroundColor: LightColor.whiteColor,
+    backgroundColor: Theme.of(context).cardColor,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(
         top: Radius.circular(AppDimens.radiusX20),
@@ -61,8 +61,8 @@ class _IOSTimePickerSheetState extends State<_IOSTimePickerSheet> {
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
     return Container(
-      decoration: const BoxDecoration(
-        color: LightColor.whiteColor,
+      decoration: BoxDecoration(
+        color: context.appColors.surface,
         borderRadius: BorderRadius.vertical(
           top: Radius.circular(AppDimens.radiusX20),
         ),
@@ -155,7 +155,7 @@ class _IOSTimePickerSheetState extends State<_IOSTimePickerSheet> {
             child: CustomButton(
               text: StringConstants.confirm,
               backgroundColor: LightColor.secondaryColor,
-              foregroundColor: LightColor.whiteColor,
+              foregroundColor: LightColor.inverseTextColor,
               minHeight: AppDimens.sizeX46,
               onPressed: () => Navigator.pop(
                 context,

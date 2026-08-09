@@ -147,8 +147,8 @@ Future<DateTime?> _showDateSheet(
     context: context,
     isDismissible: true,
     isScrollControlled: true,
-    backgroundColor: LightColor.whiteColor,
-    barrierColor: Colors.black.withValues(alpha: 0.3),
+    backgroundColor: context.appColors.surfaceElevated,
+    barrierColor: LightColor.scrimColor,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.only(
         topLeft: Radius.circular(AppDimens.radiusX16),
@@ -257,7 +257,7 @@ Future<DateTime?> _showDateSheet(
                   CustomButton(
                     text: confirmText,
                     backgroundColor: LightColor.secondaryColor,
-                    foregroundColor: LightColor.whiteColor,
+                    foregroundColor: LightColor.inverseTextColor,
                     minHeight: AppDimens.sizeX46,
                     margin: AppUtils().getMargin(
                       top: AppDimens.marginX16,

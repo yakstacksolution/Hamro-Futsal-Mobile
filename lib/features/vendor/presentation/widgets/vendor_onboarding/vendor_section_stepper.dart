@@ -136,10 +136,10 @@ class _SmallHorizontalStep extends StatelessWidget {
                       size: 14,
                       color: status == StepStatus.complete
                           ? (isSelected
-                                ? Colors.white
+                                ? LightColor.inverseTextColor
                                 : LightColor.secondaryColor)
                           : (isSelected
-                                ? Colors.white
+                                ? LightColor.inverseTextColor
                                 : LightColor.secondaryColor),
                     ),
                   ),
@@ -151,7 +151,7 @@ class _SmallHorizontalStep extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: isSelected
-                            ? LightColor.primaryDark
+                            ? LightColor.brandTextColor
                             : LightColor.primaryTextColor,
                         fontSize: 11.5,
                         fontWeight: FontWeight.w800,

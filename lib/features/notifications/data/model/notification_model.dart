@@ -43,10 +43,7 @@ class NotificationModel extends Equatable {
     // Laravel notifications nest their content under `data`; some backends
     // instead flatten it onto the top-level object — support both.
     final Map<String, dynamic> payload = _mapOf(json['data']);
-    final Map<String, dynamic> merged = <String, dynamic>{
-      ...json,
-      ...payload,
-    };
+    final Map<String, dynamic> merged = <String, dynamic>{...json, ...payload};
 
     return NotificationModel(
       id: _asString(json['id'] ?? merged['id']) ?? '',
@@ -99,10 +96,7 @@ class NotificationModel extends Equatable {
 
 /// A page of notifications plus the server's unread counter.
 class NotificationPage extends Equatable {
-  const NotificationPage({
-    required this.notifications,
-    this.unreadCount = 0,
-  });
+  const NotificationPage({required this.notifications, this.unreadCount = 0});
 
   final List<NotificationModel> notifications;
   final int unreadCount;
@@ -160,9 +154,7 @@ int? _unreadCountFrom(dynamic payload) {
 
     final dynamic meta = map['meta'];
     if (meta is Map) {
-      final int? metaCount = _asInt(
-        meta['unread_count'] ?? meta['unread'],
-      );
+      final int? metaCount = _asInt(meta['unread_count'] ?? meta['unread']);
       if (metaCount != null) return metaCount;
     }
     current = map['data'];

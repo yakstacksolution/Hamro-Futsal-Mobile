@@ -87,7 +87,7 @@ class CourtBookingPoliciesSection extends StatelessWidget {
                             child: Text(
                               '${entry.key + 1}',
                               style: textTheme.bodySubTitle?.copyWith(
-                                color: LightColor.whiteColor,
+                                color: LightColor.inverseTextColor,
                                 fontWeight: FontWeight.w800,
                               ),
                             ),

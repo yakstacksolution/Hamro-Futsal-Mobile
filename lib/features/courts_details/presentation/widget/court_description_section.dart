@@ -73,10 +73,10 @@ class _CourtDescriptionSectionState extends State<CourtDescriptionSection> {
         width: double.infinity,
         padding: const EdgeInsets.all(AppDimens.paddingX16),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
+          gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFFFFFFFF), Color(0xFFF9FBFF)],
+            colors: <Color>[LightColor.elevatedCardColor, LightColor.cardColor],
           ),
           borderRadius: BorderRadius.circular(AppDimens.radiusX10),
           border: Border.all(
@@ -84,7 +84,7 @@ class _CourtDescriptionSectionState extends State<CourtDescriptionSection> {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.035),
+              color: LightColor.shadowOf(0.035),
               blurRadius: AppDimens.sizeX18,
               offset: const Offset(0, AppDimens.sizeX8),
             ),
@@ -185,8 +185,8 @@ class _CourtDescriptionSectionState extends State<CourtDescriptionSection> {
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                         colors: [
-                          Colors.white.withValues(alpha: 0),
-                          const Color(0xFFF9FBFF),
+                          LightColor.cardColor.withValues(alpha: 0),
+                          LightColor.cardColor,
                         ],
                       ),
                     ),

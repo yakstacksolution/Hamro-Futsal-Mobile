@@ -1,112 +1,210 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_text.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 
 class FutsalTheme {
-  static ThemeData setTheme(BuildContext context) {
+  static ThemeData get lightTheme => _build(Brightness.light);
+
+  static ThemeData get darkTheme => _build(Brightness.dark);
+
+  static ThemeData _build(Brightness brightness) {
+    final bool dark = brightness == Brightness.dark;
+    final AppThemeColors colors = dark
+        ? AppThemeColors.dark
+        : AppThemeColors.light;
+    // `primary` is the brand FILL: identical in both themes so a filled button
+    // looks the same everywhere, with white on top (AA contrast).
+    final Color primary = LightColor.secondaryColor;
+    final Color onPrimary = colors.onAccent;
+    // `accent` is the brand tone used as a foreground ON the page background —
+    // tabs, indicators, focus rings. The deep green is unreadable on a dark
+    // ground, so dark mode steps up to the light tint.
+    final Color accent = dark ? LightColor.secondaryLight : primary;
+    final ColorScheme colorScheme = ColorScheme(
+      brightness: brightness,
+      primary: primary,
+      onPrimary: onPrimary,
+      secondary: primary,
+      onSecondary: onPrimary,
+      error: colors.danger,
+      onError: colors.onDangerContainer,
+      surface: colors.surface,
+      onSurface: colors.primaryText,
+    );
+    final TextTheme textTheme = GoogleFonts.poppinsTextTheme(
+      ThemeData(brightness: brightness).textTheme,
+    ).apply(bodyColor: colors.primaryText, displayColor: colors.primaryText);
+
     return ThemeData(
       useMaterial3: true,
-      primaryColor: LightColor.secondaryColor,
+      brightness: brightness,
+      colorScheme: colorScheme,
+      primaryColor: primary,
       primarySwatch: LightColor.primarySwatch,
-      scaffoldBackgroundColor: LightColor.background,
-      cardColor: LightColor.cardColor,
-      dividerColor: LightColor.dividerColor,
-
-      textTheme: GoogleFonts.poppinsTextTheme(Theme.of(context).textTheme),
+      scaffoldBackgroundColor: colors.background,
+      canvasColor: colors.background,
+      cardColor: colors.surface,
+      dividerColor: colors.divider,
+      disabledColor: colors.disabled,
+      shadowColor: colors.shadow,
+      extensions: <ThemeExtension<dynamic>>[colors],
+      textTheme: textTheme,
 
       textSelectionTheme: TextSelectionThemeData(
-        selectionColor: LightColor.secondaryColor.withValues(alpha: 0.3),
-        selectionHandleColor: LightColor.secondaryColor,
+        selectionColor: accent.withValues(alpha: 0.3),
+        selectionHandleColor: accent,
       ),
 
       bottomAppBarTheme: BottomAppBarThemeData(
-        color: LightColor.cardColor,
+        color: colors.surface,
         elevation: 10,
-        shadowColor: LightColor.shadowColor,
+        shadowColor: colors.shadow,
         surfaceTintColor: Colors.transparent,
       ),
 
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
-        backgroundColor: LightColor.cardColor,
-
-        selectedItemColor: LightColor.secondaryColor,
-        unselectedItemColor: LightColor.secondaryTextColor,
-
+        backgroundColor: colors.surface,
+        selectedItemColor: accent,
+        unselectedItemColor: colors.secondaryText,
         selectedLabelStyle: TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w600,
-          color: LightColor.secondaryColor,
+          color: accent,
         ),
         unselectedLabelStyle: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w400,
-          color: LightColor.secondaryTextColor,
+          color: colors.secondaryText,
         ),
-
-        selectedIconTheme: IconThemeData(
-          color: LightColor.secondaryColor,
-          size: 24,
-        ),
+        selectedIconTheme: IconThemeData(color: accent, size: 24),
         unselectedIconTheme: IconThemeData(
-          color: LightColor.secondaryTextColor,
+          color: colors.secondaryText,
           size: 22,
         ),
-
         showUnselectedLabels: true,
-
         elevation: 12,
-
         type: BottomNavigationBarType.fixed,
       ),
       appBarTheme: AppBarTheme(
         elevation: 0,
-        backgroundColor: LightColor.background,
+        backgroundColor: colors.background,
+        foregroundColor: colors.primaryText,
+        surfaceTintColor: Colors.transparent,
         centerTitle: true,
-        iconTheme: IconThemeData(color: LightColor.primaryTextColor),
+        iconTheme: IconThemeData(color: colors.primaryText),
         titleTextStyle: GoogleFonts.poppins(
-          textStyle: getTextTheme(context).headingSmall?.copyWith(
+          textStyle: textTheme.headlineSmall?.copyWith(
+            fontSize: AppDimens.fontHeadingSmall,
             fontWeight: FontWeight.w600,
-            color: LightColor.primaryTextColor,
+            color: colors.primaryText,
           ),
         ),
+        systemOverlayStyle: dark
+            ? SystemUiOverlayStyle.light
+            : SystemUiOverlayStyle.dark,
       ),
-
-      elevatedButtonTheme: getElevatedButtonTheme(context),
-
+      cardTheme: CardThemeData(
+        color: colors.surface,
+        surfaceTintColor: Colors.transparent,
+      ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: colors.surfaceElevated,
+        surfaceTintColor: Colors.transparent,
+      ),
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: colors.surfaceElevated,
+        modalBackgroundColor: colors.surfaceElevated,
+        surfaceTintColor: Colors.transparent,
+      ),
+      drawerTheme: DrawerThemeData(
+        backgroundColor: colors.surface,
+        surfaceTintColor: Colors.transparent,
+      ),
+      listTileTheme: ListTileThemeData(
+        textColor: colors.primaryText,
+        iconColor: colors.secondaryText,
+      ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: LightColor.inputFillColor,
-        hintStyle: TextStyle(color: LightColor.hintTextColor),
+        fillColor: colors.inputFill,
+        hintStyle: TextStyle(color: colors.hintText),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
           vertical: 14,
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppDimens.radiusX8),
-          borderSide: BorderSide(color: LightColor.inputBorderColor),
+          borderSide: BorderSide(color: colors.inputBorder),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppDimens.radiusX8),
-          borderSide: BorderSide(color: LightColor.inputBorderColor),
+          borderSide: BorderSide(color: colors.inputBorder),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppDimens.radiusX8),
-          borderSide: BorderSide(color: LightColor.inputFocusBorderColor),
+          borderSide: BorderSide(color: accent, width: 1.4),
         ),
       ),
-
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: primary,
+          disabledBackgroundColor: colors.disabled,
+          foregroundColor: onPrimary,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+          ),
+        ),
+      ),
+      switchTheme: SwitchThemeData(
+        thumbColor: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.selected)
+              ? onPrimary
+              : colors.iconMuted,
+        ),
+        trackColor: WidgetStateProperty.resolveWith(
+          (states) =>
+              states.contains(WidgetState.selected) ? primary : colors.divider,
+        ),
+      ),
+      checkboxTheme: CheckboxThemeData(
+        fillColor: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.selected)
+              ? primary
+              : Colors.transparent,
+        ),
+        checkColor: WidgetStatePropertyAll<Color>(onPrimary),
+        side: BorderSide(color: colors.border),
+      ),
+      tabBarTheme: TabBarThemeData(
+        labelColor: accent,
+        unselectedLabelColor: colors.secondaryText,
+        indicatorColor: accent,
+        dividerColor: colors.divider,
+      ),
+      chipTheme: ChipThemeData(
+        backgroundColor: colors.surfaceElevated,
+        selectedColor: accent.withValues(alpha: 0.2),
+        disabledColor: colors.inputFill,
+        side: BorderSide(color: colors.border),
+        labelStyle: TextStyle(color: colors.primaryText),
+      ),
+      popupMenuTheme: PopupMenuThemeData(
+        color: colors.surfaceElevated,
+        surfaceTintColor: Colors.transparent,
+      ),
+      progressIndicatorTheme: ProgressIndicatorThemeData(color: accent),
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: LightColor.redColor,
-        contentTextStyle: const TextStyle(
-          color: Colors.white,
+        backgroundColor: colors.dangerContainer,
+        contentTextStyle: TextStyle(
+          color: colors.onDangerContainer,
           fontWeight: FontWeight.w500,
         ),
       ),
-
-      iconTheme: IconThemeData(color: LightColor.secondaryTextColor),
-
+      iconTheme: IconThemeData(color: colors.secondaryText),
       splashColor: Colors.transparent,
       highlightColor: Colors.transparent,
     );
@@ -118,15 +216,15 @@ class FutsalTheme {
     double? radius,
     double? fontSize,
   }) {
-    backgroundColor ??= LightColor.buttonColor;
+    backgroundColor ??= Theme.of(context).colorScheme.primary;
     radius ??= AppDimens.radiusX8;
     fontSize ??= AppDimens.fontBodyTextLarge;
 
     return ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
         backgroundColor: backgroundColor,
-        disabledBackgroundColor: LightColor.buttonDisabledColor,
-        foregroundColor: LightColor.inverseTextColor,
+        disabledBackgroundColor: context.appColors.disabled,
+        foregroundColor: Theme.of(context).colorScheme.onPrimary,
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(radius),
@@ -142,7 +240,7 @@ class FutsalTheme {
     BuildContext context, {
     Color? textColor,
   }) {
-    textColor ??= LightColor.primaryTextColor;
+    textColor ??= context.appColors.primaryText;
 
     return FutsalTextTheme(
       bodyMiniSubTitle: Theme.of(context).textTheme.labelMedium?.copyWith(

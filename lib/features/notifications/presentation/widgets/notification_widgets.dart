@@ -190,7 +190,7 @@ class NotificationSection extends StatelessWidget {
               for (int index = 0; index < notifications.length; index++) ...[
                 NotificationTile(notification: notifications[index]),
                 if (index < notifications.length - 1)
-                  const Divider(
+                  Divider(
                     height: AppDimens.sizeX1,
                     thickness: AppDimens.sizeX1,
                     indent: AppDimens.sizeX60,
@@ -345,9 +345,9 @@ class _NotificationMenu extends StatelessWidget {
       elevation: 3,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppDimens.radiusX12),
-        side: const BorderSide(color: LightColor.dividerColor),
+        side: BorderSide(color: LightColor.dividerColor),
       ),
-      icon: const Icon(
+      icon: Icon(
         Icons.more_vert_rounded,
         color: LightColor.hintTextColor,
         size: AppDimens.sizeX18,
@@ -459,7 +459,7 @@ class NotificationErrorView extends StatelessWidget {
                 color: LightColor.redColor.withValues(alpha: 0.08),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.wifi_off_rounded,
                 size: AppDimens.sizeX36,
                 color: LightColor.redColor,
@@ -496,7 +496,7 @@ class NotificationErrorView extends StatelessWidget {
                 child: Text(
                   StringConstants.tryAgain,
                   style: textTheme.bodyTextSmall?.copyWith(
-                    color: LightColor.whiteColor,
+                    color: LightColor.inverseTextColor,
                     fontWeight: FontWeight.w600,
                   ),
                 ),

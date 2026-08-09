@@ -211,7 +211,7 @@ class _VendorRequestActionBar extends StatelessWidget {
         height: 60,
         width: double.infinity,
         padding: const EdgeInsets.only(top: AppDimens.paddingX12),
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           border: Border(
             top: BorderSide(color: LightColor.dividerColor, width: 0.8),
           ),

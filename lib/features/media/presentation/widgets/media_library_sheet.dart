@@ -683,9 +683,9 @@ class _CompactHeader extends StatelessWidget {
               color: LightColor.secondaryColor,
               borderRadius: BorderRadius.circular(AppDimens.radiusX10),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.photo_outlined,
-              color: LightColor.whiteColor,
+              color: LightColor.inverseTextColor,
               size: AppDimens.sizeX22,
             ),
           ),
@@ -777,9 +777,9 @@ class _UploadMediaPreviewDialog extends StatelessWidget {
                 color: LightColor.secondaryColor,
                 borderRadius: BorderRadius.circular(AppDimens.radiusX16),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.cloud_upload_outlined,
-                color: LightColor.whiteColor,
+                color: LightColor.inverseTextColor,
                 size: AppDimens.sizeX26,
               ),
             ),
@@ -824,7 +824,7 @@ class _UploadMediaPreviewDialog extends StatelessWidget {
               const SizedBox(height: AppDimens.sizeX10),
               Text(
                 '+${files.length - 1} more selected',
-                style: const TextStyle(
+                style: TextStyle(
                   color: LightColor.secondaryTextColor,
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
@@ -838,7 +838,7 @@ class _UploadMediaPreviewDialog extends StatelessWidget {
                   child: CustomButton(
                     text: StringConstants.cancel,
                     isOutlined: true,
-                    backgroundColor: Colors.white,
+                    backgroundColor: LightColor.onBrandSurface,
                     foregroundColor: LightColor.secondaryTextColor,
                     borderColor: LightColor.borderColor,
                     minHeight: AppDimens.sizeX44,
@@ -850,7 +850,7 @@ class _UploadMediaPreviewDialog extends StatelessWidget {
                   child: CustomButton(
                     text: StringConstants.upload,
                     backgroundColor: LightColor.secondaryColor,
-                    foregroundColor: Colors.white,
+                    foregroundColor: LightColor.onBrandSurface,
                     minHeight: AppDimens.sizeX44,
                     onPressed: () => Navigator.of(context).pop(true),
                   ),
@@ -991,7 +991,7 @@ class _FilterMenuButton extends StatelessWidget {
                   filter.label,
                   style: TextStyle(
                     color: isActive
-                        ? LightColor.primaryDark
+                        ? LightColor.brandTextColor
                         : LightColor.primaryTextColor,
                     fontWeight: FontWeight.w700,
                   ),
@@ -1138,7 +1138,7 @@ class _AddMediaMenuButton extends StatelessWidget {
         }).toList();
       },
       child: CustomPaint(
-        foregroundPainter: const _DashedRRectPainter(
+        foregroundPainter: _DashedRRectPainter(
           color: LightColor.greyBorderColor,
           radius: AppDimens.radiusX10,
         ),
@@ -1257,7 +1257,7 @@ class _CompactLoadingState extends StatelessWidget {
           borderRadius: BorderRadius.circular(AppDimens.radiusX10),
           border: Border.all(color: LightColor.borderColor),
         ),
-        child: const Column(
+        child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
             SizedBox(width: 28, height: 28, child: LoadingWidget()),
@@ -1312,9 +1312,9 @@ class _CompactEmptyState extends StatelessWidget {
                 color: LightColor.greyBorderColor,
                 borderRadius: BorderRadius.circular(AppDimens.radiusX8),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.perm_media_rounded,
-                color: LightColor.secondaryDark,
+                color: LightColor.brandTextColor,
                 size: AppDimens.sizeX28,
               ),
             ),
@@ -1418,7 +1418,7 @@ class _CompactMediaCard extends StatelessWidget {
                               begin: Alignment.topCenter,
                               end: Alignment.bottomCenter,
                               colors: <Color>[
-                                Colors.black.withValues(alpha: 0.28),
+                                LightColor.shadowOf(0.28),
                                 Colors.transparent,
                               ],
                             ),
@@ -1437,17 +1437,17 @@ class _CompactMediaCard extends StatelessWidget {
                           decoration: BoxDecoration(
                             color: isSelected
                                 ? LightColor.secondaryColor
-                                : Colors.white.withValues(alpha: 0.96),
+                                : LightColor.onBrandSurface.withValues(alpha: 0.96),
                             borderRadius: BorderRadius.circular(999),
                             border: Border.all(
                               color: isSelected
-                                  ? Colors.white
+                                  ? LightColor.onBrandSurface
                                   : LightColor.borderColor,
                               width: 1.4,
                             ),
                             boxShadow: <BoxShadow>[
                               BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.12),
+                                color: LightColor.shadowOf(0.12),
                                 blurRadius: 6,
                                 offset: const Offset(0, 2),
                               ),
@@ -1459,7 +1459,7 @@ class _CompactMediaCard extends StatelessWidget {
                                 : Icons.circle_outlined,
                             size: AppDimens.sizeX14,
                             color: isSelected
-                                ? Colors.white
+                                ? LightColor.onBrandSurface
                                 : LightColor.secondaryTextColor,
                           ),
                         ),
@@ -1478,7 +1478,7 @@ class _CompactMediaCard extends StatelessWidget {
                     //           color: LightColor.redColor,
                     //           borderRadius: BorderRadius.circular(999),
                     //           border: Border.all(
-                    //             color: Colors.white,
+                    //             color: LightColor.onBrandSurface,
                     //             width: 1.4,
                     //           ),
                     //           boxShadow: <BoxShadow>[
@@ -1494,7 +1494,7 @@ class _CompactMediaCard extends StatelessWidget {
                     //         child: const Icon(
                     //           Icons.delete_outline_rounded,
                     //           size: AppDimens.sizeX14,
-                    //           color: Colors.white,
+                    //           color: LightColor.onBrandSurface,
                     //         ),
                     //       ),
                     //     ),
@@ -1588,7 +1588,7 @@ class _MiniFilePlaceholder extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 10.5,
                 fontWeight: FontWeight.w700,
                 color: LightColor.primaryTextColor,

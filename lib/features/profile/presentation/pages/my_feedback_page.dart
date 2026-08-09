@@ -114,7 +114,7 @@ class _FeedbackListCard extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(AppDimens.radiusX16),
             border: Border.all(color: LightColor.dividerColor),
-            boxShadow: const <BoxShadow>[
+            boxShadow: <BoxShadow>[
               BoxShadow(
                 color: LightColor.shadowColor,
                 blurRadius: 16,
@@ -291,7 +291,7 @@ class _FeedbackHistoryError extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            const Icon(
+            Icon(
               Icons.error_outline_rounded,
               size: 36,
               color: LightColor.redColor,

@@ -334,7 +334,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
             AppDimens.paddingX20,
             AppDimens.paddingX12,
           ),
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             color: LightColor.cardColor,
             border: Border(
               top: BorderSide(color: LightColor.dividerColor, width: 1),
@@ -384,9 +384,9 @@ class _HeroPanel extends StatelessWidget {
                       color: LightColor.whiteColor.withValues(alpha: 0.16),
                       borderRadius: BorderRadius.circular(AppDimens.radiusX12),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.reviews_rounded,
-                      color: LightColor.whiteColor,
+                      color: LightColor.inverseTextColor,
                       size: AppDimens.sizeX24,
                     ),
                   ),
@@ -398,7 +398,7 @@ class _HeroPanel extends StatelessWidget {
                         Text(
                           StringConstants.feedbackTitle,
                           style: textTheme.bodyTextLarge?.copyWith(
-                            color: LightColor.whiteColor,
+                            color: LightColor.inverseTextColor,
                             fontWeight: FontWeight.w800,
                           ),
                         ),
@@ -406,7 +406,7 @@ class _HeroPanel extends StatelessWidget {
                         Text(
                           StringConstants.feedbackSubtitle,
                           style: textTheme.bodyTextSmall?.copyWith(
-                            color: LightColor.whiteColor.withValues(alpha: 0.9),
+                            color: LightColor.inverseTextColor.withValues(alpha: 0.9),
                             height: 1.4,
                           ),
                         ),
@@ -445,7 +445,7 @@ class _FormCard extends StatelessWidget {
         color: LightColor.cardColor,
         borderRadius: BorderRadius.circular(AppDimens.radiusX14),
         border: Border.all(color: LightColor.dividerColor),
-        boxShadow: const <BoxShadow>[
+        boxShadow: <BoxShadow>[
           BoxShadow(
             color: LightColor.shadowColor,
             blurRadius: 16,
@@ -490,7 +490,7 @@ class _SectionDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
+    return Padding(
       padding: EdgeInsets.symmetric(vertical: AppDimens.paddingX16),
       child: Divider(height: 1, thickness: 1, color: LightColor.dividerColor),
     );
@@ -528,7 +528,7 @@ class _FeedbackOptionsBlock extends StatelessWidget {
 
     if (errorText != null) {
       return _FeedbackStatusRow(
-        leading: const Icon(
+        leading: Icon(
           Icons.error_outline_rounded,
           size: 18,
           color: LightColor.redColor,
@@ -558,7 +558,7 @@ class _AudienceSegments extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
     if (options.isEmpty) {
-      return const _FeedbackStatusRow(
+      return _FeedbackStatusRow(
         leading: Icon(
           Icons.info_outline_rounded,
           size: 18,
@@ -598,7 +598,7 @@ class _AudienceSegments extends StatelessWidget {
                       textAlign: TextAlign.center,
                       style: textTheme.bodyTextSmall?.copyWith(
                         color: selected
-                            ? LightColor.whiteColor
+                            ? LightColor.inverseTextColor
                             : LightColor.secondaryTextColor,
                         fontWeight: selected
                             ? FontWeight.w700
@@ -629,7 +629,7 @@ class _MoodChips extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (options.isEmpty) {
-      return const _FeedbackStatusRow(
+      return _FeedbackStatusRow(
         leading: Icon(
           Icons.info_outline_rounded,
           size: 18,
@@ -695,7 +695,7 @@ class _MoodChip extends StatelessWidget {
             option.name,
             maxLines: 1,
             style: textTheme.bodyTextSmall?.copyWith(
-              color: selected ? LightColor.whiteColor : accent,
+              color: selected ? LightColor.inverseTextColor : accent,
               fontSize: 11,
               fontWeight: FontWeight.w400,
             ),

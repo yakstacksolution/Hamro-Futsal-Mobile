@@ -291,7 +291,7 @@ class _CourtDetailPageState extends State<CourtDetailPage>
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.12),
+              color: LightColor.shadowOf(0.12),
               blurRadius: AppDimens.sizeX28,
               offset: const Offset(0, AppDimens.sizeX10),
             ),
@@ -407,7 +407,7 @@ class _CourtDetailPageState extends State<CourtDetailPage>
                       height: AppDimens.sizeX46,
                       decoration: BoxDecoration(
                         gradient: hasSelection
-                            ? const LinearGradient(
+                            ? LinearGradient(
                                 colors: [
                                   LightColor.secondaryColor,
                                   LightColor.secondaryDark,
@@ -484,7 +484,7 @@ class _CourtDetailPageState extends State<CourtDetailPage>
                   ),
                   SliverToBoxAdapter(
                     child: Container(
-                      decoration: const BoxDecoration(
+                      decoration: BoxDecoration(
                         color: LightColor.background,
                         borderRadius: BorderRadius.vertical(
                           top: Radius.circular(AppDimens.radiusX28),

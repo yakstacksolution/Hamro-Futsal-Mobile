@@ -43,10 +43,10 @@ class CourtHostedBySection extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(AppDimens.paddingX16),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
+          gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFFFFFFFF), Color(0xFFF7FBFF)],
+            colors: <Color>[LightColor.elevatedCardColor, LightColor.cardColor],
           ),
           borderRadius: BorderRadius.circular(AppDimens.radiusX10),
           boxShadow: [
@@ -96,9 +96,9 @@ class CourtHostedBySection extends StatelessWidget {
                               color: LightColor.secondaryColor,
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(
+                            child: Icon(
                               Icons.check_rounded,
-                              color: Colors.white,
+                              color: LightColor.inverseTextColor,
                               size: AppDimens.sizeX10,
                             ),
                           ),

@@ -44,8 +44,8 @@ class CustomToggleButton extends StatelessWidget {
           child: Container(
             width: AppDimens.sizeX20,
             height: AppDimens.sizeX20,
-            decoration: const BoxDecoration(
-              color: Colors.white,
+            decoration: BoxDecoration(
+              color: LightColor.inverseTextColor,
               shape: BoxShape.circle,
             ),
           ),
@@ -193,7 +193,7 @@ class BookingTypeCard extends StatelessWidget {
                                     ),
                                   ),
                                   child: showSpinner
-                                      ? const Center(
+                                      ? Center(
                                           child: SizedBox(
                                             width: AppDimens.sizeX12,
                                             height: AppDimens.sizeX12,
@@ -201,7 +201,7 @@ class BookingTypeCard extends StatelessWidget {
                                               strokeWidth: 1.5,
                                               valueColor:
                                                   AlwaysStoppedAnimation<Color>(
-                                                    LightColor.whiteColor,
+                                                    LightColor.inverseTextColor,
                                                   ),
                                             ),
                                           ),
@@ -212,7 +212,7 @@ class BookingTypeCard extends StatelessWidget {
                                           style: textTheme.bodyMiniSubTitle
                                               ?.copyWith(
                                                 color: selected
-                                                    ? LightColor.whiteColor
+                                                    ? LightColor.inverseTextColor
                                                     : LightColor
                                                           .primaryTextColor,
                                                 fontWeight: FontWeight.w700,
@@ -453,7 +453,7 @@ class _RecurringPriceSheet extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppDimens.sizeX14),
-          const Divider(height: 1, color: LightColor.dividerColor),
+          Divider(height: 1, color: LightColor.dividerColor),
           const SizedBox(height: AppDimens.sizeX12),
           Row(
             children: <Widget>[

@@ -79,7 +79,7 @@ class _CourtLocationMapPageState extends State<CourtLocationMapPage> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
-                const Icon(
+                Icon(
                   Icons.location_off_rounded,
                   size: AppDimens.sizeX48,
                   color: LightColor.secondaryTextColor,
@@ -181,7 +181,7 @@ class _CourtLocationMapPageState extends State<CourtLocationMapPage> {
                 borderRadius: BorderRadius.circular(AppDimens.radiusX14),
                 boxShadow: <BoxShadow>[
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.1),
+                    color: LightColor.shadowOf(0.1),
                     blurRadius: AppDimens.radiusX20,
                     offset: const Offset(0, AppDimens.sizeX6),
                   ),
@@ -247,7 +247,7 @@ class _CourtLocationMapPageState extends State<CourtLocationMapPage> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: <Widget>[
-                            const Icon(
+                            Icon(
                               Icons.directions_rounded,
                               size: AppDimens.sizeX18,
                               color: LightColor.inverseTextColor,

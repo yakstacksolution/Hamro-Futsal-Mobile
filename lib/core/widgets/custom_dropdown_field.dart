@@ -17,7 +17,7 @@ class CustomDropdownField<T> extends StatelessWidget {
     this.autovalidateMode,
     this.validator,
     this.onChanged,
-    this.dropdownColor = LightColor.background,
+    this.dropdownColor,
     this.contentPadding,
     this.isExpanded = true,
     this.enabled = true,
@@ -33,7 +33,7 @@ class CustomDropdownField<T> extends StatelessWidget {
   final FormFieldValidator<T>? validator;
   final ValueChanged<T?>? onChanged;
   final List<DropdownMenuItem<T>> items;
-  final Color dropdownColor;
+  final Color? dropdownColor;
   final EdgeInsetsGeometry? contentPadding;
   final bool isExpanded;
   final bool enabled;
@@ -61,7 +61,7 @@ class CustomDropdownField<T> extends StatelessWidget {
       isExpanded: isExpanded,
       dropdownColor: dropdownColor,
       style: valueStyle,
-      icon: const Icon(
+      icon: Icon(
         Icons.keyboard_arrow_down_rounded,
         color: LightColor.secondaryTextColor,
         size: AppDimens.sizeX18,

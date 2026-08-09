@@ -62,7 +62,7 @@ class AmenitiesFacilitiesSection extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             bloc.amenitiesSelectionError()!,
-            style: const TextStyle(
+            style: TextStyle(
               color: LightColor.secondaryTextColor,
               fontSize: 12.5,
               fontWeight: FontWeight.w600,
@@ -102,7 +102,7 @@ class _SectionTitle extends StatelessWidget {
       children: <Widget>[
         Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             color: LightColor.primaryTextColor,
             fontSize: 15,
             fontWeight: FontWeight.w800,
@@ -111,7 +111,7 @@ class _SectionTitle extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           subtitle,
-          style: const TextStyle(
+          style: TextStyle(
             color: LightColor.secondaryTextColor,
             fontSize: 12.5,
             height: 1.4,

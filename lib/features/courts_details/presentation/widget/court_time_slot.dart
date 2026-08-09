@@ -148,7 +148,7 @@ class _CourtTimeSlotSectionState extends State<CourtTimeSlotSection> {
             const SizedBox(height: AppDimens.sizeX16),
             _buildDateSelector(),
             const SizedBox(height: AppDimens.sizeX16),
-            const Wrap(
+            Wrap(
               spacing: AppDimens.sizeX14,
               runSpacing: AppDimens.sizeX8,
               crossAxisAlignment: WrapCrossAlignment.end,
@@ -215,7 +215,7 @@ class _CourtTimeSlotSectionState extends State<CourtTimeSlotSection> {
                             slot.time,
                             style: textTheme.bodySubTitle?.copyWith(
                               color: selected
-                                  ? LightColor.whiteColor
+                                  ? LightColor.inverseTextColor
                                   : slot.isAvailable
                                   ? LightColor.primaryTextColor
                                   : LightColor.hintTextColor,
@@ -231,7 +231,7 @@ class _CourtTimeSlotSectionState extends State<CourtTimeSlotSection> {
                             StringConstants.rs1200,
                             style: textTheme.bodyMiniSubTitle?.copyWith(
                               color: selected
-                                  ? LightColor.whiteColor
+                                  ? LightColor.inverseTextColor
                                   : slot.isAvailable
                                   ? LightColor.primaryTextColor
                                   : LightColor.hintTextColor,
@@ -291,7 +291,7 @@ class _CourtTimeSlotSectionState extends State<CourtTimeSlotSection> {
                     style: FutsalTheme.getTextTheme(context).bodySubTitle
                         ?.copyWith(
                           color: selected
-                              ? Colors.white70
+                              ? LightColor.inverseTextColor.withValues(alpha: 0.7)
                               : LightColor.hintTextColor,
                           fontWeight: FontWeight.w600,
                         ),
@@ -302,7 +302,7 @@ class _CourtTimeSlotSectionState extends State<CourtTimeSlotSection> {
                     style: FutsalTheme.getTextTheme(context).bodyTextLarge
                         ?.copyWith(
                           color: selected
-                              ? Colors.white
+                              ? LightColor.inverseTextColor
                               : LightColor.primaryTextColor,
                           fontWeight: FontWeight.w800,
                         ),
@@ -313,7 +313,7 @@ class _CourtTimeSlotSectionState extends State<CourtTimeSlotSection> {
                     style: FutsalTheme.getTextTheme(context).bodySubTitle
                         ?.copyWith(
                           color: selected
-                              ? Colors.white70
+                              ? LightColor.inverseTextColor.withValues(alpha: 0.7)
                               : today
                               ? LightColor.secondaryColor
                               : LightColor.hintTextColor,

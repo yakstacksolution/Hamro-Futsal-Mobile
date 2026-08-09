@@ -146,7 +146,7 @@ class _ProductsView extends StatelessWidget {
                         ),
                       )
                     : null,
-                icon: const Icon(
+                icon: Icon(
                   Icons.refresh_rounded,
                   color: LightColor.primaryTextColor,
                 ),
@@ -255,10 +255,10 @@ class _ProductsSummary extends StatelessWidget {
             width: AppDimens.sizeX48,
             height: AppDimens.sizeX48,
             decoration: BoxDecoration(
-              color: LightColor.whiteColor.withValues(alpha: 0.14),
+              color: LightColor.inverseTextColor.withValues(alpha: 0.14),
               borderRadius: BorderRadius.circular(AppDimens.radiusX10),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.inventory_2_outlined,
               color: LightColor.inverseTextColor,
             ),
@@ -434,7 +434,7 @@ class _ProductTile extends StatelessWidget {
                     Container(
                       width: AppDimens.sizeX4,
                       height: AppDimens.sizeX4,
-                      decoration: const BoxDecoration(
+                      decoration: BoxDecoration(
                         color: LightColor.iconGrey,
                         shape: BoxShape.circle,
                       ),
@@ -458,7 +458,7 @@ class _ProductTile extends StatelessWidget {
             tooltip: 'Edit product',
             onPressed: onEdit,
             visualDensity: VisualDensity.compact,
-            icon: const Icon(
+            icon: Icon(
               Icons.edit_outlined,
               color: LightColor.secondaryTextColor,
               size: AppDimens.sizeX20,
@@ -468,7 +468,7 @@ class _ProductTile extends StatelessWidget {
             tooltip: 'Delete product',
             onPressed: onDelete,
             visualDensity: VisualDensity.compact,
-            icon: const Icon(
+            icon: Icon(
               Icons.delete_outline_rounded,
               color: LightColor.redColor,
               size: AppDimens.sizeX20,
@@ -719,7 +719,7 @@ class _ProductsError extends StatelessWidget {
       ),
       child: Column(
         children: <Widget>[
-          const Icon(
+          Icon(
             Icons.error_outline_rounded,
             color: LightColor.redColor,
             size: AppDimens.sizeX36,

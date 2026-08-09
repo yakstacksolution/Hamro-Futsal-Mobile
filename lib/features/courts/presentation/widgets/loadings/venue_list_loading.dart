@@ -12,8 +12,8 @@ class VenueListLoading extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.all(8.0),
       child: Shimmer.fromColors(
-        baseColor: Colors.grey.shade300,
-        highlightColor: Colors.grey.shade100,
+        baseColor: LightColor.skeletonBaseColor,
+        highlightColor: LightColor.skeletonHighlightColor,
         child: ListView.separated(
           physics: const NeverScrollableScrollPhysics(),
           padding: AppUtils().getPadding(
@@ -123,7 +123,7 @@ class _Block extends StatelessWidget {
       width: width,
       height: height,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: LightColor.skeletonBaseColor,
         borderRadius: BorderRadius.circular(radius),
       ),
     );

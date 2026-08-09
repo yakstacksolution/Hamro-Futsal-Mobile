@@ -70,7 +70,7 @@ class CompactDateTimeSelector extends StatelessWidget {
             style: labelStyle,
             children: isRequired
                 ? <InlineSpan>[
-                    const TextSpan(
+                    TextSpan(
                       text: ' *',
                       style: TextStyle(color: LightColor.redColor),
                     ),
@@ -115,7 +115,7 @@ class CompactDateTimeSelector extends StatelessWidget {
                   today ? 'Today' : _dayName(date),
                   style: textTheme.bodyMiniSubTitle?.copyWith(
                     color: selected
-                        ? Colors.white70
+                        ? LightColor.inverseTextColor.withValues(alpha: 0.7)
                         : today
                         ? LightColor.secondaryColor
                         : LightColor.hintTextColor,
@@ -127,7 +127,7 @@ class CompactDateTimeSelector extends StatelessWidget {
                   '${date.day}',
                   style: textTheme.bodyTextMedium?.copyWith(
                     color: selected
-                        ? Colors.white
+                        ? LightColor.inverseTextColor
                         : LightColor.primaryTextColor,
                     fontWeight: FontWeight.w800,
                   ),
@@ -203,9 +203,9 @@ class CompactDateTimeSelector extends StatelessWidget {
   /// A selected slot always uses the primary highlight regardless of status.
   _SlotPalette _paletteFor(SlotStatus status, bool selected) {
     if (selected) {
-      return const _SlotPalette(
+      return _SlotPalette(
         background: LightColor.secondaryColor,
-        foreground: LightColor.whiteColor,
+        foreground: LightColor.inverseTextColor,
       );
     }
     return switch (status) {
@@ -222,7 +222,7 @@ class CompactDateTimeSelector extends StatelessWidget {
         foreground: LightColor.hintTextColor,
         border: LightColor.warningColor.withValues(alpha: 0.4),
       ),
-      SlotStatus.unavailable => const _SlotPalette(
+      SlotStatus.unavailable => _SlotPalette(
         background: LightColor.dividerColor,
         foreground: LightColor.hintTextColor,
       ),

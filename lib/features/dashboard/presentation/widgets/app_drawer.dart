@@ -80,7 +80,7 @@ class AppDrawer extends StatelessWidget {
       width: 300,
       backgroundColor: Colors.transparent,
       child: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -186,9 +186,9 @@ class _DrawerHeader extends StatelessWidget {
             height: 52,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Colors.white.withValues(alpha: 0.24),
+              color: LightColor.onBrandSurface.withValues(alpha: 0.24),
               border: Border.all(
-                color: Colors.white.withValues(alpha: 0.35),
+                color: LightColor.onBrandSurface.withValues(alpha: 0.35),
                 width: 2,
               ),
             ),
@@ -196,7 +196,7 @@ class _DrawerHeader extends StatelessWidget {
               child: Text(
                 displayName.isNotEmpty ? displayName[0].toUpperCase() : 'M',
                 style: theme.textTheme.titleLarge?.copyWith(
-                  color: Colors.white,
+                  color: LightColor.onBrandSurface,
                   fontWeight: FontWeight.w800,
                   fontSize: 22,
                 ),
@@ -212,7 +212,7 @@ class _DrawerHeader extends StatelessWidget {
               Text(
                 displayName,
                 style: theme.textTheme.titleMedium?.copyWith(
-                  color: Colors.white,
+                  color: LightColor.onBrandSurface,
                   fontWeight: FontWeight.w700,
                 ),
                 overflow: TextOverflow.ellipsis,
@@ -221,7 +221,7 @@ class _DrawerHeader extends StatelessWidget {
               Text(
                 email,
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: Colors.white.withValues(alpha: 0.84),
+                  color: LightColor.onBrandSurface.withValues(alpha: 0.84),
                 ),
                 overflow: TextOverflow.ellipsis,
               ),
@@ -341,7 +341,7 @@ class _DrawerNavItem extends StatelessWidget {
                     child: Text(
                       badge!,
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: Colors.white,
+                        color: LightColor.onBrandSurface,
                         fontWeight: FontWeight.w800,
                         fontSize: 11,
                       ),
@@ -451,7 +451,7 @@ class _DrawerFooter extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: <Widget>[
-                  const Icon(
+                  Icon(
                     Icons.logout_rounded,
                     size: 16,
                     color: LightColor.redColor,

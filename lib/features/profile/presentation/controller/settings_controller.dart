@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:hamro_footsall/core/helper/share_preferences.dart';
 import 'package:hamro_footsall/core/security/biometric_auth_service.dart';
+import 'package:hamro_footsall/core/theme/app_theme_controller.dart';
 import 'package:hamro_footsall/core/security/biometric_session_store.dart';
 import 'package:hamro_footsall/features/profile/data/model/profile_model.dart';
 import 'package:hamro_footsall/features/profile/data/repositories/profile_repository_impl.dart';
@@ -192,7 +193,7 @@ class SettingsController extends ChangeNotifier {
   void setDarkMode(bool value) {
     if (_darkMode == value) return;
     _darkMode = value;
-    _settings.darkMode = value;
+    AppThemeController.instance.setDarkMode(value);
     _notifyIfActive();
   }
 

@@ -34,7 +34,7 @@ class BrandingReviewSection extends StatelessWidget {
           onRemove: bloc.removeSelectedLogo,
         ),
         const SizedBox(height: 14),
-        const Align(
+        Align(
           alignment: Alignment.centerLeft,
           child: Text(
             StringConstants.orProvideADirectImageUrl,
@@ -57,10 +57,10 @@ class BrandingReviewSection extends StatelessWidget {
           validator: bloc.logoUrlValidator,
         ),
         const SizedBox(height: 16),
-        const InfoBanner(
+        InfoBanner(
           icon: Icons.info_outline_rounded,
           color: LightColor.warningColor,
-          backgroundColor: Color(0xFFFFF8F3),
+          backgroundColor: LightColor.warningLightColor,
           borderColor: LightColor.warningColor,
           message: StringConstants
               .youCanUseEitherUploadedFileOrLogoUrlOwnerWillBeA12d1d437,

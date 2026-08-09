@@ -267,7 +267,7 @@ class _ExtraItemsCard extends StatelessWidget {
             if (i > 0) const SizedBox(height: AppDimens.paddingX12),
             _ExtraItemRow(item: items[i]),
           ],
-          const Padding(
+          Padding(
             padding: EdgeInsets.symmetric(vertical: AppDimens.paddingX12),
             child: Divider(height: 1, color: LightColor.dividerColor),
           ),
@@ -377,7 +377,7 @@ class _AddProductsTile extends StatelessWidget {
                   ),
                 ),
               ),
-              const Icon(
+              Icon(
                 Icons.chevron_right_rounded,
                 color: LightColor.iconGrey,
                 size: AppDimens.sizeX18,
@@ -681,7 +681,7 @@ class _ProductsCartSheetState extends State<_ProductsCartSheet> {
             child: Text(
               '$_itemCount item${_itemCount == 1 ? '' : 's'}',
               style: textTheme.bodyTextSmall?.copyWith(
-                color: LightColor.whiteColor,
+                color: LightColor.inverseTextColor,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -697,7 +697,7 @@ class _ProductsCartSheetState extends State<_ProductsCartSheet> {
       padding: const EdgeInsets.only(top: AppDimens.paddingX12),
       child: Column(
         children: <Widget>[
-          const Divider(height: 1, color: LightColor.dividerColor),
+          Divider(height: 1, color: LightColor.dividerColor),
           const SizedBox(height: AppDimens.paddingX12),
           Row(
             children: <Widget>[
@@ -935,7 +935,7 @@ class _CollectBookingDueSheetState extends State<_CollectBookingDueSheet> {
                 AppDimens.paddingX18,
                 AppDimens.paddingX12 + media.padding.bottom,
               ),
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 border: Border(top: BorderSide(color: LightColor.dividerColor)),
               ),
               child: CustomButton(
@@ -985,17 +985,15 @@ class _CompleteBookingSheetState extends State<_CompleteBookingSheet> {
   }
 
   /// Discount clamped to the range [0, totalToCollect].
-  double get _discount =>
-      _bound(_parse(_discountController), _totalToCollect);
+  double get _discount => _bound(_parse(_discountController), _totalToCollect);
 
   /// Net amount payable after the discount.
   double get _netPayable =>
       _bound(_totalToCollect - _discount, double.infinity);
 
   /// Amount being collected right now.
-  double get _amountPaid => _isPartial
-      ? _bound(_parse(_amountController), _netPayable)
-      : _netPayable;
+  double get _amountPaid =>
+      _isPartial ? _bound(_parse(_amountController), _netPayable) : _netPayable;
 
   /// Amount still owed after this settlement.
   double get _remaining => _bound(_netPayable - _amountPaid, double.infinity);
@@ -1196,7 +1194,7 @@ class _CompleteSheetFooter extends StatelessWidget {
         AppDimens.paddingX18,
         AppDimens.paddingX12 + MediaQuery.viewPaddingOf(context).bottom,
       ),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: LightColor.cardColor,
         border: Border(top: BorderSide(color: LightColor.dividerColor)),
       ),
@@ -1401,7 +1399,7 @@ class _SettlementRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final FutsalTextTheme textTheme = FutsalTheme.getTextTheme(context);
     final Color valueColor = highlightRemaining
-        ? const Color(0xFFB45309)
+        ? LightColor.warningColor
         : LightColor.primaryTextColor;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: AppDimens.paddingX4),
@@ -1812,7 +1810,7 @@ class _StepButton extends StatelessWidget {
           child: Icon(
             icon,
             size: AppDimens.sizeX18,
-            color: LightColor.whiteColor,
+            color: LightColor.inverseTextColor,
           ),
         ),
       ),

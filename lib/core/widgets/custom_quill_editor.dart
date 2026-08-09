@@ -13,7 +13,7 @@ typedef FutureStringCallback = Future<String> Function(String htmlText);
 class _EditorTokens {
   static const double radiusSm = 8;
   static const double toolbarDividerWidth = 1;
-  static const Color fieldFill = Color(0xFFFBFCFE);
+  static Color get fieldFill => LightColor.inputFillColor;
 
   static EdgeInsets editorPadding = AppUtils().getPadding(
     symmetricHorizontal: AppDimens.paddingX14,
@@ -233,7 +233,7 @@ class _EmbeddedToolbar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: LightColor.whiteColor,
+        color: context.appColors.surface,
         border: Border(
           bottom: BorderSide(
             color: LightColor.greyBorderColor,

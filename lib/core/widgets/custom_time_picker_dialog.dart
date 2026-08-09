@@ -46,11 +46,11 @@ class _CustomTimePickerDialogState extends State<_CustomTimePickerDialog> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppDimens.radiusX20),
       ),
-      backgroundColor: LightColor.whiteColor,
+      backgroundColor: context.appColors.surfaceElevated,
       child: Container(
         padding: AppUtils().getPadding(all: AppDimens.paddingX24),
         decoration: BoxDecoration(
-          color: LightColor.whiteColor,
+          color: context.appColors.surfaceElevated,
           borderRadius: BorderRadius.circular(AppDimens.radiusX20),
         ),
         child: Column(
@@ -140,7 +140,7 @@ class _CustomTimePickerDialogState extends State<_CustomTimePickerDialog> {
                   child: CustomButton(
                     text: StringConstants.confirm,
                     backgroundColor: LightColor.secondaryColor,
-                    foregroundColor: LightColor.whiteColor,
+                    foregroundColor: LightColor.inverseTextColor,
                     minHeight: AppDimens.sizeX46,
                     onPressed: () => Navigator.of(context).pop(
                       TimeOfDay(hour: _selectedHour, minute: _selectedMinute),

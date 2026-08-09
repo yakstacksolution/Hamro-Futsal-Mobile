@@ -227,7 +227,7 @@ class _CardOptionsMenu extends StatelessWidget {
   Widget build(BuildContext context) {
     return PopupMenuButton<_TeamAction>(
       tooltip: tooltip,
-      icon: const Icon(
+      icon: Icon(
         Icons.more_vert_rounded,
         color: LightColor.iconGrey,
         size: AppDimens.sizeX18,
@@ -242,7 +242,7 @@ class _CardOptionsMenu extends StatelessWidget {
       constraints: const BoxConstraints(minWidth: AppDimens.sizeX120),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppDimens.radiusX10),
-        side: const BorderSide(color: LightColor.dividerColor),
+        side: BorderSide(color: LightColor.dividerColor),
       ),
       onSelected: (action) => switch (action) {
         _TeamAction.edit => onUpdate(),

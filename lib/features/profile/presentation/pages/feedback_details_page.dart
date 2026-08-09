@@ -98,7 +98,7 @@ class _DetailsContent extends StatelessWidget {
             color: LightColor.cardColor,
             borderRadius: BorderRadius.circular(AppDimens.radiusX18),
             border: Border.all(color: LightColor.dividerColor),
-            boxShadow: const <BoxShadow>[
+            boxShadow: <BoxShadow>[
               BoxShadow(
                 color: LightColor.shadowColor,
                 blurRadius: 16,
@@ -268,7 +268,7 @@ class _DetailsError extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            const Icon(
+            Icon(
               Icons.error_outline_rounded,
               size: 36,
               color: LightColor.redColor,

@@ -17,6 +17,7 @@ import 'package:hamro_footsall/core/routers/app_router_params.dart';
 import 'package:hamro_footsall/core/routers/app_routers.dart';
 import 'package:hamro_footsall/core/routers/notification_redirection.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
+import 'package:hamro_footsall/core/theme/app_theme_controller.dart';
 import 'package:hamro_footsall/features/app_update/data/repositories/app_update_repository_impl.dart';
 import 'package:hamro_footsall/features/app_update/domain/usecase/check_app_update_use_case.dart';
 import 'package:hamro_footsall/features/app_update/presentation/bloc/app_update_bloc.dart';
@@ -99,31 +100,36 @@ class _MyAppState extends State<MyApp> {
           // a background download must survive navigation.
           create: (_) =>
               AppUpdateBloc(CheckAppUpdateUseCase(AppUpdateRepositoryImpl())),
-          child: MaterialApp.router(
-            title: StringConstants.hamroFutsal,
-            debugShowCheckedModeBanner: false,
-            theme: FutsalTheme.setTheme(context),
-            themeMode: ThemeMode.light,
-            localizationsDelegates: const [
-              GlobalMaterialLocalizations.delegate,
-              GlobalCupertinoLocalizations.delegate,
-              GlobalWidgetsLocalizations.delegate,
-              FlutterQuillLocalizations.delegate,
-            ],
-            supportedLocales: const [Locale('en')],
-            routerConfig: _router,
-            // Cap runaway system font scaling, which the wider layouts have
-            // less slack for. Only the ceiling is clamped: setting a floor of
-            // 1.0 would scale text *up* for anyone who has chosen a smaller
-            // system font, changing every screen.
-            builder: (BuildContext context, Widget? child) {
-              return MediaQuery.withClampedTextScaling(
-                maxScaleFactor: 1.3,
-                // Sits above every route so a mandatory update cannot be
-                // navigated around, and below the theme so it can be styled.
-                child: AppUpdateGate(
-                  child: child ?? const SizedBox.shrink(),
-                ),
+          child: ValueListenableBuilder<ThemeMode>(
+            valueListenable: AppThemeController.instance,
+            builder: (BuildContext context, ThemeMode mode, Widget? child) {
+              return MaterialApp.router(
+                title: StringConstants.hamroFutsal,
+                debugShowCheckedModeBanner: false,
+                theme: FutsalTheme.lightTheme,
+                darkTheme: FutsalTheme.darkTheme,
+                themeMode: mode,
+                // No cross-fade. Only widgets reading Theme.of(context) can be
+                // lerped; the rest of the app reads LightColor and switches in
+                // one frame. Animating half the screen while the other half
+                // snaps is what made the toggle look like it changed twice.
+                themeAnimationDuration: Duration.zero,
+                localizationsDelegates: const [
+                  GlobalMaterialLocalizations.delegate,
+                  GlobalCupertinoLocalizations.delegate,
+                  GlobalWidgetsLocalizations.delegate,
+                  FlutterQuillLocalizations.delegate,
+                ],
+                supportedLocales: const [Locale('en')],
+                routerConfig: _router,
+                builder: (BuildContext context, Widget? child) {
+                  return MediaQuery.withClampedTextScaling(
+                    maxScaleFactor: 1.3,
+                    child: AppUpdateGate(
+                      child: child ?? const SizedBox.shrink(),
+                    ),
+                  );
+                },
               );
             },
           ),

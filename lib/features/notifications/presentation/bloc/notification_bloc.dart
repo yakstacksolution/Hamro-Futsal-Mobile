@@ -74,13 +74,10 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
     emit(state.copyWith(notifications: optimistic, unreadCount: 0));
 
     final result = await _useCase.markAllRead();
-    result.fold(
-      (error) {
-        emit(state.copyWith(errorMessage: error.errorMessage));
-        add(const FetchNotificationsEvent(silent: true));
-      },
-      (_) => add(const FetchNotificationsEvent(silent: true)),
-    );
+    result.fold((error) {
+      emit(state.copyWith(errorMessage: error.errorMessage));
+      add(const FetchNotificationsEvent(silent: true));
+    }, (_) => add(const FetchNotificationsEvent(silent: true)));
   }
 
   Future<void> _onMarkRead(
@@ -90,13 +87,10 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
     emit(_applyReadState(event.notificationId, read: true));
 
     final result = await _useCase.markRead(event.notificationId);
-    result.fold(
-      (error) {
-        emit(state.copyWith(errorMessage: error.errorMessage));
-        add(const FetchNotificationsEvent(silent: true));
-      },
-      (_) {},
-    );
+    result.fold((error) {
+      emit(state.copyWith(errorMessage: error.errorMessage));
+      add(const FetchNotificationsEvent(silent: true));
+    }, (_) {});
   }
 
   Future<void> _onMarkUnread(
@@ -106,13 +100,10 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
     emit(_applyReadState(event.notificationId, read: false));
 
     final result = await _useCase.markUnread(event.notificationId);
-    result.fold(
-      (error) {
-        emit(state.copyWith(errorMessage: error.errorMessage));
-        add(const FetchNotificationsEvent(silent: true));
-      },
-      (_) {},
-    );
+    result.fold((error) {
+      emit(state.copyWith(errorMessage: error.errorMessage));
+      add(const FetchNotificationsEvent(silent: true));
+    }, (_) {});
   }
 
   /// Optimistically toggles a single notification's read flag and keeps the

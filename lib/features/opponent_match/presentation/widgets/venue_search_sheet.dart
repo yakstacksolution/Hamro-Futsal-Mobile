@@ -19,8 +19,8 @@ Future<PublicListingVenueModel?> showVenueSearchSheet(
   return showModalBottomSheet<PublicListingVenueModel>(
     context: context,
     isScrollControlled: true,
-    backgroundColor: LightColor.whiteColor,
-    barrierColor: Colors.black.withValues(alpha: 0.3),
+    backgroundColor: context.appColors.surfaceElevated,
+    barrierColor: LightColor.scrimColor,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.only(
         topLeft: Radius.circular(AppDimens.radiusX16),
@@ -151,10 +151,8 @@ class _VenueSearchSheetState extends State<_VenueSearchSheet> {
                       bottom: AppDimens.paddingX24,
                     ),
                     itemCount: venues.length,
-                    separatorBuilder: (_, __) => const Divider(
-                      height: 1,
-                      color: LightColor.dividerColor,
-                    ),
+                    separatorBuilder: (_, __) =>
+                        Divider(height: 1, color: LightColor.dividerColor),
                     itemBuilder: (_, i) {
                       final venue = venues[i];
                       return ListTile(

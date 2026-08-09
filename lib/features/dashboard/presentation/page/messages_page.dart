@@ -233,7 +233,7 @@ class _MessagesPageState extends State<MessagesPage> {
             hintStyle: textTheme.bodyTextSmall?.copyWith(
               color: LightColor.hintTextColor,
             ),
-            prefixIcon: const Icon(
+            prefixIcon: Icon(
               Icons.search_rounded,
               color: LightColor.iconGrey,
               size: AppDimens.sizeX18,
@@ -250,7 +250,7 @@ class _MessagesPageState extends State<MessagesPage> {
                       _searchCtrl.clear();
                       setState(() => _query = '');
                     },
-                    child: const Icon(
+                    child: Icon(
                       Icons.close_rounded,
                       color: LightColor.iconGrey,
                       size: AppDimens.sizeX16,
@@ -263,11 +263,11 @@ class _MessagesPageState extends State<MessagesPage> {
             contentPadding: const EdgeInsets.symmetric(vertical: 10),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppDimens.radiusX10),
-              borderSide: const BorderSide(color: LightColor.dividerColor),
+              borderSide: BorderSide(color: LightColor.dividerColor),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppDimens.radiusX10),
-              borderSide: const BorderSide(color: LightColor.dividerColor),
+              borderSide: BorderSide(color: LightColor.dividerColor),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppDimens.radiusX10),
@@ -402,7 +402,7 @@ class _FilterChipItem extends StatelessWidget {
                 label,
                 style: textTheme.bodyTextSmall?.copyWith(
                   color: isSelected
-                      ? LightColor.whiteColor
+                      ? LightColor.inverseTextColor
                       : LightColor.secondaryTextColor,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                   fontSize: AppDimens.fontBodySubTitle,
@@ -414,7 +414,7 @@ class _FilterChipItem extends StatelessWidget {
                   count.toString(),
                   style: textTheme.bodyTextSmall?.copyWith(
                     color: isSelected
-                        ? LightColor.whiteColor.withValues(alpha: 0.7)
+                        ? LightColor.inverseTextColor.withValues(alpha: 0.7)
                         : LightColor.hintTextColor,
                     fontWeight: FontWeight.w500,
                     fontSize: AppDimens.fontBodySubTitle,
@@ -463,7 +463,7 @@ class _MessageCard extends StatelessWidget {
                   : LightColor.dividerColor,
               width: 1,
             ),
-            boxShadow: const [
+            boxShadow: [
               BoxShadow(
                 color: LightColor.shadowColor,
                 blurRadius: 10,
@@ -495,11 +495,7 @@ class _MessageCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: AppDimens.paddingX12),
-              const Divider(
-                height: 1,
-                thickness: 1,
-                color: LightColor.dividerColor,
-              ),
+              Divider(height: 1, thickness: 1, color: LightColor.dividerColor),
               _actionRow(context, isUnread: isUnread),
             ],
           ),
@@ -738,8 +734,8 @@ class _UnreadBadge extends StatelessWidget {
       child: Text(
         count > 99 ? '99+' : count.toString(),
         textAlign: TextAlign.center,
-        style: const TextStyle(
-          color: LightColor.whiteColor,
+        style: TextStyle(
+          color: LightColor.inverseTextColor,
           fontSize: AppDimens.fontBodySubTitle,
           fontWeight: FontWeight.w700,
           height: 1.2,

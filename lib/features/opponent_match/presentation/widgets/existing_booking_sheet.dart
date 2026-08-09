@@ -20,8 +20,8 @@ Future<BookingModel?> showExistingBookingSheet(BuildContext context) {
   return showModalBottomSheet<BookingModel>(
     context: context,
     isScrollControlled: true,
-    backgroundColor: LightColor.whiteColor,
-    barrierColor: Colors.black.withValues(alpha: 0.3),
+    backgroundColor: context.appColors.surfaceElevated,
+    barrierColor: LightColor.scrimColor,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.only(
         topLeft: Radius.circular(AppDimens.radiusX16),
@@ -297,7 +297,7 @@ class _Empty extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
+            Icon(
               Icons.event_busy_outlined,
               size: 36,
               color: LightColor.hintTextColor,

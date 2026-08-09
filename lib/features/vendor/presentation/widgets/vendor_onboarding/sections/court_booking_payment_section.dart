@@ -125,9 +125,19 @@ class _AdvancePaymentSection extends StatefulWidget {
 }
 
 class _AdvancePaymentSectionState extends State<_AdvancePaymentSection> {
-  late final TextEditingController _priceController = TextEditingController(
-    text: formatDouble(widget.court.advancePrice),
-  );
+  // Assigned in initState, never as a lazy field initialiser: a lazy
+  // `late final` runs on first *read*, so a state that is torn down before the
+  // input subtree builds would construct the controller inside dispose() —
+  // throwing while the framework finalises the widget tree.
+  late final TextEditingController _priceController;
+
+  @override
+  void initState() {
+    super.initState();
+    _priceController = TextEditingController(
+      text: formatDouble(widget.court.advancePrice),
+    );
+  }
 
   @override
   void didUpdateWidget(covariant _AdvancePaymentSection oldWidget) {
@@ -226,10 +236,10 @@ class _AdvancePaymentSectionState extends State<_AdvancePaymentSection> {
           ),
           child: Row(
             children: <Widget>[
-              const Icon(
+              Icon(
                 Icons.lock_rounded,
                 size: AppDimens.sizeX18,
-                color: LightColor.secondaryColor,
+                color: LightColor.brandTextColor,
               ),
               const SizedBox(width: AppDimens.sizeX10),
               Expanded(
@@ -374,7 +384,7 @@ class _AdvanceTypeOption extends StatelessWidget {
               icon,
               size: AppDimens.sizeX16,
               color: isSelected
-                  ? LightColor.whiteColor
+                  ? LightColor.inverseTextColor
                   : LightColor.secondaryTextColor,
             ),
             const SizedBox(width: AppDimens.sizeX6),
@@ -382,7 +392,7 @@ class _AdvanceTypeOption extends StatelessWidget {
               label,
               style: textTheme.bodyTextSmall?.copyWith(
                 color: isSelected
-                    ? LightColor.whiteColor
+                    ? LightColor.inverseTextColor
                     : LightColor.primaryTextColor,
                 fontWeight: FontWeight.w700,
               ),

@@ -95,7 +95,7 @@ class PaymentQrCard extends StatelessWidget {
             color: LightColor.hintTextColor,
           ),
           const SizedBox(height: AppDimens.sizeX6),
-          const Text(
+          Text(
             StringConstants.qrUnavailable,
             style: TextStyle(
               color: LightColor.hintTextColor,

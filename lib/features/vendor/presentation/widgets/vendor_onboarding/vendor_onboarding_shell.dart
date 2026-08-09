@@ -24,9 +24,9 @@ class VendorOnboardingShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: LightColor.whiteColor,
+      backgroundColor: context.appColors.background,
       appBar: AppBar(
-        backgroundColor: LightColor.whiteColor,
+        backgroundColor: context.appColors.background,
         surfaceTintColor: Colors.transparent,
         centerTitle: false,
         title: Text(
@@ -60,12 +60,12 @@ class VendorOnboardingShell extends StatelessWidget {
                       cancelText: 'Stay here',
                       iconWidget: Padding(
                         padding: const EdgeInsets.all(8.0),
-                        child: const CustomImageView(
+                        child: CustomImageView(
                           imagePath: ImageConstants.navHomeFill,
                           width: AppDimens.sizeX28,
                           height: AppDimens.sizeX20,
                           fit: BoxFit.contain,
-                          color: LightColor.secondaryColor,
+                          color: LightColor.brandTextColor,
                         ),
                       ),
                     );
@@ -73,12 +73,12 @@ class VendorOnboardingShell extends StatelessWidget {
                       await onExitToHome();
                     }
                   },
-            icon: const CustomImageView(
+            icon: CustomImageView(
               imagePath: ImageConstants.navHome,
               width: AppDimens.sizeX22,
               height: AppDimens.sizeX22,
               fit: BoxFit.contain,
-              color: LightColor.secondaryColor,
+              color: LightColor.brandTextColor,
             ),
           ),
           const SizedBox(width: AppDimens.sizeX8),

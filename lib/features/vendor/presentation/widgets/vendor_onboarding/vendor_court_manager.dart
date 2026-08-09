@@ -461,13 +461,13 @@ class _AddCourtButton extends StatelessWidget {
               Icon(
                 Icons.add_rounded,
                 size: AppDimens.sizeX12,
-                color: LightColor.whiteColor,
+                color: LightColor.inverseTextColor,
               ),
               SizedBox(width: AppDimens.sizeX4),
               Text(
                 StringConstants.newCourt,
                 style: FutsalTheme.getTextTheme(context).bodySubTitle?.copyWith(
-                  color: LightColor.whiteColor,
+                  color: LightColor.inverseTextColor,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -500,9 +500,9 @@ class _CourtEmptyStateCompact extends StatelessWidget {
               color: LightColor.secondaryColor,
               borderRadius: BorderRadius.circular(AppDimens.radiusX8),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.stadium_rounded,
-              color: LightColor.whiteColor,
+              color: LightColor.inverseTextColor,
               size: AppDimens.sizeX20,
             ),
           ),
@@ -649,7 +649,7 @@ class _CourtListTile extends StatelessWidget {
                   Text(
                     price.isEmpty ? '—' : 'Rs $price',
                     style: textTheme.bodyTextSmall?.copyWith(
-                      color: LightColor.secondaryColor,
+                      color: LightColor.brandTextColor,
                     ),
                   ),
                   const Spacer(),
@@ -657,7 +657,7 @@ class _CourtListTile extends StatelessWidget {
                     isComplete ? 'Complete' : '$progressPercent%',
                     style: textTheme.bodyMiniSubTitle?.copyWith(
                       color: isComplete
-                          ? LightColor.secondaryColor
+                          ? LightColor.brandTextColor
                           : LightColor.secondaryTextColor,
                       fontWeight: FontWeight.w700,
                     ),
@@ -784,7 +784,7 @@ class _RemoveButton extends StatelessWidget {
           color: LightColor.primaryTextColor.withValues(alpha: 0.05),
           shape: BoxShape.circle,
         ),
-        child: const Icon(
+        child: Icon(
           Icons.close_rounded,
           size: AppDimens.sizeX12,
           color: LightColor.secondaryTextColor,
@@ -817,9 +817,9 @@ class _CourtThumbnail extends StatelessWidget {
               height: AppDimens.sizeX58,
               fit: BoxFit.cover,
             )
-          : const Icon(
+          : Icon(
               Icons.stadium_rounded,
-              color: LightColor.secondaryColor,
+              color: LightColor.brandTextColor,
               size: AppDimens.sizeX24,
             ),
     );
@@ -856,14 +856,14 @@ class CourtOnboardingPageState extends State<CourtOnboardingPage> {
           'Your current court setup progress will be saved before returning home.',
       confirmText: 'Save & go home',
       cancelText: 'Stay here',
-      iconWidget: const Padding(
+      iconWidget: Padding(
         padding: EdgeInsets.all(8.0),
         child: CustomImageView(
           imagePath: ImageConstants.navHomeFill,
           width: AppDimens.sizeX28,
           height: AppDimens.sizeX20,
           fit: BoxFit.contain,
-          color: LightColor.secondaryColor,
+          color: LightColor.brandTextColor,
         ),
       ),
     );
@@ -913,12 +913,12 @@ class CourtOnboardingPageState extends State<CourtOnboardingPage> {
               IconButton(
                 tooltip: 'Home',
                 onPressed: state.isSubmitting ? null : _confirmExitToHome,
-                icon: const CustomImageView(
+                icon: CustomImageView(
                   imagePath: ImageConstants.navHome,
                   width: AppDimens.sizeX22,
                   height: AppDimens.sizeX22,
                   fit: BoxFit.contain,
-                  color: LightColor.secondaryColor,
+                  color: LightColor.brandTextColor,
                 ),
               ),
               const SizedBox(width: AppDimens.sizeX8),
@@ -1083,8 +1083,8 @@ class _AddCourtSheetState extends State<_AddCourtSheet> {
               child: CustomButton(
                 text: StringConstants.cancel,
                 isOutlined: true,
-                backgroundColor: Colors.white,
-                foregroundColor: LightColor.secondaryColor,
+                backgroundColor: LightColor.elevatedCardColor,
+                foregroundColor: LightColor.brandTextColor,
                 borderColor: LightColor.secondaryColor,
                 minHeight: AppDimens.sizeX46,
                 onPressed: () => Navigator.of(context).pop(),

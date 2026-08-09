@@ -157,7 +157,7 @@ class _ManualBookingPageState extends State<ManualBookingPage> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
-                    const Icon(
+                    Icon(
                       Icons.cloud_off_rounded,
                       color: LightColor.secondaryTextColor,
                       size: AppDimens.sizeX44,
@@ -454,7 +454,7 @@ class _ManualBookingPageState extends State<ManualBookingPage> {
               ],
             ),
           ),
-          const Divider(height: 1, color: LightColor.dividerColor),
+          Divider(height: 1, color: LightColor.dividerColor),
           Padding(
             padding: const EdgeInsets.all(AppDimens.paddingX16),
             child: Column(
@@ -544,7 +544,7 @@ class _ManualBookingActionBar extends StatelessWidget {
         AppDimens.paddingX20,
         AppDimens.paddingX12 + MediaQuery.viewPaddingOf(context).bottom,
       ),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: LightColor.cardColor,
         border: Border(top: BorderSide(color: LightColor.dividerColor)),
       ),

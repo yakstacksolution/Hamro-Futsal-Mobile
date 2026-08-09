@@ -267,20 +267,6 @@ final class PublicListingVenueModel extends Equatable {
     return null;
   }
 
-  static String? _parseOptionText(dynamic value) {
-    if (value is Map) {
-      return _parseString(
-        value['name'] ??
-            value['title'] ??
-            value['label'] ??
-            value['type'] ??
-            value['format'] ??
-            value['value'],
-      );
-    }
-    return _parseString(value);
-  }
-
   @override
   List<Object?> get props => <Object?>[
     id,

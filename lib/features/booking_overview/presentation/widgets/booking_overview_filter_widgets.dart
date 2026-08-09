@@ -55,7 +55,7 @@ class BookingChip extends StatelessWidget {
                   icon,
                   size: 12,
                   color: selected
-                      ? LightColor.whiteColor
+                      ? LightColor.inverseTextColor
                       : LightColor.secondaryTextColor,
                 ),
                 const SizedBox(width: 4),
@@ -64,7 +64,7 @@ class BookingChip extends StatelessWidget {
                 label,
                 style: textTheme.bodyTextSmall?.copyWith(
                   color: selected
-                      ? LightColor.whiteColor
+                      ? LightColor.inverseTextColor
                       : LightColor.secondaryTextColor,
                   fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
                   fontSize: AppDimens.fontBodySubTitle,

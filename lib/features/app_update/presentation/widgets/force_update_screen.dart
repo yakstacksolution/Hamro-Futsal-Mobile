@@ -238,7 +238,7 @@ class _DownloadingRow extends StatelessWidget {
         const SizedBox(height: AppDimens.paddingX12),
         ClipRRect(
           borderRadius: BorderRadius.circular(AppDimens.radiusX8),
-          child: const LinearProgressIndicator(
+          child: LinearProgressIndicator(
             minHeight: 4,
             color: LightColor.secondaryColor,
             backgroundColor: LightColor.inputFillColor,

@@ -189,7 +189,7 @@ class _OpponentMatchViewState extends State<_OpponentMatchView>
           dividerColor: Colors.transparent,
           splashBorderRadius: BorderRadius.circular(AppDimens.radiusX10),
           overlayColor: WidgetStateProperty.all(Colors.transparent),
-          labelColor: LightColor.whiteColor,
+          labelColor: LightColor.inverseTextColor,
           unselectedLabelColor: LightColor.secondaryTextColor,
           labelStyle: textTheme.bodyTextSmall?.copyWith(
             fontWeight: FontWeight.w700,
@@ -246,7 +246,7 @@ class _OpponentMatchViewState extends State<_OpponentMatchView>
                 fontSize: AppDimens.fontBodySubTitle,
                 fontWeight: FontWeight.w700,
                 color: selected
-                    ? LightColor.whiteColor
+                    ? LightColor.inverseTextColor
                     : LightColor.secondaryTextColor,
               ),
             ),
@@ -266,7 +266,7 @@ class _OpponentMatchViewState extends State<_OpponentMatchView>
         child: FloatingActionButton.extended(
           onPressed: _openCreateRequest,
           backgroundColor: LightColor.secondaryColor,
-          foregroundColor: LightColor.whiteColor,
+          foregroundColor: LightColor.inverseTextColor,
           elevation: 0,
           extendedPadding: const EdgeInsets.symmetric(horizontal: 16),
           shape: const StadiumBorder(),
@@ -275,7 +275,7 @@ class _OpponentMatchViewState extends State<_OpponentMatchView>
             'Find an Opponent',
             style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
               fontWeight: FontWeight.w700,
-              color: LightColor.whiteColor,
+              color: LightColor.inverseTextColor,
             ),
           ),
         ),
@@ -408,7 +408,7 @@ class _LoadError extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
+            Icon(
               Icons.cloud_off_rounded,
               size: 40,
               color: LightColor.hintTextColor,

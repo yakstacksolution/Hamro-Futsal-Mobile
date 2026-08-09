@@ -46,7 +46,7 @@ class UpdateVersionSummary extends StatelessWidget {
                 value: current,
               ),
             ),
-            const Padding(
+            Padding(
               padding: EdgeInsets.symmetric(horizontal: AppDimens.paddingX10),
               child: Icon(
                 Icons.arrow_forward_rounded,

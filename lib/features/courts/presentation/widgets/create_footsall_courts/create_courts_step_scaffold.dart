@@ -52,7 +52,7 @@ class CreateCourtsStepScaffold extends StatelessWidget {
                     ),
                   ],
                 ),
-                child: Icon(icon, color: Colors.white, size: 26),
+                child: Icon(icon, color: LightColor.inverseTextColor, size: 26),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -71,7 +71,7 @@ class CreateCourtsStepScaffold extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w800,
                         color: LightColor.primaryTextColor,
@@ -81,7 +81,7 @@ class CreateCourtsStepScaffold extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       subtitle,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 10,
                         color: LightColor.secondaryTextColor,
                       ),
@@ -119,16 +119,16 @@ class CreateCourtsStepScaffold extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.92),
+              color: LightColor.inverseTextColor.withValues(alpha: 0.92),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: LightColor.borderColor.withValues(alpha: 0.75),
               ),
-              boxShadow: const <BoxShadow>[
+              boxShadow: <BoxShadow>[
                 BoxShadow(
-                  color: Color(0x0D000000),
+                  color: LightColor.shadowOf(0.05),
                   blurRadius: 12,
-                  offset: Offset(0, 4),
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),

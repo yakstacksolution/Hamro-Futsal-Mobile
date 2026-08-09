@@ -228,7 +228,7 @@ class _DetailsImageGalleryState extends State<DetailsImageGallery> {
                                 ),
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(
-                                  color: LightColor.whiteColor.withValues(
+                                  color: LightColor.onBrandSurface.withValues(
                                     alpha: 0.15,
                                   ),
                                 ),
@@ -236,16 +236,16 @@ class _DetailsImageGalleryState extends State<DetailsImageGallery> {
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(
+                                  Icon(
                                     Icons.photo,
-                                    color: LightColor.whiteColor,
+                                    color: LightColor.inverseTextColor,
                                     size: 14,
                                   ),
                                   const SizedBox(width: 5),
                                   Text(
                                     '${_currentImageIndex + 1}/${widget.images.length}',
-                                    style: const TextStyle(
-                                      color: LightColor.whiteColor,
+                                    style: TextStyle(
+                                      color: LightColor.inverseTextColor,
                                       fontSize: 12,
                                       fontWeight: FontWeight.w700,
                                     ),
@@ -314,7 +314,7 @@ class _DetailsImageGalleryState extends State<DetailsImageGallery> {
   Widget _glassButton({
     required IconData icon,
     required VoidCallback onTap,
-    Color iconColor = LightColor.primaryTextColor,
+    Color? iconColor,
   }) {
     return GestureDetector(
       onTap: onTap,
@@ -328,7 +328,7 @@ class _DetailsImageGalleryState extends State<DetailsImageGallery> {
             decoration: BoxDecoration(
               // Soft frosted cream background so the dark icons stay legible
               // over any image without looking starkly white.
-              color: const Color(0xFFFBF8F1).withValues(alpha: 0.88),
+              color: LightColor.elevatedCardColor.withValues(alpha: 0.88),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
                 color: LightColor.primaryTextColor.withValues(alpha: 0.08),
@@ -341,7 +341,11 @@ class _DetailsImageGalleryState extends State<DetailsImageGallery> {
                 ),
               ],
             ),
-            child: Icon(icon, color: iconColor, size: 22),
+            child: Icon(
+              icon,
+              color: iconColor ?? context.appColors.primaryText,
+              size: 22,
+            ),
           ),
         ),
       ),

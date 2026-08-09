@@ -12,7 +12,7 @@ Future<bool> showDeleteDialog({
   String confirmText = 'Delete',
   String cancelText = 'Cancel',
   IconData icon = Icons.delete_outline_rounded,
-  Color confirmColor = LightColor.redColor,
+  Color? confirmColor,
 }) async {
   final bool? result = await showDialog<bool>(
     context: context,
@@ -23,7 +23,7 @@ Future<bool> showDeleteDialog({
       confirmText: confirmText,
       cancelText: cancelText,
       icon: icon,
-      confirmColor: confirmColor,
+      confirmColor: confirmColor ?? context.appColors.danger,
     ),
   );
   return result ?? false;
@@ -52,11 +52,11 @@ class _DeleteDialog extends StatelessWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppDimens.radiusX16),
       ),
-      backgroundColor: LightColor.whiteColor,
+      backgroundColor: context.appColors.surfaceElevated,
       child: Container(
         padding: AppUtils().getPadding(all: AppDimens.paddingX20),
         decoration: BoxDecoration(
-          color: LightColor.whiteColor,
+          color: context.appColors.surfaceElevated,
           borderRadius: BorderRadius.circular(AppDimens.radiusX16),
         ),
         child: Column(
@@ -97,7 +97,7 @@ class _DeleteDialog extends StatelessWidget {
                   child: CustomButton(
                     text: cancelText,
                     isOutlined: true,
-                    backgroundColor: Colors.white,
+                    backgroundColor: LightColor.elevatedCardColor,
                     foregroundColor: LightColor.primaryTextColor,
                     borderColor: LightColor.greyBorderColor,
                     minHeight: AppDimens.sizeX46,

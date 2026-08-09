@@ -61,7 +61,7 @@ class AccountSettlementListLoading extends StatelessWidget {
         children: <Widget>[
           for (int i = 0; i < itemCount; i++) ...<Widget>[
             if (i > 0)
-              const Divider(
+              Divider(
                 height: AppDimens.paddingX24,
                 thickness: 1,
                 color: LightColor.dividerColor,
@@ -83,7 +83,7 @@ class _AccountShimmer extends StatelessWidget {
   Widget build(BuildContext context) {
     return Shimmer.fromColors(
       baseColor: LightColor.iconGrey.withValues(alpha: 0.18),
-      highlightColor: LightColor.whiteColor.withValues(alpha: 0.85),
+      highlightColor: LightColor.skeletonHighlightColor.withValues(alpha: 0.85),
       period: const Duration(milliseconds: 1250),
       child: child,
     );
@@ -175,7 +175,7 @@ class _ShortcutCardSkeleton extends StatelessWidget {
         color: LightColor.whiteColor,
         borderRadius: BorderRadius.circular(AppDimens.radiusX12),
       ),
-      child: const Column(
+      child: Column(
         children: <Widget>[
           _ShortcutRowSkeleton(),
           Divider(height: 1, thickness: 0.5, color: LightColor.dividerColor),
@@ -233,7 +233,7 @@ class _ListCardSkeleton extends StatelessWidget {
       children: <Widget>[
         for (int i = 0; i < itemCount; i++) ...<Widget>[
           if (i > 0)
-            const Divider(
+            Divider(
               height: AppDimens.paddingX20,
               thickness: 1,
               color: LightColor.dividerColor,
@@ -347,7 +347,7 @@ class _CircleBlock extends StatelessWidget {
     return Container(
       width: size,
       height: size,
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: LightColor.whiteColor,
         shape: BoxShape.circle,
       ),

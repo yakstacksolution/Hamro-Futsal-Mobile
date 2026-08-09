@@ -65,10 +65,10 @@ class CourtLocationMapSection extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(AppDimens.paddingX16),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
+          gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFFFFFFFF), Color(0xFFF8FAFC)],
+            colors: <Color>[LightColor.elevatedCardColor, LightColor.cardColor],
           ),
           borderRadius: BorderRadius.circular(AppDimens.radiusX10),
           boxShadow: [
@@ -191,7 +191,7 @@ class CourtLocationMapSection extends StatelessWidget {
                           vertical: AppDimens.paddingX2,
                         ),
                         decoration: BoxDecoration(
-                          color: LightColor.whiteColor.withValues(alpha: 0.8),
+                          color: LightColor.onBrandSurface.withValues(alpha: 0.8),
                           borderRadius: BorderRadius.circular(
                             AppDimens.radiusX4,
                           ),

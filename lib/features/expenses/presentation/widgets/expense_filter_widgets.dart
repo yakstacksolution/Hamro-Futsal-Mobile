@@ -60,7 +60,7 @@ class ExpenseChip extends StatelessWidget {
                     icon,
                     size: 12,
                     color: selected
-                        ? LightColor.whiteColor
+                        ? LightColor.inverseTextColor
                         : LightColor.secondaryTextColor,
                   ),
                   const SizedBox(width: 4),
@@ -69,7 +69,7 @@ class ExpenseChip extends StatelessWidget {
                   label,
                   style: textTheme.bodyTextSmall?.copyWith(
                     color: selected
-                        ? LightColor.whiteColor
+                        ? LightColor.inverseTextColor
                         : LightColor.secondaryTextColor,
                     fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
                     fontSize: AppDimens.fontBodySubTitle,
@@ -212,7 +212,7 @@ class ExpenseFilterDropdown extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
-    final fg = active ? LightColor.whiteColor : LightColor.secondaryTextColor;
+    final fg = active ? LightColor.inverseTextColor : LightColor.secondaryTextColor;
     return PopupMenuButton<int>(
       onSelected: (i) {
         HapticFeedback.selectionClick();

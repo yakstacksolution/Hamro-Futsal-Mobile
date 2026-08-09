@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:hamro_footsall/core/theme/app_colors.dart';
 
 class SelectionTimeLoading extends StatelessWidget {
   const SelectionTimeLoading({super.key, this.itemCount = 6});
@@ -11,8 +12,8 @@ class SelectionTimeLoading extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Shimmer.fromColors(
-      baseColor: Colors.grey.shade300,
-      highlightColor: Colors.grey.shade100,
+      baseColor: LightColor.skeletonBaseColor,
+      highlightColor: LightColor.skeletonHighlightColor,
       child: GridView.builder(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
@@ -27,7 +28,7 @@ class SelectionTimeLoading extends StatelessWidget {
           return Container(
             padding: AppUtils().getPadding(horizontal: AppDimens.paddingX8),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: LightColor.skeletonBaseColor,
               borderRadius: BorderRadius.circular(AppDimens.radiusX50),
             ),
           );

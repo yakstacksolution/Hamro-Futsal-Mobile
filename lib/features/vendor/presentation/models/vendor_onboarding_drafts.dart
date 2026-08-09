@@ -989,7 +989,9 @@ class CourtDraft {
       // one with it switched off) is read back as required.
       advancePaymentRequired: true,
       advancePaymentType:
-          AdvancePaymentType.fromString(json['advancePaymentType'] as String?) ??
+          AdvancePaymentType.fromString(
+            json['advancePaymentType'] as String?,
+          ) ??
           AdvancePaymentType.percentage,
       advancePrice: _asDouble(json['advancePrice'] ?? json['paymentPercent']),
       advancePriceUserEdited: json['advancePriceUserEdited'] as bool? ?? false,

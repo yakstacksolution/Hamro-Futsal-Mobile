@@ -28,7 +28,7 @@ class OpponentSheetShell extends StatelessWidget {
       child: ConstrainedBox(
         constraints: BoxConstraints(maxHeight: maxSheetHeight),
         child: Container(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             color: LightColor.cardColor,
             borderRadius: BorderRadius.vertical(
               top: Radius.circular(AppDimens.radiusX24),

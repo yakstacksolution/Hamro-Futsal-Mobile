@@ -61,7 +61,7 @@ class ChatBubble extends StatelessWidget {
           bottomLeft: Radius.circular(isMe ? AppDimens.radiusX14 : 4),
           bottomRight: Radius.circular(isMe ? 4 : AppDimens.radiusX14),
         ),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
             color: LightColor.shadowColor,
             blurRadius: 6,
@@ -94,7 +94,7 @@ class ChatBubble extends StatelessWidget {
               margin: const EdgeInsets.only(bottom: 6),
               padding: const EdgeInsets.all(7),
               decoration: BoxDecoration(
-                color: (isMe ? Colors.white : LightColor.secondaryColor)
+                color: (isMe ? LightColor.onBrandSurface : LightColor.secondaryColor)
                     .withValues(alpha: 0.13),
                 borderRadius: BorderRadius.circular(AppDimens.radiusX6),
               ),
@@ -109,7 +109,7 @@ class ChatBubble extends StatelessWidget {
                 style: textTheme.bodyTextSmall?.copyWith(
                   fontSize: AppDimens.fontBodySubTitle,
                   color: isMe
-                      ? LightColor.whiteColor.withValues(alpha: 0.85)
+                      ? LightColor.inverseTextColor.withValues(alpha: 0.85)
                       : LightColor.secondaryTextColor,
                 ),
               ),
@@ -121,7 +121,7 @@ class ChatBubble extends StatelessWidget {
                 message.isDeleted ? 'Message deleted' : message.body,
                 style: textTheme.bodyTextSmall?.copyWith(
                   color: isMe
-                      ? LightColor.whiteColor
+                      ? LightColor.inverseTextColor
                       : LightColor.primaryTextColor,
                   fontWeight: FontWeight.w500,
                   fontStyle: message.isDeleted
@@ -141,7 +141,7 @@ class ChatBubble extends StatelessWidget {
                     Icons.location_on_outlined,
                     size: 16,
                     color: isMe
-                        ? LightColor.whiteColor
+                        ? LightColor.inverseTextColor
                         : LightColor.secondaryColor,
                   ),
                   const SizedBox(width: AppDimens.paddingX4),
@@ -149,7 +149,7 @@ class ChatBubble extends StatelessWidget {
                     locationText,
                     style: textTheme.bodyTextSmall?.copyWith(
                       color: isMe
-                          ? LightColor.whiteColor
+                          ? LightColor.inverseTextColor
                           : LightColor.primaryTextColor,
                     ),
                   ),
@@ -188,7 +188,7 @@ class ChatBubble extends StatelessWidget {
                     fontSize: 10,
                     fontStyle: FontStyle.italic,
                     color: isMe
-                        ? LightColor.whiteColor.withValues(alpha: 0.7)
+                        ? LightColor.inverseTextColor.withValues(alpha: 0.7)
                         : LightColor.hintTextColor,
                   ),
                 ),
@@ -197,7 +197,7 @@ class ChatBubble extends StatelessWidget {
                 style: textTheme.bodyTextSmall?.copyWith(
                   fontSize: 10,
                   color: isMe
-                      ? LightColor.whiteColor.withValues(alpha: 0.75)
+                      ? LightColor.inverseTextColor.withValues(alpha: 0.75)
                       : LightColor.hintTextColor,
                 ),
               ),
@@ -206,7 +206,7 @@ class ChatBubble extends StatelessWidget {
                 Icon(
                   message.isRead ? Icons.done_all_rounded : Icons.done_rounded,
                   size: 13,
-                  color: LightColor.whiteColor.withValues(alpha: 0.85),
+                  color: LightColor.inverseTextColor.withValues(alpha: 0.85),
                 ),
               ],
             ],
@@ -246,7 +246,7 @@ class _MediaChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
-    final fg = isMe ? LightColor.whiteColor : LightColor.secondaryColor;
+    final fg = isMe ? LightColor.inverseTextColor : LightColor.secondaryColor;
 
     return InkWell(
       onTap: onTap,
@@ -254,7 +254,7 @@ class _MediaChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         decoration: BoxDecoration(
-          color: (isMe ? LightColor.whiteColor : LightColor.secondaryColor)
+          color: (isMe ? LightColor.inverseTextColor : LightColor.secondaryColor)
               .withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(AppDimens.radiusX8),
         ),
@@ -280,7 +280,7 @@ class _MediaChip extends StatelessWidget {
                   fontSize: AppDimens.fontBodySubTitle,
                   fontWeight: FontWeight.w600,
                   color: isMe
-                      ? LightColor.whiteColor
+                      ? LightColor.inverseTextColor
                       : LightColor.primaryTextColor,
                 ),
               ),

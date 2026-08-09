@@ -15,7 +15,7 @@ class WizardStepBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Colors.white,
+      color: LightColor.elevatedCardColor,
       padding: const EdgeInsets.symmetric(vertical: 14),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
@@ -58,7 +58,7 @@ class WizardStepBar extends StatelessWidget {
                       shape: BoxShape.circle,
                       color: isCompleted || isActive
                           ? LightColor.secondaryColor
-                          : Colors.white,
+                          : LightColor.inverseTextColor,
                       border: Border.all(
                         color: isCompleted || isActive
                             ? LightColor.secondaryColor
@@ -81,17 +81,17 @@ class WizardStepBar extends StatelessWidget {
                       child: AnimatedSwitcher(
                         duration: const Duration(milliseconds: 200),
                         child: isCompleted
-                            ? const Icon(
+                            ? Icon(
                                 Icons.check_rounded,
                                 key: ValueKey<String>('check'),
-                                color: Colors.white,
+                                color: LightColor.elevatedCardColor,
                                 size: 18,
                               )
                             : Icon(
                                 step.icon,
                                 key: ValueKey<int>(stepIndex),
                                 color: isActive
-                                    ? Colors.white
+                                    ? LightColor.inverseTextColor
                                     : LightColor.hintTextColor,
                                 size: 17,
                               ),

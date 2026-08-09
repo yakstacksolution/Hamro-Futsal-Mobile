@@ -49,13 +49,19 @@ class _RequestSettlementPageState extends State<RequestSettlementPage> {
   static const int _maxProofBytes = 10 * 1024 * 1024;
 
   final _formKey = GlobalKey<FormState>();
-  late final TextEditingController _amountCtrl = TextEditingController(
-    text: widget.availableBalance.toString(),
-  );
+  late final TextEditingController _amountCtrl;
   final _refCtrl = TextEditingController();
   final _noteCtrl = TextEditingController();
   PlatformFile? _proof;
   bool _proofMissing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _amountCtrl = TextEditingController(
+      text: widget.availableBalance.toString(),
+    );
+  }
 
   @override
   void dispose() {
@@ -296,7 +302,7 @@ class _ProofPicker extends StatelessWidget {
                     ],
                   ),
                 ),
-                const Icon(
+                Icon(
                   Icons.chevron_right_rounded,
                   color: LightColor.iconGrey,
                   size: AppDimens.sizeX20,

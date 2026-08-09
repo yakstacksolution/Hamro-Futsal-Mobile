@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:hamro_footsall/core/theme/app_colors.dart';
 
 class HostedBySectionLoading extends StatelessWidget {
   const HostedBySectionLoading({super.key});
@@ -16,12 +17,12 @@ class HostedBySectionLoading extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(AppDimens.paddingX16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: LightColor.skeletonBaseColor,
           borderRadius: BorderRadius.circular(AppDimens.radiusX10),
         ),
         child: Shimmer.fromColors(
-          baseColor: Colors.grey.shade300,
-          highlightColor: Colors.grey.shade100,
+          baseColor: LightColor.skeletonBaseColor,
+          highlightColor: LightColor.skeletonHighlightColor,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
@@ -94,7 +95,7 @@ class _MetricTileSkeleton extends StatelessWidget {
           vertical: AppDimens.paddingX10,
         ),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: LightColor.skeletonBaseColor,
           borderRadius: BorderRadius.circular(AppDimens.radiusX8),
         ),
         child: Column(
@@ -135,7 +136,7 @@ class _Block extends StatelessWidget {
       height: height,
       width: width ?? double.infinity,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: LightColor.skeletonBaseColor,
         borderRadius: BorderRadius.circular(radius),
       ),
     );

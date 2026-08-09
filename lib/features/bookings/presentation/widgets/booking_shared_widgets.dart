@@ -10,7 +10,7 @@ import 'package:hamro_footsall/core/widgets/app_message_view.dart';
 
 Color bookingStatusColor(BookingStatus status) => switch (status) {
   BookingStatus.confirmed => LightColor.secondaryColor,
-  BookingStatus.pending => const Color(0xFFE65100),
+  BookingStatus.pending => LightColor.warningColor,
   BookingStatus.cancelled => LightColor.redColor,
   BookingStatus.rejected => LightColor.redColor,
   BookingStatus.completed => LightColor.purpleColor,
@@ -129,23 +129,27 @@ class BookingInfoChip extends StatelessWidget {
     super.key,
     required this.icon,
     required this.label,
-    this.color = LightColor.secondaryTextColor,
+    this.color,
   });
   final IconData icon;
   final String label;
-  final Color color;
+  final Color? color;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: AppDimens.sizeX12, color: color),
+        Icon(
+          icon,
+          size: AppDimens.sizeX12,
+          color: color ?? context.appColors.secondaryText,
+        ),
         const SizedBox(width: AppDimens.paddingX4),
         Text(
           label,
           style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
-            color: color,
+            color: color ?? context.appColors.secondaryText,
             fontSize: AppDimens.fontBodySubTitle,
           ),
         ),
@@ -223,7 +227,7 @@ class _SkeletonCard extends StatelessWidget {
           children: [
             Container(
               width: 4,
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 color: LightColor.dividerColor,
                 borderRadius: BorderRadius.only(
                   topLeft: Radius.circular(AppDimens.radiusX14),
@@ -404,7 +408,7 @@ class BookingCard extends StatelessWidget {
               : Icons.phone_iphone_rounded,
           label: bookingType,
           color: _isManual(booking.bookingType)
-              ? const Color(0xFFE65100)
+              ? LightColor.warningColor
               : LightColor.blueColor,
         ),
       if (booking.isRecurring)
@@ -426,7 +430,7 @@ class BookingCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: LightColor.cardColor,
             borderRadius: BorderRadius.circular(AppDimens.radiusX12),
-            boxShadow: const [
+            boxShadow: [
               BoxShadow(
                 color: LightColor.shadowColor,
                 blurRadius: 10,
@@ -511,7 +515,7 @@ class BookingCard extends StatelessWidget {
                 ),
               ],
               const SizedBox(height: AppDimens.paddingX12),
-              const Divider(color: LightColor.dividerColor, height: 1),
+              Divider(color: LightColor.dividerColor, height: 1),
               const SizedBox(height: AppDimens.paddingX12),
               Row(
                 children: [
@@ -568,7 +572,7 @@ class BookingCard extends StatelessWidget {
               ],
               if (footer != null) ...[
                 const SizedBox(height: AppDimens.paddingX12),
-                const Divider(color: LightColor.dividerColor, height: 1),
+                Divider(color: LightColor.dividerColor, height: 1),
                 const SizedBox(height: AppDimens.paddingX10),
                 Align(alignment: Alignment.centerLeft, child: footer!),
               ],
@@ -593,7 +597,7 @@ class BookingCard extends StatelessWidget {
     child: Container(
       width: 3,
       height: 3,
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: LightColor.iconGrey,
         shape: BoxShape.circle,
       ),

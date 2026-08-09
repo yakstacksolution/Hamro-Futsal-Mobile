@@ -31,7 +31,7 @@ class AccountBalanceCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppDimens.paddingX20),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [LightColor.secondaryColor, LightColor.primaryDark],
@@ -53,13 +53,13 @@ class AccountBalanceCard extends StatelessWidget {
               Icon(
                 Icons.account_balance_wallet_rounded,
                 size: AppDimens.sizeX16,
-                color: LightColor.whiteColor.withValues(alpha: 0.85),
+                color: LightColor.inverseTextColor.withValues(alpha: 0.85),
               ),
               const SizedBox(width: AppDimens.paddingX6),
               Text(
                 StringConstants.availableBalance,
                 style: textTheme.bodyTextSmall?.copyWith(
-                  color: LightColor.whiteColor.withValues(alpha: 0.85),
+                  color: LightColor.inverseTextColor.withValues(alpha: 0.85),
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -69,7 +69,7 @@ class AccountBalanceCard extends StatelessWidget {
           Text(
             AccountFmt.npr(availableBalance),
             style: textTheme.headingLarge?.copyWith(
-              color: LightColor.whiteColor,
+              color: LightColor.inverseTextColor,
               fontWeight: FontWeight.w800,
               letterSpacing: -0.5,
             ),
@@ -81,13 +81,13 @@ class AccountBalanceCard extends StatelessWidget {
                 Icon(
                   Icons.hourglass_top_rounded,
                   size: 12,
-                  color: LightColor.whiteColor.withValues(alpha: 0.7),
+                  color: LightColor.inverseTextColor.withValues(alpha: 0.7),
                 ),
                 const SizedBox(width: AppDimens.paddingX4),
                 Text(
                   '${AccountFmt.npr(pendingClearance)} ${StringConstants.pendingClearance.toLowerCase()}',
                   style: textTheme.bodyTextSmall?.copyWith(
-                    color: LightColor.whiteColor.withValues(alpha: 0.7),
+                    color: LightColor.inverseTextColor.withValues(alpha: 0.7),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -136,7 +136,7 @@ class AccountBalanceCard extends StatelessWidget {
             Text(
               disabledReason!,
               style: textTheme.bodyTextSmall?.copyWith(
-                color: LightColor.whiteColor.withValues(alpha: 0.75),
+                color: LightColor.inverseTextColor.withValues(alpha: 0.75),
                 fontSize: AppDimens.fontBodySubTitle,
               ),
             ),
@@ -316,7 +316,7 @@ class AccountNavTile extends StatelessWidget {
                   ],
                 ),
               ),
-              const Icon(
+              Icon(
                 Icons.chevron_right_rounded,
                 color: LightColor.iconGrey,
                 size: AppDimens.sizeX20,

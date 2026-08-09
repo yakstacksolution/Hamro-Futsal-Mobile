@@ -112,11 +112,7 @@ class OpponentCostSplitCard extends StatelessWidget {
             ),
           ],
           const SizedBox(height: AppDimens.paddingX12),
-          const Divider(
-            height: 1,
-            thickness: 1,
-            color: LightColor.dividerColor,
-          ),
+          Divider(height: 1, thickness: 1, color: LightColor.dividerColor),
           const SizedBox(height: AppDimens.paddingX12),
           if (cost.isResultBased) ...[
             const _CostHintRow(
@@ -232,7 +228,7 @@ class _BasisToggle extends StatelessWidget {
                       : LightColor.transparentColor,
                   borderRadius: BorderRadius.circular(AppDimens.radiusX8),
                   boxShadow: active
-                      ? const [
+                      ? [
                           BoxShadow(
                             color: LightColor.shadowColor,
                             blurRadius: 6,
@@ -334,7 +330,7 @@ class _PercentSlider extends StatelessWidget {
             overlayColor: LightColor.secondaryColor.withValues(alpha: 0.12),
             valueIndicatorColor: LightColor.secondaryColor,
             valueIndicatorTextStyle: textTheme.bodyTextSmall?.copyWith(
-              color: LightColor.whiteColor,
+              color: LightColor.inverseTextColor,
               fontWeight: FontWeight.w600,
             ),
             showValueIndicator: ShowValueIndicator.onDrag,

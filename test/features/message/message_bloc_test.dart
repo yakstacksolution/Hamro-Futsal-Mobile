@@ -7,6 +7,7 @@ import 'package:hamro_footsall/core/helper/exception_helper.dart';
 import 'package:hamro_footsall/features/message/data/model/chat_message_model.dart';
 import 'package:hamro_footsall/features/message/data/model/chat_send_request.dart';
 import 'package:hamro_footsall/features/message/data/model/conversation_model.dart';
+import 'package:hamro_footsall/features/message/data/model/message_profile_model.dart';
 import 'package:hamro_footsall/features/message/data/service/chat_socket_service.dart';
 import 'package:hamro_footsall/features/message/domain/repository/message_repository.dart';
 import 'package:hamro_footsall/features/message/domain/usecase/message_usecase.dart';
@@ -243,6 +244,11 @@ final class _FakeMessageRepository implements MessageRepository {
   @override
   Future<Either<AppException, bool>> getUserPresence(int userId) async =>
       right(false);
+
+  @override
+  Future<Either<AppException, MessageProfileModel>> getMessageProfile(
+    int userId,
+  ) async => right(MessageProfileModel(id: userId, name: 'User $userId'));
 
   @override
   Future<Either<AppException, bool>> setPresence(bool online) async =>

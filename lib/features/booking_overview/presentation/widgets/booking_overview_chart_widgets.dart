@@ -68,8 +68,8 @@ class BookingTrendCard extends StatelessWidget {
                   header: '',
                   format: 'point.y',
                   color: LightColor.primaryTextColor,
-                  textStyle: const TextStyle(
-                    color: LightColor.whiteColor,
+                  textStyle: TextStyle(
+                    color: LightColor.inverseTextColor,
                     fontSize: AppDimens.fontBodySubTitle,
                     fontWeight: FontWeight.w600,
                   ),

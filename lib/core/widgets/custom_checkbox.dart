@@ -15,10 +15,10 @@ class CustomCheckbox extends StatelessWidget {
     this.labelWidget,
     this.labelPosition = CheckboxLabelPosition.right,
     this.textStyle,
-    this.activeColor = LightColor.secondaryColor,
-    this.inactiveColor = LightColor.cardColor,
-    this.borderColor = LightColor.borderColor,
-    this.checkColor = LightColor.inverseTextColor,
+    this.activeColor,
+    this.inactiveColor,
+    this.borderColor,
+    this.checkColor,
     this.size = AppDimens.sizeX20,
     this.spacing = AppDimens.sizeX8,
     this.isExpanded = false,
@@ -31,10 +31,10 @@ class CustomCheckbox extends StatelessWidget {
   final Widget? labelWidget;
   final CheckboxLabelPosition labelPosition;
   final TextStyle? textStyle;
-  final Color activeColor;
-  final Color inactiveColor;
-  final Color borderColor;
-  final Color checkColor;
+  final Color? activeColor;
+  final Color? inactiveColor;
+  final Color? borderColor;
+  final Color? checkColor;
   final double size;
   final double spacing;
   final bool isExpanded;
@@ -51,6 +51,10 @@ class CustomCheckbox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppUtils appUtils = AppUtils();
+    final ColorScheme scheme = Theme.of(context).colorScheme;
+    final Color resolvedActive = activeColor ?? scheme.primary;
+    final Color resolvedBorder = borderColor ?? context.appColors.border;
+    final Color resolvedCheck = checkColor ?? scheme.onPrimary;
     final TextStyle resolvedStyle =
         textStyle ??
         FutsalTheme.getTextTheme(
@@ -65,15 +69,15 @@ class CustomCheckbox extends StatelessWidget {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: value ? activeColor : inactiveColor,
+        color: value ? resolvedActive : inactiveColor ?? context.appColors.surface,
         borderRadius: BorderRadius.circular(AppDimens.radiusX4),
         border: Border.all(
-          color: value ? activeColor : borderColor,
+          color: value ? resolvedActive : resolvedBorder,
           width: 1.2,
         ),
       ),
       child: value
-          ? Icon(Icons.check_rounded, size: size * 0.72, color: checkColor)
+          ? Icon(Icons.check_rounded, size: size * 0.72, color: resolvedCheck)
           : null,
     );
 

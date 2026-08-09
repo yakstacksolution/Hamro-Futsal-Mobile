@@ -195,7 +195,7 @@ class _ExpandableFocusSearchBarState extends State<ExpandableFocusSearchBar>
                 _buildIconButton(
                   Icons.close_rounded,
                   onTap: _clear,
-                  color: LightColor.whiteColor,
+                  color: LightColor.primaryTextColor,
                   bg: LightColor.greyBorderColor,
                 ),
               SizedBox(width: AppDimens.sizeX2),
@@ -205,7 +205,7 @@ class _ExpandableFocusSearchBarState extends State<ExpandableFocusSearchBar>
                   _buildIconButton(
                     Icons.tune_rounded,
                     onTap: widget.onFilterTap,
-                    color: LightColor.whiteColor,
+                    color: LightColor.inverseTextColor,
                     isGradient: true,
                   ),
                   if (widget.filterCount > 0)
@@ -232,7 +232,7 @@ class _ExpandableFocusSearchBarState extends State<ExpandableFocusSearchBar>
                           style: FutsalTheme.getTextTheme(context)
                               .bodyMiniSubTitle
                               ?.copyWith(
-                                color: LightColor.whiteColor,
+                                color: LightColor.inverseTextColor,
                                 fontWeight: FontWeight.w800,
                                 fontSize: AppDimens.sizeX10,
                                 height: 1,
@@ -249,8 +249,7 @@ class _ExpandableFocusSearchBarState extends State<ExpandableFocusSearchBar>
 
         SizeTransition(
           sizeFactor: _expandAnimation,
-          axisAlignment: -1,
-          child: FadeTransition(
+           child: FadeTransition(
             opacity: _expandAnimation,
             child: ValueListenableBuilder<List<String>>(
               valueListenable: _recentStore.searches,
@@ -264,7 +263,7 @@ class _ExpandableFocusSearchBarState extends State<ExpandableFocusSearchBar>
                     borderRadius: BorderRadius.circular(AppDimens.radiusX14),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.04),
+                        color: LightColor.shadowOf(0.04),
                         blurRadius: AppDimens.radiusX6,
                         offset: const Offset(0, 6),
                       ),
@@ -316,7 +315,7 @@ class _ExpandableFocusSearchBarState extends State<ExpandableFocusSearchBar>
 
         child: Row(
           children: [
-            const Icon(
+            Icon(
               Icons.history_rounded,
               color: LightColor.iconGrey,
               size: AppDimens.sizeX18,
@@ -334,7 +333,7 @@ class _ExpandableFocusSearchBarState extends State<ExpandableFocusSearchBar>
                 _recentStore.remove(text);
               },
               behavior: HitTestBehavior.opaque,
-              child: const Padding(
+              child: Padding(
                 padding: EdgeInsets.all(AppDimens.sizeX4),
                 child: Icon(
                   Icons.close_rounded,
@@ -352,7 +351,7 @@ class _ExpandableFocusSearchBarState extends State<ExpandableFocusSearchBar>
   Widget _buildIconButton(
     IconData icon, {
     VoidCallback? onTap,
-    Color color = LightColor.iconGrey,
+    Color? color,
     Color bg = LightColor.transparentColor,
     bool isGradient = false,
   }) {
@@ -366,7 +365,11 @@ class _ExpandableFocusSearchBarState extends State<ExpandableFocusSearchBar>
           color: LightColor.secondaryColor,
           borderRadius: BorderRadius.circular(AppDimens.radiusX6),
         ),
-        child: Icon(icon, color: color, size: AppDimens.sizeX20),
+        child: Icon(
+          icon,
+          color: color ?? context.appColors.iconMuted,
+          size: AppDimens.sizeX20,
+        ),
       ),
     );
   }

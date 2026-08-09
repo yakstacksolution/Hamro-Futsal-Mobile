@@ -26,10 +26,13 @@ class CourtAmenitiesSection extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(AppDimens.paddingX16),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
+          gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFFFFFFFF), Color(0xFFF8FAFC)],
+            colors: [
+              LightColor.elevatedCardColor,
+              LightColor.cardColor,
+            ],
           ),
           borderRadius: BorderRadius.circular(AppDimens.radiusX10),
           boxShadow: [
@@ -44,7 +47,6 @@ class CourtAmenitiesSection extends StatelessWidget {
           features: features,
           featureIcons: _featureIcons,
           featureColors: _featureColors,
-          featureBgColors: _featureBgColors,
           featureCategories: categories ?? _featureCategories,
         ),
       ),
@@ -76,18 +78,6 @@ const Map<String, Color> _featureColors = <String, Color>{
   'AC': Color(0xFF0F6E56),
 };
 
-const Map<String, Color> _featureBgColors = <String, Color>{
-  'Indoor': Color(0xFFE6F1FB),
-  'Outdoor': Color(0xFFEAF3DE),
-  'Floodlight': Color(0xFFFAEEDA),
-  'Parking': Color(0xFFEEEDFE),
-  'Changing Room': Color(0xFFE1F5EE),
-  'Cafeteria': Color(0xFFFAECE7),
-  'First Aid': Color(0xFFFCEBEB),
-  'WiFi': Color(0xFFE6F1FB),
-  'AC': Color(0xFFE1F5EE),
-};
-
 const Map<String, String> _featureCategories = <String, String>{
   'Indoor': 'Facility',
   'Outdoor': 'Facility',
@@ -105,14 +95,12 @@ class _FeaturesGrid extends StatefulWidget {
     required this.features,
     required this.featureIcons,
     required this.featureColors,
-    required this.featureBgColors,
     required this.featureCategories,
   });
 
   final List<String> features;
   final Map<String, IconData> featureIcons;
   final Map<String, Color> featureColors;
-  final Map<String, Color> featureBgColors;
   final Map<String, String> featureCategories;
 
   @override
@@ -158,7 +146,7 @@ class _FeaturesGridState extends State<_FeaturesGrid> {
         ),
         child: Row(
           children: [
-            const Icon(
+            Icon(
               Icons.info_outline_rounded,
               color: LightColor.secondaryTextColor,
               size: AppDimens.sizeX18,
@@ -307,7 +295,9 @@ class _FeaturesGridState extends State<_FeaturesGrid> {
 
   Widget _buildFeatureTile(BuildContext context, String feature) {
     final icon = widget.featureIcons[feature] ?? Icons.check_circle_rounded;
-    final color = widget.featureColors[feature] ?? const Color(0xFF185FA5);
+    final Color color = LightColor.categoryAccent(
+      widget.featureColors[feature] ?? const Color(0xFF185FA5),
+    );
     final textTheme = FutsalTheme.getTextTheme(context);
 
     return IntrinsicWidth(

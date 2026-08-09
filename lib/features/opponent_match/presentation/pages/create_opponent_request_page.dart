@@ -1438,17 +1438,17 @@ class _StepDot extends StatelessWidget {
             border: Border.all(color: color),
           ),
           child: complete
-              ? const Icon(
+              ? Icon(
                   Icons.check_rounded,
                   size: 13,
-                  color: LightColor.whiteColor,
+                  color: LightColor.inverseTextColor,
                 )
               : Text(
                   '${step.index + 1}',
                   style: textTheme.bodyMiniSubTitle?.copyWith(
                     fontWeight: FontWeight.w700,
                     color: active
-                        ? LightColor.whiteColor
+                        ? LightColor.inverseTextColor
                         : LightColor.hintTextColor,
                   ),
                 ),
@@ -1499,7 +1499,7 @@ class _BottomBar extends StatelessWidget {
         ),
         boxShadow: <BoxShadow>[
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.12),
+            color: LightColor.shadowOf(0.12),
             blurRadius: AppDimens.radiusX28,
             offset: const Offset(0, AppDimens.sizeX10),
           ),
@@ -1515,7 +1515,7 @@ class _BottomBar extends StatelessWidget {
                 child: OutlinedButton(
                   onPressed: onBack,
                   style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: LightColor.dividerColor),
+                    side: BorderSide(color: LightColor.dividerColor),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(AppDimens.radiusX10),
                     ),
@@ -1820,7 +1820,7 @@ class _PickerTile extends StatelessWidget {
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                const Icon(
+                Icon(
                   Icons.chevron_right_rounded,
                   size: AppDimens.sizeX18,
                   color: LightColor.hintTextColor,
@@ -2026,7 +2026,7 @@ class _InlineRetry extends StatelessWidget {
       ),
       child: Row(
         children: <Widget>[
-          const Icon(
+          Icon(
             Icons.cloud_off_rounded,
             size: AppDimens.sizeX16,
             color: LightColor.redColor,
@@ -2075,7 +2075,7 @@ class _ValidationNote extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: <Widget>[
-        const Icon(
+        Icon(
           Icons.error_outline_rounded,
           size: AppDimens.sizeX16,
           color: LightColor.redColor,

@@ -413,7 +413,7 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
             ),
             boxShadow: <BoxShadow>[
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.08),
+                color: LightColor.shadowOf(0.08),
                 blurRadius: AppDimens.radiusX28,
                 offset: const Offset(0, AppDimens.sizeX10),
               ),
@@ -436,7 +436,7 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
                 fontWeight: FontWeight.w800,
               ),
               const SizedBox(height: AppDimens.sizeX20),
-              const Divider(height: 1, color: LightColor.dividerColor),
+              Divider(height: 1, color: LightColor.dividerColor),
               _buildHostedBySection(),
             ],
           ),
@@ -460,7 +460,7 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
           ),
           boxShadow: <BoxShadow>[
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.12),
+              color: LightColor.shadowOf(0.12),
               blurRadius: AppDimens.radiusX28,
               offset: const Offset(0, AppDimens.sizeX10),
             ),
@@ -583,7 +583,7 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
         ),
         SliverToBoxAdapter(
           child: Container(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               color: LightColor.background,
               borderRadius: BorderRadius.vertical(
                 top: Radius.circular(AppDimens.radiusX28),

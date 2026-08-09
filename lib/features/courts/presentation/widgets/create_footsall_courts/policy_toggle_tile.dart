@@ -19,7 +19,7 @@ class PolicyToggleTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: LightColor.elevatedCardColor,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: value
@@ -30,19 +30,19 @@ class PolicyToggleTile extends StatelessWidget {
       child: SwitchListTile.adaptive(
         value: value,
         onChanged: onChanged,
-        activeThumbColor: Colors.white,
+        activeThumbColor: LightColor.inverseTextColor,
         activeTrackColor: LightColor.secondaryColor,
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
         title: Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             color: LightColor.primaryTextColor,
             fontWeight: FontWeight.w700,
           ),
         ),
         subtitle: Text(
           subtitle,
-          style: const TextStyle(
+          style: TextStyle(
             color: LightColor.secondaryTextColor,
             fontSize: 12.5,
           ),

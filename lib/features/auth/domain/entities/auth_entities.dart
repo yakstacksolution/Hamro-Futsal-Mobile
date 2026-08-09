@@ -19,6 +19,20 @@ class SignInEntity extends Equatable {
   }
 }
 
+/// UI labels for the account-type picker.
+///
+/// These are the single source of truth for the strings the picker offers and
+/// the string [SignUpEntity.toMap] matches on. Keeping them in one place
+/// matters: the mapping is a plain `==` against a display label, so a
+/// well-meaning edit to the picker's wording alone would quietly register every
+/// vendor as a candidate.
+abstract final class AccountTypeLabels {
+  static const String player = 'Player';
+  static const String vendor = 'Footsall Vendor';
+
+  static const List<String> all = <String>[player, vendor];
+}
+
 class SignUpEntity extends Equatable {
   final String fullName;
   final String password;
@@ -50,8 +64,11 @@ class SignUpEntity extends Equatable {
       "full_name": fullName,
       "password": password,
       "password_confirmation": passwordConfirmation,
-      // UI label → backend value: Player → candidate, Footsall Vendor → vendor.
-      "account_type": accountType == "Footsall Vendor" ? "vendor" : "candidate",
+      // UI label → backend value: vendor label → vendor, anything else →
+      // candidate.
+      "account_type": accountType == AccountTypeLabels.vendor
+          ? "vendor"
+          : "candidate",
       // Identifies which client app the registration came from.
       "client": "customer",
       "email": email,

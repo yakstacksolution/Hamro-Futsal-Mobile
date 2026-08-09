@@ -166,11 +166,7 @@ class _HeroCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: AppDimens.paddingX14),
-          const Divider(
-            height: 1,
-            thickness: 1,
-            color: LightColor.dividerColor,
-          ),
+          Divider(height: 1, thickness: 1, color: LightColor.dividerColor),
           const SizedBox(height: AppDimens.paddingX12),
           Text(
             StringConstants
@@ -343,7 +339,7 @@ class _InfoCard extends StatelessWidget {
         color: LightColor.cardColor,
         borderRadius: BorderRadius.circular(AppDimens.radiusX14),
         border: Border.all(color: LightColor.dividerColor),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
             color: LightColor.shadowColor,
             blurRadius: 10,
@@ -397,7 +393,7 @@ class _SurfaceCard extends StatelessWidget {
         color: LightColor.cardColor,
         borderRadius: BorderRadius.circular(AppDimens.radiusX14),
         border: Border.all(color: LightColor.dividerColor),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
             color: LightColor.shadowColor,
             blurRadius: 10,
@@ -560,7 +556,7 @@ class _InfoDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
+    return Padding(
       padding: EdgeInsets.symmetric(horizontal: AppDimens.paddingX14),
       child: Divider(height: 1, thickness: 1, color: LightColor.dividerColor),
     );

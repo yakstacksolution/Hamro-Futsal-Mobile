@@ -142,7 +142,7 @@ class _SlotScheduleViewState extends State<_SlotScheduleView> {
               fontSize: AppDimens.fontBodyTextSmall,
               verticalPadding: AppDimens.paddingX2,
               backgroundColor: LightColor.secondaryColor,
-              foregroundColor: LightColor.whiteColor,
+              foregroundColor: LightColor.inverseTextColor,
               onPressed: () => _openSlotSheet(),
             ),
           ),
@@ -283,7 +283,7 @@ class _SlotDeleteDialogState extends State<_SlotDeleteDialog> {
               child: CustomButton(
                 text: StringConstants.cancel,
                 isOutlined: true,
-                foregroundColor: LightColor.secondaryColor,
+                foregroundColor: LightColor.brandTextColor,
                 borderColor: LightColor.secondaryColor,
                 minHeight: AppDimens.sizeX42,
                 onPressed: _isDeleting
@@ -299,7 +299,7 @@ class _SlotDeleteDialogState extends State<_SlotDeleteDialog> {
                 isLoading: _isDeleting,
                 minHeight: AppDimens.sizeX42,
                 backgroundColor: LightColor.redColor,
-                foregroundColor: LightColor.whiteColor,
+                foregroundColor: LightColor.inverseTextColor,
                 onPressed: _isDeleting ? null : _delete,
               ),
             ),
@@ -434,9 +434,9 @@ class _SlotListTile extends StatelessWidget {
                   _timeText(end, textTheme),
                 ],
               )
-            : const Icon(
+            : Icon(
                 Icons.schedule_rounded,
-                color: LightColor.secondaryColor,
+                color: LightColor.brandTextColor,
                 size: AppDimens.sizeX20,
               ),
       ),
@@ -452,7 +452,7 @@ class _SlotListTile extends StatelessWidget {
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
       style: textTheme.bodyTextSmall?.copyWith(
-        color: LightColor.secondaryColor,
+        color: LightColor.brandTextColor,
         fontWeight: FontWeight.w800,
       ),
     );
@@ -460,10 +460,7 @@ class _SlotListTile extends StatelessWidget {
 
   Widget _menu(BuildContext context, dynamic textTheme) {
     return PopupMenuButton<int>(
-      icon: const Icon(
-        Icons.more_vert_rounded,
-        color: LightColor.secondaryTextColor,
-      ),
+      icon: Icon(Icons.more_vert_rounded, color: LightColor.secondaryTextColor),
       color: LightColor.cardColor,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppDimens.radiusX10),
@@ -474,10 +471,10 @@ class _SlotListTile extends StatelessWidget {
           value: 0,
           child: Row(
             children: <Widget>[
-              const Icon(
+              Icon(
                 Icons.edit_outlined,
                 size: AppDimens.sizeX18,
-                color: LightColor.secondaryColor,
+                color: LightColor.brandTextColor,
               ),
               const SizedBox(width: AppDimens.sizeX8),
               Text(StringConstants.update, style: textTheme.bodyTextSmall),
@@ -488,7 +485,7 @@ class _SlotListTile extends StatelessWidget {
           value: 1,
           child: Row(
             children: <Widget>[
-              const Icon(
+              Icon(
                 Icons.delete_outline_rounded,
                 size: AppDimens.sizeX18,
                 color: LightColor.redColor,
@@ -609,7 +606,7 @@ class _SlotFormSheetState extends State<_SlotFormSheet> {
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
       child: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: LightColor.cardColor,
           borderRadius: BorderRadius.vertical(
             top: Radius.circular(AppDimens.radiusX20),
@@ -652,7 +649,7 @@ class _SlotFormSheetState extends State<_SlotFormSheet> {
                     InkWell(
                       onTap: () => Navigator.of(context).pop(),
                       borderRadius: BorderRadius.circular(AppDimens.radiusX20),
-                      child: const Icon(
+                      child: Icon(
                         Icons.close_rounded,
                         color: LightColor.secondaryTextColor,
                       ),
@@ -744,7 +741,7 @@ class _SlotFormSheetState extends State<_SlotFormSheet> {
                       child: CustomButton(
                         text: StringConstants.cancel,
                         isOutlined: true,
-                        foregroundColor: LightColor.secondaryColor,
+                        foregroundColor: LightColor.brandTextColor,
                         borderColor: LightColor.secondaryColor,
                         minHeight: AppDimens.sizeX44,
                         onPressed: _isSaving
@@ -760,7 +757,7 @@ class _SlotFormSheetState extends State<_SlotFormSheet> {
                         isLoading: _isSaving,
                         minHeight: AppDimens.sizeX44,
                         backgroundColor: LightColor.secondaryColor,
-                        foregroundColor: LightColor.whiteColor,
+                        foregroundColor: LightColor.inverseTextColor,
                         onPressed: _isSaving ? null : _submit,
                       ),
                     ),
@@ -823,9 +820,9 @@ class _SlotFilterDropdown extends StatelessWidget {
       ),
       child: Row(
         children: <Widget>[
-          const Icon(
+          Icon(
             Icons.filter_list_rounded,
-            color: LightColor.secondaryColor,
+            color: LightColor.brandTextColor,
             size: AppDimens.sizeX20,
           ),
           const SizedBox(width: AppDimens.sizeX8),
@@ -835,9 +832,9 @@ class _SlotFilterDropdown extends StatelessWidget {
                 value: selectedId ?? _allValue,
                 isExpanded: true,
                 itemHeight: null,
-                icon: const Icon(
+                icon: Icon(
                   Icons.expand_more_rounded,
-                  color: LightColor.secondaryColor,
+                  color: LightColor.brandTextColor,
                 ),
                 borderRadius: BorderRadius.circular(AppDimens.radiusX12),
                 dropdownColor: LightColor.cardColor,
@@ -902,16 +899,16 @@ class _SlotFilterDropdown extends StatelessWidget {
               style: textTheme.bodyTextMedium?.copyWith(
                 fontWeight: FontWeight.w700,
                 color: isSelected
-                    ? LightColor.secondaryColor
+                    ? LightColor.brandTextColor
                     : LightColor.primaryTextColor,
               ),
             ),
           ),
           if (isSelected)
-            const Icon(
+            Icon(
               Icons.check_circle_rounded,
               size: AppDimens.sizeX18,
-              color: LightColor.secondaryColor,
+              color: LightColor.brandTextColor,
             ),
         ],
       ),
@@ -946,7 +943,7 @@ class _SlotFilterDropdown extends StatelessWidget {
                         style: textTheme.bodyTextMedium?.copyWith(
                           fontWeight: FontWeight.w700,
                           color: isSelected
-                              ? LightColor.secondaryColor
+                              ? LightColor.brandTextColor
                               : LightColor.primaryTextColor,
                         ),
                       ),
@@ -973,12 +970,12 @@ class _SlotFilterDropdown extends StatelessWidget {
             ),
           ),
           if (isSelected)
-            const Padding(
+            Padding(
               padding: EdgeInsets.only(left: AppDimens.sizeX8),
               child: Icon(
                 Icons.check_circle_rounded,
                 size: AppDimens.sizeX18,
-                color: LightColor.secondaryColor,
+                color: LightColor.brandTextColor,
               ),
             ),
         ],
@@ -1328,7 +1325,7 @@ class _SlotPricingSheetState extends State<_SlotPricingSheet> {
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
       child: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: LightColor.cardColor,
           borderRadius: BorderRadius.vertical(
             top: Radius.circular(AppDimens.radiusX20),
@@ -1374,7 +1371,7 @@ class _SlotPricingSheetState extends State<_SlotPricingSheet> {
                     InkWell(
                       onTap: () => Navigator.of(context).pop(),
                       borderRadius: BorderRadius.circular(AppDimens.radiusX20),
-                      child: const Icon(
+                      child: Icon(
                         Icons.close_rounded,
                         color: LightColor.secondaryTextColor,
                       ),
@@ -1462,7 +1459,7 @@ class _SlotPricingSheetState extends State<_SlotPricingSheet> {
                       child: CustomButton(
                         text: StringConstants.cancel,
                         isOutlined: true,
-                        foregroundColor: LightColor.secondaryColor,
+                        foregroundColor: LightColor.brandTextColor,
                         borderColor: LightColor.secondaryColor,
                         minHeight: AppDimens.sizeX44,
                         onPressed: _isSaving
@@ -1478,7 +1475,7 @@ class _SlotPricingSheetState extends State<_SlotPricingSheet> {
                         isLoading: _isSaving,
                         minHeight: AppDimens.sizeX44,
                         backgroundColor: LightColor.secondaryColor,
-                        foregroundColor: LightColor.whiteColor,
+                        foregroundColor: LightColor.inverseTextColor,
                         onPressed: _isSaving ? null : _submit,
                       ),
                     ),
@@ -1618,7 +1615,7 @@ class _CustomDatePricesSection extends StatelessWidget {
                       label: Text(
                         '${item.date} · ${formatDouble(item.price)}',
                         style: textTheme.bodyMiniSubTitle?.copyWith(
-                          color: LightColor.secondaryColor,
+                          color: LightColor.brandTextColor,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -1753,7 +1750,7 @@ class _CustomDatePriceDialogState extends State<_CustomDatePriceDialog> {
               child: CustomButton(
                 text: StringConstants.cancel,
                 isOutlined: true,
-                foregroundColor: LightColor.secondaryColor,
+                foregroundColor: LightColor.brandTextColor,
                 borderColor: LightColor.secondaryColor,
                 minHeight: AppDimens.sizeX42,
                 onPressed: () => Navigator.of(context).pop(),
@@ -1766,7 +1763,7 @@ class _CustomDatePriceDialogState extends State<_CustomDatePriceDialog> {
                 icon: Icons.check_rounded,
                 minHeight: AppDimens.sizeX42,
                 backgroundColor: LightColor.secondaryColor,
-                foregroundColor: LightColor.whiteColor,
+                foregroundColor: LightColor.inverseTextColor,
                 onPressed: _canApply
                     ? () => Navigator.of(context).pop(
                         SlotCustomDatePriceDraft(
@@ -1863,7 +1860,7 @@ class _DateCollectionCard extends StatelessWidget {
                   color: LightColor.secondaryColor,
                   borderRadius: BorderRadius.circular(AppDimens.radiusX8),
                 ),
-                child: Icon(icon, color: LightColor.whiteColor),
+                child: Icon(icon, color: LightColor.inverseTextColor),
               ),
               const SizedBox(width: AppDimens.sizeX10),
               Expanded(
@@ -1991,7 +1988,7 @@ class _ClosedDateCollectionCard extends StatelessWidget {
                   color: LightColor.secondaryColor,
                   borderRadius: BorderRadius.circular(AppDimens.radiusX8),
                 ),
-                child: Icon(icon, color: LightColor.whiteColor),
+                child: Icon(icon, color: LightColor.inverseTextColor),
               ),
               const SizedBox(width: AppDimens.sizeX10),
               Expanded(
@@ -2050,7 +2047,7 @@ class _ClosedDateCollectionCard extends StatelessWidget {
                             : '${item.date} · ${item.startTime}-${item.endTime}',
                         style: textTheme.bodySubTitle?.copyWith(
                           color: item.isFullDay
-                              ? LightColor.secondaryColor
+                              ? LightColor.brandTextColor
                               : LightColor.yellowColor,
                           fontWeight: FontWeight.w800,
                         ),
@@ -2202,7 +2199,7 @@ class _ClosedDateDialogState extends State<_ClosedDateDialog> {
                     Set<WidgetState> states,
                   ) {
                     if (states.contains(WidgetState.selected)) {
-                      return LightColor.whiteColor;
+                      return LightColor.inverseTextColor;
                     }
                     return LightColor.primaryTextColor;
                   }),
@@ -2216,7 +2213,7 @@ class _ClosedDateDialogState extends State<_ClosedDateDialog> {
                             : LightColor.yellowColor,
                       );
                     }
-                    return const BorderSide(color: LightColor.greyBorderColor);
+                    return BorderSide(color: LightColor.greyBorderColor);
                   }),
                 ),
                 segments: const <ButtonSegment<bool>>[
@@ -2283,7 +2280,7 @@ class _ClosedDateDialogState extends State<_ClosedDateDialog> {
               child: CustomButton(
                 text: StringConstants.cancel,
                 isOutlined: true,
-                foregroundColor: LightColor.secondaryColor,
+                foregroundColor: LightColor.brandTextColor,
                 borderColor: LightColor.secondaryColor,
                 minHeight: AppDimens.sizeX42,
                 onPressed: () => Navigator.of(context).pop(),
@@ -2296,7 +2293,7 @@ class _ClosedDateDialogState extends State<_ClosedDateDialog> {
                 icon: Icons.check_rounded,
                 minHeight: AppDimens.sizeX42,
                 backgroundColor: LightColor.secondaryColor,
-                foregroundColor: LightColor.whiteColor,
+                foregroundColor: LightColor.inverseTextColor,
                 onPressed: _canApply
                     ? () => Navigator.of(context).pop(
                         ClosedDateDraft(
@@ -2447,7 +2444,7 @@ class _CustomCalendarDatePickerDialogState
               child: CustomButton(
                 text: StringConstants.cancel,
                 isOutlined: true,
-                foregroundColor: LightColor.secondaryColor,
+                foregroundColor: LightColor.brandTextColor,
                 borderColor: LightColor.secondaryColor,
                 minHeight: AppDimens.sizeX42,
                 onPressed: () => Navigator.of(context).pop(),
@@ -2460,7 +2457,7 @@ class _CustomCalendarDatePickerDialogState
                 icon: Icons.check_rounded,
                 minHeight: AppDimens.sizeX42,
                 backgroundColor: LightColor.secondaryColor,
-                foregroundColor: LightColor.whiteColor,
+                foregroundColor: LightColor.inverseTextColor,
                 onPressed: _selectedDates.isEmpty
                     ? null
                     : () => Navigator.of(context).pop(_selectedDates),
@@ -2651,7 +2648,7 @@ class _HolidayDateCell extends StatelessWidget {
                 color: isDisabled
                     ? LightColor.secondaryTextColor.withValues(alpha: 0.35)
                     : (isSelected
-                          ? LightColor.whiteColor
+                          ? LightColor.inverseTextColor
                           : LightColor.primaryTextColor),
                 fontWeight: FontWeight.w800,
                 height: 1,
@@ -2670,7 +2667,7 @@ class _HolidayDateCell extends StatelessWidget {
                               alpha: 0.28,
                             )
                           : (isSelected
-                                ? LightColor.whiteColor
+                                ? LightColor.inverseTextColor
                                 : LightColor.secondaryColor),
                       fontWeight: FontWeight.w800,
                       height: 1,

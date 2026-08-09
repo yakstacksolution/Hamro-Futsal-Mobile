@@ -64,7 +64,7 @@ class CourtSlotCard extends StatelessWidget {
         padding: AppUtils().getPadding(all: AppDimens.paddingX12),
         decoration: BoxDecoration(
           color: isSelected
-              ? const Color(0xffF4FBF9)
+              ? LightColor.secondarySoft
               : isAvailable
               ? LightColor.cardColor
               : LightColor.inputFillColor,
@@ -200,13 +200,13 @@ class CourtSlotCard extends StatelessWidget {
         ),
       ),
       child: isSelected
-          ? const Icon(
+          ? Icon(
               Icons.check_rounded,
               size: AppDimens.sizeX14,
-              color: Colors.white,
+              color: LightColor.inverseTextColor,
             )
           : !isAvailable
-          ? const Icon(
+          ? Icon(
               Icons.close_rounded,
               size: AppDimens.sizeX14,
               color: LightColor.hintTextColor,

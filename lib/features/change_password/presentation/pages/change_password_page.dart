@@ -251,7 +251,7 @@ class _ChangePasswordHeader extends StatelessWidget {
           height: AppDimens.sizeX58,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            gradient: const LinearGradient(
+            gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: <Color>[
@@ -268,9 +268,9 @@ class _ChangePasswordHeader extends StatelessWidget {
               ),
             ],
           ),
-          child: const Icon(
+          child: Icon(
             Icons.lock_reset_rounded,
-            color: Colors.white,
+            color: LightColor.inverseTextColor,
             size: AppDimens.sizeX28,
           ),
         ),

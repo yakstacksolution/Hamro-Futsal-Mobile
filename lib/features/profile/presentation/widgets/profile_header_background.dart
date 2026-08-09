@@ -208,7 +208,7 @@ class _ProfileHeaderBackgroundState extends State<ProfileHeaderBackground>
     final List<Color> fallback =
         from ??
         to ??
-        const <Color>[
+        <Color>[
           LightColor.secondaryColor,
           LightColor.primaryDark,
           LightColor.secondaryColor,
@@ -271,7 +271,7 @@ class _HeaderSurface extends StatelessWidget {
 
   List<Color> get _resolvedBackgroundColors =>
       backgroundColors ??
-      const <Color>[
+      <Color>[
         LightColor.secondaryColor,
         LightColor.primaryDark,
         LightColor.secondaryColor,
@@ -302,9 +302,9 @@ class _HeaderSurface extends StatelessWidget {
                   begin: Alignment(-1.25 + shimmerShift, -1),
                   end: Alignment(0.55 + shimmerShift, 1),
                   colors: <Color>[
-                    Colors.white.withValues(alpha: 0),
-                    Colors.white.withValues(alpha: 0.11),
-                    Colors.white.withValues(alpha: 0),
+                    LightColor.onBrandSurface.withValues(alpha: 0),
+                    LightColor.onBrandSurface.withValues(alpha: 0.11),
+                    LightColor.onBrandSurface.withValues(alpha: 0),
                   ],
                   stops: const <double>[0.18, 0.48, 0.82],
                 ),

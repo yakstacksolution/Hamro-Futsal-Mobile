@@ -37,7 +37,7 @@ class ExpenseAmountCard extends StatelessWidget {
                 ? LightColor.redColor.withValues(alpha: 0.5)
                 : LightColor.dividerColor,
           ),
-          boxShadow: const [
+          boxShadow: [
             BoxShadow(
               color: LightColor.shadowColor,
               blurRadius: 10,
@@ -162,7 +162,7 @@ class ExpensePickerRow extends StatelessWidget {
               ),
             ),
             const SizedBox(width: AppDimens.paddingX8),
-            const Icon(
+            Icon(
               Icons.chevron_right_rounded,
               size: 20,
               color: LightColor.hintTextColor,
@@ -179,7 +179,7 @@ class ExpenseFormDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
+    return Padding(
       padding: EdgeInsets.symmetric(horizontal: AppDimens.paddingX14),
       child: Divider(height: 1, color: LightColor.dividerColor),
     );

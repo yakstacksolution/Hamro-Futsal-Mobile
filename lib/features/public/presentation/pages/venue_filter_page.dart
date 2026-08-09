@@ -155,7 +155,7 @@ class _VenueFilterViewState extends State<_VenueFilterView> {
         surfaceTintColor: LightColor.background,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(
+          icon: Icon(
             Icons.close_rounded,
             size: AppDimens.sizeX22,
             color: LightColor.primaryTextColor,
@@ -210,7 +210,7 @@ class _VenueFilterViewState extends State<_VenueFilterView> {
                 trackHeight: 4,
                 activeTrackColor: LightColor.secondaryColor,
                 inactiveTrackColor: LightColor.dividerColor,
-                thumbColor: LightColor.whiteColor,
+                thumbColor: LightColor.inverseTextColor,
                 overlayColor: LightColor.secondaryColor.withValues(alpha: 0.12),
                 rangeThumbShape: const RoundRangeSliderThumbShape(
                   enabledThumbRadius: 11,
@@ -510,8 +510,8 @@ class _PillRowLoading extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Shimmer.fromColors(
-      baseColor: Colors.grey.shade300,
-      highlightColor: Colors.grey.shade100,
+      baseColor: LightColor.skeletonBaseColor,
+      highlightColor: LightColor.skeletonHighlightColor,
       child: Row(
         children: const <Widget>[
           _SkeletonBlock(width: AppDimens.sizeX70, height: AppDimens.sizeX38),
@@ -532,8 +532,8 @@ class _CourtTypeRowLoading extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Shimmer.fromColors(
-      baseColor: Colors.grey.shade300,
-      highlightColor: Colors.grey.shade100,
+      baseColor: LightColor.skeletonBaseColor,
+      highlightColor: LightColor.skeletonHighlightColor,
       child: Row(
         children: const <Widget>[
           Expanded(
@@ -572,7 +572,7 @@ class _SkeletonBlock extends StatelessWidget {
       width: width,
       height: height,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: LightColor.skeletonBaseColor,
         borderRadius: BorderRadius.circular(radius),
       ),
     );
@@ -607,7 +607,7 @@ class _RatingSelector extends StatelessWidget {
 
               itemPadding: EdgeInsets.only(right: AppDimens.sizeX6),
               itemBuilder: (BuildContext context, int index) =>
-                  const Icon(Icons.star_rounded, color: LightColor.ratingColor),
+                  Icon(Icons.star_rounded, color: LightColor.ratingColor),
               onRatingUpdate: (double rating) =>
                   onChanged(rating <= 0 ? null : rating),
             ),
@@ -654,7 +654,7 @@ class _PillChip extends StatelessWidget {
             label,
             style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
               color: isSelected
-                  ? LightColor.whiteColor
+                  ? LightColor.inverseTextColor
                   : LightColor.secondaryTextColor,
               fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
             ),
@@ -763,7 +763,7 @@ class _CourtTypeCard extends StatelessWidget {
                 icon,
                 size: AppDimens.sizeX16,
                 color: isSelected
-                    ? LightColor.whiteColor
+                    ? LightColor.inverseTextColor
                     : LightColor.secondaryColor,
               ),
               const SizedBox(width: AppDimens.sizeX8),
@@ -776,7 +776,7 @@ class _CourtTypeCard extends StatelessWidget {
                   style: FutsalTheme.getTextTheme(context).bodyTextSmall
                       ?.copyWith(
                         color: isSelected
-                            ? LightColor.whiteColor
+                            ? LightColor.inverseTextColor
                             : LightColor.secondaryTextColor,
                         fontWeight: isSelected
                             ? FontWeight.w600
@@ -895,10 +895,10 @@ class _SelectIndicator extends StatelessWidget {
         ),
       ),
       child: isSelected
-          ? const Icon(
+          ? Icon(
               Icons.check_rounded,
               size: AppDimens.sizeX14,
-              color: LightColor.whiteColor,
+              color: LightColor.inverseTextColor,
             )
           : null,
     );
@@ -916,7 +916,7 @@ class _BottomBar extends StatelessWidget {
     final textTheme = FutsalTheme.getTextTheme(context);
     return Container(
       height: 120,
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: LightColor.whiteColor,
         border: Border(top: BorderSide(color: LightColor.dividerColor)),
       ),
@@ -952,7 +952,7 @@ class _BottomBar extends StatelessWidget {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: <Widget>[
-                          const Icon(
+                          Icon(
                             Icons.refresh_rounded,
                             size: AppDimens.sizeX18,
                             color: LightColor.secondaryTextColor,

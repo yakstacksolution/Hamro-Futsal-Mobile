@@ -52,7 +52,7 @@ class VendorUnifiedStepper extends StatelessWidget {
       fontWeight: FontWeight.w700,
     );
     final TextStyle? badgeStyle = textTheme.bodySubTitle?.copyWith(
-      color: LightColor.whiteColor,
+      color: LightColor.inverseTextColor,
       fontWeight: FontWeight.w700,
     );
     final TextStyle? stepStyle = textTheme.bodyTextSmall?.copyWith(
@@ -118,7 +118,7 @@ class VendorUnifiedStepper extends StatelessWidget {
                 Container(
                   width: AppDimens.sizeX2,
                   height: AppDimens.sizeX2,
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     color: LightColor.borderColor,
                     shape: BoxShape.circle,
                   ),
@@ -134,7 +134,7 @@ class VendorUnifiedStepper extends StatelessWidget {
                 Container(
                   width: AppDimens.sizeX2,
                   height: AppDimens.sizeX2,
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     color: LightColor.borderColor,
                     shape: BoxShape.circle,
                   ),
@@ -230,7 +230,7 @@ class _CompactStepChip extends StatelessWidget {
                 status == StepStatus.complete ? Icons.check_rounded : icon,
                 size: AppDimens.sizeX16,
                 color: isSelected
-                    ? LightColor.whiteColor
+                    ? LightColor.inverseTextColor
                     : status == StepStatus.complete
                     ? LightColor.primaryTextColor
                     : LightColor.primaryTextColor,
@@ -241,7 +241,7 @@ class _CompactStepChip extends StatelessWidget {
 
                 style: textStyle?.copyWith(
                   color: isSelected
-                      ? LightColor.whiteColor
+                      ? LightColor.inverseTextColor
                       : LightColor.primaryTextColor,
                 ),
               ),
@@ -299,7 +299,7 @@ class _CompactSubstepChip extends StatelessWidget {
         ? LightColor.redColor.withValues(alpha: 0.22)
         : LightColor.dividerColor;
     final Color badgeColor = isSelected
-        ? LightColor.whiteColor
+        ? LightColor.inverseTextColor
         : status == StepStatus.complete
         ? LightColor.secondarySoft
         : status == StepStatus.error
@@ -319,7 +319,7 @@ class _CompactSubstepChip extends StatelessWidget {
         ? LightColor.hintTextColor
         : LightColor.primaryTextColor;
     final Color titleColor = isSelected
-        ? LightColor.whiteColor
+        ? LightColor.inverseTextColor
         : status == StepStatus.error
         ? LightColor.redColor
         : status == StepStatus.locked

@@ -36,7 +36,7 @@ class ProfileHeader extends StatelessWidget {
         heroTag: heroTag,
         backgroundColors:
             backgroundColors ??
-            const <Color>[
+            <Color>[
               LightColor.secondaryDark,
               LightColor.secondaryColor,
               LightColor.secondaryColor,

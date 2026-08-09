@@ -27,10 +27,10 @@ class LogoPickerCard extends StatelessWidget {
       duration: const Duration(milliseconds: 260),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: <Color>[Color(0xFFF7FBFF), Color(0xFFF3F7FF)],
+          colors: <Color>[LightColor.elevatedCardColor, LightColor.cardColor],
         ),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
@@ -49,7 +49,7 @@ class LogoPickerCard extends StatelessWidget {
               width: double.infinity,
               height: 148,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: LightColor.elevatedCardColor,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: hasLogo
@@ -67,7 +67,7 @@ class LogoPickerCard extends StatelessWidget {
                         height: double.infinity,
                       ),
                     )
-                  : const Column(
+                  : Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: <Widget>[
                         Icon(
@@ -110,7 +110,7 @@ class LogoPickerCard extends StatelessWidget {
                     fileName ?? 'selected_image',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: LightColor.primaryTextColor,
                       fontWeight: FontWeight.w600,
                     ),

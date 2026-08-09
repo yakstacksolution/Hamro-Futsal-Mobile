@@ -68,7 +68,7 @@ class KeyboardAttachedToolbar extends StatelessWidget {
         child: SizedBox(
           width: double.infinity,
           child: ColoredBox(
-            color: LightColor.whiteColor,
+            color: context.appColors.surfaceElevated,
             child: Column(
               mainAxisSize: MainAxisSize.max,
               crossAxisAlignment: CrossAxisAlignment.stretch,
