@@ -297,10 +297,27 @@ class ApiClient {
     return _post(url: '$_baseUrl/auth/settlements', data: data);
   }
 
-  Future<Result> getConversations({bool archived = false}) {
+  Future<Result> getTransactionHistory({Map<String, dynamic>? query}) {
+    return _get(
+      url: '$_baseUrl/auth/transaction-history',
+      query:
+          query ??
+          <String, dynamic>{'per_page': 20, 'direction': 'all', 'type': 'all'},
+    );
+  }
+
+  Future<Result> getConversations({
+    bool archived = false,
+    required int page,
+    required int perPage,
+  }) {
     return _get(
       url: '$_baseUrl/conversations',
-      query: <String, dynamic>{'archived': archived},
+      query: <String, dynamic>{
+        'archived': archived,
+        'page': page,
+        'per_page': perPage,
+      },
     );
   }
 
@@ -510,8 +527,11 @@ class ApiClient {
     );
   }
 
-  Future<Result> getVenueCourt() {
-    return _get(url: '$_baseUrl/auth/get-venue-courts');
+  Future<Result> getVenueCourt({required int page, required int perPage}) {
+    return _get(
+      url: '$_baseUrl/auth/get-venue-courts',
+      query: <String, dynamic>{'page': page, 'per_page': perPage},
+    );
   }
 
   Future<Result> getVenueCourtByVenueId({required int venueId}) {
@@ -606,16 +626,22 @@ class ApiClient {
     );
   }
 
-  Future<Result> getMyBookings() {
-    return _get(url: '$_baseUrl/bookings');
+  Future<Result> getMyBookings({required int page, required int perPage}) {
+    return _get(
+      url: '$_baseUrl/bookings',
+      query: <String, dynamic>{'page': page, 'per_page': perPage},
+    );
   }
 
   Future<Result> getBookingDetails({required int bookingId}) {
     return _get(url: '$_baseUrl/bookings/$bookingId');
   }
 
-  Future<Result> getFutsalBookings() {
-    return _get(url: '$_baseUrl/futsal-bookings');
+  Future<Result> getFutsalBookings({required int page, required int perPage}) {
+    return _get(
+      url: '$_baseUrl/futsal-bookings',
+      query: <String, dynamic>{'page': page, 'per_page': perPage},
+    );
   }
 
   /// Aggregated booking analytics. All filter params are optional — omit the

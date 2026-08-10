@@ -2,8 +2,34 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hamro_footsall/features/message/data/model/chat_message_model.dart';
 import 'package:hamro_footsall/features/message/data/model/chat_send_request.dart';
 import 'package:hamro_footsall/features/message/data/model/conversation_model.dart';
+import 'package:hamro_footsall/features/message/data/model/conversation_page_model.dart';
 
 void main() {
+  test('parses conversation items and dynamic pagination metadata', () {
+    final page = ConversationPageModel.fromResponse(<String, dynamic>{
+      'success': true,
+      'data': <String, dynamic>{
+        'items': <Map<String, dynamic>>[
+          <String, dynamic>{'id': 12, 'type': 'direct', 'unread_count': 0},
+        ],
+        'pagination': <String, dynamic>{
+          'current_page': 2,
+          'last_page': 4,
+          'per_page': 15,
+          'total': 52,
+          'has_more_pages': true,
+        },
+      },
+    });
+
+    expect(page.items.single.id, 12);
+    expect(page.currentPage, 2);
+    expect(page.lastPage, 4);
+    expect(page.perPage, 15);
+    expect(page.total, 52);
+    expect(page.hasMorePages, isTrue);
+  });
+
   test('parses the documented conversation resource', () {
     final conversation = ConversationModel.fromJson({
       'id': 11,

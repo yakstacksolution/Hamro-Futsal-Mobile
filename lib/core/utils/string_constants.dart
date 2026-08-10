@@ -1175,6 +1175,35 @@ final class StringConstants {
   static const String searchTransactions = 'Search transactions';
   static const String totalEarnings = 'Total earnings';
   static const String totalSpent = 'Total spent';
+
+  // Transaction history (`GET /auth/transaction-history`).
+  static const String couldNotLoadTransactionHistory =
+      'Could not load transaction history';
+  static const String totalIn = 'Total in';
+  static const String totalOut = 'Total out';
+  static const String netAmount = 'Net amount';
+  static const String transactions = 'Transactions';
+  static const String allTransactions = 'All';
+  static const String incoming = 'Money in';
+  static const String outgoing = 'Money out';
+  static const String commission = 'Commission';
+  static const String grossAmount = 'Gross';
+  static const String netBalance = 'Net balance';
+  static const String thisWeek = 'This week';
+  static const String thisMonth = 'This month';
+  static const String thisYear = 'This year';
+  static const String allTime = 'All time';
+  static const String dateRange = 'Date range';
+  static const String direction = 'Direction';
+  static const String filters = 'Filters';
+  static const String startDate = 'Start date';
+  static const String endDate = 'End date';
+  static const String showTransactions = 'Show transactions';
+  static const String pickAStartDateHint =
+      'Pick a start date to close the range';
+  static const String pickAnEndDateHint = 'Pick an end date to close the range';
+  static const String transactionsWillAppearHere =
+      'Your payments, refunds and payouts will appear here.';
   static const String vendorRequestSubmitted =
       'Your vendor upgrade request has been sent to the super admin.';
   static const String vendorRequestAlreadySubmitted =

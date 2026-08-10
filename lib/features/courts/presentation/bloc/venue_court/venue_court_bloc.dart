@@ -5,6 +5,7 @@ import 'package:dartz/dartz.dart';
 import 'package:equatable/equatable.dart';
 import 'package:hamro_footsall/core/helper/exception_helper.dart';
 import 'package:hamro_footsall/features/courts/data/model/venue_court_model.dart';
+import 'package:hamro_footsall/features/courts/data/model/venue_court_page_model.dart';
 import 'package:hamro_footsall/features/courts/domain/usecase/get_venue_court_use_case.dart';
 import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_drafts.dart';
 
@@ -19,6 +20,7 @@ class VenueCourtBloc extends Bloc<VenueCourtEvent, VenueCourtState> {
   }
 
   final GetVenueCourtUseCase _getVenueCourtUseCase;
+  bool _isFetching = false;
 
   void _onUpsertVenueCourtLocally(
     UpsertVenueCourtLocallyEvent event,
@@ -85,25 +87,78 @@ class VenueCourtBloc extends Bloc<VenueCourtEvent, VenueCourtState> {
     FetchVenueCourtEvent event,
     Emitter<VenueCourtState> emit,
   ) async {
-    emit(state.copyWith(status: VenueCourtStatus.loading, clearError: true));
+    if (_isFetching || (event.loadMore && !state.hasMorePages)) return;
+    _isFetching = true;
+    if (event.loadMore) {
+      emit(state.copyWith(isLoadingMore: true, clearLoadMoreError: true));
+    } else if (!event.silent) {
+      emit(state.copyWith(status: VenueCourtStatus.loading, clearError: true));
+    }
 
-    final Either<AppException, List<VenueCourtModel>> response =
-        await _getVenueCourtUseCase();
+    final int page = event.loadMore ? state.currentPage + 1 : 1;
+    late final Either<AppException, VenueCourtPageModel> response;
+    try {
+      response = await _getVenueCourtUseCase(page: page, perPage: 10);
+    } catch (_) {
+      response = left(
+        DefaultException(
+          errorMessage: 'Could not load venue courts. Please try again.',
+          statusCode: 0,
+        ),
+      );
+    }
+    _isFetching = false;
 
     response.fold(
       (AppException failure) => emit(
-        state.copyWith(
-          status: VenueCourtStatus.failure,
-          errorMessage: failure.errorMessage,
-        ),
+        event.loadMore
+            ? state.copyWith(
+                isLoadingMore: false,
+                loadMoreError: failure.errorMessage,
+                refreshTick: state.refreshTick + 1,
+              )
+            : state.copyWith(
+                status: VenueCourtStatus.failure,
+                errorMessage: failure.errorMessage,
+                refreshTick: state.refreshTick + 1,
+              ),
       ),
-      (List<VenueCourtModel> venues) => emit(
+      (VenueCourtPageModel result) => emit(
         state.copyWith(
           status: VenueCourtStatus.success,
-          venues: venues,
+          venues: event.loadMore
+              ? _mergeVenues(state.venues, result.items)
+              : result.items,
+          currentPage: result.currentPage,
+          lastPage: result.lastPage,
+          total: result.total,
+          hasMorePages: result.hasMorePages,
+          isLoadingMore: false,
           clearError: true,
+          clearLoadMoreError: true,
+          refreshTick: state.refreshTick + 1,
         ),
       ),
     );
+  }
+
+  List<VenueCourtModel> _mergeVenues(
+    List<VenueCourtModel> existing,
+    List<VenueCourtModel> incoming,
+  ) {
+    final Map<int, VenueCourtModel> byId = <int, VenueCourtModel>{};
+    final List<VenueCourtModel> withoutId = <VenueCourtModel>[];
+    for (final VenueCourtModel venue in <VenueCourtModel>[
+      ...existing,
+      ...incoming,
+    ]) {
+      final int? id = venue.id;
+      if (id == null) {
+        withoutId.add(venue);
+      } else {
+        byId[id] = venue;
+      }
+    }
+    return <VenueCourtModel>[...byId.values, ...withoutId];
   }
 }

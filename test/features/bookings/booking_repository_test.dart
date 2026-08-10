@@ -4,6 +4,74 @@ import 'package:hamro_footsall/features/bookings/data/data_source/booking_data_s
 import 'package:hamro_footsall/features/bookings/data/repositories/booking_repository_impl.dart';
 
 void main() {
+  test('parses my-booking pagination and forwards page size', () async {
+    final _FakeBookingRemoteDataSource source =
+        _FakeBookingRemoteDataSource(
+            Result<dynamic, dynamic>.success(<String, dynamic>{}),
+          )
+          ..myBookingsResponse = Result<dynamic, dynamic>.success(
+            _paginatedBookingResponse(total: 3, hasMorePages: false),
+          );
+    final BookingRepositoryImpl repository = BookingRepositoryImpl(
+      remoteDataSource: source,
+    );
+
+    final result = await repository.getMyBookings(page: 1, perPage: 10);
+
+    expect(source.requestedMyPage, 1);
+    expect(source.requestedMyPerPage, 10);
+    result.fold((error) => fail(error.errorMessage), (page) {
+      expect(page.items.single.id, 46);
+      expect(page.perPage, 10);
+      expect(page.total, 3);
+      expect(page.hasMorePages, isFalse);
+    });
+  });
+
+  test('parses futsal booking pagination and forwards page size', () async {
+    final _FakeBookingRemoteDataSource source =
+        _FakeBookingRemoteDataSource(
+            Result<dynamic, dynamic>.success(<String, dynamic>{}),
+          )
+          ..futsalResponse = Result<dynamic, dynamic>.success(<String, dynamic>{
+            'status': 'success',
+            'data': <String, dynamic>{
+              'items': <Map<String, dynamic>>[
+                <String, dynamic>{
+                  'id': 46,
+                  'booking_date': '2026-08-31',
+                  'start_time': '13:00:00',
+                  'end_time': '14:00:00',
+                  'booking_status': 'cancelled',
+                  'total_amount': 1600,
+                },
+              ],
+              'pagination': <String, dynamic>{
+                'current_page': 1,
+                'last_page': 2,
+                'per_page': 10,
+                'total': 18,
+                'has_more_pages': true,
+              },
+            },
+          });
+    final BookingRepositoryImpl repository = BookingRepositoryImpl(
+      remoteDataSource: source,
+    );
+
+    final result = await repository.getFutsalBookings(page: 1, perPage: 10);
+
+    expect(source.requestedPage, 1);
+    expect(source.requestedPerPage, 10);
+    result.fold((error) => fail(error.errorMessage), (page) {
+      expect(page.items.single.id, 46);
+      expect(page.currentPage, 1);
+      expect(page.lastPage, 2);
+      expect(page.total, 18);
+      expect(page.hasMorePages, isTrue);
+    });
+  });
+
   test('parses a booking detail response from data.booking', () async {
     final _FakeBookingRemoteDataSource source = _FakeBookingRemoteDataSource(
       Result<dynamic, dynamic>.success(<String, dynamic>{
@@ -91,6 +159,32 @@ void main() {
   );
 }
 
+Map<String, dynamic> _paginatedBookingResponse({
+  required int total,
+  required bool hasMorePages,
+}) => <String, dynamic>{
+  'status': 'success',
+  'data': <String, dynamic>{
+    'items': <Map<String, dynamic>>[
+      <String, dynamic>{
+        'id': 46,
+        'booking_date': '2026-08-31',
+        'start_time': '13:00:00',
+        'end_time': '14:00:00',
+        'booking_status': 'cancelled',
+        'total_amount': 1600,
+      },
+    ],
+    'pagination': <String, dynamic>{
+      'current_page': 1,
+      'last_page': hasMorePages ? 2 : 1,
+      'per_page': 10,
+      'total': total,
+      'has_more_pages': hasMorePages,
+    },
+  },
+};
+
 final class _FakeBookingRemoteDataSource implements BookingRemoteDataSource {
   _FakeBookingRemoteDataSource(this.detailResponse);
 
@@ -102,6 +196,12 @@ final class _FakeBookingRemoteDataSource implements BookingRemoteDataSource {
   int? verifiedBookingId;
   int? verifiedPaymentId;
   Map<String, dynamic>? verifyPaymentPayload;
+  Result futsalResponse = Result<dynamic, dynamic>.success(<dynamic>[]);
+  Result myBookingsResponse = Result<dynamic, dynamic>.success(<dynamic>[]);
+  int? requestedPage;
+  int? requestedPerPage;
+  int? requestedMyPage;
+  int? requestedMyPerPage;
 
   @override
   Future<Result> getBookingDetails(int bookingId) async {
@@ -110,12 +210,24 @@ final class _FakeBookingRemoteDataSource implements BookingRemoteDataSource {
   }
 
   @override
-  Future<Result> getMyBookings() async =>
-      Result<dynamic, dynamic>.success(<dynamic>[]);
+  Future<Result> getMyBookings({
+    required int page,
+    required int perPage,
+  }) async {
+    requestedMyPage = page;
+    requestedMyPerPage = perPage;
+    return myBookingsResponse;
+  }
 
   @override
-  Future<Result> getFutsalBookings() async =>
-      Result<dynamic, dynamic>.success(<dynamic>[]);
+  Future<Result> getFutsalBookings({
+    required int page,
+    required int perPage,
+  }) async {
+    requestedPage = page;
+    requestedPerPage = perPage;
+    return futsalResponse;
+  }
 
   @override
   Future<Result> cancelBooking(int bookingId) async =>

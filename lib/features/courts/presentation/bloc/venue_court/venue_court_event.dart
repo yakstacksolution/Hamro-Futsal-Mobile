@@ -8,7 +8,13 @@ sealed class VenueCourtEvent extends Equatable {
 }
 
 final class FetchVenueCourtEvent extends VenueCourtEvent {
-  const FetchVenueCourtEvent();
+  const FetchVenueCourtEvent({this.silent = false, this.loadMore = false});
+
+  final bool silent;
+  final bool loadMore;
+
+  @override
+  List<Object?> get props => <Object?>[silent, loadMore];
 }
 
 final class UpsertVenueCourtLocallyEvent extends VenueCourtEvent {

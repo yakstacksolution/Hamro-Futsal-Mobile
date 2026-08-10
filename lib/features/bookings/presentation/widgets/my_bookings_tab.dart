@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hamro_footsall/core/routers/app_router_params.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/widgets/loading_widget.dart';
 import 'package:hamro_footsall/features/bookings/data/model/booking_model.dart';
 import 'package:hamro_footsall/features/bookings/presentation/bloc/booking_bloc/booking_bloc.dart';
 import 'package:hamro_footsall/features/bookings/presentation/utils/booking_search.dart';
@@ -48,7 +49,10 @@ class MyBookingsTab extends StatelessWidget {
     return BlocBuilder<BookingBloc, BookingState>(
       buildWhen: (p, c) =>
           p.myBookingsStatus != c.myBookingsStatus ||
-          p.myBookings != c.myBookings,
+          p.myBookings != c.myBookings ||
+          p.myIsLoadingMore != c.myIsLoadingMore ||
+          p.myHasMorePages != c.myHasMorePages ||
+          p.myBookingsError != c.myBookingsError,
       builder: (context, state) {
         if (state.myBookingsStatus == BookingLoadStatus.idle ||
             state.myBookingsStatus == BookingLoadStatus.loading) {
@@ -114,30 +118,76 @@ class MyBookingsTab extends StatelessWidget {
           );
         }
 
-        return RefreshIndicator(
-          color: LightColor.secondaryColor,
-          onRefresh: () => _refresh(context),
-          child: ListView.separated(
-            physics: const AlwaysScrollableScrollPhysics(
-              parent: BouncingScrollPhysics(),
-            ),
-            padding: _listPadding(context),
-            itemCount: items.length,
-            separatorBuilder: (_, __) =>
-                const SizedBox(height: AppDimens.paddingX10),
-            itemBuilder: (_, i) => BookingCard(
-              booking: items[i],
-              onTap: () async {
-                await context.pushNamed(
-                  AppRouterParams.bookingDetails.name,
-                  extra: items[i],
-                );
-                // Refresh with the latest data on returning from details.
-                if (context.mounted) {
-                  context.read<BookingBloc>().add(
-                    const FetchMyBookingsEvent(silent: true),
+        return NotificationListener<ScrollNotification>(
+          onNotification: (ScrollNotification notification) {
+            if (notification.metrics.extentAfter < 300 &&
+                state.myHasMorePages &&
+                !state.myIsLoadingMore) {
+              context.read<BookingBloc>().add(
+                const FetchMyBookingsEvent(silent: true, loadMore: true),
+              );
+            }
+            return false;
+          },
+          child: RefreshIndicator(
+            color: LightColor.secondaryColor,
+            onRefresh: () => _refresh(context),
+            child: ListView.separated(
+              physics: const AlwaysScrollableScrollPhysics(
+                parent: BouncingScrollPhysics(),
+              ),
+              padding: _listPadding(context),
+              itemCount:
+                  items.length +
+                  (state.myIsLoadingMore || state.myBookingsError != null
+                      ? 1
+                      : 0),
+              separatorBuilder: (_, __) =>
+                  const SizedBox(height: AppDimens.paddingX10),
+              itemBuilder: (_, i) {
+                if (i == items.length) {
+                  if (state.myIsLoadingMore) {
+                    return const Padding(
+                      padding: EdgeInsets.all(AppDimens.paddingX16),
+                      child: Center(
+                        child: CustomLoading(
+                          color: LightColor.secondaryColor,
+                          size: 24,
+                          strokeWidth: 3,
+                          secondCircleColor: LightColor.secondaryLight,
+                          thirdCircleColor: LightColor.secondaryLight,
+                        ),
+                      ),
+                    );
+                  }
+                  return Center(
+                    child: TextButton.icon(
+                      onPressed: () => context.read<BookingBloc>().add(
+                        const FetchMyBookingsEvent(
+                          silent: true,
+                          loadMore: true,
+                        ),
+                      ),
+                      icon: const Icon(Icons.refresh_rounded),
+                      label: const Text('Could not load more. Retry'),
+                    ),
                   );
                 }
+                return BookingCard(
+                  booking: items[i],
+                  onTap: () async {
+                    await context.pushNamed(
+                      AppRouterParams.bookingDetails.name,
+                      extra: items[i],
+                    );
+                    // Refresh with the latest data on returning from details.
+                    if (context.mounted) {
+                      context.read<BookingBloc>().add(
+                        const FetchMyBookingsEvent(silent: true),
+                      );
+                    }
+                  },
+                );
               },
             ),
           ),

@@ -5,15 +5,16 @@ import 'package:hamro_footsall/core/helper/exception_helper.dart';
 import 'package:hamro_footsall/features/message/data/model/chat_message_model.dart';
 import 'package:hamro_footsall/features/message/data/model/chat_send_request.dart';
 import 'package:hamro_footsall/features/message/data/model/conversation_model.dart';
+import 'package:hamro_footsall/features/message/data/model/conversation_page_model.dart';
 import 'package:hamro_footsall/features/message/data/model/message_profile_model.dart';
 
 abstract class MessageRepository {
-  /// Id of the signed-in user (from the access token) — used to tell own
-  /// messages apart from the other side's.
   int get currentUserId;
 
-  Future<Either<AppException, List<ConversationModel>>> getConversations({
+  Future<Either<AppException, ConversationPageModel>> getConversations({
     bool archived = false,
+    required int page,
+    required int perPage,
   });
   Future<Either<AppException, ConversationModel>> startDirectConversation({
     int? vendorId,

@@ -349,7 +349,9 @@ class OpponentCountChip extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: isSelected
                         ? (filled
-                              ? LightColor.inverseTextColor.withValues(alpha: 0.22)
+                              ? LightColor.inverseTextColor.withValues(
+                                  alpha: 0.22,
+                                )
                               : LightColor.secondaryColor.withValues(
                                   alpha: 0.14,
                                 ))

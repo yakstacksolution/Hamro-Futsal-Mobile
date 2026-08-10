@@ -2,9 +2,9 @@ import 'package:hamro_footsall/core/api/api_client/result.dart';
 import 'package:hamro_footsall/core/api/client.dart';
 
 abstract class BookingRemoteDataSource {
-  Future<Result> getMyBookings();
+  Future<Result> getMyBookings({required int page, required int perPage});
   Future<Result> getBookingDetails(int bookingId);
-  Future<Result> getFutsalBookings();
+  Future<Result> getFutsalBookings({required int page, required int perPage});
   Future<Result> cancelBooking(int bookingId);
   Future<Result> getBookingCancelBoundary(int bookingId);
   Future<Result> verifyBookingPayment(
@@ -23,16 +23,26 @@ abstract class BookingRemoteDataSource {
 
 final class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
   @override
-  Future<Result> getMyBookings() async =>
-      await Client.instance().getAuthManager().getMyBookings();
+  Future<Result> getMyBookings({
+    required int page,
+    required int perPage,
+  }) async => await Client.instance().getAuthManager().getMyBookings(
+    page: page,
+    perPage: perPage,
+  );
 
   @override
   Future<Result> getBookingDetails(int bookingId) async =>
       await Client.instance().getAuthManager().getBookingDetails(bookingId);
 
   @override
-  Future<Result> getFutsalBookings() async =>
-      await Client.instance().getAuthManager().getFutsalBookings();
+  Future<Result> getFutsalBookings({
+    required int page,
+    required int perPage,
+  }) async => await Client.instance().getAuthManager().getFutsalBookings(
+    page: page,
+    perPage: perPage,
+  );
 
   @override
   Future<Result> cancelBooking(int bookingId) async =>

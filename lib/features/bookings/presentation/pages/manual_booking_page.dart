@@ -54,7 +54,9 @@ class _ManualBookingPageState extends State<ManualBookingPage> {
       _error = null;
     });
     final Either<AppException, List<VenueCourtModel>> result =
-        await GetVenueCourtUseCase(VenueCourtRepositoryImpl()).call();
+        await GetVenueCourtUseCase(
+          VenueCourtRepositoryImpl(),
+        ).getAllVenueCourts();
     if (!mounted) return;
     result.fold(
       (AppException error) => setState(() {

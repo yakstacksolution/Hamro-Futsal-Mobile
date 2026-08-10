@@ -26,12 +26,14 @@ class CourtLocationMapSection extends StatelessWidget {
 
   final double height;
 
+  static const double _mercatorLatitudeLimit = 85.05112878;
+
   bool get _hasCoordinates =>
       latitude != null &&
       longitude != null &&
       latitude!.isFinite &&
       longitude!.isFinite &&
-      latitude!.abs() <= 90 &&
+      latitude!.abs() <= _mercatorLatitudeLimit &&
       longitude!.abs() <= 180 &&
       !(latitude == 0 && longitude == 0);
 
@@ -148,6 +150,12 @@ class CourtLocationMapSection extends StatelessWidget {
                           options: MapOptions(
                             initialCenter: point,
                             initialZoom: 15.5,
+                            cameraConstraint: CameraConstraint.contain(
+                              bounds: LatLngBounds(
+                                const LatLng(-_mercatorLatitudeLimit, -180),
+                                const LatLng(_mercatorLatitudeLimit, 180),
+                              ),
+                            ),
                             // Static preview — taps open the external maps app
                             // and gestures don't hijack the page scroll.
                             interactionOptions: const InteractionOptions(
@@ -159,6 +167,8 @@ class CourtLocationMapSection extends StatelessWidget {
                               urlTemplate:
                                   'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                               userAgentPackageName: 'hamro_footsall',
+                              panBuffer: 0,
+                              keepBuffer: 0,
                             ),
                             MarkerLayer(
                               markers: <Marker>[
@@ -191,7 +201,9 @@ class CourtLocationMapSection extends StatelessWidget {
                           vertical: AppDimens.paddingX2,
                         ),
                         decoration: BoxDecoration(
-                          color: LightColor.onBrandSurface.withValues(alpha: 0.8),
+                          color: LightColor.onBrandSurface.withValues(
+                            alpha: 0.8,
+                          ),
                           borderRadius: BorderRadius.circular(
                             AppDimens.radiusX4,
                           ),

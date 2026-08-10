@@ -9,12 +9,17 @@ sealed class MessageEvent extends Equatable {
 
 /// Loads the conversations list. [silent] refreshes in the background.
 final class LoadConversationsEvent extends MessageEvent {
-  const LoadConversationsEvent({this.silent = false, this.archived = false});
+  const LoadConversationsEvent({
+    this.silent = false,
+    this.archived = false,
+    this.loadMore = false,
+  });
   final bool silent;
   final bool archived;
+  final bool loadMore;
 
   @override
-  List<Object?> get props => [silent, archived];
+  List<Object?> get props => [silent, archived, loadMore];
 }
 
 /// Opens a conversation: loads its messages and subscribes to its

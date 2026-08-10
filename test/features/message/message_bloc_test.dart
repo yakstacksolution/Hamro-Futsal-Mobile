@@ -7,6 +7,7 @@ import 'package:hamro_footsall/core/helper/exception_helper.dart';
 import 'package:hamro_footsall/features/message/data/model/chat_message_model.dart';
 import 'package:hamro_footsall/features/message/data/model/chat_send_request.dart';
 import 'package:hamro_footsall/features/message/data/model/conversation_model.dart';
+import 'package:hamro_footsall/features/message/data/model/conversation_page_model.dart';
 import 'package:hamro_footsall/features/message/data/model/message_profile_model.dart';
 import 'package:hamro_footsall/features/message/data/service/chat_socket_service.dart';
 import 'package:hamro_footsall/features/message/domain/repository/message_repository.dart';
@@ -31,6 +32,7 @@ void main() {
 
     test('merges socket delivery with the in-flight send response', () async {
       await _loadConversationAndChat(bloc);
+      expect(repository.lastConversationsPerPage, 10);
       final message = _message(id: 60, senderId: repository.currentUserId);
       final response = Completer<Either<AppException, ChatMessageModel>>();
       repository.sendResponse = response;
@@ -177,15 +179,31 @@ ChatMessageModel _message({required int id, required int senderId}) =>
 final class _FakeMessageRepository implements MessageRepository {
   Completer<Either<AppException, ChatMessageModel>>? sendResponse;
   final List<int> markReadCalls = <int>[];
+  int? lastConversationsPerPage;
 
   @override
   int get currentUserId => 4;
 
   @override
-  Future<Either<AppException, List<ConversationModel>>> getConversations({
+  Future<Either<AppException, ConversationPageModel>> getConversations({
     bool archived = false,
-  }) async =>
-      right([const ConversationModel(id: 4, type: 'direct', unreadCount: 2)]);
+    required int page,
+    required int perPage,
+  }) async {
+    lastConversationsPerPage = perPage;
+    return right(
+      ConversationPageModel(
+        items: const <ConversationModel>[
+          ConversationModel(id: 4, type: 'direct', unreadCount: 2),
+        ],
+        currentPage: page,
+        lastPage: page,
+        perPage: perPage,
+        total: 1,
+        hasMorePages: false,
+      ),
+    );
+  }
 
   @override
   Future<Either<AppException, List<ChatMessageModel>>> getMessages(

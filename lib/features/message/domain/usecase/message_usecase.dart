@@ -5,6 +5,7 @@ import 'package:hamro_footsall/core/helper/exception_helper.dart';
 import 'package:hamro_footsall/features/message/data/model/chat_message_model.dart';
 import 'package:hamro_footsall/features/message/data/model/chat_send_request.dart';
 import 'package:hamro_footsall/features/message/data/model/conversation_model.dart';
+import 'package:hamro_footsall/features/message/data/model/conversation_page_model.dart';
 import 'package:hamro_footsall/features/message/data/model/message_profile_model.dart';
 import 'package:hamro_footsall/features/message/domain/repository/message_repository.dart';
 
@@ -15,9 +16,15 @@ final class MessageUseCase {
 
   int get currentUserId => repository.currentUserId;
 
-  Future<Either<AppException, List<ConversationModel>>> getConversations({
+  Future<Either<AppException, ConversationPageModel>> getConversations({
     bool archived = false,
-  }) async => await repository.getConversations(archived: archived);
+    required int page,
+    int perPage = 5,
+  }) async => await repository.getConversations(
+    archived: archived,
+    page: page,
+    perPage: perPage,
+  );
 
   Future<Either<AppException, ConversationModel>> startDirectConversation({
     int? vendorId,

@@ -649,10 +649,6 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     _emitUpdated(state.copyWith(courts: courts));
   }
 
-  /// Merges [court] into the onboarding list: replaces the entry that matches
-  /// by remote id (preferred) or local id, or appends it when not present.
-  /// Used to sync edits made in an isolated court-editor cubit back into the
-  /// shared onboarding state when the editor closes.
   void upsertCourt(CourtDraft court) {
     final List<CourtDraft> courts = List<CourtDraft>.from(state.courts);
     final int index = courts.indexWhere((CourtDraft item) {
@@ -727,10 +723,6 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     );
   }
 
-  /// Advance payment cannot be switched off — every court collects at least
-  /// [kMinimumAdvancePercent]% up front. Kept as a method so any remaining
-  /// caller simply re-asserts the requirement (and back-fills the defaults)
-  /// instead of disabling it.
   void toggleCourtAdvancePayment(bool value) {
     final CourtDraft? court = state.activeCourt;
     if (court == null) return;
@@ -967,9 +959,6 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
             Map<String, SectionPointer>.from(state.courtPointersById)
               ..remove(court.id);
 
-        // When onboarding is finished (is_step_completed) the vendor is just
-        // managing the court, so start from the beginning. Otherwise resume at
-        // the section/substep the backend reports they last left off at.
         final int sectionIndex = details.isStepCompleted
             ? 0
             : _clamp(
@@ -1114,7 +1103,6 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
       VenueCourtRepositoryImpl(),
     );
     final Map<String, dynamic> body = courtSlotBody(slot, courtId: courtId);
-    // A new slot has a non-numeric local id (no backend slot_id) -> create.
     final bool isNew = int.tryParse(slot.id) == null;
     Either<AppException, List<SlotPricingDraft>> response = isNew
         ? await useCase.createCourtSlot(body)
@@ -1128,15 +1116,9 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
           ) ??
           response;
     }
-    // After creating, re-fetch so the new slot carries the authoritative id
-    // from `get-court-slots` (the create response id may not be the one the
-    // pricing/update endpoints expect).
     return _applySlotMutation(response, courtId, refresh: isNew);
   }
 
-  /// Updates only the pricing (weekend/holiday/discount/custom date prices) of
-  /// an existing slot via `update-court-slot` (sub-step 2). Refreshes the list
-  /// on success. Returns an error message or null.
   Future<String?> saveCourtSlotPricing(SlotPricingDraft slot) async {
     final CourtDraft? court = state.activeCourt;
     final int? courtId = court == null
@@ -1166,8 +1148,6 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     return _applySlotMutation(response, courtId);
   }
 
-  /// Deletes a slot via `delete-court-slot`. A slot that was never persisted
-  /// (non-numeric id) is just removed locally. Returns an error message or null.
   Future<String?> deleteCourtSlot(SlotPricingDraft slot) async {
     final CourtDraft? court = state.activeCourt;
     final int? courtId = court == null
@@ -1192,11 +1172,6 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     return _applySlotMutation(response, courtId, removedSlotId: slot.id);
   }
 
-  /// Shared handling for slot mutations. On success: a delete removes the slot
-  /// by id; a create/update upserts the returned slot(s) (including their
-  /// pricing) into the list by id so a single-slot response updates in place
-  /// without wiping the rest. Falls back to a full re-fetch only when the
-  /// response carries no slots.
   Future<String?> _applySlotMutation(
     Either<AppException, List<SlotPricingDraft>> response,
     int courtId, {
@@ -1248,8 +1223,6 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     return null;
   }
 
-  /// Merges [updates] into [existing] by slot id: replaces a matching slot in
-  /// place, otherwise appends (a newly created slot).
   List<SlotPricingDraft> _upsertSlots(
     List<SlotPricingDraft> existing,
     List<SlotPricingDraft> updates,
@@ -1352,9 +1325,6 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
   final Set<int> _courtSlotsFetched = <int>{};
   final Set<int> _courtSlotsFetching = <int>{};
 
-  /// Loads slots for the active court from `get-court-slots` and replaces the
-  /// local slot list. Guarded so it only runs once per court unless [force] is
-  /// set (e.g. refresh after a save or delete).
   Future<void> fetchActiveCourtSlots({bool force = false}) async {
     final CourtDraft? court = state.activeCourt;
     if (court == null) return;

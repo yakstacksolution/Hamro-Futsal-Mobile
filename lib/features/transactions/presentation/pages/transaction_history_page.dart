@@ -1,21 +1,32 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:go_router/go_router.dart';
-import 'package:hamro_footsall/core/routers/app_router_params.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
+import 'package:hamro_footsall/core/theme/futsal_text.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/utils/responsive.dart';
 import 'package:hamro_footsall/core/utils/string_constants.dart';
+import 'package:hamro_footsall/core/widgets/app_message_view.dart';
 import 'package:hamro_footsall/core/widgets/custom_app_bar.dart';
-import 'package:hamro_footsall/features/bookings/data/model/booking_model.dart';
-import 'package:hamro_footsall/features/bookings/data/repositories/booking_repository_impl.dart';
-import 'package:hamro_footsall/features/bookings/domain/repository/booking_repository.dart';
-import 'package:hamro_footsall/features/bookings/domain/usecase/get_bookings_use_case.dart';
-import 'package:hamro_footsall/features/bookings/presentation/bloc/booking_bloc/booking_bloc.dart';
-import 'package:hamro_footsall/features/bookings/presentation/widgets/booking_shared_widgets.dart';
+import 'package:hamro_footsall/core/widgets/loading_widget.dart';
+import 'package:hamro_footsall/features/transactions/data/model/transaction_history_model.dart';
+import 'package:hamro_footsall/features/transactions/data/repositories/transaction_repository_impl.dart';
 import 'package:hamro_footsall/features/transactions/domain/model/booking_transaction.dart';
+import 'package:hamro_footsall/features/transactions/domain/repository/transaction_repository.dart';
+import 'package:hamro_footsall/features/transactions/domain/usecase/transaction_usecase.dart';
+import 'package:hamro_footsall/features/transactions/presentation/bloc/transaction_history_bloc/transaction_history_bloc.dart';
+import 'package:hamro_footsall/features/transactions/presentation/widgets/transaction_filter_sheet.dart';
+import 'package:hamro_footsall/features/transactions/presentation/widgets/transaction_loading_widgets.dart';
+import 'package:hamro_footsall/features/transactions/presentation/widgets/transaction_widgets.dart';
 import 'package:intl/intl.dart';
 
+/// Infinitely scrolling `GET /auth/transaction-history` (`per_page=20`).
+///
+/// Everything the user can narrow by — `direction`, `type`, `search`,
+/// `date_from`/`date_to` — is applied server-side, so every control refetches
+/// from page 1 rather than filtering the rows already on screen.
 class TransactionHistoryPage extends StatelessWidget {
   const TransactionHistoryPage({
     super.key,
@@ -23,23 +34,17 @@ class TransactionHistoryPage extends StatelessWidget {
     this.repository,
   });
 
+  /// Only drives the empty-state wording; the ledger itself is whatever the
+  /// server returns for the signed-in user.
   final TransactionPerspective perspective;
-  final BookingRepository? repository;
+  final TransactionRepository? repository;
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider<BookingBloc>(
-      create: (_) {
-        final BookingBloc bloc = BookingBloc(
-          GetBookingsUseCase(repository ?? BookingRepositoryImpl()),
-        );
-        if (perspective == TransactionPerspective.futsal) {
-          bloc.add(const FetchFutsalBookingsEvent());
-        } else {
-          bloc.add(const FetchMyBookingsEvent());
-        }
-        return bloc;
-      },
+    return BlocProvider<TransactionHistoryBloc>(
+      create: (_) => TransactionHistoryBloc(
+        TransactionUseCase(repository ?? TransactionRepositoryImpl()),
+      )..add(const LoadTransactionHistoryEvent()),
       child: _TransactionHistoryView(perspective: perspective),
     );
   }
@@ -57,539 +62,459 @@ class _TransactionHistoryView extends StatefulWidget {
 
 class _TransactionHistoryViewState extends State<_TransactionHistoryView> {
   final TextEditingController _searchController = TextEditingController();
-  TransactionStatus? _selectedStatus;
+  final ScrollController _scrollController = ScrollController();
+  Timer? _searchDebounce;
 
-  bool get _isFutsal => widget.perspective == TransactionPerspective.futsal;
+  /// Distance from the bottom at which the next page is requested.
+  static const double _loadMoreThreshold = 280;
+
+  /// Keystrokes are coalesced before hitting the endpoint.
+  static const Duration _searchDebounceDelay = Duration(milliseconds: 400);
+
+  /// Long enough to read as a transition, short enough not to delay the result.
+  static const Duration _transition = Duration(milliseconds: 220);
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _searchController.dispose();
+    _scrollController
+      ..removeListener(_onScroll)
+      ..dispose();
     super.dispose();
   }
 
-  void _fetchTransactions() {
-    final BookingBloc bloc = context.read<BookingBloc>();
-    if (_isFutsal) {
-      bloc.add(const FetchFutsalBookingsEvent());
-    } else {
-      bloc.add(const FetchMyBookingsEvent());
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final double remaining =
+        _scrollController.position.maxScrollExtent -
+        _scrollController.position.pixels;
+    if (remaining <= _loadMoreThreshold) {
+      // The bloc ignores this while a page is in flight or the list has ended.
+      context.read<TransactionHistoryBloc>().add(
+        const LoadMoreTransactionHistoryEvent(),
+      );
     }
   }
 
-  Future<void> _refreshTransactions() async {
-    _fetchTransactions();
-    final BookingBloc bloc = context.read<BookingBloc>();
-    await bloc.stream.firstWhere((BookingState state) {
-      final BookingLoadStatus status = _isFutsal
-          ? state.futsalBookingsStatus
-          : state.myBookingsStatus;
-      return status == BookingLoadStatus.success ||
-          status == BookingLoadStatus.failure;
+  void _onSearchChanged(String value) {
+    setState(() {});
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(_searchDebounceDelay, () {
+      if (!mounted) return;
+      context.read<TransactionHistoryBloc>().add(
+        SearchTransactionsEvent(value),
+      );
     });
   }
 
-  void _openBookingDetails(BookingTransaction transaction) {
-    context.pushNamed(
-      AppRouterParams.bookingDetails.name,
-      extra: transaction.booking,
-      queryParameters: <String, String>{'futsal': _isFutsal.toString()},
+  void _onSearchCleared() {
+    _searchDebounce?.cancel();
+    _searchController.clear();
+    setState(() {});
+    context.read<TransactionHistoryBloc>().add(
+      const SearchTransactionsEvent(''),
+    );
+  }
+
+  Future<void> _refresh() async {
+    final TransactionHistoryBloc bloc = context.read<TransactionHistoryBloc>();
+    bloc.add(const LoadTransactionHistoryEvent(isRefresh: true));
+    await bloc.stream.firstWhere(
+      (TransactionHistoryState state) =>
+          state.status != TransactionHistoryStatus.loading,
+    );
+  }
+
+  /// `Custom` opens the filter sheet, where the two dates are picked; every
+  /// other chip resolves to a window immediately.
+  Future<void> _onRangeChipSelected(TransactionRangeFilter filter) async {
+    if (filter == TransactionRangeFilter.custom) {
+      await _openFilters();
+      return;
+    }
+    context.read<TransactionHistoryBloc>().add(
+      ChangeTransactionRangeEvent(TransactionDateRange.of(filter)),
+    );
+  }
+
+  Future<void> _openFilters() async {
+    final TransactionHistoryBloc bloc = context.read<TransactionHistoryBloc>();
+    final TransactionHistoryState state = bloc.state;
+
+    final TransactionFilterSelection? selection =
+        await showTransactionFilterSheet(
+          context: context,
+          direction: state.direction,
+          type: state.type,
+          range: state.range,
+          availableTypes: state.availableTypes,
+        );
+    if (selection == null) return;
+
+    // Each control is its own event and the bloc no-ops on unchanged values, so
+    // applying the sheet costs one request per filter the user actually moved.
+    bloc
+      ..add(ChangeTransactionDirectionEvent(selection.direction))
+      ..add(ChangeTransactionTypeEvent(selection.type))
+      ..add(ChangeTransactionRangeEvent(selection.range));
+  }
+
+  void _clearFilters() {
+    _searchDebounce?.cancel();
+    _searchController.clear();
+    setState(() {});
+    context.read<TransactionHistoryBloc>().add(
+      const ClearTransactionFiltersEvent(),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final double horizontal = context.responsive<double>(
+      mobile: AppDimens.paddingX16,
+      tablet: AppDimens.paddingX32,
+    );
+
     return Scaffold(
       backgroundColor: LightColor.background,
       appBar: const CustomAppBar(title: StringConstants.transactionHistory),
       body: SafeArea(
         top: false,
-        child: BlocBuilder<BookingBloc, BookingState>(
-          builder: (BuildContext context, BookingState state) {
-            final BookingLoadStatus loadStatus = _isFutsal
-                ? state.futsalBookingsStatus
-                : state.myBookingsStatus;
-            final List<BookingModel> bookings = _isFutsal
-                ? state.futsalBookings
-                : state.myBookings;
-            final String? error = _isFutsal
-                ? state.futsalBookingsError
-                : state.myBookingsError;
-
-            if (loadStatus == BookingLoadStatus.loading && bookings.isEmpty) {
-              return const BookingSkeletonLoader();
+        child: BlocBuilder<TransactionHistoryBloc, TransactionHistoryState>(
+          builder: (BuildContext context, TransactionHistoryState state) {
+            if (state.isInitialLoading) {
+              return TransactionHistoryLoadingView(horizontal: horizontal);
             }
-            if (loadStatus == BookingLoadStatus.failure && bookings.isEmpty) {
-              return BookingErrorView(
-                message: error ?? StringConstants.somethingWentWrong,
-                onRetry: _fetchTransactions,
+
+            // A hard failure with nothing cached takes the whole surface; a
+            // failure with rows on screen is reported in the list footer.
+            if (state.items.isEmpty &&
+                state.status == TransactionHistoryStatus.failure) {
+              return AppMessageView(
+                icon: Icons.wifi_off_rounded,
+                title: StringConstants.couldNotLoadTransactionHistory,
+                message:
+                    state.errorMessage ?? StringConstants.somethingWentWrong,
+                actionLabel: StringConstants.retry,
+                onAction: () => context.read<TransactionHistoryBloc>().add(
+                  const LoadTransactionHistoryEvent(),
+                ),
               );
             }
 
-            final List<BookingTransaction> transactions =
-                bookings
-                    .map(
-                      (BookingModel booking) => BookingTransaction.fromBooking(
-                        booking,
-                        perspective: widget.perspective,
-                      ),
-                    )
-                    .toList(growable: false)
-                  ..sort(
-                    (BookingTransaction left, BookingTransaction right) =>
-                        right.bookingDate.compareTo(left.bookingDate),
-                  );
+            final List<_ListRow> rows = _buildRows(state.items);
 
-            return _buildHistory(transactions);
+            return RefreshIndicator(
+              color: LightColor.secondaryColor,
+              onRefresh: _refresh,
+              child: CustomScrollView(
+                controller: _scrollController,
+                physics: const AlwaysScrollableScrollPhysics(
+                  parent: BouncingScrollPhysics(),
+                ),
+                slivers: <Widget>[
+                  SliverPadding(
+                    padding: EdgeInsets.fromLTRB(
+                      horizontal,
+                      AppDimens.paddingX14,
+                      horizontal,
+                      0,
+                    ),
+                    sliver: SliverToBoxAdapter(
+                      child: TransactionSummaryPanel(
+                        summary: state.summary,
+                        rangeLabel: transactionRangeLabel(state.range),
+                        fallbackCount: state.total > 0
+                            ? state.total
+                            : state.items.length,
+                      ),
+                    ),
+                  ),
+
+                  // Search stays reachable while the ledger scrolls under it.
+                  SliverPersistentHeader(
+                    pinned: true,
+                    delegate: _SearchHeaderDelegate(
+                      horizontal: horizontal,
+                      isLoading: state.isReloading,
+                      child: TransactionSearchBar(
+                        controller: _searchController,
+                        onChanged: _onSearchChanged,
+                        onClear: _onSearchCleared,
+                        onOpenFilters: _openFilters,
+                        activeFilterCount: state.activeFilterCount,
+                      ),
+                    ),
+                  ),
+
+                  SliverPadding(
+                    padding: EdgeInsets.symmetric(horizontal: horizontal),
+                    sliver: SliverToBoxAdapter(
+                      child: TransactionRangeChips(
+                        selected: state.range,
+                        onSelected: _onRangeChipSelected,
+                      ),
+                    ),
+                  ),
+
+                  // Collapses to nothing when no filter is set, so the row
+                  // grows and shrinks rather than popping in.
+                  SliverPadding(
+                    padding: EdgeInsets.symmetric(horizontal: horizontal),
+                    sliver: SliverToBoxAdapter(
+                      child: AnimatedSize(
+                        duration: _transition,
+                        curve: Curves.easeOut,
+                        alignment: Alignment.topCenter,
+                        child: state.hasFilters
+                            ? Padding(
+                                padding: const EdgeInsets.only(
+                                  top: AppDimens.paddingX12,
+                                ),
+                                child: _ActiveFilterSummary(
+                                  state: state,
+                                  onClear: _clearFilters,
+                                ),
+                              )
+                            : const SizedBox(width: double.infinity),
+                      ),
+                    ),
+                  ),
+
+                  // Rows dim and stop taking taps while the next query is in
+                  // flight, then fade back in — so a filter change reads as a
+                  // transition instead of an abrupt swap.
+                  SliverAnimatedOpacity(
+                    opacity: state.isReloading ? 0.35 : 1,
+                    duration: _transition,
+                    curve: Curves.easeOut,
+                    sliver: SliverIgnorePointer(
+                      ignoring: state.isReloading,
+                      sliver: rows.isEmpty
+                          ? SliverToBoxAdapter(
+                              child: _EmptyState(hasFilters: state.hasFilters),
+                            )
+                          : SliverPadding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: horizontal,
+                              ),
+                              sliver: SliverList.builder(
+                                itemCount: rows.length,
+                                itemBuilder:
+                                    (BuildContext context, int index) =>
+                                        rows[index].build(context),
+                              ),
+                            ),
+                    ),
+                  ),
+
+                  SliverPadding(
+                    padding: EdgeInsets.fromLTRB(
+                      horizontal,
+                      0,
+                      horizontal,
+                      AppDimens.paddingX32,
+                    ),
+                    sliver: SliverToBoxAdapter(
+                      child: _ListFooter(state: state),
+                    ),
+                  ),
+                ],
+              ),
+            );
           },
         ),
       ),
     );
   }
 
-  Widget _buildHistory(List<BookingTransaction> transactions) {
-    final List<BookingTransaction> filteredTransactions = transactions
-        .where(_matchesActiveFilters)
-        .toList(growable: false);
-    final Map<String, List<BookingTransaction>> groupedTransactions =
-        _groupByMonth(filteredTransactions);
-
-    return RefreshIndicator(
-      color: LightColor.secondaryColor,
-      onRefresh: _refreshTransactions,
-      child: ListView(
-        physics: const AlwaysScrollableScrollPhysics(
-          parent: BouncingScrollPhysics(),
-        ),
-        padding: const EdgeInsets.fromLTRB(
-          AppDimens.paddingX20,
-          AppDimens.paddingX8,
-          AppDimens.paddingX20,
-          AppDimens.paddingX32,
-        ),
-        children: <Widget>[
-          _TransactionSummary(
-            transactions: transactions,
-            perspective: widget.perspective,
-          ),
-          const SizedBox(height: AppDimens.sizeX18),
-          _TransactionSearchField(
-            controller: _searchController,
-            onChanged: (_) => setState(() {}),
-            onClear: () {
-              _searchController.clear();
-              setState(() {});
-            },
-          ),
-          const SizedBox(height: AppDimens.sizeX12),
-          _TransactionStatusFilters(
-            selectedStatus: _selectedStatus,
-            onChanged: (TransactionStatus? status) {
-              setState(() => _selectedStatus = status);
-            },
-          ),
-          const SizedBox(height: AppDimens.sizeX22),
-          if (transactions.isEmpty)
-            const _TransactionEmptyState(hasActiveFilters: false)
-          else if (filteredTransactions.isEmpty)
-            const _TransactionEmptyState(hasActiveFilters: true)
-          else
-            for (final MapEntry<String, List<BookingTransaction>> group
-                in groupedTransactions.entries) ...<Widget>[
-              _TransactionMonthSection(
-                title: group.key,
-                transactions: group.value,
-                onTransactionTap: _openBookingDetails,
-              ),
-              const SizedBox(height: AppDimens.sizeX22),
-            ],
-        ],
-      ),
-    );
-  }
-
-  bool _matchesActiveFilters(BookingTransaction transaction) {
-    if (_selectedStatus != null && transaction.status != _selectedStatus) {
-      return false;
-    }
-    final String query = _searchController.text.trim().toLowerCase();
-    if (query.isEmpty) return true;
-    return <String?>[
-      transaction.reference,
-      transaction.counterparty,
-      transaction.courtName,
-      transaction.paymentMethod,
-      transaction.booking.paymentStatus,
-    ].any((String? value) => value?.toLowerCase().contains(query) == true);
-  }
-
-  Map<String, List<BookingTransaction>> _groupByMonth(
-    List<BookingTransaction> transactions,
-  ) {
+  /// Flattens the accumulated items into month headers plus rows, so the whole
+  /// ledger is one lazily built sliver — which also lets it fade as a unit.
+  List<_ListRow> _buildRows(List<TransactionHistoryItemModel> items) {
     final DateFormat monthFormat = DateFormat('MMMM yyyy');
-    final Map<String, List<BookingTransaction>> grouped =
-        <String, List<BookingTransaction>>{};
-    for (final BookingTransaction transaction in transactions) {
-      final String month = monthFormat.format(transaction.bookingDate);
-      grouped.putIfAbsent(month, () => <BookingTransaction>[]).add(transaction);
+    final List<_ListRow> rows = <_ListRow>[];
+    String? currentMonth;
+
+    for (int index = 0; index < items.length; index++) {
+      final TransactionHistoryItemModel item = items[index];
+      final String month = item.date == null
+          ? StringConstants.transactions
+          : monthFormat.format(item.date!);
+
+      if (month != currentMonth) {
+        currentMonth = month;
+        rows.add(_MonthHeaderRow(month));
+      }
+
+      // The divider is dropped when the next item starts a new month, so each
+      // group reads as its own block.
+      final TransactionHistoryItemModel? next = index + 1 < items.length
+          ? items[index + 1]
+          : null;
+      final bool lastInGroup =
+          next == null ||
+          (next.date == null
+                  ? StringConstants.transactions
+                  : monthFormat.format(next.date!)) !=
+              month;
+      rows.add(_TransactionRow(item, showDivider: !lastInGroup));
     }
-    return grouped;
+    return rows;
   }
 }
 
-class _TransactionSummary extends StatelessWidget {
-  const _TransactionSummary({
-    required this.transactions,
-    required this.perspective,
-  });
+/// One entry in the flattened list: a month header or a transaction.
+sealed class _ListRow {
+  const _ListRow();
 
-  final List<BookingTransaction> transactions;
-  final TransactionPerspective perspective;
+  Widget build(BuildContext context);
+}
+
+class _MonthHeaderRow extends _ListRow {
+  const _MonthHeaderRow(this.title);
+
+  final String title;
 
   @override
-  Widget build(BuildContext context) {
-    final bool isFutsal = perspective == TransactionPerspective.futsal;
-    final double paidAmount = _sumForStatus(TransactionStatus.paid);
-    final double pendingAmount = _sumForStatus(TransactionStatus.pending);
-    final double refundedAmount = _sumForStatus(TransactionStatus.refunded);
-    final textTheme = FutsalTheme.getTextTheme(context);
+  Widget build(BuildContext context) => TransactionSectionHeader(title: title);
+}
 
+class _TransactionRow extends _ListRow {
+  const _TransactionRow(this.item, {required this.showDivider});
+
+  final TransactionHistoryItemModel item;
+  final bool showDivider;
+
+  @override
+  Widget build(BuildContext context) =>
+      TransactionTile(item: item, showDivider: showDivider);
+}
+
+/// Pins the search bar, painting the page background behind it so rows do not
+/// show through as they scroll past.
+class _SearchHeaderDelegate extends SliverPersistentHeaderDelegate {
+  _SearchHeaderDelegate({
+    required this.child,
+    required this.horizontal,
+    required this.isLoading,
+  });
+
+  final Widget child;
+  final double horizontal;
+
+  /// Drives the hairline progress bar under the search field.
+  final bool isLoading;
+
+  /// The 2px line's space is always reserved, so revealing it never nudges the
+  /// list.
+  static const double _height =
+      AppDimens.sizeX44 + (AppDimens.paddingX12 * 2) + 2;
+
+  @override
+  double get minExtent => _height;
+
+  @override
+  double get maxExtent => _height;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
     return Container(
-      padding: const EdgeInsets.all(AppDimens.paddingX18),
-      decoration: BoxDecoration(
-        color: LightColor.cardColor,
-        borderRadius: BorderRadius.circular(AppDimens.radiusX18),
-        border: Border.all(color: LightColor.dividerColor),
-        boxShadow: <BoxShadow>[
-          BoxShadow(
-            color: LightColor.shadowColor,
-            blurRadius: AppDimens.radiusX18,
-            offset: Offset(0, AppDimens.sizeX8),
-          ),
-        ],
-      ),
+      color: LightColor.background,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Row(
-            children: <Widget>[
-              Container(
-                width: AppDimens.sizeX46,
-                height: AppDimens.sizeX46,
-                decoration: BoxDecoration(
-                  color: LightColor.secondaryColor.withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(AppDimens.radiusX14),
-                ),
-                child: Icon(
-                  isFutsal
-                      ? Icons.south_west_rounded
-                      : Icons.north_east_rounded,
-                  color: LightColor.secondaryColor,
-                  size: AppDimens.sizeX22,
-                ),
-              ),
-              const SizedBox(width: AppDimens.sizeX12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      isFutsal
-                          ? StringConstants.futsalEarnings
-                          : StringConstants.playerPayments,
-                      style: textTheme.bodyTextMedium?.copyWith(
-                        color: LightColor.primaryTextColor,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: AppDimens.sizeX2),
-                    Text(
-                      isFutsal
-                          ? StringConstants.moneyReceivedFromBookings
-                          : StringConstants.moneyPaidForBookings,
-                      style: textTheme.bodyTextSmall?.copyWith(
-                        color: LightColor.secondaryTextColor,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppDimens.sizeX20),
-          Text(
-            isFutsal
-                ? StringConstants.totalEarnings
-                : StringConstants.totalSpent,
-            style: textTheme.bodyTextSmall?.copyWith(
-              color: LightColor.secondaryTextColor,
-              fontWeight: FontWeight.w500,
+          Padding(
+            padding: EdgeInsets.fromLTRB(
+              horizontal,
+              AppDimens.paddingX12,
+              horizontal,
+              AppDimens.paddingX12,
             ),
+            child: child,
           ),
-          const SizedBox(height: AppDimens.sizeX4),
-          Text(
-            _formatCurrency(paidAmount),
-            style: textTheme.headingXSmall?.copyWith(
-              color: LightColor.primaryTextColor,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: AppDimens.sizeX18),
-          const Divider(height: AppDimens.sizeX1),
-          const SizedBox(height: AppDimens.sizeX14),
-          Row(
-            children: <Widget>[
-              Expanded(
-                child: _SummaryMetric(
-                  label: StringConstants.pendingAmount,
-                  value: _formatCurrency(pendingAmount),
-                  color: LightColor.warningColor,
-                ),
-              ),
-              Container(
-                width: AppDimens.sizeX1,
-                height: AppDimens.sizeX36,
-                color: LightColor.dividerColor,
-              ),
-              Expanded(
-                child: _SummaryMetric(
-                  label: StringConstants.refunds,
-                  value: _formatCurrency(refundedAmount),
-                  color: LightColor.purpleColor,
-                ),
-              ),
-            ],
+          // Built only while loading: an indeterminate indicator animates
+          // forever, which would burn frames (and never let tests settle) if it
+          // stayed mounted at zero opacity. The 2px space is always reserved,
+          // so revealing it never nudges the list.
+          SizedBox(
+            height: 2,
+            child: isLoading
+                ? LinearProgressIndicator(
+                    minHeight: 2,
+                    backgroundColor: Colors.transparent,
+                    color: LightColor.secondaryColor,
+                  )
+                : null,
           ),
         ],
       ),
     );
   }
-
-  double _sumForStatus(TransactionStatus status) {
-    return transactions
-        .where((BookingTransaction transaction) => transaction.status == status)
-        .fold<double>(
-          0,
-          (double total, BookingTransaction transaction) =>
-              total + transaction.amount,
-        );
-  }
-}
-
-class _SummaryMetric extends StatelessWidget {
-  const _SummaryMetric({
-    required this.label,
-    required this.value,
-    required this.color,
-  });
-
-  final String label;
-  final String value;
-  final Color color;
 
   @override
-  Widget build(BuildContext context) {
-    final textTheme = FutsalTheme.getTextTheme(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppDimens.paddingX8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: textTheme.bodyTextSmall?.copyWith(
-              color: LightColor.secondaryTextColor,
-            ),
-          ),
-          const SizedBox(height: AppDimens.sizeX4),
-          Text(
-            value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: textTheme.bodyTextMedium?.copyWith(
-              color: color,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  bool shouldRebuild(_SearchHeaderDelegate oldDelegate) =>
+      oldDelegate.child != child ||
+      oldDelegate.horizontal != horizontal ||
+      oldDelegate.isLoading != isLoading;
 }
 
-class _TransactionSearchField extends StatelessWidget {
-  const _TransactionSearchField({
-    required this.controller,
-    required this.onChanged,
-    required this.onClear,
-  });
+/// Reads back what is currently narrowing the list, with a one-tap reset.
+class _ActiveFilterSummary extends StatelessWidget {
+  const _ActiveFilterSummary({required this.state, required this.onClear});
 
-  final TextEditingController controller;
-  final ValueChanged<String> onChanged;
+  final TransactionHistoryState state;
   final VoidCallback onClear;
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
-      controller: controller,
-      onChanged: onChanged,
-      textInputAction: TextInputAction.search,
-      decoration: InputDecoration(
-        hintText: StringConstants.searchTransactions,
-        prefixIcon: Icon(
-          Icons.search_rounded,
-          color: LightColor.secondaryTextColor,
-        ),
-        suffixIcon: controller.text.isEmpty
-            ? null
-            : IconButton(
-                onPressed: onClear,
-                icon: Icon(
-                  Icons.close_rounded,
-                  color: LightColor.secondaryTextColor,
-                ),
-              ),
-        filled: true,
-        fillColor: LightColor.cardColor,
-        contentPadding: const EdgeInsets.symmetric(
-          vertical: AppDimens.paddingX12,
-        ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppDimens.radiusX14),
-          borderSide: BorderSide(color: LightColor.dividerColor),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppDimens.radiusX14),
-          borderSide: BorderSide(color: LightColor.dividerColor),
-        ),
-      ),
-    );
-  }
-}
-
-class _TransactionStatusFilters extends StatelessWidget {
-  const _TransactionStatusFilters({
-    required this.selectedStatus,
-    required this.onChanged,
-  });
-
-  final TransactionStatus? selectedStatus;
-  final ValueChanged<TransactionStatus?> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    const List<TransactionStatus?> filters = <TransactionStatus?>[
-      null,
-      TransactionStatus.paid,
-      TransactionStatus.pending,
-      TransactionStatus.refunded,
-      TransactionStatus.cancelled,
+    final FutsalTextTheme textTheme = FutsalTheme.getTextTheme(context);
+    final List<String> parts = <String>[
+      if (state.direction != TransactionDirectionFilter.all)
+        transactionDirectionLabel(state.direction),
+      if (state.type != 'all') TxnParse.humanize(state.type),
+      if (state.range.isActive) transactionRangeLabel(state.range),
+      if (state.search.isNotEmpty) '"${state.search}"',
     ];
 
-    return SizedBox(
-      height: AppDimens.sizeX36,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        itemCount: filters.length,
-        separatorBuilder: (_, __) => const SizedBox(width: AppDimens.sizeX8),
-        itemBuilder: (BuildContext context, int index) {
-          final TransactionStatus? status = filters[index];
-          final bool selected = status == selectedStatus;
-          return ChoiceChip(
-            label: Text(_statusLabel(status)),
-            selected: selected,
-            showCheckmark: false,
-            onSelected: (_) => onChanged(status),
-            backgroundColor: LightColor.cardColor,
-            selectedColor: LightColor.secondaryColor.withValues(alpha: 0.12),
-            side: BorderSide(
-              color: selected
-                  ? LightColor.secondaryColor.withValues(alpha: 0.28)
-                  : LightColor.dividerColor,
+    return Row(
+      children: <Widget>[
+        Expanded(
+          child: Text(
+            parts.join(' · '),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: textTheme.bodyTextSmall?.copyWith(
+              color: LightColor.secondaryTextColor,
+              fontSize: AppDimens.fontBodySubTitle,
             ),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppDimens.radiusX20),
-            ),
-            labelStyle: FutsalTheme.getTextTheme(context).bodyTextSmall
-                ?.copyWith(
-                  color: selected
-                      ? LightColor.secondaryColor
-                      : LightColor.secondaryTextColor,
-                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                ),
+          ),
+        ),
+        TextButton(
+          onPressed: onClear,
+          style: TextButton.styleFrom(
+            visualDensity: VisualDensity.compact,
             padding: const EdgeInsets.symmetric(
               horizontal: AppDimens.paddingX8,
             ),
-            visualDensity: VisualDensity.compact,
-          );
-        },
-      ),
-    );
-  }
-}
-
-class _TransactionMonthSection extends StatelessWidget {
-  const _TransactionMonthSection({
-    required this.title,
-    required this.transactions,
-    required this.onTransactionTap,
-  });
-
-  final String title;
-  final List<BookingTransaction> transactions;
-  final ValueChanged<BookingTransaction> onTransactionTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = FutsalTheme.getTextTheme(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Padding(
-          padding: const EdgeInsets.only(
-            left: AppDimens.paddingX4,
-            bottom: AppDimens.paddingX10,
+            minimumSize: Size.zero,
           ),
           child: Text(
-            title,
-            style: textTheme.bodyTextMedium?.copyWith(
-              color: LightColor.primaryTextColor,
+            StringConstants.clearAll,
+            style: textTheme.bodyTextSmall?.copyWith(
+              color: LightColor.secondaryColor,
+              fontSize: AppDimens.fontBodySubTitle,
               fontWeight: FontWeight.w700,
             ),
-          ),
-        ),
-        Container(
-          clipBehavior: Clip.antiAlias,
-          decoration: BoxDecoration(
-            color: LightColor.cardColor,
-            borderRadius: BorderRadius.circular(AppDimens.radiusX16),
-            border: Border.all(color: LightColor.dividerColor),
-            boxShadow: <BoxShadow>[
-              BoxShadow(
-                color: LightColor.shadowColor,
-                blurRadius: AppDimens.radiusX14,
-                offset: Offset(0, AppDimens.sizeX6),
-              ),
-            ],
-          ),
-          child: Column(
-            children: <Widget>[
-              for (int index = 0; index < transactions.length; index++) ...[
-                _TransactionTile(
-                  transaction: transactions[index],
-                  onTap: () => onTransactionTap(transactions[index]),
-                ),
-                if (index < transactions.length - 1)
-                  Divider(
-                    height: AppDimens.sizeX1,
-                    thickness: AppDimens.sizeX1,
-                    indent: AppDimens.sizeX72,
-                    color: LightColor.dividerColor,
-                  ),
-              ],
-            ],
           ),
         ),
       ],
@@ -597,236 +522,84 @@ class _TransactionMonthSection extends StatelessWidget {
   }
 }
 
-class _TransactionTile extends StatelessWidget {
-  const _TransactionTile({required this.transaction, required this.onTap});
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({required this.hasFilters});
 
-  final BookingTransaction transaction;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = FutsalTheme.getTextTheme(context);
-    final Color statusColor = _statusColor(transaction.status);
-    final String counterparty = transaction.counterparty.isEmpty
-        ? transaction.perspective == TransactionPerspective.futsal
-              ? StringConstants.players
-              : StringConstants.futsal
-        : transaction.counterparty;
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(AppDimens.paddingX14),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Container(
-                width: AppDimens.sizeX44,
-                height: AppDimens.sizeX44,
-                decoration: BoxDecoration(
-                  color:
-                      (transaction.isCredit
-                              ? LightColor.secondaryColor
-                              : LightColor.blueColor)
-                          .withValues(alpha: 0.10),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  transaction.isCredit
-                      ? Icons.south_west_rounded
-                      : Icons.north_east_rounded,
-                  color: transaction.isCredit
-                      ? LightColor.secondaryColor
-                      : LightColor.blueColor,
-                  size: AppDimens.sizeX20,
-                ),
-              ),
-              const SizedBox(width: AppDimens.sizeX14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        Expanded(
-                          child: Text(
-                            counterparty,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: textTheme.bodyTextMedium?.copyWith(
-                              color: LightColor.primaryTextColor,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: AppDimens.sizeX10),
-                        Text(
-                          '${transaction.isCredit ? '+' : '-'}${_formatCurrency(transaction.amount)}',
-                          style: textTheme.bodyTextMedium?.copyWith(
-                            color: transaction.isCredit
-                                ? LightColor.secondaryColor
-                                : LightColor.primaryTextColor,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: AppDimens.sizeX4),
-                    Text(
-                      <String>[
-                        transaction.reference,
-                        if (transaction.courtName.isNotEmpty)
-                          transaction.courtName,
-                      ].join(' · '),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: textTheme.bodyTextSmall?.copyWith(
-                        color: LightColor.secondaryTextColor,
-                      ),
-                    ),
-                    const SizedBox(height: AppDimens.sizeX8),
-                    Wrap(
-                      spacing: AppDimens.sizeX8,
-                      runSpacing: AppDimens.sizeX6,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: <Widget>[
-                        _TransactionStatusChip(
-                          label: _statusLabel(transaction.status),
-                          color: statusColor,
-                        ),
-                        Text(
-                          _transactionDateLabel(transaction),
-                          style: textTheme.bodyTextSmall?.copyWith(
-                            color: LightColor.hintTextColor,
-                            fontSize: AppDimens.fontBodySubTitle,
-                          ),
-                        ),
-                        if (transaction.paymentMethod != null)
-                          Text(
-                            '${StringConstants.paidVia} ${transaction.paymentMethod}',
-                            style: textTheme.bodyTextSmall?.copyWith(
-                              color: LightColor.hintTextColor,
-                              fontSize: AppDimens.fontBodySubTitle,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _TransactionStatusChip extends StatelessWidget {
-  const _TransactionStatusChip({required this.label, required this.color});
-
-  final String label;
-  final Color color;
+  final bool hasFilters;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppDimens.paddingX8,
-        vertical: AppDimens.paddingX2,
-      ),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(AppDimens.radiusX20),
-      ),
-      child: Text(
-        label,
-        style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
-          color: color,
-          fontSize: AppDimens.fontBodySubTitle,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-    );
-  }
-}
-
-class _TransactionEmptyState extends StatelessWidget {
-  const _TransactionEmptyState({required this.hasActiveFilters});
-
-  final bool hasActiveFilters;
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = FutsalTheme.getTextTheme(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: AppDimens.paddingX48),
-      child: Column(
-        children: <Widget>[
-          Container(
-            width: AppDimens.sizeX80,
-            height: AppDimens.sizeX80,
-            decoration: BoxDecoration(
-              color: LightColor.secondaryColor.withValues(alpha: 0.08),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.receipt_long_outlined,
-              color: LightColor.secondaryColor,
-              size: AppDimens.sizeX36,
-            ),
-          ),
-          const SizedBox(height: AppDimens.sizeX16),
-          Text(
-            hasActiveFilters
-                ? StringConstants.noTransactionsFound
-                : StringConstants.noTransactionsYet,
-            style: textTheme.bodyTextMedium?.copyWith(
-              color: LightColor.primaryTextColor,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: AppDimens.sizeX6),
-          Text(
-            hasActiveFilters
-                ? StringConstants.tryAdjustingOrClearingYourFilters
-                : StringConstants.bookingPaymentsWillAppearHere,
-            textAlign: TextAlign.center,
-            style: textTheme.bodyTextSmall?.copyWith(
-              color: LightColor.secondaryTextColor,
-            ),
-          ),
-        ],
+      padding: const EdgeInsets.only(top: AppDimens.paddingX32),
+      child: AppMessageView(
+        icon: hasFilters
+            ? Icons.search_off_rounded
+            : Icons.receipt_long_outlined,
+        title: hasFilters
+            ? StringConstants.noTransactionsFound
+            : StringConstants.noTransactionsYet,
+        message: hasFilters
+            ? StringConstants.tryAdjustingOrClearingYourFilters
+            : StringConstants.transactionsWillAppearHere,
       ),
     );
   }
 }
 
-String _formatCurrency(double amount) {
-  final NumberFormat formatter = NumberFormat('#,##0', 'en_US');
-  return '${StringConstants.npr} ${formatter.format(amount)}';
+/// Pagination spinner, load-more retry, or the end-of-list marker.
+class _ListFooter extends StatelessWidget {
+  const _ListFooter({required this.state});
+
+  final TransactionHistoryState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final FutsalTextTheme textTheme = FutsalTheme.getTextTheme(context);
+
+    if (state.isLoadingMore) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppDimens.paddingX20),
+        child: Center(
+          child: SizedBox(
+            width: AppDimens.sizeX24,
+            height: AppDimens.sizeX24,
+            child: CustomLoading(
+              color: LightColor.secondaryColor,
+              size: AppDimens.sizeX24,
+              strokeWidth: 2.5,
+              secondCircleColor: LightColor.secondaryLight,
+              thirdCircleColor: LightColor.secondaryLightMedium,
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (state.errorMessage != null && state.items.isNotEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppDimens.paddingX16),
+        child: Center(
+          child: TextButton.icon(
+            onPressed: () => context.read<TransactionHistoryBloc>().add(
+              const LoadMoreTransactionHistoryEvent(),
+            ),
+            icon: const Icon(
+              Icons.refresh_rounded,
+              size: AppDimens.sizeX16,
+              color: LightColor.secondaryColor,
+            ),
+            label: Text(
+              StringConstants.retry,
+              style: textTheme.bodyTextSmall?.copyWith(
+                color: LightColor.secondaryColor,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return const SizedBox(height: AppDimens.paddingX8);
+  }
 }
-
-String _transactionDateLabel(BookingTransaction transaction) {
-  final String date = DateFormat('dd MMM yyyy').format(transaction.bookingDate);
-  final String time = transaction.booking.displayTimeRange;
-  return time.isEmpty ? date : '$date · $time';
-}
-
-String _statusLabel(TransactionStatus? status) => switch (status) {
-  null => StringConstants.all,
-  TransactionStatus.paid => StringConstants.paid,
-  TransactionStatus.pending => StringConstants.pending,
-  TransactionStatus.refunded => StringConstants.refunded,
-  TransactionStatus.cancelled => StringConstants.cancelled,
-};
-
-Color _statusColor(TransactionStatus status) => switch (status) {
-  TransactionStatus.paid => LightColor.secondaryColor,
-  TransactionStatus.pending => LightColor.warningColor,
-  TransactionStatus.refunded => LightColor.purpleColor,
-  TransactionStatus.cancelled => LightColor.redColor,
-};

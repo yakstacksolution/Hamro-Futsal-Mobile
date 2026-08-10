@@ -3,6 +3,7 @@ import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/validation/app_validators.dart';
 import 'package:hamro_footsall/core/widgets/custom_button.dart';
 import 'package:hamro_footsall/core/widgets/custom_text_field.dart';
 import 'package:hamro_footsall/features/opponent_match/data/model/opponent_match_model.dart';
@@ -255,6 +256,9 @@ class _AddPlayerSheetState extends State<AddPlayerSheet> {
   late final _nameCtrl = TextEditingController(
     text: widget.initialPlayer?.name ?? '',
   );
+  late final _emailCtrl = TextEditingController(
+    text: widget.initialPlayer?.email ?? '',
+  );
   PlayerPositionModel? _position;
 
   bool get _isEdit => widget.initialPlayer != null;
@@ -281,8 +285,22 @@ class _AddPlayerSheetState extends State<AddPlayerSheet> {
   @override
   void dispose() {
     _nameCtrl.dispose();
+    _emailCtrl.dispose();
     super.dispose();
   }
+
+  /// Email is optional, so a blank field is fine — but anything typed has to be
+  /// a valid address before the player can be saved.
+  String? get _emailError {
+    final String text = _emailCtrl.text.trim();
+    if (text.isEmpty) return null;
+    return AppValidators.email(text);
+  }
+
+  bool get _canSubmit =>
+      _nameCtrl.text.trim().isNotEmpty &&
+      _position != null &&
+      _emailError == null;
 
   @override
   Widget build(BuildContext context) {
@@ -296,6 +314,17 @@ class _AddPlayerSheetState extends State<AddPlayerSheet> {
             controller: _nameCtrl,
             hint: 'Player name',
             icon: Icons.person_outline_rounded,
+            onChanged: (_) => setState(() {}),
+          ),
+          const SizedBox(height: AppDimens.sizeX12),
+          _SheetInput(
+            controller: _emailCtrl,
+            hint: 'Player email',
+            icon: Icons.mail_outline_rounded,
+            keyboardType: TextInputType.emailAddress,
+            // Addresses are never capitalised, unlike the name above.
+            textCapitalization: TextCapitalization.none,
+            errorText: _emailError,
             onChanged: (_) => setState(() {}),
           ),
           const SizedBox(height: AppDimens.sizeX14),
@@ -352,7 +381,7 @@ class _AddPlayerSheetState extends State<AddPlayerSheet> {
             icon: _isEdit ? Icons.check_rounded : Icons.person_add_outlined,
             minHeight: AppDimens.sizeX44,
             backgroundColor: LightColor.buttonColor,
-            onPressed: _nameCtrl.text.trim().isNotEmpty && _position != null
+            onPressed: _canSubmit
                 ? () {
                     final name = _nameCtrl.text.trim();
                     final position = _position;
@@ -363,6 +392,7 @@ class _AddPlayerSheetState extends State<AddPlayerSheet> {
                         // the right `members/{member}/update` row.
                         id: widget.initialPlayer?.id ?? '',
                         name: name,
+                        email: _emailCtrl.text.trim(),
                         // Local display enum; the API row id is what gets stored.
                         position: PlayerPositionX.fromAny(position.name),
                         positionName: position.name,
@@ -384,24 +414,61 @@ class _SheetInput extends StatelessWidget {
     required this.hint,
     required this.icon,
     this.onChanged,
+    this.keyboardType,
+    this.textCapitalization = TextCapitalization.words,
+    this.errorText,
   });
 
   final TextEditingController controller;
   final String hint;
   final IconData icon;
   final ValueChanged<String>? onChanged;
+  final TextInputType? keyboardType;
+  final TextCapitalization textCapitalization;
+
+  /// Shown under the field when set. Validation is driven by the sheet's state
+  /// rather than a Form, so the message is passed in instead of returned by a
+  /// validator.
+  final String? errorText;
 
   @override
   Widget build(BuildContext context) {
-    return CustomTextField(
-      controller: controller,
-      labelText: hint,
-      hintText: hint,
-      icon: icon,
-      onChanged: onChanged,
-      textCapitalization: TextCapitalization.words,
-      textInputAction: TextInputAction.done,
-      isRequired: false,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        CustomTextField(
+          controller: controller,
+          labelText: hint,
+          hintText: hint,
+          icon: icon,
+          onChanged: onChanged,
+          keyboardType: keyboardType,
+          textCapitalization: textCapitalization,
+          textInputAction: TextInputAction.done,
+          isRequired: false,
+        ),
+        AnimatedSize(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOut,
+          alignment: Alignment.topLeft,
+          child: errorText == null
+              ? const SizedBox(width: double.infinity)
+              : Padding(
+                  padding: const EdgeInsets.only(
+                    top: AppDimens.paddingX4,
+                    left: AppDimens.paddingX4,
+                  ),
+                  child: Text(
+                    errorText!,
+                    style: FutsalTheme.getTextTheme(context).bodyTextSmall
+                        ?.copyWith(
+                          color: LightColor.redColor,
+                          fontSize: AppDimens.fontBodySubTitle,
+                        ),
+                  ),
+                ),
+        ),
+      ],
     );
   }
 }

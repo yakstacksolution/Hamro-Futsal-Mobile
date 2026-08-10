@@ -7,6 +7,12 @@ final class MessageState extends Equatable {
     this.currentUserId = 0,
     this.conversationsStatus = MessageStatus.initial,
     this.conversations = const [],
+    this.conversationsCurrentPage = 0,
+    this.conversationsLastPage = 1,
+    this.conversationsTotal = 0,
+    this.conversationsHasMorePages = false,
+    this.conversationsLoadingMore = false,
+    this.conversationsLoadMoreError,
     this.chatStatus = MessageStatus.initial,
     this.activeConversationId,
     this.activeConversation,
@@ -29,6 +35,12 @@ final class MessageState extends Equatable {
   final int currentUserId;
   final MessageStatus conversationsStatus;
   final List<ConversationModel> conversations;
+  final int conversationsCurrentPage;
+  final int conversationsLastPage;
+  final int conversationsTotal;
+  final bool conversationsHasMorePages;
+  final bool conversationsLoadingMore;
+  final String? conversationsLoadMoreError;
 
   /// Thread of the conversation currently open in [activeConversationId].
   final MessageStatus chatStatus;
@@ -65,6 +77,13 @@ final class MessageState extends Equatable {
     int? currentUserId,
     MessageStatus? conversationsStatus,
     List<ConversationModel>? conversations,
+    int? conversationsCurrentPage,
+    int? conversationsLastPage,
+    int? conversationsTotal,
+    bool? conversationsHasMorePages,
+    bool? conversationsLoadingMore,
+    String? conversationsLoadMoreError,
+    bool clearConversationsLoadMoreError = false,
     MessageStatus? chatStatus,
     int? activeConversationId,
     ConversationModel? activeConversation,
@@ -91,6 +110,18 @@ final class MessageState extends Equatable {
       currentUserId: currentUserId ?? this.currentUserId,
       conversationsStatus: conversationsStatus ?? this.conversationsStatus,
       conversations: conversations ?? this.conversations,
+      conversationsCurrentPage:
+          conversationsCurrentPage ?? this.conversationsCurrentPage,
+      conversationsLastPage:
+          conversationsLastPage ?? this.conversationsLastPage,
+      conversationsTotal: conversationsTotal ?? this.conversationsTotal,
+      conversationsHasMorePages:
+          conversationsHasMorePages ?? this.conversationsHasMorePages,
+      conversationsLoadingMore:
+          conversationsLoadingMore ?? this.conversationsLoadingMore,
+      conversationsLoadMoreError: clearConversationsLoadMoreError
+          ? null
+          : conversationsLoadMoreError ?? this.conversationsLoadMoreError,
       chatStatus: chatStatus ?? this.chatStatus,
       activeConversationId: clearActiveConversation
           ? null
@@ -132,6 +163,12 @@ final class MessageState extends Equatable {
     currentUserId,
     conversationsStatus,
     conversations,
+    conversationsCurrentPage,
+    conversationsLastPage,
+    conversationsTotal,
+    conversationsHasMorePages,
+    conversationsLoadingMore,
+    conversationsLoadMoreError,
     chatStatus,
     activeConversationId,
     activeConversation,

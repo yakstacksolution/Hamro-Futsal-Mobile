@@ -9,7 +9,11 @@ import 'package:hamro_footsall/core/helper/share_preferences.dart';
 import 'package:hamro_footsall/features/message/data/model/chat_send_request.dart';
 
 abstract class MessageRemoteDataSource {
-  Future<Result> getConversations({bool archived = false});
+  Future<Result> getConversations({
+    bool archived = false,
+    required int page,
+    required int perPage,
+  });
   Future<Result> startDirectConversation({
     int? vendorId,
     int? venueId,
@@ -50,10 +54,15 @@ abstract class MessageRemoteDataSource {
 
 final class MessageRemoteDataSourceImpl extends MessageRemoteDataSource {
   @override
-  Future<Result> getConversations({bool archived = false}) async =>
-      await Client.instance().getAuthManager().getConversations(
-        archived: archived,
-      );
+  Future<Result> getConversations({
+    bool archived = false,
+    required int page,
+    required int perPage,
+  }) async => await Client.instance().getAuthManager().getConversations(
+    archived: archived,
+    page: page,
+    perPage: perPage,
+  );
 
   @override
   Future<Result> startDirectConversation({

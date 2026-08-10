@@ -300,8 +300,20 @@ class AuthManager extends ServiceManager {
     return await _apiClient.createSettlement(data: data);
   }
 
-  Future<Result> getConversations({bool archived = false}) async {
-    return await _apiClient.getConversations(archived: archived);
+  Future<Result> getTransactionHistory({Map<String, dynamic>? query}) async {
+    return await _apiClient.getTransactionHistory(query: query);
+  }
+
+  Future<Result> getConversations({
+    bool archived = false,
+    required int page,
+    required int perPage,
+  }) async {
+    return await _apiClient.getConversations(
+      archived: archived,
+      page: page,
+      perPage: perPage,
+    );
   }
 
   Future<Result> startDirectConversation(Map<String, dynamic> data) async {
@@ -488,8 +500,8 @@ class AuthManager extends ServiceManager {
     return await _apiClient.generateRewardCoupon(data: data);
   }
 
-  Future<Result> getVenueCourt() async {
-    return await _apiClient.getVenueCourt();
+  Future<Result> getVenueCourt({required int page, required int perPage}) async {
+    return await _apiClient.getVenueCourt(page: page, perPage: perPage);
   }
 
   Future<Result> getVenueCourtByVenueId(int venueId) async {
@@ -564,16 +576,22 @@ class AuthManager extends ServiceManager {
     );
   }
 
-  Future<Result> getMyBookings() async {
-    return await _apiClient.getMyBookings();
+  Future<Result> getMyBookings({
+    required int page,
+    required int perPage,
+  }) async {
+    return await _apiClient.getMyBookings(page: page, perPage: perPage);
   }
 
   Future<Result> getBookingDetails(int bookingId) async {
     return await _apiClient.getBookingDetails(bookingId: bookingId);
   }
 
-  Future<Result> getFutsalBookings() async {
-    return await _apiClient.getFutsalBookings();
+  Future<Result> getFutsalBookings({
+    required int page,
+    required int perPage,
+  }) async {
+    return await _apiClient.getFutsalBookings(page: page, perPage: perPage);
   }
 
   Future<Result> getBookingOverview({Map<String, dynamic>? query}) async {

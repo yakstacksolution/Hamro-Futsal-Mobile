@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hamro_footsall/core/helper/exception_helper.dart';
 import 'package:hamro_footsall/features/bookings/data/model/booking_model.dart';
 import 'package:hamro_footsall/features/bookings/domain/repository/booking_repository.dart';
+import 'package:hamro_footsall/features/bookings/domain/model/paginated_bookings.dart';
 import 'package:hamro_footsall/features/bookings/domain/usecase/get_bookings_use_case.dart';
 import 'package:hamro_footsall/features/bookings/presentation/bloc/booking_bloc/booking_bloc.dart';
 import 'package:hamro_footsall/features/bookings/presentation/bloc/booking_details_bloc/booking_details_bloc.dart';
@@ -202,9 +203,21 @@ final class _FakeBookingRepository implements BookingRepository {
   final BookingModel booking;
 
   @override
-  Future<Either<AppException, List<BookingModel>>> getMyBookings() async {
+  Future<Either<AppException, PaginatedBookings>> getMyBookings({
+    required int page,
+    required int perPage,
+  }) async {
     myBookingsCalls++;
-    return right(<BookingModel>[booking]);
+    return right(
+      PaginatedBookings(
+        items: <BookingModel>[booking],
+        currentPage: page,
+        lastPage: page,
+        perPage: perPage,
+        total: 1,
+        hasMorePages: false,
+      ),
+    );
   }
 
   @override
@@ -215,12 +228,24 @@ final class _FakeBookingRepository implements BookingRepository {
   }
 
   @override
-  Future<Either<AppException, List<BookingModel>>> getFutsalBookings() async {
+  Future<Either<AppException, PaginatedBookings>> getFutsalBookings({
+    required int page,
+    required int perPage,
+  }) async {
     futsalBookingsCalls++;
     final AppException? error = futsalError;
     return error == null
-        ? right(<BookingModel>[booking])
-        : left<AppException, List<BookingModel>>(error);
+        ? right(
+            PaginatedBookings(
+              items: <BookingModel>[booking],
+              currentPage: page,
+              lastPage: page,
+              perPage: perPage,
+              total: 1,
+              hasMorePages: false,
+            ),
+          )
+        : left<AppException, PaginatedBookings>(error);
   }
 
   @override

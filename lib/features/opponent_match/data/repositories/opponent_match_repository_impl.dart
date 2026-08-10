@@ -206,10 +206,14 @@ final class OpponentMatchRepositoryImpl extends OpponentMatchRepository {
     // 1-based id from the enum (1=GK … 4=FW).
     final int positionId =
         int.tryParse(player.positionId.trim()) ?? player.position.index + 1;
+    final String email = player.email.trim();
     return _mutateThenReload(
       () => _teamDataSource.addMember(id, {
         'name': name,
         'position_id': positionId,
+        // Optional: omitted rather than sent blank when the roster entry has no
+        // address, so the backend does not store an empty string.
+        if (email.isNotEmpty) 'email': email,
       }),
     );
   }
@@ -228,10 +232,12 @@ final class OpponentMatchRepositoryImpl extends OpponentMatchRepository {
     // `/positions` row id (enum-derived 1-based id as fallback).
     final int positionId =
         int.tryParse(player.positionId.trim()) ?? player.position.index + 1;
+    final String email = player.email.trim();
     return _mutateThenReload(
       () => _teamDataSource.updateMember(id, member, {
         'name': name,
         'position_id': positionId,
+        if (email.isNotEmpty) 'email': email,
       }),
     );
   }

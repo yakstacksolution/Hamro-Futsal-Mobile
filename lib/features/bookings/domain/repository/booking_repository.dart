@@ -1,11 +1,18 @@
 import 'package:dartz/dartz.dart';
 import 'package:hamro_footsall/core/helper/exception_helper.dart';
 import 'package:hamro_footsall/features/bookings/data/model/booking_model.dart';
+import 'package:hamro_footsall/features/bookings/domain/model/paginated_bookings.dart';
 
 abstract class BookingRepository {
-  Future<Either<AppException, List<BookingModel>>> getMyBookings();
+  Future<Either<AppException, PaginatedBookings>> getMyBookings({
+    required int page,
+    required int perPage,
+  });
   Future<Either<AppException, BookingModel>> getBookingDetails(int bookingId);
-  Future<Either<AppException, List<BookingModel>>> getFutsalBookings();
+  Future<Either<AppException, PaginatedBookings>> getFutsalBookings({
+    required int page,
+    required int perPage,
+  });
   Future<Either<AppException, BookingModel?>> cancelBooking(int bookingId);
 
   Future<Either<AppException, bool>> getCancelBoundary(int bookingId);

@@ -5,6 +5,7 @@ import 'package:hamro_footsall/core/routers/app_router_params.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/widgets/loading_widget.dart';
 import 'package:hamro_footsall/features/bookings/data/model/booking_model.dart';
 import 'package:hamro_footsall/features/bookings/presentation/bloc/booking_bloc/booking_bloc.dart';
 import 'package:hamro_footsall/features/bookings/presentation/utils/booking_search.dart';
@@ -52,7 +53,10 @@ class FutsalBookingsTab extends StatelessWidget {
     return BlocBuilder<BookingBloc, BookingState>(
       buildWhen: (p, c) =>
           p.futsalBookingsStatus != c.futsalBookingsStatus ||
-          p.futsalBookings != c.futsalBookings,
+          p.futsalBookings != c.futsalBookings ||
+          p.futsalIsLoadingMore != c.futsalIsLoadingMore ||
+          p.futsalHasMorePages != c.futsalHasMorePages ||
+          p.futsalBookingsError != c.futsalBookingsError,
       builder: (context, state) {
         if (state.futsalBookingsStatus == BookingLoadStatus.idle ||
             state.futsalBookingsStatus == BookingLoadStatus.loading) {
@@ -133,35 +137,82 @@ class FutsalBookingsTab extends StatelessWidget {
           );
         }
 
-        return RefreshIndicator(
-          color: LightColor.secondaryColor,
-          onRefresh: () => _refresh(context),
-          child: ListView.separated(
-            physics: const AlwaysScrollableScrollPhysics(
-              parent: BouncingScrollPhysics(),
-            ),
-            padding: _listPadding(context),
-            itemCount: items.length,
-            separatorBuilder: (_, __) =>
-                const SizedBox(height: AppDimens.paddingX10),
-            itemBuilder: (_, i) => BookingCard(
-              booking: items[i],
-              showPlayer: true,
-              // Every card carries the footer — it holds the relative
-              // timestamp even when there are no actions (e.g. pending).
-              footer: _BookingCardActions(booking: items[i]),
-              onTap: () async {
-                await context.pushNamed(
-                  AppRouterParams.bookingDetails.name,
-                  queryParameters: <String, String>{'futsal': 'true'},
-                  extra: items[i],
-                );
-                // Refresh with the latest data on returning from details.
-                if (context.mounted) {
-                  context.read<BookingBloc>().add(
-                    const FetchFutsalBookingsEvent(silent: true),
+        return NotificationListener<ScrollNotification>(
+          onNotification: (ScrollNotification notification) {
+            if (notification.metrics.extentAfter < 300 &&
+                state.futsalHasMorePages &&
+                !state.futsalIsLoadingMore) {
+              context.read<BookingBloc>().add(
+                const FetchFutsalBookingsEvent(silent: true, loadMore: true),
+              );
+            }
+            return false;
+          },
+          child: RefreshIndicator(
+            color: LightColor.secondaryColor,
+            onRefresh: () => _refresh(context),
+            child: ListView.separated(
+              physics: const AlwaysScrollableScrollPhysics(
+                parent: BouncingScrollPhysics(),
+              ),
+              padding: _listPadding(context),
+              itemCount:
+                  items.length +
+                  (state.futsalIsLoadingMore ||
+                          state.futsalBookingsError != null
+                      ? 1
+                      : 0),
+              separatorBuilder: (_, __) =>
+                  const SizedBox(height: AppDimens.paddingX10),
+              itemBuilder: (_, i) {
+                if (i == items.length) {
+                  if (state.futsalIsLoadingMore) {
+                    return const Padding(
+                      padding: EdgeInsets.all(AppDimens.paddingX16),
+                      child: Center(
+                        child: CustomLoading(
+                          color: LightColor.secondaryColor,
+                          size: 24,
+                          strokeWidth: 3,
+                          secondCircleColor: LightColor.secondaryLight,
+                          thirdCircleColor: LightColor.secondaryLight,
+                        ),
+                      ),
+                    );
+                  }
+                  return Center(
+                    child: TextButton.icon(
+                      onPressed: () => context.read<BookingBloc>().add(
+                        const FetchFutsalBookingsEvent(
+                          silent: true,
+                          loadMore: true,
+                        ),
+                      ),
+                      icon: const Icon(Icons.refresh_rounded),
+                      label: const Text('Could not load more. Retry'),
+                    ),
                   );
                 }
+                return BookingCard(
+                  booking: items[i],
+                  showPlayer: true,
+                  // Every card carries the footer — it holds the relative
+                  // timestamp even when there are no actions (e.g. pending).
+                  footer: _BookingCardActions(booking: items[i]),
+                  onTap: () async {
+                    await context.pushNamed(
+                      AppRouterParams.bookingDetails.name,
+                      queryParameters: <String, String>{'futsal': 'true'},
+                      extra: items[i],
+                    );
+                    // Refresh with the latest data on returning from details.
+                    if (context.mounted) {
+                      context.read<BookingBloc>().add(
+                        const FetchFutsalBookingsEvent(silent: true),
+                      );
+                    }
+                  },
+                );
               },
             ),
           ),

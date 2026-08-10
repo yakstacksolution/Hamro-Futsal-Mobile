@@ -10,6 +10,7 @@ import 'package:hamro_footsall/features/message/data/data_source/message_remote_
 import 'package:hamro_footsall/features/message/data/model/chat_message_model.dart';
 import 'package:hamro_footsall/features/message/data/model/chat_send_request.dart';
 import 'package:hamro_footsall/features/message/data/model/conversation_model.dart';
+import 'package:hamro_footsall/features/message/data/model/conversation_page_model.dart';
 import 'package:hamro_footsall/features/message/data/model/message_profile_model.dart';
 import 'package:hamro_footsall/features/message/domain/repository/message_repository.dart';
 import 'package:jwt_decode/jwt_decode.dart';
@@ -65,27 +66,38 @@ final class MessageRepositoryImpl extends MessageRepository {
   }
 
   @override
-  Future<Either<AppException, List<ConversationModel>>> getConversations({
+  Future<Either<AppException, ConversationPageModel>> getConversations({
     bool archived = false,
+    required int page,
+    required int perPage,
   }) async {
     final response = await _remoteDataSource.getConversations(
       archived: archived,
+      page: page,
+      perPage: perPage,
     );
     if (response.isError()) {
       return left(ResponseHelper.error(response));
     }
     try {
-      final conversations = _findList(response.getValue())
-          .whereType<Map>()
-          .map((c) => ConversationModel.fromJson(Map<String, dynamic>.from(c)))
-          .toList();
+      final parsed = ConversationPageModel.fromResponse(response.getValue());
+      final conversations = List<ConversationModel>.of(parsed.items);
       conversations.sort((a, b) {
         if (a.isPinned != b.isPinned) return a.isPinned ? -1 : 1;
         final at = a.lastMessageAt ?? a.createdAt ?? DateTime(0);
         final bt = b.lastMessageAt ?? b.createdAt ?? DateTime(0);
         return bt.compareTo(at);
       });
-      return right(List.unmodifiable(conversations));
+      return right(
+        ConversationPageModel(
+          items: List.unmodifiable(conversations),
+          currentPage: parsed.currentPage,
+          lastPage: parsed.lastPage,
+          perPage: parsed.perPage,
+          total: parsed.total,
+          hasMorePages: parsed.hasMorePages,
+        ),
+      );
     } catch (_) {
       return left(_parseError('conversations'));
     }

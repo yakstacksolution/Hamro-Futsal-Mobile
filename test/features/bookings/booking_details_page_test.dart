@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hamro_footsall/core/helper/exception_helper.dart';
 import 'package:hamro_footsall/features/bookings/data/model/booking_model.dart';
 import 'package:hamro_footsall/features/bookings/domain/repository/booking_repository.dart';
+import 'package:hamro_footsall/features/bookings/domain/model/paginated_bookings.dart';
 import 'package:hamro_footsall/features/bookings/presentation/pages/booking_details_page.dart';
 
 void main() {
@@ -309,12 +310,34 @@ final class _FakeBookingRepository implements BookingRepository {
   }
 
   @override
-  Future<Either<AppException, List<BookingModel>>> getMyBookings() async =>
-      right(<BookingModel>[booking]);
+  Future<Either<AppException, PaginatedBookings>> getMyBookings({
+    required int page,
+    required int perPage,
+  }) async => right(
+    PaginatedBookings(
+      items: <BookingModel>[booking],
+      currentPage: page,
+      lastPage: page,
+      perPage: perPage,
+      total: 1,
+      hasMorePages: false,
+    ),
+  );
 
   @override
-  Future<Either<AppException, List<BookingModel>>> getFutsalBookings() async =>
-      right(<BookingModel>[booking]);
+  Future<Either<AppException, PaginatedBookings>> getFutsalBookings({
+    required int page,
+    required int perPage,
+  }) async => right(
+    PaginatedBookings(
+      items: <BookingModel>[booking],
+      currentPage: page,
+      lastPage: page,
+      perPage: perPage,
+      total: 1,
+      hasMorePages: false,
+    ),
+  );
 
   @override
   Future<Either<AppException, BookingModel?>> cancelBooking(

@@ -353,6 +353,7 @@ class PlayerModel {
     required this.name,
     required this.position,
     this.id = '',
+    this.email = '',
     this.positionName = '',
     this.positionId = '',
   });
@@ -361,6 +362,11 @@ class PlayerModel {
   /// players built locally before they round-trip through the backend.
   final String id;
   final String name;
+
+  /// Contact address for the member, sent as `email`. Empty when the roster
+  /// entry has none — the field is optional.
+  final String email;
+
   final PlayerPosition position;
 
   /// Raw position name from the `/positions` API — this exact value is sent
@@ -388,6 +394,16 @@ class PlayerModel {
             .toString()
             .trim();
 
+    // Like the name, the address may sit on the row or under the linked user.
+    final email =
+        (json['email'] ??
+                json['member_email'] ??
+                userMap?['email'] ??
+                json['user_email'] ??
+                '')
+            .toString()
+            .trim();
+
     final dynamic position = json['position'];
     final positionMap = position is Map
         ? Map<String, dynamic>.from(position)
@@ -405,6 +421,7 @@ class PlayerModel {
     return PlayerModel(
       id: (json['id'] ?? json['member_id'] ?? '').toString(),
       name: name,
+      email: email,
       position: PlayerPositionX.fromAny(positionValue),
       positionName: positionValue is String ? positionValue.trim() : '',
       positionId: (positionMap?['id'] ?? json['position_id'] ?? '').toString(),

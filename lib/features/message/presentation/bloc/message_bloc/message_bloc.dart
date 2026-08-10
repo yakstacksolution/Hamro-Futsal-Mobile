@@ -60,7 +60,10 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
     LoadConversationsEvent event,
     Emitter<MessageState> emit,
   ) async {
-    if (_loadingConversations) return;
+    if (_loadingConversations ||
+        (event.loadMore && !state.conversationsHasMorePages)) {
+      return;
+    }
     _loadingConversations = true;
     if (!event.silent) {
       emit(
@@ -70,11 +73,30 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
         ),
       );
     }
-    final result = await useCase.getConversations(archived: event.archived);
+    final int page = event.loadMore ? state.conversationsCurrentPage + 1 : 1;
+    if (event.loadMore) {
+      emit(
+        state.copyWith(
+          conversationsLoadingMore: true,
+          clearConversationsLoadMoreError: true,
+        ),
+      );
+    }
+    final result = await useCase.getConversations(
+      archived: event.archived,
+      page: page,
+      perPage: 10,
+    );
     _loadingConversations = false;
     result.fold(
       (failure) => emit(
-        event.silent
+        event.loadMore
+            ? state.copyWith(
+                conversationsLoadingMore: false,
+                conversationsLoadMoreError: failure.errorMessage,
+                conversationsRefreshTick: state.conversationsRefreshTick + 1,
+              )
+            : event.silent
             ? state.copyWith(
                 errorMessage: failure.errorMessage,
                 conversationsRefreshTick: state.conversationsRefreshTick + 1,
@@ -85,16 +107,35 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
                 conversationsRefreshTick: state.conversationsRefreshTick + 1,
               ),
       ),
-      (conversations) => emit(
+      (pageResult) => emit(
         state.copyWith(
           conversationsStatus: MessageStatus.success,
-          conversations: conversations,
+          conversations: event.loadMore
+              ? _mergeConversations(state.conversations, pageResult.items)
+              : pageResult.items,
+          conversationsCurrentPage: pageResult.currentPage,
+          conversationsLastPage: pageResult.lastPage,
+          conversationsTotal: pageResult.total,
+          conversationsHasMorePages: pageResult.hasMorePages,
+          conversationsLoadingMore: false,
           showingArchived: event.archived,
           clearErrorMessage: true,
+          clearConversationsLoadMoreError: true,
           conversationsRefreshTick: state.conversationsRefreshTick + 1,
         ),
       ),
     );
+  }
+
+  List<ConversationModel> _mergeConversations(
+    List<ConversationModel> existing,
+    List<ConversationModel> incoming,
+  ) {
+    final Map<int, ConversationModel> byId = <int, ConversationModel>{
+      for (final conversation in existing) conversation.id: conversation,
+      for (final conversation in incoming) conversation.id: conversation,
+    };
+    return byId.values.toList(growable: false);
   }
 
   Future<void> _onLoadChat(

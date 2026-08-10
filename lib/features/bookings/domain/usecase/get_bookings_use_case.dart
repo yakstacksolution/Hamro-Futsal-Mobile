@@ -2,20 +2,25 @@ import 'package:dartz/dartz.dart';
 import 'package:hamro_footsall/core/helper/exception_helper.dart';
 import 'package:hamro_footsall/features/bookings/data/model/booking_model.dart';
 import 'package:hamro_footsall/features/bookings/domain/repository/booking_repository.dart';
+import 'package:hamro_footsall/features/bookings/domain/model/paginated_bookings.dart';
 
 final class GetBookingsUseCase {
   const GetBookingsUseCase(this._repository);
 
   final BookingRepository _repository;
 
-  Future<Either<AppException, List<BookingModel>>> getMyBookings() =>
-      _repository.getMyBookings();
+  Future<Either<AppException, PaginatedBookings>> getMyBookings({
+    required int page,
+    int perPage = 10,
+  }) => _repository.getMyBookings(page: page, perPage: perPage);
 
   Future<Either<AppException, BookingModel>> getBookingDetails(int bookingId) =>
       _repository.getBookingDetails(bookingId);
 
-  Future<Either<AppException, List<BookingModel>>> getFutsalBookings() =>
-      _repository.getFutsalBookings();
+  Future<Either<AppException, PaginatedBookings>> getFutsalBookings({
+    required int page,
+    int perPage = 10,
+  }) => _repository.getFutsalBookings(page: page, perPage: perPage);
 
   Future<Either<AppException, BookingModel?>> cancelBooking(int bookingId) =>
       _repository.cancelBooking(bookingId);

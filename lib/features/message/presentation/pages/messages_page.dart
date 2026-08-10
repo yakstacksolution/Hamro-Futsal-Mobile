@@ -354,25 +354,62 @@ class _MessagesViewState extends State<_MessagesView>
         ),
       );
     }
-    return RefreshIndicator(
-      color: LightColor.secondaryColor,
-      onRefresh: () => _refreshConversations(state),
-      child: ListView.separated(
-        key: PageStorageKey<String>(
-          state.showingArchived ? 'archived-message-list' : 'message-list',
-        ),
-        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-        physics: const AlwaysScrollableScrollPhysics(
-          parent: BouncingScrollPhysics(),
-        ),
-        padding: _listPadding(context, state),
-        itemCount: items.length,
-        separatorBuilder: (_, __) =>
-            const SizedBox(height: AppDimens.paddingX12),
-        itemBuilder: (_, i) => MessageCard(
-          conversation: items[i],
-          currentUserId: context.read<MessageBloc>().state.currentUserId,
-          onTap: () => _openChat(items[i]),
+    return NotificationListener<ScrollNotification>(
+      onNotification: (notification) {
+        if (notification.metrics.extentAfter < 300 &&
+            state.conversationsHasMorePages &&
+            !state.conversationsLoadingMore &&
+            state.conversationsLoadMoreError == null) {
+          _bloc.add(
+            LoadConversationsEvent(
+              silent: true,
+              archived: state.showingArchived,
+              loadMore: true,
+            ),
+          );
+        }
+        return false;
+      },
+      child: RefreshIndicator(
+        color: LightColor.secondaryColor,
+        onRefresh: () => _refreshConversations(state),
+        child: ListView.separated(
+          key: PageStorageKey<String>(
+            state.showingArchived ? 'archived-message-list' : 'message-list',
+          ),
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          physics: const AlwaysScrollableScrollPhysics(
+            parent: BouncingScrollPhysics(),
+          ),
+          padding: _listPadding(context, state),
+          itemCount:
+              items.length +
+              (state.conversationsLoadingMore ||
+                      state.conversationsLoadMoreError != null
+                  ? 1
+                  : 0),
+          separatorBuilder: (_, __) =>
+              const SizedBox(height: AppDimens.paddingX12),
+          itemBuilder: (_, i) {
+            if (i == items.length) {
+              return _ConversationListFooter(
+                loading: state.conversationsLoadingMore,
+                error: state.conversationsLoadMoreError,
+                onRetry: () => _bloc.add(
+                  LoadConversationsEvent(
+                    silent: true,
+                    archived: state.showingArchived,
+                    loadMore: true,
+                  ),
+                ),
+              );
+            }
+            return MessageCard(
+              conversation: items[i],
+              currentUserId: context.read<MessageBloc>().state.currentUserId,
+              onTap: () => _openChat(items[i]),
+            );
+          },
         ),
       ),
     );
@@ -421,6 +458,53 @@ class _MessagesViewState extends State<_MessagesView>
           );
         },
       ),
+    );
+  }
+}
+
+class _ConversationListFooter extends StatelessWidget {
+  const _ConversationListFooter({
+    required this.loading,
+    required this.error,
+    required this.onRetry,
+  });
+
+  final bool loading;
+  final String? error;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    if (loading) {
+      return const Padding(
+        padding: EdgeInsets.all(AppDimens.paddingX16),
+        child: Center(
+          child: CustomLoading(
+            color: LightColor.secondaryColor,
+            size: 24,
+            strokeWidth: 3,
+            secondCircleColor: LightColor.secondaryLight,
+            thirdCircleColor: LightColor.secondaryLight,
+          ),
+        ),
+      );
+    }
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Text(
+          error ?? 'Could not load more conversations.',
+          textAlign: TextAlign.center,
+          style: FutsalTheme.getTextTheme(
+            context,
+          ).bodyTextSmall?.copyWith(color: LightColor.secondaryTextColor),
+        ),
+        TextButton.icon(
+          onPressed: onRetry,
+          icon: const Icon(Icons.refresh_rounded),
+          label: const Text(StringConstants.retry),
+        ),
+      ],
     );
   }
 }

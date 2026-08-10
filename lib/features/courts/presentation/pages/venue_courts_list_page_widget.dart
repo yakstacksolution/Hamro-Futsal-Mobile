@@ -13,6 +13,7 @@ import 'package:hamro_footsall/core/utils/custom_image_view.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/utils/image_constants.dart';
 import 'package:hamro_footsall/core/widgets/custom_button.dart';
+import 'package:hamro_footsall/core/widgets/loading_widget.dart';
 import 'package:hamro_footsall/features/courts/data/model/venue_court_model.dart';
 import 'package:hamro_footsall/features/courts/data/repositories/venue_court_repository_impl.dart';
 import 'package:hamro_footsall/features/courts/domain/usecase/get_venue_court_use_case.dart';
@@ -123,7 +124,7 @@ class _VenueCourtsListPageState extends State<VenueCourtsListPage> {
                       child: state.status == VenueCourtStatus.loading
                           ? const VenueListLoading()
                           : _VenueListSection(
-                              status: state.status,
+                              state: state,
                               entries: filtered,
                               isSearching:
                                   query.isNotEmpty ||
@@ -219,12 +220,12 @@ Future<void> _launchCourtEditorInternal(
 
 class _VenueListSection extends StatelessWidget {
   const _VenueListSection({
-    required this.status,
+    required this.state,
     required this.entries,
     required this.isSearching,
   });
 
-  final VenueCourtStatus status;
+  final VenueCourtState state;
   final List<_FutsalEntry> entries;
   final bool isSearching;
 
@@ -234,7 +235,7 @@ class _VenueListSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (status == VenueCourtStatus.loading) {
+    if (state.status == VenueCourtStatus.loading) {
       return const VenueListLoading();
     }
 
@@ -259,16 +260,44 @@ class _VenueListSection extends StatelessWidget {
       );
     }
 
-    return RefreshIndicator(
-      onRefresh: () async {
-        context.read<VenueCourtBloc>().add(const FetchVenueCourtEvent());
+    return NotificationListener<ScrollNotification>(
+      onNotification: (ScrollNotification notification) {
+        if (notification.metrics.extentAfter < 300 &&
+            state.hasMorePages &&
+            !state.isLoadingMore &&
+            state.loadMoreError == null) {
+          context.read<VenueCourtBloc>().add(
+            const FetchVenueCourtEvent(silent: true, loadMore: true),
+          );
+        }
+        return false;
       },
-      child: ListView.separated(
+      child: RefreshIndicator(
+        onRefresh: () async {
+          final VenueCourtBloc bloc = context.read<VenueCourtBloc>();
+          final int startTick = bloc.state.refreshTick;
+          bloc.add(const FetchVenueCourtEvent(silent: true));
+          await bloc.stream
+              .firstWhere((next) => next.refreshTick != startTick)
+              .timeout(const Duration(seconds: 15), onTimeout: () => bloc.state);
+        },
+        child: ListView.separated(
         physics: const BouncingScrollPhysics(),
         padding: listPadding,
-        itemCount: entries.length,
+        itemCount:
+            entries.length +
+            (state.isLoadingMore || state.loadMoreError != null ? 1 : 0),
         separatorBuilder: (_, __) => const SizedBox(height: AppDimens.sizeX10),
         itemBuilder: (BuildContext context, int index) {
+          if (index == entries.length) {
+            return _VenuePaginationFooter(
+              loading: state.isLoadingMore,
+              error: state.loadMoreError,
+              onRetry: () => context.read<VenueCourtBloc>().add(
+                const FetchVenueCourtEvent(silent: true, loadMore: true),
+              ),
+            );
+          }
           final _FutsalEntry entry = entries[index];
           return _VenueCardV2(
             entry: entry,
@@ -283,7 +312,55 @@ class _VenueListSection extends StatelessWidget {
             ),
           );
         },
+        ),
       ),
+    );
+  }
+}
+
+class _VenuePaginationFooter extends StatelessWidget {
+  const _VenuePaginationFooter({
+    required this.loading,
+    required this.error,
+    required this.onRetry,
+  });
+
+  final bool loading;
+  final String? error;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    if (loading) {
+      return const Padding(
+        padding: EdgeInsets.all(AppDimens.paddingX16),
+        child: Center(
+          child: CustomLoading(
+            color: LightColor.secondaryColor,
+            size: 24,
+            strokeWidth: 3,
+            secondCircleColor: LightColor.secondaryLight,
+            thirdCircleColor: LightColor.secondaryLight,
+          ),
+        ),
+      );
+    }
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Text(
+          error ?? 'Could not load more venues.',
+          textAlign: TextAlign.center,
+          style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
+            color: LightColor.secondaryTextColor,
+          ),
+        ),
+        TextButton.icon(
+          onPressed: onRetry,
+          icon: const Icon(Icons.refresh_rounded),
+          label: const Text(StringConstants.retry),
+        ),
+      ],
     );
   }
 }

@@ -5,6 +5,7 @@ import 'package:hamro_footsall/features/bookings/data/data_source/booking_data_s
 import 'package:hamro_footsall/features/bookings/data/model/booking_model.dart';
 import 'package:hamro_footsall/features/bookings/domain/repository/booking_repository.dart';
 import 'package:hamro_footsall/core/utils/string_constants.dart';
+import 'package:hamro_footsall/features/bookings/domain/model/paginated_bookings.dart';
 
 final class BookingRepositoryImpl implements BookingRepository {
   BookingRepositoryImpl({BookingRemoteDataSource? remoteDataSource})
@@ -13,13 +14,19 @@ final class BookingRepositoryImpl implements BookingRepository {
   final BookingRemoteDataSource _remoteDataSource;
 
   @override
-  Future<Either<AppException, List<BookingModel>>> getMyBookings() async {
-    final response = await _remoteDataSource.getMyBookings();
+  Future<Either<AppException, PaginatedBookings>> getMyBookings({
+    required int page,
+    required int perPage,
+  }) async {
+    final response = await _remoteDataSource.getMyBookings(
+      page: page,
+      perPage: perPage,
+    );
     if (response.isError()) {
       return left(ResponseHelper.error(response));
     }
     try {
-      return right(BookingModel.listFromResponse(response.getValue()));
+      return right(PaginatedBookings.fromResponse(response.getValue()));
     } catch (_) {
       return left(
         DefaultException(
@@ -51,13 +58,19 @@ final class BookingRepositoryImpl implements BookingRepository {
   }
 
   @override
-  Future<Either<AppException, List<BookingModel>>> getFutsalBookings() async {
-    final response = await _remoteDataSource.getFutsalBookings();
+  Future<Either<AppException, PaginatedBookings>> getFutsalBookings({
+    required int page,
+    required int perPage,
+  }) async {
+    final response = await _remoteDataSource.getFutsalBookings(
+      page: page,
+      perPage: perPage,
+    );
     if (response.isError()) {
       return left(ResponseHelper.error(response));
     }
     try {
-      return right(BookingModel.listFromResponse(response.getValue()));
+      return right(PaginatedBookings.fromResponse(response.getValue()));
     } catch (_) {
       return left(
         DefaultException(
