@@ -143,8 +143,11 @@ class BookingStatusCard extends StatelessWidget {
     final textTheme = FutsalTheme.getTextTheme(context);
     final breakdown = analytics.statusBreakdown;
     final total = breakdown.values.fold<int>(0, (a, b) => a + b);
-    final chartData = <_StatusPoint>[
-      _StatusPoint(category: StringConstants.statusMix, values: breakdown),
+    const statuses = <BookingStatus>[
+      BookingStatus.pending,
+      BookingStatus.cancelled,
+      BookingStatus.completed,
+      BookingStatus.confirmed,
     ];
 
     return BookingSurface(
@@ -162,7 +165,7 @@ class BookingStatusCard extends StatelessWidget {
               ),
               const Spacer(),
               Text(
-                '$total bookings',
+                '$total total bookings',
                 style: textTheme.bodyTextSmall?.copyWith(
                   color: LightColor.secondaryTextColor,
                   fontWeight: FontWeight.w600,
@@ -171,90 +174,158 @@ class BookingStatusCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: AppDimens.paddingX12),
-          SizedBox(
-            height: 18,
-            child: total == 0
-                ? ClipRRect(
-                    borderRadius: BorderRadius.circular(AppDimens.radiusX8),
-                    child: Container(color: LightColor.dividerColor),
-                  )
-                : RepaintBoundary(
-                    child: SfCartesianChart(
-                      key: ValueKey<int>(
-                        Object.hashAll(<int>[
-                          for (final status in BookingStatus.values)
-                            breakdown[status] ?? 0,
-                        ]),
-                      ),
-                      margin: EdgeInsets.zero,
-                      plotAreaBorderWidth: 0,
-                      primaryXAxis: const CategoryAxis(isVisible: false),
-                      primaryYAxis: const NumericAxis(
-                        isVisible: false,
-                        minimum: 0,
-                        maximum: 100,
-                      ),
-                      series: <StackedBar100Series<_StatusPoint, String>>[
-                        for (final status in BookingStatus.values)
-                          StackedBar100Series<_StatusPoint, String>(
-                            dataSource: chartData,
-                            xValueMapper: (_StatusPoint point, _) =>
-                                point.category,
-                            yValueMapper: (_StatusPoint point, _) =>
-                                point.values[status] ?? 0,
-                            color: status.color,
-                            animationDuration: 650,
-                          ),
-                      ],
-                    ),
-                  ),
+          _StatusMixBar(statuses: statuses, breakdown: breakdown, total: total),
+          const SizedBox(height: AppDimens.paddingX14),
+          _StatusTileRow(
+            statuses: statuses.take(2).toList(growable: false),
+            breakdown: breakdown,
+            total: total,
           ),
-          const SizedBox(height: AppDimens.paddingX12),
-          ...BookingStatus.values.map((s) {
-            final n = breakdown[s] ?? 0;
-            final pct = total == 0 ? 0.0 : n / total;
-            return Padding(
-              padding: const EdgeInsets.only(bottom: AppDimens.paddingX8),
-              child: Row(
-                children: [
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: s.color,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const SizedBox(width: AppDimens.paddingX8),
-                  Expanded(
-                    child: Text(
-                      s.label,
-                      style: textTheme.bodyTextSmall?.copyWith(
-                        color: LightColor.secondaryTextColor,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                  Text(
-                    '$n  ·  ${(pct * 100).toStringAsFixed(1)}%',
-                    style: textTheme.bodyTextSmall?.copyWith(
-                      color: LightColor.primaryTextColor,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }),
+          const SizedBox(height: AppDimens.paddingX10),
+          _StatusTileRow(
+            statuses: statuses.skip(2).toList(growable: false),
+            breakdown: breakdown,
+            total: total,
+          ),
         ],
       ),
     );
   }
 }
 
-class _StatusPoint {
-  const _StatusPoint({required this.category, required this.values});
+class _StatusMixBar extends StatelessWidget {
+  const _StatusMixBar({
+    required this.statuses,
+    required this.breakdown,
+    required this.total,
+  });
 
-  final String category;
-  final Map<BookingStatus, int> values;
+  final List<BookingStatus> statuses;
+  final Map<BookingStatus, int> breakdown;
+  final int total;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+      child: SizedBox(
+        height: 12,
+        child: total == 0
+            ? ColoredBox(color: LightColor.dividerColor)
+            : Row(
+                children: <Widget>[
+                  for (final status in statuses)
+                    if ((breakdown[status] ?? 0) > 0)
+                      Expanded(
+                        flex: breakdown[status]!,
+                        child: ColoredBox(color: status.color),
+                      ),
+                ],
+              ),
+      ),
+    );
+  }
+}
+
+class _StatusTileRow extends StatelessWidget {
+  const _StatusTileRow({
+    required this.statuses,
+    required this.breakdown,
+    required this.total,
+  });
+
+  final List<BookingStatus> statuses;
+  final Map<BookingStatus, int> breakdown;
+  final int total;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: <Widget>[
+        for (int i = 0; i < statuses.length; i++) ...<Widget>[
+          if (i > 0) const SizedBox(width: AppDimens.paddingX10),
+          Expanded(
+            child: _StatusTile(
+              status: statuses[i],
+              count: breakdown[statuses[i]] ?? 0,
+              total: total,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _StatusTile extends StatelessWidget {
+  const _StatusTile({
+    required this.status,
+    required this.count,
+    required this.total,
+  });
+
+  final BookingStatus status;
+  final int count;
+  final int total;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    final percentage = total == 0 ? 0 : (count * 100 / total).round();
+
+    return Container(
+      height: 82,
+      padding: const EdgeInsets.all(AppDimens.paddingX12),
+      decoration: BoxDecoration(
+        color: status.color.withValues(alpha: 0.045),
+        borderRadius: BorderRadius.circular(AppDimens.radiusX12),
+        border: Border.all(color: status.color.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: status.color,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: AppDimens.paddingX6),
+              Expanded(
+                child: Text(
+                  status.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: textTheme.bodyTextSmall?.copyWith(
+                    color: LightColor.secondaryTextColor,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Text(
+                '$percentage%',
+                style: textTheme.bodyTextSmall?.copyWith(
+                  color: status.color,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const Spacer(),
+          Text(
+            '$count',
+            style: textTheme.headingSmall?.copyWith(
+              color: LightColor.primaryTextColor,
+              fontWeight: FontWeight.w700,
+              height: 1,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

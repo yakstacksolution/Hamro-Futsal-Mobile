@@ -79,13 +79,13 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('NPR 3,149'), findsOneWidget);
+      // The in/out split is two labelled stats, with the count as a pill.
+      expect(find.text(StringConstants.incoming), findsOneWidget);
+      expect(find.text('NPR 14,155'), findsOneWidget);
+      expect(find.text(StringConstants.outgoing), findsOneWidget);
+      expect(find.text('NPR 11,006'), findsOneWidget);
       expect(
-        find.text(
-          '${StringConstants.incoming} NPR 14,155'
-          '   ·   '
-          '${StringConstants.outgoing} NPR 11,006'
-          '   ·   11',
-        ),
+        find.text('11 ${StringConstants.transactions.toLowerCase()}'),
         findsOneWidget,
       );
     });

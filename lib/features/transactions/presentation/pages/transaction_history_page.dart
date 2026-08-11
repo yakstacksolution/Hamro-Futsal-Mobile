@@ -243,7 +243,6 @@ class _TransactionHistoryViewState extends State<_TransactionHistoryView> {
                     pinned: true,
                     delegate: _SearchHeaderDelegate(
                       horizontal: horizontal,
-                      isLoading: state.isReloading,
                       child: TransactionSearchBar(
                         controller: _searchController,
                         onChanged: _onSearchChanged,
@@ -254,12 +253,21 @@ class _TransactionHistoryViewState extends State<_TransactionHistoryView> {
                     ),
                   ),
 
+                  // The range row, with the in-flight line directly beneath it —
+                  // every chip refetches, so progress belongs next to the
+                  // control that triggered it.
                   SliverPadding(
                     padding: EdgeInsets.symmetric(horizontal: horizontal),
                     sliver: SliverToBoxAdapter(
-                      child: TransactionRangeChips(
-                        selected: state.range,
-                        onSelected: _onRangeChipSelected,
+                      child: Column(
+                        children: <Widget>[
+                          TransactionRangeChips(
+                            selected: state.range,
+                            onSelected: _onRangeChipSelected,
+                          ),
+                          const SizedBox(height: AppDimens.paddingX10),
+                          _FilterProgressLine(isLoading: state.isReloading),
+                        ],
                       ),
                     ),
                   ),
@@ -348,7 +356,8 @@ class _TransactionHistoryViewState extends State<_TransactionHistoryView> {
           ? StringConstants.transactions
           : monthFormat.format(item.date!);
 
-      if (month != currentMonth) {
+      final bool firstInGroup = month != currentMonth;
+      if (firstInGroup) {
         currentMonth = month;
         rows.add(_MonthHeaderRow(month));
       }
@@ -364,7 +373,16 @@ class _TransactionHistoryViewState extends State<_TransactionHistoryView> {
                   ? StringConstants.transactions
                   : monthFormat.format(next.date!)) !=
               month;
-      rows.add(_TransactionRow(item, showDivider: !lastInGroup));
+      rows.add(
+        _TransactionRow(
+          item,
+          showDivider: !lastInGroup,
+          // The group's outer corners are rounded; the seams between its rows
+          // are square, so a month reads as one continuous card.
+          isFirst: firstInGroup,
+          isLast: lastInGroup,
+        ),
+      );
     }
     return rows;
   }
@@ -387,35 +405,39 @@ class _MonthHeaderRow extends _ListRow {
 }
 
 class _TransactionRow extends _ListRow {
-  const _TransactionRow(this.item, {required this.showDivider});
+  const _TransactionRow(
+    this.item, {
+    required this.showDivider,
+    required this.isFirst,
+    required this.isLast,
+  });
 
   final TransactionHistoryItemModel item;
   final bool showDivider;
+  final bool isFirst;
+  final bool isLast;
 
   @override
-  Widget build(BuildContext context) =>
-      TransactionTile(item: item, showDivider: showDivider);
+  Widget build(BuildContext context) => TransactionTile(
+    item: item,
+    showDivider: showDivider,
+    isFirst: isFirst,
+    isLast: isLast,
+  );
 }
 
 /// Pins the search bar, painting the page background behind it so rows do not
 /// show through as they scroll past.
 class _SearchHeaderDelegate extends SliverPersistentHeaderDelegate {
-  _SearchHeaderDelegate({
-    required this.child,
-    required this.horizontal,
-    required this.isLoading,
-  });
+  _SearchHeaderDelegate({required this.child, required this.horizontal});
 
   final Widget child;
   final double horizontal;
 
-  /// Drives the hairline progress bar under the search field.
-  final bool isLoading;
-
-  /// The 2px line's space is always reserved, so revealing it never nudges the
+  /// The hairline's space is always reserved, so revealing it never nudges the
   /// list.
   static const double _height =
-      AppDimens.sizeX44 + (AppDimens.paddingX12 * 2) + 2;
+      AppDimens.sizeX44 + (AppDimens.paddingX12 * 2) + 1;
 
   @override
   double get minExtent => _height;
@@ -442,18 +464,12 @@ class _SearchHeaderDelegate extends SliverPersistentHeaderDelegate {
             ),
             child: child,
           ),
-          // Built only while loading: an indeterminate indicator animates
-          // forever, which would burn frames (and never let tests settle) if it
-          // stayed mounted at zero opacity. The 2px space is always reserved,
-          // so revealing it never nudges the list.
+          // A hairline appears only once rows are sliding underneath, so the
+          // header detaches from the summary as the page scrolls.
           SizedBox(
-            height: 2,
-            child: isLoading
-                ? LinearProgressIndicator(
-                    minHeight: 2,
-                    backgroundColor: Colors.transparent,
-                    color: LightColor.secondaryColor,
-                  )
+            height: 1,
+            child: overlapsContent
+                ? ColoredBox(color: LightColor.dividerColor)
                 : null,
           ),
         ],
@@ -463,9 +479,42 @@ class _SearchHeaderDelegate extends SliverPersistentHeaderDelegate {
 
   @override
   bool shouldRebuild(_SearchHeaderDelegate oldDelegate) =>
-      oldDelegate.child != child ||
-      oldDelegate.horizontal != horizontal ||
-      oldDelegate.isLoading != isLoading;
+      oldDelegate.child != child || oldDelegate.horizontal != horizontal;
+}
+
+/// The in-flight line under the range chips: a track that is always laid out,
+/// carrying an indeterminate bar only while a query is running.
+///
+/// Built only while loading, because an indeterminate indicator animates
+/// forever — mounted at zero opacity it would burn frames and never let a test
+/// settle. Its 3px is reserved either way, so revealing it never nudges the
+/// list.
+class _FilterProgressLine extends StatelessWidget {
+  const _FilterProgressLine({required this.isLoading});
+
+  final bool isLoading;
+
+  static const double _thickness = 3;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(_thickness),
+      child: SizedBox(
+        height: _thickness,
+        width: double.infinity,
+        child: isLoading
+            ? LinearProgressIndicator(
+                minHeight: _thickness,
+                backgroundColor: LightColor.secondaryColor.withValues(
+                  alpha: 0.14,
+                ),
+                color: LightColor.secondaryColor,
+              )
+            : ColoredBox(color: LightColor.dividerColor),
+      ),
+    );
+  }
 }
 
 /// Reads back what is currently narrowing the list, with a one-tap reset.

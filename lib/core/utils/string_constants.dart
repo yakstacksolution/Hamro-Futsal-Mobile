@@ -876,6 +876,7 @@ final class StringConstants {
   static const String selectAVenue = 'Select a venue';
   static const String selectDate = 'Select date';
   static const String selectDateAndTime = 'Select Date & Time';
+  static const String selectMatchDateTime = 'Select match date & time';
   static const String selectDateOfBirth = 'Select date of birth';
   static const String selectEquipment = 'Select equipment';
   static const String selectEquipmentType = 'Select equipment type';

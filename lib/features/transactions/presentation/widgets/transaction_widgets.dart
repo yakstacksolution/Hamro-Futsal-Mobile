@@ -60,8 +60,14 @@ String transactionDirectionLabel(TransactionDirectionFilter direction) =>
       TransactionDirectionFilter.outgoing => StringConstants.outgoing,
     };
 
-/// Statement header: the net figure for the active filters, with the in/out
-/// split on one muted line beneath it.
+/// Tabular figures keep every amount in the ledger on the same digit grid, so
+/// a column of totals lines up instead of shimmying by a pixel per digit.
+const List<FontFeature> _tabularFigures = <FontFeature>[
+  FontFeature.tabularFigures(),
+];
+
+/// Statement header: a raised card carrying the net figure for the active
+/// filters, with the money-in / money-out split as two stats beneath a rule.
 ///
 /// Figures come from the server's `summary`, which covers the whole filtered
 /// set rather than the pages loaded so far.
@@ -87,41 +93,187 @@ class TransactionSummaryPanel extends StatelessWidget {
     final double net = summary?.netTotal ?? (incoming - outgoing);
     final int count = summary?.transactionCount ?? fallbackCount;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Text(
-          '${StringConstants.netBalance} · $rangeLabel',
-          style: textTheme.bodyTextSmall?.copyWith(
-            color: LightColor.secondaryTextColor,
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppDimens.paddingX16,
+        vertical: AppDimens.paddingX16,
+      ),
+      decoration: BoxDecoration(
+        color: LightColor.elevatedCardColor,
+        borderRadius: BorderRadius.circular(AppDimens.radiusX16),
+        border: Border.all(color: LightColor.dividerColor),
+        boxShadow: <BoxShadow>[
+          BoxShadow(
+            color: LightColor.shadowColor.withValues(alpha: 0.06),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
           ),
-        ),
-        const SizedBox(height: AppDimens.sizeX2),
-        // Keyed on the value, so a new total cross-fades in rather than
-        // flicking from one number to another.
-        _FadeOnChange(
-          child: Text(
-            formatTransactionAmount(net),
-            key: ValueKey<double>(net),
-            style: textTheme.headingXSmall?.copyWith(
-              color: net < 0
-                  ? LightColor.redColor
-                  : LightColor.primaryTextColor,
-              fontWeight: FontWeight.w700,
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: Text(
+                  '${StringConstants.netBalance} · $rangeLabel',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: textTheme.bodyTextSmall?.copyWith(
+                    color: LightColor.secondaryTextColor,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppDimens.sizeX8),
+              _CountBadge(count: count),
+            ],
+          ),
+          const SizedBox(height: AppDimens.sizeX6),
+          // Keyed on the value, so a new total cross-fades in rather than
+          // flicking from one number to another.
+          _FadeOnChange(
+            child: Text(
+              formatTransactionAmount(net),
+              key: ValueKey<double>(net),
+              style: textTheme.headingSmall?.copyWith(
+                color: net < 0
+                    ? LightColor.redColor
+                    : LightColor.primaryTextColor,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.4,
+                fontFeatures: _tabularFigures,
+              ),
             ),
           ),
+          const SizedBox(height: AppDimens.paddingX14),
+          Divider(height: 1, thickness: 1, color: LightColor.dividerColor),
+          const SizedBox(height: AppDimens.paddingX12),
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                Expanded(
+                  child: _SummaryStat(
+                    label: StringConstants.incoming,
+                    amount: incoming,
+                    icon: Icons.south_west_rounded,
+                    accent: LightColor.brandTextColor,
+                  ),
+                ),
+                VerticalDivider(
+                  width: AppDimens.paddingX16,
+                  thickness: 1,
+                  color: LightColor.dividerColor,
+                ),
+                Expanded(
+                  child: _SummaryStat(
+                    label: StringConstants.outgoing,
+                    amount: outgoing,
+                    icon: Icons.north_east_rounded,
+                    accent: LightColor.redColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// How many transactions the active filters match, as a quiet pill.
+class _CountBadge extends StatelessWidget {
+  const _CountBadge({required this.count});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppDimens.paddingX8,
+        vertical: AppDimens.sizeX2,
+      ),
+      decoration: BoxDecoration(
+        color: LightColor.sunkenColor,
+        borderRadius: BorderRadius.circular(AppDimens.radiusX20),
+      ),
+      child: Text(
+        '$count ${StringConstants.transactions.toLowerCase()}',
+        style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
+          color: LightColor.secondaryTextColor,
+          fontSize: AppDimens.fontBodySubTitle,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+}
+
+/// One half of the in/out split: a tinted arrow, its label, and the total.
+class _SummaryStat extends StatelessWidget {
+  const _SummaryStat({
+    required this.label,
+    required this.amount,
+    required this.icon,
+    required this.accent,
+  });
+
+  final String label;
+  final double amount;
+  final IconData icon;
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) {
+    final FutsalTextTheme textTheme = FutsalTheme.getTextTheme(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Row(
+          children: <Widget>[
+            Container(
+              width: AppDimens.sizeX18,
+              height: AppDimens.sizeX18,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: accent.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(AppDimens.radiusX6),
+              ),
+              child: Icon(icon, size: AppDimens.sizeX12, color: accent),
+            ),
+            const SizedBox(width: AppDimens.sizeX6),
+            Expanded(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: textTheme.bodyTextSmall?.copyWith(
+                  color: LightColor.secondaryTextColor,
+                  fontSize: AppDimens.fontBodySubTitle,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: AppDimens.sizeX4),
         _FadeOnChange(
           child: Text(
-            '${StringConstants.incoming} ${formatTransactionAmount(incoming)}'
-            '   ·   '
-            '${StringConstants.outgoing} ${formatTransactionAmount(outgoing)}'
-            '   ·   $count',
-            key: ValueKey<String>('$incoming/$outgoing/$count'),
-            style: textTheme.bodyTextSmall?.copyWith(
-              color: LightColor.hintTextColor,
-              fontSize: AppDimens.fontBodySubTitle,
+            formatTransactionAmount(amount),
+            key: ValueKey<double>(amount),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: textTheme.bodyTextMedium?.copyWith(
+              color: LightColor.primaryTextColor,
+              fontWeight: FontWeight.w700,
+              fontFeatures: _tabularFigures,
             ),
           ),
         ),
@@ -203,14 +355,14 @@ class TransactionSearchBar extends StatelessWidget {
                         ),
                       ),
                 filled: true,
-                fillColor: LightColor.cardColor,
+                fillColor: LightColor.elevatedCardColor,
                 contentPadding: EdgeInsets.zero,
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+                  borderRadius: BorderRadius.circular(AppDimens.radiusX12),
                   borderSide: BorderSide(color: LightColor.dividerColor),
                 ),
                 enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+                  borderRadius: BorderRadius.circular(AppDimens.radiusX12),
                   borderSide: BorderSide(color: LightColor.dividerColor),
                 ),
               ),
@@ -248,14 +400,14 @@ class TransactionSearchBar extends StatelessWidget {
             padding: const EdgeInsets.symmetric(
               horizontal: AppDimens.paddingX12,
             ),
-            backgroundColor: LightColor.cardColor,
+            backgroundColor: LightColor.elevatedCardColor,
             side: BorderSide(
               color: active
                   ? LightColor.secondaryColor
                   : LightColor.dividerColor,
             ),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+              borderRadius: BorderRadius.circular(AppDimens.radiusX12),
             ),
           ),
         ),
@@ -353,7 +505,7 @@ class TransactionFilterChip extends StatelessWidget {
           decoration: BoxDecoration(
             color: selected
                 ? LightColor.secondaryColor.withValues(alpha: 0.08)
-                : LightColor.cardColor,
+                : LightColor.elevatedCardColor,
             borderRadius: BorderRadius.circular(AppDimens.radiusX8),
             border: Border.all(
               color: selected
@@ -380,7 +532,8 @@ class TransactionFilterChip extends StatelessWidget {
   }
 }
 
-/// Month label above each group of rows.
+/// Month label above each group of rows — an overline, so it reads as a
+/// divider between blocks rather than as another row.
 class TransactionSectionHeader extends StatelessWidget {
   const TransactionSectionHeader({super.key, required this.title});
 
@@ -392,12 +545,15 @@ class TransactionSectionHeader extends StatelessWidget {
       padding: const EdgeInsets.only(
         top: AppDimens.paddingX20,
         bottom: AppDimens.paddingX10,
+        left: AppDimens.paddingX4,
       ),
       child: Text(
-        title,
+        title.toUpperCase(),
         style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
-          color: LightColor.secondaryTextColor,
-          fontWeight: FontWeight.w600,
+          color: LightColor.hintTextColor,
+          fontSize: AppDimens.fontBodySubTitle,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.8,
         ),
       ),
     );
@@ -405,12 +561,17 @@ class TransactionSectionHeader extends StatelessWidget {
 }
 
 /// One statement row: description on the left, signed amount on the right.
+///
+/// Rows in a month sit on one continuous card, so [isFirst] / [isLast] round
+/// only the outer edges of the group.
 class TransactionTile extends StatelessWidget {
   const TransactionTile({
     super.key,
     required this.item,
     this.onTap,
     this.showDivider = true,
+    this.isFirst = true,
+    this.isLast = true,
   });
 
   final TransactionHistoryItemModel item;
@@ -419,84 +580,104 @@ class TransactionTile extends StatelessWidget {
   /// The last row in a group drops its divider.
   final bool showDivider;
 
+  final bool isFirst;
+  final bool isLast;
+
+  /// Icon width plus its gutter — dividers start where the text does.
+  static const double _dividerIndent =
+      AppDimens.paddingX14 + AppDimens.sizeX40 + AppDimens.sizeX12;
+
   @override
   Widget build(BuildContext context) {
     final FutsalTextTheme textTheme = FutsalTheme.getTextTheme(context);
+    final Color amountColor = item.isIncoming
+        ? LightColor.brandTextColor
+        : LightColor.redColor;
+    final BorderRadius radius = BorderRadius.vertical(
+      top: Radius.circular(isFirst ? AppDimens.radiusX14 : 0),
+      bottom: Radius.circular(isLast ? AppDimens.radiusX14 : 0),
+    );
 
     return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: AppDimens.paddingX14),
-          decoration: showDivider
-              ? BoxDecoration(
-                  border: Border(
-                    bottom: BorderSide(color: LightColor.dividerColor),
-                  ),
-                )
-              : null,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              _DirectionIcon(isIncoming: item.isIncoming),
-              const SizedBox(width: AppDimens.sizeX12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      item.displayTitle,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: textTheme.bodyTextMedium?.copyWith(
-                        color: LightColor.primaryTextColor,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: AppDimens.sizeX4),
-                    // Everything secondary on one muted line, so a row is two
-                    // lines regardless of which fields the source carries.
-                    Text(
-                      _metaLine(item),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: textTheme.bodyTextSmall?.copyWith(
-                        color: LightColor.secondaryTextColor,
-                        fontSize: AppDimens.fontBodySubTitle,
-                      ),
-                    ),
-                    // Colour is spent only on states that need attention;
-                    // cleared and recorded rows stay entirely neutral.
-                    if (item.statusLabel.isNotEmpty &&
-                        _isNotable(item.status)) ...<Widget>[
-                      const SizedBox(height: AppDimens.sizeX4),
-                      Text(
-                        item.statusLabel,
-                        style: textTheme.bodyTextSmall?.copyWith(
-                          color: transactionStatusColor(item.status),
-                          fontSize: AppDimens.fontBodySubTitle,
-                          fontWeight: FontWeight.w600,
+      color: LightColor.elevatedCardColor,
+      borderRadius: radius,
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: <Widget>[
+          InkWell(
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppDimens.paddingX14,
+                vertical: AppDimens.paddingX14,
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  _DirectionIcon(isIncoming: item.isIncoming),
+                  const SizedBox(width: AppDimens.sizeX12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Text(
+                          item.displayTitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: textTheme.bodyTextMedium?.copyWith(
+                            color: LightColor.primaryTextColor,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
-                      ),
-                    ],
-                  ],
-                ),
+                        const SizedBox(height: AppDimens.sizeX4),
+                        // Everything secondary on one muted line, so a row is
+                        // two lines regardless of which fields the source
+                        // carries.
+                        Text(
+                          _metaLine(item),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: textTheme.bodyTextSmall?.copyWith(
+                            color: LightColor.secondaryTextColor,
+                            fontSize: AppDimens.fontBodySubTitle,
+                            height: 1.35,
+                          ),
+                        ),
+                        // Colour is spent only on states that need attention;
+                        // cleared and recorded rows stay entirely neutral.
+                        if (item.statusLabel.isNotEmpty &&
+                            _isNotable(item.status)) ...<Widget>[
+                          const SizedBox(height: AppDimens.sizeX6),
+                          _StatusBadge(
+                            label: item.statusLabel,
+                            color: transactionStatusColor(item.status),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: AppDimens.sizeX12),
+                  Text(
+                    '${item.isIncoming ? '+' : '−'}'
+                    '${formatTransactionAmount(item.amount)}',
+                    style: textTheme.bodyTextMedium?.copyWith(
+                      color: amountColor,
+                      fontWeight: FontWeight.w700,
+                      fontFeatures: _tabularFigures,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: AppDimens.sizeX12),
-              Text(
-                '${item.isIncoming ? '+' : '−'}'
-                '${formatTransactionAmount(item.amount)}',
-                style: textTheme.bodyTextMedium?.copyWith(
-                  color: item.isIncoming
-                      ? LightColor.brandTextColor
-                      : LightColor.redColor,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
+          if (showDivider)
+            Divider(
+              height: 1,
+              thickness: 1,
+              indent: _dividerIndent,
+              color: LightColor.dividerColor,
+            ),
+        ],
       ),
     );
   }
@@ -516,6 +697,39 @@ class TransactionTile extends StatelessWidget {
       transactionStatusColor(status) != LightColor.secondaryTextColor;
 }
 
+/// Exception states (pending, failed, refunded) as a tinted pill, so they read
+/// as a badge on the row rather than as a third line of prose.
+class _StatusBadge extends StatelessWidget {
+  const _StatusBadge({required this.label, required this.color});
+
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppDimens.paddingX6,
+        vertical: 1,
+      ),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(AppDimens.radiusX4),
+        border: Border.all(color: color.withValues(alpha: 0.28)),
+      ),
+      child: Text(
+        label,
+        style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
+          color: color,
+          fontSize: AppDimens.fontBodySubTitle,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.2,
+        ),
+      ),
+    );
+  }
+}
+
 /// Money-in / money-out arrow.
 ///
 /// Direction is carried three ways — this arrow, the amount's sign, and its
@@ -532,17 +746,18 @@ class _DirectionIcon extends StatelessWidget {
         : LightColor.redColor;
 
     return Container(
-      width: AppDimens.sizeX32,
-      height: AppDimens.sizeX32,
+      width: AppDimens.sizeX40,
+      height: AppDimens.sizeX40,
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: accent.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+        shape: BoxShape.circle,
+        border: Border.all(color: accent.withValues(alpha: 0.18)),
       ),
       child: Icon(
         // Down-left into the account, up-right out of it.
         isIncoming ? Icons.arrow_downward_rounded : Icons.arrow_upward_rounded,
-        size: AppDimens.sizeX16,
+        size: AppDimens.sizeX18,
         color: accent,
         semanticLabel: isIncoming
             ? StringConstants.incoming

@@ -639,7 +639,7 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
             ),
           ),
           title: Text(
-            StringConstants.selectDateAndTime,
+            StringConstants.selectMatchDateTime,
             style: FutsalTheme.getTextTheme(context).bodyTextLarge?.copyWith(
               color: LightColor.primaryTextColor,
               fontWeight: FontWeight.w800,
