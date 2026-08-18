@@ -132,16 +132,27 @@ class _TransactionHistoryViewState extends State<_TransactionHistoryView> {
     );
   }
 
-  /// `Custom` opens the filter sheet, where the two dates are picked; every
-  /// other chip resolves to a window immediately.
+  /// `Custom` opens the calendar sheet directly — the same one the Expenses
+  /// screen uses — rather than routing through the filter sheet; every other
+  /// chip resolves to a window immediately.
   Future<void> _onRangeChipSelected(TransactionRangeFilter filter) async {
     if (filter == TransactionRangeFilter.custom) {
-      await _openFilters();
+      await _pickCustomRange();
       return;
     }
     context.read<TransactionHistoryBloc>().add(
       ChangeTransactionRangeEvent(TransactionDateRange.of(filter)),
     );
+  }
+
+  Future<void> _pickCustomRange() async {
+    final TransactionHistoryBloc bloc = context.read<TransactionHistoryBloc>();
+    final TransactionDateRange? picked = await pickTransactionDateRange(
+      context: context,
+      current: bloc.state.range,
+    );
+    if (picked == null || !mounted) return;
+    bloc.add(ChangeTransactionRangeEvent(picked));
   }
 
   Future<void> _openFilters() async {
@@ -158,12 +169,15 @@ class _TransactionHistoryViewState extends State<_TransactionHistoryView> {
         );
     if (selection == null) return;
 
-    // Each control is its own event and the bloc no-ops on unchanged values, so
-    // applying the sheet costs one request per filter the user actually moved.
-    bloc
-      ..add(ChangeTransactionDirectionEvent(selection.direction))
-      ..add(ChangeTransactionTypeEvent(selection.type))
-      ..add(ChangeTransactionRangeEvent(selection.range));
+    // One event for all three: dispatching them separately would cost a round
+    // trip per filter and briefly render half-applied combinations.
+    bloc.add(
+      ApplyTransactionFiltersEvent(
+        direction: selection.direction,
+        type: selection.type,
+        range: selection.range,
+      ),
+    );
   }
 
   void _clearFilters() {
@@ -482,13 +496,15 @@ class _SearchHeaderDelegate extends SliverPersistentHeaderDelegate {
       oldDelegate.child != child || oldDelegate.horizontal != horizontal;
 }
 
-/// The in-flight line under the range chips: a track that is always laid out,
-/// carrying an indeterminate bar only while a query is running.
+/// The in-flight line under the range chips.
 ///
-/// Built only while loading, because an indeterminate indicator animates
-/// forever — mounted at zero opacity it would burn frames and never let a test
-/// settle. Its 3px is reserved either way, so revealing it never nudges the
-/// list.
+/// Nothing is painted once the query settles — the row leaves no rule behind
+/// it — but its 3px stays reserved, so the bar appearing and disappearing
+/// never nudges the list.
+///
+/// The indicator is built only while loading: an indeterminate one animates
+/// forever, so mounting it at zero opacity would burn frames and never let a
+/// test settle.
 class _FilterProgressLine extends StatelessWidget {
   const _FilterProgressLine({required this.isLoading});
 
@@ -511,7 +527,7 @@ class _FilterProgressLine extends StatelessWidget {
                 ),
                 color: LightColor.secondaryColor,
               )
-            : ColoredBox(color: LightColor.dividerColor),
+            : null,
       ),
     );
   }
@@ -625,26 +641,45 @@ class _ListFooter extends StatelessWidget {
     }
 
     if (state.errorMessage != null && state.items.isNotEmpty) {
+      // Which request failed decides what retrying means. A filter or search
+      // change fails with `status == failure` while the previous query's rows
+      // are still on screen — retrying that with a load-more would be dropped
+      // on the spot, since pagination refuses to run on a failed list.
+      final bool reloadFailed =
+          state.status == TransactionHistoryStatus.failure;
+
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: AppDimens.paddingX16),
-        child: Center(
-          child: TextButton.icon(
-            onPressed: () => context.read<TransactionHistoryBloc>().add(
-              const LoadMoreTransactionHistoryEvent(),
-            ),
-            icon: const Icon(
-              Icons.refresh_rounded,
-              size: AppDimens.sizeX16,
-              color: LightColor.secondaryColor,
-            ),
-            label: Text(
-              StringConstants.retry,
+        child: Column(
+          children: <Widget>[
+            Text(
+              state.errorMessage!,
+              textAlign: TextAlign.center,
               style: textTheme.bodyTextSmall?.copyWith(
-                color: LightColor.secondaryColor,
-                fontWeight: FontWeight.w700,
+                color: LightColor.secondaryTextColor,
+                fontSize: AppDimens.fontBodySubTitle,
               ),
             ),
-          ),
+            TextButton.icon(
+              onPressed: () => context.read<TransactionHistoryBloc>().add(
+                reloadFailed
+                    ? const LoadTransactionHistoryEvent()
+                    : const LoadMoreTransactionHistoryEvent(),
+              ),
+              icon: const Icon(
+                Icons.refresh_rounded,
+                size: AppDimens.sizeX16,
+                color: LightColor.secondaryColor,
+              ),
+              label: Text(
+                StringConstants.retry,
+                style: textTheme.bodyTextSmall?.copyWith(
+                  color: LightColor.secondaryColor,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
         ),
       );
     }

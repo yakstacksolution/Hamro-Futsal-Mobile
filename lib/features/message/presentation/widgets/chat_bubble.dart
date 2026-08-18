@@ -94,8 +94,11 @@ class ChatBubble extends StatelessWidget {
               margin: const EdgeInsets.only(bottom: 6),
               padding: const EdgeInsets.all(7),
               decoration: BoxDecoration(
-                color: (isMe ? LightColor.onBrandSurface : LightColor.secondaryColor)
-                    .withValues(alpha: 0.13),
+                color:
+                    (isMe
+                            ? LightColor.onBrandSurface
+                            : LightColor.secondaryColor)
+                        .withValues(alpha: 0.13),
                 borderRadius: BorderRadius.circular(AppDimens.radiusX6),
               ),
               child: Text(
@@ -254,8 +257,9 @@ class _MediaChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         decoration: BoxDecoration(
-          color: (isMe ? LightColor.inverseTextColor : LightColor.secondaryColor)
-              .withValues(alpha: 0.12),
+          color:
+              (isMe ? LightColor.inverseTextColor : LightColor.secondaryColor)
+                  .withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(AppDimens.radiusX8),
         ),
         child: Row(

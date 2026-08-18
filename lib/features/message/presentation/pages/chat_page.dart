@@ -35,7 +35,15 @@ class ChatPage extends StatefulWidget {
 
 class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
   static const Object _typingEntry = Object();
+
+  /// Trailing entry of the reversed list — i.e. the visual top of the thread —
+  /// showing the older-history spinner or its retry row.
+  static const Object _loadOlderEntry = Object();
   final _scrollCtrl = ScrollController();
+
+  /// Newest rendered message. Auto-scroll-to-bottom keys off this so loading
+  /// older history (which also grows `messages`) never yanks the viewport.
+  int _newestMessageId = 0;
   late final MessageBloc _bloc;
   final List<PlatformFile> _attachments = <PlatformFile>[];
   ChatMessageModel? _replyingTo;
@@ -47,6 +55,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _bloc = context.read<MessageBloc>();
+    _scrollCtrl.addListener(_onScroll);
     _bloc.add(
       LoadChatEvent(widget.conversation.id, conversation: widget.conversation),
     );
@@ -67,6 +76,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
     }
     if (!_bloc.isClosed) _bloc.add(const CloseChatEvent());
     _presenceTimer?.cancel();
+    _scrollCtrl.removeListener(_onScroll);
     _scrollCtrl.dispose();
     super.dispose();
   }
@@ -359,6 +369,31 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
     }
   }
 
+  /// The list is reversed, so its max scroll extent is the *top* of the
+  /// thread — that is where the next page of older messages is requested.
+  void _onScroll() {
+    if (!_scrollCtrl.hasClients || _bloc.isClosed) return;
+    final position = _scrollCtrl.position;
+    if (position.pixels < position.maxScrollExtent - 240) return;
+    _loadOlder();
+  }
+
+  void _loadOlder() {
+    final state = _bloc.state;
+    if (_bloc.isClosed ||
+        state.messagesLoadingOlder ||
+        !state.messagesHasMorePages ||
+        state.messagesLoadOlderError != null) {
+      return;
+    }
+    _bloc.add(LoadOlderMessagesEvent(widget.conversation.id));
+  }
+
+  void _retryLoadOlder() {
+    if (_bloc.isClosed) return;
+    _bloc.add(LoadOlderMessagesEvent(widget.conversation.id));
+  }
+
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollCtrl.hasClients) {
@@ -388,7 +423,10 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
               previous.activeConversation != current.activeConversation ||
               previous.messages != current.messages ||
               previous.sending != current.sending ||
-              previous.peerTyping != current.peerTyping,
+              previous.peerTyping != current.peerTyping ||
+              previous.messagesLoadingOlder != current.messagesLoadingOlder ||
+              previous.messagesHasMorePages != current.messagesHasMorePages ||
+              previous.messagesLoadOlderError != current.messagesLoadOlderError,
           listenWhen: (prev, curr) =>
               curr.messages.length > prev.messages.length ||
               curr.actionMessage != prev.actionMessage ||
@@ -399,7 +437,15 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
                   !curr.sending &&
                   curr.errorMessage != prev.errorMessage),
           listener: (context, state) {
-            _scrollToBottom();
+            // Only follow the thread down for genuinely new messages at the
+            // bottom; a prepended history page must leave the viewport alone.
+            final newestId = state.messages.isEmpty
+                ? 0
+                : state.messages.last.id;
+            if (newestId != _newestMessageId) {
+              _newestMessageId = newestId;
+              _scrollToBottom();
+            }
             if (state.actionMessage != null) {
               AppUtils().showSnackBar(
                 context,
@@ -497,7 +543,16 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
       entries.add(m);
     }
     if (state.peerTyping) entries.add(_typingEntry);
-    final reversed = entries.reversed.toList(growable: false);
+    final reversed = entries.reversed.toList();
+    // Last in a reversed list renders at the top of the thread. The strip is
+    // reserved as soon as older pages exist — not only while one is in flight —
+    // so the spinner fades in at a spot already on screen instead of being
+    // inserted above the viewport, and the scroll extent never jumps.
+    if (state.messagesHasMorePages ||
+        state.messagesLoadingOlder ||
+        state.messagesLoadOlderError != null) {
+      reversed.add(_loadOlderEntry);
+    }
 
     return ListView.builder(
       controller: _scrollCtrl,
@@ -510,6 +565,13 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
         final Object entry = reversed[index];
         if (entry is DateTime) return ChatDayChip(date: entry);
         if (identical(entry, _typingEntry)) return const _TypingBubble();
+        if (identical(entry, _loadOlderEntry)) {
+          return _OlderMessagesHeader(
+            loading: state.messagesLoadingOlder,
+            error: state.messagesLoadOlderError,
+            onRetry: _retryLoadOlder,
+          );
+        }
 
         final ChatMessageModel message = entry as ChatMessageModel;
         return ChatBubble(
@@ -521,6 +583,70 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
           mediaBytesLoader: _loadMediaBytes,
         );
       },
+    );
+  }
+}
+
+/// Top-of-thread strip: the older-history spinner, or a retry row when that
+/// page failed.
+class _OlderMessagesHeader extends StatelessWidget {
+  const _OlderMessagesHeader({
+    required this.loading,
+    required this.error,
+    required this.onRetry,
+  });
+
+  final bool loading;
+  final String? error;
+  final VoidCallback onRetry;
+
+  /// Height the idle strip holds so the spinner does not shift the thread.
+  static const double _stripHeight = 22;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppDimens.paddingX16,
+        vertical: AppDimens.paddingX12,
+      ),
+      child: Center(
+        child: error == null
+            // The app's spinner. `LoadingWidget` itself wraps this in a
+            // Scaffold, which cannot sit inline in a list row.
+            ? AnimatedOpacity(
+                opacity: loading ? 1 : 0,
+                duration: const Duration(milliseconds: 180),
+                child: CustomLoading(
+                  color: LightColor.secondaryColor,
+                  size: _stripHeight,
+                  strokeWidth: 2.5,
+                  secondCircleColor: LightColor.secondaryLight,
+                  thirdCircleColor: LightColor.secondaryLight,
+                ),
+              )
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    error!,
+                    textAlign: TextAlign.center,
+                    style: textTheme.bodyTextSmall?.copyWith(
+                      color: LightColor.secondaryTextColor,
+                    ),
+                  ),
+                  TextButton.icon(
+                    onPressed: onRetry,
+                    icon: const Icon(Icons.refresh_rounded, size: 16),
+                    label: Text(StringConstants.retry),
+                    style: TextButton.styleFrom(
+                      foregroundColor: LightColor.secondaryColor,
+                    ),
+                  ),
+                ],
+              ),
+      ),
     );
   }
 }

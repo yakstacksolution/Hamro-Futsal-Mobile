@@ -3,10 +3,13 @@ import 'dart:math';
 import 'package:dartz/dartz.dart';
 import 'package:hamro_footsall/core/helper/exception_helper.dart';
 import 'package:hamro_footsall/core/helper/response_helper.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 import 'package:hamro_footsall/features/opponent_match/data/data_source/opponent_match_data_source.dart';
 import 'package:hamro_footsall/features/opponent_match/data/model/accept_opponent_request_request.dart';
 import 'package:hamro_footsall/features/opponent_match/data/model/opponent_match_model.dart';
+import 'package:hamro_footsall/features/opponent_match/data/model/opponent_match_step_request.dart';
 import 'package:hamro_footsall/features/opponent_match/domain/entities/opponent_match_entities.dart';
+import 'package:hamro_footsall/features/opponent_match/data/model/opponent_request_tab.dart';
 import 'package:hamro_footsall/features/opponent_match/domain/repository/opponent_match_repository.dart';
 
 final class OpponentMatchRepositoryImpl extends OpponentMatchRepository {
@@ -161,6 +164,99 @@ final class OpponentMatchRepositoryImpl extends OpponentMatchRepository {
   }
 
   @override
+  Future<Either<AppException, List<OpponentRequestModel>>> getRequestsByTab(
+    OpponentRequestTab tab,
+  ) async {
+    final response = await _requestDataSource.fetchMyRequests(
+      query: <String, dynamic>{'tab': tab.query},
+    );
+    if (response.isError()) {
+      return left(ResponseHelper.error(response));
+    }
+    try {
+      final items = _findList(
+        response.getValue(),
+        keys: const [
+          'data',
+          'requests',
+          'opponent_requests',
+          'invitations',
+          'items',
+          'results',
+        ],
+        depth: 0,
+      );
+      final requests = items
+          .whereType<Map>()
+          .map((e) => _requestRow(e, tab: tab))
+          .where((row) => row.isNotEmpty)
+          .map(OpponentRequestModel.fromJson)
+          .toList(growable: false);
+      return right(requests);
+    } catch (_) {
+      return left(_error('Could not parse opponent requests from server.'));
+    }
+  }
+
+  @override
+  Future<Either<AppException, List<OpponentRequestModel>>> getMyRequests() =>
+      getRequestsByTab(OpponentRequestTab.myRequests);
+
+  @override
+  Future<Either<AppException, OpponentRequestModel>> getMyRequest(
+    String id,
+  ) async {
+    final response = await _requestDataSource.fetchMyRequest(id);
+    if (response.isError()) {
+      return left(ResponseHelper.error(response));
+    }
+    try {
+      // The endpoint answers with `data` as a single-element LIST, but tolerate
+      // a bare object (and the usual nesting) so either shape hydrates.
+      final dynamic payload = response.getValue();
+      final List<dynamic> items = _findList(
+        payload,
+        keys: const ['data', 'requests', 'opponent_requests', 'items'],
+        depth: 0,
+      );
+      final Map<String, dynamic> row = items.isNotEmpty
+          ? _requestRow(
+              Map<dynamic, dynamic>.from(items.first as Map),
+              tab: OpponentRequestTab.myRequests,
+            )
+          : _requestRow(
+              _asMap(_asMap(payload)['data']),
+              tab: OpponentRequestTab.myRequests,
+            );
+      if (row.isEmpty) {
+        return left(_error('That request could not be found.'));
+      }
+      return right(OpponentRequestModel.fromJson(row));
+    } catch (_) {
+      return left(_error('Could not parse that opponent request.'));
+    }
+  }
+
+  /// One row of `/auth/opponent-requests?tab=…`.
+  ///
+  /// A row may either be the request itself or a wrapper carrying it under
+  /// `opponent_request`/`request`; [_unwrapRequest] handles both. On the
+  /// `my_requests` tab every row belongs to the caller by definition, so
+  /// `is_mine` is stamped on rather than trusted from the payload — the UI keys
+  /// its actions off it. The other tabs carry other teams' requests, so their
+  /// ownership is left to whatever the payload says.
+  Map<String, dynamic> _requestRow(
+    Map<dynamic, dynamic> raw, {
+    required OpponentRequestTab tab,
+  }) {
+    final Map<String, dynamic> row = _unwrapRequest(
+      Map<String, dynamic>.from(raw),
+    );
+    if (row.isEmpty || !tab.isOwnedByCaller) return row;
+    return row..['is_mine'] = true;
+  }
+
+  @override
   Future<Either<AppException, List<TeamModel>>> createTeam(String name) async {
     final trimmed = name.trim();
     if (trimmed.isEmpty) return left(_error('Team name cannot be empty.'));
@@ -296,6 +392,93 @@ final class OpponentMatchRepositoryImpl extends OpponentMatchRepository {
   }
 
   @override
+  Future<Either<AppException, OpponentRequestRefModel>> saveMatchStep(
+    OpponentMatchStepRequest data, {
+    String? requestId,
+  }) async {
+    final Map<String, dynamic> body = data.toJson();
+    final response = requestId == null || requestId.isEmpty
+        ? await _requestDataSource.createMatchStep(body)
+        : await _requestDataSource.updateMatchStep(requestId, body);
+
+    if (response.isError()) return left(ResponseHelper.error(response));
+
+    final OpponentRequestRefModel ref = OpponentRequestRefModel.fromResponse(
+      response.getValue(),
+    );
+    // An update that echoes nothing still applied — fall back to the id we
+    // patched against so the wizard does not lose its request.
+    if (!ref.isValid && requestId != null && requestId.isNotEmpty) {
+      return right(OpponentRequestRefModel(id: requestId));
+    }
+    if (!ref.isValid) {
+      return left(
+        DefaultException(
+          errorMessage: StringConstants.somethingWentWrong,
+          statusCode: 0,
+        ),
+      );
+    }
+    return right(ref);
+  }
+
+  @override
+  Future<Either<AppException, OpponentRequestRefModel>> saveVenueStep(
+    String requestId,
+    OpponentVenueStepRequest data,
+  ) async {
+    final response = await _requestDataSource.saveVenueStep(
+      requestId,
+      data.toJson(),
+    );
+    if (response.isError()) return left(ResponseHelper.error(response));
+
+    // The venue step patches a request that already exists, so a response that
+    // echoes nothing still applied — keep the id the wizard is working against.
+    final OpponentRequestRefModel ref = OpponentRequestRefModel.fromResponse(
+      response.getValue(),
+    );
+    return right(ref.isValid ? ref : OpponentRequestRefModel(id: requestId));
+  }
+
+  @override
+  Future<Either<AppException, OpponentRequestRefModel>> saveCostStep(
+    String requestId,
+    OpponentCostStepRequest data,
+  ) async {
+    final response = await _requestDataSource.saveCostStep(
+      requestId,
+      data.toJson(),
+    );
+    if (response.isError()) return left(ResponseHelper.error(response));
+
+    // Like the venue step: this replaces a section of an existing request, so an
+    // empty echo still applied — keep the id the wizard is working against.
+    final OpponentRequestRefModel ref = OpponentRequestRefModel.fromResponse(
+      response.getValue(),
+    );
+    return right(ref.isValid ? ref : OpponentRequestRefModel(id: requestId));
+  }
+
+  @override
+  Future<Either<AppException, String>> publishRequest(
+    String requestId, {
+    String message = '',
+  }) async {
+    final response = await _requestDataSource.publishRequest(requestId, {
+      if (message.trim().isNotEmpty) 'message': message.trim(),
+    });
+    if (response.isError()) return left(ResponseHelper.error(response));
+
+    final String serverMessage = (_asMap(response.getValue())['message'] ?? '')
+        .toString()
+        .trim();
+    return right(
+      serverMessage.isEmpty ? StringConstants.requestPublished : serverMessage,
+    );
+  }
+
+  @override
   Future<Either<AppException, List<OpponentRequestModel>>> sendRequest(
     CreateOpponentRequestEntity data,
   ) async {
@@ -314,11 +497,22 @@ final class OpponentMatchRepositoryImpl extends OpponentMatchRepository {
   }
 
   @override
-  Future<Either<AppException, List<OpponentRequestModel>>> deleteRequest(
-    String id,
-  ) async {
-    return _mutateRequestsThenReload(() => _requestDataSource.delete(id));
+  Future<Either<AppException, String>> deleteRequest(String id) async {
+    final response = await _requestDataSource.delete(id);
+    if (response.isError()) {
+      final AppException error = ResponseHelper.error(response);
+      // A 204 carries no body — still a successful delete.
+      if (error.statusCode != 204) return left(error);
+      return right(StringConstants.requestDeleted);
+    }
+    final String message = (_asMap(response.getValue())['message'] ?? '')
+        .toString()
+        .trim();
+    return right(message.isEmpty ? StringConstants.requestDeleted : message);
   }
+
+  Map<String, dynamic> _asMap(dynamic value) =>
+      value is Map ? Map<String, dynamic>.from(value) : const {};
 
   @override
   Future<Either<AppException, List<OpponentRequestModel>>> selectOpponent(

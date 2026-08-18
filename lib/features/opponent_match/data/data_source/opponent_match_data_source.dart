@@ -105,7 +105,33 @@ final class OpponentMatchLocalDataSourceImpl
 abstract class OpponentRequestRemoteDataSource {
   Future<Result> fetchRequests({Map<String, dynamic>? query});
   Future<Result> fetchRequest(String requestId);
+
+  /// The signed-in user's own requests, straight from
+  /// `/auth/opponent-requests?tab=all` — no client-side filtering.
+  Future<Result> fetchMyRequests({Map<String, dynamic>? query});
+
+  /// One of my own requests by id (`/auth/opponent-requests/{id}`) — the
+  /// authoritative copy the wizard hydrates a resumed draft from.
+  Future<Result> fetchMyRequest(String requestId);
+
   Future<Result> createRequest(Map<String, dynamic> data);
+
+  /// Opens a request from the wizard's first step. Returns the created
+  /// request, whose id every later step patches against.
+  Future<Result> createMatchStep(Map<String, dynamic> data);
+
+  /// Re-sends the match section of an already-opened request.
+  Future<Result> updateMatchStep(String requestId, Map<String, dynamic> data);
+
+  /// Sends the wizard's second step — the venue behind the match.
+  Future<Result> saveVenueStep(String requestId, Map<String, dynamic> data);
+
+  /// Sends the wizard's third step — how the court fee is split.
+  Future<Result> saveCostStep(String requestId, Map<String, dynamic> data);
+
+  /// Publishes the draft, carrying only the requester's optional message.
+  Future<Result> publishRequest(String requestId, Map<String, dynamic> data);
+
   Future<Result> accept(AcceptOpponentRequestRequest request);
   Future<Result> decline(String requestId);
   Future<Result> delete(String requestId);
@@ -129,8 +155,57 @@ final class OpponentRequestRemoteDataSourceImpl
       await Client.instance().getAuthManager().getOpponentRequest(requestId);
 
   @override
+  Future<Result> fetchMyRequests({Map<String, dynamic>? query}) async =>
+      await Client.instance().getAuthManager().getMyOpponentRequests(
+        query: {'tab': 'all', ...?query},
+      );
+
+  @override
+  Future<Result> fetchMyRequest(String requestId) async =>
+      await Client.instance().getAuthManager().getMyOpponentRequest(requestId);
+
+  @override
   Future<Result> createRequest(Map<String, dynamic> data) async =>
       await Client.instance().getAuthManager().createOpponentRequest(data);
+
+  @override
+  Future<Result> createMatchStep(Map<String, dynamic> data) async =>
+      await Client.instance().getAuthManager().createOpponentMatchRequest(data);
+
+  @override
+  Future<Result> updateMatchStep(
+    String requestId,
+    Map<String, dynamic> data,
+  ) async => await Client.instance()
+      .getAuthManager()
+      .updateOpponentRequestMatch(requestId, data);
+
+  @override
+  Future<Result> saveVenueStep(
+    String requestId,
+    Map<String, dynamic> data,
+  ) async => await Client.instance().getAuthManager().saveOpponentRequestVenue(
+    requestId,
+    data,
+  );
+
+  @override
+  Future<Result> saveCostStep(
+    String requestId,
+    Map<String, dynamic> data,
+  ) async => await Client.instance().getAuthManager().saveOpponentRequestCost(
+    requestId,
+    data,
+  );
+
+  @override
+  Future<Result> publishRequest(
+    String requestId,
+    Map<String, dynamic> data,
+  ) async => await Client.instance().getAuthManager().publishOpponentRequest(
+    requestId,
+    data,
+  );
 
   @override
   Future<Result> accept(AcceptOpponentRequestRequest request) async {
@@ -212,11 +287,63 @@ final class OpponentRequestFallbackDataSourceImpl
   );
 
   @override
+  Future<Result> fetchMyRequests({Map<String, dynamic>? query}) =>
+      _withFallback(
+        'mine',
+        () => _remote.fetchMyRequests(query: query),
+        () => _mock.fetchMyRequests(query: query),
+      );
+
+  /// Hydrating a resumed draft: a canned stand-in would silently autofill the
+  /// wizard with somebody else's data, so this one call reports its errors.
+  @override
+  Future<Result> fetchMyRequest(String requestId) =>
+      _remote.fetchMyRequest(requestId);
+
+  @override
   Future<Result> createRequest(Map<String, dynamic> data) => _withFallback(
     'create',
     () => _remote.createRequest(data),
     () => _mock.createRequest(data),
   );
+
+  @override
+  Future<Result> createMatchStep(Map<String, dynamic> data) => _withFallback(
+    'create-match-step',
+    () => _remote.createMatchStep(data),
+    () => _mock.createMatchStep(data),
+  );
+
+  @override
+  Future<Result> updateMatchStep(String requestId, Map<String, dynamic> data) =>
+      _withFallback(
+        'update-match-step',
+        () => _remote.updateMatchStep(requestId, data),
+        () => _mock.updateMatchStep(requestId, data),
+      );
+
+  @override
+  Future<Result> saveVenueStep(String requestId, Map<String, dynamic> data) =>
+      _withFallback(
+        'save-venue-step',
+        () => _remote.saveVenueStep(requestId, data),
+        () => _mock.saveVenueStep(requestId, data),
+      );
+
+  @override
+  Future<Result> saveCostStep(String requestId, Map<String, dynamic> data) =>
+      _withFallback(
+        'save-cost-step',
+        () => _remote.saveCostStep(requestId, data),
+        () => _mock.saveCostStep(requestId, data),
+      );
+
+  /// Publishing is a state change the user is told succeeded — a canned
+  /// success would claim the request is live when it is still a draft, so this
+  /// call reports its own errors.
+  @override
+  Future<Result> publishRequest(String requestId, Map<String, dynamic> data) =>
+      _remote.publishRequest(requestId, data);
 
   @override
   Future<Result> accept(AcceptOpponentRequestRequest request) => _withFallback(
@@ -232,12 +359,12 @@ final class OpponentRequestFallbackDataSourceImpl
     () => _mock.decline(requestId),
   );
 
+  /// `DELETE /auth/opponent-requests/{id}` is deployed, and a destructive call
+  /// must never report a canned success: falling back would drop the row from
+  /// the UI while the server still has it. Errors are returned as-is so the
+  /// screen can surface them.
   @override
-  Future<Result> delete(String requestId) => _withFallback(
-    'delete',
-    () => _remote.delete(requestId),
-    () => _mock.delete(requestId),
-  );
+  Future<Result> delete(String requestId) => _remote.delete(requestId);
 
   @override
   Future<Result> selectOpponent(String requestId) => _withFallback(
@@ -264,6 +391,10 @@ final class OpponentRequestFallbackDataSourceImpl
 final class OpponentRequestMockDataSourceImpl
     implements OpponentRequestRemoteDataSource {
   static List<Map<String, dynamic>>? _requests;
+
+  /// Keeps mock request ids unique within a session, so a wizard run patches
+  /// the id it just created rather than one from an earlier run.
+  static int _mockMatchStepSerial = 0;
 
   List<Map<String, dynamic>> get _store => _requests ??= _seed();
 
@@ -456,6 +587,19 @@ final class OpponentRequestMockDataSourceImpl
     });
   }
 
+  /// Mirrors the endpoint's contract: the same rows the public list serves,
+  /// narrowed to the ones the caller owns.
+  @override
+  Future<Result> fetchMyRequests({Map<String, dynamic>? query}) async {
+    await Future.delayed(const Duration(milliseconds: 350));
+    final List<Map<String, dynamic>> mine = _store
+        .where((r) => r['is_mine'] == true)
+        .toList(growable: false);
+    return Result.success({
+      'data': {'requests': mine},
+    });
+  }
+
   @override
   Future<Result> fetchRequest(String requestId) async {
     final r = _find(requestId);
@@ -463,6 +607,86 @@ final class OpponentRequestMockDataSourceImpl
       return Result.error(DataError('Request not found.', 404, null));
     }
     return Result.success({'data': r});
+  }
+
+  /// Mirrors the real endpoint, which wraps the single row in a list.
+  @override
+  Future<Result> fetchMyRequest(String requestId) async {
+    final r = _find(requestId);
+    if (r == null) {
+      return Result.error(DataError('Request not found.', 404, null));
+    }
+    return Result.success({
+      'data': [r],
+    });
+  }
+
+  /// Mirrors the real endpoint's contract: a request with an id, which the
+  /// wizard then patches. No pricing or venue is known at this point.
+  @override
+  Future<Result> createMatchStep(Map<String, dynamic> data) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    _mockMatchStepSerial++;
+    return Result.success(<String, dynamic>{
+      'data': <String, dynamic>{
+        'id': 'mock-req-$_mockMatchStepSerial',
+        'status': 'draft',
+        ...data,
+      },
+    });
+  }
+
+  @override
+  Future<Result> updateMatchStep(
+    String requestId,
+    Map<String, dynamic> data,
+  ) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    return Result.success(<String, dynamic>{
+      'data': <String, dynamic>{'id': requestId, 'status': 'draft', ...data},
+    });
+  }
+
+  @override
+  Future<Result> saveVenueStep(
+    String requestId,
+    Map<String, dynamic> data,
+  ) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    return Result.success(<String, dynamic>{
+      'data': <String, dynamic>{
+        'id': requestId,
+        'status': 'draft',
+        'venue': data,
+      },
+    });
+  }
+
+  @override
+  Future<Result> saveCostStep(
+    String requestId,
+    Map<String, dynamic> data,
+  ) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    return Result.success(<String, dynamic>{
+      'data': <String, dynamic>{
+        'id': requestId,
+        'status': 'draft',
+        'cost': data,
+      },
+    });
+  }
+
+  @override
+  Future<Result> publishRequest(
+    String requestId,
+    Map<String, dynamic> data,
+  ) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    return Result.success(<String, dynamic>{
+      'message': 'Opponent request published.',
+      'data': <String, dynamic>{'id': requestId, 'status': 'open', ...data},
+    });
   }
 
   @override

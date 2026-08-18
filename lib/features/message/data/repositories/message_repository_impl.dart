@@ -8,6 +8,7 @@ import 'package:hamro_footsall/core/helper/share_preferences.dart';
 import 'package:hamro_footsall/core/utils/string_constants.dart';
 import 'package:hamro_footsall/features/message/data/data_source/message_remote_data_source.dart';
 import 'package:hamro_footsall/features/message/data/model/chat_message_model.dart';
+import 'package:hamro_footsall/features/message/data/model/chat_message_page_model.dart';
 import 'package:hamro_footsall/features/message/data/model/chat_send_request.dart';
 import 'package:hamro_footsall/features/message/data/model/conversation_model.dart';
 import 'package:hamro_footsall/features/message/data/model/conversation_page_model.dart';
@@ -39,20 +40,6 @@ final class MessageRepositoryImpl extends MessageRepository {
         '${StringConstants.fromServerSuffix}',
     statusCode: 0,
   );
-
-  /// Walks `{data: {items: [...]}}`-style envelopes to the first list.
-  List<dynamic> _findList(dynamic node, {int depth = 0}) {
-    if (node is List) return node;
-    if (node is Map && depth < 3) {
-      for (final key in const ['data', 'items', 'results']) {
-        final dynamic child = node[key];
-        if (child == null) continue;
-        final found = _findList(child, depth: depth + 1);
-        if (found.isNotEmpty) return found;
-      }
-    }
-    return const [];
-  }
 
   /// Unwraps `{success, message, data: {...}}` to the inner object.
   Map<String, dynamic>? _findObject(dynamic node, {int depth = 0}) {
@@ -95,6 +82,8 @@ final class MessageRepositoryImpl extends MessageRepository {
           lastPage: parsed.lastPage,
           perPage: parsed.perPage,
           total: parsed.total,
+          from: parsed.from,
+          to: parsed.to,
           hasMorePages: parsed.hasMorePages,
         ),
       );
@@ -258,21 +247,27 @@ final class MessageRepositoryImpl extends MessageRepository {
   }
 
   @override
-  Future<Either<AppException, List<ChatMessageModel>>> getMessages(
-    int conversationId,
-  ) async {
-    final response = await _remoteDataSource.getMessages(conversationId);
+  Future<Either<AppException, ChatMessagePageModel>> getMessages(
+    int conversationId, {
+    required int page,
+    required int perPage,
+  }) async {
+    final response = await _remoteDataSource.getMessages(
+      conversationId,
+      page: page,
+      perPage: perPage,
+    );
     if (response.isError()) {
       return left(ResponseHelper.error(response));
     }
     try {
-      final messages = _findList(response.getValue())
-          .whereType<Map>()
-          .map((m) => ChatMessageModel.fromJson(Map<String, dynamic>.from(m)))
-          .toList();
-      // Thread renders oldest → newest.
-      messages.sort((a, b) => a.createdAt.compareTo(b.createdAt));
-      return right(List.unmodifiable(messages));
+      return right(
+        ChatMessagePageModel.fromResponse(
+          response.getValue(),
+          requestedPage: page,
+          requestedPerPage: perPage,
+        ),
+      );
     } catch (_) {
       return left(_parseError('messages'));
     }

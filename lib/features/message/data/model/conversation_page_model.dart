@@ -8,6 +8,8 @@ final class ConversationPageModel extends Equatable {
     required this.lastPage,
     required this.perPage,
     required this.total,
+    required this.from,
+    required this.to,
     required this.hasMorePages,
   });
 
@@ -16,6 +18,11 @@ final class ConversationPageModel extends Equatable {
   final int lastPage;
   final int perPage;
   final int total;
+
+  /// 1-based index of the first/last item of this page within [total].
+  /// Both are 0 when the page came back empty.
+  final int from;
+  final int to;
   final bool hasMorePages;
 
   factory ConversationPageModel.fromResponse(dynamic response) {
@@ -37,6 +44,8 @@ final class ConversationPageModel extends Equatable {
       lastPage: lastPage,
       perPage: _integer(pagination['per_page'], items.length),
       total: _integer(pagination['total'], items.length),
+      from: _integer(pagination['from'], items.isEmpty ? 0 : 1),
+      to: _integer(pagination['to'], items.length),
       hasMorePages: _boolean(
         pagination['has_more_pages'],
         currentPage < lastPage,
@@ -68,6 +77,8 @@ final class ConversationPageModel extends Equatable {
     lastPage,
     perPage,
     total,
+    from,
+    to,
     hasMorePages,
   ];
 }

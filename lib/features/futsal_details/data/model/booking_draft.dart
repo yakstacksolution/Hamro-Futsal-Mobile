@@ -19,6 +19,7 @@ class BookingDraft {
     this.endTime,
     required this.isRecurring,
     this.recurrenceLabel,
+    this.recurringWeekdays = const <int>[],
     required this.sessions,
     required this.sessionDates,
     required this.pricePerSession,
@@ -68,6 +69,11 @@ class BookingDraft {
   /// Recurrence label, e.g. "1 Month". Null for single bookings.
   final String? recurrenceLabel;
 
+  /// Weekdays the booking repeats on (`DateTime.monday`…`sunday`), empty for
+  /// single bookings. More than one entry means [sessionDates] spans several
+  /// weekdays per week.
+  final List<int> recurringWeekdays;
+
   /// Number of sessions (1 for single bookings).
   final int sessions;
 
@@ -90,6 +96,30 @@ class BookingDraft {
   /// Present only when a vendor is creating a walk-in booking.
   final ManualBookingDetails? manualBooking;
 
+  /// Every session date as `yyyy-MM-dd`, for payloads that take the dates
+  /// explicitly (`booking_dates`). Empty for a single-session booking.
+  List<String> get apiSessionDates => isRecurring
+      ? sessionDates.map(apiDateOf).toList(growable: false)
+      : const <String>[];
+
+  /// `repeat_weeks` for the create payload.
+  ///
+  /// Only meaningful while the booking repeats on a single weekday, where the
+  /// session count and the week span are the same number. With several
+  /// weekdays selected there is no week count that describes the schedule, so
+  /// this is null and [apiSessionDates] is authoritative.
+  int? get repeatWeeksPayload {
+    if (!isRecurring) return null;
+    if (recurringWeekdays.length > 1) return null;
+    return sessions;
+  }
+
+  static String apiDateOf(DateTime date) {
+    final String month = date.month.toString().padLeft(2, '0');
+    final String day = date.day.toString().padLeft(2, '0');
+    return '${date.year.toString().padLeft(4, '0')}-$month-$day';
+  }
+
   BookingDraft withManualBooking(ManualBookingDetails? details) => BookingDraft(
     venueId: venueId,
     courtId: courtId,
@@ -105,6 +135,7 @@ class BookingDraft {
     endTime: endTime,
     isRecurring: isRecurring,
     recurrenceLabel: recurrenceLabel,
+    recurringWeekdays: recurringWeekdays,
     sessions: sessions,
     sessionDates: sessionDates,
     pricePerSession: pricePerSession,
@@ -130,6 +161,7 @@ class BookingDraft {
         endTime: endTime,
         isRecurring: isRecurring,
         recurrenceLabel: recurrenceLabel,
+        recurringWeekdays: recurringWeekdays,
         sessions: sessions,
         sessionDates: sessionDates,
         pricePerSession: pricePerSession,

@@ -62,6 +62,8 @@ class BookingTypeCard extends StatelessWidget {
     required this.onModeChanged,
     required this.recurrence,
     required this.onRecurrenceChanged,
+    required this.weekdays,
+    required this.onWeekdayToggled,
     required this.startDate,
     required this.selectedCourt,
     this.selectedTime,
@@ -72,6 +74,14 @@ class BookingTypeCard extends StatelessWidget {
   final ValueChanged<BookingMode> onModeChanged;
   final BookingRecurrence recurrence;
   final ValueChanged<BookingRecurrence> onRecurrenceChanged;
+
+  /// Weekdays the booking repeats on (`DateTime.monday`…`sunday`), already
+  /// resolved — never empty while recurring.
+  final Set<int> weekdays;
+
+  /// Adds or removes one weekday. Removing the last one is a no-op upstream.
+  final ValueChanged<int> onWeekdayToggled;
+
   final DateTime startDate;
   final VenueCourtItemModel selectedCourt;
   final String? selectedTime;
@@ -84,7 +94,10 @@ class BookingTypeCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
     final bool recurring = mode == BookingMode.recurring;
-    final List<DateTime> dates = recurrence.datesFrom(startDate);
+    final List<DateTime> dates = recurrence.datesFrom(
+      startDate,
+      weekdays: weekdays,
+    );
 
     return Container(
       padding: AppUtils().getPadding(all: AppDimens.paddingX12),
@@ -131,8 +144,8 @@ class BookingTypeCard extends StatelessWidget {
                     const SizedBox(height: AppDimens.sizeX2),
                     Text(
                       recurring
-                          ? 'Every ${_weekdayFull(startDate)} · same time'
-                          : 'Repeat weekly on the same day & time',
+                          ? 'Every ${RecurringWeekdays.summary(weekdays)} · same time'
+                          : 'Repeat weekly on the days you choose',
                       style: textTheme.bodyMiniSubTitle?.copyWith(
                         color: LightColor.hintTextColor,
                         fontWeight: FontWeight.w500,
@@ -160,6 +173,16 @@ class BookingTypeCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
                       const SizedBox(height: AppDimens.sizeX12),
+                      _SectionLabel(label: StringConstants.repeatOn),
+                      const SizedBox(height: AppDimens.sizeX8),
+                      _WeekdayPicker(
+                        selected: weekdays,
+                        enabled: !isCheckingAvailability,
+                        onToggled: onWeekdayToggled,
+                      ),
+                      const SizedBox(height: AppDimens.sizeX12),
+                      _SectionLabel(label: StringConstants.repeatFor),
+                      const SizedBox(height: AppDimens.sizeX8),
                       Row(
                         children: BookingRecurrence.values.map((
                           BookingRecurrence option,
@@ -212,7 +235,8 @@ class BookingTypeCard extends StatelessWidget {
                                           style: textTheme.bodyMiniSubTitle
                                               ?.copyWith(
                                                 color: selected
-                                                    ? LightColor.inverseTextColor
+                                                    ? LightColor
+                                                          .inverseTextColor
                                                     : LightColor
                                                           .primaryTextColor,
                                                 fontWeight: FontWeight.w700,
@@ -235,7 +259,7 @@ class BookingTypeCard extends StatelessWidget {
                           const SizedBox(width: AppDimens.sizeX6),
                           Expanded(
                             child: Text(
-                              '${recurrence.sessions} sessions · ${_shortDate(dates.first)} → ${_shortDate(dates.last)}',
+                              '${dates.length} sessions · ${_shortDate(dates.first)} → ${_shortDate(dates.last)}',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: textTheme.bodySubTitle?.copyWith(
@@ -288,16 +312,6 @@ class BookingTypeCard extends StatelessWidget {
     'Sun',
   ];
 
-  static const List<String> _daysFull = <String>[
-    'Monday',
-    'Tuesday',
-    'Wednesday',
-    'Thursday',
-    'Friday',
-    'Saturday',
-    'Sunday',
-  ];
-
   static const List<String> _months = <String>[
     'Jan',
     'Feb',
@@ -313,10 +327,104 @@ class BookingTypeCard extends StatelessWidget {
     'Dec',
   ];
 
-  String _weekdayFull(DateTime date) => _daysFull[date.weekday - 1];
-
   String _shortDate(DateTime date) =>
       '${_daysShort[date.weekday - 1]} ${date.day} ${_months[date.month - 1]}';
+}
+
+/// Small caption above a group of controls inside the recurring card.
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      label.toUpperCase(),
+      style: FutsalTheme.getTextTheme(context).bodyMiniSubTitle?.copyWith(
+        color: LightColor.hintTextColor,
+        fontWeight: FontWeight.w800,
+        letterSpacing: 0.6,
+      ),
+    );
+  }
+}
+
+/// Sunday-first row of weekday toggles.
+///
+/// The set is never empty — the bloc refuses the tap that would clear the last
+/// day — so the picker always describes a bookable schedule.
+class _WeekdayPicker extends StatelessWidget {
+  const _WeekdayPicker({
+    required this.selected,
+    required this.onToggled,
+    required this.enabled,
+  });
+
+  final Set<int> selected;
+  final ValueChanged<int> onToggled;
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+
+    return Row(
+      children: RecurringWeekdays.displayOrder
+          .map((int weekday) {
+            final bool isOn = selected.contains(weekday);
+            // The last remaining day cannot be turned off, so it reads as locked
+            // rather than as a control that silently ignores taps.
+            final bool isLocked = isOn && selected.length == 1;
+
+            return Expanded(
+              child: Padding(
+                padding: AppUtils().getPadding(right: AppDimens.paddingX6),
+                child: Semantics(
+                  button: true,
+                  selected: isOn,
+                  label: RecurringWeekdays.fullLabel(weekday),
+                  child: GestureDetector(
+                    onTap: !enabled || isLocked
+                        ? null
+                        : () {
+                            HapticFeedback.selectionClick();
+                            onToggled(weekday);
+                          },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      curve: Curves.easeOutCubic,
+                      height: AppDimens.sizeX36,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: isOn
+                            ? LightColor.secondaryColor
+                            : LightColor.inputFillColor,
+                        borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+                        border: Border.all(
+                          color: isOn
+                              ? LightColor.secondaryColor
+                              : LightColor.dividerColor,
+                        ),
+                      ),
+                      child: Text(
+                        RecurringWeekdays.initial(weekday),
+                        style: textTheme.bodySubTitle?.copyWith(
+                          color: isOn
+                              ? LightColor.inverseTextColor
+                              : LightColor.primaryTextColor,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          })
+          .toList(growable: false),
+    );
+  }
 }
 
 class _RecurringPriceInfoButton extends StatelessWidget {
@@ -441,12 +549,46 @@ class _RecurringPriceSheet extends StatelessWidget {
                     color: LightColor.inputFillColor,
                     borderRadius: BorderRadius.circular(AppDimens.radiusX10),
                   ),
-                  child: Text(
-                    '${_detailDate(date)} [$selectedTime] => Rs ${price.toStringAsFixed(0)}',
-                    style: textTheme.bodySubTitle?.copyWith(
-                      color: LightColor.primaryTextColor,
-                      fontWeight: FontWeight.w700,
-                    ),
+                  // Date on the left, price pushed to the right edge, so the
+                  // prices form a readable column down the sheet instead of
+                  // trailing each date at a different offset.
+                  child: Row(
+                    children: <Widget>[
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            Text(
+                              _detailDate(date),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: textTheme.bodySubTitle?.copyWith(
+                                color: LightColor.primaryTextColor,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: AppDimens.sizeX2),
+                            Text(
+                              selectedTime,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: textTheme.bodyMiniSubTitle?.copyWith(
+                                color: LightColor.hintTextColor,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: AppDimens.sizeX16),
+                      Text(
+                        'Rs ${price.toStringAsFixed(0)}',
+                        style: textTheme.bodySubTitle?.copyWith(
+                          color: LightColor.primaryTextColor,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
                   ),
                 );
               },
@@ -481,16 +623,6 @@ class _RecurringPriceSheet extends StatelessWidget {
     );
   }
 
-  static const List<String> _daysShort = <String>[
-    'Mon',
-    'Tue',
-    'Wed',
-    'Thu',
-    'Fri',
-    'Sat',
-    'Sun',
-  ];
-
   static const List<String> _months = <String>[
     'Jan',
     'Feb',
@@ -506,6 +638,9 @@ class _RecurringPriceSheet extends StatelessWidget {
     'Dec',
   ];
 
+  /// `Sunday, 16 Aug 2026` — the weekday is spelled out here because the sheet
+  /// is where the user checks which days they are actually paying for.
   String _detailDate(DateTime date) =>
-      '${_daysShort[date.weekday - 1]} ${date.day} ${_months[date.month - 1]} ${date.year}';
+      '${RecurringWeekdays.fullLabel(date.weekday)}, '
+      '${date.day} ${_months[date.month - 1]} ${date.year}';
 }

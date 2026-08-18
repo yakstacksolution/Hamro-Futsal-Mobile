@@ -32,12 +32,8 @@ class OpponentInvitationsPage extends StatefulWidget {
 class _OpponentInvitationsPageState extends State<OpponentInvitationsPage> {
   String? _selectedId;
 
-  OpponentRequestModel? _request(OpponentMatchState state) {
-    for (final r in state.requests) {
-      if (r.id == widget.requestId) return r;
-    }
-    return null;
-  }
+  OpponentRequestModel? _request(OpponentMatchState state) =>
+      state.requestById(widget.requestId);
 
   Future<void> _confirmOpponent(
     OpponentRequestModel request,

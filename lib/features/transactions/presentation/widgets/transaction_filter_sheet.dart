@@ -6,7 +6,7 @@ import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/utils/string_constants.dart';
 import 'package:hamro_footsall/core/widgets/custom_bottom_sheet.dart';
 import 'package:hamro_footsall/core/widgets/custom_button.dart';
-import 'package:hamro_footsall/core/widgets/custom_date_picker.dart';
+import 'package:hamro_footsall/features/expenses/presentation/widgets/expense_date_range_sheet.dart';
 import 'package:hamro_footsall/features/transactions/data/model/transaction_history_model.dart';
 import 'package:hamro_footsall/features/transactions/presentation/widgets/transaction_widgets.dart';
 import 'package:intl/intl.dart';
@@ -23,6 +23,42 @@ class TransactionFilterSelection {
   final TransactionDirectionFilter direction;
   final String type;
   final TransactionDateRange range;
+}
+
+/// Opens the calendar range sheet and resolves to the picked window, or null
+/// when the user backs out.
+///
+/// Deliberately the same sheet the Expenses screen uses, so a custom range is
+/// picked the same way everywhere. It lives under `features/expenses` only
+/// because that is where it was first needed.
+Future<TransactionDateRange?> pickTransactionDateRange({
+  required BuildContext context,
+  required TransactionDateRange current,
+}) async {
+  final DateTime now = DateTime.now();
+  final DateTime today = DateTime(now.year, now.month, now.day);
+  final bool hasCustom =
+      current.filter == TransactionRangeFilter.custom &&
+      current.from != null &&
+      current.to != null;
+
+  final DateTimeRange? picked = await ExpenseDateRangeSheet.show(
+    context,
+    initialRange: hasCustom
+        ? DateTimeRange(start: current.from!, end: current.to!)
+        : null,
+    // A statement only ever looks backwards, so the window cannot run past
+    // today; three years back covers any ledger worth scrolling.
+    firstDate: DateTime(today.year - 3, today.month, today.day),
+    lastDate: today,
+  );
+  if (picked == null) return null;
+
+  return TransactionDateRange.of(
+    TransactionRangeFilter.custom,
+    from: picked.start,
+    to: picked.end,
+  );
 }
 
 /// Opens the filter sheet. Resolves to null when dismissed without applying.
@@ -100,26 +136,27 @@ class _TransactionFilterSheetState extends State<_TransactionFilterSheet> {
         )
       : TransactionDateRange.of(_rangeFilter);
 
-  void _selectRange(TransactionRangeFilter filter) {
+  Future<void> _selectRange(TransactionRangeFilter filter) async {
+    if (filter == TransactionRangeFilter.custom) {
+      await _pickCustomRange();
+      return;
+    }
     setState(() => _rangeFilter = filter);
   }
 
-  Future<void> _pickCustomDate({required bool isStart}) async {
-    final DateTime? picked = await showCustomDatePicker(
-      context,
-      title: isStart ? StringConstants.startDate : StringConstants.endDate,
-      initialDate: (isStart ? _customFrom : _customTo) ?? DateTime.now(),
-      // A ledger only ever looks backwards.
-      maxDate: DateTime.now(),
+  /// Same calendar sheet as the chip row on the page behind this one, so a
+  /// custom window is always picked the same way.
+  Future<void> _pickCustomRange() async {
+    final TransactionDateRange? picked = await pickTransactionDateRange(
+      context: context,
+      current: _resolvedRange,
     );
     if (picked == null || !mounted) return;
 
     setState(() {
-      if (isStart) {
-        _customFrom = picked;
-      } else {
-        _customTo = picked;
-      }
+      _rangeFilter = TransactionRangeFilter.custom;
+      _customFrom = picked.from;
+      _customTo = picked.to;
     });
   }
 
@@ -146,7 +183,6 @@ class _TransactionFilterSheetState extends State<_TransactionFilterSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          const _GrabHandle(),
           _Header(onReset: _hasSelection ? _reset : null),
           const SizedBox(height: AppDimens.sizeX12),
           Divider(height: AppDimens.sizeX1, color: LightColor.dividerColor),
@@ -165,7 +201,7 @@ class _TransactionFilterSheetState extends State<_TransactionFilterSheet> {
 
                   if (widget.availableTypes.isNotEmpty) ...<Widget>[
                     const _SectionLabel(StringConstants.type),
-                    _ChipWrap(
+                    _ChipGrid(
                       children: <Widget>[
                         for (final String option in <String>[
                           'all',
@@ -183,7 +219,7 @@ class _TransactionFilterSheetState extends State<_TransactionFilterSheet> {
                   ],
 
                   const _SectionLabel(StringConstants.dateRange),
-                  _ChipWrap(
+                  _ChipGrid(
                     children: TransactionRangeFilter.values
                         .map(
                           (TransactionRangeFilter filter) =>
@@ -196,8 +232,8 @@ class _TransactionFilterSheetState extends State<_TransactionFilterSheet> {
                         .toList(growable: false),
                   ),
 
-                  // Grows and shrinks with the Custom chip rather than
-                  // appearing instantly.
+                  // Reads back the picked window and re-opens the calendar,
+                  // so the Custom chip is not a dead end once it is set.
                   AnimatedSize(
                     duration: const Duration(milliseconds: 220),
                     curve: Curves.easeOut,
@@ -207,11 +243,10 @@ class _TransactionFilterSheetState extends State<_TransactionFilterSheet> {
                             padding: const EdgeInsets.only(
                               top: AppDimens.paddingX12,
                             ),
-                            child: _CustomRangeFields(
+                            child: _CustomRangeSummary(
                               from: _customFrom,
                               to: _customTo,
-                              onPickStart: () => _pickCustomDate(isStart: true),
-                              onPickEnd: () => _pickCustomDate(isStart: false),
+                              onEdit: _pickCustomRange,
                             ),
                           )
                         : const SizedBox(width: double.infinity),
@@ -247,25 +282,6 @@ class _TransactionFilterSheetState extends State<_TransactionFilterSheet> {
     TransactionRangeFilter.year => StringConstants.thisYear,
     TransactionRangeFilter.custom => StringConstants.customRange,
   };
-}
-
-class _GrabHandle extends StatelessWidget {
-  const _GrabHandle();
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Container(
-        width: AppDimens.sizeX36,
-        height: AppDimens.sizeX4,
-        margin: const EdgeInsets.only(bottom: AppDimens.paddingX16),
-        decoration: BoxDecoration(
-          color: LightColor.dividerColor,
-          borderRadius: BorderRadius.circular(AppDimens.radiusX4),
-        ),
-      ),
-    );
-  }
 }
 
 class _Header extends StatelessWidget {
@@ -338,18 +354,50 @@ class _SectionLabel extends StatelessWidget {
   }
 }
 
-class _ChipWrap extends StatelessWidget {
-  const _ChipWrap({required this.children});
+/// Options laid out two per row.
+///
+/// A [Wrap] packed a variable number of chips onto each line, so the same
+/// sheet looked different for every set of labels; a fixed grid keeps the two
+/// columns aligned down both sections. An odd last item takes one column and
+/// leaves the other empty rather than stretching across.
+class _ChipGrid extends StatelessWidget {
+  const _ChipGrid({required this.children});
 
   final List<Widget> children;
 
+  static const int _columns = 2;
+
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: AppDimens.sizeX8,
-      runSpacing: AppDimens.sizeX8,
-      children: children,
-    );
+    final List<Widget> rows = <Widget>[];
+
+    for (int i = 0; i < children.length; i += _columns) {
+      final List<Widget> cells = children.skip(i).take(_columns).toList();
+      rows.add(
+        Padding(
+          padding: EdgeInsets.only(top: i == 0 ? 0 : AppDimens.paddingX8),
+          // IntrinsicHeight so both columns match the taller chip; `stretch`
+          // alone would ask for infinite height inside the scrolling column.
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                for (int column = 0; column < _columns; column++) ...<Widget>[
+                  if (column > 0) const SizedBox(width: AppDimens.sizeX8),
+                  Expanded(
+                    child: column < cells.length
+                        ? cells[column]
+                        : const SizedBox.shrink(),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: rows);
   }
 }
 
@@ -448,156 +496,89 @@ class _DirectionSegments extends StatelessWidget {
   }
 }
 
-/// The two bounds of a custom window, with an arrow between them and a hint
-/// while the range is still half-open.
-class _CustomRangeFields extends StatelessWidget {
-  const _CustomRangeFields({
+/// Reads back the window the calendar returned, and re-opens it on tap.
+///
+/// Replaces the pair of single-date fields this sheet used to reveal: the
+/// range is now picked on one calendar, so there is nothing left to type in —
+/// only something to confirm.
+class _CustomRangeSummary extends StatelessWidget {
+  const _CustomRangeSummary({
     required this.from,
     required this.to,
-    required this.onPickStart,
-    required this.onPickEnd,
+    required this.onEdit,
   });
 
   final DateTime? from;
   final DateTime? to;
-  final VoidCallback onPickStart;
-  final VoidCallback onPickEnd;
+  final VoidCallback onEdit;
 
   @override
   Widget build(BuildContext context) {
     final FutsalTextTheme textTheme = FutsalTheme.getTextTheme(context);
-    // One bound picked but not the other: still valid on the wire, so this is a
-    // hint rather than an error.
-    final bool halfOpen = (from == null) != (to == null);
+    final DateFormat format = DateFormat('dd MMM yyyy');
+    final bool isSet = from != null || to != null;
+    final String label = switch ((from, to)) {
+      (final DateTime a?, final DateTime b?) when a == b => format.format(a),
+      (final DateTime a?, final DateTime b?) =>
+        '${format.format(a)}  →  ${format.format(b)}',
+      (final DateTime a?, null) => '${format.format(a)}  →  …',
+      (null, final DateTime b?) => '…  →  ${format.format(b)}',
+      _ => StringConstants.selectDate,
+    };
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Row(
-          children: <Widget>[
-            Expanded(
-              child: _DateField(
-                label: StringConstants.startDate,
-                value: from,
-                onTap: onPickStart,
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppDimens.paddingX8,
-              ),
-              child: Icon(
-                Icons.arrow_forward_rounded,
-                size: AppDimens.sizeX14,
-                color: LightColor.hintTextColor,
-              ),
-            ),
-            Expanded(
-              child: _DateField(
-                label: StringConstants.endDate,
-                value: to,
-                onTap: onPickEnd,
-              ),
-            ),
-          ],
-        ),
-        AnimatedSize(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOut,
-          alignment: Alignment.topLeft,
-          child: halfOpen
-              ? Padding(
-                  padding: const EdgeInsets.only(top: AppDimens.paddingX8),
-                  child: Text(
-                    from == null
-                        ? StringConstants.pickAStartDateHint
-                        : StringConstants.pickAnEndDateHint,
-                    style: textTheme.bodyTextSmall?.copyWith(
-                      color: LightColor.hintTextColor,
-                      fontSize: AppDimens.fontBodySubTitle,
-                    ),
-                  ),
-                )
-              : const SizedBox(width: double.infinity),
-        ),
-      ],
-    );
-  }
-}
-
-/// Tappable date box for one bound of the custom range.
-class _DateField extends StatelessWidget {
-  const _DateField({
-    required this.label,
-    required this.value,
-    required this.onTap,
-  });
-
-  final String label;
-  final DateTime? value;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final FutsalTextTheme textTheme = FutsalTheme.getTextTheme(context);
-    final bool isSet = value != null;
-
-    return InkWell(
-      onTap: onTap,
+    return Material(
+      color: LightColor.elevatedCardColor,
       borderRadius: BorderRadius.circular(AppDimens.radiusX10),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOut,
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppDimens.paddingX12,
-          vertical: AppDimens.paddingX10,
-        ),
-        decoration: BoxDecoration(
-          color: LightColor.cardColor,
-          borderRadius: BorderRadius.circular(AppDimens.radiusX10),
-          border: Border.all(
-            color: isSet ? LightColor.secondaryColor : LightColor.dividerColor,
+      child: InkWell(
+        onTap: onEdit,
+        borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppDimens.paddingX12,
+            vertical: AppDimens.paddingX12,
           ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Text(
-              label,
-              style: textTheme.bodyTextSmall?.copyWith(
-                color: LightColor.secondaryTextColor,
-                fontSize: AppDimens.fontBodySubTitle,
-              ),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+            border: Border.all(
+              color: isSet
+                  ? LightColor.secondaryColor
+                  : LightColor.dividerColor,
             ),
-            const SizedBox(height: AppDimens.sizeX2),
-            Row(
-              children: <Widget>[
-                Icon(
-                  Icons.event_rounded,
-                  size: AppDimens.sizeX14,
-                  color: isSet
-                      ? LightColor.secondaryColor
-                      : LightColor.hintTextColor,
-                ),
-                const SizedBox(width: AppDimens.sizeX6),
-                Expanded(
-                  child: Text(
-                    isSet
-                        ? DateFormat('dd MMM yyyy').format(value!)
-                        : StringConstants.selectDate,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: textTheme.bodyTextSmall?.copyWith(
-                      color: isSet
-                          ? LightColor.primaryTextColor
-                          : LightColor.hintTextColor,
-                      fontWeight: isSet ? FontWeight.w600 : FontWeight.w500,
-                    ),
+          ),
+          child: Row(
+            children: <Widget>[
+              Icon(
+                Icons.calendar_today_rounded,
+                size: AppDimens.sizeX16,
+                color: isSet
+                    ? LightColor.secondaryColor
+                    : LightColor.hintTextColor,
+              ),
+              const SizedBox(width: AppDimens.sizeX10),
+              Expanded(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: textTheme.bodyTextSmall?.copyWith(
+                    color: isSet
+                        ? LightColor.primaryTextColor
+                        : LightColor.hintTextColor,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-              ],
-            ),
-          ],
+              ),
+              const SizedBox(width: AppDimens.sizeX8),
+              Text(
+                StringConstants.change,
+                style: textTheme.bodyTextSmall?.copyWith(
+                  color: LightColor.secondaryColor,
+                  fontSize: AppDimens.fontBodySubTitle,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

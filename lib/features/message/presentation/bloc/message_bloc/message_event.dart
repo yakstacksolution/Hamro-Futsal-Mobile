@@ -33,6 +33,16 @@ final class LoadChatEvent extends MessageEvent {
   List<Object?> get props => [conversationId, conversation];
 }
 
+/// Fetches the next page of older messages for the open conversation and
+/// prepends it above what is already rendered (top-of-thread pagination).
+final class LoadOlderMessagesEvent extends MessageEvent {
+  const LoadOlderMessagesEvent(this.conversationId);
+  final int conversationId;
+
+  @override
+  List<Object?> get props => [conversationId];
+}
+
 /// Leaves the active conversation (cancels realtime subscriptions).
 final class CloseChatEvent extends MessageEvent {
   const CloseChatEvent();

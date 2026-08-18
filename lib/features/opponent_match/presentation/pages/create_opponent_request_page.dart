@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -17,7 +19,6 @@ import 'package:hamro_footsall/features/courts_details/presentation/page/court_d
 import 'package:hamro_footsall/features/futsal_details/data/model/booking_draft.dart';
 import 'package:hamro_footsall/features/futsal_details/data/model/slots_selection_route_args.dart';
 import 'package:hamro_footsall/features/opponent_match/data/model/opponent_match_model.dart';
-import 'package:hamro_footsall/features/opponent_match/domain/entities/opponent_match_entities.dart';
 import 'package:hamro_footsall/features/opponent_match/presentation/bloc/opponent_match_bloc/opponent_match_bloc.dart';
 import 'package:hamro_footsall/features/opponent_match/presentation/models/opponent_cost_split.dart';
 import 'package:hamro_footsall/features/opponent_match/presentation/utils/opponent_ui_utils.dart';
@@ -29,6 +30,10 @@ import 'package:hamro_footsall/core/utils/string_constants.dart';
 import 'package:hamro_footsall/features/public/data/model/public_venue_model.dart';
 import 'package:hamro_footsall/features/public/data/repositories/public_repository_impl.dart';
 import 'package:hamro_footsall/features/public/domain/usecase/get_public_venues_use_case.dart';
+import 'package:hamro_footsall/features/public/data/model/public_option_model.dart';
+import 'package:hamro_footsall/features/opponent_match/data/model/opponent_match_step_request.dart';
+import 'package:hamro_footsall/features/public/domain/usecase/get_court_options_use_case.dart';
+import 'package:hamro_footsall/features/public/presentation/bloc/public_court_options/public_court_options_bloc.dart';
 import 'package:hamro_footsall/features/public/presentation/bloc/public_venue/public_venue_bloc.dart';
 import 'package:hamro_footsall/features/opponent_match/presentation/widgets/venue_search_sheet.dart';
 
@@ -68,8 +73,15 @@ extension _StepX on _Step {
 ///
 /// Teams are managed on the "My Teams" tab — here you only pick one.
 /// Pops with `true` after the request is dispatched.
+///
+/// Pass [draft] to resume an unpublished request from "My Requests": its match
+/// section is pre-selected, the wizard opens on the step the backend stopped at
+/// (`main_step`), and the first-step submit patches that request instead of
+/// opening a second one.
 class CreateOpponentRequestPage extends StatefulWidget {
-  const CreateOpponentRequestPage({super.key});
+  const CreateOpponentRequestPage({super.key, this.draft});
+
+  final OpponentRequestModel? draft;
 
   @override
   State<CreateOpponentRequestPage> createState() =>
@@ -85,11 +97,19 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
   final _venueLocationCtrl = TextEditingController();
   final _courtFeeCtrl = TextEditingController();
   late final PublicVenueBloc _publicVenueBloc;
+  late final PublicCourtOptionsBloc _optionsBloc;
+
+  /// Match formats come from their own bloc, so a resumed draft has to watch it
+  /// too — not just the shared [OpponentMatchBloc].
+  StreamSubscription<PublicCourtOptionsState>? _optionsSub;
 
   _Step _step = _Step.match;
 
   TeamModel? _team;
-  MatchFormat _format = MatchFormat.fiveASide;
+
+  /// Selected match format from `/match-formate`. The payload needs its
+  /// server id, so the old local 5v5/6v6/7v7 enum cannot drive this any more.
+  PublicOptionModel? _format;
 
   /// Selected opponent level from `/opponent-levels`; defaults to the first
   /// fetched level (see [_resolveLevel]) until the user picks one.
@@ -98,6 +118,12 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
   TimeOfDay _time = const TimeOfDay(hour: 18, minute: 0);
   _VenuePlan _venuePlan = _VenuePlan.alreadyBooked;
   _BookedSource _bookedSource = _BookedSource.existingBooking;
+
+  /// The booked window on the "booked elsewhere" path. The server requires both
+  /// ends for an external venue, so they are part of that branch rather than
+  /// derived from step one's preferred time.
+  TimeOfDay _externalStart = const TimeOfDay(hour: 18, minute: 0);
+  TimeOfDay _externalEnd = const TimeOfDay(hour: 19, minute: 0);
 
   /// The booking picked on the already-booked path.
   BookingModel? _existingBooking;
@@ -113,6 +139,22 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
   int _loserPercent = 70;
   bool _submitted = false;
 
+  /// Resuming a draft: true once every selection the payload described has been
+  /// matched against its lookup list, so the pickers are not re-seeded over a
+  /// choice the user has since changed.
+  bool _draftApplied = false;
+
+  /// The court fee the server stored for this request, read back after the
+  /// venue step. Fills the gap when the branch cannot work the fee out locally
+  /// — a platform booking whose total the slot draft never carried, for
+  /// instance — so the cost step shows the real figure instead of nothing.
+  int? _serverCourtFee;
+
+  /// True once the server's copy of the draft (`GET /auth/opponent-requests/
+  /// {id}`) has filled the plain fields — date, time, message, venue, step.
+  /// One-shot, so a later refetch never overwrites the user's edits.
+  bool _draftHydrated = false;
+
   @override
   void initState() {
     super.initState();
@@ -120,6 +162,188 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
       GetPublicVenuesUseCase(PublicRepositoryImpl()),
       perPage: 100,
     );
+    _optionsBloc = PublicCourtOptionsBloc(
+      GetCourtOptionsUseCase(PublicRepositoryImpl()),
+    )..add(const FetchPublicMatchFormatsEvent());
+    if (widget.draft != null) {
+      _optionsSub = _optionsBloc.stream.listen((_) {
+        if (!mounted) return;
+        _applyDraftSelections(context.read<OpponentMatchBloc>().state);
+      });
+    }
+
+    final OpponentRequestModel? draft = widget.draft;
+    if (draft != null) {
+      // The kickoff the match step captured; the venue step has not run on a
+      // step-1 draft, so this is `preferred_date` + `preferred_time`.
+      _date = draft.dateTime;
+      _time = TimeOfDay(
+        hour: draft.dateTime.hour,
+        minute: draft.dateTime.minute,
+      );
+      _step = _stepFromMainStep(draft.mainStep);
+    }
+
+    // The id lives on the shared bloc, so a previous run of this wizard could
+    // still be holding one. Seeding it here means opening the page either
+    // starts a new request or, when resuming, patches the draft being
+    // completed.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final OpponentMatchBloc bloc = context.read<OpponentMatchBloc>();
+      bloc.add(ResetOpponentMatchStepEvent(draftRequestId: draft?.id ?? ''));
+      // The list row is only a summary — refetch the request so the wizard
+      // autofills from the server's authoritative copy.
+      if (draft != null) bloc.add(LoadOpponentDraftEvent(draft.id));
+      _applyDraftSelections(bloc.state);
+    });
+  }
+
+  static T? _firstOrNull<T>(Iterable<T> items, bool Function(T) test) {
+    for (final T item in items) {
+      if (test(item)) return item;
+    }
+    return null;
+  }
+
+  /// The backend's 1-based `main_step` mapped onto the wizard's steps. An
+  /// unknown or out-of-range value lands on the first step, which is always
+  /// safe to re-submit.
+  _Step _stepFromMainStep(int mainStep) => switch (mainStep) {
+    2 => _Step.venue,
+    3 => _Step.cost,
+    4 => _Step.publish,
+    _ => _Step.match,
+  };
+
+  /// Fills the wizard's plain fields from the fetched draft: the kickoff its
+  /// match step saved, the note, and whatever its venue step settled — the
+  /// booking itself for a court booked here, the typed fields for one booked
+  /// elsewhere.
+  void _hydrateFromDraft(OpponentRequestModel draft) {
+    // Step one's pickers show what the match step saved — not the booked slot,
+    // which `dateTime` prefers and which the venue step owns.
+    final DateTime preferred = draft.preferredDateTime ?? draft.dateTime;
+    _date = preferred;
+    _time = TimeOfDay(hour: preferred.hour, minute: preferred.minute);
+    _step = _stepFromMainStep(draft.mainStep);
+    if (draft.message.isNotEmpty) _messageCtrl.text = draft.message;
+
+    // The split rule the cost step saved, so resuming shows what was submitted
+    // rather than the card's defaults.
+    if (draft.splitType.isNotEmpty) {
+      _split = draft.splitType.toLowerCase() == 'custom'
+          ? SplitMode.custom
+          : SplitMode.even;
+      _basis = draft.splitBasis.toLowerCase() == 'result'
+          ? SplitBasis.result
+          : SplitBasis.teams;
+      final int percent = draft.requestingTeamPercent;
+      if (percent > 0 && percent < 100) {
+        if (_basis == SplitBasis.result) {
+          _loserPercent = percent;
+        } else {
+          _myPercent = percent;
+        }
+      }
+    }
+
+    final String source = draft.venueSource.toLowerCase();
+    if (source.isEmpty) return;
+    if (source == 'booking' || draft.venueBookingId.isNotEmpty) {
+      _venuePlan = _VenuePlan.alreadyBooked;
+      _bookedSource = _BookedSource.existingBooking;
+      // The payload nests the whole booking, which is the same shape the
+      // bookings list serves — so the selection is restored, not just its
+      // branch, and the step is complete without re-picking.
+      if (draft.venueBooking.isNotEmpty) {
+        _existingBooking = BookingModel.fromJson(draft.venueBooking);
+      }
+      return;
+    }
+    _venuePlan = _VenuePlan.alreadyBooked;
+    _bookedSource = _BookedSource.manual;
+    // Only the venue name — the manual form has no court field, so joining the
+    // court in would send it back as part of the venue's name.
+    _venueNameCtrl.text = draft.venueName;
+    _venueLocationCtrl.text = draft.venueAddress;
+    if (draft.totalFee > 0) _courtFeeCtrl.text = draft.totalFee.toString();
+    // The window the venue step saved, so re-submitting keeps it rather than
+    // silently replacing it with this branch's defaults.
+    final TimeOfDay? start = draft.venueStartTime == null
+        ? null
+        : _parseApiTime(draft.venueStartTime!);
+    final TimeOfDay? end = draft.venueEndTime == null
+        ? null
+        : _parseApiTime(draft.venueEndTime!);
+    if (start != null) _externalStart = start;
+    if (end != null) _externalEnd = end;
+    if (start != null && !_externalWindowValid) {
+      _externalEnd = TimeOfDay(
+        hour: (start.hour + 1) % 24,
+        minute: start.minute,
+      );
+    }
+    // The external branch's own date, when it differs from the preferred one.
+    if (draft.dateTime != draft.preferredDateTime) _date = draft.dateTime;
+  }
+
+  /// Re-selects the draft's team, format and level once their lookup lists have
+  /// landed. Runs on every bloc emission until each one is matched, because the
+  /// lists arrive from three independent fetches.
+  /// Picks up the fee the server stored, for any request the wizard is working
+  /// on — new or resumed. Runs on every emission because the venue step is what
+  /// produces it.
+  void _syncServerCourtFee(OpponentMatchState state) {
+    final int? fee = state.draftDetail?.totalFee;
+    if (fee == null || fee <= 0 || fee == _serverCourtFee || !mounted) return;
+    setState(() => _serverCourtFee = fee);
+  }
+
+  void _applyDraftSelections(OpponentMatchState state) {
+    if (widget.draft == null || !mounted) return;
+    // The fetched copy wins over the list row it was opened with.
+    final OpponentRequestModel draft = state.draftDetail ?? widget.draft!;
+
+    if (state.draftDetail != null && !_draftHydrated) {
+      _draftHydrated = true;
+      setState(() => _hydrateFromDraft(state.draftDetail!));
+    }
+    if (_draftApplied) return;
+
+    final List<PublicOptionModel> formats = _optionsBloc.state.matchFormats;
+
+    final TeamModel? team =
+        _team ??
+        _firstOrNull<TeamModel>(
+          state.teams,
+          (TeamModel t) => t.id == draft.requesterTeamId,
+        );
+    final PublicOptionModel? format =
+        _format ??
+        _firstOrNull<PublicOptionModel>(
+          formats,
+          (PublicOptionModel f) => f.id == draft.matchFormatId,
+        );
+    final OpponentLevelModel? level =
+        _level ??
+        _firstOrNull<OpponentLevelModel>(
+          state.levels,
+          (OpponentLevelModel l) => l.id == draft.opponentLevelId,
+        );
+
+    if (team == _team && format == _format && level == _level) return;
+
+    setState(() {
+      _team = team;
+      _format = format;
+      _level = level;
+      // Every list that had something to match has now been consulted.
+      _draftApplied =
+          (team != null || state.teams.isNotEmpty) &&
+          (format != null || formats.isNotEmpty) &&
+          (level != null || state.levels.isNotEmpty);
+    });
   }
 
   @override
@@ -128,7 +352,9 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
     _venueNameCtrl.dispose();
     _venueLocationCtrl.dispose();
     _courtFeeCtrl.dispose();
+    _optionsSub?.cancel();
     _publicVenueBloc.close();
+    _optionsBloc.close();
     super.dispose();
   }
 
@@ -138,9 +364,13 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
   int? get _enteredCourtFee => int.tryParse(_courtFeeCtrl.text.trim());
 
   /// The real court fee behind the current venue choice, when one is known.
-  /// Drives the cost-split preview; for platform bookings the server still
-  /// owns the authoritative figure.
-  int? get _resolvedCourtFee {
+  ///
+  /// The local answer wins so an edit shows immediately; [_serverCourtFee] only
+  /// fills in when this branch cannot name a fee itself. Never falls back to the
+  /// per-format table — see [OpponentCostSplit.courtFee].
+  int? get _resolvedCourtFee => _localCourtFee ?? _serverCourtFee;
+
+  int? get _localCourtFee {
     if (_venuePlan == _VenuePlan.alreadyBooked) {
       return _bookedSource == _BookedSource.existingBooking
           ? _existingBooking?.bookingTotal.round()
@@ -152,8 +382,19 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
     return subtotal > 0 ? subtotal.round() : null;
   }
 
+  /// Display label of the chosen format, e.g. `5v5`.
+  String get _formatLabel => _format?.name ?? '';
+
+  /// The chosen format mapped back onto the local enum, which still drives the
+  /// court-fee table used before a real venue is settled. Falls back to the
+  /// smallest tier when the server's label is one the table does not know.
+  MatchFormat get _formatTier => MatchFormat.values.firstWhere(
+    (MatchFormat f) => f.label.toLowerCase() == _formatLabel.toLowerCase(),
+    orElse: () => MatchFormat.fiveASide,
+  );
+
   OpponentCostSplit get _cost => OpponentCostSplit(
-    format: _format,
+    format: _formatTier,
     split: _split,
     basis: _basis,
     myPercent: _myPercent,
@@ -176,6 +417,11 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
     if (_venuePlan == _VenuePlan.findAvailable && slot != null) {
       return _bookingDateTime(slot);
     }
+    // Booked elsewhere: the window the user typed is the kickoff.
+    if (_venuePlan == _VenuePlan.alreadyBooked &&
+        _bookedSource == _BookedSource.manual) {
+      return _combine(_date, _externalStart);
+    }
     return _combine(_date, _time);
   }
 
@@ -193,6 +439,11 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
       return end == null || end.isEmpty
           ? slot.selectedTime
           : '${slot.selectedTime} – $end';
+    }
+    if (_venuePlan == _VenuePlan.alreadyBooked &&
+        _bookedSource == _BookedSource.manual) {
+      return '${OpponentFmt.time(_externalStart)} – '
+          '${OpponentFmt.time(_externalEnd)}';
     }
     return OpponentFmt.slot(_time);
   }
@@ -220,6 +471,13 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
     return _venueLabel(venue, courtName: slot.courtName);
   }
 
+  /// Minutes past midnight, for comparing the two ends of the booked window.
+  static int _minutes(TimeOfDay time) => time.hour * 60 + time.minute;
+
+  /// The booked window has to actually be a window.
+  bool get _externalWindowValid =>
+      _minutes(_externalEnd) > _minutes(_externalStart);
+
   /// Whether the venue step has everything the request needs.
   bool get _venueSettled {
     if (_venuePlan == _VenuePlan.alreadyBooked) {
@@ -228,13 +486,16 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
       }
       return _venueNameCtrl.text.trim().isNotEmpty &&
           _venueLocationCtrl.text.trim().isNotEmpty &&
-          (_enteredCourtFee ?? 0) > 0;
+          (_enteredCourtFee ?? 0) > 0 &&
+          _externalWindowValid;
     }
     return _preferredVenue?.id != null && _confirmedSlot != null;
   }
 
   bool _stepComplete(_Step step) => switch (step) {
-    _Step.match => _team != null,
+    // The format needs a server id to be submittable, so a step whose lookup
+    // has not landed yet is not complete even though a pill looks selected.
+    _Step.match => _team != null && _selectedFormatId != null,
     _Step.venue => _venueSettled,
     _Step.cost => true,
     _Step.publish => true,
@@ -249,9 +510,9 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
     });
   }
 
-  void _next() {
+  Future<void> _next() async {
     if (_step == _Step.publish) {
-      _publish();
+      await _publish();
       return;
     }
     setState(() => _submitted = true);
@@ -265,8 +526,213 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
       AppUtils().showSnackBar(context, MsgType.info, _stepHint(_step));
       return;
     }
+    // Step one opens the request (or patches the one it already opened) before
+    // moving on, so the later steps always have an id to work against.
+    if (_step == _Step.match && !await _saveMatchStep()) return;
+    // Step two attaches the venue to that id. Only the "already booked on this
+    // platform" branch has an endpoint so far; the other branches still carry
+    // their venue through to publish.
+    if (_step == _Step.venue && !await _saveVenueStep()) return;
+    // Step three replaces the split rule on that same id.
+    if (_step == _Step.cost && !await _saveCostStep()) return;
+    if (!mounted) return;
+
     HapticFeedback.selectionClick();
     _goTo(_Step.values[_step.index + 1]);
+  }
+
+  /// `POST /auth/opponent-requests` the first time, then
+  /// `PATCH /auth/opponent-requests/{id}/match` on every later pass.
+  ///
+  /// Returns false when the call failed, leaving the wizard on this step with
+  /// the reason on screen.
+  Future<bool> _saveMatchStep() async {
+    final OpponentMatchBloc bloc = context.read<OpponentMatchBloc>();
+    final int? teamId = int.tryParse(_team?.id ?? '');
+    final int? formatId = _selectedFormatId;
+    final int? levelId = int.tryParse(
+      _resolveLevel(_levelOptions(bloc.state)).id,
+    );
+
+    if (teamId == null || formatId == null || levelId == null) {
+      AppUtils().showSnackBar(
+        context,
+        MsgType.error,
+        'Some match details are still loading. Please try again.',
+        key: 'opponent_match_step_ids',
+      );
+      return false;
+    }
+
+    bloc.add(
+      SaveOpponentMatchStepEvent(
+        OpponentMatchStepRequest(
+          teamId: teamId,
+          matchFormatId: formatId,
+          opponentLevelId: levelId,
+          preferredDate: _date,
+          preferredTime: (hour: _time.hour, minute: _time.minute),
+        ),
+      ),
+    );
+
+    final OpponentMatchState result = await bloc.stream.firstWhere(
+      (OpponentMatchState s) =>
+          s.matchStepStatus != OpponentMatchStatus.loading,
+    );
+    if (!mounted) return false;
+
+    if (result.matchStepStatus == OpponentMatchStatus.failure) {
+      AppUtils().showSnackBar(
+        context,
+        MsgType.error,
+        result.matchStepError ?? StringConstants.somethingWentWrong,
+        key: 'opponent_match_step_failed',
+      );
+      return false;
+    }
+    return true;
+  }
+
+  /// `PUT /auth/opponent-requests/{id}/venue` — sent for every venue branch.
+  ///
+  /// A court booked through this platform travels as its booking id
+  /// (`venue_source: booking`); a court booked elsewhere is described field by
+  /// field (`venue_source: external`).
+  ///
+  /// Returns false when the call failed, leaving the wizard on the venue step
+  /// with the reason on screen.
+  Future<bool> _saveVenueStep() async {
+    final OpponentVenueStepRequest? request = _venueStepRequest();
+    if (request == null) return false;
+
+    final OpponentMatchBloc bloc = context.read<OpponentMatchBloc>();
+    bloc.add(SaveOpponentVenueStepEvent(request));
+
+    final OpponentMatchState result = await bloc.stream.firstWhere(
+      (OpponentMatchState s) =>
+          s.venueStepStatus != OpponentMatchStatus.loading,
+    );
+    if (!mounted) return false;
+
+    if (result.venueStepStatus == OpponentMatchStatus.failure) {
+      AppUtils().showSnackBar(
+        context,
+        MsgType.error,
+        result.venueStepError ?? StringConstants.somethingWentWrong,
+        key: 'opponent_venue_step_failed',
+      );
+      return false;
+    }
+    // Read the request back: the venue step is what settles the court fee, and
+    // for a platform booking the server is the only one that knows it.
+    if (result.draftRequestId.isNotEmpty) {
+      bloc.add(LoadOpponentDraftEvent(result.draftRequestId));
+    }
+    return true;
+  }
+
+  /// Builds the venue body for whichever branch the user completed. Null means
+  /// the branch has nothing submittable, which [_stepComplete] already guards.
+  OpponentVenueStepRequest? _venueStepRequest() {
+    if (_venuePlan == _VenuePlan.alreadyBooked) {
+      if (_bookedSource == _BookedSource.existingBooking) {
+        final BookingModel? booking = _existingBooking;
+        return booking == null
+            ? null
+            : OpponentVenueStepRequest.existingBooking(booking.id);
+      }
+      // Booked elsewhere: the court is only known by what the user typed, and
+      // the schedule is the preferred date/time from step one.
+      final String venueName = _venueNameCtrl.text.trim();
+      if (venueName.isEmpty) return null;
+      if (!_externalWindowValid) return null;
+      return OpponentVenueStepRequest.external(
+        venueName: venueName,
+        courtName: '',
+        address: _venueLocationCtrl.text.trim(),
+        date: _date,
+        startTime: (hour: _externalStart.hour, minute: _externalStart.minute),
+        endTime: (hour: _externalEnd.hour, minute: _externalEnd.minute),
+        feeAmount: _enteredCourtFee ?? 0,
+      );
+    }
+
+    // Find-available: once the slot is booked on this platform it has an id, so
+    // it goes as a booking; before that it is described like an external court.
+    final PublicListingVenueModel? venue = _preferredVenue;
+    final BookingDraft? slot = _confirmedSlot;
+    if (slot == null) return null;
+    final int? bookingId = slot.bookingId;
+    if (bookingId != null) {
+      return OpponentVenueStepRequest.existingBooking(bookingId);
+    }
+    final TimeOfDay start =
+        _parseApiTime(slot.apiTime ?? slot.selectedTime) ?? _time;
+    // The server requires both ends of an external window, so an unstated end
+    // becomes the usual one-hour slot rather than a 422.
+    final TimeOfDay end =
+        (slot.apiEndTime == null ? null : _parseApiTime(slot.apiEndTime!)) ??
+        TimeOfDay(hour: (start.hour + 1) % 24, minute: start.minute);
+    return OpponentVenueStepRequest.external(
+      venueName: venue?.name ?? '',
+      courtName: slot.courtName,
+      address: venue?.address ?? '',
+      date: slot.selectedDate,
+      startTime: (hour: start.hour, minute: start.minute),
+      endTime: (hour: end.hour, minute: end.minute),
+      feeAmount: _resolvedCourtFee ?? 0,
+    );
+  }
+
+  /// `PUT /auth/opponent-requests/{id}/cost` — the split rule the accepting
+  /// team sees before it pays.
+  ///
+  /// Returns false when the call failed, leaving the wizard on the cost step
+  /// with the reason on screen.
+  Future<bool> _saveCostStep() async {
+    final OpponentMatchBloc bloc = context.read<OpponentMatchBloc>();
+    bloc.add(SaveOpponentCostStepEvent(_costStepRequest()));
+
+    final OpponentMatchState result = await bloc.stream.firstWhere(
+      (OpponentMatchState s) => s.costStepStatus != OpponentMatchStatus.loading,
+    );
+    if (!mounted) return false;
+
+    if (result.costStepStatus == OpponentMatchStatus.failure) {
+      AppUtils().showSnackBar(
+        context,
+        MsgType.error,
+        result.costStepError ?? StringConstants.somethingWentWrong,
+        key: 'opponent_cost_step_failed',
+      );
+      return false;
+    }
+    return true;
+  }
+
+  /// Maps the card's selections onto the cost payload. An even split carries no
+  /// percentage; a custom one is keyed either to the side (the requester's fixed
+  /// share) or to the result (what the losing side carries).
+  OpponentCostStepRequest _costStepRequest() {
+    if (_split == SplitMode.even) return const OpponentCostStepRequest.even();
+    return _basis == SplitBasis.result
+        ? OpponentCostStepRequest.custom(
+            basis: OpponentSplitBasis.result,
+            requestingTeamPercent: _loserPercent,
+          )
+        : OpponentCostStepRequest.custom(
+            basis: OpponentSplitBasis.team,
+            requestingTeamPercent: _myPercent,
+          );
+  }
+
+  /// Server id of the chosen format, once the lookup has landed.
+  int? get _selectedFormatId {
+    final PublicOptionModel? format = _resolveFormat(
+      _optionsBloc.state.matchFormats,
+    );
+    return format == null ? null : int.tryParse(format.id);
   }
 
   void _back() {
@@ -278,11 +744,18 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
   }
 
   String _stepHint(_Step step) => switch (step) {
-    _Step.match => 'Select the team that will play.',
+    _Step.match =>
+      _team == null
+          ? 'Select the team that will play.'
+          : 'Pick a match type to continue.',
     _Step.venue =>
-      _venuePlan == _VenuePlan.alreadyBooked
+      _venuePlan != _VenuePlan.alreadyBooked
+          ? 'Pick a venue, then confirm a court slot.'
+          : _bookedSource == _BookedSource.existingBooking
           ? 'Select the booking that hosts this match.'
-          : 'Pick a venue, then confirm a court slot.',
+          : !_externalWindowValid
+          ? 'The end time has to be after the start time.'
+          : 'Fill in the venue, its location, the fee and the booked time.',
     _ => 'Complete this step to continue.',
   };
 
@@ -406,122 +879,43 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
 
   // ───────────────────────────── publish ─────────────────────────────
 
-  void _publish() {
+  /// Last step: `POST /auth/opponent-requests/{id}/publish`, carrying only the
+  /// message. Every other section already lives on the server, saved by its own
+  /// step, so nothing else is re-sent.
+  ///
+  /// Pops with `true` once the server confirms; the confirmation message itself
+  /// is shown by the screen underneath, from the bloc's success message.
+  Future<void> _publish() async {
     setState(() => _submitted = true);
-    if (!_venueSettled) {
-      AppUtils().showSnackBar(context, MsgType.info, _stepHint(_Step.venue));
-      _goTo(_Step.venue);
-      return;
-    }
     if (_team == null) {
       AppUtils().showSnackBar(context, MsgType.info, _stepHint(_Step.match));
       _goTo(_Step.match);
       return;
     }
-
-    if (_venuePlan == _VenuePlan.alreadyBooked) {
-      final BookingModel? booking = _existingBooking;
-      final bool fromBooking =
-          _bookedSource == _BookedSource.existingBooking && booking != null;
-      _send(
-        _request(
-          venue: _venueLabelText,
-          bookedDateTime: fromBooking ? _kickoff : null,
-          bookedSlot: fromBooking ? booking.displayTimeRange : null,
-          bookedTotalFee: fromBooking ? booking.bookingTotal.round() : null,
-          bookedEndTime: fromBooking ? booking.endTime : null,
-          bookingId: fromBooking ? booking.id : null,
-          venueId: fromBooking ? booking.venueId : null,
-          courtId: fromBooking ? booking.courtId : null,
-        ),
-      );
+    if (!_venueSettled) {
+      AppUtils().showSnackBar(context, MsgType.info, _stepHint(_Step.venue));
+      _goTo(_Step.venue);
       return;
     }
 
-    final BookingDraft booking = _confirmedSlot!;
-    _send(
-      _request(
-        venue: _venueLabelText,
-        bookedDateTime: _bookingDateTime(booking),
-        bookedSlot: _slotLabel,
-        bookedTotalFee:
-            booking.bookingTotal?.round() ??
-            (booking.subtotal > 0 ? booking.subtotal.round() : null),
-        bookedEndTime: booking.apiEndTime,
-        bookingId: booking.bookingId,
-        venueId: booking.venueId,
-        courtId: booking.courtId,
-      ),
-    );
-  }
-
-  CreateOpponentRequestEntity _request({
-    required String venue,
-    DateTime? bookedDateTime,
-    String? bookedSlot,
-    int? bookedTotalFee,
-    String? bookedEndTime,
-    int? bookingId,
-    int? venueId,
-    int? courtId,
-  }) {
-    final TeamModel team = _team!;
-    final state = context.read<OpponentMatchBloc>().state;
-    final level = _resolveLevel(_levelOptions(state));
-    final cost = _cost;
-    final int totalFee = bookedTotalFee ?? cost.courtFee;
-    final int yourShare = cost.isResultBased
-        ? (totalFee * _loserPercent / 100).round()
-        : (totalFee * (cost.myPct ?? 0) / 100).round();
-    final dateTime = bookedDateTime ?? _combine(_date, _time);
-    return CreateOpponentRequestEntity(
-      team: team.name,
-      dateTime: dateTime,
-      summary:
-          '${level.name} · ${_format.label} · '
-          '${team.players.length} players · '
-          '${_shareSummary(totalFee, yourShare, cost)}',
-      venue: venue,
-      slot: bookedSlot ?? OpponentFmt.slot(_time),
-      totalFee: totalFee,
-      yourShare: yourShare,
-      myPct: cost.myPct,
-      message: _messageCtrl.text.trim(),
-      teamId: team.id,
-      formatLabel: _format.label,
-      levelSlug: level.slug.isNotEmpty ? level.slug : level.name.toLowerCase(),
-      splitMode: _split == SplitMode.even
-          ? 'even'
-          : (cost.isResultBased ? 'custom_result' : 'custom_team'),
-      loserPct: cost.isResultBased ? _loserPercent : null,
-      endTime: bookedEndTime,
-      // Only an externally-booked court reports its own fee; for platform
-      // venues the server prices the booking itself.
-      claimedTotalFee:
-          _venuePlan == _VenuePlan.alreadyBooked &&
-              _bookedSource == _BookedSource.manual
-          ? _enteredCourtFee
-          : null,
-      bookingId: bookingId,
-      venueId: venueId,
-      courtId: courtId,
-    );
-  }
-
-  String _shareSummary(int totalFee, int yourShare, OpponentCostSplit cost) {
-    if (cost.isResultBased) {
-      final int winnerShare = totalFee - yourShare;
-      return 'Loser ${OpponentFmt.npr(yourShare)} ($_loserPercent%) · '
-          'Winner ${OpponentFmt.npr(winnerShare)}';
-    }
-    final int percent = cost.myPct ?? 0;
-    return 'Your share ${OpponentFmt.npr(yourShare)} of '
-        '${OpponentFmt.npr(totalFee)} ($percent%)';
-  }
-
-  void _send(CreateOpponentRequestEntity request) {
+    final OpponentMatchBloc bloc = context.read<OpponentMatchBloc>();
     HapticFeedback.mediumImpact();
-    context.read<OpponentMatchBloc>().add(SendOpponentRequestEvent(request));
+    bloc.add(PublishOpponentRequestEvent(message: _messageCtrl.text.trim()));
+
+    final OpponentMatchState result = await bloc.stream.firstWhere(
+      (OpponentMatchState s) => s.publishStatus != OpponentMatchStatus.loading,
+    );
+    if (!mounted) return;
+
+    if (result.publishStatus == OpponentMatchStatus.failure) {
+      AppUtils().showSnackBar(
+        context,
+        MsgType.error,
+        result.publishError ?? StringConstants.somethingWentWrong,
+        key: 'opponent_publish_failed',
+      );
+      return;
+    }
     Navigator.of(context).pop(true);
   }
 
@@ -535,6 +929,18 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
   /// The active selection — the user's pick, or the first option.
   OpponentLevelModel _resolveLevel(List<OpponentLevelModel> levels) =>
       _level ?? levels.first;
+
+  /// The active format — the user's pick, or the first one the server sent.
+  /// Null only while the list is still loading or failed.
+  PublicOptionModel? _resolveFormat(List<PublicOptionModel> formats) {
+    if (formats.isEmpty) return null;
+    final PublicOptionModel? picked = _format;
+    if (picked == null) return formats.first;
+    return formats.firstWhere(
+      (PublicOptionModel f) => f.id == picked.id,
+      orElse: () => formats.first,
+    );
+  }
 
   DateTime _combine(DateTime date, TimeOfDay time) =>
       DateTime(date.year, date.month, date.day, time.hour, time.minute);
@@ -632,11 +1038,40 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: LightColor.background,
-      appBar: const CustomAppBar(title: StringConstants.newRequest),
+      appBar: CustomAppBar(
+        title: widget.draft == null
+            ? StringConstants.newRequest
+            : StringConstants.completeRequest,
+      ),
       body: SafeArea(
         top: false,
-        child: BlocBuilder<OpponentMatchBloc, OpponentMatchState>(
+        child: BlocConsumer<OpponentMatchBloc, OpponentMatchState>(
+          // Teams and levels arrive after the page opens; a resumed draft
+          // re-selects itself as soon as they do.
+          listener: (context, state) {
+            _syncServerCourtFee(state);
+            _applyDraftSelections(state);
+            if (state.draftStatus == OpponentMatchStatus.failure) {
+              AppUtils().showSnackBar(
+                context,
+                MsgType.error,
+                state.draftError ?? StringConstants.somethingWentWrong,
+                key: 'opponent_draft_load_failed',
+              );
+            }
+          },
           builder: (context, state) {
+            // Hold the form back until the draft's own data is in, so the user
+            // never edits fields that are about to be overwritten.
+            if (widget.draft != null &&
+                !_draftHydrated &&
+                state.isLoadingDraft) {
+              return const Center(
+                child: CircularProgressIndicator(
+                  color: LightColor.secondaryColor,
+                ),
+              );
+            }
             return Column(
               children: [
                 _StepTracker(
@@ -676,14 +1111,33 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
           },
         ),
       ),
-      bottomNavigationBar: _BottomBar(
-        text: _step == _Step.publish ? 'Publish Opponent Request' : 'Continue',
-        icon: _step == _Step.publish
-            ? Icons.campaign_rounded
-            : Icons.arrow_forward_rounded,
-        onNext: _next,
-        onBack: _back,
-        backText: _step == _Step.match ? 'Cancel' : 'Back',
+      bottomNavigationBar: BlocBuilder<OpponentMatchBloc, OpponentMatchState>(
+        buildWhen: (a, b) =>
+            a.matchStepStatus != b.matchStepStatus ||
+            a.venueStepStatus != b.venueStepStatus ||
+            a.costStepStatus != b.costStepStatus ||
+            a.publishStatus != b.publishStatus ||
+            a.draftStatus != b.draftStatus,
+        builder: (context, state) => SizedBox(
+          height: 120,
+          child: _BottomBar(
+            text: _step == _Step.publish ? 'Publish Request' : 'Continue',
+            icon: _step == _Step.publish
+                ? Icons.campaign_rounded
+                : Icons.arrow_forward_rounded,
+            onNext: _next,
+            onBack: _back,
+            backText: _step == _Step.match ? 'Cancel' : 'Back',
+            isBusy:
+                state.isSavingMatchStep ||
+                state.isSavingVenueStep ||
+                state.isSavingCostStep ||
+                state.isPublishing ||
+                (widget.draft != null &&
+                    !_draftHydrated &&
+                    state.isLoadingDraft),
+          ),
+        ),
       ),
     );
   }
@@ -772,28 +1226,51 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const OpponentFieldLabel('Match Type'),
-          _PillWrap(
-            children: MatchFormat.values
-                .map(
-                  (f) => OpponentPillChip(
-                    label: f.label,
-                    active: _format == f,
-                    padding: _kPillPadding,
-                    onTap: () => setState(() => _format = f),
-                  ),
-                )
-                .toList(),
+          // Formats come from `/match-formate` because the request payload
+          // carries `match_format_id` — there is no id to send for a locally
+          // defined 5v5/6v6/7v7.
+          BlocBuilder<PublicCourtOptionsBloc, PublicCourtOptionsState>(
+            bloc: _optionsBloc,
+            builder: (context, optionsState) {
+              final formats = optionsState.matchFormats;
+
+              if (formats.isEmpty) {
+                return optionsState.isLoadingMatchFormats
+                    ? const _PillRowLoading()
+                    : _InlineRetry(
+                        message: 'Could not load match types.',
+                        onRetry: () => _optionsBloc.add(
+                          const FetchPublicMatchFormatsEvent(),
+                        ),
+                      );
+              }
+
+              return _PillRow(
+                children: formats
+                    .map(
+                      (f) => OpponentPillChip(
+                        label: f.name,
+                        active: _resolveFormat(formats)?.id == f.id,
+                        padding: _kPillRowPadding,
+                        onTap: () => setState(() => _format = f),
+                      ),
+                    )
+                    .toList(),
+              );
+            },
           ),
           const SizedBox(height: AppDimens.paddingX14),
           const OpponentFieldLabel('Opponent Level'),
-          _PillWrap(
+          // Same row treatment and the same pill height as Match Type, so the
+          // two fields sit on a shared grid instead of looking like unrelated
+          // controls that happen to share a card.
+          _PillRow(
             children: _levelOptions(state)
                 .map(
                   (l) => OpponentPillChip(
                     label: l.name,
                     active: _resolveLevel(_levelOptions(state)) == l,
-                    compact: true,
-                    padding: _kPillPadding,
+                    padding: _kPillRowPadding,
                     onTap: () => setState(() => _level = l),
                   ),
                 )
@@ -984,7 +1461,71 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
           ? 'Enter the total court fee'
           : null,
     ),
+    const SizedBox(height: AppDimens.paddingX14),
+    const OpponentSectionLabel('Booked time'),
+    OpponentCard(
+      padding: EdgeInsets.zero,
+      child: Column(
+        children: <Widget>[
+          OpponentPickerRow(
+            icon: Icons.play_circle_outline,
+            label: StringConstants.startTime,
+            value: OpponentFmt.time(_externalStart),
+            onTap: _pickExternalStart,
+          ),
+          const OpponentRowDivider(),
+          OpponentPickerRow(
+            icon: Icons.stop_circle_outlined,
+            label: StringConstants.endTime,
+            value: OpponentFmt.time(_externalEnd),
+            onTap: _pickExternalEnd,
+          ),
+        ],
+      ),
+    ),
+    if (_submitted && !_externalWindowValid) ...<Widget>[
+      const SizedBox(height: AppDimens.paddingX6),
+      Padding(
+        padding: const EdgeInsets.only(left: AppDimens.paddingX4),
+        child: Text(
+          'The end time has to be after the start time.',
+          style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
+            color: LightColor.redColor,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ),
+    ],
   ];
+
+  /// Start of the externally booked window. Nudges the end along so the window
+  /// stays valid — an hour after the new start, the usual court slot.
+  Future<void> _pickExternalStart() async {
+    final TimeOfDay? picked = await customCupertinoTimePicker(
+      context,
+      StringConstants.startTime,
+      initialTime: _externalStart,
+    );
+    if (picked == null) return;
+    setState(() {
+      _externalStart = picked;
+      if (!_externalWindowValid) {
+        _externalEnd = TimeOfDay(
+          hour: (picked.hour + 1) % 24,
+          minute: picked.minute,
+        );
+      }
+    });
+  }
+
+  Future<void> _pickExternalEnd() async {
+    final TimeOfDay? picked = await customCupertinoTimePicker(
+      context,
+      StringConstants.endTime,
+      initialTime: _externalEnd,
+    );
+    if (picked != null) setState(() => _externalEnd = picked);
+  }
 
   List<Widget> _findAvailableBranch() => <Widget>[
     const OpponentSectionLabel('Browse venues'),
@@ -1100,7 +1641,10 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
 
   List<Widget> _publishStep(OpponentMatchState state) {
     final cost = _cost;
-    final int totalFee = _resolvedCourtFee ?? cost.courtFee;
+    final int totalFee = cost.courtFee;
+    final String feeLabel = cost.hasCourtFee
+        ? '${OpponentFmt.npr(totalFee)} total'
+        : 'Court fee ${StringConstants.courtFeeNotSetYet.toLowerCase()}';
     final level = _resolveLevel(_levelOptions(state));
     return <Widget>[
       const OpponentGuidanceCard(
@@ -1142,7 +1686,7 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
             _SummaryRow(
               icon: Icons.sports_soccer_rounded,
               label: 'Match',
-              value: '${_format.label} · ${level.name}',
+              value: '$_formatLabel · ${level.name}',
               onEdit: () => _goTo(_Step.match),
             ),
             const SizedBox(height: AppDimens.paddingX10),
@@ -1166,7 +1710,7 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
               icon: Icons.payments_outlined,
               label: 'Cost split',
               value:
-                  '${OpponentFmt.npr(totalFee)} total · '
+                  '$feeLabel · '
                   '${cost.isResultBased ? 'Loser pays $_loserPercent%' : 'You pay ${cost.myPct ?? 0}%'}',
               onEdit: () => _goTo(_Step.cost),
             ),
@@ -1281,9 +1825,10 @@ class _StepMessageCard extends StatelessWidget {
   }
 }
 
-/// Horizontal padding that lets a pill size to its own label inside [_PillWrap].
-const EdgeInsets _kPillPadding = EdgeInsets.symmetric(
-  horizontal: AppDimens.paddingX14,
+/// Padding for a pill in a [_PillRow], where the column already sets the
+/// width — kept tight so a long label has room before it ellipsises.
+const EdgeInsets _kPillRowPadding = EdgeInsets.symmetric(
+  horizontal: AppDimens.paddingX6,
 );
 
 /// Wrapping row of option pills.
@@ -1303,6 +1848,39 @@ class _PillWrap extends StatelessWidget {
       spacing: AppDimens.paddingX8,
       runSpacing: AppDimens.paddingX8,
       children: children,
+    );
+  }
+}
+
+/// Options across one row, every pill the same width.
+///
+/// A [Wrap] sized each pill to its label, so `5v5 6v6 7v7` and
+/// `Beginner Intermediate Advanced` came out as two ragged rows that did not
+/// line up with each other. Equal columns make the two fields read as one
+/// block, and a long label ellipsises inside its share rather than pushing the
+/// row onto a second line.
+///
+/// Falls back to [_PillWrap] past [_maxInRow] options, where equal columns
+/// would be too narrow to read — the level list comes from the server, so the
+/// count is not guaranteed.
+class _PillRow extends StatelessWidget {
+  const _PillRow({required this.children});
+
+  final List<Widget> children;
+
+  static const int _maxInRow = 4;
+
+  @override
+  Widget build(BuildContext context) {
+    if (children.length > _maxInRow) return _PillWrap(children: children);
+
+    return Row(
+      children: <Widget>[
+        for (int i = 0; i < children.length; i++) ...<Widget>[
+          if (i > 0) const SizedBox(width: AppDimens.paddingX8),
+          Expanded(child: children[i]),
+        ],
+      ],
     );
   }
 }
@@ -1468,6 +2046,28 @@ class _StepDot extends StatelessWidget {
   }
 }
 
+/// Placeholder occupying a [_PillRow]'s height while its options load, so the
+/// card does not jump when they arrive.
+class _PillRowLoading extends StatelessWidget {
+  const _PillRowLoading();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: AppDimens.sizeX40,
+      alignment: Alignment.centerLeft,
+      child: SizedBox(
+        width: AppDimens.sizeX18,
+        height: AppDimens.sizeX18,
+        child: CircularProgressIndicator(
+          strokeWidth: 2,
+          valueColor: AlwaysStoppedAnimation<Color>(LightColor.secondaryColor),
+        ),
+      ),
+    );
+  }
+}
+
 /// Back + primary action footer for the wizard.
 class _BottomBar extends StatelessWidget {
   const _BottomBar({
@@ -1476,6 +2076,7 @@ class _BottomBar extends StatelessWidget {
     required this.onNext,
     required this.onBack,
     required this.backText,
+    this.isBusy = false,
   });
 
   final String text;
@@ -1484,10 +2085,12 @@ class _BottomBar extends StatelessWidget {
   final VoidCallback onBack;
   final String backText;
 
+  final bool isBusy;
+
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: AppUtils().getPadding(all: AppDimens.paddingX16),
+      padding: AppUtils().getPadding(all: AppDimens.paddingX12),
       decoration: BoxDecoration(
         color: LightColor.cardColor,
         borderRadius: const BorderRadius.only(
@@ -1513,7 +2116,7 @@ class _BottomBar extends StatelessWidget {
               child: SizedBox(
                 height: AppDimens.sizeX54,
                 child: OutlinedButton(
-                  onPressed: onBack,
+                  onPressed: isBusy ? null : onBack,
                   style: OutlinedButton.styleFrom(
                     side: BorderSide(color: LightColor.dividerColor),
                     shape: RoundedRectangleBorder(
@@ -1536,7 +2139,12 @@ class _BottomBar extends StatelessWidget {
               flex: 2,
               child: SizedBox(
                 height: AppDimens.sizeX54,
-                child: CustomButton(text: text, icon: icon, onPressed: onNext),
+                child: CustomButton(
+                  text: text,
+                  icon: icon,
+                  isLoading: isBusy,
+                  onPressed: isBusy ? null : onNext,
+                ),
               ),
             ),
           ],

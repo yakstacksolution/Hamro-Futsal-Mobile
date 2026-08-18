@@ -19,6 +19,7 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
       super(MessageState(currentUserId: useCase.currentUserId)) {
     on<LoadConversationsEvent>(_onLoadConversations);
     on<LoadChatEvent>(_onLoadChat);
+    on<LoadOlderMessagesEvent>(_onLoadOlderMessages);
     on<CloseChatEvent>(_onCloseChat);
     on<SendMessageEvent>(_onSendMessage);
     on<CreateGroupConversationEvent>(_onCreateGroup);
@@ -46,6 +47,9 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
     });
   }
 
+  /// Thread page size for `/conversations/{id}/messages`.
+  static const int _messagesPerPage = 20;
+
   final MessageUseCase useCase;
   final ChatSocketService _socket;
   StreamSubscription<ChatMessageModel>? _messageSub;
@@ -55,6 +59,7 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
   Timer? _peerTypingTimer;
   Timer? _markReadTimer;
   bool _loadingConversations = false;
+  bool _loadingOlderMessages = false;
 
   Future<void> _onLoadConversations(
     LoadConversationsEvent event,
@@ -151,6 +156,12 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
         activeConversation:
             event.conversation ?? _conversationById(event.conversationId),
         messages: const [],
+        messagesCurrentPage: 0,
+        messagesLastPage: 1,
+        messagesTotal: 0,
+        messagesHasMorePages: false,
+        messagesLoadingOlder: false,
+        clearMessagesLoadOlderError: true,
         peerTyping: false,
         clearErrorMessage: true,
       ),
@@ -166,7 +177,13 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
         ),
       ),
     );
-    final result = await useCase.getMessages(event.conversationId);
+    // Page 1 is the newest slice of the thread; older pages load on demand
+    // when the user scrolls to the top.
+    final result = await useCase.getMessages(
+      event.conversationId,
+      page: 1,
+      perPage: _messagesPerPage,
+    );
     if (state.activeConversationId != event.conversationId) return;
     result.fold(
       (failure) => emit(
@@ -175,17 +192,75 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
           errorMessage: failure.errorMessage,
         ),
       ),
-      (messages) {
+      (pageResult) {
         emit(
           state.copyWith(
             chatStatus: MessageStatus.success,
             // Preserve socket messages that arrived during the history fetch.
-            messages: _mergeMessages(state.messages, messages),
+            messages: _mergeMessages(state.messages, pageResult.items),
+            messagesCurrentPage: pageResult.currentPage,
+            messagesLastPage: pageResult.lastPage,
+            messagesTotal: pageResult.total,
+            messagesHasMorePages: pageResult.hasMorePages,
+            messagesLoadingOlder: false,
+            clearMessagesLoadOlderError: true,
             clearErrorMessage: true,
           ),
         );
         if (!isClosed) add(MarkConversationReadEvent(event.conversationId));
       },
+    );
+  }
+
+  /// Older history, one page at a time, triggered by reaching the top of the
+  /// thread. Results are merged into [MessageState.messages] (deduped by id),
+  /// so a message that also arrives over the socket is never doubled.
+  Future<void> _onLoadOlderMessages(
+    LoadOlderMessagesEvent event,
+    Emitter<MessageState> emit,
+  ) async {
+    if (_loadingOlderMessages ||
+        state.activeConversationId != event.conversationId ||
+        state.chatStatus != MessageStatus.success ||
+        !state.messagesHasMorePages) {
+      return;
+    }
+    _loadingOlderMessages = true;
+    emit(
+      state.copyWith(
+        messagesLoadingOlder: true,
+        clearMessagesLoadOlderError: true,
+      ),
+    );
+    final page = state.messagesCurrentPage + 1;
+    final result = await useCase.getMessages(
+      event.conversationId,
+      page: page,
+      perPage: _messagesPerPage,
+    );
+    _loadingOlderMessages = false;
+    if (state.activeConversationId != event.conversationId) return;
+    result.fold(
+      (failure) => emit(
+        state.copyWith(
+          messagesLoadingOlder: false,
+          messagesLoadOlderError: failure.errorMessage,
+        ),
+      ),
+      (pageResult) => emit(
+        state.copyWith(
+          messages: _mergeMessages(state.messages, pageResult.items),
+          messagesCurrentPage: pageResult.currentPage,
+          messagesLastPage: pageResult.lastPage,
+          messagesTotal: pageResult.total,
+          // An empty page means we have reached the start of the thread even
+          // if the server still claims there is more.
+          messagesHasMorePages:
+              pageResult.hasMorePages && pageResult.items.isNotEmpty,
+          messagesLoadingOlder: false,
+          clearMessagesLoadOlderError: true,
+        ),
+      ),
     );
   }
 
@@ -197,6 +272,12 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
         chatStatus: MessageStatus.initial,
         clearActiveConversation: true,
         messages: const [],
+        messagesCurrentPage: 0,
+        messagesLastPage: 1,
+        messagesTotal: 0,
+        messagesHasMorePages: false,
+        messagesLoadingOlder: false,
+        clearMessagesLoadOlderError: true,
         peerTyping: false,
       ),
     );

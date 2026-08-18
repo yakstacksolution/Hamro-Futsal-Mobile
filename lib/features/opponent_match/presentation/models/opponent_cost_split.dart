@@ -49,7 +49,16 @@ class OpponentCostSplit {
   final int? overrideCourtFee;
   final int? overrideYourShare;
 
-  int get courtFee => overrideCourtFee ?? format.courtFee;
+  /// The real court fee, or 0 when no venue has supplied one yet.
+  ///
+  /// Deliberately NOT falling back to [MatchFormatX.courtFee]: that table is a
+  /// guess per format, so falling back to it showed a confident figure that
+  /// tracked neither the booking nor what the requester typed — the fee looked
+  /// like it had not updated. Callers render [hasCourtFee] == false as "not set
+  /// yet" instead.
+  int get courtFee => overrideCourtFee ?? 0;
+
+  bool get hasCourtFee => courtFee > 0;
 
   bool get isResultBased =>
       split == SplitMode.custom && basis == SplitBasis.result;
@@ -89,6 +98,7 @@ class OpponentCostSplit {
 
   /// One-line share summary embedded in the outgoing request.
   String get shareSummary {
+    if (!hasCourtFee) return 'Court fee not set yet';
     if (split == SplitMode.even) {
       return 'Your share ${OpponentFmt.npr(yourShare)} of '
           '${OpponentFmt.npr(courtFee)} (50%)';

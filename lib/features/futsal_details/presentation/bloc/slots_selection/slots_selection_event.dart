@@ -77,6 +77,20 @@ final class ChangeSlotsRecurrenceEvent extends SlotsSelectionEvent {
   List<Object?> get props => <Object?>[recurrence];
 }
 
+/// Toggles one weekday of a recurring booking on or off.
+///
+/// Deselecting the last remaining day is ignored — a recurring booking always
+/// repeats on at least one weekday.
+final class ToggleSlotsRecurringDayEvent extends SlotsSelectionEvent {
+  const ToggleSlotsRecurringDayEvent(this.weekday);
+
+  /// `DateTime.monday`…`DateTime.sunday`.
+  final int weekday;
+
+  @override
+  List<Object?> get props => <Object?>[weekday];
+}
+
 final class RefreshSlotsAvailabilityEvent extends SlotsSelectionEvent {
   const RefreshSlotsAvailabilityEvent();
 }

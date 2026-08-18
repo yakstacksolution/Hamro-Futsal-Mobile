@@ -23,6 +23,7 @@ class TransactionHistoryBloc
     on<LoadMoreTransactionHistoryEvent>(_onLoadMore);
     on<ChangeTransactionDirectionEvent>(_onChangeDirection);
     on<ChangeTransactionTypeEvent>(_onChangeType);
+    on<ApplyTransactionFiltersEvent>(_onApplyFilters);
     on<SearchTransactionsEvent>(_onSearch);
     on<ChangeTransactionRangeEvent>(_onChangeRange);
     on<ClearTransactionFiltersEvent>(_onClearFilters);
@@ -31,14 +32,27 @@ class TransactionHistoryBloc
   final TransactionUseCase _useCase;
   final int _perPage;
 
+  /// Bumped whenever the query changes or a fresh load starts.
+  ///
+  /// Bloc runs handlers for *different* event types concurrently, so a page-2
+  /// request can still be in flight when the user changes a filter. Without
+  /// this, that stale page would be merged into the newly filtered list and
+  /// would drag its own `page` / `hasReachedMax` cursor along with it.
+  int _requestSerial = 0;
+
   Future<void> _onLoad(
     LoadTransactionHistoryEvent event,
     Emitter<TransactionHistoryState> emit,
   ) async {
+    final int serial = ++_requestSerial;
+
     emit(
       state.copyWith(
         status: TransactionHistoryStatus.loading,
         isRefreshing: event.isRefresh,
+        // Any page-2 request still in flight belongs to the previous query and
+        // will be discarded, so its spinner must not outlive it.
+        isLoadingMore: false,
         clearError: true,
       ),
     );
@@ -52,7 +66,7 @@ class TransactionHistoryBloc
           search: state.search,
           range: state.range,
         );
-    if (emit.isDone) return;
+    if (emit.isDone || serial != _requestSerial) return;
 
     response.fold(
       (AppException failure) => emit(
@@ -67,6 +81,10 @@ class TransactionHistoryBloc
           status: TransactionHistoryStatus.success,
           items: page.items,
           summary: page.summary,
+          // A filtered query that matches nothing carries no summary; keeping
+          // the previous one would report the old filter's totals over the new
+          // filter's (empty) rows.
+          clearSummary: page.summary == null,
           availableTypes: _typesFrom(page.items),
           page: page.page,
           total: page.total,
@@ -90,6 +108,10 @@ class TransactionHistoryBloc
       return;
     }
 
+    // Not incremented: a page request does not invalidate anything, it only
+    // needs to notice if something else does.
+    final int serial = _requestSerial;
+
     emit(state.copyWith(isLoadingMore: true, clearError: true));
 
     final Either<AppException, TransactionHistoryPageModel> response =
@@ -101,7 +123,9 @@ class TransactionHistoryBloc
           search: state.search,
           range: state.range,
         );
-    if (emit.isDone) return;
+    // The filters moved while this page was in flight: these rows belong to a
+    // query the user has already left, and the reload owns the state now.
+    if (emit.isDone || serial != _requestSerial) return;
 
     response.fold(
       (AppException failure) => emit(
@@ -144,6 +168,30 @@ class TransactionHistoryBloc
   ) async {
     if (event.type == state.type) return;
     emit(state.copyWith(type: event.type));
+    add(const LoadTransactionHistoryEvent());
+  }
+
+  /// Applies everything the filter sheet returned as one change.
+  ///
+  /// The sheet can move three filters at once; dispatching them separately
+  /// costs one round trip each and briefly renders half-applied combinations.
+  Future<void> _onApplyFilters(
+    ApplyTransactionFiltersEvent event,
+    Emitter<TransactionHistoryState> emit,
+  ) async {
+    final bool unchanged =
+        event.direction == state.direction &&
+        event.type == state.type &&
+        event.range == state.range;
+    if (unchanged) return;
+
+    emit(
+      state.copyWith(
+        direction: event.direction,
+        type: event.type,
+        range: event.range,
+      ),
+    );
     add(const LoadTransactionHistoryEvent());
   }
 

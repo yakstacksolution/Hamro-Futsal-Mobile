@@ -1,3 +1,6 @@
+import 'dart:io';
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 import 'package:hamro_footsall/core/api/api_client/booking_type_payload.dart';
 import 'package:hamro_footsall/core/api/api_client/result.dart';
@@ -15,7 +18,11 @@ abstract class FutsalDetailsRemoteDataSource {
     String? slotEndTime,
     String bookingType,
   });
-  Future<Result> getVenueSlots({required int venueId, required String date});
+  Future<Result> getVenueSlots({
+    required int venueId,
+    required String date,
+    String bookingType,
+  });
   Future<Result> getCourtPaymentQr({required int courtId});
   Future<Result> createBooking(CreateBookingRequest request);
   Future<Result> getRecurringAvailability({required Map<String, dynamic> data});
@@ -58,9 +65,11 @@ final class FutsalDetailsRemoteDataSourceImpl
   Future<Result> getVenueSlots({
     required int venueId,
     required String date,
+    String bookingType = BookingTypePayload.regular,
   }) async => await Client.instance().getAuthManager().getVenueSlots(
     venueId: venueId,
     date: date,
+    bookingType: bookingType,
   );
 
   @override
@@ -74,11 +83,37 @@ final class FutsalDetailsRemoteDataSourceImpl
     final Map<String, dynamic> fields = request.toFields()
       ..removeWhere((_, dynamic value) => value == null);
 
+    // Payment proof travels as multipart `payment_proof`, built from the bytes
+    // captured when the user attached it. Reading the path again here is what
+    // used to produce a 0-byte upload: by the time Confirm is pressed, the
+    // picker's cached file may already have been reclaimed by the OS.
+    final Uint8List? proofBytes = request.paymentProofBytes;
     final String? proofPath = request.paymentProofPath;
-    if (proofPath != null && proofPath.isNotEmpty) {
+    if (proofBytes != null && proofBytes.isNotEmpty) {
+      fields['payment_proof'] = MultipartFile.fromBytes(
+        proofBytes,
+        filename:
+            request.paymentProofName ??
+            proofPath?.split(Platform.pathSeparator).last ??
+            'payment_proof.jpg',
+      );
+    } else if (proofPath != null && proofPath.isNotEmpty) {
+      // Callers that only have a path (no bytes) still work, but the file has
+      // to be readable right now.
+      final File proof = File(proofPath);
+      final int size = await proof.exists() ? await proof.length() : 0;
+      if (size == 0) {
+        return Result.error(
+          DataError(
+            'The payment proof could not be read. Please attach it again.',
+            0,
+            null,
+          ),
+        );
+      }
       fields['payment_proof'] = await MultipartFile.fromFile(
         proofPath,
-        filename: proofPath.split('/').last,
+        filename: proofPath.split(Platform.pathSeparator).last,
       );
     }
 

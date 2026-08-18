@@ -17,6 +17,12 @@ final class MessageState extends Equatable {
     this.activeConversationId,
     this.activeConversation,
     this.messages = const [],
+    this.messagesCurrentPage = 0,
+    this.messagesLastPage = 1,
+    this.messagesTotal = 0,
+    this.messagesHasMorePages = false,
+    this.messagesLoadingOlder = false,
+    this.messagesLoadOlderError,
     this.sending = false,
     this.peerTyping = false,
     this.showingArchived = false,
@@ -47,6 +53,17 @@ final class MessageState extends Equatable {
   final int? activeConversationId;
   final ConversationModel? activeConversation;
   final List<ChatMessageModel> messages;
+
+  /// Oldest page of the thread fetched so far — paging walks backwards in
+  /// time, so "load more" means page + 1 and prepends to [messages].
+  final int messagesCurrentPage;
+  final int messagesLastPage;
+  final int messagesTotal;
+
+  /// True when older history remains above the top of the thread.
+  final bool messagesHasMorePages;
+  final bool messagesLoadingOlder;
+  final String? messagesLoadOlderError;
   final bool sending;
 
   /// True while the other side is typing (realtime).
@@ -89,6 +106,13 @@ final class MessageState extends Equatable {
     ConversationModel? activeConversation,
     bool clearActiveConversation = false,
     List<ChatMessageModel>? messages,
+    int? messagesCurrentPage,
+    int? messagesLastPage,
+    int? messagesTotal,
+    bool? messagesHasMorePages,
+    bool? messagesLoadingOlder,
+    String? messagesLoadOlderError,
+    bool clearMessagesLoadOlderError = false,
     bool? sending,
     bool? peerTyping,
     bool? showingArchived,
@@ -130,6 +154,14 @@ final class MessageState extends Equatable {
           ? null
           : activeConversation ?? this.activeConversation,
       messages: messages ?? this.messages,
+      messagesCurrentPage: messagesCurrentPage ?? this.messagesCurrentPage,
+      messagesLastPage: messagesLastPage ?? this.messagesLastPage,
+      messagesTotal: messagesTotal ?? this.messagesTotal,
+      messagesHasMorePages: messagesHasMorePages ?? this.messagesHasMorePages,
+      messagesLoadingOlder: messagesLoadingOlder ?? this.messagesLoadingOlder,
+      messagesLoadOlderError: clearMessagesLoadOlderError
+          ? null
+          : messagesLoadOlderError ?? this.messagesLoadOlderError,
       sending: sending ?? this.sending,
       peerTyping: peerTyping ?? this.peerTyping,
       showingArchived: showingArchived ?? this.showingArchived,
@@ -173,6 +205,12 @@ final class MessageState extends Equatable {
     activeConversationId,
     activeConversation,
     messages,
+    messagesCurrentPage,
+    messagesLastPage,
+    messagesTotal,
+    messagesHasMorePages,
+    messagesLoadingOlder,
+    messagesLoadOlderError,
     sending,
     peerTyping,
     showingArchived,

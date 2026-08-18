@@ -88,11 +88,12 @@ class TransactionHistoryState extends Equatable {
     bool? isRefreshing,
     String? errorMessage,
     bool clearError = false,
+    bool clearSummary = false,
   }) {
     return TransactionHistoryState(
       status: status ?? this.status,
       items: items ?? this.items,
-      summary: summary ?? this.summary,
+      summary: clearSummary ? null : (summary ?? this.summary),
       availableTypes: availableTypes ?? this.availableTypes,
       direction: direction ?? this.direction,
       type: type ?? this.type,

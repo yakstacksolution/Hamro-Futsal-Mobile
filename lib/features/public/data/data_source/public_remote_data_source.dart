@@ -62,8 +62,6 @@ final class PublicRemoteDataSourceImpl extends PublicRemoteDataSource {
     double? latitude,
     double? longitude,
   }) async => await Client.instance().getAuthManager().getPublicVenueList(
-    // Always send a built payload so `latitude`/`longitude` reach the API even
-    // when no filter is active — without an origin there is no `distance_km`.
     data: (filter ?? VenueFilter.empty).toVenueListPayload(
       page: page,
       perPage: perPage,

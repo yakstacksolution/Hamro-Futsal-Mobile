@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
+import 'package:hamro_footsall/core/utils/custom_image_view.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/utils/string_constants.dart';
 
@@ -9,11 +10,15 @@ class CourtAmenitiesSection extends StatelessWidget {
     super.key,
     required this.features,
     this.categories,
+    this.iconUrls,
+    this.descriptions,
   });
 
   final List<String> features;
 
   final Map<String, String>? categories;
+  final Map<String, String>? iconUrls;
+  final Map<String, String>? descriptions;
 
   @override
   Widget build(BuildContext context) {
@@ -29,10 +34,7 @@ class CourtAmenitiesSection extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              LightColor.elevatedCardColor,
-              LightColor.cardColor,
-            ],
+            colors: [LightColor.elevatedCardColor, LightColor.cardColor],
           ),
           borderRadius: BorderRadius.circular(AppDimens.radiusX10),
           boxShadow: [
@@ -48,6 +50,8 @@ class CourtAmenitiesSection extends StatelessWidget {
           featureIcons: _featureIcons,
           featureColors: _featureColors,
           featureCategories: categories ?? _featureCategories,
+          iconUrls: iconUrls ?? const <String, String>{},
+          descriptions: descriptions ?? const <String, String>{},
         ),
       ),
     );
@@ -96,12 +100,16 @@ class _FeaturesGrid extends StatefulWidget {
     required this.featureIcons,
     required this.featureColors,
     required this.featureCategories,
+    required this.iconUrls,
+    required this.descriptions,
   });
 
   final List<String> features;
   final Map<String, IconData> featureIcons;
   final Map<String, Color> featureColors;
   final Map<String, String> featureCategories;
+  final Map<String, String> iconUrls;
+  final Map<String, String> descriptions;
 
   @override
   State<_FeaturesGrid> createState() => _FeaturesGridState();
@@ -280,13 +288,24 @@ class _FeaturesGridState extends State<_FeaturesGrid> {
                     ),
                   ),
                 )
-              : Wrap(
+              : LayoutBuilder(
                   key: ValueKey(_selectedCategory),
-                  spacing: AppDimens.sizeX8,
-                  runSpacing: AppDimens.sizeX8,
-                  children: _visibleFeatures
-                      .map((feature) => _buildFeatureTile(context, feature))
-                      .toList(),
+                  builder: (BuildContext context, BoxConstraints constraints) {
+                    final double tileWidth =
+                        (constraints.maxWidth - AppDimens.sizeX8) / 2;
+                    return Wrap(
+                      spacing: AppDimens.sizeX8,
+                      runSpacing: AppDimens.sizeX8,
+                      children: _visibleFeatures
+                          .map(
+                            (String feature) => SizedBox(
+                              width: tileWidth,
+                              child: _buildFeatureTile(context, feature),
+                            ),
+                          )
+                          .toList(),
+                    );
+                  },
                 ),
         ),
       ],
@@ -295,14 +314,17 @@ class _FeaturesGridState extends State<_FeaturesGrid> {
 
   Widget _buildFeatureTile(BuildContext context, String feature) {
     final icon = widget.featureIcons[feature] ?? Icons.check_circle_rounded;
+    final String? iconUrl = widget.iconUrls[feature];
+    final String? description = widget.descriptions[feature];
     final Color color = LightColor.categoryAccent(
       widget.featureColors[feature] ?? const Color(0xFF185FA5),
     );
     final textTheme = FutsalTheme.getTextTheme(context);
 
-    return IntrinsicWidth(
+    return SizedBox(
+      height: description == null ? AppDimens.sizeX48 : AppDimens.sizeX72,
       child: Container(
-        constraints: const BoxConstraints(minWidth: AppDimens.sizeX90),
+        width: double.infinity,
         padding: const EdgeInsets.symmetric(
           horizontal: AppDimens.paddingX10,
           vertical: AppDimens.paddingX8,
@@ -314,17 +336,45 @@ class _FeaturesGridState extends State<_FeaturesGrid> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: AppDimens.sizeX18, color: color),
+            if (iconUrl != null)
+              CustomImageView(
+                url: iconUrl,
+                width: AppDimens.sizeX24,
+                height: AppDimens.sizeX24,
+                cacheWidth: AppDimens.sizeX48,
+                cacheHeight: AppDimens.sizeX48,
+                fit: BoxFit.contain,
+                isHidePlaceholderImage: true,
+              )
+            else
+              Icon(icon, size: AppDimens.sizeX18, color: color),
             const SizedBox(width: AppDimens.sizeX8),
             Flexible(
-              child: Text(
-                feature,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: textTheme.bodySubTitle?.copyWith(
-                  color: LightColor.primaryTextColor,
-                  fontWeight: FontWeight.w600,
-                ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    feature,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: textTheme.bodySubTitle?.copyWith(
+                      color: LightColor.primaryTextColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  if (description != null) ...[
+                    const SizedBox(height: AppDimens.sizeX2),
+                    Text(
+                      description,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: textTheme.bodyMiniSubTitle?.copyWith(
+                        color: LightColor.secondaryTextColor,
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
           ],

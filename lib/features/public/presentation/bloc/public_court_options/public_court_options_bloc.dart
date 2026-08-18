@@ -17,6 +17,7 @@ class PublicCourtOptionsBloc
     on<FetchPublicCourtOptionsEvent>(_onFetchOptions);
     on<FetchPublicAmenitiesEvent>(_onFetchAmenities);
     on<FetchPublicFacilitiesEvent>(_onFetchFacilities);
+    on<FetchPublicMatchFormatsEvent>(_onFetchMatchFormats);
   }
 
   final GetCourtOptionsUseCase _useCase;
@@ -119,6 +120,31 @@ class PublicCourtOptionsBloc
           isLoadingAmenities: false,
           status: PublicCourtOptionsStatus.success,
           amenities: items,
+        ),
+      ),
+    );
+  }
+
+  FutureOr<void> _onFetchMatchFormats(
+    FetchPublicMatchFormatsEvent event,
+    Emitter<PublicCourtOptionsState> emit,
+  ) async {
+    emit(state.copyWith(isLoadingMatchFormats: true));
+    final Either<AppException, List<PublicOptionModel>> response =
+        await _useCase.getMatchFormats();
+    response.fold(
+      (AppException error) => emit(
+        state.copyWith(
+          isLoadingMatchFormats: false,
+          status: PublicCourtOptionsStatus.failure,
+          errorMessage: error.errorMessage,
+        ),
+      ),
+      (List<PublicOptionModel> items) => emit(
+        state.copyWith(
+          isLoadingMatchFormats: false,
+          status: PublicCourtOptionsStatus.success,
+          matchFormats: items,
         ),
       ),
     );

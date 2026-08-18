@@ -21,6 +21,7 @@ class ParticipantModel {
     required this.name,
     String? email,
     this.role = '',
+    this.avatarId,
     this.avatarUrl = '',
     this.isBlocked = false,
     this.isOnline = false,
@@ -39,6 +40,9 @@ class ParticipantModel {
   final String? _email;
   String get email => _email ?? '';
   final String role;
+
+  /// Media library id behind [avatarUrl] (`avatar.id`), null when unset.
+  final int? avatarId;
   final String avatarUrl;
   final bool isBlocked;
   final bool isOnline;
@@ -58,15 +62,21 @@ class ParticipantModel {
       name: (json['name'] ?? '').toString(),
       email: (json['email'] ?? json['user']?['email'] ?? '').toString(),
       role: (json['role'] ?? '').toString(),
-      avatarUrl: avatar is Map ? (avatar['url'] ?? '').toString() : '',
-      isBlocked: json['is_blocked'] == true,
+      avatarId: avatar is Map
+          ? int.tryParse(avatar['id']?.toString() ?? '')
+          : null,
+      // `avatar` is an object (`{id, url}`) or null; tolerate a bare url too.
+      avatarUrl: avatar is Map
+          ? (avatar['url'] ?? '').toString()
+          : (avatar ?? '').toString(),
+      isBlocked: _asBool(json['is_blocked']),
       isOnline: _asBool(json['is_online']),
       lastSeenAt: DateTime.tryParse(json['last_seen_at']?.toString() ?? ''),
       joinedAt: DateTime.tryParse(json['joined_at']?.toString() ?? ''),
       leftAt: DateTime.tryParse(json['left_at']?.toString() ?? ''),
-      isMuted: json['is_muted'] == true,
-      isPinned: json['is_pinned'] == true,
-      isArchived: json['is_archived'] == true,
+      isMuted: _asBool(json['is_muted']),
+      isPinned: _asBool(json['is_pinned']),
+      isArchived: _asBool(json['is_archived']),
       unreadCount: int.tryParse(json['unread_count']?.toString() ?? '') ?? 0,
     );
   }
@@ -81,6 +91,7 @@ class ParticipantModel {
     name: name,
     email: email,
     role: role,
+    avatarId: avatarId,
     avatarUrl: avatarUrl,
     isBlocked: isBlocked ?? this.isBlocked,
     isOnline: isOnline ?? this.isOnline,
@@ -227,9 +238,9 @@ class ConversationModel {
         json['last_message_at']?.toString() ?? '',
       ),
       unreadCount: int.tryParse(json['unread_count']?.toString() ?? '') ?? 0,
-      isMuted: json['is_muted'] == true,
-      isPinned: json['is_pinned'] == true,
-      isArchived: json['is_archived'] == true,
+      isMuted: _asBool(json['is_muted']),
+      isPinned: _asBool(json['is_pinned']),
+      isArchived: _asBool(json['is_archived']),
       participants: rawParticipants is List
           ? rawParticipants
                 .whereType<Map>()

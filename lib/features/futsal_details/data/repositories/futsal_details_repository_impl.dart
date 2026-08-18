@@ -132,10 +132,12 @@ final class FutsalDetailsRepositoryImpl extends FutsalDetailsRepository {
   Future<Either<AppException, List<TimeSlotModel>>> getVenueSlots({
     required int venueId,
     required String date,
+    String bookingType = BookingTypePayload.regular,
   }) async {
     final response = await _remoteDataSource.getVenueSlots(
       venueId: venueId,
       date: date,
+      bookingType: bookingType,
     );
     if (response.isError()) {
       return left(ResponseHelper.error(response));

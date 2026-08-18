@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:dartz/dartz.dart';
 import 'package:hamro_footsall/core/helper/exception_helper.dart';
 import 'package:hamro_footsall/features/message/data/model/chat_message_model.dart';
+import 'package:hamro_footsall/features/message/data/model/chat_message_page_model.dart';
 import 'package:hamro_footsall/features/message/data/model/chat_send_request.dart';
 import 'package:hamro_footsall/features/message/data/model/conversation_model.dart';
 import 'package:hamro_footsall/features/message/data/model/conversation_page_model.dart';
@@ -72,9 +73,15 @@ final class MessageUseCase {
     String socketId,
   ) async => await repository.sendPresenceHeartbeat(socketId);
 
-  Future<Either<AppException, List<ChatMessageModel>>> getMessages(
-    int conversationId,
-  ) async => await repository.getMessages(conversationId);
+  Future<Either<AppException, ChatMessagePageModel>> getMessages(
+    int conversationId, {
+    required int page,
+    int perPage = 20,
+  }) async => await repository.getMessages(
+    conversationId,
+    page: page,
+    perPage: perPage,
+  );
 
   Future<Either<AppException, ChatMessageModel>> sendMessage(
     int conversationId, {

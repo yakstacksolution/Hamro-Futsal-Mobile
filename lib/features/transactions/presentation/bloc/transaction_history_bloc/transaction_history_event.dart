@@ -56,6 +56,23 @@ final class ChangeTransactionRangeEvent extends TransactionHistoryEvent {
   List<Object?> get props => <Object?>[range];
 }
 
+/// Applies direction, type and range together — what the filter sheet returns
+/// — as a single refetch from page 1.
+final class ApplyTransactionFiltersEvent extends TransactionHistoryEvent {
+  const ApplyTransactionFiltersEvent({
+    required this.direction,
+    required this.type,
+    required this.range,
+  });
+
+  final TransactionDirectionFilter direction;
+  final String type;
+  final TransactionDateRange range;
+
+  @override
+  List<Object?> get props => <Object?>[direction, type, range];
+}
+
 /// Resets every filter (direction, type, range, search) in one request.
 final class ClearTransactionFiltersEvent extends TransactionHistoryEvent {
   const ClearTransactionFiltersEvent();

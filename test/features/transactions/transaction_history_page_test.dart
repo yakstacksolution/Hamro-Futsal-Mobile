@@ -4,10 +4,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hamro_footsall/core/helper/exception_helper.dart';
 import 'package:hamro_footsall/core/utils/string_constants.dart';
 import 'package:hamro_footsall/core/widgets/custom_bottom_sheet.dart';
+import 'package:hamro_footsall/features/expenses/presentation/widgets/expense_date_range_sheet.dart';
 import 'package:hamro_footsall/features/transactions/data/model/transaction_history_model.dart';
 import 'package:hamro_footsall/features/transactions/domain/model/booking_transaction.dart';
 import 'package:hamro_footsall/features/transactions/domain/repository/transaction_repository.dart';
 import 'package:hamro_footsall/features/transactions/presentation/pages/transaction_history_page.dart';
+import 'package:hamro_footsall/features/transactions/presentation/widgets/transaction_widgets.dart';
 
 void main() {
   /// The page keeps its own chip row mounted behind the sheet, so sheet
@@ -33,6 +35,14 @@ void main() {
       matching: find.byType(TextButton),
     ),
   );
+
+  /// The calendar sheet is a full month grid; the default 800x600 test surface
+  /// is shorter than any phone it actually runs on, so give it real room.
+  Future<void> usePhoneSurface(WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1080, 2160);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+  }
 
   Widget wrap(TransactionRepository repository) => MaterialApp(
     home: TransactionHistoryPage(
@@ -268,25 +278,51 @@ void main() {
       expect(repository.calls.length, 1);
     });
 
-    testWidgets('the custom range reveals both date fields', (
+    testWidgets('the custom range opens the calendar sheet', (
       WidgetTester tester,
     ) async {
       final _FakeTransactionRepository repository =
           _FakeTransactionRepository();
 
+      await usePhoneSurface(tester);
       await tester.pumpWidget(wrap(repository));
       await tester.pumpAndSettle();
 
       await tester.tap(find.byIcon(Icons.tune_rounded));
       await tester.pumpAndSettle();
 
-      expect(inSheet(StringConstants.startDate), findsNothing);
+      expect(find.byType(ExpenseDateRangeSheet), findsNothing);
 
+      // One calendar for the whole window, rather than two single-date fields.
       await tapInSheet(tester, StringConstants.customRange);
 
-      expect(inSheet(StringConstants.startDate), findsOneWidget);
-      expect(inSheet(StringConstants.endDate), findsOneWidget);
-      expect(inSheet(StringConstants.selectDate), findsNWidgets(2));
+      expect(find.byType(ExpenseDateRangeSheet), findsOneWidget);
+    });
+
+    testWidgets('the custom chip on the page skips the filter sheet', (
+      WidgetTester tester,
+    ) async {
+      final _FakeTransactionRepository repository =
+          _FakeTransactionRepository();
+
+      await usePhoneSurface(tester);
+      await tester.pumpWidget(wrap(repository));
+      await tester.pumpAndSettle();
+
+      // The chip row scrolls horizontally and builds lazily, so Custom is not
+      // laid out — or even mounted — until the row is dragged over to it.
+      await tester.dragUntilVisible(
+        find.text(StringConstants.customRange),
+        find.byType(TransactionRangeChips),
+        const Offset(-120, 0),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(StringConstants.customRange));
+      await tester.pumpAndSettle();
+
+      // Straight to the calendar — the filter sheet is no longer in the way.
+      expect(find.byType(ExpenseDateRangeSheet), findsOneWidget);
+      expect(find.byType(CustomBottomSheet), findsNothing);
     });
 
     testWidgets('clear all resets every filter in one request', (

@@ -158,6 +158,13 @@ class OpponentLevelModel {
 
 /// Lifecycle of an opponent request.
 enum RequestStatus {
+  /// Started in the wizard but never published — the request only exists for
+  /// its owner, who still has steps to finish.
+  draft,
+
+  /// Published by its owner and waiting on an admin review before it becomes
+  /// visible to other teams.
+  pendingApproval,
   fresh,
   pending,
   invitationSent,
@@ -170,6 +177,8 @@ enum RequestStatus {
 
 extension RequestStatusX on RequestStatus {
   String get label => switch (this) {
+    RequestStatus.draft => 'Draft',
+    RequestStatus.pendingApproval => 'Pending approval',
     RequestStatus.fresh => 'New',
     RequestStatus.pending => 'Pending',
     RequestStatus.invitationSent => 'Invitation sent',
@@ -184,7 +193,15 @@ extension RequestStatusX on RequestStatus {
   bool get isOpen =>
       this == RequestStatus.fresh || this == RequestStatus.pending;
 
-  bool get isSettled => !isOpen;
+  /// A draft is neither actionable nor finished — it is still being written.
+  bool get isDraft => this == RequestStatus.draft;
+
+  /// Submitted and out of the owner's hands, but not live yet either.
+  bool get isAwaitingApproval => this == RequestStatus.pendingApproval;
+
+  /// Only a request that reached a final state is settled — a draft and a
+  /// request under review are both still in flight.
+  bool get isSettled => !isOpen && !isDraft && !isAwaitingApproval;
 
   /// Maps a wire status (`open | invitation_sent | accepted | declined |
   /// expired | cancelled`) onto the UI lifecycle. An `open`
@@ -198,7 +215,17 @@ extension RequestStatusX on RequestStatus {
     DateTime? acceptDeadline,
   }) {
     switch (raw?.toString().trim().toLowerCase() ?? '') {
+      // Wizard-in-progress: `/auth/opponent-requests` returns these to their
+      // owner only, and no other team can see or accept them.
+      case 'draft':
+        return RequestStatus.draft;
+      // Published, waiting on the admin review that makes it public.
+      case 'pending_approval':
+      case 'under_review':
+      case 'pending_review':
+        return RequestStatus.pendingApproval;
       case 'open':
+      case 'published':
         if (isMine) return RequestStatus.sent;
         if (acceptDeadline == null) return RequestStatus.pending;
         return acceptDeadline.isAfter(DateTime.now())
@@ -511,6 +538,26 @@ class OpponentRequestModel {
     this.acceptedByTeamName = '',
     this.acceptedByUserId = 0,
     this.invitations = const <OpponentInvitationModel>[],
+    this.mainStep = 0,
+    this.subStep = 0,
+    this.pendingInvitationCount = 0,
+    this.totalInvitationCount = 0,
+    this.matchFormatId = '',
+    this.opponentLevelId = '',
+    this.message = '',
+    this.venueSource = '',
+    this.venueName = '',
+    this.venueCourtName = '',
+    this.venueAddress = '',
+    this.venueBookingId = '',
+    this.venueBooking = const <String, dynamic>{},
+    this.preferredDateTime,
+    this.venueStartTime,
+    this.venueEndTime,
+    this.perPlayerAmount = 0,
+    this.splitType = '',
+    this.splitBasis = '',
+    this.requestingTeamPercent = 0,
   });
 
   final String id;
@@ -557,6 +604,72 @@ class OpponentRequestModel {
   /// way.
   final List<OpponentInvitationModel> invitations;
 
+  /// How far the create wizard got on a [RequestStatus.draft] row —
+  /// `main_step`/`sub_step` as the backend counts them. 0 when unknown.
+  final int mainStep;
+  final int subStep;
+
+  /// Server ids behind the match section, so resuming a draft in the wizard
+  /// can re-select exactly what was saved instead of guessing from labels.
+  final String matchFormatId;
+  final String opponentLevelId;
+
+  /// `per_player_amount` — what each player on my side owes, as the server
+  /// worked it out from the roster snapshot. 0 until the cost step has run.
+  final int perPlayerAmount;
+
+  /// The `cost` block's own fields — `split_type` (`even` | `custom`),
+  /// `split_basis` (`team` | `result`) and `requesting_team_percent` — kept raw
+  /// so the wizard can restore the exact rule a draft saved. Empty/0 until the
+  /// cost step has run.
+  final String splitType;
+  final String splitBasis;
+  final int requestingTeamPercent;
+
+  /// `preferred_date` + `preferred_time` exactly as the match step saved them.
+  /// Kept apart from [dateTime], which prefers the settled court's slot — the
+  /// wizard's step-one pickers must show what was submitted, not the booking.
+  final DateTime? preferredDateTime;
+
+  /// The note the requester attached, as `message`. Empty when unset.
+  final String message;
+
+  /// The venue block's own fields, kept alongside the flattened [venue] label
+  /// so the wizard can re-select what a draft's venue step saved:
+  /// `venue_source` (`booking` | `external` | …) plus the parts an externally
+  /// booked court is described by. [totalFee] carries `fee_amount`.
+  final String venueSource;
+  final String venueName;
+  final String venueCourtName;
+  final String venueAddress;
+
+  /// The booked window the venue step saved, as the API's `HH:mm(:ss)` strings.
+  /// Null when the venue step has not run.
+  final String? venueStartTime;
+  final String? venueEndTime;
+
+  /// Set when the venue is a booking made on this platform.
+  final String venueBookingId;
+
+  /// The whole nested `venue.booking` payload, untouched. `booking`-sourced
+  /// venues arrive as a full booking rather than an id, and it parses straight
+  /// into a `BookingModel` — which is what lets the wizard re-select the
+  /// booking behind a resumed draft.
+  final Map<String, dynamic> venueBooking;
+
+  /// `invitations_summary` counts. The list endpoint reports only these
+  /// numbers, so they stand in for [invitations] on the cards.
+  final int pendingInvitationCount;
+  final int totalInvitationCount;
+
+  /// Invitation count to show: the objects when the payload carried them,
+  /// otherwise the summary the list endpoint sends.
+  int get invitationCount => invitations.isNotEmpty
+      ? invitations.length
+      : (totalInvitationCount > 0
+            ? totalInvitationCount
+            : pendingInvitationCount);
+
   /// Invitations still waiting on the requester's pick.
   List<OpponentInvitationModel> get pendingInvitations => invitations
       .where((i) => i.status == InvitationStatus.pending)
@@ -574,13 +687,86 @@ class OpponentRequestModel {
   /// is linked to the request.
   bool get isMatchConfirmed => status == RequestStatus.accepted;
 
-  /// A request row from `GET /opponent-requests`. Tolerant of flat or nested
-  /// (`requester`/`match`/`pricing`) payload shapes.
+  /// A request row from `GET /opponent-requests` or
+  /// `GET /auth/opponent-requests?tab=all`. Tolerant of three payload shapes:
+  /// flat, the public list's nested `requester`/`match`/`pricing`, and the
+  /// authenticated list's `team`/`match_format`/`opponent_level`/`venue`
+  /// (which carries drafts, hence `preferred_date`/`preferred_time` and
+  /// `main_step`/`sub_step`).
   factory OpponentRequestModel.fromJson(Map<String, dynamic> json) {
     final requester = _asMap(json['requester']);
-    final match = _asMap(json['match']);
-    final pricing = _asMap(json['pricing']);
+    final ownTeam = _asMap(json['team']);
+    final matchFormat = _asMap(json['match_format']);
+    final opponentLevel = _asMap(json['opponent_level']);
+    final venueBlock = _asMap(json['venue']);
+    // A `booking`-sourced venue describes itself through the nested booking; an
+    // `external` one carries the same facts as flat keys. Read both.
+    final costBlock = _asMap(json['cost']);
+    final venueBooking = _asMap(venueBlock['booking']);
+    final bookingVenue = _asMap(venueBooking['venue']);
+    final bookingCourt = _asMap(venueBooking['court']);
+    final String venueNameValue =
+        (venueBlock['venue_name'] ?? bookingVenue['name'] ?? '')
+            .toString()
+            .trim();
+    final String courtNameValue =
+        (venueBlock['court_name'] ?? bookingCourt['name'] ?? '')
+            .toString()
+            .trim();
+    final String venueAddressValue =
+        (venueBlock['address'] ?? bookingVenue['address'] ?? '')
+            .toString()
+            .trim();
+    final String venueDateValue =
+        (venueBlock['date'] ?? venueBooking['booking_date'] ?? '').toString();
+    final String venueStartValue =
+        (venueBlock['start_time'] ?? venueBooking['start_time'] ?? '')
+            .toString();
+    final String venueEndValue =
+        (venueBlock['end_time'] ?? venueBooking['end_time'] ?? '').toString();
+    final dynamic venueFeeValue =
+        venueBlock['fee_amount'] ??
+        venueBooking['total_amount'] ??
+        venueBooking['subtotal'];
     final acceptedBy = _asMap(json['accepted_by']);
+    final invitationsSummary = _asMap(json['invitations_summary']);
+
+    // `match`/`pricing` are the public list's nesting; the authenticated list
+    // spreads the same values across the blocks read above, so each falls back
+    // onto its counterpart.
+    final match = _asMap(json['match']).isNotEmpty
+        ? _asMap(json['match'])
+        : <String, dynamic>{
+            // The settled court wins over the preferred slot: once a venue is
+            // attached, that booking is when the match is actually played.
+            'date': venueDateValue.isNotEmpty
+                ? venueDateValue
+                : json['preferred_date'],
+            'start_time': venueStartValue.isNotEmpty
+                ? venueStartValue
+                : json['preferred_time'],
+            'end_time': venueEndValue,
+            'venue_name': [
+              venueNameValue,
+              courtNameValue,
+            ].where((s) => s.isNotEmpty).join(' · '),
+            'format': matchFormat['name'] ?? matchFormat['title'],
+            'level': opponentLevel['title'] ?? opponentLevel['name'],
+          };
+    // The authenticated list nests the money under `cost`, with its own key
+    // names; translate them onto the public list's `pricing` shape so the share
+    // maths below has one input. `court_fee_amount` is authoritative when the
+    // cost step has run — it is the fee the split was actually computed from.
+    final pricing = _asMap(json['pricing']).isNotEmpty
+        ? _asMap(json['pricing'])
+        : <String, dynamic>{
+            'total_fee': costBlock['court_fee_amount'] ?? venueFeeValue,
+            'split_mode': costBlock['split_type'],
+            'requester_pct': costBlock['requesting_team_percent'],
+            'accepter_pct': costBlock['opponent_team_percent'],
+            'requester_share': costBlock['requesting_team_amount'],
+            'accepter_share': costBlock['opponent_team_amount'],
+          };
 
     final bool isMine = json['is_mine'] == true || json['isMine'] == true;
     final DateTime? acceptDeadline = _asDate(
@@ -599,9 +785,13 @@ class OpponentRequestModel {
       _displayTime(endTime),
     ].where((s) => s.isNotEmpty).join(' – ');
 
-    // "custom_result" splits have no fixed percentage.
+    // A result-keyed split has no fixed percentage per side. The public list
+    // says so with `split_mode: custom_result`; the authenticated one with
+    // `split_basis: result`.
     final String splitMode = (pricing['split_mode'] ?? '').toString();
-    final bool isResultSplit = splitMode == 'custom_result';
+    final bool isResultSplit =
+        splitMode == 'custom_result' ||
+        (costBlock['split_basis'] ?? '').toString().toLowerCase() == 'result';
     final int totalFee = _asInt(pricing['total_fee'] ?? json['total_fee']);
     final int accepterShare = _asInt(
       pricing['accepter_share'] ?? json['your_share'],
@@ -610,8 +800,14 @@ class OpponentRequestModel {
     final int accepterPct = _asInt(pricing['accepter_pct']);
 
     // "Your" side of the money depends on which side of the request you're on.
+    // The server's own amounts win over percentage maths when it sent them.
+    final int requesterShare = _asInt(pricing['requester_share']);
     final int yourShare = isMine
-        ? (isResultSplit ? 0 : (totalFee * requesterPct / 100).round())
+        ? (isResultSplit
+              ? 0
+              : (requesterShare > 0
+                    ? requesterShare
+                    : (totalFee * requesterPct / 100).round()))
         : accepterShare;
     final int? myPct = isResultSplit
         ? null
@@ -626,7 +822,14 @@ class OpponentRequestModel {
 
     return OpponentRequestModel(
       id: (json['id'] ?? '').toString(),
-      team: (requester['team_name'] ?? json['team'] ?? '').toString().trim(),
+      team:
+          (requester['team_name'] ??
+                  ownTeam['name'] ??
+                  json['team_name'] ??
+                  (json['team'] is String ? json['team'] : null) ??
+                  '')
+              .toString()
+              .trim(),
       dateTime: dateTime,
       summary: summary,
       status: RequestStatusX.fromApi(
@@ -642,13 +845,47 @@ class OpponentRequestModel {
       createdAt: _asDate(json['created_at'] ?? json['createdAt']),
       requesterUserId: _asInt(requester['user_id']),
       requesterName: (requester['name'] ?? '').toString().trim(),
-      requesterTeamId: (requester['team_id'] ?? '').toString(),
+      requesterTeamId: (requester['team_id'] ?? ownTeam['id'] ?? '').toString(),
       isMine: isMine,
       acceptDeadline: acceptDeadline,
       acceptedByTeamId: (acceptedBy['team_id'] ?? '').toString(),
       acceptedByTeamName: (acceptedBy['team_name'] ?? '').toString().trim(),
       acceptedByUserId: _asInt(acceptedBy['user_id']),
       invitations: _invitationsFrom(json, acceptedBy, accepterShare),
+      mainStep: _asInt(json['main_step']),
+      subStep: _asInt(json['sub_step']),
+      pendingInvitationCount: _asInt(invitationsSummary['pending_count']),
+      totalInvitationCount: _asInt(invitationsSummary['total_count']),
+      matchFormatId: (matchFormat['id'] ?? json['match_format_id'] ?? '')
+          .toString(),
+      opponentLevelId: (opponentLevel['id'] ?? json['opponent_level_id'] ?? '')
+          .toString(),
+      message: (json['message'] ?? '').toString().trim(),
+      venueSource: (venueBlock['source'] ?? venueBlock['venue_source'] ?? '')
+          .toString()
+          .trim(),
+      venueName: venueNameValue,
+      venueCourtName: courtNameValue,
+      venueAddress: venueAddressValue,
+      venueBookingId: (venueBlock['booking_id'] ?? venueBooking['id'] ?? '')
+          .toString(),
+      venueBooking: venueBooking,
+      preferredDateTime: _asDate(
+        '${json['preferred_date'] ?? ''} ${json['preferred_time'] ?? ''}'
+            .trim(),
+      ),
+      venueStartTime: venueStartValue.isEmpty ? null : venueStartValue,
+      venueEndTime: venueEndValue.isEmpty ? null : venueEndValue,
+      perPlayerAmount: _asInt(costBlock['per_player_amount']),
+      splitType: (costBlock['split_type'] ?? costBlock['split_mode'] ?? '')
+          .toString()
+          .trim(),
+      splitBasis: (costBlock['split_basis'] ?? costBlock['basis'] ?? '')
+          .toString()
+          .trim(),
+      requestingTeamPercent: _asInt(
+        costBlock['requesting_team_percent'] ?? costBlock['requester_pct'],
+      ),
     );
   }
 
@@ -719,6 +956,26 @@ class OpponentRequestModel {
     acceptedByTeamName: acceptedByTeamName,
     acceptedByUserId: acceptedByUserId,
     invitations: invitations ?? this.invitations,
+    mainStep: mainStep,
+    subStep: subStep,
+    pendingInvitationCount: pendingInvitationCount,
+    totalInvitationCount: totalInvitationCount,
+    matchFormatId: matchFormatId,
+    opponentLevelId: opponentLevelId,
+    message: message,
+    venueSource: venueSource,
+    venueName: venueName,
+    venueCourtName: venueCourtName,
+    venueAddress: venueAddress,
+    venueBookingId: venueBookingId,
+    venueBooking: venueBooking,
+    preferredDateTime: preferredDateTime,
+    venueStartTime: venueStartTime,
+    venueEndTime: venueEndTime,
+    perPlayerAmount: perPlayerAmount,
+    splitType: splitType,
+    splitBasis: splitBasis,
+    requestingTeamPercent: requestingTeamPercent,
   );
 
   String get initials {

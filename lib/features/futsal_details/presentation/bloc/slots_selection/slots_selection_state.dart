@@ -16,6 +16,7 @@ final class SlotsSelectionState extends Equatable {
     this.selectedCourtIndex = -1,
     this.bookingMode = BookingMode.single,
     this.recurrence = BookingRecurrence.oneMonth,
+    this.recurringWeekdays = const <int>{},
     this.fallbackPrice = 0,
     this.errorMessage,
     this.recurringCheckStatus = RecurringCheckStatus.idle,
@@ -34,6 +35,14 @@ final class SlotsSelectionState extends Equatable {
   final int selectedCourtIndex;
   final BookingMode bookingMode;
   final BookingRecurrence recurrence;
+
+  /// Weekdays a recurring booking repeats on (`DateTime.monday`…`sunday`).
+  ///
+  /// Empty means "whichever weekday the selected date falls on", so a user who
+  /// never opens the day picker gets the original same-day-every-week booking.
+  /// Read [effectiveWeekdays] rather than this set when rendering.
+  final Set<int> recurringWeekdays;
+
   final double fallbackPrice;
   final String? errorMessage;
   final RecurringCheckStatus recurringCheckStatus;
@@ -100,10 +109,22 @@ final class SlotsSelectionState extends Equatable {
 
   bool get isRecurring => bookingMode == BookingMode.recurring;
 
-  int get sessions => isRecurring ? recurrence.sessions : 1;
+  /// The weekdays actually booked, resolving the empty set to the selected
+  /// date's own weekday.
+  Set<int> get effectiveWeekdays => recurringWeekdays.isEmpty
+      ? <int>{selectedDate.weekday}
+      : recurringWeekdays;
+
+  /// True once the booking repeats on more than one weekday, which the
+  /// `repeat_weeks` payload cannot express.
+  bool get hasMultipleWeekdays => isRecurring && effectiveWeekdays.length > 1;
+
+  int get sessions => sessionDates.length;
 
   List<DateTime> get sessionDates {
-    if (isRecurring) return recurrence.datesFrom(selectedDate);
+    if (isRecurring) {
+      return recurrence.datesFrom(selectedDate, weekdays: effectiveWeekdays);
+    }
     return <DateTime>[selectedDate];
   }
 
@@ -137,7 +158,7 @@ final class SlotsSelectionState extends Equatable {
       return 'Select a time slot to continue';
     }
     if (isRecurring) {
-      return '${court.name} · Every ${_dayName(selectedDate)} · $selectedTime';
+      return '${court.name} · Every ${RecurringWeekdays.summary(effectiveWeekdays)} · $selectedTime';
     }
     return '${court.name} · ${_dayName(selectedDate)}, ${selectedDate.day} ${_monthName(selectedDate)} · $selectedTime';
   }
@@ -167,7 +188,12 @@ final class SlotsSelectionState extends Equatable {
       apiEndTime: selectedSlotApiEndTime,
       endTime: selectedSlot?.endTime ?? court.endTime,
       isRecurring: isRecurring,
-      recurrenceLabel: isRecurring ? recurrence.label : null,
+      recurrenceLabel: isRecurring
+          ? '${recurrence.label} · ${RecurringWeekdays.summary(effectiveWeekdays)}'
+          : null,
+      recurringWeekdays: isRecurring
+          ? effectiveWeekdays.toList(growable: false)
+          : const <int>[],
       sessions: sessions,
       sessionDates: sessionDates,
       pricePerSession: court.priceFor(selectedDate, time),
@@ -186,6 +212,7 @@ final class SlotsSelectionState extends Equatable {
     int? selectedCourtIndex,
     BookingMode? bookingMode,
     BookingRecurrence? recurrence,
+    Set<int>? recurringWeekdays,
     double? fallbackPrice,
     String? errorMessage,
     bool clearError = false,
@@ -207,6 +234,7 @@ final class SlotsSelectionState extends Equatable {
       selectedCourtIndex: selectedCourtIndex ?? this.selectedCourtIndex,
       bookingMode: bookingMode ?? this.bookingMode,
       recurrence: recurrence ?? this.recurrence,
+      recurringWeekdays: recurringWeekdays ?? this.recurringWeekdays,
       fallbackPrice: fallbackPrice ?? this.fallbackPrice,
       errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
       recurringCheckStatus: clearRecurring
@@ -234,6 +262,7 @@ final class SlotsSelectionState extends Equatable {
     selectedCourtIndex,
     bookingMode,
     recurrence,
+    recurringWeekdays,
     fallbackPrice,
     errorMessage,
     recurringCheckStatus,

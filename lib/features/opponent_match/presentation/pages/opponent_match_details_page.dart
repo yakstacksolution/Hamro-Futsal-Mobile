@@ -20,12 +20,8 @@ class OpponentMatchDetailsPage extends StatelessWidget {
 
   final String requestId;
 
-  OpponentRequestModel? _request(OpponentMatchState state) {
-    for (final r in state.requests) {
-      if (r.id == requestId) return r;
-    }
-    return null;
-  }
+  OpponentRequestModel? _request(OpponentMatchState state) =>
+      state.requestById(requestId);
 
   /// Who this side chats with: the requester talks to the accepting captain,
   /// the accepter talks to the requester.

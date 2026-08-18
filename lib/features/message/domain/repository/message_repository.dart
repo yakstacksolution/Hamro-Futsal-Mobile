@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:dartz/dartz.dart';
 import 'package:hamro_footsall/core/helper/exception_helper.dart';
 import 'package:hamro_footsall/features/message/data/model/chat_message_model.dart';
+import 'package:hamro_footsall/features/message/data/model/chat_message_page_model.dart';
 import 'package:hamro_footsall/features/message/data/model/chat_send_request.dart';
 import 'package:hamro_footsall/features/message/data/model/conversation_model.dart';
 import 'package:hamro_footsall/features/message/data/model/conversation_page_model.dart';
@@ -42,9 +43,11 @@ abstract class MessageRepository {
 
   Future<Either<AppException, bool>> setPresence(bool online);
   Future<Either<AppException, bool>> sendPresenceHeartbeat(String socketId);
-  Future<Either<AppException, List<ChatMessageModel>>> getMessages(
-    int conversationId,
-  );
+  Future<Either<AppException, ChatMessagePageModel>> getMessages(
+    int conversationId, {
+    required int page,
+    required int perPage,
+  });
   Future<Either<AppException, ChatMessageModel>> sendMessage(
     int conversationId, {
     required ChatSendRequest request,

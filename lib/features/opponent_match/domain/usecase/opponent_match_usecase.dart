@@ -2,7 +2,9 @@ import 'package:dartz/dartz.dart';
 import 'package:hamro_footsall/core/helper/exception_helper.dart';
 import 'package:hamro_footsall/features/opponent_match/data/model/accept_opponent_request_request.dart';
 import 'package:hamro_footsall/features/opponent_match/data/model/opponent_match_model.dart';
+import 'package:hamro_footsall/features/opponent_match/data/model/opponent_match_step_request.dart';
 import 'package:hamro_footsall/features/opponent_match/domain/entities/opponent_match_entities.dart';
+import 'package:hamro_footsall/features/opponent_match/data/model/opponent_request_tab.dart';
 import 'package:hamro_footsall/features/opponent_match/domain/repository/opponent_match_repository.dart';
 
 final class OpponentMatchUseCase {
@@ -55,6 +57,36 @@ final class OpponentMatchUseCase {
     String memberId,
   ) async => await repository.removeMember(teamId, memberId);
 
+  Future<Either<AppException, OpponentRequestRefModel>> saveMatchStep(
+    OpponentMatchStepRequest data, {
+    String? requestId,
+  }) async => await repository.saveMatchStep(data, requestId: requestId);
+
+  Future<Either<AppException, List<OpponentRequestModel>>> getRequestsByTab(
+    OpponentRequestTab tab,
+  ) => repository.getRequestsByTab(tab);
+
+  Future<Either<AppException, List<OpponentRequestModel>>> getMyRequests() =>
+      repository.getMyRequests();
+
+  Future<Either<AppException, OpponentRequestModel>> getMyRequest(String id) =>
+      repository.getMyRequest(id);
+
+  Future<Either<AppException, OpponentRequestRefModel>> saveVenueStep(
+    String requestId,
+    OpponentVenueStepRequest data,
+  ) async => await repository.saveVenueStep(requestId, data);
+
+  Future<Either<AppException, OpponentRequestRefModel>> saveCostStep(
+    String requestId,
+    OpponentCostStepRequest data,
+  ) async => await repository.saveCostStep(requestId, data);
+
+  Future<Either<AppException, String>> publishRequest(
+    String requestId, {
+    String message = '',
+  }) async => await repository.publishRequest(requestId, message: message);
+
   Future<Either<AppException, List<OpponentRequestModel>>> sendRequest(
     CreateOpponentRequestEntity data,
   ) async => await repository.sendRequest(data);
@@ -63,9 +95,8 @@ final class OpponentMatchUseCase {
     String id,
   ) async => await repository.declineRequest(id);
 
-  Future<Either<AppException, List<OpponentRequestModel>>> deleteRequest(
-    String id,
-  ) async => await repository.deleteRequest(id);
+  Future<Either<AppException, String>> deleteRequest(String id) async =>
+      await repository.deleteRequest(id);
 
   Future<Either<AppException, List<OpponentRequestModel>>> selectOpponent(
     String id,

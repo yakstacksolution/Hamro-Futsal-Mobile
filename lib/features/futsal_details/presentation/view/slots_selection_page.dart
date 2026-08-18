@@ -65,7 +65,8 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
         startTime: draft.apiTime ?? '',
         endTime: draft.apiEndTime,
         paymentMethod: manual.paymentMethod,
-        repeatWeeks: draft.isRecurring ? draft.sessions : null,
+        repeatWeeks: draft.repeatWeeksPayload,
+        bookingDates: draft.apiSessionDates,
         paymentNote: manual.paymentNote,
         bookingType: 'manual',
         customerName: manual.customerName,
@@ -166,6 +167,12 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
             onRecurrenceChanged: (BookingRecurrence value) {
               context.read<SlotsSelectionBloc>().add(
                 ChangeSlotsRecurrenceEvent(value),
+              );
+            },
+            weekdays: state.effectiveWeekdays,
+            onWeekdayToggled: (int weekday) {
+              context.read<SlotsSelectionBloc>().add(
+                ToggleSlotsRecurringDayEvent(weekday),
               );
             },
           ),
@@ -314,33 +321,12 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Row(
-                children: <Widget>[
-                  Expanded(
-                    child: Text(
-                      StringConstants.availableCourts,
-                      style: FutsalTheme.getTextTheme(context).bodyTextMedium
-                          ?.copyWith(color: LightColor.primaryTextColor),
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppDimens.paddingX8,
-                      vertical: AppDimens.paddingX2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: LightColor.secondarySoft,
-                      borderRadius: BorderRadius.circular(AppDimens.radiusX10),
-                    ),
-                    child: Text(
-                      state.courts.isEmpty
-                          ? '0 courts'
-                          : '${state.availableCourtCount}/${state.courts.length} available',
-                      style: FutsalTheme.getTextTheme(context).bodyMiniSubTitle
-                          ?.copyWith(color: LightColor.secondaryColor),
-                    ),
-                  ),
-                ],
+              _CourtsSectionHeader(
+                subtitle: state.hasSlotSelection
+                    ? (state.slotLabel ?? 'For the selected time')
+                    : 'All courts for this date',
+                availableCount: state.availableCourtCount,
+                totalCount: state.courts.length,
               ),
               const SizedBox(height: AppDimens.sizeX12),
               if (state.isLoading && state.courts.isEmpty)
@@ -649,8 +635,6 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
         body: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
           child: context.isDesktop
-              // Choose when on the left, pick a court on the right, so the
-              // court list is visible without scrolling past the controls.
               ? Center(
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(
@@ -707,6 +691,92 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
         ),
         bottomNavigationBar: _buildBottomBar(),
       ),
+    );
+  }
+}
+
+/// Section title for the courts list: accent bar + title, the current filter
+/// context underneath, and an availability count pill that turns muted when
+/// nothing is bookable.
+class _CourtsSectionHeader extends StatelessWidget {
+  const _CourtsSectionHeader({
+    required this.subtitle,
+    required this.availableCount,
+    required this.totalCount,
+  });
+
+  final String subtitle;
+  final int availableCount;
+  final int totalCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    final bool hasAvailable = availableCount > 0;
+    final Color accent = hasAvailable
+        ? LightColor.secondaryColor
+        : LightColor.hintTextColor;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: <Widget>[
+        Container(
+          width: AppDimens.sizeX4,
+          height: AppDimens.sizeX28,
+          decoration: BoxDecoration(
+            color: LightColor.secondaryColor,
+            borderRadius: BorderRadius.circular(AppDimens.radiusX4),
+          ),
+        ),
+        const SizedBox(width: AppDimens.sizeX10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Text(
+                StringConstants.availableCourts,
+                style: textTheme.bodyTextMedium?.copyWith(
+                  color: LightColor.primaryTextColor,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: AppDimens.sizeX2),
+              Text(
+                subtitle,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: textTheme.bodyMiniSubTitle?.copyWith(
+                  color: LightColor.hintTextColor,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: AppDimens.sizeX8),
+        Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppDimens.paddingX10,
+            vertical: AppDimens.paddingX4,
+          ),
+          decoration: BoxDecoration(
+            color: hasAvailable
+                ? LightColor.secondarySoft
+                : LightColor.dividerColor.withValues(alpha: 0.5),
+            borderRadius: BorderRadius.circular(AppDimens.radiusX50),
+          ),
+          child: Text(
+            totalCount == 0
+                ? '0 courts'
+                : '$availableCount of $totalCount available',
+            style: textTheme.bodyMiniSubTitle?.copyWith(
+              color: accent,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

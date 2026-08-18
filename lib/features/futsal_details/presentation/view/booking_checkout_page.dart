@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -23,6 +22,7 @@ import 'package:hamro_footsall/features/futsal_details/data/model/create_booking
 import 'package:hamro_footsall/features/futsal_details/presentation/bloc/booking_hold/booking_hold_bloc.dart';
 import 'package:hamro_footsall/features/futsal_details/presentation/bloc/create_booking/create_booking_bloc.dart';
 import 'package:hamro_footsall/features/futsal_details/presentation/bloc/payment_qr/payment_qr_bloc.dart';
+import 'package:hamro_footsall/features/media/utils/media_file_picker.dart';
 import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class BookingCheckoutPage extends StatefulWidget {
@@ -38,16 +38,13 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
     with WidgetsBindingObserver {
   final TextEditingController _couponCtrl = TextEditingController();
 
-  static const List<String> _docExtensions = <String>['jpg', 'jpeg', 'png'];
-  static const int _maxDocBytes = 10 * 1024 * 1024;
-
   static const String _payeeName = 'Hamro Futsal Pvt. Ltd.';
   static const String _payeeId = '9800000000';
 
   // Payment method is fixed to cash for now (sent as `payment_method`).
   static const String _paymentMethod = 'cash';
 
-  PlatformFile? _paymentDoc;
+  PickedMediaFile? _paymentDoc;
   ReceiptValidationResult? _receiptValidation;
   bool _paymentDocValidationApplied = false;
   bool _isValidatingReceipt = false;
@@ -203,22 +200,19 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
     context.read<CouponBloc>().add(const RemoveCouponEvent());
   }
 
+  /// Attaches the payment receipt through the shared media picker — gallery,
+  /// camera or files, downscaled and HEIC-converted the same way media-library
+  /// uploads are. A receipt is usually a screenshot or a photo of a counter
+  /// slip, so the camera path matters here.
   Future<void> _pickPaymentDoc({bool applyValidate = true}) async {
-    final FilePickerResult? result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: _docExtensions,
+    final PickedMediaFile? file = await pickMediaFile(
+      context,
+      title: StringConstants.uploadPaymentReceipt,
+      subtitle: StringConstants.jpgOrPngUpTo10Mb,
+      allowedExtensions: kImageUploadExtensions,
+      maxBytes: kMaxUploadBytes,
     );
-    final PlatformFile? file = result?.files.singleOrNull;
-    if (file == null || !mounted || file.path == null) return;
-    if (file.size > _maxDocBytes) {
-      AppUtils().showSnackBar(
-        context,
-        MsgType.error,
-        'Payment proof must be smaller than 10 MB.',
-        key: 'doc_too_large',
-      );
-      return;
-    }
+    if (file == null || !mounted) return;
 
     if (!applyValidate) {
       setState(() {
@@ -254,7 +248,7 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
     });
 
     final ReceiptValidationResult validation = await ReceiptValidator.validate(
-      image: File(file.path!),
+      image: File(file.path),
       expectedAmount: expectedAmount,
       merchantNames: const <String>[
         'Yak Stack Solution',
@@ -355,8 +349,11 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
           endTime: draft.apiEndTime,
           paymentMethod: manual?.paymentMethod ?? _paymentMethod,
           couponCode: coupon.hasApplied ? coupon.appliedCode : null,
-          repeatWeeks: draft.isRecurring ? draft.sessions : null,
+          repeatWeeks: draft.repeatWeeksPayload,
+          bookingDates: draft.apiSessionDates,
           paymentProofPath: _paymentDoc?.path,
+          paymentProofBytes: _paymentDoc?.bytes,
+          paymentProofName: _paymentDoc?.name,
           paymentNote: manual?.paymentNote,
           bookingType: manual == null ? null : 'manual',
           customerName: manual?.customerName,
@@ -507,6 +504,12 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
                     isValidating: _isValidatingReceipt,
                     highlightMissing: _submitted && _paymentDoc == null,
                     onPick: () => _pickPaymentDoc(applyValidate: false),
+                    onPreview: () {
+                      final PickedMediaFile? proof = _paymentDoc;
+                      if (proof != null) {
+                        showPickedMediaPreview(context, proof);
+                      }
+                    },
                     onRemove: () => setState(() {
                       _paymentDoc = null;
                       _receiptValidation = null;
@@ -1327,24 +1330,18 @@ class _UploadCard extends StatelessWidget {
     required this.highlightMissing,
     required this.onPick,
     required this.onRemove,
+    required this.onPreview,
   });
 
-  final PlatformFile? file;
+  final PickedMediaFile? file;
   final bool isValidating;
   final bool highlightMissing;
   final VoidCallback onPick;
   final VoidCallback onRemove;
 
-  bool get _isImage {
-    final String ext = (file?.extension ?? '').toLowerCase();
-    return ext == 'jpg' || ext == 'jpeg' || ext == 'png';
-  }
-
-  String _sizeLabel(int bytes) {
-    if (bytes < 1024) return '$bytes B';
-    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(0)} KB';
-    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
-  }
+  /// Opens the attached receipt full-screen so it can be checked before the
+  /// booking is confirmed.
+  final VoidCallback onPreview;
 
   @override
   Widget build(BuildContext context) {
@@ -1415,28 +1412,49 @@ class _UploadCard extends StatelessWidget {
       );
     }
 
-    final PlatformFile picked = file!;
+    final PickedMediaFile picked = file!;
     return _Surface(
       child: Row(
         children: <Widget>[
-          ClipRRect(
-            borderRadius: BorderRadius.circular(AppDimens.radiusX10),
-            child: _isImage && picked.path != null
-                ? Image.file(
-                    File(picked.path!),
+          GestureDetector(
+            onTap: picked.isImage ? onPreview : null,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+              child: Stack(
+                alignment: Alignment.center,
+                children: <Widget>[
+                  // From bytes, not the path: the picked file's cache entry
+                  // can vanish while the page is still open.
+                  Image.memory(
+                    picked.bytes,
                     width: AppDimens.sizeX48,
                     height: AppDimens.sizeX48,
                     fit: BoxFit.cover,
-                  )
-                : Container(
-                    width: AppDimens.sizeX48,
-                    height: AppDimens.sizeX48,
-                    color: LightColor.inputFillColor,
-                    child: Icon(
-                      Icons.picture_as_pdf_outlined,
-                      color: LightColor.secondaryTextColor,
+                    errorBuilder: (_, __, ___) => Container(
+                      width: AppDimens.sizeX48,
+                      height: AppDimens.sizeX48,
+                      color: LightColor.inputFillColor,
+                      child: Icon(
+                        Icons.broken_image_outlined,
+                        color: LightColor.secondaryTextColor,
+                      ),
                     ),
                   ),
+                  // Signals the thumbnail is tappable.
+                  Container(
+                    width: AppDimens.sizeX48,
+                    height: AppDimens.sizeX48,
+                    color: Colors.black26,
+                    alignment: Alignment.center,
+                    child: const Icon(
+                      Icons.zoom_in_rounded,
+                      size: AppDimens.sizeX18,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
           const SizedBox(width: AppDimens.sizeX12),
           Expanded(
@@ -1455,7 +1473,7 @@ class _UploadCard extends StatelessWidget {
                 ),
                 const SizedBox(height: AppDimens.sizeX2),
                 Text(
-                  'Attached · ${_sizeLabel(picked.size)}',
+                  'Attached · ${picked.sizeLabel}',
                   style: textTheme.bodyMiniSubTitle?.copyWith(
                     color: LightColor.secondaryTextColor,
                     fontWeight: FontWeight.w500,

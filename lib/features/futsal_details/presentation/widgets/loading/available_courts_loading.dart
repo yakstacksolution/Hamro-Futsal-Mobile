@@ -33,10 +33,10 @@ class _CourtSlotCardSkeleton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      margin: AppUtils().getMargin(bottom: AppDimens.marginX12),
-      padding: AppUtils().getPadding(all: AppDimens.paddingX12),
+      margin: AppUtils().getMargin(bottom: AppDimens.marginX10),
+      padding: AppUtils().getPadding(all: AppDimens.paddingX10),
       decoration: BoxDecoration(
-        color: LightColor.cardColor,
+        color: LightColor.elevatedCardColor,
         borderRadius: BorderRadius.circular(AppDimens.radiusX12),
         border: Border.all(
           color: LightColor.dividerColor.withValues(alpha: 0.6),
@@ -45,29 +45,29 @@ class _CourtSlotCardSkeleton extends StatelessWidget {
       child: Row(
         children: <Widget>[
           const _Block(
-            width: AppDimens.sizeX68,
-            height: AppDimens.sizeX68,
+            width: AppDimens.sizeX52,
+            height: AppDimens.sizeX52,
             radius: AppDimens.radiusX10,
           ),
-          const SizedBox(width: AppDimens.sizeX12),
+          const SizedBox(width: AppDimens.sizeX10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: const <Widget>[
-                _Block(width: AppDimens.sizeX120, height: AppDimens.sizeX14),
+                _Block(width: AppDimens.sizeX110, height: AppDimens.sizeX12),
                 SizedBox(height: AppDimens.sizeX8),
                 Row(
                   children: <Widget>[
                     _Block(
                       width: AppDimens.sizeX60,
-                      height: AppDimens.sizeX20,
+                      height: AppDimens.sizeX16,
                       radius: AppDimens.radiusX50,
                     ),
                     SizedBox(width: AppDimens.sizeX6),
                     _Block(
-                      width: AppDimens.sizeX70,
-                      height: AppDimens.sizeX20,
+                      width: AppDimens.sizeX40,
+                      height: AppDimens.sizeX16,
                       radius: AppDimens.radiusX50,
                     ),
                   ],
@@ -75,21 +75,21 @@ class _CourtSlotCardSkeleton extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(width: AppDimens.sizeX10),
+          const SizedBox(width: AppDimens.sizeX8),
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             mainAxisSize: MainAxisSize.min,
             children: const <Widget>[
-              _Block(
-                width: AppDimens.sizeX22,
-                height: AppDimens.sizeX22,
-                radius: AppDimens.radiusX50,
-              ),
-              SizedBox(height: AppDimens.sizeX10),
-              _Block(width: AppDimens.sizeX58, height: AppDimens.sizeX14),
+              _Block(width: AppDimens.sizeX58, height: AppDimens.sizeX12),
               SizedBox(height: AppDimens.sizeX4),
               _Block(width: AppDimens.sizeX34, height: AppDimens.sizeX10),
             ],
+          ),
+          const SizedBox(width: AppDimens.sizeX8),
+          const _Block(
+            width: AppDimens.sizeX22,
+            height: AppDimens.sizeX22,
+            radius: AppDimens.radiusX50,
           ),
         ],
       ),

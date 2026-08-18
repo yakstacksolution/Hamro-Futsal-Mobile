@@ -38,6 +38,7 @@ class SlotsSelectionBloc
     on<SelectSlotsCourtEvent>(_onSelectCourt);
     on<ChangeSlotsBookingModeEvent>(_onChangeBookingMode);
     on<ChangeSlotsRecurrenceEvent>(_onChangeRecurrence);
+    on<ToggleSlotsRecurringDayEvent>(_onToggleRecurringDay);
     on<RefreshSlotsAvailabilityEvent>(_onRefresh);
     on<SlotsRealtimeRefreshRequested>(_onRealtimeRefresh);
     on<SlotsBookingRealtimeEvent>(_onBookingRealtimeEvent);
@@ -299,15 +300,18 @@ class SlotsSelectionBloc
     if (event.index >= 0 && !state.timeSlots[event.index].isAvailable) return;
 
     if (event.index < 0) {
-      emit(
-        state.copyWith(
-          selectedSlotIndex: -1,
-          selectedCourtIndex: -1,
-          courts: const <VenueCourtItemModel>[],
-          status: SlotsSelectionStatus.success,
-          clearError: true,
-        ),
+      // Unselecting the slot falls back to the whole day: re-pull the courts
+      // without a slot filter instead of leaving the grid empty.
+      final SlotsSelectionState cleared = state.copyWith(
+        selectedSlotIndex: -1,
+        selectedCourtIndex: -1,
+        courts: const <VenueCourtItemModel>[],
+        status: SlotsSelectionStatus.loading,
+        clearError: true,
+        clearRecurring: true,
       );
+      emit(cleared);
+      await _fetchAvailableCourts(emit, cleared);
       return;
     }
 
@@ -350,6 +354,24 @@ class SlotsSelectionBloc
     Emitter<SlotsSelectionState> emit,
   ) async {
     emit(state.copyWith(recurrence: event.recurrence));
+    await _fetchRecurringAvailability(emit, state);
+  }
+
+  Future<void> _onToggleRecurringDay(
+    ToggleSlotsRecurringDayEvent event,
+    Emitter<SlotsSelectionState> emit,
+  ) async {
+    // Resolve the implicit "selected date's weekday" into a real set before
+    // toggling, so the first tap adds a day rather than replacing the default.
+    final Set<int> next = <int>{...state.effectiveWeekdays};
+    if (!next.remove(event.weekday)) {
+      next.add(event.weekday);
+    }
+    // A recurring booking with no weekday has no sessions; keep the last one.
+    if (next.isEmpty) return;
+    if (setEquals(next, state.effectiveWeekdays)) return;
+
+    emit(state.copyWith(recurringWeekdays: next));
     await _fetchRecurringAvailability(emit, state);
   }
 
@@ -468,6 +490,9 @@ class SlotsSelectionBloc
         await _getVenueSlotsUseCase(
           venueId: venueId,
           date: _formatApiDate(current.selectedDate),
+          // A vendor's walk-in and a player's own booking see different
+          // slots, so the lookup is scoped the same way the courts call is.
+          bookingType: _bookingType,
         );
 
     if (requestId != _slotsRequestSerial || emit.isDone) return;

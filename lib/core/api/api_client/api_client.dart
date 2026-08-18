@@ -363,8 +363,15 @@ class ApiClient {
     );
   }
 
-  Future<Result> getConversationMessages({required int conversationId}) {
-    return _get(url: '$_baseUrl/conversations/$conversationId/messages');
+  Future<Result> getConversationMessages({
+    required int conversationId,
+    required int page,
+    required int perPage,
+  }) {
+    return _get(
+      url: '$_baseUrl/conversations/$conversationId/messages',
+      query: <String, dynamic>{'page': page, 'per_page': perPage},
+    );
   }
 
   Future<Result> sendConversationMessage({
@@ -474,10 +481,21 @@ class ApiClient {
     );
   }
 
-  Future<Result> getVenueSlots({required int venueId, required String date}) {
+  /// [bookingType] scopes what the server reports as bookable: a vendor's
+  /// walk-in (`manual`) may see slots a player's own booking (`regular`)
+  /// cannot.
+  Future<Result> getVenueSlots({
+    required int venueId,
+    required String date,
+    String bookingType = BookingTypePayload.regular,
+  }) {
     return _get(
       url: '$_baseUrl/venue-slots',
-      query: <String, dynamic>{'venue_id': venueId, 'date': date},
+      query: <String, dynamic>{
+        'venue_id': venueId,
+        'date': date,
+        'type': bookingType,
+      },
     );
   }
 
@@ -772,6 +790,88 @@ class ApiClient {
     return _post(url: '$_baseUrl/opponent-requests', data: data);
   }
 
+  /// Opens a request from the wizard's first step, carrying only the match
+  /// section (team, format, level, preferred date & time). The response's id
+  /// is what every later step updates.
+  Future<Result> createOpponentMatchRequest({
+    required Map<String, dynamic> data,
+  }) {
+    return _post(url: '$_baseUrl/auth/opponent-requests', data: data);
+  }
+
+  /// Re-sends the match section of an already-opened request — the user went
+  /// back to step one and changed something.
+  Future<Result> updateOpponentRequestMatch({
+    required String requestId,
+    required Map<String, dynamic> data,
+  }) {
+    return _patch(
+      url: '$_baseUrl/auth/opponent-requests/$requestId/match',
+      data: data,
+    );
+  }
+
+  /// The signed-in user's own opponent requests, served by the backend rather
+  /// than filtered out of the public list. `tab` selects the slice the backend
+  /// returns and defaults to `all`.
+  Future<Result> getMyOpponentRequests({Map<String, dynamic>? query}) {
+    return _get(
+      url: '$_baseUrl/auth/opponent-requests',
+      query: {'tab': 'all', ...?query},
+    );
+  }
+
+  /// One of my own requests by id — drafts included, hence the `/auth` path.
+  /// Used to hydrate the wizard when a draft is resumed.
+  Future<Result> getMyOpponentRequest({required String requestId}) {
+    return _get(url: '$_baseUrl/auth/opponent-requests/$requestId');
+  }
+
+  /// Sends the wizard's venue step (step two) for an already-opened request.
+  /// [data] carries the `venue_source` discriminator plus whatever that source
+  /// needs — a `booking_id` when the court is already booked on this platform.
+  ///
+  /// The route is PUT: the venue is a section of an existing request, so POST
+  /// comes back 405.
+  Future<Result> saveOpponentRequestVenue({
+    required String requestId,
+    required Map<String, dynamic> data,
+  }) {
+    return _put(
+      url: '$_baseUrl/auth/opponent-requests/$requestId/venue',
+      data: data,
+    );
+  }
+
+  /// Sends the wizard's cost step (step three) — the split rule the accepting
+  /// team sees before it pays. PUT, like the venue step: this replaces a
+  /// section of a request that already exists.
+  Future<Result> saveOpponentRequestCost({
+    required String requestId,
+    required Map<String, dynamic> data,
+  }) {
+    return _put(
+      url: '$_baseUrl/auth/opponent-requests/$requestId/cost',
+      data: data,
+    );
+  }
+
+  /// Publishes a draft request — the last wizard step, which flips it out of
+  /// `draft` so eligible teams can see it. Only the optional `message` travels;
+  /// every other section was saved by its own step.
+  ///
+  /// POST, unlike the `/venue` and `/cost` steps: publishing is an action on
+  /// the request, not a section being replaced.
+  Future<Result> publishOpponentRequest({
+    required String requestId,
+    required Map<String, dynamic> data,
+  }) {
+    return _post(
+      url: '$_baseUrl/auth/opponent-requests/$requestId/publish',
+      data: data,
+    );
+  }
+
   /// Places a single-use accept hold and returns the authoritative advance
   /// quote + payment QR.
   Future<Result> createOpponentAcceptQuote({
@@ -816,8 +916,10 @@ class ApiClient {
     );
   }
 
+  /// Removes one of my own requests — drafts included. Owner-scoped, hence the
+  /// `/auth` path.
   Future<Result> deleteOpponentRequest({required String requestId}) {
-    return _delete(url: '$_baseUrl/opponent-requests/$requestId');
+    return _delete(url: '$_baseUrl/auth/opponent-requests/$requestId');
   }
 
   Future<Result> _get({

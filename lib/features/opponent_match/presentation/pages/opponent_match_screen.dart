@@ -8,6 +8,7 @@ import 'package:hamro_footsall/core/widgets/custom_app_bar.dart';
 import 'package:hamro_footsall/core/widgets/custom_button.dart';
 import 'package:hamro_footsall/core/widgets/custom_confirm_dialog.dart';
 import 'package:hamro_footsall/features/opponent_match/data/repositories/opponent_match_repository_impl.dart';
+import 'package:hamro_footsall/features/opponent_match/data/model/opponent_match_model.dart';
 import 'package:hamro_footsall/features/opponent_match/domain/usecase/opponent_match_usecase.dart';
 import 'package:hamro_footsall/features/opponent_match/presentation/bloc/opponent_match_bloc/opponent_match_bloc.dart';
 import 'package:hamro_footsall/features/opponent_match/presentation/pages/create_opponent_request_page.dart';
@@ -46,7 +47,7 @@ class _OpponentMatchViewState extends State<_OpponentMatchView>
   // Requests come first — sending one is the primary action (via the FAB);
   // team management lives on its own tab.
   late final TabController _tabCtrl;
-  RequestFilter _requestFilter = RequestFilter.all;
+  RequestFilter _requestFilter = RequestFilter.open;
 
   @override
   void initState() {
@@ -65,7 +66,21 @@ class _OpponentMatchViewState extends State<_OpponentMatchView>
     super.dispose();
   }
 
-  Future<void> _openCreateRequest() async {
+  /// Selecting a section is what triggers its own fetch — every section is
+  /// lazy, and the bloc ignores the event once it has that tab's data (unless
+  /// [force]), so re-tapping a chip costs nothing.
+  void _setFilter(RequestFilter filter, {bool force = false}) {
+    setState(() => _requestFilter = filter);
+    context.read<OpponentMatchBloc>().add(
+      LoadOpponentRequestsEvent(tab: filter.tab, force: force),
+    );
+  }
+
+  /// Picks an unpublished draft back up in the same wizard that created it.
+  void _openDraft(OpponentRequestModel draft) =>
+      _openCreateRequest(draft: draft);
+
+  Future<void> _openCreateRequest({OpponentRequestModel? draft}) async {
     final bloc = context.read<OpponentMatchBloc>();
     // Sending a request needs a team — steer the user to create one first.
     if (bloc.state.teams.isEmpty) {
@@ -92,15 +107,16 @@ class _OpponentMatchViewState extends State<_OpponentMatchView>
         // and dispatches the send event on the same instance.
         builder: (_) => BlocProvider.value(
           value: bloc,
-          child: const CreateOpponentRequestPage(),
+          child: CreateOpponentRequestPage(draft: draft),
         ),
       ),
     );
     if (sent != true || !mounted) return;
-    // The request I just sent lands in "My Requests" as pending.
-    setState(() => _requestFilter = RequestFilter.mine);
+    // The request I just published lands in "My Requests" as pending — show it
+    // there. The publish confirmation itself comes from the server, surfaced by
+    // the state listener below, so nothing is announced here.
+    _setFilter(RequestFilter.mine, force: true);
     _tabCtrl.animateTo(0);
-    _showSnack('Request sent successfully');
   }
 
   /// Same create-team sheet the Teams tab uses (`OpponentTeamsView`).
@@ -283,12 +299,35 @@ class _OpponentMatchViewState extends State<_OpponentMatchView>
       body: SafeArea(
         top: false,
         child: BlocConsumer<OpponentMatchBloc, OpponentMatchState>(
-          // Surface mutation errors (create team, send request…) as a snack
-          // without disturbing the page.
+          // Surface mutation errors (create team, send request…) and server
+          // confirmations (a deleted request) as a top snack, without
+          // disturbing the page.
           listenWhen: (prev, curr) =>
-              curr.errorMessage != null &&
-              prev.errorMessage != curr.errorMessage,
-          listener: (context, state) => _showSnack(state.errorMessage!),
+              (curr.errorMessage != null &&
+                  prev.errorMessage != curr.errorMessage) ||
+              (curr.successMessage != null &&
+                  prev.successMessage != curr.successMessage),
+          listener: (context, state) {
+            if (state.successMessage != null) {
+              AppUtils().showSnackBar(
+                context,
+                MsgType.success,
+                state.successMessage!,
+              );
+              // One-shot: clear it so re-entering the screen doesn't repeat it.
+              context.read<OpponentMatchBloc>().add(
+                const ClearOpponentMessagesEvent(),
+              );
+              return;
+            }
+            if (state.errorMessage != null) {
+              AppUtils().showSnackBar(
+                context,
+                MsgType.error,
+                state.errorMessage!,
+              );
+            }
+          },
           builder: (context, state) {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -318,7 +357,8 @@ class _OpponentMatchViewState extends State<_OpponentMatchView>
                       _RequestsTabBody(
                         state: state,
                         filter: _requestFilter,
-                        onFilter: (f) => setState(() => _requestFilter = f),
+                        onFilter: _setFilter,
+                        onCompleteDraft: _openDraft,
                       ),
                       _TeamsTabBody(state: state),
                     ],
@@ -339,30 +379,35 @@ class _RequestsTabBody extends StatelessWidget {
     required this.state,
     required this.filter,
     required this.onFilter,
+    required this.onCompleteDraft,
   });
 
   final OpponentMatchState state;
   final RequestFilter filter;
   final ValueChanged<RequestFilter> onFilter;
+  final ValueChanged<OpponentRequestModel> onCompleteDraft;
 
   @override
   Widget build(BuildContext context) {
-    if (state.requestsStatus == OpponentMatchStatus.initial ||
-        state.requestsStatus == OpponentMatchStatus.loading) {
-      return const Center(
-        child: CircularProgressIndicator(color: LightColor.secondaryColor),
-      );
-    }
-    if (state.requestsStatus == OpponentMatchStatus.failure &&
-        state.requests.isEmpty) {
+    // Per-section loading and errors are handled inside OpponentRequestsView,
+    // which knows which tab is selected; only a hard failure of the default
+    // section with nothing to show takes over the whole body.
+    final tab = filter.tab;
+    if (state.statusFor(tab) == OpponentMatchStatus.failure &&
+        state.requestsFor(tab).isEmpty &&
+        state.errorFor(tab) == null) {
       return _LoadError(
         message: state.errorMessage ?? 'Could not load opponent requests.',
         onRetry: () => context.read<OpponentMatchBloc>().add(
-          const LoadOpponentRequestsEvent(),
+          LoadOpponentRequestsEvent(tab: tab, force: true),
         ),
       );
     }
-    return OpponentRequestsView(filter: filter, onFilter: onFilter);
+    return OpponentRequestsView(
+      filter: filter,
+      onFilter: onFilter,
+      onCompleteDraft: onCompleteDraft,
+    );
   }
 }
 

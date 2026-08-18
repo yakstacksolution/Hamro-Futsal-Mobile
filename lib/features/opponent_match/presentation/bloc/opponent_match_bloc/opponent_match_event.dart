@@ -27,9 +27,29 @@ final class LoadOpponentLevelsEvent extends OpponentMatchEvent {
   const LoadOpponentLevelsEvent();
 }
 
-/// Loads the opponent requests list.
+/// Loads one section of the requests list from
+/// `GET /auth/opponent-requests?tab={need_opponent|my_requests|settled}`.
+///
+/// Lazy by default: opening a section fires it, and a section already fetched
+/// is served from state. Pass [force] to re-fetch (pull-to-refresh, after
+/// publishing, or after a mutation).
 final class LoadOpponentRequestsEvent extends OpponentMatchEvent {
-  const LoadOpponentRequestsEvent();
+  const LoadOpponentRequestsEvent({
+    this.tab = OpponentRequestTab.needOpponent,
+    this.force = false,
+  });
+
+  final OpponentRequestTab tab;
+  final bool force;
+
+  @override
+  List<Object?> get props => <Object?>[tab, force];
+}
+
+/// Re-fetches every section that has already been loaded — used after a
+/// mutation, since deleting or accepting a request can move it between tabs.
+final class RefreshOpponentRequestsEvent extends OpponentMatchEvent {
+  const RefreshOpponentRequestsEvent();
 }
 
 final class CreateTeamEvent extends OpponentMatchEvent {
@@ -100,6 +120,79 @@ final class RemoveMemberEvent extends OpponentMatchEvent {
   List<Object?> get props => [teamId, memberId];
 }
 
+/// Submits the wizard's first step: opens the request when none exists yet,
+/// otherwise patches the match section of the one already opened.
+final class SaveOpponentMatchStepEvent extends OpponentMatchEvent {
+  const SaveOpponentMatchStepEvent(this.request);
+
+  final OpponentMatchStepRequest request;
+
+  @override
+  List<Object?> get props => <Object?>[
+    request.teamId,
+    request.matchFormatId,
+    request.opponentLevelId,
+    request.preferredDate,
+    request.preferredTime,
+  ];
+}
+
+/// Submits the wizard's second step — the venue behind the match — against
+/// the request the first step opened.
+final class SaveOpponentVenueStepEvent extends OpponentMatchEvent {
+  const SaveOpponentVenueStepEvent(this.request);
+
+  final OpponentVenueStepRequest request;
+
+  @override
+  List<Object?> get props => <Object?>[request.toJson()];
+}
+
+/// Sends the wizard's third step — the cost split — against the request step
+/// one opened.
+final class SaveOpponentCostStepEvent extends OpponentMatchEvent {
+  const SaveOpponentCostStepEvent(this.request);
+
+  final OpponentCostStepRequest request;
+
+  @override
+  List<Object?> get props => <Object?>[request.toJson()];
+}
+
+/// Publishes the draft the wizard has been building — the last step. Only the
+/// optional [message] travels; the other sections are already saved.
+final class PublishOpponentRequestEvent extends OpponentMatchEvent {
+  const PublishOpponentRequestEvent({this.message = ''});
+
+  final String message;
+
+  @override
+  List<Object?> get props => <Object?>[message];
+}
+
+/// Fetches one of my own requests by id (`/auth/opponent-requests/{id}`) so
+/// the wizard can autofill from the server's copy of a draft.
+final class LoadOpponentDraftEvent extends OpponentMatchEvent {
+  const LoadOpponentDraftEvent(this.requestId);
+
+  final String requestId;
+
+  @override
+  List<Object?> get props => <Object?>[requestId];
+}
+
+/// Resets the wizard's step state. With no [draftRequestId] the next
+/// first-step submit opens a fresh request; pass the id of an existing draft
+/// to resume it, so that submit patches the draft instead.
+final class ResetOpponentMatchStepEvent extends OpponentMatchEvent {
+  const ResetOpponentMatchStepEvent({this.draftRequestId = ''});
+
+  final String draftRequestId;
+
+  @override
+  List<Object?> get props => <Object?>[draftRequestId];
+}
+
 final class SendOpponentRequestEvent extends OpponentMatchEvent {
   const SendOpponentRequestEvent(this.request);
   final CreateOpponentRequestEntity request;
@@ -155,4 +248,14 @@ final class RejectInvitationEvent extends OpponentMatchEvent {
 
   @override
   List<Object?> get props => [request, reason];
+}
+
+/// Drops the one-shot [OpponentMatchState.successMessage] /
+/// [OpponentMatchState.errorMessage] once the UI has shown them, so the same
+/// snackbar is not replayed on the next rebuild.
+final class ClearOpponentMessagesEvent extends OpponentMatchEvent {
+  const ClearOpponentMessagesEvent();
+
+  @override
+  List<Object?> get props => const [];
 }

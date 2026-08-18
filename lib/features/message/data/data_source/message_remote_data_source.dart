@@ -33,7 +33,11 @@ abstract class MessageRemoteDataSource {
   Future<Result> getMessageProfile(int userId);
   Future<Result> setPresence(bool online);
   Future<Result> sendPresenceHeartbeat(String socketId);
-  Future<Result> getMessages(int conversationId);
+  Future<Result> getMessages(
+    int conversationId, {
+    required int page,
+    required int perPage,
+  });
   Future<Result> sendMessage(
     int conversationId, {
     required ChatSendRequest request,
@@ -118,10 +122,15 @@ final class MessageRemoteDataSourceImpl extends MessageRemoteDataSource {
       await Client.instance().getAuthManager().sendPresenceHeartbeat(socketId);
 
   @override
-  Future<Result> getMessages(int conversationId) async =>
-      await Client.instance().getAuthManager().getConversationMessages(
-        conversationId,
-      );
+  Future<Result> getMessages(
+    int conversationId, {
+    required int page,
+    required int perPage,
+  }) async => await Client.instance().getAuthManager().getConversationMessages(
+    conversationId,
+    page: page,
+    perPage: perPage,
+  );
 
   @override
   Future<Result> sendMessage(

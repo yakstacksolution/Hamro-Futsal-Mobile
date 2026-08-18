@@ -5,6 +5,7 @@ import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hamro_footsall/core/helper/exception_helper.dart';
 import 'package:hamro_footsall/features/message/data/model/chat_message_model.dart';
+import 'package:hamro_footsall/features/message/data/model/chat_message_page_model.dart';
 import 'package:hamro_footsall/features/message/data/model/chat_send_request.dart';
 import 'package:hamro_footsall/features/message/data/model/conversation_model.dart';
 import 'package:hamro_footsall/features/message/data/model/conversation_page_model.dart';
@@ -200,15 +201,28 @@ final class _FakeMessageRepository implements MessageRepository {
         lastPage: page,
         perPage: perPage,
         total: 1,
+        from: 1,
+        to: 1,
         hasMorePages: false,
       ),
     );
   }
 
   @override
-  Future<Either<AppException, List<ChatMessageModel>>> getMessages(
-    int conversationId,
-  ) async => right(const []);
+  Future<Either<AppException, ChatMessagePageModel>> getMessages(
+    int conversationId, {
+    required int page,
+    required int perPage,
+  }) async => right(
+    ChatMessagePageModel(
+      items: const <ChatMessageModel>[],
+      currentPage: page,
+      lastPage: page,
+      perPage: perPage,
+      total: 0,
+      hasMorePages: false,
+    ),
+  );
 
   @override
   Future<Either<AppException, ChatMessageModel>> sendMessage(

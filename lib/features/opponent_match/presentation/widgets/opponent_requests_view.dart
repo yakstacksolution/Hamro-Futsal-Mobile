@@ -6,9 +6,11 @@ import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/widgets/custom_button.dart';
 import 'package:hamro_footsall/core/widgets/custom_delete_dialog.dart';
 import 'package:hamro_footsall/features/message/presentation/pages/chat_launcher.dart';
 import 'package:hamro_footsall/features/opponent_match/data/model/opponent_match_model.dart';
+import 'package:hamro_footsall/features/opponent_match/data/model/opponent_request_tab.dart';
 import 'package:hamro_footsall/features/opponent_match/presentation/bloc/accept_request_bloc/accept_request_bloc.dart';
 import 'package:hamro_footsall/features/opponent_match/presentation/bloc/opponent_match_bloc/opponent_match_bloc.dart';
 import 'package:hamro_footsall/features/opponent_match/presentation/pages/accept_opponent_request_page.dart';
@@ -22,21 +24,31 @@ import 'package:hamro_footsall/core/utils/string_constants.dart';
 /// (mock data only — the server owns the real deadline).
 const Duration kAcceptWindow = Duration(minutes: 20);
 
-enum RequestFilter { all, open, mine, settled }
+enum RequestFilter { open, mine, settled }
 
 extension RequestFilterX on RequestFilter {
   String get label => switch (this) {
-    RequestFilter.all => 'All',
     RequestFilter.open => 'Need Opponent',
     RequestFilter.mine => 'My Requests',
     RequestFilter.settled => 'Settled',
   };
+
+  /// Each chip is one server-side tab of `/auth/opponent-requests`.
+  OpponentRequestTab get tab => switch (this) {
+    RequestFilter.open => OpponentRequestTab.needOpponent,
+    RequestFilter.mine => OpponentRequestTab.myRequests,
+    RequestFilter.settled => OpponentRequestTab.settled,
+  };
 }
 
 /// Requests I sent live under "My Requests"; they stay pending until the
-/// opponent replies and can be removed at any time.
+/// opponent replies and can be removed at any time. Drafts belong here too —
+/// `/auth/opponent-requests?tab=all` only ever serves them to their owner.
 bool _isMine(OpponentRequestModel r) =>
-    r.isMine || r.status == RequestStatus.sent;
+    r.isMine ||
+    r.status == RequestStatus.sent ||
+    r.status == RequestStatus.draft ||
+    r.status == RequestStatus.pendingApproval;
 
 /// Requests tab: filter chips + request cards.
 class OpponentRequestsView extends StatelessWidget {
@@ -44,30 +56,24 @@ class OpponentRequestsView extends StatelessWidget {
     super.key,
     required this.filter,
     required this.onFilter,
+    required this.onCompleteDraft,
   });
 
   final RequestFilter filter;
   final ValueChanged<RequestFilter> onFilter;
 
-  List<OpponentRequestModel> _filtered(List<OpponentRequestModel> requests) =>
-      switch (filter) {
-        RequestFilter.all => requests,
-        RequestFilter.open => requests.where((r) => r.status.isOpen).toList(),
-        RequestFilter.mine => requests.where(_isMine).toList(),
-        // Sent requests have their own tab now, so settled is only the
-        // requests that reached a final state.
-        RequestFilter.settled =>
-          requests.where((r) => r.status.isSettled && !_isMine(r)).toList(),
-      };
+  /// Reopens the create wizard on an unpublished draft so it can be finished.
+  final ValueChanged<OpponentRequestModel> onCompleteDraft;
 
-  int _count(List<OpponentRequestModel> requests, RequestFilter f) =>
-      switch (f) {
-        RequestFilter.all => requests.length,
-        RequestFilter.open => requests.where((r) => r.status.isOpen).length,
-        RequestFilter.mine => requests.where(_isMine).length,
-        RequestFilter.settled =>
-          requests.where((r) => r.status.isSettled && !_isMine(r)).length,
-      };
+  /// Every section is server-scoped: the backend decides what belongs in
+  /// `need_opponent`, `my_requests` and `settled`, so nothing is filtered
+  /// on-device. A tab not yet fetched has no rows and no count — a client-side
+  /// stand-in would show numbers the server has not confirmed.
+  List<OpponentRequestModel> _filtered(OpponentMatchState state) =>
+      state.requestsFor(filter.tab);
+
+  int _count(OpponentMatchState state, RequestFilter f) =>
+      state.requestsFor(f.tab).length;
 
   /// Who this card's chat talks to: on my own requests it's the accepting
   /// captain (once someone accepts); on incoming requests it's the requester.
@@ -128,7 +134,7 @@ class OpponentRequestsView extends StatelessWidget {
     return BlocBuilder<OpponentMatchBloc, OpponentMatchState>(
       builder: (context, state) {
         final bloc = context.read<OpponentMatchBloc>();
-        final requests = _filtered(state.requests);
+        final requests = _filtered(state);
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -162,7 +168,7 @@ class OpponentRequestsView extends StatelessWidget {
                   final f = RequestFilter.values[i];
                   return OpponentCountChip(
                     label: f.label,
-                    count: _count(state.requests, f),
+                    count: _count(state, f),
                     isSelected: f == filter,
                     onTap: () => onFilter(f),
                   );
@@ -171,49 +177,142 @@ class OpponentRequestsView extends StatelessWidget {
             ),
             const SizedBox(height: AppDimens.paddingX10),
             Expanded(
-              child: requests.isEmpty
-                  ? _EmptyRequests(filter: filter)
-                  : ListView.separated(
-                      physics: const BouncingScrollPhysics(),
-                      padding: AppUtils().getPadding(
-                        symmetricHorizontal: AppDimens.paddingX20,
-                        top: AppDimens.paddingX2,
-                        bottom: AppDimens.paddingX50,
+              child: _RequestsTabGate(
+                filter: filter,
+                state: state,
+                child: requests.isEmpty
+                    ? _EmptyRequests(filter: filter)
+                    : ListView.separated(
+                        physics: const BouncingScrollPhysics(),
+                        padding: AppUtils().getPadding(
+                          symmetricHorizontal: AppDimens.paddingX20,
+                          top: AppDimens.paddingX2,
+                          bottom: AppDimens.paddingX50,
+                        ),
+                        itemCount: requests.length,
+                        separatorBuilder: (_, __) =>
+                            const SizedBox(height: AppDimens.paddingX12),
+                        itemBuilder: (_, i) {
+                          final request = requests[i];
+                          return OpponentRequestCard(
+                            key: ValueKey(request.id),
+                            request: request,
+                            onAccept: () => _openAcceptFlow(context, request),
+                            onMessage: _chatPeerId(request) > 0
+                                ? () => ChatLauncher.startDirectUser(
+                                    context,
+                                    userId: _chatPeerId(request),
+                                  )
+                                : null,
+                            onDelete: () =>
+                                bloc.add(DeleteOpponentRequestEvent(request)),
+                            onIgnore: () =>
+                                bloc.add(DeclineRequestEvent(request)),
+                            onInvitations: () =>
+                                _openInvitations(context, request),
+                            onMatchDetails: () =>
+                                _openMatchDetails(context, request),
+                            onComplete: () => onCompleteDraft(request),
+                            // The deadline passed on-device: re-fetch so the
+                            // card reflects the server's (swept) status.
+                            onExpire: () => bloc.add(
+                              LoadOpponentRequestsEvent(
+                                tab: filter.tab,
+                                force: true,
+                              ),
+                            ),
+                          );
+                        },
                       ),
-                      itemCount: requests.length,
-                      separatorBuilder: (_, __) =>
-                          const SizedBox(height: AppDimens.paddingX12),
-                      itemBuilder: (_, i) {
-                        final request = requests[i];
-                        return OpponentRequestCard(
-                          key: ValueKey(request.id),
-                          request: request,
-                          onAccept: () => _openAcceptFlow(context, request),
-                          onMessage: _chatPeerId(request) > 0
-                              ? () => ChatLauncher.startDirectUser(
-                                  context,
-                                  userId: _chatPeerId(request),
-                                )
-                              : null,
-                          onDelete: () =>
-                              bloc.add(DeleteOpponentRequestEvent(request)),
-                          onIgnore: () =>
-                              bloc.add(DeclineRequestEvent(request)),
-                          onInvitations: () =>
-                              _openInvitations(context, request),
-                          onMatchDetails: () =>
-                              _openMatchDetails(context, request),
-                          // The deadline passed on-device: re-fetch so the
-                          // card reflects the server's (swept) status.
-                          onExpire: () =>
-                              bloc.add(const LoadOpponentRequestsEvent()),
-                        );
-                      },
-                    ),
+              ),
             ),
           ],
         );
       },
+    );
+  }
+}
+
+/// Loading / error shell for the selected section — each one is backed by its
+/// own call, so each has its own spinner and retry.
+///
+/// The spinner and the retry only take over while there is nothing to show —
+/// with rows already on screen a refresh stays silent rather than flashing the
+/// list away.
+class _RequestsTabGate extends StatelessWidget {
+  const _RequestsTabGate({
+    required this.filter,
+    required this.state,
+    required this.child,
+  });
+
+  final RequestFilter filter;
+  final OpponentMatchState state;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final tab = filter.tab;
+    if (state.requestsFor(tab).isNotEmpty) return child;
+
+    // `initial` means the fetch was just dispatched by opening this section —
+    // spin rather than flash the empty state.
+    final status = state.statusFor(tab);
+    if (status == OpponentMatchStatus.loading ||
+        status == OpponentMatchStatus.initial) {
+      return const Center(
+        child: CircularProgressIndicator(color: LightColor.secondaryColor),
+      );
+    }
+    if (status == OpponentMatchStatus.failure) {
+      return _MyRequestsError(
+        message: state.errorFor(tab) ?? 'Could not load these requests.',
+        onRetry: () => context.read<OpponentMatchBloc>().add(
+          LoadOpponentRequestsEvent(tab: tab, force: true),
+        ),
+      );
+    }
+    return child;
+  }
+}
+
+class _MyRequestsError extends StatelessWidget {
+  const _MyRequestsError({required this.message, required this.onRetry});
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    return Center(
+      child: Padding(
+        padding: AppUtils().getPadding(all: AppDimens.paddingX32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.cloud_off_rounded,
+              size: 40,
+              color: LightColor.hintTextColor,
+            ),
+            const SizedBox(height: AppDimens.paddingX14),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: textTheme.bodyTextMedium?.copyWith(
+                color: LightColor.secondaryTextColor,
+              ),
+            ),
+            const SizedBox(height: AppDimens.paddingX18),
+            CustomButton(
+              text: StringConstants.retry,
+              icon: Icons.refresh_rounded,
+              onPressed: onRetry,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -228,6 +327,7 @@ class OpponentRequestCard extends StatefulWidget {
     required this.onIgnore,
     required this.onInvitations,
     required this.onMatchDetails,
+    required this.onComplete,
     this.onMessage,
   });
 
@@ -244,6 +344,9 @@ class OpponentRequestCard extends StatefulWidget {
 
   /// Opens the confirmed-match view once an opponent is locked in.
   final VoidCallback onMatchDetails;
+
+  /// Resumes the wizard on this (draft) request so it can be published.
+  final VoidCallback onComplete;
 
   /// Opens a direct chat with the request's counterparty (the requester on
   /// incoming requests, the accepting captain on my own); hidden when null.
@@ -326,9 +429,20 @@ class _OpponentRequestCardState extends State<OpponentRequestCard> {
 
   /// Footer label for the invitation review action on my own requests.
   String _invitationsLabel(OpponentRequestModel request) {
-    final int count = request.invitations.length;
+    final int count = request.invitationCount;
     if (count == 0) return 'Awaiting Invitations';
     return count == 1 ? 'Review Invitation' : 'Review $count Invitations';
+  }
+
+  /// Where an unpublished draft stopped, from the backend's `main_step`
+  /// (1 = match, 2 = venue, 3 = cost & message).
+  String _draftProgressLabel(OpponentRequestModel request) {
+    final String next = switch (request.mainStep) {
+      <= 1 => 'match details',
+      2 => 'the venue',
+      _ => 'the cost split',
+    };
+    return 'Draft — not published yet. Finish $next to send it out.';
   }
 
   Future<void> _confirmIgnore(BuildContext context) async {
@@ -363,8 +477,16 @@ class _OpponentRequestCardState extends State<OpponentRequestCard> {
     final showCountdown = _hasCountdown && _remaining.inSeconds > 0;
     final urgent = showCountdown && _remaining.inMinutes < 5;
 
+    final isDraft = request.status.isDraft;
+
     final String priceText;
-    if (request.myPct == null) {
+    if (isDraft) {
+      // Nothing is split until the request is published, so a draft only ever
+      // shows the court fee its venue step captured (if it got that far).
+      priceText = request.totalFee > 0
+          ? '${OpponentFmt.npr(request.totalFee)} court fee · split not set yet'
+          : 'Court fee not set yet';
+    } else if (request.myPct == null) {
       priceText =
           '${OpponentFmt.npr(request.yourShare)} if loser · ${OpponentFmt.npr(request.totalFee)} total';
     } else {
@@ -379,8 +501,14 @@ class _OpponentRequestCardState extends State<OpponentRequestCard> {
         borderRadius: BorderRadius.circular(AppDimens.radiusX14),
         // Tapping follows the request's stage: the confirmed match, or the
         // invitations I still have to choose between.
+        // A draft has no invitations and no match yet — tapping it picks the
+        // wizard back up instead.
         onTap: request.isMatchConfirmed
             ? widget.onMatchDetails
+            : isDraft
+            ? widget.onComplete
+            : request.status.isAwaitingApproval
+            ? null
             : _isMine(request)
             ? widget.onInvitations
             : null,
@@ -504,29 +632,105 @@ class _OpponentRequestCardState extends State<OpponentRequestCard> {
                 ),
               ],
               const SizedBox(height: AppDimens.paddingX12),
-              _InfoMini(icon: Icons.event_outlined, label: request.slot),
+              // A draft may not have reached the venue step yet, so the slot
+              // and venue rows carry a "still to do" placeholder instead of
+              // rendering blank.
+              _InfoMini(
+                icon: Icons.event_outlined,
+                label: request.slot.isNotEmpty
+                    ? request.slot
+                    : 'Kick-off time not set yet',
+              ),
               const SizedBox(height: AppDimens.paddingX6),
-              _InfoMini(icon: Icons.location_on_outlined, label: request.venue),
+              _InfoMini(
+                icon: Icons.location_on_outlined,
+                label: request.venue.isNotEmpty
+                    ? request.venue
+                    : 'Venue not chosen yet',
+              ),
               const SizedBox(height: AppDimens.paddingX6),
               _InfoMini(
                 icon: Icons.payments_outlined,
                 label: priceText,
                 emphasised: true,
               ),
-              if (_isMine(request) && request.invitations.isNotEmpty) ...[
+              if (_isMine(request) &&
+                  !isDraft &&
+                  request.invitationCount > 0) ...[
                 const SizedBox(height: AppDimens.paddingX6),
                 _InfoMini(
                   icon: Icons.groups_2_outlined,
                   label: request.isMatchConfirmed
                       ? 'Opponent: ${request.selectedInvitation?.teamName ?? request.acceptedByTeamName}'
-                      : '${request.invitations.length} '
-                            '${request.invitations.length == 1 ? 'team wants' : 'teams want'} '
+                      : '${request.invitationCount} '
+                            '${request.invitationCount == 1 ? 'team wants' : 'teams want'} '
                             'to play — pick one',
                   emphasised: true,
                 ),
               ],
               const SizedBox(height: AppDimens.paddingX12),
-              if (isExpired) ...[
+              if (isDraft) ...[
+                Divider(
+                  height: 1,
+                  thickness: 1,
+                  color: LightColor.dividerColor,
+                ),
+                _FooterNote(
+                  icon: Icons.edit_note_rounded,
+                  label: _draftProgressLabel(request),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: AppDimens.paddingX6),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: _ActionButton(
+                          icon: Icons.edit_note_rounded,
+                          label: StringConstants.completeSetup,
+                          foreground: LightColor.inverseTextColor,
+                          background: LightColor.secondaryColor,
+                          glow: true,
+                          onTap: widget.onComplete,
+                        ),
+                      ),
+                      const SizedBox(width: AppDimens.paddingX8),
+                      Expanded(
+                        child: _ActionButton(
+                          icon: Icons.delete_outline_rounded,
+                          label: StringConstants.remove,
+                          foreground: LightColor.redColor,
+                          background: LightColor.redLightColor,
+                          onTap: () => _confirmDelete(context),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ] else if (request.status.isAwaitingApproval) ...[
+                Divider(
+                  height: 1,
+                  thickness: 1,
+                  color: LightColor.dividerColor,
+                ),
+                _FooterNote(
+                  icon: Icons.hourglass_top_rounded,
+                  label:
+                      'Submitted — waiting for approval before teams can see '
+                      'it.',
+                  color: LightColor.warningColor,
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: AppDimens.paddingX6),
+                  child: _ActionButton(
+                    icon: Icons.delete_outline_rounded,
+                    label: StringConstants.remove,
+                    foreground: LightColor.redColor,
+                    background: LightColor.redLightColor,
+                    onTap: () => _confirmDelete(context),
+                  ),
+                ),
+              ] else if (isExpired) ...[
                 Divider(
                   height: 1,
                   thickness: 1,
@@ -625,15 +829,15 @@ class _OpponentRequestCardState extends State<OpponentRequestCard> {
                         child: _ActionButton(
                           icon: Icons.mark_email_unread_outlined,
                           label: _invitationsLabel(request),
-                          foreground: request.invitations.isEmpty
+                          foreground: request.invitationCount == 0
                               ? LightColor.secondaryColor
                               : LightColor.inverseTextColor,
-                          background: request.invitations.isEmpty
+                          background: request.invitationCount == 0
                               ? LightColor.secondaryColor.withValues(
                                   alpha: 0.10,
                                 )
                               : LightColor.secondaryColor,
-                          glow: request.invitations.isNotEmpty,
+                          glow: request.invitationCount > 0,
                           onTap: widget.onInvitations,
                         ),
                       ),
@@ -822,16 +1026,25 @@ class _ActionButton extends StatelessWidget {
           child: Container(
             height: AppDimens.sizeX40,
             alignment: Alignment.center,
+            // The label has to survive a narrow half-width slot and large
+            // system font scales, so it shrinks and ellipsises instead of
+            // overflowing the button.
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(icon, size: AppDimens.sizeX16, color: foreground),
                 const SizedBox(width: AppDimens.paddingX6),
-                Text(
-                  label,
-                  style: textTheme.bodyTextSmall?.copyWith(
-                    color: foreground,
-                    fontWeight: FontWeight.w700,
+                Flexible(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    softWrap: false,
+                    style: textTheme.bodyTextSmall?.copyWith(
+                      color: foreground,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
               ],
@@ -852,10 +1065,6 @@ class _EmptyRequests extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
     final (title, body) = switch (filter) {
-      RequestFilter.all => (
-        'No requests yet',
-        'Create a request to challenge an opponent.',
-      ),
       RequestFilter.open => (
         'Nothing to act on',
         'Open requests will appear here.',

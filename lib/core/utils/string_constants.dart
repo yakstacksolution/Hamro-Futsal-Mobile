@@ -642,6 +642,13 @@ final class StringConstants {
   static const String newFutsal = 'New Futsal';
   static const String newRental = 'New rental';
   static const String newRequest = 'New Request';
+
+  /// Title and action label for resuming an unpublished (draft) request.
+  static const String completeRequest = 'Complete Request';
+
+  /// Short form for the draft card's action button, which shares its row with
+  /// Remove and has half the width of the wizard's app-bar title.
+  static const String completeSetup = 'Complete';
   static const String newTeam = 'New Team';
   static const String newToday = 'New Today';
   static const String noAmenitiesInThisCategory =
@@ -800,6 +807,8 @@ final class StringConstants {
   static const String records = 'Records';
   static const String recurrence = 'Recurrence';
   static const String recurringBooking = 'Recurring booking';
+  static const String repeatOn = 'Repeat on';
+  static const String repeatFor = 'Repeat for';
   static const String recurringPriceDetails = 'Recurring price details';
   static const String redo = 'Redo';
   static const String refundCancellationAndCustomerBookingGuidelines =
@@ -825,6 +834,16 @@ final class StringConstants {
   static const String removePlayer = 'Remove player?';
   static const String removeRequest = 'Remove request?';
   static const String removeRequestAction = 'Remove Request';
+
+  /// Local stand-in for the delete confirmation when the server sends no
+  /// `message` (e.g. a 204).
+  static const String requestDeleted = 'Opponent request deleted.';
+
+  /// Shown wherever a court fee is displayed before a venue has supplied one.
+  static const String courtFeeNotSetYet = 'Not set yet';
+
+  /// Same, for a publish that answers without a `message`.
+  static const String requestPublished = 'Opponent request published.';
   static const String renameTeam = 'Rename Team';
   static const String rentalServices = 'Rental Services';
   static const String renterName = 'Renter name';

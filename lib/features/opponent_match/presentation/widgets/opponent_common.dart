@@ -488,6 +488,19 @@ class OpponentStatusBadge extends StatelessWidget {
         LightColor.secondaryColor.withValues(alpha: 0.10),
         status.label,
       ),
+      // Submitted and waiting on the admin review — same warning tone as a
+      // request waiting on an opponent, since both are "nothing to do yet".
+      RequestStatus.pendingApproval => (
+        LightColor.warningColor,
+        LightColor.warningLightColor,
+        status.label,
+      ),
+      // A draft is mine and unpublished — neutral, not an alarm.
+      RequestStatus.draft => (
+        LightColor.secondaryTextColor,
+        LightColor.dividerColor.withValues(alpha: 0.55),
+        status.label,
+      ),
       RequestStatus.expired || RequestStatus.cancelled => (
         LightColor.hintTextColor,
         LightColor.dividerColor,

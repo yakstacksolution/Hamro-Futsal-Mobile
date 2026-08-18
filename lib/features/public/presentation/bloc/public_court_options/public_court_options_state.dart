@@ -11,6 +11,7 @@ final class PublicCourtOptionsState extends Equatable {
     this.facilities = const <PublicOptionModel>[],
     this.isLoadingAmenities = false,
     this.isLoadingFacilities = false,
+    this.isLoadingMatchFormats = false,
     this.errorMessage,
   });
 
@@ -21,6 +22,7 @@ final class PublicCourtOptionsState extends Equatable {
   final List<PublicOptionModel> facilities;
   final bool isLoadingAmenities;
   final bool isLoadingFacilities;
+  final bool isLoadingMatchFormats;
   final String? errorMessage;
 
   PublicCourtOptionsState copyWith({
@@ -31,6 +33,7 @@ final class PublicCourtOptionsState extends Equatable {
     List<PublicOptionModel>? facilities,
     bool? isLoadingAmenities,
     bool? isLoadingFacilities,
+    bool? isLoadingMatchFormats,
     String? errorMessage,
   }) {
     return PublicCourtOptionsState(
@@ -41,6 +44,8 @@ final class PublicCourtOptionsState extends Equatable {
       facilities: facilities ?? this.facilities,
       isLoadingAmenities: isLoadingAmenities ?? this.isLoadingAmenities,
       isLoadingFacilities: isLoadingFacilities ?? this.isLoadingFacilities,
+      isLoadingMatchFormats:
+          isLoadingMatchFormats ?? this.isLoadingMatchFormats,
       errorMessage: errorMessage,
     );
   }
@@ -54,6 +59,7 @@ final class PublicCourtOptionsState extends Equatable {
     facilities,
     isLoadingAmenities,
     isLoadingFacilities,
+    isLoadingMatchFormats,
     errorMessage,
   ];
 }

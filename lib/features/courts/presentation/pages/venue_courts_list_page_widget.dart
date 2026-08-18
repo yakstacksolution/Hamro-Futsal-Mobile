@@ -279,39 +279,43 @@ class _VenueListSection extends StatelessWidget {
           bloc.add(const FetchVenueCourtEvent(silent: true));
           await bloc.stream
               .firstWhere((next) => next.refreshTick != startTick)
-              .timeout(const Duration(seconds: 15), onTimeout: () => bloc.state);
+              .timeout(
+                const Duration(seconds: 15),
+                onTimeout: () => bloc.state,
+              );
         },
         child: ListView.separated(
-        physics: const BouncingScrollPhysics(),
-        padding: listPadding,
-        itemCount:
-            entries.length +
-            (state.isLoadingMore || state.loadMoreError != null ? 1 : 0),
-        separatorBuilder: (_, __) => const SizedBox(height: AppDimens.sizeX10),
-        itemBuilder: (BuildContext context, int index) {
-          if (index == entries.length) {
-            return _VenuePaginationFooter(
-              loading: state.isLoadingMore,
-              error: state.loadMoreError,
-              onRetry: () => context.read<VenueCourtBloc>().add(
-                const FetchVenueCourtEvent(silent: true, loadMore: true),
+          physics: const BouncingScrollPhysics(),
+          padding: listPadding,
+          itemCount:
+              entries.length +
+              (state.isLoadingMore || state.loadMoreError != null ? 1 : 0),
+          separatorBuilder: (_, __) =>
+              const SizedBox(height: AppDimens.sizeX10),
+          itemBuilder: (BuildContext context, int index) {
+            if (index == entries.length) {
+              return _VenuePaginationFooter(
+                loading: state.isLoadingMore,
+                error: state.loadMoreError,
+                onRetry: () => context.read<VenueCourtBloc>().add(
+                  const FetchVenueCourtEvent(silent: true, loadMore: true),
+                ),
+              );
+            }
+            final _FutsalEntry entry = entries[index];
+            return _VenueCardV2(
+              entry: entry,
+              onAddCourt: () => _launchCourtEditor(context, venueId: entry.id),
+              onEditVenue: () => context.pushNamed(
+                AppRouterParams.vendorStepper.name,
+                queryParameters: <String, String>{
+                  if (entry.id != null) 'futsalId': entry.id.toString(),
+                  'mainStep': '0',
+                  'subStep': '1',
+                },
               ),
             );
-          }
-          final _FutsalEntry entry = entries[index];
-          return _VenueCardV2(
-            entry: entry,
-            onAddCourt: () => _launchCourtEditor(context, venueId: entry.id),
-            onEditVenue: () => context.pushNamed(
-              AppRouterParams.vendorStepper.name,
-              queryParameters: <String, String>{
-                if (entry.id != null) 'futsalId': entry.id.toString(),
-                'mainStep': '0',
-                'subStep': '1',
-              },
-            ),
-          );
-        },
+          },
         ),
       ),
     );
@@ -351,9 +355,9 @@ class _VenuePaginationFooter extends StatelessWidget {
         Text(
           error ?? 'Could not load more venues.',
           textAlign: TextAlign.center,
-          style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
-            color: LightColor.secondaryTextColor,
-          ),
+          style: FutsalTheme.getTextTheme(
+            context,
+          ).bodyTextSmall?.copyWith(color: LightColor.secondaryTextColor),
         ),
         TextButton.icon(
           onPressed: onRetry,
@@ -916,30 +920,6 @@ class _VenueCardV2State extends State<_VenueCardV2> {
                                         ),
                                         Text(
                                           StringConstants.addCourt,
-                                          style: textTheme.bodyTextSmall
-                                              ?.copyWith(
-                                                fontWeight: FontWeight.w600,
-                                                color:
-                                                    LightColor.primaryTextColor,
-                                              ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  PopupMenuItem<_VenueMenuAction>(
-                                    value: _VenueMenuAction.deleteFutsal,
-                                    child: Row(
-                                      children: <Widget>[
-                                        Icon(
-                                          Icons.delete,
-                                          size: AppDimens.sizeX18,
-                                          color: LightColor.primaryTextColor,
-                                        ),
-                                        const SizedBox(
-                                          width: AppDimens.sizeX10,
-                                        ),
-                                        Text(
-                                          StringConstants.deleteFutsal,
                                           style: textTheme.bodyTextSmall
                                               ?.copyWith(
                                                 fontWeight: FontWeight.w600,

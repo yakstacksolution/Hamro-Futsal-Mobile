@@ -356,9 +356,15 @@ class AuthManager extends ServiceManager {
     return await _apiClient.sendPresenceHeartbeat(socketId: socketId);
   }
 
-  Future<Result> getConversationMessages(int conversationId) async {
+  Future<Result> getConversationMessages(
+    int conversationId, {
+    required int page,
+    required int perPage,
+  }) async {
     return await _apiClient.getConversationMessages(
       conversationId: conversationId,
+      page: page,
+      perPage: perPage,
     );
   }
 
@@ -456,8 +462,13 @@ class AuthManager extends ServiceManager {
   Future<Result> getVenueSlots({
     required int venueId,
     required String date,
+    String bookingType = BookingTypePayload.regular,
   }) async {
-    return await _apiClient.getVenueSlots(venueId: venueId, date: date);
+    return await _apiClient.getVenueSlots(
+      venueId: venueId,
+      date: date,
+      bookingType: bookingType,
+    );
   }
 
   Future<Result> getCourtPaymentQr({required int courtId}) async {
@@ -500,7 +511,10 @@ class AuthManager extends ServiceManager {
     return await _apiClient.generateRewardCoupon(data: data);
   }
 
-  Future<Result> getVenueCourt({required int page, required int perPage}) async {
+  Future<Result> getVenueCourt({
+    required int page,
+    required int perPage,
+  }) async {
     return await _apiClient.getVenueCourt(page: page, perPage: perPage);
   }
 
@@ -699,6 +713,58 @@ class AuthManager extends ServiceManager {
 
   Future<Result> createOpponentRequest(Map<String, dynamic> data) async {
     return await _apiClient.createOpponentRequest(data: data);
+  }
+
+  Future<Result> createOpponentMatchRequest(Map<String, dynamic> data) async {
+    return await _apiClient.createOpponentMatchRequest(data: data);
+  }
+
+  Future<Result> updateOpponentRequestMatch(
+    String requestId,
+    Map<String, dynamic> data,
+  ) async {
+    return await _apiClient.updateOpponentRequestMatch(
+      requestId: requestId,
+      data: data,
+    );
+  }
+
+  Future<Result> getMyOpponentRequests({Map<String, dynamic>? query}) async {
+    return await _apiClient.getMyOpponentRequests(query: query);
+  }
+
+  Future<Result> saveOpponentRequestCost(
+    String requestId,
+    Map<String, dynamic> data,
+  ) async {
+    return await _apiClient.saveOpponentRequestCost(
+      requestId: requestId,
+      data: data,
+    );
+  }
+
+  Future<Result> publishOpponentRequest(
+    String requestId,
+    Map<String, dynamic> data,
+  ) async {
+    return await _apiClient.publishOpponentRequest(
+      requestId: requestId,
+      data: data,
+    );
+  }
+
+  Future<Result> getMyOpponentRequest(String requestId) async {
+    return await _apiClient.getMyOpponentRequest(requestId: requestId);
+  }
+
+  Future<Result> saveOpponentRequestVenue(
+    String requestId,
+    Map<String, dynamic> data,
+  ) async {
+    return await _apiClient.saveOpponentRequestVenue(
+      requestId: requestId,
+      data: data,
+    );
   }
 
   Future<Result> createOpponentAcceptQuote(

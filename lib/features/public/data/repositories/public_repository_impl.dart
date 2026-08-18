@@ -394,12 +394,40 @@ final class PublicRepositoryImpl extends PublicRepository {
           ? const <String>['match_formates', 'match_format', 'match_formate']
           : const <String>[],
     );
-    return items
+    final List<PublicOptionModel> options = items
         .map(_optionFromAny)
         .whereType<PublicOptionModel>()
-        .where((PublicOptionModel item) => item.name.trim().isNotEmpty)
-        .toList(growable: false);
+        .where(
+          (PublicOptionModel item) =>
+              item.name.trim().isNotEmpty && item.isActive,
+        )
+        .toList();
+
+    // `sort_order` is the server's display order; it is null on every row of
+    // some payloads, so those fall back to the order they arrived in rather
+    // than being shuffled to the front or back.
+    final bool anyOrdered = options.any(
+      (PublicOptionModel item) => item.sortOrder != null,
+    );
+    if (anyOrdered) {
+      final List<(int, PublicOptionModel)> indexed = options.indexed.toList();
+      indexed.sort(((int, PublicOptionModel) a, (int, PublicOptionModel) b) {
+        final int byOrder = (a.$2.sortOrder ?? _unordered).compareTo(
+          b.$2.sortOrder ?? _unordered,
+        );
+        // Ties keep their arrival order — List.sort is not stable on its own.
+        return byOrder != 0 ? byOrder : a.$1.compareTo(b.$1);
+      });
+      return List<PublicOptionModel>.unmodifiable(
+        indexed.map(((int, PublicOptionModel) entry) => entry.$2),
+      );
+    }
+
+    return List<PublicOptionModel>.unmodifiable(options);
   }
+
+  /// Sorts options with no `sort_order` after every option that has one.
+  static const int _unordered = 1 << 30;
 
   PublicOptionModel? _optionFromAny(dynamic item) {
     if (item is Map) {

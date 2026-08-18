@@ -302,11 +302,34 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
         if (!data.hasData) return const SizedBox.shrink();
 
         return CourtAmenitiesSection(
-          features: <String>[...data.amenities, ...data.facilities],
+          features: <String>[
+            ...data.amenities.map((VenueAmenityFacilityItem item) => item.name),
+            ...data.facilities.map(
+              (VenueAmenityFacilityItem item) => item.name,
+            ),
+          ],
           categories: <String, String>{
-            for (final String amenity in data.amenities) amenity: 'Amenities',
-            for (final String facility in data.facilities)
-              facility: 'Facilities',
+            for (final VenueAmenityFacilityItem amenity in data.amenities)
+              amenity.name: 'Amenities',
+            for (final VenueAmenityFacilityItem facility in data.facilities)
+              facility.name: 'Facilities',
+          },
+          iconUrls: <String, String>{
+            for (final VenueAmenityFacilityItem item
+                in <VenueAmenityFacilityItem>[
+                  ...data.amenities,
+                  ...data.facilities,
+                ])
+              if (item.displayIconUrl case final String url) item.name: url,
+          },
+          descriptions: <String, String>{
+            for (final VenueAmenityFacilityItem item
+                in <VenueAmenityFacilityItem>[
+                  ...data.amenities,
+                  ...data.facilities,
+                ])
+              if (item.description case final String description)
+                item.name: description,
           },
         );
       },

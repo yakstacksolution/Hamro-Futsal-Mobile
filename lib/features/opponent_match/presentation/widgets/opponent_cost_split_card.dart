@@ -50,10 +50,14 @@ class OpponentCostSplitCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      OpponentFmt.npr(cost.courtFee),
+                      cost.hasCourtFee
+                          ? OpponentFmt.npr(cost.courtFee)
+                          : StringConstants.courtFeeNotSetYet,
                       style: textTheme.bodyTextLarge?.copyWith(
                         fontWeight: FontWeight.w700,
-                        color: LightColor.primaryTextColor,
+                        color: cost.hasCourtFee
+                            ? LightColor.primaryTextColor
+                            : LightColor.hintTextColor,
                       ),
                     ),
                   ],

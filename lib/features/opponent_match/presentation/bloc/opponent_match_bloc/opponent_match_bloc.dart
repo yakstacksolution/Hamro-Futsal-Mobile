@@ -5,7 +5,9 @@ import 'package:dartz/dartz.dart';
 import 'package:equatable/equatable.dart';
 import 'package:hamro_footsall/core/helper/exception_helper.dart';
 import 'package:hamro_footsall/features/opponent_match/data/model/opponent_match_model.dart';
+import 'package:hamro_footsall/features/opponent_match/data/model/opponent_match_step_request.dart';
 import 'package:hamro_footsall/features/opponent_match/domain/entities/opponent_match_entities.dart';
+import 'package:hamro_footsall/features/opponent_match/data/model/opponent_request_tab.dart';
 import 'package:hamro_footsall/features/opponent_match/domain/usecase/opponent_match_usecase.dart';
 
 part 'opponent_match_event.dart';
@@ -19,18 +21,30 @@ class OpponentMatchBloc extends Bloc<OpponentMatchEvent, OpponentMatchState> {
     on<LoadPositionsEvent>(_onLoadPositions);
     on<LoadOpponentLevelsEvent>(_onLoadOpponentLevels);
     on<LoadOpponentRequestsEvent>(_onLoadRequests);
+    on<RefreshOpponentRequestsEvent>(_onRefreshRequests);
     on<CreateTeamEvent>(_onCreateTeam);
     on<UpdateTeamEvent>(_onUpdateTeam);
     on<DeleteTeamEvent>(_onDeleteTeam);
     on<AddPlayerEvent>(_onAddPlayer);
     on<UpdateMemberEvent>(_onUpdateMember);
     on<RemoveMemberEvent>(_onRemoveMember);
+    on<SaveOpponentMatchStepEvent>(_onSaveMatchStep);
+    on<SaveOpponentVenueStepEvent>(_onSaveVenueStep);
+    on<SaveOpponentCostStepEvent>(_onSaveCostStep);
+    on<PublishOpponentRequestEvent>(_onPublishRequest);
+    on<ResetOpponentMatchStepEvent>(_onResetMatchStep);
+    on<LoadOpponentDraftEvent>(_onLoadDraft);
     on<SendOpponentRequestEvent>(_onSendRequest);
     on<DeclineRequestEvent>(_onDeclineRequest);
     on<RequestAcceptedEvent>(_onRequestAccepted);
     on<DeleteOpponentRequestEvent>(_onDeleteRequest);
     on<SelectOpponentEvent>(_onSelectOpponent);
     on<RejectInvitationEvent>(_onRejectInvitation);
+    on<ClearOpponentMessagesEvent>(
+      (_, emit) => emit(
+        state.copyWith(clearSuccessMessage: true, clearErrorMessage: true),
+      ),
+    );
   }
 
   final OpponentMatchUseCase useCase;
@@ -93,32 +107,51 @@ class OpponentMatchBloc extends Bloc<OpponentMatchEvent, OpponentMatchState> {
     result.fold((_) {}, (levels) => emit(state.copyWith(levels: levels)));
   }
 
+  /// One tab, one call. Idempotent unless forced: opening a section
+  /// re-dispatches this, so a section already fetched is served from state
+  /// instead of re-hitting the API.
   Future<void> _onLoadRequests(
     LoadOpponentRequestsEvent event,
     Emitter<OpponentMatchState> emit,
   ) async {
+    final tab = event.tab;
+    if (state.isLoadingTab(tab)) return;
+    if (state.hasLoadedTab(tab) && !event.force) return;
+
     emit(
-      state.copyWith(
-        requestsStatus: OpponentMatchStatus.loading,
-        clearErrorMessage: true,
-      ),
+      state.withTab(tab, status: OpponentMatchStatus.loading, clearError: true),
     );
-    final result = await useCase.getRequests();
+    final result = await useCase.getRequestsByTab(tab);
     result.fold(
       (failure) => emit(
-        state.copyWith(
-          requestsStatus: OpponentMatchStatus.failure,
-          errorMessage: failure.errorMessage,
+        state.withTab(
+          tab,
+          status: OpponentMatchStatus.failure,
+          error: failure.errorMessage,
         ),
       ),
       (requests) => emit(
-        state.copyWith(
-          requestsStatus: OpponentMatchStatus.success,
+        state.withTab(
+          tab,
           requests: requests,
-          clearErrorMessage: true,
+          status: OpponentMatchStatus.success,
+          clearError: true,
         ),
       ),
     );
+  }
+
+  /// A mutation can move a request between tabs, so every tab already on
+  /// screen is re-fetched. Tabs never opened stay untouched — they will load
+  /// lazily when the user gets there.
+  Future<void> _onRefreshRequests(
+    RefreshOpponentRequestsEvent event,
+    Emitter<OpponentMatchState> emit,
+  ) async {
+    for (final tab in OpponentRequestTab.values) {
+      if (state.statusFor(tab) == OpponentMatchStatus.initial) continue;
+      add(LoadOpponentRequestsEvent(tab: tab, force: true));
+    }
   }
 
   Future<void> _onLoadTeam(
@@ -197,6 +230,240 @@ class OpponentMatchBloc extends Bloc<OpponentMatchEvent, OpponentMatchState> {
     _applyRequests(await useCase.sendRequest(event.request), emit);
   }
 
+  /// First wizard step. The id from the create is kept in state, so coming
+  /// back to the step and submitting again patches that request instead of
+  /// opening another one.
+  Future<void> _onSaveMatchStep(
+    SaveOpponentMatchStepEvent event,
+    Emitter<OpponentMatchState> emit,
+  ) async {
+    emit(
+      state.copyWith(
+        matchStepStatus: OpponentMatchStatus.loading,
+        clearMatchStepError: true,
+      ),
+    );
+
+    final result = await useCase.saveMatchStep(
+      event.request,
+      requestId: state.hasDraftRequest ? state.draftRequestId : null,
+    );
+
+    result.fold(
+      (failure) => emit(
+        state.copyWith(
+          matchStepStatus: OpponentMatchStatus.failure,
+          matchStepError: failure.errorMessage,
+        ),
+      ),
+      (ref) => emit(
+        state.copyWith(
+          matchStepStatus: OpponentMatchStatus.success,
+          draftRequestId: ref.id,
+          clearMatchStepError: true,
+        ),
+      ),
+    );
+  }
+
+  /// Step two needs the id step one produced; without it there is nothing to
+  /// attach the venue to, so the step fails rather than opening a new request.
+  Future<void> _onSaveVenueStep(
+    SaveOpponentVenueStepEvent event,
+    Emitter<OpponentMatchState> emit,
+  ) async {
+    if (!state.hasDraftRequest) {
+      emit(
+        state.copyWith(
+          venueStepStatus: OpponentMatchStatus.failure,
+          venueStepError:
+              'The match details have not been saved yet. '
+              'Go back a step and try again.',
+        ),
+      );
+      return;
+    }
+
+    emit(
+      state.copyWith(
+        venueStepStatus: OpponentMatchStatus.loading,
+        clearVenueStepError: true,
+      ),
+    );
+
+    final result = await useCase.saveVenueStep(
+      state.draftRequestId,
+      event.request,
+    );
+
+    result.fold(
+      (failure) => emit(
+        state.copyWith(
+          venueStepStatus: OpponentMatchStatus.failure,
+          venueStepError: failure.errorMessage,
+        ),
+      ),
+      (ref) => emit(
+        state.copyWith(
+          venueStepStatus: OpponentMatchStatus.success,
+          draftRequestId: ref.id,
+          clearVenueStepError: true,
+        ),
+      ),
+    );
+  }
+
+  /// Hydrates the wizard from the server's copy of a draft. Failure is kept in
+  /// [OpponentMatchState.draftError] so the wizard can offer a retry while the
+  /// row it was opened with still fills the pickers.
+  Future<void> _onLoadDraft(
+    LoadOpponentDraftEvent event,
+    Emitter<OpponentMatchState> emit,
+  ) async {
+    emit(
+      state.copyWith(
+        draftStatus: OpponentMatchStatus.loading,
+        clearDraftError: true,
+      ),
+    );
+    final result = await useCase.getMyRequest(event.requestId);
+    result.fold(
+      (failure) => emit(
+        state.copyWith(
+          draftStatus: OpponentMatchStatus.failure,
+          draftError: failure.errorMessage,
+        ),
+      ),
+      (request) => emit(
+        state.copyWith(
+          draftStatus: OpponentMatchStatus.success,
+          draftDetail: request,
+          clearDraftError: true,
+        ),
+      ),
+    );
+  }
+
+  /// Step three needs the id step one produced, exactly like the venue step.
+  Future<void> _onSaveCostStep(
+    SaveOpponentCostStepEvent event,
+    Emitter<OpponentMatchState> emit,
+  ) async {
+    if (!state.hasDraftRequest) {
+      emit(
+        state.copyWith(
+          costStepStatus: OpponentMatchStatus.failure,
+          costStepError:
+              'The match details have not been saved yet. '
+              'Go back a step and try again.',
+        ),
+      );
+      return;
+    }
+
+    emit(
+      state.copyWith(
+        costStepStatus: OpponentMatchStatus.loading,
+        clearCostStepError: true,
+      ),
+    );
+
+    final result = await useCase.saveCostStep(
+      state.draftRequestId,
+      event.request,
+    );
+
+    result.fold(
+      (failure) => emit(
+        state.copyWith(
+          costStepStatus: OpponentMatchStatus.failure,
+          costStepError: failure.errorMessage,
+        ),
+      ),
+      (ref) => emit(
+        state.copyWith(
+          costStepStatus: OpponentMatchStatus.success,
+          draftRequestId: ref.id,
+          clearCostStepError: true,
+        ),
+      ),
+    );
+  }
+
+  /// Publishes the wizard's draft. On success the confirmation message goes to
+  /// [OpponentMatchState.successMessage] — the screen shows it — and both lists
+  /// are refreshed so the row moves out of "Draft".
+  Future<void> _onPublishRequest(
+    PublishOpponentRequestEvent event,
+    Emitter<OpponentMatchState> emit,
+  ) async {
+    if (!state.hasDraftRequest) {
+      emit(
+        state.copyWith(
+          publishStatus: OpponentMatchStatus.failure,
+          publishError:
+              'This request has not been opened on the server yet. '
+              'Go back and save the match details first.',
+        ),
+      );
+      return;
+    }
+
+    emit(
+      state.copyWith(
+        publishStatus: OpponentMatchStatus.loading,
+        clearPublishError: true,
+      ),
+    );
+
+    final result = await useCase.publishRequest(
+      state.draftRequestId,
+      message: event.message,
+    );
+
+    result.fold(
+      (failure) => emit(
+        state.copyWith(
+          publishStatus: OpponentMatchStatus.failure,
+          publishError: failure.errorMessage,
+        ),
+      ),
+      (message) {
+        emit(
+          state.copyWith(
+            publishStatus: OpponentMatchStatus.success,
+            successMessage: message,
+            clearPublishError: true,
+          ),
+        );
+        // It is no longer a draft: every loaded section may have changed.
+        add(const RefreshOpponentRequestsEvent());
+      },
+    );
+  }
+
+  void _onResetMatchStep(
+    ResetOpponentMatchStepEvent event,
+    Emitter<OpponentMatchState> emit,
+  ) {
+    emit(
+      state.copyWith(
+        matchStepStatus: OpponentMatchStatus.initial,
+        venueStepStatus: OpponentMatchStatus.initial,
+        costStepStatus: OpponentMatchStatus.initial,
+        clearCostStepError: true,
+        publishStatus: OpponentMatchStatus.initial,
+        clearPublishError: true,
+        draftRequestId: event.draftRequestId,
+        draftStatus: OpponentMatchStatus.initial,
+        clearDraftDetail: true,
+        clearDraftError: true,
+        clearMatchStepError: true,
+        clearVenueStepError: true,
+      ),
+    );
+  }
+
   Future<void> _onDeclineRequest(
     DeclineRequestEvent event,
     Emitter<OpponentMatchState> emit,
@@ -210,19 +477,51 @@ class OpponentMatchBloc extends Bloc<OpponentMatchEvent, OpponentMatchState> {
     RequestAcceptedEvent event,
     Emitter<OpponentMatchState> emit,
   ) async {
-    final requests = [
-      for (final r in state.requests)
-        if (r.id == event.updated.id) event.updated else r,
-    ];
-    emit(state.copyWith(requests: requests, clearErrorMessage: true));
-    _applyRequests(await useCase.getRequests(), emit);
+    // Patch the row wherever it is rendered, then let the server confirm.
+    emit(
+      state.copyWith(
+        tabRequests: {
+          for (final entry in state.tabRequests.entries)
+            entry.key: [
+              for (final r in entry.value)
+                if (r.id == event.updated.id) event.updated else r,
+            ],
+        },
+        clearErrorMessage: true,
+      ),
+    );
+    add(const RefreshOpponentRequestsEvent());
   }
 
+  /// Deletes one of my requests. On success the row is dropped from every
+  /// loaded section in place — the server already told us it is gone, so no tab
+  /// is fetched again — and the server's message is surfaced as a confirmation.
   Future<void> _onDeleteRequest(
     DeleteOpponentRequestEvent event,
     Emitter<OpponentMatchState> emit,
   ) async {
-    _applyRequests(await useCase.deleteRequest(event.request.id), emit);
+    final String id = event.request.id;
+    final result = await useCase.deleteRequest(id);
+    result.fold(
+      (failure) => emit(
+        state.copyWith(
+          errorMessage: failure.errorMessage,
+          clearSuccessMessage: true,
+        ),
+      ),
+      (message) => emit(
+        state.copyWith(
+          tabRequests: {
+            for (final entry in state.tabRequests.entries)
+              entry.key: entry.value
+                  .where((r) => r.id != id)
+                  .toList(growable: false),
+          },
+          successMessage: message,
+          clearErrorMessage: true,
+        ),
+      ),
+    );
   }
 
   Future<void> _onSelectOpponent(
@@ -242,14 +541,24 @@ class OpponentMatchBloc extends Bloc<OpponentMatchEvent, OpponentMatchState> {
     );
   }
 
+  /// Mutations (decline, select an opponent, reject an invitation…) reload the
+  /// `need_opponent` slice they answered with, then refresh whatever other
+  /// sections are on screen — a request can move between tabs.
   void _applyRequests(
     Either<AppException, List<OpponentRequestModel>> result,
     Emitter<OpponentMatchState> emit,
   ) {
     result.fold(
       (failure) => emit(state.copyWith(errorMessage: failure.errorMessage)),
-      (requests) =>
-          emit(state.copyWith(requests: requests, clearErrorMessage: true)),
+      (requests) => emit(
+        state.withTab(
+          OpponentRequestTab.needOpponent,
+          requests: requests,
+          status: OpponentMatchStatus.success,
+          clearError: true,
+        ),
+      ),
     );
+    add(const RefreshOpponentRequestsEvent());
   }
 }

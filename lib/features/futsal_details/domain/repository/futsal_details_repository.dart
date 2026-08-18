@@ -30,6 +30,7 @@ abstract class FutsalDetailsRepository {
   Future<Either<AppException, List<TimeSlotModel>>> getVenueSlots({
     required int venueId,
     required String date,
+    String bookingType,
   });
   Future<Either<AppException, PaymentQrModel>> getCourtPaymentQr({
     required int courtId,
