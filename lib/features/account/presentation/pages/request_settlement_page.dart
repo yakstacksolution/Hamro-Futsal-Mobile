@@ -9,57 +9,58 @@ import 'package:hamro_footsall/core/utils/string_constants.dart';
 import 'package:hamro_footsall/core/widgets/custom_app_bar.dart';
 import 'package:hamro_footsall/core/widgets/custom_button.dart';
 import 'package:hamro_footsall/core/widgets/custom_text_field.dart';
-import 'package:hamro_footsall/core/widgets/payment_qr_card.dart';
 import 'package:hamro_footsall/features/account/data/model/account_models.dart';
 import 'package:hamro_footsall/features/account/presentation/utils/account_ui_utils.dart';
+import 'package:hamro_footsall/features/account/presentation/widgets/account_widgets.dart';
 
 typedef SettlementRequestDraft = ({
-  int amount,
+  double amount,
   String transactionReference,
   String? note,
   String paymentProofPath,
 });
 
-/// Full-page settlement request form: pay Hamro Futsal by QR, then submit
-/// the paid amount with the receipt. Pops with a [SettlementRequestDraft]
-/// on submit, null when dismissed.
+/// Full-page settlement request form, driven entirely by
+/// `/auth/settlement-preview`: the server supplies the copy, who to pay, the
+/// ceiling, whether a partial amount is allowed, and what a proof file may be.
+///
+/// Pops with a [SettlementRequestDraft] on submit, null when dismissed.
 class RequestSettlementPage extends StatefulWidget {
   const RequestSettlementPage({
     super.key,
-    required this.summary,
-    required this.availableBalance,
-    required this.scopeLabel,
-    this.minSettlementAmount,
+    required this.preview,
+    this.venueName = '',
   });
 
-  final AccountSummaryModel summary;
-  final int availableBalance;
-  final String scopeLabel;
+  final SettlementPreviewModel preview;
 
-  /// Scope-specific floor from the settlement preview; falls back to the
-  /// account-wide minimum when the preview didn't supply one.
-  final int? minSettlementAmount;
+  /// Falls back into the scope line when the server sent no `subtitle`.
+  final String venueName;
 
   @override
   State<RequestSettlementPage> createState() => _RequestSettlementPageState();
 }
 
 class _RequestSettlementPageState extends State<RequestSettlementPage> {
-  static const List<String> _proofExtensions = ['jpg', 'jpeg', 'png', 'pdf'];
-  static const int _maxProofBytes = 10 * 1024 * 1024;
-
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _amountCtrl;
   final _refCtrl = TextEditingController();
   final _noteCtrl = TextEditingController();
   PlatformFile? _proof;
   bool _proofMissing = false;
+  String? _proofError;
+
+  SettlementPreviewModel get _preview => widget.preview;
+
+  /// The whole payable balance must go in one request — the field is shown
+  /// read-only rather than validated, so the rule is visible up front.
+  bool get _amountLocked => _preview.exactAmountRequired;
 
   @override
   void initState() {
     super.initState();
     _amountCtrl = TextEditingController(
-      text: widget.availableBalance.toString(),
+      text: AccountFmt.amountInput(_preview.defaultAmount),
     );
   }
 
@@ -72,15 +73,15 @@ class _RequestSettlementPageState extends State<RequestSettlementPage> {
   }
 
   String? _validateAmount(String? value) {
-    final amount = int.tryParse(value?.trim() ?? '') ?? 0;
+    final amount = double.tryParse(value?.trim() ?? '') ?? 0;
     if (amount <= 0) return 'Enter a valid amount.';
-    if (amount > widget.availableBalance) {
-      return 'Amount can\'t exceed ${AccountFmt.npr(widget.availableBalance)}.';
+    if (amount > _preview.maximumPayable) {
+      return "Amount can't exceed ${AccountFmt.npr(_preview.maximumPayable)}.";
     }
-    final min =
-        widget.minSettlementAmount ?? widget.summary.minSettlementAmount;
-    if (min > 0 && amount < min) {
-      return 'Minimum settlement is ${AccountFmt.npr(min)}.';
+    // Compared in paisa: 11711.99 never equals itself in binary floating point.
+    if (_amountLocked &&
+        (amount * 100).round() != (_preview.defaultAmount * 100).round()) {
+      return 'Settle the full ${AccountFmt.npr(_preview.defaultAmount)}.';
     }
     return null;
   }
@@ -88,34 +89,63 @@ class _RequestSettlementPageState extends State<RequestSettlementPage> {
   Future<void> _pickProof() async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
-      allowedExtensions: _proofExtensions,
+      allowedExtensions: _preview.acceptedProofTypes,
       allowMultiple: false,
     );
     final file = result?.files.singleOrNull;
     if (!mounted || file?.path == null) return;
-    if (file!.size > _maxProofBytes) {
-      setState(() => _proofMissing = true);
+    if (file!.size > _preview.proofMaxBytes) {
+      setState(() {
+        _proof = null;
+        _proofMissing = true;
+        _proofError =
+            'That file is larger than ${_preview.proofMaxSizeMb} MB. Pick a smaller one.';
+      });
       return;
     }
     setState(() {
       _proof = file;
       _proofMissing = false;
+      _proofError = null;
     });
   }
 
   void _submit() {
     final valid = _formKey.currentState?.validate() ?? false;
     final hasProof = _proof?.path != null;
-    setState(() => _proofMissing = !hasProof);
+    setState(() {
+      _proofMissing = !hasProof;
+      if (!hasProof) {
+        _proofError =
+            'Upload the payment receipt before submitting (max ${_preview.proofMaxSizeMb} MB).';
+      }
+    });
     if (!valid || !hasProof) return;
     HapticFeedback.mediumImpact();
     final note = _noteCtrl.text.trim();
     Navigator.of(context).pop((
-      amount: int.parse(_amountCtrl.text.trim()),
+      // Locked scope submits the server's own figure, not the rendered text.
+      amount: _amountLocked
+          ? _preview.defaultAmount
+          : double.parse(_amountCtrl.text.trim()),
       transactionReference: _refCtrl.text.trim(),
       note: note.isEmpty ? null : note,
       paymentProofPath: _proof!.path!,
     ));
+  }
+
+  String get _scopeLabel {
+    if (_preview.subtitle.isNotEmpty) return _preview.subtitle;
+    if (widget.venueName.isNotEmpty) return widget.venueName;
+    return 'All futsals';
+  }
+
+  String get _proofHint {
+    final types = _preview.acceptedProofTypes
+        .map((e) => e.toUpperCase())
+        .toSet()
+        .join(', ');
+    return '$types · Max ${_preview.proofMaxSizeMb} MB';
   }
 
   @override
@@ -123,7 +153,11 @@ class _RequestSettlementPageState extends State<RequestSettlementPage> {
     final textTheme = FutsalTheme.getTextTheme(context);
     return Scaffold(
       backgroundColor: LightColor.background,
-      appBar: const CustomAppBar(title: StringConstants.requestSettlement),
+      appBar: CustomAppBar(
+        title: _preview.title.isEmpty
+            ? StringConstants.payCommission
+            : _preview.title,
+      ),
       body: SafeArea(
         top: false,
         child: Form(
@@ -152,30 +186,48 @@ class _RequestSettlementPageState extends State<RequestSettlementPage> {
                 ),
                 children: [
                   Text(
-                    widget.scopeLabel,
+                    _scopeLabel,
                     style: textTheme.bodyTextSmall?.copyWith(
                       color: LightColor.secondaryTextColor,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(height: AppDimens.paddingX12),
-                  PaymentQrCard(
-                    qr: widget.summary.settlementQr,
-                    fallbackPayeeName: StringConstants.hamroFutsal,
-                    amountLabel: 'Maximum payable',
-                    amountValue: AccountFmt.npr(widget.availableBalance),
+                  SettlementRecipientCard(
+                    recipient: _preview.recipient,
+                    maximumPayable: _preview.maximumPayable,
+                    pendingClearance: _preview.pendingClearance,
                   ),
                   const SizedBox(height: AppDimens.paddingX20),
                   CustomTextField(
-                    labelText: 'Settlement amount (NPR)',
+                    labelText: 'Commission amount (NPR)',
                     controller: _amountCtrl,
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    readOnly: _amountLocked,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    inputFormatters: [
+                      // Paisa matter: the server rejects a rounded amount.
+                      FilteringTextInputFormatter.allow(
+                        RegExp(r'^\d*\.?\d{0,2}'),
+                      ),
+                    ],
                     icon: Icons.payments_outlined,
                     validator: _validateAmount,
                     autovalidateMode: AutovalidateMode.onUserInteraction,
                     ensureVisibleOnFocus: true,
                   ),
+                  if (_amountLocked) ...[
+                    const SizedBox(height: AppDimens.paddingX6),
+                    Text(
+                      'The full commission must be paid in one request.',
+                      style: textTheme.bodyTextSmall?.copyWith(
+                        color: LightColor.hintTextColor,
+                        fontSize: AppDimens.fontBodySubTitle,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: AppDimens.paddingX16),
                   CustomTextField(
                     labelText: 'Transaction reference',
@@ -192,6 +244,8 @@ class _RequestSettlementPageState extends State<RequestSettlementPage> {
                   _ProofPicker(
                     proof: _proof,
                     showError: _proofMissing,
+                    hint: _proofHint,
+                    errorText: _proofError,
                     onTap: _pickProof,
                   ),
                   const SizedBox(height: AppDimens.paddingX16),
@@ -211,7 +265,7 @@ class _RequestSettlementPageState extends State<RequestSettlementPage> {
                       child: SizedBox(
                         width: AppDimens.formActionMaxWidth,
                         child: CustomButton(
-                          text: 'Submit Settlement Request',
+                          text: 'Submit Commission Payment',
                           icon: Icons.lock_outline_rounded,
                           onPressed: _submit,
                         ),
@@ -219,7 +273,7 @@ class _RequestSettlementPageState extends State<RequestSettlementPage> {
                     )
                   else
                     CustomButton(
-                      text: 'Submit Settlement Request',
+                      text: 'Submit Commission Payment',
                       icon: Icons.lock_outline_rounded,
                       onPressed: _submit,
                     ),
@@ -238,11 +292,17 @@ class _ProofPicker extends StatelessWidget {
   const _ProofPicker({
     required this.proof,
     required this.showError,
+    required this.hint,
+    required this.errorText,
     required this.onTap,
   });
 
   final PlatformFile? proof;
   final bool showError;
+
+  /// Accepted types and size ceiling, as the server reported them.
+  final String hint;
+  final String? errorText;
   final VoidCallback onTap;
 
   @override
@@ -292,7 +352,7 @@ class _ProofPicker extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'JPG, PNG or PDF · Max 10 MB',
+                        hint,
                         style: textTheme.bodyTextSmall?.copyWith(
                           color: LightColor.hintTextColor,
                           fontSize: AppDimens.fontBodySubTitle,
@@ -314,7 +374,7 @@ class _ProofPicker extends StatelessWidget {
         if (showError) ...[
           const SizedBox(height: AppDimens.paddingX6),
           Text(
-            'Upload the payment receipt before submitting (max 10 MB).',
+            errorText ?? 'Upload the payment receipt before submitting.',
             style: textTheme.bodyTextSmall?.copyWith(
               color: LightColor.redColor,
               fontSize: AppDimens.fontBodySubTitle,

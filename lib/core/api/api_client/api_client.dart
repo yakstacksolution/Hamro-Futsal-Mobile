@@ -289,7 +289,7 @@ class ApiClient {
   Future<Result> getSettlements({Map<String, dynamic>? query}) {
     return _get(
       url: '$_baseUrl/auth/settlements',
-      query: query ?? <String, dynamic>{'per_page': 20},
+      query: query ?? <String, dynamic>{'page': 1, 'per_page': 20},
     );
   }
 

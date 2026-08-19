@@ -24,6 +24,27 @@ DateTime? _asDate(dynamic v) =>
 
 String _asString(dynamic v) => (v ?? '').toString().trim();
 
+/// One entry of `data.sections` — the server tells the UI which sub-sections
+/// exist and how many rows each holds, so shortcut tiles never guess.
+class AccountSectionModel {
+  const AccountSectionModel({
+    required this.key,
+    required this.label,
+    this.count = 0,
+  });
+
+  final String key;
+  final String label;
+  final int count;
+
+  factory AccountSectionModel.fromJson(Map<String, dynamic> json) =>
+      AccountSectionModel(
+        key: _asString(json['key']),
+        label: _asString(json['label']),
+        count: _asInt(json['count']),
+      );
+}
+
 /// Headline numbers of the vendor's platform account.
 class AccountSummaryModel {
   const AccountSummaryModel({
@@ -38,10 +59,12 @@ class AccountSummaryModel {
     this.commissionRate = 0,
     this.minSettlementAmount = 0,
     this.maxSettlementAmount,
+    this.requestableAmount = 0,
     this.settlementEligible = false,
     this.settlementBlockingReason = '',
     this.processingEstimate = '',
     this.venues = const <VenueAccountModel>[],
+    this.sections = const <AccountSectionModel>[],
     this.recentActivity = const <AccountEntryModel>[],
     this.settlementQr,
     this.updatedAt,
@@ -49,28 +72,46 @@ class AccountSummaryModel {
 
   final String currency;
 
-  /// Cleared earnings the vendor can request a settlement for.
-  final int availableBalance;
+  /// Cleared earnings the vendor can request a settlement for. Money is
+  /// carried as `double` throughout — the server reports paisa (e.g.
+  /// 11711.99) and `exact_amount_required` means a rounded figure would be
+  /// rejected.
+  final double availableBalance;
 
   /// Verified-but-not-yet-cleared income (e.g. advances under review).
-  final int pendingClearance;
-  final int reservedBalance;
+  final double pendingClearance;
+  final double reservedBalance;
 
-  final int totalEarned;
-  final int totalCommission;
-  final int totalRefunded;
-  final int totalSettled;
+  final double totalEarned;
+  final double totalCommission;
+  final double totalRefunded;
+  final double totalSettled;
 
   /// Platform commission in percent (e.g. 10 = 10%).
   final double commissionRate;
 
   /// Server-enforced floor for a settlement request; 0 = no floor.
-  final int minSettlementAmount;
-  final int? maxSettlementAmount;
+  final double minSettlementAmount;
+  final double? maxSettlementAmount;
+
+  /// `actions.requestable_amount` — what the server will accept right now.
+  final double requestableAmount;
   final bool settlementEligible;
   final String settlementBlockingReason;
   final String processingEstimate;
   final List<VenueAccountModel> venues;
+
+  /// `data.sections` — which sub-sections the server exposes, with counts.
+  final List<AccountSectionModel> sections;
+
+  /// Row count the server reports for one section key, or null when it does
+  /// not mention that section at all.
+  int? sectionCount(String key) {
+    for (final section in sections) {
+      if (section.key == key) return section.count;
+    }
+    return null;
+  }
 
   /// Ledger entries shipped inline with the settlement account.
   final List<AccountEntryModel> recentActivity;
@@ -92,31 +133,31 @@ class AccountSummaryModel {
       currency: _asString(json['currency']).isEmpty
           ? 'NPR'
           : _asString(json['currency']),
-      availableBalance: _asInt(
+      availableBalance: _asDouble(
         json['available_balance'] ??
             json['balance'] ??
             json['availableBalance'],
       ),
-      pendingClearance: _asInt(
+      pendingClearance: _asDouble(
         json['pending_clearance'] ??
             json['pending_balance'] ??
             json['pendingClearance'],
       ),
-      reservedBalance: _asInt(
+      reservedBalance: _asDouble(
         json['reserved_balance'] ?? json['settlement_reserved'],
       ),
-      totalEarned: _asInt(
+      totalEarned: _asDouble(
         json['total_earned'] ??
             json['lifetime_earned'] ??
             cards['total_earned'],
       ),
-      totalCommission: _asInt(
+      totalCommission: _asDouble(
         json['total_commission'] ??
             json['commission_paid'] ??
             cards['commission'],
       ),
-      totalRefunded: _asInt(json['total_refunded'] ?? json['refunds_total']),
-      totalSettled: _asInt(
+      totalRefunded: _asDouble(json['total_refunded'] ?? json['refunds_total']),
+      totalSettled: _asDouble(
         json['total_settled'] ?? json['paid_out'] ?? cards['settled'],
       ),
       commissionRate: _asDouble(
@@ -124,12 +165,15 @@ class AccountSummaryModel {
             json['commission_pct'] ??
             json['commissionRate'],
       ),
-      minSettlementAmount: _asInt(
+      minSettlementAmount: _asDouble(
         json['min_settlement_amount'] ?? json['minSettlementAmount'],
       ),
       maxSettlementAmount: json['max_settlement_amount'] == null
           ? null
-          : _asInt(json['max_settlement_amount']),
+          : _asDouble(json['max_settlement_amount']),
+      requestableAmount: _asDouble(
+        actions['requestable_amount'] ?? json['requestable_amount'],
+      ),
       settlementEligible:
           json['settlement_eligible'] == true ||
           json['can_request_settlement'] == true ||
@@ -143,6 +187,9 @@ class AccountSummaryModel {
       venues: _mapList(
         json['venues'] ?? json['futsals'] ?? json['venue_accounts'],
       ).map(VenueAccountModel.fromJson).toList(growable: false),
+      sections: _mapList(
+        json['sections'],
+      ).map(AccountSectionModel.fromJson).toList(growable: false),
       recentActivity: _mapList(
         json['recent_activity'] ?? json['recent_entries'],
       ).map(AccountEntryModel.fromJson).toList(growable: false),
@@ -164,10 +211,12 @@ class AccountSummaryModel {
       commissionRate: commissionRate,
       minSettlementAmount: minSettlementAmount,
       maxSettlementAmount: maxSettlementAmount,
+      requestableAmount: requestableAmount,
       settlementEligible: settlementEligible,
       settlementBlockingReason: settlementBlockingReason,
       processingEstimate: processingEstimate,
       venues: venues ?? this.venues,
+      sections: sections,
       recentActivity: recentActivity,
       settlementQr: settlementQr,
       updatedAt: updatedAt,
@@ -190,10 +239,12 @@ class VenueAccountModel {
   final int id;
   final String name;
   final String location;
-  final int availableBalance;
-  final int pendingClearance;
-  final int totalEarned;
-  final int totalCommission;
+  final double availableBalance;
+  final double pendingClearance;
+  final double totalEarned;
+  final double totalCommission;
+
+  /// `can_request_settlement` for this futsal alone.
   final bool settlementEligible;
 
   factory VenueAccountModel.fromJson(Map<String, dynamic> json) {
@@ -203,14 +254,14 @@ class VenueAccountModel {
         json['name'] ?? json['venue_name'] ?? json['futsal_name'],
       ),
       location: _asString(json['location'] ?? json['address']),
-      availableBalance: _asInt(
+      availableBalance: _asDouble(
         json['available_balance'] ?? json['balance'] ?? json['amount_due'],
       ),
-      pendingClearance: _asInt(
+      pendingClearance: _asDouble(
         json['pending_clearance'] ?? json['pending_balance'],
       ),
-      totalEarned: _asInt(json['total_earned'] ?? json['gross_earnings']),
-      totalCommission: _asInt(
+      totalEarned: _asDouble(json['total_earned'] ?? json['gross_earnings']),
+      totalCommission: _asDouble(
         json['total_commission'] ?? json['commission_due'],
       ),
       settlementEligible:
@@ -240,10 +291,14 @@ class SettlementBreakdownModel {
   const SettlementBreakdownModel({
     this.venues = const <VenueAccountModel>[],
     this.entries = const <AccountEntryModel>[],
+    this.count = 0,
   });
 
   final List<VenueAccountModel> venues;
   final List<AccountEntryModel> entries;
+
+  /// `data.count` — how many futsals the server counted.
+  final int count;
 
   static const SettlementBreakdownModel empty = SettlementBreakdownModel();
 
@@ -266,34 +321,97 @@ class SettlementBreakdownModel {
     final entriesRaw = _mapList(
       data['entries'] ?? data['statement'] ?? data['transactions'],
     );
+    final venues = venuesRaw
+        .map(VenueAccountModel.fromJson)
+        .toList(growable: false);
     return SettlementBreakdownModel(
-      venues: venuesRaw.map(VenueAccountModel.fromJson).toList(growable: false),
+      venues: venues,
       entries: entriesRaw
           .map(AccountEntryModel.fromJson)
           .toList(growable: false),
+      count: data['count'] == null ? venues.length : _asInt(data['count']),
     );
   }
 }
 
-/// `/auth/settlement-preview`: what a settlement request would look like
-/// right now (overall, or for one venue when `venue_id` was sent).
+/// Who the vendor pays when settling — `data.recipient`.
+class SettlementRecipientModel {
+  const SettlementRecipientModel({
+    this.name = '',
+    this.phone = '',
+    this.logoUrl = '',
+  });
+
+  final String name;
+  final String phone;
+  final String logoUrl;
+
+  bool get isEmpty => name.isEmpty && phone.isEmpty && logoUrl.isEmpty;
+
+  factory SettlementRecipientModel.fromJson(Map<String, dynamic> json) =>
+      SettlementRecipientModel(
+        name: _asString(json['name']),
+        phone: _asString(json['phone']),
+        logoUrl: _asString(json['logo_url'] ?? json['logo']),
+      );
+}
+
+/// `/auth/settlement-preview[?venue_id=]`: everything the request form needs,
+/// as the server scopes it — the copy to show, who to pay, how much is
+/// payable, and what a proof file may be.
+///
+/// `scope` is `consolidated` (all futsals) or `venue` (one futsal, with
+/// [venue] populated).
 class SettlementPreviewModel {
   const SettlementPreviewModel({
-    this.payableAmount = 0,
-    this.commissionAmount = 0,
-    this.grossAmount = 0,
-    this.minSettlementAmount = 0,
-    this.eligible = true,
+    this.scope = 'consolidated',
+    this.title = '',
+    this.subtitle = '',
+    this.recipient = const SettlementRecipientModel(),
+    this.venue,
+    this.maximumPayable = 0,
+    this.defaultAmount = 0,
+    this.pendingClearance = 0,
+    this.exactAmountRequired = false,
+    this.acceptedProofTypes = const <String>['jpg', 'jpeg', 'png', 'pdf'],
+    this.proofMaxSizeMb = 10,
     this.blockingReason = '',
   });
 
-  /// Net amount the vendor can settle right now.
-  final int payableAmount;
-  final int commissionAmount;
-  final int grossAmount;
-  final int minSettlementAmount;
-  final bool eligible;
+  final String scope;
+
+  /// Page title the server dictates, e.g. "Request Consolidated Settlement".
+  final String title;
+
+  /// Scope line under it, e.g. "All futsals" or the futsal's name.
+  final String subtitle;
+  final SettlementRecipientModel recipient;
+
+  /// Present only on a venue-scoped preview.
+  final SettlementPreviewVenue? venue;
+
+  /// Ceiling the server will accept.
+  final double maximumPayable;
+
+  /// What the amount field starts on.
+  final double defaultAmount;
+  final double pendingClearance;
+
+  /// When true the amount must equal [defaultAmount] exactly — a partial
+  /// settlement is rejected, so the field is locked rather than validated.
+  final bool exactAmountRequired;
+
+  /// File extensions the proof upload accepts.
+  final List<String> acceptedProofTypes;
+  final int proofMaxSizeMb;
   final String blockingReason;
+
+  bool get isVenueScoped => venue != null || scope == 'venue';
+
+  /// Nothing to settle means nothing to request.
+  bool get eligible => maximumPayable > 0;
+
+  int get proofMaxBytes => proofMaxSizeMb * 1024 * 1024;
 
   factory SettlementPreviewModel.fromResponse(dynamic payload) {
     final root = payload is Map
@@ -302,32 +420,72 @@ class SettlementPreviewModel {
     final data = root['data'] is Map
         ? Map<String, dynamic>.from(root['data'] as Map)
         : root;
+    final maximumPayable = _asDouble(
+      data['maximum_payable'] ??
+          data['payable_amount'] ??
+          data['available_balance'],
+    );
+    final proofTypes = data['accepted_proof_types'] is List
+        ? (data['accepted_proof_types'] as List)
+              .map(_asString)
+              .where((e) => e.isNotEmpty)
+              .map((e) => e.toLowerCase())
+              .toList(growable: false)
+        : const <String>[];
     return SettlementPreviewModel(
-      payableAmount: _asInt(
-        data['payable_amount'] ??
-            data['net_amount'] ??
-            data['settlement_amount'] ??
-            data['available_balance'] ??
-            data['amount'],
-      ),
-      commissionAmount: _asInt(data['commission_amount'] ?? data['commission']),
-      grossAmount: _asInt(
-        data['gross_amount'] ?? data['total_amount'] ?? data['total_earned'],
-      ),
-      minSettlementAmount: _asInt(
-        data['min_settlement_amount'] ?? data['minimum_amount'],
-      ),
-      eligible:
-          data['eligible'] != false &&
-          data['settlement_eligible'] != false &&
-          data['can_request_settlement'] != false,
+      scope: _asString(data['scope']).isEmpty
+          ? 'consolidated'
+          : _asString(data['scope']),
+      title: _asString(data['title']),
+      subtitle: _asString(data['subtitle']),
+      recipient: data['recipient'] is Map
+          ? SettlementRecipientModel.fromJson(
+              Map<String, dynamic>.from(data['recipient'] as Map),
+            )
+          : const SettlementRecipientModel(),
+      venue: data['venue'] is Map
+          ? SettlementPreviewVenue.fromJson(
+              Map<String, dynamic>.from(data['venue'] as Map),
+            )
+          : null,
+      maximumPayable: maximumPayable,
+      // Without an explicit default the whole payable amount is offered.
+      defaultAmount: data['default_amount'] == null
+          ? maximumPayable
+          : _asDouble(data['default_amount']),
+      pendingClearance: _asDouble(data['pending_clearance']),
+      exactAmountRequired: data['exact_amount_required'] == true,
+      acceptedProofTypes: proofTypes.isEmpty
+          ? const <String>['jpg', 'jpeg', 'png', 'pdf']
+          : proofTypes,
+      proofMaxSizeMb: data['proof_max_size_mb'] == null
+          ? 10
+          : _asInt(data['proof_max_size_mb']),
       blockingReason: _asString(
-        data['blocking_reason'] ??
-            data['settlement_blocking_reason'] ??
-            data['message'],
+        data['blocking_reason'] ?? data['settlement_blocking_reason'],
       ),
     );
   }
+}
+
+/// The futsal a venue-scoped preview belongs to (`data.venue`).
+class SettlementPreviewVenue {
+  const SettlementPreviewVenue({
+    required this.id,
+    this.name = '',
+    this.address = '',
+  });
+
+  final int id;
+  final String name;
+  final String address;
+
+  factory SettlementPreviewVenue.fromJson(Map<String, dynamic> json) =>
+      SettlementPreviewVenue(
+        id: _asInt(json['id'] ?? json['venue_id']),
+        name: _asString(json['name'] ?? json['venue_name']),
+        address: _asString(json['address']),
+      );
 }
 
 /// What a ledger entry did to the vendor's balance.
@@ -379,6 +537,7 @@ class AccountEntryModel {
     this.isCredit = true,
     this.note = '',
     this.reference = '',
+    this.venueName = '',
     this.date,
   });
 
@@ -387,9 +546,12 @@ class AccountEntryModel {
   final String title;
 
   /// Always positive; [isCredit] carries the direction.
-  final int amount;
+  final double amount;
   final bool isCredit;
   final String note;
+
+  /// Futsal the movement belongs to (`venue_name`), when the server says.
+  final String venueName;
 
   /// Booking / settlement code the entry belongs to, when the server sends
   /// one (e.g. "BK-1042").
@@ -400,7 +562,7 @@ class AccountEntryModel {
     final type = AccountEntryType.parse(
       _asString(json['type'] ?? json['entry_type'] ?? json['category']),
     );
-    final int rawAmount = _asInt(json['amount']);
+    final double rawAmount = _asDouble(json['amount']);
     final dynamic direction = json['direction'] ?? json['is_credit'];
     final bool isCredit = direction != null
         ? direction == true || _asString(direction).toLowerCase() == 'credit'
@@ -415,6 +577,7 @@ class AccountEntryModel {
       isCredit: isCredit,
       note: _asString(json['note'] ?? json['remarks']),
       reference: _asString(json['reference'] ?? json['ref'] ?? json['code']),
+      venueName: _asString(json['venue_name'] ?? json['futsal_name']),
       date: _asDate(json['date'] ?? json['created_at'] ?? json['createdAt']),
     );
   }
@@ -457,35 +620,157 @@ class SettlementModel {
     this.note = '',
     this.rejectedReason = '',
     this.reference = '',
+    this.transactionReference = '',
+    this.venueId,
+    this.venueName = '',
     this.requestedAt,
     this.resolvedAt,
   });
 
   final String id;
-  final int amount;
+  final double amount;
   final SettlementStatus status;
   final String note;
   final String rejectedReason;
   final String reference;
+
+  /// The vendor's own payment reference sent with the request.
+  final String transactionReference;
+
+  /// Set on a venue-scoped settlement; null on a consolidated one.
+  final int? venueId;
+  final String venueName;
   final DateTime? requestedAt;
   final DateTime? resolvedAt;
 
   factory SettlementModel.fromJson(Map<String, dynamic> json) {
     return SettlementModel(
       id: _asString(json['id'] ?? json['settlement_id']),
-      amount: _asInt(json['amount']).abs(),
+      amount: _asDouble(json['amount']).abs(),
       status: SettlementStatus.parse(_asString(json['status'])),
       note: _asString(json['note'] ?? json['remarks']),
       rejectedReason: _asString(
         json['rejected_reason'] ?? json['rejection_reason'] ?? json['reason'],
       ),
       reference: _asString(json['reference'] ?? json['ref'] ?? json['code']),
+      transactionReference: _asString(
+        json['transaction_reference'] ?? json['txn_reference'],
+      ),
+      venueId: json['venue_id'] == null ? null : _asInt(json['venue_id']),
+      venueName: _asString(json['venue_name'] ?? json['futsal_name']),
       requestedAt: _asDate(
         json['requested_at'] ?? json['created_at'] ?? json['createdAt'],
       ),
       resolvedAt: _asDate(
         json['resolved_at'] ?? json['paid_at'] ?? json['updated_at'],
       ),
+    );
+  }
+}
+
+/// `data.summary` of `/auth/settlements` — how many requests sit in each
+/// state, straight from the server rather than counted over the loaded page.
+class SettlementStatusCounts {
+  const SettlementStatusCounts({
+    this.pending = 0,
+    this.approved = 0,
+    this.paid = 0,
+    this.rejected = 0,
+  });
+
+  final int pending;
+  final int approved;
+  final int paid;
+  final int rejected;
+
+  int get total => pending + approved + paid + rejected;
+
+  /// Requests still moving through review — these block a second request.
+  int get inProgress => pending + approved;
+
+  factory SettlementStatusCounts.fromJson(Map<String, dynamic> json) =>
+      SettlementStatusCounts(
+        pending: _asInt(json['pending']),
+        approved: _asInt(json['approved']),
+        paid: _asInt(json['paid']),
+        rejected: _asInt(json['rejected']),
+      );
+}
+
+/// One page of `/auth/settlements?page=&per_page=`.
+class SettlementPageModel {
+  const SettlementPageModel({
+    this.items = const <SettlementModel>[],
+    this.summary = const SettlementStatusCounts(),
+    this.currentPage = 1,
+    this.lastPage = 1,
+    this.perPage = 20,
+    this.total = 0,
+    this.hasMorePages = false,
+  });
+
+  final List<SettlementModel> items;
+  final SettlementStatusCounts summary;
+  final int currentPage;
+  final int lastPage;
+  final int perPage;
+  final int total;
+  final bool hasMorePages;
+
+  static const SettlementPageModel empty = SettlementPageModel();
+
+  factory SettlementPageModel.fromResponse(
+    dynamic payload, {
+    required int requestedPage,
+    required int requestedPerPage,
+  }) {
+    final root = payload is Map
+        ? Map<String, dynamic>.from(payload)
+        : <String, dynamic>{};
+    final data = root['data'] is Map
+        ? Map<String, dynamic>.from(root['data'] as Map)
+        : root;
+    final pagination = data['pagination'] is Map
+        ? Map<String, dynamic>.from(data['pagination'] as Map)
+        : const <String, dynamic>{};
+    final items =
+        _mapList(
+            data['items'] ??
+                data['settlements'] ??
+                (root['data'] is List ? root['data'] : null),
+          ).map(SettlementModel.fromJson).toList()
+          // Newest request first.
+          ..sort(
+            (a, b) => (b.requestedAt ?? DateTime(0)).compareTo(
+              a.requestedAt ?? DateTime(0),
+            ),
+          );
+    final currentPage = pagination['current_page'] == null
+        ? requestedPage
+        : _asInt(pagination['current_page']);
+    final perPage = pagination['per_page'] == null
+        ? requestedPerPage
+        : _asInt(pagination['per_page']);
+    // Without a `last_page`, a full page means another probably follows.
+    final lastPage = pagination['last_page'] == null
+        ? (items.length >= perPage ? currentPage + 1 : currentPage)
+        : _asInt(pagination['last_page']);
+    return SettlementPageModel(
+      items: List.unmodifiable(items),
+      summary: data['summary'] is Map
+          ? SettlementStatusCounts.fromJson(
+              Map<String, dynamic>.from(data['summary'] as Map),
+            )
+          : const SettlementStatusCounts(),
+      currentPage: currentPage,
+      lastPage: lastPage,
+      perPage: perPage,
+      total: pagination['total'] == null
+          ? items.length
+          : _asInt(pagination['total']),
+      hasMorePages: pagination['has_more_pages'] == null
+          ? currentPage < lastPage
+          : pagination['has_more_pages'] == true,
     );
   }
 }

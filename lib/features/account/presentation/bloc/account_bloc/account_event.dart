@@ -18,6 +18,18 @@ final class LoadAccountEvent extends AccountEvent {
   List<Object?> get props => [silent];
 }
 
+/// Loads the next page of the settlement history, or the first page again
+/// when [refresh] is set.
+final class LoadSettlementsEvent extends AccountEvent {
+  const LoadSettlementsEvent({this.loadMore = false, this.refresh = false});
+
+  final bool loadMore;
+  final bool refresh;
+
+  @override
+  List<Object?> get props => [loadMore, refresh];
+}
+
 /// Vendor asks the super admin to pay out [amount] from the balance.
 /// [venueId] scopes the settlement to one futsal; null settles across all.
 final class RequestSettlementEvent extends AccountEvent {
@@ -29,7 +41,7 @@ final class RequestSettlementEvent extends AccountEvent {
     this.note,
   });
 
-  final int amount;
+  final double amount;
   final String transactionReference;
   final String paymentProofPath;
   final int? venueId;

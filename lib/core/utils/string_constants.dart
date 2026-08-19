@@ -64,6 +64,11 @@ final class StringConstants {
       'Could not submit the settlement request.';
   static const String pendingClearance = 'Pending clearance';
   static const String requestSettlement = 'Request Settlement';
+  static const String commissionPayable = 'Commission payable';
+  static const String payCommission = 'Pay Commission';
+  static const String commissionSettled =
+      'Commission payment sent to Hamro Futsal for verification.';
+  static const String noCommissionDue = 'No commission due right now.';
   static const String settlementNoteHint = 'Bank / wallet details, remarks…';
   static const String settlementRequestSubmitted =
       'Settlement request sent to Hamro Futsal for approval.';

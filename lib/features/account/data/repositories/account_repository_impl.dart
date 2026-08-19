@@ -79,7 +79,7 @@ final class AccountRepositoryImpl extends AccountRepository {
   }
 
   @override
-  Future<Either<AppException, List<SettlementModel>>> getSettlements({
+  Future<Either<AppException, SettlementPageModel>> getSettlements({
     int perPage = 20,
     int page = 1,
   }) async {
@@ -90,23 +90,13 @@ final class AccountRepositoryImpl extends AccountRepository {
       return left(ResponseHelper.error(response));
     }
     try {
-      final settlements =
-          _findList(
-                response.getValue(),
-                keys: const ['data', 'settlements', 'items', 'results'],
-                depth: 0,
-              )
-              .whereType<Map>()
-              .map(
-                (e) => SettlementModel.fromJson(Map<String, dynamic>.from(e)),
-              )
-              .toList()
-            ..sort(
-              (a, b) => (b.requestedAt ?? DateTime(0)).compareTo(
-                a.requestedAt ?? DateTime(0),
-              ),
-            );
-      return right(settlements);
+      return right(
+        SettlementPageModel.fromResponse(
+          response.getValue(),
+          requestedPage: page,
+          requestedPerPage: perPage,
+        ),
+      );
     } catch (_) {
       return left(
         DefaultException(
@@ -119,14 +109,18 @@ final class AccountRepositoryImpl extends AccountRepository {
 
   @override
   Future<Either<AppException, SettlementModel>> createSettlement({
-    required int amount,
+    required double amount,
     required String transactionReference,
     required String paymentProofPath,
     int? venueId,
     String? note,
   }) async {
     final response = await _remoteDataSource.createSettlement({
-      'amount': amount,
+      // Sent as a decimal string so paisa survive — `exact_amount_required`
+      // makes a rounded figure a rejected request.
+      'amount': amount == amount.roundToDouble()
+          ? amount.toStringAsFixed(0)
+          : amount.toStringAsFixed(2),
       'transaction_reference': transactionReference,
       'payment_proof_path': paymentProofPath,
       if (venueId != null) 'venue_id': venueId,
@@ -157,22 +151,5 @@ final class AccountRepositoryImpl extends AccountRepository {
       if (child is Map) return _unwrap(child);
     }
     return Map<String, dynamic>.from(payload);
-  }
-
-  List<dynamic> _findList(
-    dynamic node, {
-    required List<String> keys,
-    required int depth,
-  }) {
-    if (node is List) return node;
-    if (node is Map && depth < 3) {
-      for (final key in keys) {
-        final dynamic child = node[key];
-        if (child == null) continue;
-        final found = _findList(child, keys: keys, depth: depth + 1);
-        if (found.isNotEmpty) return found;
-      }
-    }
-    return const [];
   }
 }

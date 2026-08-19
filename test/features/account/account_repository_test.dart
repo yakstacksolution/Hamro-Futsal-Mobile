@@ -12,7 +12,8 @@ import 'package:hamro_footsall/features/account/data/repositories/account_reposi
 void main() {
   group('AccountRepositoryImpl', () {
     test('reads the account only through the injected data source', () async {
-      final _FakeAccountRemoteDataSource remote = _FakeAccountRemoteDataSource();
+      final _FakeAccountRemoteDataSource remote =
+          _FakeAccountRemoteDataSource();
       final AccountRepositoryImpl repository = AccountRepositoryImpl(
         remoteDataSource: remote,
       );
@@ -30,7 +31,8 @@ void main() {
     });
 
     test('createSettlement forwards every required field', () async {
-      final _FakeAccountRemoteDataSource remote = _FakeAccountRemoteDataSource();
+      final _FakeAccountRemoteDataSource remote =
+          _FakeAccountRemoteDataSource();
       final AccountRepositoryImpl repository = AccountRepositoryImpl(
         remoteDataSource: remote,
       );
@@ -43,7 +45,8 @@ void main() {
         note: 'Weekly payout',
       );
 
-      expect(remote.lastSettlement?['amount'], 5000);
+      // Sent as a decimal string so paisa survive the round trip.
+      expect(remote.lastSettlement?['amount'], '5000');
       expect(remote.lastSettlement?['transaction_reference'], 'unique-1');
       expect(remote.lastSettlement?['payment_proof_path'], '/tmp/proof.png');
       expect(remote.lastSettlement?['venue_id'], 101);
@@ -51,7 +54,8 @@ void main() {
     });
 
     test('omits optional fields that were not supplied', () async {
-      final _FakeAccountRemoteDataSource remote = _FakeAccountRemoteDataSource();
+      final _FakeAccountRemoteDataSource remote =
+          _FakeAccountRemoteDataSource();
       final AccountRepositoryImpl repository = AccountRepositoryImpl(
         remoteDataSource: remote,
       );
@@ -66,8 +70,25 @@ void main() {
       expect(remote.lastSettlement?.containsKey('note'), isFalse);
     });
 
+    test('createSettlement keeps paisa on the amount', () async {
+      final _FakeAccountRemoteDataSource remote =
+          _FakeAccountRemoteDataSource();
+      final AccountRepositoryImpl repository = AccountRepositoryImpl(
+        remoteDataSource: remote,
+      );
+
+      await repository.createSettlement(
+        amount: 11711.99,
+        transactionReference: 'ref-3',
+        paymentProofPath: '/tmp/p.png',
+      );
+
+      expect(remote.lastSettlement?['amount'], '11711.99');
+    });
+
     test('getSettlements passes the paging query through', () async {
-      final _FakeAccountRemoteDataSource remote = _FakeAccountRemoteDataSource();
+      final _FakeAccountRemoteDataSource remote =
+          _FakeAccountRemoteDataSource();
       final AccountRepositoryImpl repository = AccountRepositoryImpl(
         remoteDataSource: remote,
       );
@@ -78,24 +99,27 @@ void main() {
       expect(remote.lastSettlementsQuery?['page'], 3);
     });
 
-    test('a backend failure surfaces as a Left, never as fabricated figures', () async {
-      final AccountRepositoryImpl repository = AccountRepositoryImpl(
-        remoteDataSource: _ErrorAccountRemoteDataSource(),
-      );
+    test(
+      'a backend failure surfaces as a Left, never as fabricated figures',
+      () async {
+        final AccountRepositoryImpl repository = AccountRepositoryImpl(
+          remoteDataSource: _ErrorAccountRemoteDataSource(),
+        );
 
-      expect((await repository.getSettlementAccount()).isLeft(), isTrue);
-      expect((await repository.getSettlementBreakdown()).isLeft(), isTrue);
-      expect((await repository.getSettlementPreview()).isLeft(), isTrue);
-      expect((await repository.getSettlements()).isLeft(), isTrue);
-      expect(
-        (await repository.createSettlement(
-          amount: 5000,
-          transactionReference: 'dummy-request-1',
-          paymentProofPath: '/tmp/proof.png',
-        )).isLeft(),
-        isTrue,
-      );
-    });
+        expect((await repository.getSettlementAccount()).isLeft(), isTrue);
+        expect((await repository.getSettlementBreakdown()).isLeft(), isTrue);
+        expect((await repository.getSettlementPreview()).isLeft(), isTrue);
+        expect((await repository.getSettlements()).isLeft(), isTrue);
+        expect(
+          (await repository.createSettlement(
+            amount: 5000,
+            transactionReference: 'dummy-request-1',
+            paymentProofPath: '/tmp/proof.png',
+          )).isLeft(),
+          isTrue,
+        );
+      },
+    );
 
     test('a malformed payload is reported rather than thrown', () async {
       final AccountRepositoryImpl repository = AccountRepositoryImpl(

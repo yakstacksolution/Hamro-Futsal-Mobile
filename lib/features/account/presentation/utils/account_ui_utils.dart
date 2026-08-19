@@ -18,8 +18,17 @@ class AccountFmt {
     'Dec',
   ];
 
-  static String npr(int v) =>
-      '${v < 0 ? '-' : ''}NPR ${_group(v.abs().toString())}';
+  /// `NPR 11,711.99` — paisa are shown only when the server sent them, so a
+  /// whole-rupee figure stays clean.
+  static String npr(num v) {
+    final double abs = v.abs().toDouble();
+    final bool whole = abs == abs.roundToDouble();
+    final String digits = abs.truncate().toString();
+    final String paisa = whole
+        ? ''
+        : '.${((abs - abs.truncate()) * 100).round().toString().padLeft(2, '0')}';
+    return '${v < 0 ? '-' : ''}NPR ${_group(digits)}$paisa';
+  }
 
   static String _group(String digits) {
     final buf = StringBuffer();
@@ -29,6 +38,10 @@ class AccountFmt {
     }
     return buf.toString();
   }
+
+  /// Plain, ungrouped value for a text field: `11711.99` / `1200`.
+  static String amountInput(double v) =>
+      v == v.roundToDouble() ? v.toStringAsFixed(0) : v.toStringAsFixed(2);
 
   /// e.g. `May 03, 2026`.
   static String date(DateTime d) =>
@@ -48,8 +61,9 @@ extension AccountEntryTypeUi on AccountEntryType {
 
   Color get color => switch (this) {
     AccountEntryType.bookingIncome => LightColor.secondaryColor,
-    AccountEntryType.opponentMatchIncome =>
-      LightColor.categoryAccent(LightColor.secondaryDark),
+    AccountEntryType.opponentMatchIncome => LightColor.categoryAccent(
+      LightColor.secondaryDark,
+    ),
     AccountEntryType.commission => LightColor.purpleColor,
     AccountEntryType.settlement => LightColor.blueColor,
     AccountEntryType.refund => LightColor.warningColor,

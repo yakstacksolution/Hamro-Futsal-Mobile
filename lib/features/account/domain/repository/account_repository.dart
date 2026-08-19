@@ -9,12 +9,14 @@ abstract class AccountRepository {
   Future<Either<AppException, SettlementPreviewModel>> getSettlementPreview({
     int? venueId,
   });
-  Future<Either<AppException, List<SettlementModel>>> getSettlements({
+
+  /// One page of the settlement history, with the server's status summary.
+  Future<Either<AppException, SettlementPageModel>> getSettlements({
     int perPage = 20,
     int page = 1,
   });
   Future<Either<AppException, SettlementModel>> createSettlement({
-    required int amount,
+    required double amount,
     required String transactionReference,
     required String paymentProofPath,
     int? venueId,

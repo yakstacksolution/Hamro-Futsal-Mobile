@@ -7,6 +7,7 @@ import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/utils/responsive.dart';
 import 'package:hamro_footsall/core/utils/string_constants.dart';
 import 'package:hamro_footsall/core/widgets/custom_app_bar.dart';
+import 'package:hamro_footsall/core/widgets/loading_widget.dart';
 import 'package:hamro_footsall/features/account/data/model/account_models.dart';
 import 'package:hamro_footsall/features/account/data/repositories/account_repository_impl.dart';
 import 'package:hamro_footsall/features/account/domain/usecase/account_usecase.dart';
@@ -65,7 +66,7 @@ class AccountView extends StatelessWidget {
               AppUtils().showSnackBar(
                 context,
                 MsgType.success,
-                StringConstants.settlementRequestSubmitted,
+                StringConstants.commissionSettled,
               );
             } else if (state.submitStatus == AccountStatus.failure) {
               AppUtils().showSnackBar(
@@ -89,20 +90,27 @@ class AccountView extends StatelessWidget {
               );
             }
             final summary = state.summary;
+            // `actions.can_request_settlement` plus a non-zero requestable
+            // amount is what the server will accept. The commission shown on
+            // the hero is checked too — offering to pay NPR 0 makes no sense.
             final canSettle =
                 summary.settlementEligible &&
-                summary.availableBalance > 0 &&
+                (summary.requestableAmount > 0 ||
+                    summary.availableBalance > 0) &&
+                summary.totalCommission > 0 &&
                 !state.hasPendingSettlement &&
                 state.submitStatus != AccountStatus.loading;
             final recent = state.entries.take(_kRecentActivityCount).toList();
             final Widget balance = AccountBalanceCard(
+              // A settlement pays the platform's commission, not the balance.
+              commissionPayable: summary.totalCommission,
               availableBalance: summary.availableBalance,
+              totalEarned: summary.totalEarned,
               pendingClearance: summary.pendingClearance,
-              // onRequestSettlement: canSettle
-              //     ? () => openSettlementSheet(context)
-              //     : null,
-              onRequestSettlement: () => openSettlementSheet(context),
-              disabledReason: settlementBlockedReason(state),
+              onRequestSettlement: canSettle
+                  ? () => openSettlementSheet(context)
+                  : null,
+              disabledReason: canSettle ? null : settlementBlockedReason(state),
             );
             final Widget shortcuts = _ShortcutsCard(
               state: state,
@@ -228,20 +236,27 @@ String settlementBlockedReason(AccountState state) {
     return state.summary.settlementBlockingReason;
   }
   if (state.hasPendingSettlement) {
-    return 'A settlement request is already being processed.';
+    return 'A commission payment is already being verified.';
   }
-  return 'Settlement is not currently available.';
+  if (state.summary.totalCommission <= 0) {
+    return StringConstants.noCommissionDue;
+  }
+  return 'Commission payment is not available right now.';
 }
 
-/// Opens the full-page request form scoped to [venue] (or all futsals when
-/// null) and dispatches the settlement event with the returned draft.
+/// Opens the request form for [venue] (or all futsals when null).
+///
+/// The form is built from `/auth/settlement-preview` for that scope — the
+/// server owns the copy, the ceiling, the exact-amount rule and the proof
+/// constraints, so the call must succeed before the form can be shown. A
+/// stale cached balance would let the vendor submit a figure the server
+/// rejects, so a failed preview surfaces the error instead.
 Future<void> openSettlementSheet(
   BuildContext context, {
   VenueAccountModel? venue,
 }) async {
   final bloc = context.read<AccountBloc>();
-  final state = bloc.state;
-  if (state.hasPendingSettlement) {
+  if (bloc.state.hasPendingSettlement) {
     AppUtils().showSnackBar(
       context,
       MsgType.info,
@@ -249,33 +264,27 @@ Future<void> openSettlementSheet(
     );
     return;
   }
-  // Server-authoritative preview of what can be settled for this scope;
-  // falls back to the cached summary/venue balance if the call fails.
-  final preview = (await bloc.useCase.getSettlementPreview(
-    venueId: venue?.id,
-  )).fold((_) => null, (p) => p);
+  final result = await bloc.useCase.getSettlementPreview(venueId: venue?.id);
   if (!context.mounted) return;
-  if (preview != null && !preview.eligible) {
+  final preview = result.fold((failure) {
+    AppUtils().showSnackBar(context, MsgType.error, failure.errorMessage);
+    return null;
+  }, (p) => p);
+  if (preview == null) return;
+  if (!preview.eligible) {
     AppUtils().showSnackBar(
       context,
       MsgType.info,
       preview.blockingReason.isNotEmpty
           ? preview.blockingReason
-          : StringConstants.settlementAwaitingApproval,
+          : StringConstants.noCommissionDue,
     );
     return;
   }
-  final fallbackBalance =
-      venue?.availableBalance ?? state.summary.availableBalance;
-  final previewAmount = preview?.payableAmount ?? 0;
   final request = await Navigator.of(context).push<SettlementRequestDraft>(
     MaterialPageRoute(
-      builder: (_) => RequestSettlementPage(
-        summary: state.summary,
-        availableBalance: previewAmount > 0 ? previewAmount : fallbackBalance,
-        scopeLabel: venue?.name ?? 'All futsals · consolidated settlement',
-        minSettlementAmount: preview?.minSettlementAmount,
-      ),
+      builder: (_) =>
+          RequestSettlementPage(preview: preview, venueName: venue?.name ?? ''),
     ),
   );
   if (request == null) return;
@@ -283,7 +292,8 @@ Future<void> openSettlementSheet(
     RequestSettlementEvent(
       amount: request.amount,
       transactionReference: request.transactionReference,
-      venueId: venue?.id,
+      // A venue-scoped preview carries the id the request must be filed under.
+      venueId: venue?.id ?? preview.venue?.id,
       paymentProofPath: request.paymentProofPath,
       note: request.note,
     ),
@@ -304,25 +314,30 @@ class _ShortcutsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final pendingCount = state.settlements
-        .where((s) => s.status != SettlementStatus.paid)
-        .length;
+    // `data.sections` is authoritative for the counts; the loaded rows are
+    // only a fallback before it arrives.
+    final summary = state.summary;
+    final venueCount =
+        summary.sectionCount('breakdown') ?? summary.venues.length;
+    final settlementCount =
+        summary.sectionCount('settlements') ?? state.settlementCounts.total;
+    final inProgress = state.settlementCounts.inProgress;
     final tiles = <Widget>[
-      if (state.summary.venues.isNotEmpty)
+      if (summary.venues.isNotEmpty || venueCount > 0)
         AccountNavTile(
           icon: Icons.stadium_outlined,
           title: 'Futsal breakdown',
-          subtitle: '${state.summary.venues.length} futsals',
+          subtitle: '$venueCount ${venueCount == 1 ? 'futsal' : 'futsals'}',
           onTap: onFutsalBreakdown,
         ),
       AccountNavTile(
         icon: Icons.history_rounded,
         title: StringConstants.settlements,
-        subtitle: state.settlements.isEmpty
+        subtitle: settlementCount == 0
             ? 'No settlements yet'
-            : pendingCount > 0
-            ? '$pendingCount in progress'
-            : '${state.settlements.length} completed',
+            : inProgress > 0
+            ? '$inProgress in progress · $settlementCount total'
+            : '$settlementCount total',
         iconColor: LightColor.blueColor,
         onTap: onSettlements,
       ),
@@ -438,10 +453,17 @@ class _VenueBreakdownPage extends StatelessWidget {
                     state.submitStatus != AccountStatus.loading;
                 return _VenueCard(
                   venue: venue,
-                  // onSettle: canSettle
-                  //     ? () => openSettlementSheet(context, venue: venue)
-                  //     : null,
-                  onSettle: () => openSettlementSheet(context, venue: venue),
+                  onSettle: canSettle
+                      ? () => openSettlementSheet(context, venue: venue)
+                      : null,
+                  // Explain a missing CTA rather than leaving a dead card.
+                  disabledReason: canSettle
+                      ? null
+                      : state.hasPendingSettlement
+                      ? 'A settlement request is already being processed.'
+                      : venue.availableBalance <= 0
+                      ? 'Nothing available to settle yet.'
+                      : 'Settlement is not available for this futsal yet.',
                 );
               },
             );
@@ -453,10 +475,17 @@ class _VenueBreakdownPage extends StatelessWidget {
 }
 
 class _VenueCard extends StatelessWidget {
-  const _VenueCard({required this.venue, required this.onSettle});
+  const _VenueCard({
+    required this.venue,
+    required this.onSettle,
+    this.disabledReason,
+  });
 
   final VenueAccountModel venue;
   final VoidCallback? onSettle;
+
+  /// Shown in place of the CTA when this futsal cannot be settled yet.
+  final String? disabledReason;
 
   @override
   Widget build(BuildContext context) {
@@ -523,6 +552,17 @@ class _VenueCard extends StatelessWidget {
               ),
             ),
           ],
+          if (onSettle == null && disabledReason != null) ...[
+            const SizedBox(height: AppDimens.paddingX8),
+            Text(
+              disabledReason!,
+              style: textTheme.bodyTextSmall?.copyWith(
+                color: LightColor.hintTextColor,
+                fontSize: AppDimens.fontBodySubTitle,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
           if (onSettle != null) ...[
             const SizedBox(height: AppDimens.paddingX10),
             SizedBox(
@@ -538,7 +578,7 @@ class _VenueCard extends StatelessWidget {
                   ),
                 ),
                 child: Text(
-                  StringConstants.requestSettlement,
+                  StringConstants.payCommission,
                   style: textTheme.bodyTextSmall?.copyWith(
                     color: LightColor.secondaryColor,
                     fontWeight: FontWeight.w700,
@@ -605,9 +645,40 @@ class _StatementPage extends StatelessWidget {
   }
 }
 
-/// Detail page: the settlement request history.
-class _SettlementsPage extends StatelessWidget {
+/// Detail page: the settlement request history, paginated.
+///
+/// The server's `summary` counts every request; the list itself walks pages of
+/// 20 as the reader scrolls.
+class _SettlementsPage extends StatefulWidget {
   const _SettlementsPage();
+
+  @override
+  State<_SettlementsPage> createState() => _SettlementsPageState();
+}
+
+class _SettlementsPageState extends State<_SettlementsPage> {
+  late final AccountBloc _bloc;
+
+  @override
+  void initState() {
+    super.initState();
+    _bloc = context.read<AccountBloc>();
+    // The first page rides along with the account load; ask only if it is
+    // somehow still missing (a failed initial fetch, for instance).
+    if (_bloc.state.settlementsPage == 0) {
+      _bloc.add(const LoadSettlementsEvent());
+    }
+  }
+
+  void _loadMore() {
+    final state = _bloc.state;
+    if (state.settlementsLoadingMore ||
+        !state.settlementsHasMore ||
+        state.settlementsLoadMoreError != null) {
+      return;
+    }
+    _bloc.add(const LoadSettlementsEvent(loadMore: true));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -618,40 +689,146 @@ class _SettlementsPage extends StatelessWidget {
         top: false,
         child: BlocBuilder<AccountBloc, AccountState>(
           builder: (context, state) {
-            if (state.settlementsStatus == AccountStatus.loading) {
+            if (state.settlementsStatus == AccountStatus.loading &&
+                state.settlements.isEmpty) {
               return const Padding(
                 padding: EdgeInsets.all(AppDimens.paddingX20),
                 child: AccountSettlementListLoading(),
               );
             }
+            final double inset = _detailListInset(context);
+            final bool showSummary = state.settlementCounts.total > 0;
             if (state.settlements.isEmpty) {
-              return const AccountEmptyState(
-                icon: Icons.account_balance_outlined,
-                title: 'No settlements yet',
-                body:
-                    'Request a settlement and Hamro Futsal will pay your balance out to you.',
+              return RefreshIndicator(
+                color: LightColor.secondaryColor,
+                onRefresh: () async =>
+                    _bloc.add(const LoadSettlementsEvent(refresh: true)),
+                child: ListView(
+                  physics: const AlwaysScrollableScrollPhysics(
+                    parent: BouncingScrollPhysics(),
+                  ),
+                  children: const [
+                    SizedBox(height: AppDimens.paddingX50),
+                    AccountEmptyState(
+                      icon: Icons.account_balance_outlined,
+                      title: 'No settlements yet',
+                      body:
+                          'Request a settlement and Hamro Futsal will pay your balance out to you.',
+                    ),
+                  ],
+                ),
               );
             }
-            return ListView.separated(
-              physics: const BouncingScrollPhysics(),
-              // Capped and centred: a settlement/statement row is one line of
-              // text, and stretching it across a wide window makes the label
-              // and the amount unreadably far apart.
-              padding: EdgeInsets.symmetric(
-                horizontal: _detailListInset(context),
-                vertical: AppDimens.paddingX20,
+            // Header (the summary chips) + rows + the paging footer.
+            final int headerCount = showSummary ? 1 : 0;
+            final bool showFooter =
+                state.settlementsLoadingMore ||
+                state.settlementsLoadMoreError != null;
+            return NotificationListener<ScrollNotification>(
+              onNotification: (notification) {
+                if (notification.metrics.extentAfter < 300) _loadMore();
+                return false;
+              },
+              child: RefreshIndicator(
+                color: LightColor.secondaryColor,
+                onRefresh: () async =>
+                    _bloc.add(const LoadSettlementsEvent(refresh: true)),
+                child: ListView.separated(
+                  physics: const AlwaysScrollableScrollPhysics(
+                    parent: BouncingScrollPhysics(),
+                  ),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: inset,
+                    vertical: AppDimens.paddingX20,
+                  ),
+                  itemCount:
+                      headerCount +
+                      state.settlements.length +
+                      (showFooter ? 1 : 0),
+                  separatorBuilder: (_, index) => index == 0 && showSummary
+                      ? const SizedBox(height: AppDimens.paddingX16)
+                      : Divider(
+                          height: AppDimens.paddingX24,
+                          thickness: 1,
+                          color: LightColor.dividerColor,
+                        ),
+                  itemBuilder: (context, index) {
+                    if (showSummary && index == 0) {
+                      return SettlementSummaryRow(
+                        counts: state.settlementCounts,
+                      );
+                    }
+                    final int row = index - headerCount;
+                    if (row >= state.settlements.length) {
+                      return _SettlementsFooter(
+                        loading: state.settlementsLoadingMore,
+                        error: state.settlementsLoadMoreError,
+                        onRetry: () => _bloc.add(
+                          const LoadSettlementsEvent(loadMore: true),
+                        ),
+                      );
+                    }
+                    return SettlementTile(settlement: state.settlements[row]);
+                  },
+                ),
               ),
-              itemCount: state.settlements.length,
-              separatorBuilder: (_, __) => Divider(
-                height: AppDimens.paddingX24,
-                thickness: 1,
-                color: LightColor.dividerColor,
-              ),
-              itemBuilder: (context, index) =>
-                  SettlementTile(settlement: state.settlements[index]),
             );
           },
         ),
+      ),
+    );
+  }
+}
+
+/// Paging footer for the settlements list: the app spinner, or a retry row.
+class _SettlementsFooter extends StatelessWidget {
+  const _SettlementsFooter({
+    required this.loading,
+    required this.error,
+    required this.onRetry,
+  });
+
+  final bool loading;
+  final String? error;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppDimens.paddingX16),
+      child: Center(
+        child: error != null
+            ? Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    error!,
+                    textAlign: TextAlign.center,
+                    style: textTheme.bodyTextSmall?.copyWith(
+                      color: LightColor.secondaryTextColor,
+                    ),
+                  ),
+                  TextButton.icon(
+                    onPressed: onRetry,
+                    icon: const Icon(Icons.refresh_rounded, size: 16),
+                    label: Text(StringConstants.retry),
+                    style: TextButton.styleFrom(
+                      foregroundColor: LightColor.secondaryColor,
+                    ),
+                  ),
+                ],
+              )
+            : Opacity(
+                opacity: loading ? 1 : 0,
+                child: CustomLoading(
+                  color: LightColor.secondaryColor,
+                  size: 22,
+                  strokeWidth: 2.5,
+                  secondCircleColor: LightColor.secondaryLight,
+                  thirdCircleColor: LightColor.secondaryLight,
+                ),
+              ),
       ),
     );
   }

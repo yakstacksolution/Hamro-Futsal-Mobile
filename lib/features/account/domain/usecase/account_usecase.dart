@@ -18,13 +18,13 @@ final class AccountUseCase {
     int? venueId,
   }) async => await repository.getSettlementPreview(venueId: venueId);
 
-  Future<Either<AppException, List<SettlementModel>>> getSettlements({
+  Future<Either<AppException, SettlementPageModel>> getSettlements({
     int perPage = 20,
     int page = 1,
   }) async => await repository.getSettlements(perPage: perPage, page: page);
 
   Future<Either<AppException, SettlementModel>> createSettlement({
-    required int amount,
+    required double amount,
     required String transactionReference,
     required String paymentProofPath,
     int? venueId,

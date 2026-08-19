@@ -1,25 +1,35 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
+import 'package:hamro_footsall/core/utils/app_utils.dart';
+import 'package:hamro_footsall/core/utils/custom_image_view.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/utils/string_constants.dart';
 import 'package:hamro_footsall/features/account/data/model/account_models.dart';
 import 'package:hamro_footsall/features/account/presentation/utils/account_ui_utils.dart';
 
-/// Gradient hero card: the balance Hamro Futsal currently owes the vendor,
-/// with pending clearance + commission rate and the settlement CTA. When the
-/// CTA is disabled, [disabledReason] explains why right below it.
+/// Gradient hero card: the commission the vendor owes Hamro Futsal, which is
+/// what a settlement pays. Earnings and the cleared balance sit underneath as
+/// context — they explain where the commission came from, they are not the
+/// figure being settled. When the CTA is disabled, [disabledReason] explains
+/// why right below it.
 class AccountBalanceCard extends StatelessWidget {
   const AccountBalanceCard({
     super.key,
+    required this.commissionPayable,
     required this.availableBalance,
     required this.pendingClearance,
+    this.totalEarned = 0,
     this.onRequestSettlement,
     this.disabledReason,
   });
 
-  final int availableBalance;
-  final int pendingClearance;
+  /// The amount a settlement pays — commission retained by the platform.
+  final double commissionPayable;
+  final double availableBalance;
+  final double pendingClearance;
+  final double totalEarned;
 
   /// Null renders the CTA disabled.
   final VoidCallback? onRequestSettlement;
@@ -51,13 +61,13 @@ class AccountBalanceCard extends StatelessWidget {
           Row(
             children: [
               Icon(
-                Icons.account_balance_wallet_rounded,
+                Icons.percent_rounded,
                 size: AppDimens.sizeX16,
                 color: LightColor.inverseTextColor.withValues(alpha: 0.85),
               ),
               const SizedBox(width: AppDimens.paddingX6),
               Text(
-                StringConstants.availableBalance,
+                StringConstants.commissionPayable,
                 style: textTheme.bodyTextSmall?.copyWith(
                   color: LightColor.inverseTextColor.withValues(alpha: 0.85),
                   fontWeight: FontWeight.w600,
@@ -67,15 +77,28 @@ class AccountBalanceCard extends StatelessWidget {
           ),
           const SizedBox(height: AppDimens.paddingX10),
           Text(
-            AccountFmt.npr(availableBalance),
+            AccountFmt.npr(commissionPayable),
             style: textTheme.headingLarge?.copyWith(
               color: LightColor.inverseTextColor,
               fontWeight: FontWeight.w800,
               letterSpacing: -0.5,
             ),
           ),
+          const SizedBox(height: AppDimens.paddingX6),
+          Text(
+            // Where the commission came from, kept subordinate to it.
+            [
+              '${StringConstants.totalEarned} ${AccountFmt.npr(totalEarned)}',
+              '${StringConstants.availableBalance} ${AccountFmt.npr(availableBalance)}',
+            ].join('  ·  '),
+            style: textTheme.bodyTextSmall?.copyWith(
+              color: LightColor.inverseTextColor.withValues(alpha: 0.75),
+              fontSize: AppDimens.fontBodySubTitle,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
           if (pendingClearance > 0) ...[
-            const SizedBox(height: AppDimens.paddingX6),
+            const SizedBox(height: AppDimens.paddingX4),
             Row(
               children: [
                 Icon(
@@ -88,6 +111,7 @@ class AccountBalanceCard extends StatelessWidget {
                   '${AccountFmt.npr(pendingClearance)} ${StringConstants.pendingClearance.toLowerCase()}',
                   style: textTheme.bodyTextSmall?.copyWith(
                     color: LightColor.inverseTextColor.withValues(alpha: 0.7),
+                    fontSize: AppDimens.fontBodySubTitle,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -112,13 +136,13 @@ class AccountBalanceCard extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       const Icon(
-                        Icons.account_balance_rounded,
+                        Icons.upload_rounded,
                         size: AppDimens.sizeX16,
                         color: LightColor.secondaryColor,
                       ),
                       const SizedBox(width: AppDimens.paddingX6),
                       Text(
-                        StringConstants.requestSettlement,
+                        StringConstants.payCommission,
                         style: textTheme.bodyTextSmall?.copyWith(
                           color: LightColor.secondaryColor,
                           fontWeight: FontWeight.w700,
@@ -168,9 +192,11 @@ class AccountStatsRow extends StatelessWidget {
         const SizedBox(width: AppDimens.paddingX8),
         Expanded(
           child: _StatTile(
-            label: StringConstants.commissionPaid,
-            value: AccountFmt.npr(summary.totalCommission),
-            icon: Icons.percent_rounded,
+            // Commission moved to the hero card; this slot carries the
+            // cleared balance the commission was taken out of.
+            label: StringConstants.availableBalance,
+            value: AccountFmt.npr(summary.availableBalance),
+            icon: Icons.account_balance_wallet_rounded,
             color: LightColor.purpleColor,
           ),
         ),
@@ -344,6 +370,7 @@ class AccountEntryTile extends StatelessWidget {
     final subtitleParts = [
       if (entry.date != null) AccountFmt.date(entry.date!),
       if (entry.reference.isNotEmpty) entry.reference,
+      if (entry.venueName.isNotEmpty) entry.venueName,
     ];
     return Row(
       children: [
@@ -416,6 +443,7 @@ class SettlementTile extends StatelessWidget {
     final subtitleParts = [
       if (shownDate != null) AccountFmt.date(shownDate),
       if (settlement.reference.isNotEmpty) settlement.reference,
+      if (settlement.venueName.isNotEmpty) settlement.venueName,
     ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -556,6 +584,244 @@ class AccountEmptyState extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Who the vendor pays, as `/auth/settlement-preview` reports it — logo, name
+/// and the phone to send the transfer to, plus the payable figures.
+class SettlementRecipientCard extends StatelessWidget {
+  const SettlementRecipientCard({
+    super.key,
+    required this.recipient,
+    required this.maximumPayable,
+    this.pendingClearance = 0,
+  });
+
+  final SettlementRecipientModel recipient;
+  final double maximumPayable;
+  final double pendingClearance;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    return Container(
+      padding: const EdgeInsets.all(AppDimens.paddingX14),
+      decoration: BoxDecoration(
+        color: LightColor.cardColor,
+        borderRadius: BorderRadius.circular(AppDimens.radiusX12),
+        border: Border.all(color: LightColor.dividerColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              if (recipient.logoUrl.isNotEmpty)
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+                  child: CustomImageView(
+                    imagePath: recipient.logoUrl,
+                    height: 44,
+                    width: 44,
+                    fit: BoxFit.cover,
+                  ),
+                )
+              else
+                Container(
+                  height: 44,
+                  width: 44,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: LightColor.secondaryColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+                  ),
+                  child: Icon(
+                    Icons.account_balance_rounded,
+                    size: 20,
+                    color: LightColor.secondaryColor,
+                  ),
+                ),
+              const SizedBox(width: AppDimens.paddingX12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Pay to',
+                      style: textTheme.bodyTextSmall?.copyWith(
+                        color: LightColor.hintTextColor,
+                        fontSize: AppDimens.fontBodySubTitle,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      recipient.name.isEmpty
+                          ? StringConstants.hamroFutsal
+                          : recipient.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: textTheme.bodyTextMedium?.copyWith(
+                        color: LightColor.primaryTextColor,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (recipient.phone.isNotEmpty) ...[
+            const SizedBox(height: AppDimens.paddingX12),
+            _RecipientRow(
+              label: 'Phone',
+              value: recipient.phone,
+              // The number is what the transfer is sent to — make it copyable
+              // rather than something to re-type by hand.
+              onCopy: () async {
+                await Clipboard.setData(ClipboardData(text: recipient.phone));
+                if (!context.mounted) return;
+                AppUtils().showSnackBar(
+                  context,
+                  MsgType.success,
+                  'Phone number copied.',
+                );
+              },
+            ),
+          ],
+          const SizedBox(height: AppDimens.paddingX12),
+          Divider(height: 1, thickness: 1, color: LightColor.dividerColor),
+          const SizedBox(height: AppDimens.paddingX12),
+          _RecipientRow(
+            label: 'Commission payable',
+            value: AccountFmt.npr(maximumPayable),
+            emphasise: true,
+          ),
+          if (pendingClearance > 0) ...[
+            const SizedBox(height: AppDimens.paddingX6),
+            _RecipientRow(
+              label: StringConstants.pendingClearance,
+              value: AccountFmt.npr(pendingClearance),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _RecipientRow extends StatelessWidget {
+  const _RecipientRow({
+    required this.label,
+    required this.value,
+    this.emphasise = false,
+    this.onCopy,
+  });
+
+  final String label;
+  final String value;
+  final bool emphasise;
+  final Future<void> Function()? onCopy;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: textTheme.bodyTextSmall?.copyWith(
+              color: LightColor.secondaryTextColor,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+        Text(
+          value,
+          style: textTheme.bodyTextSmall?.copyWith(
+            color: emphasise
+                ? LightColor.secondaryColor
+                : LightColor.primaryTextColor,
+            fontWeight: emphasise ? FontWeight.w800 : FontWeight.w600,
+          ),
+        ),
+        if (onCopy != null) ...[
+          const SizedBox(width: AppDimens.paddingX4),
+          InkWell(
+            onTap: onCopy,
+            borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+            child: Padding(
+              padding: const EdgeInsets.all(AppDimens.paddingX4),
+              child: Icon(
+                Icons.copy_rounded,
+                size: AppDimens.sizeX16,
+                color: LightColor.secondaryColor,
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+/// Server-reported settlement counts as a compact chip row.
+class SettlementSummaryRow extends StatelessWidget {
+  const SettlementSummaryRow({super.key, required this.counts});
+
+  final SettlementStatusCounts counts;
+
+  @override
+  Widget build(BuildContext context) {
+    final entries = <(String, int, Color)>[
+      ('Pending', counts.pending, SettlementStatus.pending.color),
+      ('Approved', counts.approved, SettlementStatus.approved.color),
+      ('Paid', counts.paid, SettlementStatus.paid.color),
+      ('Rejected', counts.rejected, SettlementStatus.rejected.color),
+    ];
+    final textTheme = FutsalTheme.getTextTheme(context);
+    return Row(
+      children: [
+        for (int i = 0; i < entries.length; i++) ...[
+          if (i > 0) const SizedBox(width: AppDimens.paddingX8),
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                vertical: AppDimens.paddingX8,
+                horizontal: AppDimens.paddingX6,
+              ),
+              decoration: BoxDecoration(
+                color: entries[i].$3.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+              ),
+              child: Column(
+                children: [
+                  Text(
+                    '${entries[i].$2}',
+                    style: textTheme.bodyTextMedium?.copyWith(
+                      color: entries[i].$3,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    entries[i].$1,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: textTheme.bodyTextSmall?.copyWith(
+                      color: LightColor.secondaryTextColor,
+                      fontSize: AppDimens.fontBodySubTitle,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ],
     );
   }
 }
