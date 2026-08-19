@@ -1,0 +1,462 @@
+import 'dart:async';
+import 'dart:ui';
+import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
+import 'package:hamro_footsall/core/theme/app_colors.dart';
+import 'package:hamro_footsall/core/utils/dimens.dart';
+
+typedef ControllerCallback = void Function(AnimationController);
+
+enum DismissType { onTap, onSwipe, none }
+
+final Map<Object, OverlayEntry> _activeEntries = {};
+
+void showTopSnackBar(
+  OverlayState overlayState,
+  Widget child, {
+  Duration animationDuration = const Duration(milliseconds: 1000),
+  Duration reverseAnimationDuration = const Duration(milliseconds: 550),
+  Duration displayDuration = const Duration(milliseconds: 1500),
+  VoidCallback? onTap,
+  bool persistent = false,
+  ControllerCallback? onAnimationControllerInit,
+  EdgeInsets padding = const EdgeInsets.all(16),
+  Curve curve = Curves.elasticOut,
+  Curve reverseCurve = Curves.linearToEaseOut,
+  SafeAreaValues safeAreaValues = const SafeAreaValues(),
+  DismissType dismissType = DismissType.onTap,
+  List<DismissDirection> dismissDirection = const [DismissDirection.up],
+  Object? key,
+}) {
+  final entryKey = key ?? UniqueKey();
+
+  // Remove any existing entry with the same key
+  if (_activeEntries.containsKey(entryKey)) {
+    final existingEntry = _activeEntries[entryKey];
+    if (existingEntry != null && existingEntry.mounted) {
+      existingEntry.remove();
+    }
+    _activeEntries.remove(entryKey);
+  }
+
+  late OverlayEntry overlayEntry;
+  overlayEntry = OverlayEntry(
+    builder: (_) {
+      return _TopSnackBar(
+        onDismissed: () {
+          if (overlayEntry.mounted) {
+            overlayEntry.remove();
+          }
+          _activeEntries.remove(entryKey);
+        },
+        animationDuration: animationDuration,
+        reverseAnimationDuration: reverseAnimationDuration,
+        displayDuration: displayDuration,
+        onTap: onTap,
+        persistent: persistent,
+        onAnimationControllerInit: onAnimationControllerInit,
+        padding: padding,
+        curve: curve,
+        reverseCurve: reverseCurve,
+        safeAreaValues: safeAreaValues,
+        dismissType: dismissType,
+        dismissDirections: dismissDirection,
+        child: child,
+      );
+    },
+  );
+
+  overlayState.insert(overlayEntry);
+  _activeEntries[entryKey] = overlayEntry;
+}
+
+class _TopSnackBar extends StatefulWidget {
+  const _TopSnackBar({
+    required this.child,
+    required this.onDismissed,
+    required this.animationDuration,
+    required this.reverseAnimationDuration,
+    required this.displayDuration,
+    required this.padding,
+    required this.curve,
+    required this.reverseCurve,
+    required this.safeAreaValues,
+    required this.dismissDirections,
+    this.onTap,
+    this.persistent = false,
+    this.onAnimationControllerInit,
+    this.dismissType = DismissType.onTap,
+  });
+
+  final Widget child;
+  final VoidCallback onDismissed;
+  final Duration animationDuration;
+  final Duration reverseAnimationDuration;
+  final Duration displayDuration;
+  final VoidCallback? onTap;
+  final ControllerCallback? onAnimationControllerInit;
+  final bool persistent;
+  final EdgeInsets padding;
+  final Curve curve;
+  final Curve reverseCurve;
+  final SafeAreaValues safeAreaValues;
+  final DismissType dismissType;
+  final List<DismissDirection> dismissDirections;
+
+  @override
+  _TopSnackBarState createState() => _TopSnackBarState();
+}
+
+class _TopSnackBarState extends State<_TopSnackBar>
+    with SingleTickerProviderStateMixin {
+  late final Animation<Offset> _offsetAnimation;
+  late final AnimationController _animationController;
+
+  Timer? _timer;
+
+  final _offsetTween = Tween(begin: const Offset(0, -1), end: Offset.zero);
+
+  @override
+  void initState() {
+    _animationController = AnimationController(
+      vsync: this,
+      duration: widget.animationDuration,
+      reverseDuration: widget.reverseAnimationDuration,
+    );
+    _animationController.addStatusListener((status) {
+      if (status == AnimationStatus.completed && !widget.persistent) {
+        _timer = Timer(widget.displayDuration, () {
+          if (mounted) {
+            _animationController.reverse();
+          }
+        });
+      }
+      if (status == AnimationStatus.dismissed) {
+        _timer?.cancel();
+        widget.onDismissed.call();
+      }
+    });
+
+    widget.onAnimationControllerInit?.call(_animationController);
+
+    _offsetAnimation = _offsetTween.animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: widget.curve,
+        reverseCurve: widget.reverseCurve,
+      ),
+    );
+    if (mounted) {
+      _animationController.forward();
+    }
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      alignment: Alignment.topCenter,
+      children: <Widget>[
+        Positioned(
+          top: widget.padding.top,
+          left: widget.padding.left,
+          right: widget.padding.right,
+          child: SlideTransition(
+            position: _offsetAnimation,
+            child: SafeArea(
+              top: widget.safeAreaValues.top,
+              bottom: widget.safeAreaValues.bottom,
+              left: widget.safeAreaValues.left,
+              right: widget.safeAreaValues.right,
+              minimum: widget.safeAreaValues.minimum,
+              maintainBottomViewPadding:
+                  widget.safeAreaValues.maintainBottomViewPadding,
+              child: _buildDismissibleChild(),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDismissibleChild() {
+    switch (widget.dismissType) {
+      case DismissType.onTap:
+        return TapBounceContainer(
+          onTap: () {
+            widget.onTap?.call();
+            if (!widget.persistent && mounted) {
+              _animationController.reverse();
+            }
+          },
+          child: widget.child,
+        );
+      case DismissType.onSwipe:
+        var childWidget = widget.child;
+        for (final direction in widget.dismissDirections) {
+          childWidget = Dismissible(
+            direction: direction,
+            key: UniqueKey(),
+            dismissThresholds: const {DismissDirection.up: 0.2},
+            confirmDismiss: (direction) async {
+              if (!widget.persistent && mounted) {
+                if (direction == DismissDirection.down) {
+                  await _animationController.reverse();
+                } else {
+                  _animationController.reset();
+                }
+              }
+              return false;
+            },
+            child: childWidget,
+          );
+        }
+        return childWidget;
+      case DismissType.none:
+        return widget.child;
+    }
+  }
+}
+
+class SafeAreaValues {
+  const SafeAreaValues({
+    this.left = true,
+    this.right = true,
+    this.top = true,
+    this.bottom = true,
+    this.minimum = EdgeInsets.zero,
+    this.maintainBottomViewPadding = false,
+  });
+
+  final bool left;
+  final bool top;
+  final bool right;
+  final bool bottom;
+  final EdgeInsets minimum;
+  final bool maintainBottomViewPadding;
+}
+
+enum SnackBarVariant { success, error, info }
+
+class CustomSnackBar extends StatefulWidget {
+  final String message;
+
+  /// Explicit override; when null the colour is resolved from [variant] against
+  /// the active theme so the snack bar tracks light/dark.
+  final Color? backgroundColor;
+  final TextStyle? textStyle;
+  final SnackBarVariant variant;
+  final int maxLines;
+  final List<BoxShadow>? boxShadow;
+  final BorderRadius borderRadius;
+  final EdgeInsetsGeometry messagePadding;
+  final double textScaleFactor;
+  final TextAlign textAlign;
+  final String svgIcon;
+  final Color? color;
+
+  const CustomSnackBar.success({
+    super.key,
+    required this.message,
+    this.messagePadding = const EdgeInsets.only(left: 10),
+    this.textStyle,
+    this.color,
+    this.maxLines = 2,
+    this.backgroundColor,
+    this.boxShadow,
+    this.borderRadius = kDefaultBorderRadius,
+    this.textScaleFactor = 1.0,
+    this.textAlign = TextAlign.left,
+    this.svgIcon = "done",
+  }) : variant = SnackBarVariant.success;
+
+  const CustomSnackBar.error({
+    super.key,
+    this.messagePadding = const EdgeInsets.only(left: 10),
+    this.textStyle,
+    this.color,
+    this.maxLines = 2,
+    this.backgroundColor,
+    this.boxShadow,
+    this.borderRadius = kDefaultBorderRadius,
+    this.textScaleFactor = 1.0,
+    this.textAlign = TextAlign.left,
+    this.svgIcon = "close",
+    required this.message,
+  }) : variant = SnackBarVariant.error;
+
+  const CustomSnackBar.info({
+    super.key,
+    this.messagePadding = const EdgeInsets.only(left: 10),
+    this.textStyle,
+    this.color,
+    this.maxLines = 2,
+    this.backgroundColor,
+    this.boxShadow,
+    this.borderRadius = kDefaultBorderRadius,
+    this.textScaleFactor = 1.0,
+    this.textAlign = TextAlign.left,
+    this.svgIcon = "info",
+    required this.message,
+  }) : variant = SnackBarVariant.info;
+
+  @override
+  CustomSnackBarState createState() => CustomSnackBarState();
+}
+
+class CustomSnackBarState extends State<CustomSnackBar> {
+  @override
+  Widget build(BuildContext context) {
+    final AppThemeColors c = context.appColors;
+    final (Color accent, Color surface) = switch (widget.variant) {
+      SnackBarVariant.success => (c.onSuccessContainer, c.successContainer),
+      SnackBarVariant.error => (c.onDangerContainer, c.dangerContainer),
+      SnackBarVariant.info => (c.onInfoContainer, c.infoContainer),
+    };
+    final Color foreground = widget.color ?? accent;
+    final TextStyle textStyle =
+        widget.textStyle ??
+        TextStyle(
+          color: foreground,
+          fontSize: 12,
+          fontWeight: widget.variant == SnackBarVariant.success
+              ? FontWeight.w700
+              : FontWeight.w500,
+        );
+
+    return Material(
+      color: LightColor.transparentColor,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        clipBehavior: Clip.antiAlias,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: widget.backgroundColor ?? surface,
+          borderRadius: widget.borderRadius,
+          boxShadow: widget.boxShadow ?? kDefaultBoxShadow,
+        ),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              SvgPicture.asset(
+                "assets/icons/${widget.svgIcon}.svg",
+                width: AppDimens.sizeX18,
+                height: AppDimens.sizeX18,
+                colorFilter: ColorFilter.mode(foreground, BlendMode.srcIn),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: widget.messagePadding,
+                  child: Text(
+                    widget.message,
+                    maxLines: widget.maxLines,
+                    overflow: TextOverflow.ellipsis,
+                    softWrap: true,
+                    style: textStyle.copyWith(height: 1.3),
+                    textAlign: widget.textAlign,
+                    textScaler: TextScaler.linear(widget.textScaleFactor),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+final kDefaultBoxShadow = <BoxShadow>[
+  BoxShadow(
+    color: LightColor.shadowOf(0.08),
+    offset: Offset(0, 8),
+    spreadRadius: 1,
+    blurRadius: 30,
+  ),
+];
+
+const kDefaultBorderRadius = BorderRadius.all(Radius.circular(8.0));
+
+class TapBounceContainer extends StatefulWidget {
+  const TapBounceContainer({super.key, required this.child, this.onTap});
+
+  final Widget child;
+  final VoidCallback? onTap;
+
+  @override
+  TapBounceContainerState createState() => TapBounceContainerState();
+}
+
+class TapBounceContainerState extends State<TapBounceContainer>
+    with SingleTickerProviderStateMixin {
+  late double _scale;
+  late AnimationController _controller;
+
+  final animationDuration = const Duration(milliseconds: 200);
+
+  @override
+  void initState() {
+    _controller =
+        AnimationController(
+          vsync: this,
+          duration: animationDuration,
+          upperBound: 0.04,
+        )..addListener(() {
+          if (mounted) {
+            setState(() {});
+          }
+        });
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    _scale = 1 - _controller.value;
+
+    return GestureDetector(
+      onTapDown: _onTapDown,
+      onTapUp: _onTapUp,
+      onPanEnd: _onPanEnd,
+      child: Transform.scale(scale: _scale, child: widget.child),
+    );
+  }
+
+  void _onTapDown(TapDownDetails details) {
+    if (mounted) {
+      _controller.forward();
+    }
+  }
+
+  Future<void> _onTapUp(TapUpDetails details) async {
+    await _closeSnackBar();
+  }
+
+  Future<void> _onPanEnd(DragEndDetails details) async {
+    await _closeSnackBar();
+  }
+
+  Future<void> _closeSnackBar() async {
+    if (mounted) {
+      unawaited(_controller.reverse());
+      await Future.delayed(animationDuration);
+      widget.onTap?.call();
+    }
+  }
+}

@@ -1,7 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:hamro_footsall/core/theme/light_color.dart';
+import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_models.dart';
 import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/vendor_form_components.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
+
+/// Fill for the selected sub-step chip. Deliberately theme-constant: it is a
+/// saturated surface carrying white content, so it reads the same on a light or
+/// a dark page and must not follow the page background.
+const List<Color> _kSelectedGradient = <Color>[
+  Color(0xFF2563EB),
+  Color(0xFF1D4ED8),
+];
 
 class VendorSubstepStepper extends StatelessWidget {
   const VendorSubstepStepper({
@@ -27,10 +36,10 @@ class VendorSubstepStepper extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          const Text(
-            'Step Breakdown',
+          Text(
+            StringConstants.stepBreakdown,
             style: TextStyle(
-              color: LightColor.titleText,
+              color: LightColor.primaryTextColor,
               fontSize: 15,
               fontWeight: FontWeight.w800,
             ),
@@ -40,8 +49,8 @@ class VendorSubstepStepper extends StatelessWidget {
             activeStep.subtitle,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: LightColor.subtitleText,
+            style: TextStyle(
+              color: LightColor.secondaryTextColor,
               fontSize: 12,
               height: 1.35,
             ),
@@ -125,26 +134,26 @@ class _PremiumSubstepPill extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
             gradient: isSelected
                 ? const LinearGradient(
-                    colors: <Color>[Color(0xFF2563EB), Color(0xFF1D4ED8)],
+                    colors: _kSelectedGradient,
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   )
                 : null,
-            color: isSelected ? null : Colors.white,
+            color: isSelected ? null : LightColor.elevatedCardColor,
             border: Border.all(
-              color: isSelected ? Colors.transparent : LightColor.border,
+              color: isSelected ? Colors.transparent : LightColor.borderColor,
             ),
             boxShadow: isSelected
                 ? <BoxShadow>[
                     BoxShadow(
-                      color: const Color(0xFF2563EB).withValues(alpha: 0.18),
+                      color: _kSelectedGradient.first.withValues(alpha: 0.18),
                       blurRadius: 14,
                       offset: const Offset(0, 6),
                     ),
                   ]
                 : <BoxShadow>[
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.03),
+                      color: LightColor.shadowOf(0.03),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -161,8 +170,8 @@ class _PremiumSubstepPill extends StatelessWidget {
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
                       color: isSelected
-                          ? Colors.white.withValues(alpha: 0.18)
-                          : const Color(0xFFF8FAFC),
+                          ? LightColor.onBrandSurface.withValues(alpha: 0.18)
+                          : LightColor.inputFillColor,
                       shape: BoxShape.circle,
                     ),
                     child: status == StepStatus.complete
@@ -170,15 +179,15 @@ class _PremiumSubstepPill extends StatelessWidget {
                             Icons.check_rounded,
                             size: 13,
                             color: isSelected
-                                ? Colors.white
-                                : LightColor.secondary,
+                                ? LightColor.onBrandSurface
+                                : LightColor.brandTextColor,
                           )
                         : Text(
                             '${index + 1}',
                             style: TextStyle(
                               color: isSelected
-                                  ? Colors.white
-                                  : LightColor.primary,
+                                  ? LightColor.onBrandSurface
+                                  : LightColor.brandTextColor,
                               fontSize: 11,
                               fontWeight: FontWeight.w800,
                             ),
@@ -191,7 +200,9 @@ class _PremiumSubstepPill extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: isSelected ? Colors.white : LightColor.titleText,
+                        color: isSelected
+                            ? LightColor.onBrandSurface
+                            : LightColor.primaryTextColor,
                         fontSize: 11.5,
                         fontWeight: FontWeight.w800,
                         height: 1.1,
@@ -203,7 +214,9 @@ class _PremiumSubstepPill extends StatelessWidget {
                     width: 7,
                     height: 7,
                     decoration: BoxDecoration(
-                      color: isSelected ? Colors.white : accentColor,
+                      color: isSelected
+                          ? LightColor.onBrandSurface
+                          : accentColor,
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -216,10 +229,10 @@ class _PremiumSubstepPill extends StatelessWidget {
                   minHeight: 3,
                   value: _progressValue(status),
                   backgroundColor: isSelected
-                      ? Colors.white.withValues(alpha: 0.18)
-                      : const Color(0xFFE2E8F0),
+                      ? LightColor.onBrandSurface.withValues(alpha: 0.18)
+                      : LightColor.dividerColor,
                   valueColor: AlwaysStoppedAnimation<Color>(
-                    isSelected ? Colors.white : accentColor,
+                    isSelected ? LightColor.onBrandSurface : accentColor,
                   ),
                 ),
               ),
@@ -250,17 +263,17 @@ class _PremiumSubstepPill extends StatelessWidget {
   Color _statusColor(StepStatus status) {
     switch (status) {
       case StepStatus.complete:
-        return LightColor.secondary;
+        return LightColor.secondaryColor;
       case StepStatus.inProgress:
-        return LightColor.amber;
+        return LightColor.warningColor;
       case StepStatus.error:
-        return LightColor.red;
+        return LightColor.redColor;
       case StepStatus.locked:
-        return LightColor.hintText;
+        return LightColor.hintTextColor;
       case StepStatus.notStarted:
-        return const Color(0xFF94A3B8);
+        return LightColor.iconGrey;
       case StepStatus.pending:
-        return const Color(0xFFCBD5E1);
+        return LightColor.disabledTextColor;
     }
   }
 }
@@ -283,9 +296,9 @@ class _ActiveStepFooter extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
+        color: LightColor.inputFillColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: LightColor.border),
+        border: Border.all(color: LightColor.borderColor),
       ),
       child: Row(
         children: <Widget>[
@@ -312,8 +325,8 @@ class _ActiveStepFooter extends StatelessWidget {
               title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: LightColor.titleText,
+              style: TextStyle(
+                color: LightColor.primaryTextColor,
                 fontSize: 12.5,
                 fontWeight: FontWeight.w700,
               ),
@@ -329,17 +342,17 @@ class _ActiveStepFooter extends StatelessWidget {
   Color _statusColor(StepStatus status) {
     switch (status) {
       case StepStatus.locked:
-        return LightColor.hintText;
+        return LightColor.hintTextColor;
       case StepStatus.notStarted:
-        return const Color(0xFF94A3B8);
+        return LightColor.iconGrey;
       case StepStatus.inProgress:
-        return LightColor.amber;
+        return LightColor.warningColor;
       case StepStatus.complete:
-        return LightColor.secondary;
+        return LightColor.secondaryColor;
       case StepStatus.error:
-        return LightColor.red;
+        return LightColor.redColor;
       case StepStatus.pending:
-        return const Color(0xFFCBD5E1);
+        return LightColor.disabledTextColor;
     }
   }
 

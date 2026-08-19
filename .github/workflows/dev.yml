@@ -1,0 +1,153 @@
+name: Android Staging — Firebase App Distribution
+
+on:
+  push:
+    branches:
+      - staging
+  workflow_dispatch:
+
+concurrency:
+  group: android-staging-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build APK and distribute to testers
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - name: ⬇️ Check out repository
+        uses: actions/checkout@v4
+
+      - name: 🧹 Free disk space (GitHub hosted runner)
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/powershell"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          sudo docker system prune -af || true
+          df -h
+
+      - name: ☕ Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: "temurin"
+
+      - name: ⚙️ Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.44.0"
+          channel: "stable"
+          cache: true
+
+      - name: 🤖 Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: 🧰 Pre-install Android CMake and NDK
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "cmake;3.22.1" "ndk;28.2.13676358"
+
+      - name: 📦 Install dependencies
+        run: flutter pub get
+
+      - name: 🔐 Decode keystore
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > "$GITHUB_WORKSPACE/android/hamro-futsal-release-key.keystore"
+
+      - name: 🔐 Decode keystore properties
+        run: |
+          echo "${{ secrets.KEYSTORE_PROPERTIES_BASE64 }}" | base64 --decode > "$GITHUB_WORKSPACE/android/keystore.properties"
+
+      - name: 🔎 Analyze
+        run: flutter analyze --no-fatal-infos
+        continue-on-error: true
+
+      - name: 🧪 Run tests
+        run: flutter test
+        continue-on-error: true
+
+      # Several screens select Material/Cupertino icons through shared widgets and
+      # runtime state. The release icon tree-shaker cannot reliably discover every
+      # glyph reached that way, so it stays disabled to keep icons from vanishing
+      # only in release builds.
+      - name: 🛠 Build APK
+        run: flutter build apk --release --no-tree-shake-icons
+
+      - name: 🧹 Delete old APK artifacts
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.CICD_TOKEN }}
+          script: |
+            const artifacts = await github.rest.actions.listArtifactsForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              name: 'hamro-futsal-staging-apk',
+              per_page: 100,
+            });
+            for (const artifact of artifacts.data.artifacts) {
+              await github.rest.actions.deleteArtifact({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                artifact_id: artifact.id,
+              });
+            }
+
+      - name: 📤 Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hamro-futsal-staging-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 7
+
+      - name: 🚀 Deploy to Firebase App Distribution
+        uses: wzieba/Firebase-Distribution-Github-Action@v1
+        with:
+          appId: ${{ secrets.FIREBASE_ANDROID_APP_ID }}
+          serviceCredentialsFileContent: ${{ secrets.FIREBASE_CREDENTIAL_FILE_CONTENT }}
+          groups: testers
+          releaseNotes: |
+            Branch: ${{ github.ref_name }}
+            Commit: ${{ github.sha }}
+            ${{ github.event.head_commit.message }}
+          file: build/app/outputs/flutter-apk/app-release.apk
+
+      - name: 💬 Notify Slack — success
+        if: success() && env.SLACK_WEBHOOK_URL != ''
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          curl -X POST -H 'Content-type: application/json' --data '{
+            "text": "✅ Hamro Futsal Android staging build succeeded — APK is on Firebase App Distribution.",
+            "attachments": [
+              {
+                "color": "#36a64f",
+                "fields": [
+                  { "title": "Branch", "value": "${{ github.ref_name }}", "short": true },
+                  { "title": "Commit", "value": "${{ github.sha }}", "short": true }
+                ]
+              }
+            ]
+          }' "$SLACK_WEBHOOK_URL"
+
+      - name: 💬 Notify Slack — failure
+        if: failure() && env.SLACK_WEBHOOK_URL != ''
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          curl -X POST -H 'Content-type: application/json' --data '{
+            "text": "⚠️ Hamro Futsal Android staging build FAILED.",
+            "attachments": [
+              {
+                "color": "#FF0000",
+                "fields": [
+                  { "title": "Branch", "value": "${{ github.ref_name }}", "short": true },
+                  { "title": "Commit", "value": "${{ github.sha }}", "short": true },
+                  { "title": "Run", "value": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}", "short": false }
+                ]
+              }
+            ]
+          }' "$SLACK_WEBHOOK_URL"

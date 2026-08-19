@@ -1,7 +1,8 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:hamro_footsall/core/theme/light_color.dart';
+import 'package:hamro_footsall/core/theme/app_colors.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class OverallPerformanceWidget extends StatelessWidget {
   const OverallPerformanceWidget({super.key});
@@ -10,53 +11,53 @@ class OverallPerformanceWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final List<OverviewMetric> kMetrics = [
       OverviewMetric(
-        title: 'Total Earning',
+        title: StringConstants.totalEarning,
         value: 'NPR 52,400',
         caption: 'This month revenue',
         icon: Icons.account_balance_wallet_rounded,
-        accentColor: LightColor.secondaryGreen,
-        dimColor: LightColor.secondaryGreen.withValues(alpha: 0.12),
-        glowColor: LightColor.secondaryGreen.withValues(alpha: 0.10),
-        trackColor: LightColor.secondaryGreen.withValues(alpha: 0.20),
+        accentColor: LightColor.secondaryColor,
+        dimColor: LightColor.secondaryColor.withValues(alpha: 0.12),
+        glowColor: LightColor.secondaryColor.withValues(alpha: 0.10),
+        trackColor: LightColor.secondaryColor.withValues(alpha: 0.20),
         progress: 0.74,
         trend: '+12.4%',
         trendUp: true,
       ),
       OverviewMetric(
-        title: 'Total Booking',
+        title: StringConstants.totalBooking,
         value: '186',
         caption: 'Booked slots this month',
         icon: Icons.calendar_month_rounded,
-        accentColor: LightColor.skyBlue,
-        dimColor: LightColor.skyBlue.withValues(alpha: 0.12),
-        glowColor: LightColor.skyBlue.withValues(alpha: 0.10),
-        trackColor: LightColor.skyBlue.withValues(alpha: 0.20),
+        accentColor: LightColor.secondaryColor,
+        dimColor: LightColor.secondaryColor.withValues(alpha: 0.12),
+        glowColor: LightColor.secondaryColor.withValues(alpha: 0.10),
+        trackColor: LightColor.secondaryColor.withValues(alpha: 0.20),
         progress: 0.62,
         trend: '+8.1%',
         trendUp: true,
       ),
       OverviewMetric(
-        title: 'Occupancy',
+        title: StringConstants.occupancy,
         value: '84%',
         caption: 'Court usage today',
         icon: Icons.stadium_rounded,
-        accentColor: LightColor.primaryGreen,
-        dimColor: LightColor.primaryGreen.withValues(alpha: 0.11),
-        glowColor: LightColor.primaryGreen.withValues(alpha: 0.10),
-        trackColor: LightColor.primaryGreen.withValues(alpha: 0.18),
+        accentColor: LightColor.secondaryColor,
+        dimColor: LightColor.secondaryColor.withValues(alpha: 0.11),
+        glowColor: LightColor.secondaryColor.withValues(alpha: 0.10),
+        trackColor: LightColor.secondaryColor.withValues(alpha: 0.18),
         progress: 0.84,
         trend: '+3.5%',
         trendUp: true,
       ),
       OverviewMetric(
-        title: 'Cancelled',
+        title: StringConstants.cancelled,
         value: '12',
         caption: 'Cancelled reservations',
         icon: Icons.cancel_rounded,
-        accentColor: LightColor.red,
-        dimColor: LightColor.red.withValues(alpha: 0.12),
-        glowColor: LightColor.red.withValues(alpha: 0.10),
-        trackColor: LightColor.red.withValues(alpha: 0.18),
+        accentColor: LightColor.redColor,
+        dimColor: LightColor.redColor.withValues(alpha: 0.12),
+        glowColor: LightColor.redColor.withValues(alpha: 0.10),
+        trackColor: LightColor.redColor.withValues(alpha: 0.18),
         progress: 0.15,
         trend: '-2.0%',
         trendUp: false,
@@ -192,11 +193,11 @@ class _MetricCardState extends State<_MetricCard>
     final m = widget.metric;
     final cardBackground = Color.alphaBlend(
       LightColor.background.withValues(alpha: 0.45),
-      LightColor.surface,
+      LightColor.cardColor,
     );
     final accentWash = Color.alphaBlend(
       m.accentColor.withValues(alpha: 0.08),
-      LightColor.surface,
+      LightColor.cardColor,
     );
 
     return GestureDetector(
@@ -223,7 +224,7 @@ class _MetricCardState extends State<_MetricCard>
             //     offset: const Offset(0, 10),
             //   ),
             //   BoxShadow(
-            //     color: LightColor.accentGreen.withAlpha(15),
+            //     color: LightColor.secondaryColor.withAlpha(15),
             //     blurRadius: 18,
             //     offset: const Offset(0, 8),
             //   ),
@@ -314,10 +315,10 @@ class _MetricCardState extends State<_MetricCard>
                       // Value
                       Text(
                         m.value,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 17,
                           fontWeight: FontWeight.w800,
-                          color: LightColor.titleTextColor,
+                          color: LightColor.primaryTextColor,
                           letterSpacing: -0.5,
                           height: 1.1,
                         ),
@@ -330,10 +331,10 @@ class _MetricCardState extends State<_MetricCard>
                       // Title
                       Text(
                         m.title,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 10.5,
                           fontWeight: FontWeight.w600,
-                          color: LightColor.subTitleTextColor,
+                          color: LightColor.secondaryTextColor,
                         ),
                       ),
 
@@ -346,9 +347,9 @@ class _MetricCardState extends State<_MetricCard>
                           Expanded(
                             child: Text(
                               m.caption,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 9,
-                                color: LightColor.darkgrey,
+                                color: LightColor.secondaryTextColor,
                                 height: 1.4,
                               ),
                               maxLines: 2,

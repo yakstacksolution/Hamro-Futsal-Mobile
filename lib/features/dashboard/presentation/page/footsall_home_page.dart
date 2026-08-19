@@ -1,23 +1,48 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
-import 'dart:ui';
-
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hamro_footsall/core/helper/device_location_helper.dart';
 import 'package:hamro_footsall/core/routers/app_router_params.dart';
-import 'package:hamro_footsall/features/courts_details/presentation/page/court_details.dart';
-import 'package:hamro_footsall/features/dashboard/presentation/widgets/footsall_court_details_page.dart';
+import 'package:hamro_footsall/core/theme/app_colors.dart';
+import 'package:hamro_footsall/core/theme/futsal_text.dart';
+import 'package:hamro_footsall/core/theme/futsal_theme.dart';
+import 'package:hamro_footsall/core/utils/app_utils.dart';
+import 'package:hamro_footsall/core/utils/custom_image_view.dart';
+import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/utils/responsive.dart';
+import 'package:hamro_footsall/core/utils/image_constants.dart';
+import 'package:hamro_footsall/core/widgets/loading_widget.dart';
+import 'package:hamro_footsall/features/dashboard/presentation/page/dashboard_screen.dart';
+import 'package:hamro_footsall/features/dashboard/presentation/widgets/dashboard_layout.dart';
+import 'package:hamro_footsall/features/dashboard/presentation/widgets/loading/home_body_loading.dart';
+import 'package:hamro_footsall/features/dashboard/presentation/widgets/venue_status_widget.dart';
+import 'package:hamro_footsall/features/public/data/model/public_venue_model.dart';
+import 'package:hamro_footsall/features/public/data/repositories/public_repository_impl.dart';
+import 'package:hamro_footsall/features/public/domain/usecase/get_public_venues_use_case.dart';
+import 'package:hamro_footsall/features/public/presentation/bloc/public_venue/public_venue_bloc.dart';
+import 'package:hamro_footsall/features/profile/presentation/profile_bloc/profile_bloc.dart';
+import 'package:hamro_footsall/features/public/presentation/models/venue_filter.dart';
+import 'package:hamro_footsall/core/helper/wishlist_store.dart';
+import 'package:hamro_footsall/features/wishlist/domain/usecase/toggle_wishlist_use_case.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class FootsallHomePage extends StatelessWidget {
-  const FootsallHomePage({super.key});
+  const FootsallHomePage({super.key, this.filter = VenueFilter.empty});
+
+  final VenueFilter filter;
 
   @override
   Widget build(BuildContext context) {
-    return const CourtsListScreen();
+    return CourtsListScreen(filter: filter);
   }
 }
 
 class CourtsListScreen extends StatefulWidget {
-  const CourtsListScreen({super.key});
+  const CourtsListScreen({super.key, this.filter = VenueFilter.empty});
+
+  final VenueFilter filter;
 
   @override
   State<CourtsListScreen> createState() => _CourtsListScreenState();
@@ -25,77 +50,10 @@ class CourtsListScreen extends StatefulWidget {
 
 class _CourtsListScreenState extends State<CourtsListScreen>
     with SingleTickerProviderStateMixin {
-  int _selectedFilter = 0;
-  int _selectedNav = 0;
   late AnimationController _animController;
   late Animation<double> _fadeIn;
-
-  final List<String> _filters = [
-    'All',
-    'Nearby',
-    'Indoor',
-    'Outdoor',
-    'Open Now',
-    'Top Rated',
-  ];
-
-  final List<CourtModel> courts = [
-    CourtModel(
-      name: 'Goal Arena Futsal',
-      location: 'Baneshwor, Kathmandu',
-      price: 'Rs. 1,800',
-      rating: 4.8,
-      reviewCount: 128,
-      image:
-          'https://images.unsplash.com/photo-1517466787929-bc90951d0974?auto=format&fit=crop&w=1200&q=80',
-      isOpen: true,
-      distance: '1.2 km',
-      features: ['Indoor', 'Parking', 'Lights'],
-    ),
-    CourtModel(
-      name: 'Urban Kick Center',
-      location: 'Lalitpur, Jawalakhel',
-      price: 'Rs. 2,000',
-      rating: 4.6,
-      reviewCount: 94,
-      image:
-          'https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=1200&q=80',
-      isOpen: true,
-      distance: '2.8 km',
-      features: ['Turf', 'Shower', 'Cafe'],
-    ),
-    CourtModel(
-      name: 'Champion 5A Side',
-      location: 'Koteshwor, Kathmandu',
-      price: 'Rs. 1,500',
-      rating: 4.5,
-      reviewCount: 76,
-      image:
-          'https://images.unsplash.com/photo-1486286701208-1d58e9338013?auto=format&fit=crop&w=1200&q=80',
-      isOpen: false,
-      distance: '3.5 km',
-      features: ['Outdoor', 'Training', 'Parking'],
-    ),
-    CourtModel(
-      name: 'Royal Futsal Hub',
-      location: 'Bhaktapur',
-      price: 'Rs. 1,700',
-      rating: 4.7,
-      reviewCount: 111,
-      image:
-          'https://images.unsplash.com/photo-1552667466-07770ae110d0?auto=format&fit=crop&w=1200&q=80',
-      isOpen: true,
-      distance: '5.1 km',
-      features: ['Indoor', 'Cafe', 'Events'],
-    ),
-  ];
-
-  static const _green = Color(0xFF0D9E5C);
-  static const _greenLight = Color(0xFFE8F7EF);
-  static const _bg = Color(0xFFF5F7FA);
-  static const _textPrimary = Color(0xFF0F1923);
-  static const _textSecondary = Color(0xFF6B7280);
-  static const _border = Color(0xFFE8ECF0);
+  late final PublicVenueBloc _publicVenueBloc;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
@@ -106,509 +64,641 @@ class _CourtsListScreenState extends State<CourtsListScreen>
     );
     _fadeIn = CurvedAnimation(parent: _animController, curve: Curves.easeOut);
     _animController.forward();
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.dark);
+
+    _publicVenueBloc = PublicVenueBloc(
+      GetPublicVenuesUseCase(PublicRepositoryImpl()),
+    )..add(FetchPublicVenuesEvent(filter: widget.filter));
+    _scrollController.addListener(_onScroll);
+
+    DashboardScreen.selectedNavIndex.addListener(_retryFailedFetchOnTabVisible);
+
+    // Resolve the device position early: `GET /venues` carries it as
+    // latitude/longitude, and the server computes `distance_km` from it.
+    DeviceLocationHelper.instance.ensurePosition();
+    DeviceLocationHelper.instance.position.addListener(_onPositionChanged);
+  }
+
+  void _retryFailedFetchOnTabVisible() {
+    if (!mounted || DashboardScreen.selectedNavIndex.value != 0) return;
+    if (_publicVenueBloc.state.status == PublicVenueStatus.failure) {
+      _publicVenueBloc.add(FetchPublicVenuesEvent(filter: widget.filter));
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant CourtsListScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.filter != widget.filter) {
+      _publicVenueBloc.add(FetchPublicVenuesEvent(filter: widget.filter));
+    }
   }
 
   @override
   void dispose() {
+    DashboardScreen.selectedNavIndex.removeListener(
+      _retryFailedFetchOnTabVisible,
+    );
+    DeviceLocationHelper.instance.position.removeListener(_onPositionChanged);
+    _scrollController
+      ..removeListener(_onScroll)
+      ..dispose();
+    _publicVenueBloc.close();
     _animController.dispose();
     super.dispose();
   }
 
+  /// Distance from the bottom of the list at which the next page is requested.
+  static const double _loadMoreThreshold = 300;
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    if (!_publicVenueBloc.state.canLoadMore) return;
+    final double maxScroll = _scrollController.position.maxScrollExtent;
+    final double currentScroll = _scrollController.position.pixels;
+    if (currentScroll >= maxScroll - _loadMoreThreshold) {
+      _publicVenueBloc.add(const LoadMorePublicVenuesEvent());
+    }
+  }
+
+  /// Requests the next page when the loaded venues do not fill the viewport.
+  ///
+  /// The scroll listener alone cannot cover this: with a short first page (or a
+  /// tall tablet screen) there is nothing to scroll, so the list would sit at
+  /// page 1 even though the server reports more.
+  void _loadMoreIfViewportNotFilled() {
+    if (!mounted || !_scrollController.hasClients) return;
+    if (!_publicVenueBloc.state.canLoadMore) return;
+    if (_scrollController.position.maxScrollExtent <= 0) {
+      _publicVenueBloc.add(const LoadMorePublicVenuesEvent());
+    }
+  }
+
+  /// Refetches the listing when a location fix arrives.
+  ///
+  /// The first page is requested before the GPS lock resolves, so it comes back
+  /// without distances; re-running the query with coordinates is what fills the
+  /// `distance_km` on the cards. Only the first fix triggers this — later
+  /// updates would silently reset the user's scroll position.
+  void _onPositionChanged() {
+    if (!mounted) return;
+    if (DeviceLocationHelper.instance.position.value == null) return;
+    if (_publicVenueBloc.state.hasOrigin) return;
+    _publicVenueBloc.add(FetchPublicVenuesEvent(filter: widget.filter));
+  }
+
+  Future<void> _refresh() async {
+    context.read<ProfileBloc>().add(const FetchProfileEvent());
+    _publicVenueBloc.add(FetchPublicVenuesEvent(filter: widget.filter));
+    await _publicVenueBloc.stream.firstWhere(
+      (PublicVenueState state) => state.status != PublicVenueStatus.loading,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.dark);
-    return FadeTransition(
-      opacity: _fadeIn,
-      child: CustomScrollView(
-        physics: const BouncingScrollPhysics(),
-        slivers: [
-          // SliverToBoxAdapter(
-          //   child: Padding(
-          //     padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
-          //     child: Row(
-          //       children: [
-          //         const Text(
-          //           'Available Courts',
-          //           style: TextStyle(
-          //             color: _textPrimary,
-          //             fontSize: 20,
-          //             fontWeight: FontWeight.w800,
-          //             letterSpacing: -0.3,
-          //           ),
-          //         ),
-          //         const Spacer(),
-          //         Text(
-          //           '${courts.length} found',
-          //           style: const TextStyle(
-          //             color: _textSecondary,
-          //             fontSize: 13,
-          //             fontWeight: FontWeight.w500,
-          //           ),
-          //         ),
-          //       ],
-          //     ),
-          //   ),
-          // ),
-          SliverToBoxAdapter(child: SizedBox(height: 6)),
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 120),
-            sliver: SliverList.builder(
-              itemCount: courts.length,
-              itemBuilder: (context, index) {
-                return TweenAnimationBuilder<double>(
-                  tween: Tween(begin: 0, end: 1),
-                  duration: Duration(milliseconds: 500 + index * 120),
-                  curve: Curves.easeOutCubic,
-                  builder: (context, value, child) => Transform.translate(
-                    offset: Offset(0, 30 * (1 - value)),
-                    child: Opacity(opacity: value, child: child),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.only(bottom: 20),
-                    child: CourtCard(court: courts[index]),
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-    // bottomNavigationBar: _buildBottomNav(),
-  }
+    return BlocProvider<PublicVenueBloc>.value(
+      value: _publicVenueBloc,
+      child: FadeTransition(
+        opacity: _fadeIn,
+        child: BlocBuilder<PublicVenueBloc, PublicVenueState>(
+          builder: (BuildContext context, PublicVenueState state) {
+            // Only the very first load shows the skeleton. A refetch (pull to
+            // refresh, or the re-query once the GPS fix lands) keeps the cards
+            // on screen instead of swapping the whole list for the shimmer.
+            final bool showSkeleton =
+                state.venues.isEmpty &&
+                (state.status == PublicVenueStatus.loading ||
+                    state.status == PublicVenueStatus.idle);
 
-  Widget _buildHeader() {
-    return Container(
-      height: 230,
-      child: Stack(
-        children: [
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF0D9E5C), Color(0xFF0B7A47)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-          ),
-          Positioned(
-            right: -50,
-            top: -30,
-            child: Container(
-              height: 200,
-              width: 200,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.08),
-              ),
-            ),
-          ),
-          Positioned(
-            left: -30,
-            bottom: -40,
-            child: Container(
-              height: 160,
-              width: 160,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.06),
-              ),
-            ),
-          ),
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        height: 44,
-                        width: 44,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(
-                            color: Colors.white.withOpacity(0.3),
-                          ),
+            final double horizontal = context.responsive<double>(
+              mobile: AppDimens.paddingX20,
+              tablet: AppDimens.paddingX32,
+            );
+            // Derived from the window, not from SliverConstraints: the sliver
+            // ones change on every scroll frame, which would rebuild the whole
+            // list each frame (see _buildContentSlivers).
+            final double availableWidth =
+                MediaQuery.sizeOf(context).width - (horizontal * 2);
+
+            return showSkeleton
+                ? const HomeBodyLoading()
+                : Padding(
+                    padding: EdgeInsets.symmetric(horizontal: horizontal),
+                    child: RefreshIndicator(
+                      onRefresh: _refresh,
+                      color: LightColor.secondaryColor,
+                      child: CustomScrollView(
+                        controller: _scrollController,
+                        // Keep the next cards laid out and their resized images
+                        // decoded before they enter the viewport. This trades a
+                        // small, bounded amount of memory for steadier flings.
+                        scrollCacheExtent: const ScrollCacheExtent.pixels(700),
+                        physics: const AlwaysScrollableScrollPhysics(
+                          parent: BouncingScrollPhysics(),
                         ),
-                        child: const Center(
-                          child: Text(
-                            'R',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 18,
-                            ),
+                        slivers: <Widget>[
+                          SliverToBoxAdapter(
+                            child: SizedBox(height: AppDimens.sizeX22),
                           ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Good evening 👋',
-                            style: TextStyle(
-                              color: Colors.white.withOpacity(0.7),
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          const Text(
-                            'Rahul Shrestha',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
+                          ..._buildContentSlivers(state, availableWidth),
                         ],
                       ),
-                      const Spacer(),
-                      Container(
-                        height: 44,
-                        width: 44,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.18),
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(
-                            color: Colors.white.withOpacity(0.25),
-                          ),
-                        ),
-                        child: const Icon(
-                          Icons.notifications_outlined,
-                          color: Colors.white,
-                          size: 22,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                  const Text(
-                    'Find Your\nPerfect Court',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 32,
-                      fontWeight: FontWeight.w900,
-                      height: 1.1,
-                      letterSpacing: -0.8,
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.location_on_rounded,
-                        color: Colors.white70,
-                        size: 15,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Kathmandu Valley',
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.75),
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      Icon(
-                        Icons.keyboard_arrow_down_rounded,
-                        color: Colors.white.withOpacity(0.6),
-                        size: 18,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
+                  );
+          },
+        ),
       ),
     );
   }
 
-  Widget _buildBottomNav() {
-    final items = [
-      Icons.home_rounded,
-      Icons.explore_rounded,
-      Icons.calendar_today_rounded,
-      Icons.person_outline_rounded,
-    ];
-    final labels = ['Home', 'Explore', 'Bookings', 'Profile'];
+  List<Widget> _buildContentSlivers(
+    PublicVenueState state,
+    double availableWidth,
+  ) {
+    final List<PublicListingVenueModel> venues = state.venues;
 
-    return Container(
-      padding: const EdgeInsets.only(bottom: 12, top: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: _border, width: 1)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 20,
-            offset: const Offset(0, -6),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: List.generate(
-          items.length,
-          (i) => GestureDetector(
-            onTap: () => setState(() => _selectedNav = i),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 220),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: _selectedNav == i ? _greenLight : Colors.transparent,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    items[i],
-                    color: _selectedNav == i ? _green : _textSecondary,
-                    size: 24,
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    labels[i],
-                    style: TextStyle(
-                      color: _selectedNav == i ? _green : _textSecondary,
-                      fontSize: 10.5,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
+    if (state.status == PublicVenueStatus.failure && venues.isEmpty) {
+      return <Widget>[
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: Padding(
+              padding: const EdgeInsets.only(top: AppDimens.sizeX80),
+              child: _VenueMessageView(
+                icon: Icons.wifi_off_rounded,
+                title: StringConstants.unableToLoadVenues,
+                message:
+                    state.errorMessage ??
+                    'Please check your connection and try again.',
+                actionLabel: 'Retry',
+                onAction: () => _publicVenueBloc.add(
+                  FetchPublicVenuesEvent(filter: widget.filter),
+                ),
               ),
             ),
           ),
         ),
+      ];
+    }
+
+    if (venues.isEmpty) {
+      return <Widget>[
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: Padding(
+              padding: const EdgeInsets.only(top: AppDimens.sizeX80),
+              child: const _VenueMessageView(
+                icon: Icons.stadium_outlined,
+                title: StringConstants.noVenuesFound,
+                message: StringConstants.thereAreNoFutsalVenuesToShowRightNow,
+              ),
+            ),
+          ),
+        ),
+      ];
+    }
+
+    final List<PublicListingVenueModel> filtered = widget.filter.apply(venues);
+
+    // A page that does not fill the screen leaves nothing to scroll, so top up
+    // once the layout is known. `canLoadMore` makes this a no-op afterwards.
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _loadMoreIfViewportNotFilled(),
+    );
+
+    if (filtered.isEmpty) {
+      return <Widget>[
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: Padding(
+              padding: const EdgeInsets.only(top: AppDimens.sizeX80),
+              child: const _VenueMessageView(
+                icon: Icons.filter_alt_off_rounded,
+                title: StringConstants.noMatchingVenues,
+                message: StringConstants.tryAdjustingOrClearingYourFilters,
+              ),
+            ),
+          ),
+        ),
+      ];
+    }
+
+    // One column on phone (unchanged), a grid from tablet up.
+    //
+    // Rows deliberately have no per-item entry animation: a staggered
+    // Transform+Opacity per row repainted every frame (with a saveLayer per
+    // card) is what made scrolling stutter. The page-level fade stays.
+
+    // The column count comes from [availableWidth] rather than a
+    // SliverLayoutBuilder. SliverConstraints carry the scroll offset, so a
+    // sliver-level builder re-runs every frame of a scroll and hands the sliver
+    // a fresh child delegate each time — which rebuilds every visible card on
+    // every frame. Deriving it from the window keeps the delegate stable, so
+    // scrolling only paints.
+    final int columns = venueGridColumns(context, availableWidth);
+
+    return <Widget>[
+      SliverPadding(
+        padding: const EdgeInsets.only(bottom: AppDimens.sizeX20),
+        sliver: columns == 1
+            ? SliverList.builder(
+                itemCount: filtered.length,
+                itemBuilder: (BuildContext context, int index) {
+                  final PublicListingVenueModel venue = filtered[index];
+                  return Padding(
+                    key: ValueKey<Object>(venue.id ?? index),
+                    padding: const EdgeInsets.only(bottom: AppDimens.sizeX20),
+                    child: CourtCard(publicListingVenueModel: venue),
+                  );
+                },
+              )
+            : SliverGrid.builder(
+                itemCount: filtered.length,
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: columns,
+                  crossAxisSpacing: AppDimens.sizeX20,
+                  mainAxisSpacing: AppDimens.sizeX20,
+                  mainAxisExtent: AppDimens.courtCardGridExtent,
+                ),
+                itemBuilder: (BuildContext context, int index) {
+                  final PublicListingVenueModel venue = filtered[index];
+                  return CourtCard(
+                    key: ValueKey<Object>(venue.id ?? index),
+                    publicListingVenueModel: venue,
+                    flexibleCover: true,
+                  );
+                },
+              ),
+      ),
+      SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.only(
+            top: AppDimens.sizeX4,
+            bottom: AppDimens.sizeX120,
+          ),
+          child: _VenueListFooter(
+            state: state,
+            onRetry: () =>
+                _publicVenueBloc.add(const RetryLoadMorePublicVenuesEvent()),
+          ),
+        ),
+      ),
+    ];
+  }
+}
+
+/// Bottom-of-list state for the paginated venue listing: the next-page spinner
+/// or a retry for a failed page.
+class _VenueListFooter extends StatelessWidget {
+  const _VenueListFooter({required this.state, required this.onRetry});
+
+  final PublicVenueState state;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+
+    if (state.isLoadingMore) {
+      return const Center(
+        child: CustomLoading(
+          color: LightColor.secondaryColor,
+          size: 24,
+          strokeWidth: 3,
+          secondCircleColor: LightColor.secondaryLight,
+          thirdCircleColor: LightColor.secondaryLight,
+        ),
+      );
+    }
+
+    if (state.hasLoadMoreError) {
+      return Column(
+        children: <Widget>[
+          Text(
+            state.loadMoreErrorMessage ?? StringConstants.unableToLoadVenues,
+            textAlign: TextAlign.center,
+            style: textTheme.bodyTextSmall?.copyWith(
+              color: LightColor.secondaryTextColor,
+            ),
+          ),
+          const SizedBox(height: AppDimens.paddingX4),
+          TextButton.icon(
+            onPressed: onRetry,
+            icon: const Icon(
+              Icons.refresh_rounded,
+              size: AppDimens.sizeX16,
+              color: LightColor.secondaryColor,
+            ),
+            label: Text(
+              StringConstants.retry,
+              style: textTheme.bodyTextSmall?.copyWith(
+                color: LightColor.secondaryColor,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    return const SizedBox.shrink();
+  }
+}
+
+class _VenueMessageView extends StatelessWidget {
+  const _VenueMessageView({
+    required this.icon,
+    required this.title,
+    required this.message,
+    this.actionLabel,
+    this.onAction,
+  });
+
+  final IconData icon;
+  final String title;
+  final String message;
+  final String? actionLabel;
+  final VoidCallback? onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(AppDimens.paddingX24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: <Widget>[
+          Icon(
+            icon,
+            size: AppDimens.sizeX48,
+            color: LightColor.secondaryTextColor,
+          ),
+          const SizedBox(height: AppDimens.sizeX12),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: FutsalTheme.getTextTheme(context).bodyTextLarge?.copyWith(
+              color: LightColor.primaryTextColor,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: AppDimens.sizeX6),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
+              color: LightColor.secondaryTextColor,
+              height: 1.5,
+            ),
+          ),
+          if (actionLabel != null && onAction != null) ...<Widget>[
+            const SizedBox(height: AppDimens.sizeX16),
+            OutlinedButton.icon(
+              onPressed: onAction,
+              icon: const Icon(Icons.refresh_rounded, size: AppDimens.sizeX18),
+              label: Text(actionLabel!),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: LightColor.secondaryColor,
+                side: const BorderSide(color: LightColor.secondaryColor),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppDimens.paddingX20,
+                  vertical: AppDimens.paddingX10,
+                ),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
 }
 
 class CourtCard extends StatefulWidget {
-  final CourtModel court;
-  const CourtCard({super.key, required this.court});
+  final PublicListingVenueModel publicListingVenueModel;
+
+  /// When true the cover image flexes to fill whatever height is left over
+  /// instead of being pinned to [AppDimens.sizeX200].
+  ///
+  /// Set this in the grid layout, where the cell height is fixed: the text
+  /// block below takes its natural height and the cover absorbs the rest, so
+  /// the card can never overflow its cell. The list layout leaves it false and
+  /// keeps the original fixed-height cover.
+  final bool flexibleCover;
+
+  const CourtCard({
+    super.key,
+    required this.publicListingVenueModel,
+    this.flexibleCover = false,
+  });
 
   @override
   State<CourtCard> createState() => _CourtCardState();
 }
 
 class _CourtCardState extends State<CourtCard> {
-  bool _saved = false;
+  bool _isPressed = false;
+  bool _isHovered = false;
 
-  static const _green = Color(0xFF0D9E5C);
-  static const _greenLight = Color(0xFFE8F7EF);
-  static const _textPrimary = Color(0xFF0F1923);
-  static const _textSecondary = Color(0xFF6B7280);
-  static const _border = Color(0xFFE8ECF0);
-  static const _chipBg = Color(0xFFF3F5F7);
+  /// The richer treatment is only used from tablet up; phones keep the
+  /// original card exactly as it was.
+  bool get _wide => context.isTabletOrWider;
+
+  Future<void> _toggleWishlist() async {
+    final int? venueId = widget.publicListingVenueModel.id;
+    if (venueId == null) return;
+    HapticFeedback.selectionClick();
+    final String? error = await ToggleWishlistUseCase(PublicRepositoryImpl())(
+      venueId,
+    );
+    if (error != null && mounted) {
+      AppUtils().showSnackBar(context, MsgType.error, error);
+    }
+  }
+
+  Widget _cover() {
+    // Only the decode *width* is hinted: passing both width and height makes the
+    // codec resize to exactly those dimensions, which squashes photos whose
+    // aspect ratio differs from the cover box. Height follows from the aspect
+    // ratio, and BoxFit.cover crops the overflow.
+    final Widget image = LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        return Stack(
+          fit: StackFit.expand,
+          children: <Widget>[
+            CustomImageView(
+              url: widget.publicListingVenueModel.featureImage,
+              fit: BoxFit.cover,
+              width: double.infinity,
+              height: double.infinity,
+              cacheWidth: constraints.maxWidth.isFinite
+                  ? constraints.maxWidth
+                  : null,
+            ),
+            Positioned(
+              top: 12,
+              right: 12,
+              child: _WishlistButton(
+                venueId: widget.publicListingVenueModel.id,
+                onTap: _toggleWishlist,
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    // Grid cells have a fixed height, so the cover flexes; list items keep the
+    // original pinned height. One clip either way.
+    final Widget clipped = ClipRRect(
+      borderRadius: BorderRadius.vertical(
+        top: Radius.circular(_wide ? AppDimens.radiusX24 : AppDimens.radiusX18),
+      ),
+      child: widget.flexibleCover
+          ? image
+          : SizedBox(height: AppDimens.sizeX200, child: image),
+    );
+
+    return widget.flexibleCover ? Expanded(child: clipped) : clipped;
+  }
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: () {
-        // context.goNamed(AppRouterParams.courtDetails.name);
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => CourtDetailPage()),
-        );
-      },
-      child: Container(
+    final bool wide = _wide;
+    // Resolved once: getTextTheme() rebuilds ten TextStyles per call, and the
+    // card reads five of them.
+    final FutsalTextTheme textTheme = FutsalTheme.getTextTheme(context);
+    // Hover only means something with a pointer, i.e. desktop; it also drives
+    // the click cursor, which the phone card has no use for.
+    final bool lifted = wide && _isHovered;
+
+    final Widget card = AnimatedScale(
+      scale: _isPressed
+          ? 0.985
+          : lifted
+          ? 1.01
+          : 1,
+      duration: const Duration(milliseconds: 160),
+      curve: Curves.easeOutCubic,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOutCubic,
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(28),
-          border: Border.all(color: _border, width: 1.5),
+          color: LightColor.whiteColor,
+          borderRadius: BorderRadius.circular(
+            wide ? AppDimens.radiusX24 : AppDimens.radiusX18,
+          ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.06),
-              blurRadius: 24,
-              offset: const Offset(0, 8),
+              color: LightColor.shadowOf(lifted ? 0.12 : 0.03),
+              blurRadius: lifted ? AppDimens.sizeX24 : AppDimens.sizeX8,
+              spreadRadius: 0.5,
+              offset: Offset(0, lifted ? 6 : 1),
             ),
           ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Image ────────────────────────────────────────────────
-            ClipRRect(
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(26),
-              ),
-              child: SizedBox(
-                height: 200,
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    Image.network(widget.court.image, fit: BoxFit.cover),
+            _cover(),
 
-                    // Bookmark — top right
-                    Positioned(
-                      top: 12,
-                      right: 12,
-                      child: GestureDetector(
-                        onTap: () => setState(() => _saved = !_saved),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: BackdropFilter(
-                            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                            child: Container(
-                              height: 36,
-                              width: 36,
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.85),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: Colors.white.withOpacity(0.6),
-                                ),
-                              ),
-                              child: Icon(
-                                _saved
-                                    ? Icons.favorite_rounded
-                                    : Icons.favorite_border_rounded,
-                                color: _saved ? _green : _textSecondary,
-                                size: 22,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // ── Details ──────────────────────────────────────────────
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+              padding: EdgeInsets.all(
+                wide ? AppDimens.sizeX18 : AppDimens.sizeX14,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Name + Open/Closed row
+                  Text(
+                    widget.publicListingVenueModel.name ?? '',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: textTheme.bodyTextLarge?.copyWith(
+                      color: LightColor.primaryTextColor,
+                      fontWeight: FontWeight.w700,
+                      fontSize: wide ? AppDimens.fontHeadingSubTitle : null,
+                    ),
+                  ),
+                  SizedBox(height: wide ? AppDimens.sizeX8 : AppDimens.sizeX6),
+
                   Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Expanded(
-                        child: Text(
-                          widget.court.name,
-                          style: const TextStyle(
-                            color: _textPrimary,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: -0.3,
-                          ),
+                        child: Row(
+                          children: [
+                            CustomImageView(
+                              imagePath: ImageConstants.locationIcon,
+                              height: AppDimens.sizeX14,
+                              width: AppDimens.sizeX14,
+                              fit: BoxFit.contain,
+                              color: LightColor.secondaryTextColor,
+                            ),
+                            const SizedBox(width: AppDimens.sizeX6),
+                            Flexible(
+                              child: Text(
+                                widget.publicListingVenueModel.address ?? '',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: textTheme.bodyTextSmall?.copyWith(
+                                  color: LightColor.secondaryTextColor,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      _ratingWidget(),
+                      const SizedBox(width: AppDimens.sizeX12),
+                      _DistanceLabel(venue: widget.publicListingVenueModel),
                     ],
                   ),
-                  const SizedBox(height: 6),
-
-                  // Location + distance
+                  const SizedBox(height: AppDimens.sizeX12),
+                  // Price left, status right. The column count is derived from
+                  // a minimum card width (see venueGridColumns), so the cell is
+                  // always wide enough for both on one line.
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Icon(
-                        Icons.location_on_rounded,
-                        size: 14,
-                        color: _textSecondary,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        widget.court.location,
-                        style: const TextStyle(
-                          color: _textSecondary,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        width: 3,
-                        height: 3,
-                        decoration: BoxDecoration(
-                          color: _textSecondary.withOpacity(0.4),
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        widget.court.distance,
-                        style: TextStyle(
-                          color: _textSecondary.withOpacity(0.8),
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Feature chips
-                  // Wrap(
-                  //   spacing: 6,
-                  //   runSpacing: 6,
-                  //   children: widget.court.features
-                  //       .map(
-                  //         (f) => Container(
-                  //           padding: const EdgeInsets.symmetric(
-                  //             horizontal: 10,
-                  //             vertical: 5,
-                  //           ),
-                  //           decoration: BoxDecoration(
-                  //             color: _chipBg,
-                  //             borderRadius: BorderRadius.circular(9),
-                  //             border: Border.all(color: _border, width: 1),
-                  //           ),
-                  //           child: Text(
-                  //             f,
-                  //             style: const TextStyle(
-                  //               color: _textSecondary,
-                  //               fontSize: 11.5,
-                  //               fontWeight: FontWeight.w600,
-                  //             ),
-                  //           ),
-                  //         ),
-                  //       )
-                  //       .toList(),
-                  // ),
-                  // const SizedBox(height: 14),
-                  // const Divider(color: _border, thickness: 1, height: 1),
-                  // const SizedBox(height: 12),
-
-                  // Price only
-                  Row(
-                    children: [
-                      Row(
-                        children: [
-                          Text(
-                            widget.court.price,
-                            style: const TextStyle(
-                              color: _green,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: -0.5,
-                            ),
+                      // One rich text rather than a Row of two: the "/ hour"
+                      // suffix sits at the end, so it is what ellipsizes first
+                      // if the cell is ever tighter than expected -- the price
+                      // digits stay visible.
+                      Flexible(
+                        child: Text.rich(
+                          TextSpan(
+                            children: <InlineSpan>[
+                              TextSpan(
+                                text:
+                                    widget.publicListingVenueModel.price == null
+                                    ? 'Rs. --'
+                                    : 'Rs. ${widget.publicListingVenueModel.price!.toStringAsFixed(0)}',
+                                style: textTheme.headingSubTitle?.copyWith(
+                                  color: LightColor.secondaryColor,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              TextSpan(
+                                text: ' ${StringConstants.perHourSuffix}',
+                                style: textTheme.bodyTextMedium?.copyWith(
+                                  color: LightColor.secondaryTextColor,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 6),
-                          const Text(
-                            '/ hour',
-                            style: TextStyle(
-                              color: _textSecondary,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                      const Spacer(),
-                      _StatusPill(isOpen: widget.court.isOpen),
+                      const SizedBox(width: AppDimens.sizeX8),
+                      VenueStatusWidget(
+                        isOpen: widget.publicListingVenueModel.isOpen ?? false,
+                      ),
                     ],
                   ),
                 ],
@@ -618,2498 +708,117 @@ class _CourtCardState extends State<CourtCard> {
         ),
       ),
     );
-  }
 
-  Widget _ratingWidget() {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(30),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.85),
-            borderRadius: BorderRadius.circular(30),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.star_rounded, color: _green, size: 15),
-              const SizedBox(width: 4),
-              Text(
-                widget.court.rating.toString(),
-                style: const TextStyle(
-                  color: _green,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(width: 4),
-              Text(
-                '(${widget.court.reviewCount})',
-                style: const TextStyle(
-                  color: _textSecondary,
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+    final Widget tappable = GestureDetector(
+      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapCancel: () => setState(() => _isPressed = false),
+      onTapUp: (_) {
+        setState(() => _isPressed = false);
+        HapticFeedback.selectionClick();
+        context.pushNamed(
+          AppRouterParams.courtDetails.name,
+          extra: widget.publicListingVenueModel,
+        );
+      },
+      child: card,
+    );
+
+    if (!wide) return tappable;
+
+    // Pointer affordances for tablet/desktop: a click cursor and a hover lift.
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: tappable,
     );
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Status Pill
-// ─────────────────────────────────────────────────────────────────────────────
-class _StatusPill extends StatelessWidget {
-  final bool isOpen;
-  const _StatusPill({required this.isOpen});
+/// Save/unsave chip on the cover.
+///
+/// Split out of [CourtCard] so a wishlist change repaints this 36px chip
+/// instead of rebuilding the whole card subtree.
+class _WishlistButton extends StatelessWidget {
+  const _WishlistButton({required this.venueId, required this.onTap});
+
+  final int? venueId;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(30),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.85),
-            borderRadius: BorderRadius.circular(30),
-            border: Border.all(
-              color: isOpen
-                  ? const Color(0xFF0D9E5C).withOpacity(0.3)
-                  : Colors.red.withOpacity(0.3),
-              width: 1,
+    return ValueListenableBuilder<Set<int>>(
+      valueListenable: WishlistStore.instance.ids,
+      builder: (BuildContext context, Set<int> ids, _) {
+        final bool saved = venueId != null && ids.contains(venueId);
+        return GestureDetector(
+          onTap: onTap,
+          // A solid translucent chip rather than a BackdropFilter: the blur
+          // forced a saveLayer for every card on screen, which is expensive on
+          // every scroll frame for no visible gain here.
+          child: Container(
+            height: AppDimens.sizeX36,
+            width: AppDimens.sizeX36,
+            decoration: BoxDecoration(
+              // The chip follows the card surface rather than being pinned to
+              // white: a white chip forced the heart to stay dark, and the
+              // unsaved grey then vanished against it in dark mode.
+              color: LightColor.elevatedCardColor.withValues(alpha: 0.92),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: LightColor.elevatedCardColor.withValues(alpha: 0.6),
+              ),
+            ),
+            child: Icon(
+              saved ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+              color: saved
+                  ? LightColor.successColor
+                  : LightColor.secondaryTextColor,
+              size: AppDimens.sizeX22,
             ),
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                height: 7,
-                width: 7,
-                decoration: BoxDecoration(
-                  color: isOpen ? const Color(0xFF0D9E5C) : Colors.red,
-                  shape: BoxShape.circle,
-                ),
-              ),
-              const SizedBox(width: 6),
-              Text(
-                isOpen ? 'Open Now' : 'Closed',
-                style: TextStyle(
-                  color: isOpen ? const Color(0xFF0D9E5C) : Colors.red,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Court Model
-// ─────────────────────────────────────────────────────────────────────────────
-class CourtModel {
-  final String name;
-  final String location;
-  final String price;
-  final double rating;
-  final int reviewCount;
-  final String image;
-  final bool isOpen;
-  final String distance;
-  final List<String> features;
+/// Distance for one venue, as reported by the API.
+///
+/// `distance_km` is computed server-side from the `latitude`/`longitude` sent
+/// with the listing request, so there is nothing to resolve on the client:
+/// either the venue carries a distance or the label is omitted.
+class _DistanceLabel extends StatelessWidget {
+  const _DistanceLabel({required this.venue});
 
-  CourtModel({
-    required this.name,
-    required this.location,
-    required this.price,
-    required this.rating,
-    required this.reviewCount,
-    required this.image,
-    required this.isOpen,
-    required this.distance,
-    required this.features,
-  });
+  final PublicListingVenueModel venue;
+
+  @override
+  Widget build(BuildContext context) {
+    final String? text = _formatHomeDistanceKm(venue.distanceKm);
+    if (text == null) return const SizedBox.shrink();
+
+    return Text(
+      text,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
+        color: LightColor.secondaryTextColor.withValues(alpha: 0.8),
+      ),
+    );
+  }
+
+  /// Converts the API's numeric `distance_km` to home-card text without
+  /// throwing away its precision. Trailing zeroes are removed, so values such
+  /// as 184.50 remain compact while 21.53 is not rounded to 22.
+  static String? _formatHomeDistanceKm(double? distanceKm) {
+    if (distanceKm == null || !distanceKm.isFinite || distanceKm < 0) {
+      return null;
+    }
+
+    final String value = distanceKm
+        .toStringAsFixed(2)
+        .replaceFirst(RegExp(r'\.?0+$'), '');
+    return '$value km';
+  }
 }
-
-// import 'package:flutter/material.dart';
-// import 'package:flutter/services.dart';
-// import 'dart:ui';
-
-// class FootsallHomePage extends StatelessWidget {
-//   const FootsallHomePage({super.key});
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return const CourtsListScreen();
-//   }
-// }
-
-// class CourtsListScreen extends StatefulWidget {
-//   const CourtsListScreen({super.key});
-
-//   @override
-//   State<CourtsListScreen> createState() => _CourtsListScreenState();
-// }
-
-// class _CourtsListScreenState extends State<CourtsListScreen>
-//     with SingleTickerProviderStateMixin {
-//   int _selectedFilter = 0;
-//   int _selectedNav = 0;
-//   late AnimationController _animController;
-//   late Animation<double> _fadeIn;
-
-//   final List<String> _filters = [
-//     'All',
-//     'Nearby',
-//     'Indoor',
-//     'Outdoor',
-//     'Open Now',
-//     'Top Rated',
-//   ];
-
-//   final List<CourtModel> courts = [
-//     CourtModel(
-//       name: 'Goal Arena Futsal',
-//       location: 'Baneshwor, Kathmandu',
-//       price: 'Rs. 1,800',
-//       rating: 4.8,
-//       reviewCount: 128,
-//       image:
-//           'https://images.unsplash.com/photo-1517466787929-bc90951d0974?auto=format&fit=crop&w=1200&q=80',
-//       isOpen: true,
-//       distance: '1.2 km',
-//       features: ['Indoor', 'Parking', 'Lights'],
-//     ),
-//     CourtModel(
-//       name: 'Urban Kick Center',
-//       location: 'Lalitpur, Jawalakhel',
-//       price: 'Rs. 2,000',
-//       rating: 4.6,
-//       reviewCount: 94,
-//       image:
-//           'https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=1200&q=80',
-//       isOpen: true,
-//       distance: '2.8 km',
-//       features: ['Turf', 'Shower', 'Cafe'],
-//     ),
-//     CourtModel(
-//       name: 'Champion 5A Side',
-//       location: 'Koteshwor, Kathmandu',
-//       price: 'Rs. 1,500',
-//       rating: 4.5,
-//       reviewCount: 76,
-//       image:
-//           'https://images.unsplash.com/photo-1486286701208-1d58e9338013?auto=format&fit=crop&w=1200&q=80',
-//       isOpen: false,
-//       distance: '3.5 km',
-//       features: ['Outdoor', 'Training', 'Parking'],
-//     ),
-//     CourtModel(
-//       name: 'Royal Futsal Hub',
-//       location: 'Bhaktapur',
-//       price: 'Rs. 1,700',
-//       rating: 4.7,
-//       reviewCount: 111,
-//       image:
-//           'https://images.unsplash.com/photo-1552667466-07770ae110d0?auto=format&fit=crop&w=1200&q=80',
-//       isOpen: true,
-//       distance: '5.1 km',
-//       features: ['Indoor', 'Cafe', 'Events'],
-//     ),
-//   ];
-
-//   static const _green = Color(0xFF0D9E5C);
-//   static const _greenLight = Color(0xFFE8F7EF);
-//   static const _bg = Color(0xFFF5F7FA);
-//   static const _textPrimary = Color(0xFF0F1923);
-//   static const _textSecondary = Color(0xFF6B7280);
-//   static const _border = Color(0xFFE8ECF0);
-
-//   @override
-//   void initState() {
-//     super.initState();
-//     _animController = AnimationController(
-//       vsync: this,
-//       duration: const Duration(milliseconds: 900),
-//     );
-//     _fadeIn = CurvedAnimation(parent: _animController, curve: Curves.easeOut);
-//     _animController.forward();
-//   }
-
-//   @override
-//   void dispose() {
-//     _animController.dispose();
-//     super.dispose();
-//   }
-
-//   @override
-//   Widget build(BuildContext context) {
-//     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.dark);
-//     return Scaffold(
-//       backgroundColor: _bg,
-//       extendBody: true,
-//       body: FadeTransition(
-//         opacity: _fadeIn,
-//         child: CustomScrollView(
-//           physics: const BouncingScrollPhysics(),
-//           slivers: [
-//             // SliverToBoxAdapter(child: _buildHeader()),
-//             SliverToBoxAdapter(
-//               child: Padding(
-//                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-//                 child: Column(
-//                   children: [
-//                     _buildSearchBar(),
-//                     const SizedBox(height: 14),
-//                     _buildFilterRow(),
-//                   ],
-//                 ),
-//               ),
-//             ),
-//             SliverToBoxAdapter(
-//               child: Padding(
-//                 padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
-//                 child: Row(
-//                   children: [
-//                     const Text(
-//                       'Available Courts',
-//                       style: TextStyle(
-//                         color: _textPrimary,
-//                         fontSize: 20,
-//                         fontWeight: FontWeight.w800,
-//                         letterSpacing: -0.3,
-//                       ),
-//                     ),
-//                     const Spacer(),
-//                     Text(
-//                       '${courts.length} found',
-//                       style: const TextStyle(
-//                         color: _textSecondary,
-//                         fontSize: 13,
-//                         fontWeight: FontWeight.w500,
-//                       ),
-//                     ),
-//                   ],
-//                 ),
-//               ),
-//             ),
-//             SliverPadding(
-//               padding: const EdgeInsets.fromLTRB(20, 0, 20, 120),
-//               sliver: SliverList.builder(
-//                 itemCount: courts.length,
-//                 itemBuilder: (context, index) {
-//                   return TweenAnimationBuilder<double>(
-//                     tween: Tween(begin: 0, end: 1),
-//                     duration: Duration(milliseconds: 500 + index * 120),
-//                     curve: Curves.easeOutCubic,
-//                     builder: (context, value, child) => Transform.translate(
-//                       offset: Offset(0, 30 * (1 - value)),
-//                       child: Opacity(opacity: value, child: child),
-//                     ),
-//                     child: Padding(
-//                       padding: const EdgeInsets.only(bottom: 20),
-//                       child: CourtCard(court: courts[index]),
-//                     ),
-//                   );
-//                 },
-//               ),
-//             ),
-//           ],
-//         ),
-//       ),
-//       bottomNavigationBar: _buildBottomNav(),
-//     );
-//   }
-
-//   Widget _buildHeader() {
-//     return Container(
-//       height: 230,
-//       child: Stack(
-//         children: [
-//           Container(
-//             decoration: const BoxDecoration(
-//               gradient: LinearGradient(
-//                 colors: [Color(0xFF0D9E5C), Color(0xFF0B7A47)],
-//                 begin: Alignment.topLeft,
-//                 end: Alignment.bottomRight,
-//               ),
-//             ),
-//           ),
-//           Positioned(
-//             right: -50,
-//             top: -30,
-//             child: Container(
-//               height: 200,
-//               width: 200,
-//               decoration: BoxDecoration(
-//                 shape: BoxShape.circle,
-//                 color: Colors.white.withOpacity(0.08),
-//               ),
-//             ),
-//           ),
-//           Positioned(
-//             left: -30,
-//             bottom: -40,
-//             child: Container(
-//               height: 160,
-//               width: 160,
-//               decoration: BoxDecoration(
-//                 shape: BoxShape.circle,
-//                 color: Colors.white.withOpacity(0.06),
-//               ),
-//             ),
-//           ),
-//           SafeArea(
-//             child: Padding(
-//               padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
-//               child: Column(
-//                 crossAxisAlignment: CrossAxisAlignment.start,
-//                 children: [
-//                   Row(
-//                     children: [
-//                       Container(
-//                         height: 44,
-//                         width: 44,
-//                         decoration: BoxDecoration(
-//                           color: Colors.white.withOpacity(0.2),
-//                           borderRadius: BorderRadius.circular(14),
-//                           border: Border.all(
-//                             color: Colors.white.withOpacity(0.3),
-//                           ),
-//                         ),
-//                         child: const Center(
-//                           child: Text(
-//                             'R',
-//                             style: TextStyle(
-//                               color: Colors.white,
-//                               fontWeight: FontWeight.w800,
-//                               fontSize: 18,
-//                             ),
-//                           ),
-//                         ),
-//                       ),
-//                       const SizedBox(width: 12),
-//                       Column(
-//                         crossAxisAlignment: CrossAxisAlignment.start,
-//                         children: [
-//                           Text(
-//                             'Good evening 👋',
-//                             style: TextStyle(
-//                               color: Colors.white.withOpacity(0.7),
-//                               fontSize: 12,
-//                               fontWeight: FontWeight.w500,
-//                             ),
-//                           ),
-//                           const Text(
-//                             'Rahul Shrestha',
-//                             style: TextStyle(
-//                               color: Colors.white,
-//                               fontSize: 15,
-//                               fontWeight: FontWeight.w700,
-//                             ),
-//                           ),
-//                         ],
-//                       ),
-//                       const Spacer(),
-//                       Container(
-//                         height: 44,
-//                         width: 44,
-//                         decoration: BoxDecoration(
-//                           color: Colors.white.withOpacity(0.18),
-//                           borderRadius: BorderRadius.circular(14),
-//                           border: Border.all(
-//                             color: Colors.white.withOpacity(0.25),
-//                           ),
-//                         ),
-//                         child: const Icon(
-//                           Icons.notifications_outlined,
-//                           color: Colors.white,
-//                           size: 22,
-//                         ),
-//                       ),
-//                     ],
-//                   ),
-//                   const SizedBox(height: 24),
-//                   const Text(
-//                     'Find Your\nPerfect Court',
-//                     style: TextStyle(
-//                       color: Colors.white,
-//                       fontSize: 32,
-//                       fontWeight: FontWeight.w900,
-//                       height: 1.1,
-//                       letterSpacing: -0.8,
-//                     ),
-//                   ),
-//                   const SizedBox(height: 8),
-//                   Row(
-//                     children: [
-//                       const Icon(
-//                         Icons.location_on_rounded,
-//                         color: Colors.white70,
-//                         size: 15,
-//                       ),
-//                       const SizedBox(width: 4),
-//                       Text(
-//                         'Kathmandu Valley',
-//                         style: TextStyle(
-//                           color: Colors.white.withOpacity(0.75),
-//                           fontSize: 13,
-//                           fontWeight: FontWeight.w500,
-//                         ),
-//                       ),
-//                       Icon(
-//                         Icons.keyboard_arrow_down_rounded,
-//                         color: Colors.white.withOpacity(0.6),
-//                         size: 18,
-//                       ),
-//                     ],
-//                   ),
-//                 ],
-//               ),
-//             ),
-//           ),
-//         ],
-//       ),
-//     );
-//   }
-
-//   Widget _buildSearchBar() {
-//     return Container(
-//       height: 54,
-//       decoration: BoxDecoration(
-//         color: Colors.white,
-//         borderRadius: BorderRadius.circular(18),
-//         border: Border.all(color: _border, width: 1.5),
-//         boxShadow: [
-//           BoxShadow(
-//             color: Colors.black.withOpacity(0.05),
-//             blurRadius: 16,
-//             offset: const Offset(0, 6),
-//           ),
-//         ],
-//       ),
-//       child: TextField(
-//         style: const TextStyle(color: _textPrimary, fontSize: 14),
-//         decoration: InputDecoration(
-//           hintText: 'Search courts, areas...',
-//           hintStyle: TextStyle(
-//             color: _textSecondary.withOpacity(0.6),
-//             fontSize: 14,
-//           ),
-//           prefixIcon: const Icon(
-//             Icons.search_rounded,
-//             color: _textSecondary,
-//             size: 22,
-//           ),
-//           suffixIcon: Container(
-//             margin: const EdgeInsets.all(8),
-//             decoration: BoxDecoration(
-//               gradient: const LinearGradient(
-//                 colors: [Color(0xFF0D9E5C), Color(0xFF0B7A47)],
-//               ),
-//               borderRadius: BorderRadius.circular(12),
-//             ),
-//             child: const Icon(
-//               Icons.tune_rounded,
-//               color: Colors.white,
-//               size: 18,
-//             ),
-//           ),
-//           border: InputBorder.none,
-//           contentPadding: const EdgeInsets.symmetric(vertical: 18),
-//         ),
-//       ),
-//     );
-//   }
-
-//   Widget _buildFilterRow() {
-//     return SizedBox(
-//       height: 40,
-//       child: ListView.builder(
-//         scrollDirection: Axis.horizontal,
-//         physics: const BouncingScrollPhysics(),
-//         itemCount: _filters.length,
-//         itemBuilder: (context, i) {
-//           final selected = _selectedFilter == i;
-//           return GestureDetector(
-//             onTap: () => setState(() => _selectedFilter = i),
-//             child: AnimatedContainer(
-//               duration: const Duration(milliseconds: 220),
-//               margin: const EdgeInsets.only(right: 10),
-//               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
-//               decoration: BoxDecoration(
-//                 gradient: selected
-//                     ? const LinearGradient(
-//                         colors: [Color(0xFF0D9E5C), Color(0xFF0B7A47)],
-//                         begin: Alignment.topLeft,
-//                         end: Alignment.bottomRight,
-//                       )
-//                     : null,
-//                 color: selected ? null : Colors.white,
-//                 borderRadius: BorderRadius.circular(12),
-//                 border: Border.all(
-//                   color: selected ? Colors.transparent : _border,
-//                   width: 1.5,
-//                 ),
-//                 boxShadow: selected
-//                     ? [
-//                         BoxShadow(
-//                           color: _green.withOpacity(0.3),
-//                           blurRadius: 14,
-//                           offset: const Offset(0, 5),
-//                         ),
-//                       ]
-//                     : [
-//                         BoxShadow(
-//                           color: Colors.black.withOpacity(0.04),
-//                           blurRadius: 8,
-//                           offset: const Offset(0, 2),
-//                         ),
-//                       ],
-//               ),
-//               child: Text(
-//                 _filters[i],
-//                 style: TextStyle(
-//                   color: selected ? Colors.white : _textSecondary,
-//                   fontWeight: FontWeight.w700,
-//                   fontSize: 13,
-//                 ),
-//               ),
-//             ),
-//           );
-//         },
-//       ),
-//     );
-//   }
-
-//   Widget _buildBottomNav() {
-//     final items = [
-//       Icons.home_rounded,
-//       Icons.explore_rounded,
-//       Icons.calendar_today_rounded,
-//       Icons.person_outline_rounded,
-//     ];
-//     final labels = ['Home', 'Explore', 'Bookings', 'Profile'];
-
-//     return Container(
-//       padding: const EdgeInsets.only(bottom: 12, top: 10),
-//       decoration: BoxDecoration(
-//         color: Colors.white,
-//         border: Border(top: BorderSide(color: _border, width: 1)),
-//         boxShadow: [
-//           BoxShadow(
-//             color: Colors.black.withOpacity(0.05),
-//             blurRadius: 20,
-//             offset: const Offset(0, -6),
-//           ),
-//         ],
-//       ),
-//       child: Row(
-//         mainAxisAlignment: MainAxisAlignment.spaceAround,
-//         children: List.generate(
-//           items.length,
-//           (i) => GestureDetector(
-//             onTap: () => setState(() => _selectedNav = i),
-//             child: AnimatedContainer(
-//               duration: const Duration(milliseconds: 220),
-//               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-//               decoration: BoxDecoration(
-//                 color: _selectedNav == i ? _greenLight : Colors.transparent,
-//                 borderRadius: BorderRadius.circular(14),
-//               ),
-//               child: Column(
-//                 mainAxisSize: MainAxisSize.min,
-//                 children: [
-//                   Icon(
-//                     items[i],
-//                     color: _selectedNav == i ? _green : _textSecondary,
-//                     size: 24,
-//                   ),
-//                   const SizedBox(height: 3),
-//                   Text(
-//                     labels[i],
-//                     style: TextStyle(
-//                       color: _selectedNav == i ? _green : _textSecondary,
-//                       fontSize: 10.5,
-//                       fontWeight: FontWeight.w600,
-//                     ),
-//                   ),
-//                 ],
-//               ),
-//             ),
-//           ),
-//         ),
-//       ),
-//     );
-//   }
-// }
-
-// // ─────────────────────────────────────────────────────────────────────────────
-// // Court Card
-// // ─────────────────────────────────────────────────────────────────────────────
-// class CourtCard extends StatefulWidget {
-//   final CourtModel court;
-//   const CourtCard({super.key, required this.court});
-
-//   @override
-//   State<CourtCard> createState() => _CourtCardState();
-// }
-
-// class _CourtCardState extends State<CourtCard> {
-//   bool _saved = false;
-
-//   static const _green = Color(0xFF0D9E5C);
-//   static const _greenLight = Color(0xFFE8F7EF);
-//   static const _textPrimary = Color(0xFF0F1923);
-//   static const _textSecondary = Color(0xFF6B7280);
-//   static const _border = Color(0xFFE8ECF0);
-//   static const _chipBg = Color(0xFFF3F5F7);
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Container(
-//       decoration: BoxDecoration(
-//         color: Colors.white,
-//         borderRadius: BorderRadius.circular(28),
-//         border: Border.all(color: _border, width: 1.5),
-//         boxShadow: [
-//           BoxShadow(
-//             color: Colors.black.withOpacity(0.06),
-//             blurRadius: 24,
-//             offset: const Offset(0, 8),
-//           ),
-//         ],
-//       ),
-//       child: Column(
-//         crossAxisAlignment: CrossAxisAlignment.start,
-//         children: [
-//           // ── Image ────────────────────────────────────────────────
-//           ClipRRect(
-//             borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
-//             child: SizedBox(
-//               height: 200,
-//               child: Stack(
-//                 fit: StackFit.expand,
-//                 children: [
-//                   Image.network(widget.court.image, fit: BoxFit.cover),
-//                   Positioned.fill(
-//                     child: DecoratedBox(
-//                       decoration: BoxDecoration(
-//                         gradient: LinearGradient(
-//                           begin: Alignment.topCenter,
-//                           end: Alignment.bottomCenter,
-//                           colors: [
-//                             Colors.transparent,
-//                             Colors.black.withOpacity(0.65),
-//                           ],
-//                           stops: const [0.4, 1.0],
-//                         ),
-//                       ),
-//                     ),
-//                   ),
-//                   Positioned(
-//                     top: 14,
-//                     left: 14,
-//                     child: _StatusPill(isOpen: widget.court.isOpen),
-//                   ),
-//                   Positioned(
-//                     top: 12,
-//                     right: 12,
-//                     child: GestureDetector(
-//                       onTap: () => setState(() => _saved = !_saved),
-//                       child: ClipRRect(
-//                         borderRadius: BorderRadius.circular(12),
-//                         child: BackdropFilter(
-//                           filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-//                           child: Container(
-//                             height: 40,
-//                             width: 40,
-//                             decoration: BoxDecoration(
-//                               color: Colors.white.withOpacity(0.85),
-//                               borderRadius: BorderRadius.circular(12),
-//                               border: Border.all(
-//                                 color: Colors.white.withOpacity(0.6),
-//                               ),
-//                             ),
-//                             child: Icon(
-//                               _saved
-//                                   ? Icons.bookmark_rounded
-//                                   : Icons.bookmark_outline_rounded,
-//                               color: _saved ? _green : _textSecondary,
-//                               size: 20,
-//                             ),
-//                           ),
-//                         ),
-//                       ),
-//                     ),
-//                   ),
-//                   Positioned(
-//                     bottom: 14,
-//                     left: 16,
-//                     right: 16,
-//                     child: Column(
-//                       crossAxisAlignment: CrossAxisAlignment.start,
-//                       children: [
-//                         Text(
-//                           widget.court.name,
-//                           style: const TextStyle(
-//                             color: Colors.white,
-//                             fontSize: 20,
-//                             fontWeight: FontWeight.w900,
-//                             letterSpacing: -0.4,
-//                           ),
-//                         ),
-//                         const SizedBox(height: 4),
-//                         Row(
-//                           children: [
-//                             Icon(
-//                               Icons.location_on_rounded,
-//                               size: 13,
-//                               color: Colors.white.withOpacity(0.7),
-//                             ),
-//                             const SizedBox(width: 3),
-//                             Text(
-//                               widget.court.location,
-//                               style: TextStyle(
-//                                 color: Colors.white.withOpacity(0.75),
-//                                 fontSize: 12.5,
-//                                 fontWeight: FontWeight.w500,
-//                               ),
-//                             ),
-//                             const SizedBox(width: 8),
-//                             Container(
-//                               width: 3,
-//                               height: 3,
-//                               decoration: BoxDecoration(
-//                                 color: Colors.white.withOpacity(0.5),
-//                                 shape: BoxShape.circle,
-//                               ),
-//                             ),
-//                             const SizedBox(width: 8),
-//                             Text(
-//                               widget.court.distance,
-//                               style: TextStyle(
-//                                 color: Colors.white.withOpacity(0.6),
-//                                 fontSize: 12,
-//                                 fontWeight: FontWeight.w500,
-//                               ),
-//                             ),
-//                           ],
-//                         ),
-//                       ],
-//                     ),
-//                   ),
-//                 ],
-//               ),
-//             ),
-//           ),
-
-//           // ── Details ──────────────────────────────────────────────
-//           Padding(
-//             padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-//             child: Column(
-//               crossAxisAlignment: CrossAxisAlignment.start,
-//               children: [
-//                 Row(
-//                   children: [
-//                     Container(
-//                       padding: const EdgeInsets.symmetric(
-//                         horizontal: 10,
-//                         vertical: 5,
-//                       ),
-//                       decoration: BoxDecoration(
-//                         color: _greenLight,
-//                         borderRadius: BorderRadius.circular(10),
-//                       ),
-//                       child: Row(
-//                         children: [
-//                           const Icon(
-//                             Icons.star_rounded,
-//                             color: _green,
-//                             size: 15,
-//                           ),
-//                           const SizedBox(width: 4),
-//                           Text(
-//                             widget.court.rating.toString(),
-//                             style: const TextStyle(
-//                               color: _green,
-//                               fontSize: 13,
-//                               fontWeight: FontWeight.w800,
-//                             ),
-//                           ),
-//                           const SizedBox(width: 4),
-//                           Text(
-//                             '(${widget.court.reviewCount})',
-//                             style: const TextStyle(
-//                               color: _textSecondary,
-//                               fontSize: 11.5,
-//                               fontWeight: FontWeight.w500,
-//                             ),
-//                           ),
-//                         ],
-//                       ),
-//                     ),
-//                     const SizedBox(width: 8),
-//                     Expanded(
-//                       child: SingleChildScrollView(
-//                         scrollDirection: Axis.horizontal,
-//                         physics: const BouncingScrollPhysics(),
-//                         child: Row(
-//                           children: widget.court.features
-//                               .map(
-//                                 (f) => Container(
-//                                   margin: const EdgeInsets.only(right: 6),
-//                                   padding: const EdgeInsets.symmetric(
-//                                     horizontal: 10,
-//                                     vertical: 5,
-//                                   ),
-//                                   decoration: BoxDecoration(
-//                                     color: _chipBg,
-//                                     borderRadius: BorderRadius.circular(9),
-//                                     border: Border.all(
-//                                       color: _border,
-//                                       width: 1,
-//                                     ),
-//                                   ),
-//                                   child: Text(
-//                                     f,
-//                                     style: const TextStyle(
-//                                       color: _textSecondary,
-//                                       fontSize: 11.5,
-//                                       fontWeight: FontWeight.w600,
-//                                     ),
-//                                   ),
-//                                 ),
-//                               )
-//                               .toList(),
-//                         ),
-//                       ),
-//                     ),
-//                   ],
-//                 ),
-//                 const SizedBox(height: 14),
-//                 const Divider(color: _border, thickness: 1, height: 1),
-//                 const SizedBox(height: 14),
-//                 Row(
-//                   crossAxisAlignment: CrossAxisAlignment.center,
-//                   children: [
-//                     Column(
-//                       crossAxisAlignment: CrossAxisAlignment.start,
-//                       children: [
-//                         Text(
-//                           widget.court.price,
-//                           style: const TextStyle(
-//                             color: _green,
-//                             fontSize: 22,
-//                             fontWeight: FontWeight.w900,
-//                             letterSpacing: -0.5,
-//                           ),
-//                         ),
-//                         const Text(
-//                           'per hour',
-//                           style: TextStyle(
-//                             color: _textSecondary,
-//                             fontSize: 11.5,
-//                             fontWeight: FontWeight.w500,
-//                           ),
-//                         ),
-//                       ],
-//                     ),
-//                     const Spacer(),
-//                     GestureDetector(
-//                       onTap: () {},
-//                       child: Container(
-//                         padding: const EdgeInsets.symmetric(
-//                           horizontal: 24,
-//                           vertical: 13,
-//                         ),
-//                         decoration: BoxDecoration(
-//                           gradient: const LinearGradient(
-//                             colors: [Color(0xFF0D9E5C), Color(0xFF0B7A47)],
-//                             begin: Alignment.topLeft,
-//                             end: Alignment.bottomRight,
-//                           ),
-//                           borderRadius: BorderRadius.circular(16),
-//                           boxShadow: [
-//                             BoxShadow(
-//                               color: _green.withOpacity(0.3),
-//                               blurRadius: 16,
-//                               offset: const Offset(0, 6),
-//                             ),
-//                           ],
-//                         ),
-//                         child: const Text(
-//                           'Book Now',
-//                           style: TextStyle(
-//                             color: Colors.white,
-//                             fontWeight: FontWeight.w800,
-//                             fontSize: 14.5,
-//                             letterSpacing: 0.2,
-//                           ),
-//                         ),
-//                       ),
-//                     ),
-//                   ],
-//                 ),
-//               ],
-//             ),
-//           ),
-//         ],
-//       ),
-//     );
-//   }
-// }
-
-// // ─────────────────────────────────────────────────────────────────────────────
-// // Status Pill
-// // ─────────────────────────────────────────────────────────────────────────────
-// class _StatusPill extends StatelessWidget {
-//   final bool isOpen;
-//   const _StatusPill({required this.isOpen});
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return ClipRRect(
-//       borderRadius: BorderRadius.circular(30),
-//       child: BackdropFilter(
-//         filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-//         child: Container(
-//           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-//           decoration: BoxDecoration(
-//             color: Colors.white.withOpacity(0.85),
-//             borderRadius: BorderRadius.circular(30),
-//             border: Border.all(
-//               color: isOpen
-//                   ? const Color(0xFF0D9E5C).withOpacity(0.3)
-//                   : Colors.red.withOpacity(0.3),
-//               width: 1,
-//             ),
-//           ),
-//           child: Row(
-//             mainAxisSize: MainAxisSize.min,
-//             children: [
-//               Container(
-//                 height: 7,
-//                 width: 7,
-//                 decoration: BoxDecoration(
-//                   color: isOpen ? const Color(0xFF0D9E5C) : Colors.red,
-//                   shape: BoxShape.circle,
-//                 ),
-//               ),
-//               const SizedBox(width: 6),
-//               Text(
-//                 isOpen ? 'Open Now' : 'Closed',
-//                 style: TextStyle(
-//                   color: isOpen ? const Color(0xFF0D9E5C) : Colors.red,
-//                   fontSize: 12,
-//                   fontWeight: FontWeight.w700,
-//                 ),
-//               ),
-//             ],
-//           ),
-//         ),
-//       ),
-//     );
-//   }
-// }
-
-// // ─────────────────────────────────────────────────────────────────────────────
-// // Court Model
-// // ─────────────────────────────────────────────────────────────────────────────
-// class CourtModel {
-//   final String name;
-//   final String location;
-//   final String price;
-//   final double rating;
-//   final int reviewCount;
-//   final String image;
-//   final bool isOpen;
-//   final String distance;
-//   final List<String> features;
-
-//   CourtModel({
-//     required this.name,
-//     required this.location,
-//     required this.price,
-//     required this.rating,
-//     required this.reviewCount,
-//     required this.image,
-//     required this.isOpen,
-//     required this.distance,
-//     required this.features,
-//   });
-// }
-// import 'package:flutter/material.dart';
-// import 'dart:ui';
-
-// class FootsallHomePage extends StatelessWidget {
-//   const FootsallHomePage({super.key});
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return const CourtsListScreen();
-//   }
-// }
-
-// class CourtsListScreen extends StatefulWidget {
-//   const CourtsListScreen({super.key});
-
-//   @override
-//   State<CourtsListScreen> createState() => _CourtsListScreenState();
-// }
-
-// class _CourtsListScreenState extends State<CourtsListScreen>
-//     with SingleTickerProviderStateMixin {
-//   int _selectedFilter = 0;
-//   int _selectedNav = 0;
-//   late AnimationController _animController;
-//   late Animation<double> _fadeIn;
-
-//   final List<String> _filters = [
-//     'All',
-//     'Nearby',
-//     'Indoor',
-//     'Outdoor',
-//     'Open Now',
-//     'Top Rated',
-//   ];
-
-//   final List<CourtModel> courts = [
-//     CourtModel(
-//       name: 'Goal Arena Futsal',
-//       location: 'Baneshwor, Kathmandu',
-//       price: 'Rs. 1,800',
-//       rating: 4.8,
-//       reviewCount: 128,
-//       image:
-//           'https://images.unsplash.com/photo-1517466787929-bc90951d0974?auto=format&fit=crop&w=1200&q=80',
-//       isOpen: true,
-//       distance: '1.2 km',
-//       features: ['Indoor', 'Parking', 'Lights'],
-//       accentColor: const Color(0xFF00E676),
-//     ),
-//     CourtModel(
-//       name: 'Urban Kick Center',
-//       location: 'Lalitpur, Jawalakhel',
-//       price: 'Rs. 2,000',
-//       rating: 4.6,
-//       reviewCount: 94,
-//       image:
-//           'https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=1200&q=80',
-//       isOpen: true,
-//       distance: '2.8 km',
-//       features: ['Turf', 'Shower', 'Cafe'],
-//       accentColor: const Color(0xFF69F0AE),
-//     ),
-//     CourtModel(
-//       name: 'Champion 5A Side',
-//       location: 'Koteshwor, Kathmandu',
-//       price: 'Rs. 1,500',
-//       rating: 4.5,
-//       reviewCount: 76,
-//       image:
-//           'https://images.unsplash.com/photo-1486286701208-1d58e9338013?auto=format&fit=crop&w=1200&q=80',
-//       isOpen: false,
-//       distance: '3.5 km',
-//       features: ['Outdoor', 'Training', 'Parking'],
-//       accentColor: const Color(0xFF00BFA5),
-//     ),
-//     CourtModel(
-//       name: 'Royal Futsal Hub',
-//       location: 'Bhaktapur',
-//       price: 'Rs. 1,700',
-//       rating: 4.7,
-//       reviewCount: 111,
-//       image:
-//           'https://images.unsplash.com/photo-1552667466-07770ae110d0?auto=format&fit=crop&w=1200&q=80',
-//       isOpen: true,
-//       distance: '5.1 km',
-//       features: ['Indoor', 'Cafe', 'Events'],
-//       accentColor: const Color(0xFF00E676),
-//     ),
-//   ];
-
-//   @override
-//   void initState() {
-//     super.initState();
-//     _animController = AnimationController(
-//       vsync: this,
-//       duration: const Duration(milliseconds: 900),
-//     );
-//     _fadeIn = CurvedAnimation(parent: _animController, curve: Curves.easeOut);
-//     _animController.forward();
-//   }
-
-//   @override
-//   void dispose() {
-//     _animController.dispose();
-//     super.dispose();
-//   }
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       backgroundColor: const Color(0xFF0A0D15),
-//       extendBody: true,
-//       body: FadeTransition(
-//         opacity: _fadeIn,
-//         child: CustomScrollView(
-//           physics: const BouncingScrollPhysics(),
-//           slivers: [
-//             // ── Hero Header ──────────────────────────────────────────
-//             SliverToBoxAdapter(child: _buildHeader()),
-
-//             // ── Search + Filters ─────────────────────────────────────
-//             SliverToBoxAdapter(
-//               child: Padding(
-//                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-//                 child: Column(
-//                   children: [
-//                     _buildSearchBar(),
-//                     const SizedBox(height: 16),
-//                     _buildFilterRow(),
-//                   ],
-//                 ),
-//               ),
-//             ),
-
-//             // ── Section Title ─────────────────────────────────────────
-//             SliverToBoxAdapter(
-//               child: Padding(
-//                 padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
-//                 child: Row(
-//                   children: [
-//                     const Text(
-//                       'Available Courts',
-//                       style: TextStyle(
-//                         color: Colors.white,
-//                         fontSize: 20,
-//                         fontWeight: FontWeight.w800,
-//                         letterSpacing: -0.3,
-//                       ),
-//                     ),
-//                     const Spacer(),
-//                     Text(
-//                       '${courts.length} found',
-//                       style: TextStyle(
-//                         color: Colors.white.withOpacity(0.4),
-//                         fontSize: 13,
-//                         fontWeight: FontWeight.w500,
-//                       ),
-//                     ),
-//                   ],
-//                 ),
-//               ),
-//             ),
-
-//             // ── Court Cards ───────────────────────────────────────────
-//             SliverPadding(
-//               padding: const EdgeInsets.fromLTRB(20, 0, 20, 120),
-//               sliver: SliverList.builder(
-//                 itemCount: courts.length,
-//                 itemBuilder: (context, index) {
-//                   return TweenAnimationBuilder<double>(
-//                     tween: Tween(begin: 0, end: 1),
-//                     duration: Duration(milliseconds: 500 + index * 120),
-//                     curve: Curves.easeOutCubic,
-//                     builder: (context, value, child) => Transform.translate(
-//                       offset: Offset(0, 30 * (1 - value)),
-//                       child: Opacity(opacity: value, child: child),
-//                     ),
-//                     child: Padding(
-//                       padding: const EdgeInsets.only(bottom: 20),
-//                       child: CourtCard(court: courts[index]),
-//                     ),
-//                   );
-//                 },
-//               ),
-//             ),
-//           ],
-//         ),
-//       ),
-
-//       // ── Bottom Navigation ─────────────────────────────────────────
-//       bottomNavigationBar: _buildBottomNav(),
-//     );
-//   }
-
-//   Widget _buildHeader() {
-//     return Container(
-//       height: 240,
-//       child: Stack(
-//         children: [
-//           // Background gradient
-//           Container(
-//             decoration: const BoxDecoration(
-//               gradient: LinearGradient(
-//                 colors: [Color(0xFF0D2118), Color(0xFF0A0D15)],
-//                 begin: Alignment.topCenter,
-//                 end: Alignment.bottomCenter,
-//               ),
-//             ),
-//           ),
-
-//           // Decorative glow orbs
-//           Positioned(
-//             right: -60,
-//             top: -20,
-//             child: Container(
-//               height: 220,
-//               width: 220,
-//               decoration: BoxDecoration(
-//                 shape: BoxShape.circle,
-//                 gradient: RadialGradient(
-//                   colors: [
-//                     const Color(0xFF00E676).withOpacity(0.15),
-//                     Colors.transparent,
-//                   ],
-//                 ),
-//               ),
-//             ),
-//           ),
-//           Positioned(
-//             left: -40,
-//             bottom: 10,
-//             child: Container(
-//               height: 160,
-//               width: 160,
-//               decoration: BoxDecoration(
-//                 shape: BoxShape.circle,
-//                 gradient: RadialGradient(
-//                   colors: [
-//                     const Color(0xFF00BFA5).withOpacity(0.10),
-//                     Colors.transparent,
-//                   ],
-//                 ),
-//               ),
-//             ),
-//           ),
-
-//           // Top bar
-//           SafeArea(
-//             child: Padding(
-//               padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-//               child: Column(
-//                 crossAxisAlignment: CrossAxisAlignment.start,
-//                 children: [
-//                   Row(
-//                     children: [
-//                       // Avatar
-//                       Container(
-//                         height: 44,
-//                         width: 44,
-//                         decoration: BoxDecoration(
-//                           gradient: const LinearGradient(
-//                             colors: [Color(0xFF00E676), Color(0xFF00897B)],
-//                             begin: Alignment.topLeft,
-//                             end: Alignment.bottomRight,
-//                           ),
-//                           borderRadius: BorderRadius.circular(14),
-//                         ),
-//                         child: const Center(
-//                           child: Text(
-//                             'R',
-//                             style: TextStyle(
-//                               color: Colors.white,
-//                               fontWeight: FontWeight.w800,
-//                               fontSize: 18,
-//                             ),
-//                           ),
-//                         ),
-//                       ),
-//                       const SizedBox(width: 12),
-//                       Column(
-//                         crossAxisAlignment: CrossAxisAlignment.start,
-//                         children: [
-//                           Text(
-//                             'Good evening 👋',
-//                             style: TextStyle(
-//                               color: Colors.white.withOpacity(0.5),
-//                               fontSize: 12,
-//                               fontWeight: FontWeight.w500,
-//                             ),
-//                           ),
-//                           const Text(
-//                             'Rahul Shrestha',
-//                             style: TextStyle(
-//                               color: Colors.white,
-//                               fontSize: 15,
-//                               fontWeight: FontWeight.w700,
-//                             ),
-//                           ),
-//                         ],
-//                       ),
-//                       const Spacer(),
-//                       _GlassIconButton(icon: Icons.notifications_outlined),
-//                     ],
-//                   ),
-
-//                   const SizedBox(height: 28),
-
-//                   // Headline
-//                   const Text(
-//                     'Find Your\nPerfect Court',
-//                     style: TextStyle(
-//                       color: Colors.white,
-//                       fontSize: 34,
-//                       fontWeight: FontWeight.w900,
-//                       height: 1.1,
-//                       letterSpacing: -1.0,
-//                     ),
-//                   ),
-//                   const SizedBox(height: 8),
-//                   Row(
-//                     children: [
-//                       const Icon(
-//                         Icons.location_on_rounded,
-//                         color: Color(0xFF00E676),
-//                         size: 16,
-//                       ),
-//                       const SizedBox(width: 4),
-//                       Text(
-//                         'Kathmandu Valley',
-//                         style: TextStyle(
-//                           color: Colors.white.withOpacity(0.55),
-//                           fontSize: 13.5,
-//                           fontWeight: FontWeight.w500,
-//                         ),
-//                       ),
-//                       const SizedBox(width: 4),
-//                       Icon(
-//                         Icons.keyboard_arrow_down_rounded,
-//                         color: Colors.white.withOpacity(0.4),
-//                         size: 18,
-//                       ),
-//                     ],
-//                   ),
-//                 ],
-//               ),
-//             ),
-//           ),
-//         ],
-//       ),
-//     );
-//   }
-
-//   Widget _buildSearchBar() {
-//     return Container(
-//       height: 56,
-//       decoration: BoxDecoration(
-//         color: const Color(0xFF141924),
-//         borderRadius: BorderRadius.circular(18),
-//         border: Border.all(color: Colors.white.withOpacity(0.07), width: 1.5),
-//       ),
-//       child: TextField(
-//         style: const TextStyle(color: Colors.white, fontSize: 14),
-//         decoration: InputDecoration(
-//           hintText: 'Search courts, areas...',
-//           hintStyle: TextStyle(
-//             color: Colors.white.withOpacity(0.3),
-//             fontSize: 14,
-//           ),
-//           prefixIcon: Icon(
-//             Icons.search_rounded,
-//             color: Colors.white.withOpacity(0.4),
-//             size: 22,
-//           ),
-//           suffixIcon: Container(
-//             margin: const EdgeInsets.all(8),
-//             decoration: BoxDecoration(
-//               gradient: const LinearGradient(
-//                 colors: [Color(0xFF00E676), Color(0xFF00897B)],
-//               ),
-//               borderRadius: BorderRadius.circular(12),
-//             ),
-//             child: const Icon(
-//               Icons.tune_rounded,
-//               color: Colors.white,
-//               size: 18,
-//             ),
-//           ),
-//           border: InputBorder.none,
-//           contentPadding: const EdgeInsets.symmetric(vertical: 18),
-//         ),
-//       ),
-//     );
-//   }
-
-//   Widget _buildFilterRow() {
-//     return SizedBox(
-//       height: 40,
-//       child: ListView.builder(
-//         scrollDirection: Axis.horizontal,
-//         physics: const BouncingScrollPhysics(),
-//         itemCount: _filters.length,
-//         itemBuilder: (context, i) {
-//           final selected = _selectedFilter == i;
-//           return GestureDetector(
-//             onTap: () => setState(() => _selectedFilter = i),
-//             child: AnimatedContainer(
-//               duration: const Duration(milliseconds: 220),
-//               margin: const EdgeInsets.only(right: 10),
-//               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
-//               decoration: BoxDecoration(
-//                 gradient: selected
-//                     ? const LinearGradient(
-//                         colors: [Color(0xFF00E676), Color(0xFF00897B)],
-//                         begin: Alignment.topLeft,
-//                         end: Alignment.bottomRight,
-//                       )
-//                     : null,
-//                 color: selected ? null : const Color(0xFF141924),
-//                 borderRadius: BorderRadius.circular(12),
-//                 border: Border.all(
-//                   color: selected
-//                       ? Colors.transparent
-//                       : Colors.white.withOpacity(0.07),
-//                   width: 1.5,
-//                 ),
-//                 boxShadow: selected
-//                     ? [
-//                         BoxShadow(
-//                           color: const Color(0xFF00E676).withOpacity(0.35),
-//                           blurRadius: 16,
-//                           offset: const Offset(0, 5),
-//                         ),
-//                       ]
-//                     : [],
-//               ),
-//               child: Text(
-//                 _filters[i],
-//                 style: TextStyle(
-//                   color: selected
-//                       ? Colors.white
-//                       : Colors.white.withOpacity(0.45),
-//                   fontWeight: FontWeight.w700,
-//                   fontSize: 13,
-//                 ),
-//               ),
-//             ),
-//           );
-//         },
-//       ),
-//     );
-//   }
-
-//   Widget _buildBottomNav() {
-//     final items = [
-//       Icons.home_rounded,
-//       Icons.explore_rounded,
-//       Icons.calendar_today_rounded,
-//       Icons.person_outline_rounded,
-//     ];
-//     final labels = ['Home', 'Explore', 'Bookings', 'Profile'];
-
-//     return ClipRRect(
-//       child: BackdropFilter(
-//         filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-//         child: Container(
-//           padding: const EdgeInsets.only(bottom: 12, top: 10),
-//           decoration: BoxDecoration(
-//             color: const Color(0xFF0D1017).withOpacity(0.88),
-//             border: Border(
-//               top: BorderSide(color: Colors.white.withOpacity(0.07), width: 1),
-//             ),
-//           ),
-//           child: Row(
-//             mainAxisAlignment: MainAxisAlignment.spaceAround,
-//             children: List.generate(
-//               items.length,
-//               (i) => GestureDetector(
-//                 onTap: () => setState(() => _selectedNav = i),
-//                 child: AnimatedContainer(
-//                   duration: const Duration(milliseconds: 220),
-//                   padding: const EdgeInsets.symmetric(
-//                     horizontal: 16,
-//                     vertical: 8,
-//                   ),
-//                   decoration: BoxDecoration(
-//                     color: _selectedNav == i
-//                         ? const Color(0xFF00E676).withOpacity(0.12)
-//                         : Colors.transparent,
-//                     borderRadius: BorderRadius.circular(14),
-//                   ),
-//                   child: Column(
-//                     mainAxisSize: MainAxisSize.min,
-//                     children: [
-//                       Icon(
-//                         items[i],
-//                         color: _selectedNav == i
-//                             ? const Color(0xFF00E676)
-//                             : Colors.white.withOpacity(0.3),
-//                         size: 24,
-//                       ),
-//                       const SizedBox(height: 3),
-//                       Text(
-//                         labels[i],
-//                         style: TextStyle(
-//                           color: _selectedNav == i
-//                               ? const Color(0xFF00E676)
-//                               : Colors.white.withOpacity(0.3),
-//                           fontSize: 10.5,
-//                           fontWeight: FontWeight.w600,
-//                         ),
-//                       ),
-//                     ],
-//                   ),
-//                 ),
-//               ),
-//             ),
-//           ),
-//         ),
-//       ),
-//     );
-//   }
-// }
-
-// // ─────────────────────────────────────────────────────────────────────────────
-// // Glass Icon Button
-// // ─────────────────────────────────────────────────────────────────────────────
-// class _GlassIconButton extends StatelessWidget {
-//   final IconData icon;
-//   const _GlassIconButton({required this.icon});
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return ClipRRect(
-//       borderRadius: BorderRadius.circular(14),
-//       child: BackdropFilter(
-//         filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-//         child: Container(
-//           height: 44,
-//           width: 44,
-//           decoration: BoxDecoration(
-//             color: Colors.white.withOpacity(0.08),
-//             borderRadius: BorderRadius.circular(14),
-//             border: Border.all(color: Colors.white.withOpacity(0.1)),
-//           ),
-//           child: Icon(icon, color: Colors.white, size: 22),
-//         ),
-//       ),
-//     );
-//   }
-// }
-
-// // ─────────────────────────────────────────────────────────────────────────────
-// // Court Card
-// // ─────────────────────────────────────────────────────────────────────────────
-// class CourtCard extends StatefulWidget {
-//   final CourtModel court;
-//   const CourtCard({super.key, required this.court});
-
-//   @override
-//   State<CourtCard> createState() => _CourtCardState();
-// }
-
-// class _CourtCardState extends State<CourtCard> {
-//   bool _saved = false;
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return GestureDetector(
-//       onTap: () {},
-//       child: Container(
-//         decoration: BoxDecoration(
-//           color: const Color(0xFF131720),
-//           borderRadius: BorderRadius.circular(28),
-//           border: Border.all(color: Colors.white.withOpacity(0.06), width: 1.5),
-//           boxShadow: [
-//             BoxShadow(
-//               color: Colors.black.withOpacity(0.4),
-//               blurRadius: 24,
-//               offset: const Offset(0, 10),
-//             ),
-//           ],
-//         ),
-//         child: Column(
-//           crossAxisAlignment: CrossAxisAlignment.start,
-//           children: [
-//             // ── Image Section ───────────────────────────────────────
-//             ClipRRect(
-//               borderRadius: const BorderRadius.vertical(
-//                 top: Radius.circular(28),
-//               ),
-//               child: SizedBox(
-//                 height: 200,
-//                 child: Stack(
-//                   fit: StackFit.expand,
-//                   children: [
-//                     // Court image
-//                     Image.network(widget.court.image, fit: BoxFit.cover),
-
-//                     // Dark gradient overlay (bottom)
-//                     Positioned.fill(
-//                       child: DecoratedBox(
-//                         decoration: BoxDecoration(
-//                           gradient: LinearGradient(
-//                             begin: Alignment.topCenter,
-//                             end: Alignment.bottomCenter,
-//                             colors: [
-//                               Colors.transparent,
-//                               Colors.black.withOpacity(0.72),
-//                             ],
-//                             stops: const [0.45, 1.0],
-//                           ),
-//                         ),
-//                       ),
-//                     ),
-
-//                     // Top-left: Open/Closed pill
-//                     Positioned(
-//                       top: 14,
-//                       left: 14,
-//                       child: _StatusPill(isOpen: widget.court.isOpen),
-//                     ),
-
-//                     // Top-right: Save button
-//                     Positioned(
-//                       top: 12,
-//                       right: 12,
-//                       child: GestureDetector(
-//                         onTap: () => setState(() => _saved = !_saved),
-//                         child: ClipRRect(
-//                           borderRadius: BorderRadius.circular(12),
-//                           child: BackdropFilter(
-//                             filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-//                             child: Container(
-//                               height: 40,
-//                               width: 40,
-//                               decoration: BoxDecoration(
-//                                 color: Colors.black.withOpacity(0.3),
-//                                 borderRadius: BorderRadius.circular(12),
-//                                 border: Border.all(
-//                                   color: Colors.white.withOpacity(0.15),
-//                                 ),
-//                               ),
-//                               child: Icon(
-//                                 _saved
-//                                     ? Icons.bookmark_rounded
-//                                     : Icons.bookmark_outline_rounded,
-//                                 color: _saved
-//                                     ? const Color(0xFF00E676)
-//                                     : Colors.white,
-//                                 size: 20,
-//                               ),
-//                             ),
-//                           ),
-//                         ),
-//                       ),
-//                     ),
-
-//                     // Bottom: name & location overlaid on image
-//                     Positioned(
-//                       bottom: 14,
-//                       left: 16,
-//                       right: 16,
-//                       child: Column(
-//                         crossAxisAlignment: CrossAxisAlignment.start,
-//                         children: [
-//                           Text(
-//                             widget.court.name,
-//                             style: const TextStyle(
-//                               color: Colors.white,
-//                               fontSize: 20,
-//                               fontWeight: FontWeight.w900,
-//                               letterSpacing: -0.4,
-//                               height: 1.1,
-//                             ),
-//                           ),
-//                           const SizedBox(height: 4),
-//                           Row(
-//                             children: [
-//                               Icon(
-//                                 Icons.location_on_rounded,
-//                                 size: 13,
-//                                 color: Colors.white.withOpacity(0.6),
-//                               ),
-//                               const SizedBox(width: 3),
-//                               Text(
-//                                 widget.court.location,
-//                                 style: TextStyle(
-//                                   color: Colors.white.withOpacity(0.65),
-//                                   fontSize: 12.5,
-//                                   fontWeight: FontWeight.w500,
-//                                 ),
-//                               ),
-//                               const SizedBox(width: 8),
-//                               Container(
-//                                 width: 3,
-//                                 height: 3,
-//                                 decoration: BoxDecoration(
-//                                   color: Colors.white.withOpacity(0.4),
-//                                   shape: BoxShape.circle,
-//                                 ),
-//                               ),
-//                               const SizedBox(width: 8),
-//                               Text(
-//                                 widget.court.distance,
-//                                 style: TextStyle(
-//                                   color: Colors.white.withOpacity(0.5),
-//                                   fontSize: 12,
-//                                   fontWeight: FontWeight.w500,
-//                                 ),
-//                               ),
-//                             ],
-//                           ),
-//                         ],
-//                       ),
-//                     ),
-//                   ],
-//                 ),
-//               ),
-//             ),
-
-//             // ── Details Section ─────────────────────────────────────
-//             Padding(
-//               padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-//               child: Column(
-//                 crossAxisAlignment: CrossAxisAlignment.start,
-//                 children: [
-//                   // Rating + features row
-//                   Row(
-//                     children: [
-//                       // Rating pill
-//                       Container(
-//                         padding: const EdgeInsets.symmetric(
-//                           horizontal: 10,
-//                           vertical: 5,
-//                         ),
-//                         decoration: BoxDecoration(
-//                           color: const Color(0xFF00E676).withOpacity(0.12),
-//                           borderRadius: BorderRadius.circular(10),
-//                         ),
-//                         child: Row(
-//                           children: [
-//                             const Icon(
-//                               Icons.star_rounded,
-//                               color: Color(0xFF00E676),
-//                               size: 15,
-//                             ),
-//                             const SizedBox(width: 4),
-//                             Text(
-//                               widget.court.rating.toString(),
-//                               style: const TextStyle(
-//                                 color: Color(0xFF00E676),
-//                                 fontSize: 13,
-//                                 fontWeight: FontWeight.w800,
-//                               ),
-//                             ),
-//                             const SizedBox(width: 4),
-//                             Text(
-//                               '(${widget.court.reviewCount})',
-//                               style: TextStyle(
-//                                 color: Colors.white.withOpacity(0.4),
-//                                 fontSize: 11.5,
-//                                 fontWeight: FontWeight.w500,
-//                               ),
-//                             ),
-//                           ],
-//                         ),
-//                       ),
-//                       const SizedBox(width: 8),
-//                       // Feature chips
-//                       Expanded(
-//                         child: SingleChildScrollView(
-//                           scrollDirection: Axis.horizontal,
-//                           physics: const BouncingScrollPhysics(),
-//                           child: Row(
-//                             children: widget.court.features
-//                                 .map(
-//                                   (f) => Container(
-//                                     margin: const EdgeInsets.only(right: 6),
-//                                     padding: const EdgeInsets.symmetric(
-//                                       horizontal: 10,
-//                                       vertical: 5,
-//                                     ),
-//                                     decoration: BoxDecoration(
-//                                       color: Colors.white.withOpacity(0.06),
-//                                       borderRadius: BorderRadius.circular(9),
-//                                       border: Border.all(
-//                                         color: Colors.white.withOpacity(0.08),
-//                                         width: 1,
-//                                       ),
-//                                     ),
-//                                     child: Text(
-//                                       f,
-//                                       style: TextStyle(
-//                                         color: Colors.white.withOpacity(0.55),
-//                                         fontSize: 11.5,
-//                                         fontWeight: FontWeight.w600,
-//                                       ),
-//                                     ),
-//                                   ),
-//                                 )
-//                                 .toList(),
-//                           ),
-//                         ),
-//                       ),
-//                     ],
-//                   ),
-
-//                   const SizedBox(height: 16),
-
-//                   // Divider
-//                   Container(height: 1, color: Colors.white.withOpacity(0.06)),
-
-//                   const SizedBox(height: 16),
-
-//                   // Price + Book button
-//                   Row(
-//                     crossAxisAlignment: CrossAxisAlignment.center,
-//                     children: [
-//                       Column(
-//                         crossAxisAlignment: CrossAxisAlignment.start,
-//                         children: [
-//                           Text(
-//                             widget.court.price,
-//                             style: const TextStyle(
-//                               color: Color(0xFF00E676),
-//                               fontSize: 22,
-//                               fontWeight: FontWeight.w900,
-//                               letterSpacing: -0.5,
-//                             ),
-//                           ),
-//                           Text(
-//                             'per hour',
-//                             style: TextStyle(
-//                               color: Colors.white.withOpacity(0.35),
-//                               fontSize: 11.5,
-//                               fontWeight: FontWeight.w500,
-//                             ),
-//                           ),
-//                         ],
-//                       ),
-//                       const Spacer(),
-//                       GestureDetector(
-//                         onTap: () {},
-//                         child: Container(
-//                           padding: const EdgeInsets.symmetric(
-//                             horizontal: 24,
-//                             vertical: 13,
-//                           ),
-//                           decoration: BoxDecoration(
-//                             gradient: const LinearGradient(
-//                               colors: [Color(0xFF00E676), Color(0xFF00897B)],
-//                               begin: Alignment.topLeft,
-//                               end: Alignment.bottomRight,
-//                             ),
-//                             borderRadius: BorderRadius.circular(16),
-//                             boxShadow: [
-//                               BoxShadow(
-//                                 color: const Color(
-//                                   0xFF00E676,
-//                                 ).withOpacity(0.35),
-//                                 blurRadius: 18,
-//                                 offset: const Offset(0, 6),
-//                               ),
-//                             ],
-//                           ),
-//                           child: const Text(
-//                             'Book Now',
-//                             style: TextStyle(
-//                               color: Colors.white,
-//                               fontWeight: FontWeight.w800,
-//                               fontSize: 14.5,
-//                               letterSpacing: 0.2,
-//                             ),
-//                           ),
-//                         ),
-//                       ),
-//                     ],
-//                   ),
-//                 ],
-//               ),
-//             ),
-//           ],
-//         ),
-//       ),
-//     );
-//   }
-// }
-
-// // ─────────────────────────────────────────────────────────────────────────────
-// // Status Pill
-// // ─────────────────────────────────────────────────────────────────────────────
-// class _StatusPill extends StatelessWidget {
-//   final bool isOpen;
-//   const _StatusPill({required this.isOpen});
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return ClipRRect(
-//       borderRadius: BorderRadius.circular(30),
-//       child: BackdropFilter(
-//         filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-//         child: Container(
-//           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-//           decoration: BoxDecoration(
-//             color: isOpen
-//                 ? const Color(0xFF00E676).withOpacity(0.2)
-//                 : Colors.red.withOpacity(0.2),
-//             borderRadius: BorderRadius.circular(30),
-//             border: Border.all(
-//               color: isOpen
-//                   ? const Color(0xFF00E676).withOpacity(0.5)
-//                   : Colors.red.withOpacity(0.5),
-//               width: 1,
-//             ),
-//           ),
-//           child: Row(
-//             mainAxisSize: MainAxisSize.min,
-//             children: [
-//               Container(
-//                 height: 7,
-//                 width: 7,
-//                 decoration: BoxDecoration(
-//                   color: isOpen ? const Color(0xFF00E676) : Colors.red,
-//                   shape: BoxShape.circle,
-//                 ),
-//               ),
-//               const SizedBox(width: 6),
-//               Text(
-//                 isOpen ? 'Open Now' : 'Closed',
-//                 style: TextStyle(
-//                   color: isOpen ? const Color(0xFF00E676) : Colors.red,
-//                   fontSize: 12,
-//                   fontWeight: FontWeight.w700,
-//                 ),
-//               ),
-//             ],
-//           ),
-//         ),
-//       ),
-//     );
-//   }
-// }
-
-// // ─────────────────────────────────────────────────────────────────────────────
-// // Court Model
-// // ─────────────────────────────────────────────────────────────────────────────
-// class CourtModel {
-//   final String name;
-//   final String location;
-//   final String price;
-//   final double rating;
-//   final int reviewCount;
-//   final String image;
-//   final bool isOpen;
-//   final String distance;
-//   final List<String> features;
-//   final Color accentColor;
-
-//   CourtModel({
-//     required this.name,
-//     required this.location,
-//     required this.price,
-//     required this.rating,
-//     required this.reviewCount,
-//     required this.image,
-//     required this.isOpen,
-//     required this.distance,
-//     required this.features,
-//     required this.accentColor,
-//   });
-// }
-
-// // import 'package:flutter/material.dart';
-
-// // class FootsallHomePage extends StatelessWidget {
-// //   const FootsallHomePage({super.key});
-
-// //   @override
-// //   Widget build(BuildContext context) {
-// //     return const CourtsListScreen();
-// //   }
-// // }
-
-// // class CourtsListScreen extends StatelessWidget {
-// //   const CourtsListScreen({super.key});
-
-// //   @override
-// //   Widget build(BuildContext context) {
-// //     final courts = <CourtModel>[
-// //       CourtModel(
-// //         name: 'Goal Arena Futsal',
-// //         location: 'Baneshwor, Kathmandu',
-// //         price: 'Rs. 1,800/hr',
-// //         rating: 4.8,
-// //         image:
-// //             'https://images.unsplash.com/photo-1517466787929-bc90951d0974?auto=format&fit=crop&w=1200&q=80',
-// //         isOpen: true,
-// //         features: ['Indoor', 'Parking', 'Lights'],
-// //       ),
-// //       CourtModel(
-// //         name: 'Urban Kick Center',
-// //         location: 'Lalitpur, Jawalakhel',
-// //         price: 'Rs. 2,000/hr',
-// //         rating: 4.6,
-// //         image:
-// //             'https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=1200&q=80',
-// //         isOpen: true,
-// //         features: ['Turf', 'Shower', 'Cafe'],
-// //       ),
-// //       CourtModel(
-// //         name: 'Champion 5A Side',
-// //         location: 'Koteshwor, Kathmandu',
-// //         price: 'Rs. 1,500/hr',
-// //         rating: 4.5,
-// //         image:
-// //             'https://images.unsplash.com/photo-1486286701208-1d58e9338013?auto=format&fit=crop&w=1200&q=80',
-// //         isOpen: false,
-// //         features: ['Outdoor', 'Training', 'Parking'],
-// //       ),
-// //       CourtModel(
-// //         name: 'Royal Futsal Hub',
-// //         location: 'Bhaktapur',
-// //         price: 'Rs. 1,700/hr',
-// //         rating: 4.7,
-// //         image:
-// //             'https://images.unsplash.com/photo-1552667466-07770ae110d0?auto=format&fit=crop&w=1200&q=80',
-// //         isOpen: true,
-// //         features: ['Indoor', 'Cafe', 'Events'],
-// //       ),
-// //     ];
-
-// //     return Scaffold(
-// //       backgroundColor: const Color(0xFFF4F7FB),
-// //       body: CustomScrollView(
-// //         physics: const BouncingScrollPhysics(),
-// //         slivers: [
-// //           SliverAppBar(
-// //             expandedHeight: 180,
-// //             pinned: true,
-// //             elevation: 0,
-// //             backgroundColor: const Color(0xFF0E7A4B),
-// //             flexibleSpace: FlexibleSpaceBar(
-// //               titlePadding: const EdgeInsetsDirectional.only(
-// //                 start: 20,
-// //                 bottom: 16,
-// //               ),
-// //               title: const Text(
-// //                 'Futsal Courts',
-// //                 style: TextStyle(
-// //                   fontWeight: FontWeight.w700,
-// //                   fontSize: 20,
-// //                   color: Colors.white,
-// //                 ),
-// //               ),
-// //               background: Container(
-// //                 decoration: const BoxDecoration(
-// //                   gradient: LinearGradient(
-// //                     colors: [Color(0xFF12A05C), Color(0xFF0B6B40)],
-// //                     begin: Alignment.topLeft,
-// //                     end: Alignment.bottomRight,
-// //                   ),
-// //                 ),
-// //                 child: Stack(
-// //                   children: [
-// //                     Positioned(
-// //                       right: -30,
-// //                       top: 20,
-// //                       child: Container(
-// //                         height: 140,
-// //                         width: 140,
-// //                         decoration: BoxDecoration(
-// //                           color: Colors.white.withOpacity(0.08),
-// //                           shape: BoxShape.circle,
-// //                         ),
-// //                       ),
-// //                     ),
-// //                     Positioned(
-// //                       left: -40,
-// //                       bottom: -20,
-// //                       child: Container(
-// //                         height: 120,
-// //                         width: 120,
-// //                         decoration: BoxDecoration(
-// //                           color: Colors.white.withOpacity(0.06),
-// //                           shape: BoxShape.circle,
-// //                         ),
-// //                       ),
-// //                     ),
-// //                     const Positioned(
-// //                       left: 20,
-// //                       right: 20,
-// //                       bottom: 60,
-// //                       child: Text(
-// //                         'Find the best court near you',
-// //                         style: TextStyle(
-// //                           color: Colors.white70,
-// //                           fontSize: 14,
-// //                           fontWeight: FontWeight.w400,
-// //                         ),
-// //                       ),
-// //                     ),
-// //                   ],
-// //                 ),
-// //               ),
-// //             ),
-// //           ),
-
-// //           SliverToBoxAdapter(
-// //             child: Padding(
-// //               padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
-// //               child: Column(
-// //                 children: [
-// //                   _SearchField(),
-// //                   const SizedBox(height: 14),
-// //                   SizedBox(
-// //                     height: 42,
-// //                     child: ListView(
-// //                       scrollDirection: Axis.horizontal,
-// //                       physics: const BouncingScrollPhysics(),
-// //                       children: const [
-// //                         _FilterChipWidget(label: 'All', selected: true),
-// //                         _FilterChipWidget(label: 'Nearby'),
-// //                         _FilterChipWidget(label: 'Indoor'),
-// //                         _FilterChipWidget(label: 'Outdoor'),
-// //                         _FilterChipWidget(label: 'Open Now'),
-// //                         _FilterChipWidget(label: 'Top Rated'),
-// //                       ],
-// //                     ),
-// //                   ),
-// //                 ],
-// //               ),
-// //             ),
-// //           ),
-
-// //           SliverPadding(
-// //             padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-// //             sliver: SliverList.builder(
-// //               itemCount: courts.length,
-// //               itemBuilder: (context, index) {
-// //                 final court = courts[index];
-// //                 return Padding(
-// //                   padding: const EdgeInsets.only(bottom: 16),
-// //                   child: CourtCard(court: court),
-// //                 );
-// //               },
-// //             ),
-// //           ),
-// //         ],
-// //       ),
-// //     );
-// //   }
-// // }
-
-// // class _SearchField extends StatelessWidget {
-// //   @override
-// //   Widget build(BuildContext context) {
-// //     return Container(
-// //       height: 54,
-// //       decoration: BoxDecoration(
-// //         color: Colors.white,
-// //         borderRadius: BorderRadius.circular(18),
-// //         boxShadow: [
-// //           BoxShadow(
-// //             color: Colors.black.withOpacity(0.04),
-// //             blurRadius: 16,
-// //             offset: const Offset(0, 6),
-// //           ),
-// //         ],
-// //       ),
-// //       child: TextField(
-// //         decoration: InputDecoration(
-// //           hintText: 'Search courts, area, features...',
-// //           hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),
-// //           prefixIcon: const Icon(Icons.search_rounded),
-// //           suffixIcon: Container(
-// //             margin: const EdgeInsets.all(8),
-// //             decoration: BoxDecoration(
-// //               color: const Color(0xFF0E7A4B),
-// //               borderRadius: BorderRadius.circular(12),
-// //             ),
-// //             child: const Icon(
-// //               Icons.tune_rounded,
-// //               color: Colors.white,
-// //               size: 20,
-// //             ),
-// //           ),
-// //           border: OutlineInputBorder(
-// //             borderRadius: BorderRadius.circular(18),
-// //             borderSide: BorderSide.none,
-// //           ),
-// //           filled: true,
-// //           fillColor: Colors.white,
-// //           contentPadding: const EdgeInsets.symmetric(vertical: 16),
-// //         ),
-// //       ),
-// //     );
-// //   }
-// // }
-
-// // class _FilterChipWidget extends StatelessWidget {
-// //   final String label;
-// //   final bool selected;
-
-// //   const _FilterChipWidget({required this.label, this.selected = false});
-
-// //   @override
-// //   Widget build(BuildContext context) {
-// //     return Container(
-// //       margin: const EdgeInsets.only(right: 10),
-// //       child: AnimatedContainer(
-// //         duration: const Duration(milliseconds: 250),
-// //         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-// //         decoration: BoxDecoration(
-// //           color: selected ? const Color(0xFF0E7A4B) : Colors.white,
-// //           borderRadius: BorderRadius.circular(14),
-// //           border: Border.all(
-// //             color: selected ? const Color(0xFF0E7A4B) : Colors.grey.shade300,
-// //           ),
-// //           boxShadow: selected
-// //               ? [
-// //                   BoxShadow(
-// //                     color: const Color(0xFF0E7A4B).withOpacity(0.22),
-// //                     blurRadius: 12,
-// //                     offset: const Offset(0, 6),
-// //                   ),
-// //                 ]
-// //               : [],
-// //         ),
-// //         child: Center(
-// //           child: Text(
-// //             label,
-// //             style: TextStyle(
-// //               color: selected ? Colors.white : const Color(0xFF2B2B2B),
-// //               fontWeight: FontWeight.w600,
-// //               fontSize: 13,
-// //             ),
-// //           ),
-// //         ),
-// //       ),
-// //     );
-// //   }
-// // }
-
-// // class CourtCard extends StatelessWidget {
-// //   final CourtModel court;
-
-// //   const CourtCard({super.key, required this.court});
-
-// //   @override
-// //   Widget build(BuildContext context) {
-// //     return InkWell(
-// //       borderRadius: BorderRadius.circular(24),
-// //       onTap: () {},
-// //       child: Ink(
-// //         decoration: BoxDecoration(
-// //           color: Colors.white,
-// //           borderRadius: BorderRadius.circular(24),
-// //           boxShadow: [
-// //             BoxShadow(
-// //               color: Colors.black.withOpacity(0.06),
-// //               blurRadius: 18,
-// //               offset: const Offset(0, 8),
-// //             ),
-// //           ],
-// //         ),
-// //         child: Column(
-// //           crossAxisAlignment: CrossAxisAlignment.start,
-// //           children: [
-// //             Hero(
-// //               tag: court.name,
-// //               child: ClipRRect(
-// //                 borderRadius: const BorderRadius.vertical(
-// //                   top: Radius.circular(24),
-// //                 ),
-// //                 child: Stack(
-// //                   children: [
-// //                     Image.network(
-// //                       court.image,
-// //                       height: 190,
-// //                       width: double.infinity,
-// //                       fit: BoxFit.cover,
-// //                     ),
-// //                     Positioned(
-// //                       top: 14,
-// //                       right: 14,
-// //                       child: Container(
-// //                         padding: const EdgeInsets.symmetric(
-// //                           horizontal: 12,
-// //                           vertical: 7,
-// //                         ),
-// //                         decoration: BoxDecoration(
-// //                           color: Colors.black.withOpacity(0.35),
-// //                           borderRadius: BorderRadius.circular(30),
-// //                         ),
-// //                         child: Row(
-// //                           children: [
-// //                             const Icon(
-// //                               Icons.star_rounded,
-// //                               color: Colors.amber,
-// //                               size: 18,
-// //                             ),
-// //                             const SizedBox(width: 4),
-// //                             Text(
-// //                               court.rating.toString(),
-// //                               style: const TextStyle(
-// //                                 color: Colors.white,
-// //                                 fontWeight: FontWeight.w700,
-// //                               ),
-// //                             ),
-// //                           ],
-// //                         ),
-// //                       ),
-// //                     ),
-// //                     Positioned(
-// //                       left: 14,
-// //                       top: 14,
-// //                       child: Container(
-// //                         padding: const EdgeInsets.symmetric(
-// //                           horizontal: 12,
-// //                           vertical: 7,
-// //                         ),
-// //                         decoration: BoxDecoration(
-// //                           color: court.isOpen
-// //                               ? const Color(0xFF16A34A)
-// //                               : const Color(0xFFDC2626),
-// //                           borderRadius: BorderRadius.circular(30),
-// //                         ),
-// //                         child: Text(
-// //                           court.isOpen ? 'Open Now' : 'Closed',
-// //                           style: const TextStyle(
-// //                             color: Colors.white,
-// //                             fontSize: 12,
-// //                             fontWeight: FontWeight.w700,
-// //                           ),
-// //                         ),
-// //                       ),
-// //                     ),
-// //                   ],
-// //                 ),
-// //               ),
-// //             ),
-// //             Padding(
-// //               padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
-// //               child: Column(
-// //                 crossAxisAlignment: CrossAxisAlignment.start,
-// //                 children: [
-// //                   Text(
-// //                     court.name,
-// //                     style: const TextStyle(
-// //                       fontSize: 18,
-// //                       fontWeight: FontWeight.w800,
-// //                       color: Color(0xFF1D2433),
-// //                     ),
-// //                   ),
-// //                   const SizedBox(height: 8),
-// //                   Row(
-// //                     children: [
-// //                       Icon(
-// //                         Icons.location_on_rounded,
-// //                         size: 18,
-// //                         color: Colors.grey.shade600,
-// //                       ),
-// //                       const SizedBox(width: 6),
-// //                       Expanded(
-// //                         child: Text(
-// //                           court.location,
-// //                           style: TextStyle(
-// //                             fontSize: 13.5,
-// //                             color: Colors.grey.shade700,
-// //                             fontWeight: FontWeight.w500,
-// //                           ),
-// //                         ),
-// //                       ),
-// //                     ],
-// //                   ),
-// //                   const SizedBox(height: 14),
-// //                   Wrap(
-// //                     spacing: 8,
-// //                     runSpacing: 8,
-// //                     children: court.features
-// //                         .map(
-// //                           (feature) => Container(
-// //                             padding: const EdgeInsets.symmetric(
-// //                               horizontal: 12,
-// //                               vertical: 7,
-// //                             ),
-// //                             decoration: BoxDecoration(
-// //                               color: const Color(0xFFF2F6F8),
-// //                               borderRadius: BorderRadius.circular(20),
-// //                             ),
-// //                             child: Text(
-// //                               feature,
-// //                               style: const TextStyle(
-// //                                 fontSize: 12,
-// //                                 fontWeight: FontWeight.w600,
-// //                                 color: Color(0xFF52606D),
-// //                               ),
-// //                             ),
-// //                           ),
-// //                         )
-// //                         .toList(),
-// //                   ),
-// //                   const SizedBox(height: 18),
-// //                   Row(
-// //                     children: [
-// //                       Text(
-// //                         court.price,
-// //                         style: const TextStyle(
-// //                           color: Color(0xFF0E7A4B),
-// //                           fontWeight: FontWeight.w800,
-// //                           fontSize: 17,
-// //                         ),
-// //                       ),
-// //                       const Spacer(),
-// //                       ElevatedButton(
-// //                         onPressed: () {},
-// //                         style: ElevatedButton.styleFrom(
-// //                           elevation: 0,
-// //                           backgroundColor: const Color(0xFF0E7A4B),
-// //                           foregroundColor: Colors.white,
-// //                           padding: const EdgeInsets.symmetric(
-// //                             horizontal: 18,
-// //                             vertical: 12,
-// //                           ),
-// //                           shape: RoundedRectangleBorder(
-// //                             borderRadius: BorderRadius.circular(14),
-// //                           ),
-// //                         ),
-// //                         child: const Text(
-// //                           'Book Now',
-// //                           style: TextStyle(fontWeight: FontWeight.w700),
-// //                         ),
-// //                       ),
-// //                     ],
-// //                   ),
-// //                 ],
-// //               ),
-// //             ),
-// //           ],
-// //         ),
-// //       ),
-// //     );
-// //   }
-// // }
-
-// // class CourtModel {
-// //   final String name;
-// //   final String location;
-// //   final String price;
-// //   final double rating;
-// //   final String image;
-// //   final bool isOpen;
-// //   final List<String> features;
-
-// //   CourtModel({
-// //     required this.name,
-// //     required this.location,
-// //     required this.price,
-// //     required this.rating,
-// //     required this.image,
-// //     required this.isOpen,
-// //     required this.features,
-// //   });
-// // }

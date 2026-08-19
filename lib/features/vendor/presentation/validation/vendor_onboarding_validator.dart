@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart' show TimeOfDay;
+import 'package:hamro_footsall/core/widgets/custom_time_field.dart';
 import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_models.dart';
 
 class VendorValidationResult {
@@ -14,9 +16,71 @@ class VendorValidationResult {
 class VendorOnboardingValidator {
   const VendorOnboardingValidator._();
 
+  /// Validates one slot against the other schedules for the same court.
+  ///
+  /// Adjacent ranges (05:00–06:00 and 06:00–07:00) are allowed. Exact
+  /// duplicates, partial overlaps and ranges contained by another slot are
+  /// rejected whenever the schedules share at least one booking day.
+  static String? validateSlotTiming(
+    SlotPricingDraft candidate,
+    Iterable<SlotPricingDraft> courtSlots,
+  ) {
+    final TimeOfDay? start = timeOfDayFromString(candidate.startTime);
+    final TimeOfDay? end = timeOfDayFromString(candidate.endTime);
+    if (start == null || end == null) {
+      return 'Select a valid start and end time.';
+    }
+
+    final int startMinutes = minutesFromTimeOfDay(start);
+    final int endMinutes = minutesFromTimeOfDay(end);
+    if (startMinutes == endMinutes) {
+      return 'Start and end time cannot be the same.';
+    }
+    if (startMinutes > endMinutes) {
+      return 'End time must be later than start time.';
+    }
+
+    final Set<String> candidateDays = candidate.days
+        .map((String day) => day.trim().toLowerCase())
+        .where((String day) => day.isNotEmpty)
+        .toSet();
+    for (final SlotPricingDraft existing in courtSlots) {
+      if (identical(existing, candidate)) continue;
+      if (candidate.id.isNotEmpty && existing.id == candidate.id) continue;
+      final Set<String> existingDays = existing.days
+          .map((String day) => day.trim().toLowerCase())
+          .where((String day) => day.isNotEmpty)
+          .toSet();
+      if (!candidateDays.any(existingDays.contains)) continue;
+
+      final TimeOfDay? existingStart = timeOfDayFromString(existing.startTime);
+      final TimeOfDay? existingEnd = timeOfDayFromString(existing.endTime);
+      if (existingStart == null || existingEnd == null) continue;
+      final int existingStartMinutes = minutesFromTimeOfDay(existingStart);
+      final int existingEndMinutes = minutesFromTimeOfDay(existingEnd);
+      if (existingStartMinutes >= existingEndMinutes) continue;
+
+      final bool overlaps =
+          startMinutes < existingEndMinutes &&
+          existingStartMinutes < endMinutes;
+      if (!overlaps) continue;
+
+      final bool duplicate =
+          startMinutes == existingStartMinutes &&
+          endMinutes == existingEndMinutes;
+      final String name = existing.label.trim().isEmpty
+          ? 'another slot'
+          : '"${existing.label.trim()}"';
+      return duplicate
+          ? 'This time slot already exists on the selected day(s).'
+          : 'This time overlaps with $name on the selected day(s).';
+    }
+    return null;
+  }
+
   static bool canUnlockCourts(FutsalDraft draft) {
     return validateFutsalSubstep(draft, 0, 0).isValid &&
-        validateFutsalSubstep(draft, 0, 1).isValid;
+        validateFutsalSubstep(draft, 0, 2).isValid;
   }
 
   static VendorValidationResult validateFutsalSubstep(
@@ -32,54 +96,74 @@ class VendorOnboardingValidator {
             if (draft.title.trim().isEmpty) {
               return VendorValidationResult.invalid(
                 key,
-                'Enter the futsal name.',
+                'Please provide the name of your futsal.',
               );
             }
-            if (draft.description.trim().isEmpty) {
+            if (draft.slug.trim().isEmpty) {
               return VendorValidationResult.invalid(
                 key,
-                'Enter the futsal description.',
+                'A unique slug is required for your futsal profile.',
+              );
+            }
+            if (!_isSlugValid(draft.slug)) {
+              return VendorValidationResult.invalid(
+                key,
+                'The slug may only contain lowercase letters, numbers, and hyphens.',
               );
             }
             if (draft.phone.trim().isEmpty) {
               return VendorValidationResult.invalid(
                 key,
-                'Enter the contact phone number.',
+                'Please enter a valid contact phone number.',
               );
             }
             if (draft.email.trim().isEmpty) {
               return VendorValidationResult.invalid(
                 key,
-                'Enter the contact email.',
+                'Please enter a valid contact email address.',
+              );
+            }
+            if (!_isOptionalUrlValid(draft.websiteOrSocialLink)) {
+              return VendorValidationResult.invalid(
+                key,
+                'Please provide a valid website or social media link (including http/https).',
               );
             }
             return VendorValidationResult.valid(key);
           case 1:
+            if (!_hasMeaningfulRichText(draft.description)) {
+              return VendorValidationResult.invalid(
+                key,
+                'Please provide a description for your futsal.',
+              );
+            }
+            return VendorValidationResult.valid(key);
+          case 2:
             if (draft.location.fullAddress.trim().isEmpty) {
               return VendorValidationResult.invalid(
                 key,
-                'Enter the full address.',
+                'Please enter the complete address of your futsal.',
               );
             }
             if (draft.location.exactLocation.trim().isEmpty) {
               return VendorValidationResult.invalid(
                 key,
-                'Enter the exact location.',
+                'Please specify the exact location of your futsal.',
               );
             }
             if (draft.location.longitude == null ||
                 draft.location.latitude == null) {
               return VendorValidationResult.invalid(
                 key,
-                'Provide both longitude and latitude.',
+                'Please provide both longitude and latitude coordinates.',
               );
             }
             return VendorValidationResult.valid(key);
-          case 2:
+          case 3:
             if (draft.amenities.isEmpty && draft.features.isEmpty) {
               return VendorValidationResult.invalid(
                 key,
-                'Select at least one amenity or feature.',
+                'Please select at least one amenity or feature for your futsal.',
               );
             }
             return VendorValidationResult.valid(key);
@@ -90,7 +174,7 @@ class VendorOnboardingValidator {
             if (draft.cancellationPolicy.trim().isEmpty) {
               return VendorValidationResult.invalid(
                 key,
-                'Enter the cancellation policy.',
+                'Please specify your cancellation policy.',
               );
             }
             return VendorValidationResult.valid(key);
@@ -98,7 +182,7 @@ class VendorOnboardingValidator {
             if (draft.futsalRules.trim().isEmpty) {
               return VendorValidationResult.invalid(
                 key,
-                'Enter the futsal rules.',
+                'Please provide the rules for your futsal.',
               );
             }
             return VendorValidationResult.valid(key);
@@ -106,7 +190,7 @@ class VendorOnboardingValidator {
             if (draft.commissionPercent == null) {
               return VendorValidationResult.invalid(
                 key,
-                'Enter the commission percentage.',
+                'Please specify the commission percentage.',
               );
             }
             return VendorValidationResult.valid(key);
@@ -117,7 +201,7 @@ class VendorOnboardingValidator {
             if (draft.coverImage == null) {
               return VendorValidationResult.invalid(
                 key,
-                'Upload the futsal cover image.',
+                'Please upload a cover image for your futsal.',
               );
             }
             return VendorValidationResult.valid(key);
@@ -125,7 +209,7 @@ class VendorOnboardingValidator {
             if (draft.gallery.isEmpty) {
               return VendorValidationResult.invalid(
                 key,
-                'Upload at least one futsal gallery image.',
+                'Please upload at least one image to the futsal gallery.',
               );
             }
             return VendorValidationResult.valid(key);
@@ -133,7 +217,7 @@ class VendorOnboardingValidator {
             if (draft.companyDocuments.isEmpty) {
               return VendorValidationResult.invalid(
                 key,
-                'Upload company documents before continuing.',
+                'Please upload the required company documents before proceeding.',
               );
             }
             return VendorValidationResult.valid(key);
@@ -151,54 +235,98 @@ class VendorOnboardingValidator {
     final String key = courtSubstepKey(draft.id, sectionIndex, subsectionIndex);
     switch (sectionIndex) {
       case 0:
-        if (draft.name.trim().isEmpty) {
-          return VendorValidationResult.invalid(key, 'Enter the court name.');
-        }
-        if (draft.basePrice == null) {
-          return VendorValidationResult.invalid(
-            key,
-            'Enter the court base price.',
-          );
-        }
-        if (draft.description.trim().isEmpty) {
-          return VendorValidationResult.invalid(
-            key,
-            'Enter the court description.',
-          );
-        }
-        if ((draft.courtType ?? '').trim().isEmpty) {
-          return VendorValidationResult.invalid(key, 'Select the court type.');
-        }
-        if (draft.availability.days.isEmpty) {
-          return VendorValidationResult.invalid(
-            key,
-            'Select the court availability days.',
-          );
-        }
-        if (!draft.availability.isOpen24Hours &&
-            (draft.availability.openTime.trim().isEmpty ||
-                draft.availability.closeTime.trim().isEmpty)) {
-          return VendorValidationResult.invalid(
-            key,
-            'Enter opening and closing time for the court.',
-          );
-        }
-        return VendorValidationResult.valid(key);
-      case 1:
         switch (subsectionIndex) {
           case 0:
-            return VendorValidationResult.valid(key);
-          case 1:
-            return VendorValidationResult.valid(key);
-          case 2:
-            if (draft.advancePaymentRequired && draft.paymentPercent == null) {
+            if (draft.name.trim().isEmpty) {
               return VendorValidationResult.invalid(
                 key,
-                'Enter the advance payment percentage.',
+                'Enter the court name.',
+              );
+            }
+            if (draft.basePrice == null) {
+              return VendorValidationResult.invalid(
+                key,
+                'Enter the court base price.',
+              );
+            }
+            if ((draft.courtType ?? '').trim().isEmpty) {
+              return VendorValidationResult.invalid(
+                key,
+                'Select the court type.',
               );
             }
             return VendorValidationResult.valid(key);
-          case 3:
+          case 1:
+            if (!_hasMeaningfulRichText(draft.description)) {
+              return VendorValidationResult.invalid(
+                key,
+                'Enter the court description.',
+              );
+            }
+            return VendorValidationResult.valid(key);
+          case 2:
+            if (draft.photos.isEmpty && draft.memories.isEmpty) {
+              return VendorValidationResult.invalid(
+                key,
+                'Upload at least one photo or memory for the court.',
+              );
+            }
+            return VendorValidationResult.valid(key);
+        }
+      case 1:
+        switch (subsectionIndex) {
+          case 0:
+            // Advance payment is mandatory and never below the minimum share.
+            if (draft.advancePaymentType == null) {
+              return VendorValidationResult.invalid(
+                key,
+                'Select an advance payment type.',
+              );
+            }
+            final double? price = draft.advancePrice;
+            if (price == null || price <= 0) {
+              return VendorValidationResult.invalid(
+                key,
+                'Enter the advance payment amount.',
+              );
+            }
+            if (draft.advancePaymentType == AdvancePaymentType.percentage) {
+              if (price < kMinimumAdvancePercent) {
+                return VendorValidationResult.invalid(
+                  key,
+                  'The advance must be at least '
+                  '${kMinimumAdvancePercent.toStringAsFixed(0)}%.',
+                );
+              }
+              if (price > 100) {
+                return VendorValidationResult.invalid(
+                  key,
+                  'Percentage cannot exceed 100.',
+                );
+              }
+            }
+            if (draft.advancePaymentType == AdvancePaymentType.flat) {
+              final double? basePrice = draft.basePrice;
+              if (basePrice != null) {
+                if (price > basePrice) {
+                  return VendorValidationResult.invalid(
+                    key,
+                    'Flat amount cannot exceed the base price.',
+                  );
+                }
+                final double minimum = basePrice * kMinimumAdvancePercent / 100;
+                if (price < minimum) {
+                  return VendorValidationResult.invalid(
+                    key,
+                    'The advance must be at least '
+                    '${kMinimumAdvancePercent.toStringAsFixed(0)}% of the base '
+                    'price (${minimum.toStringAsFixed(0)}).',
+                  );
+                }
+              }
+            }
+            return VendorValidationResult.valid(key);
+          case 1:
             if (draft.advancePaymentRequired && draft.paymentQr == null) {
               return VendorValidationResult.invalid(
                 key,
@@ -208,24 +336,30 @@ class VendorOnboardingValidator {
             return VendorValidationResult.valid(key);
         }
       case 2:
-        if (draft.amenities.isEmpty && draft.facilities.isEmpty) {
-          return VendorValidationResult.invalid(
-            key,
-            'Select at least one court amenity or facility.',
-          );
+        switch (subsectionIndex) {
+          case 0:
+            if (draft.amenities.isEmpty) {
+              return VendorValidationResult.invalid(
+                key,
+                'Select at least one court amenity.',
+              );
+            }
+            return VendorValidationResult.valid(key);
+          case 1:
+            if (draft.facilities.isEmpty) {
+              return VendorValidationResult.invalid(
+                key,
+                'Select at least one court facility.',
+              );
+            }
+            return VendorValidationResult.valid(key);
         }
         return VendorValidationResult.valid(key);
       case 3:
-        if (draft.photos.isEmpty && draft.memories.isEmpty) {
-          return VendorValidationResult.invalid(
-            key,
-            'Upload at least one photo or memory for the court.',
-          );
-        }
-        return VendorValidationResult.valid(key);
-      case 4:
         switch (subsectionIndex) {
           case 0:
+            return VendorValidationResult.valid(key);
+          case 1:
             if (draft.slotConfigs.isEmpty) {
               return VendorValidationResult.invalid(
                 key,
@@ -246,22 +380,26 @@ class VendorOnboardingValidator {
                 'Resolve overlapping slots before continuing.',
               );
             }
+            // Adding a slot only creates it in memory; it reaches the server
+            // when the user saves it. Advancing with an unsaved slot silently
+            // drops it, so block until every slot carries a remote id.
+            final SlotPricingDraft? unsaved = draft.slotConfigs
+                .cast<SlotPricingDraft?>()
+                .firstWhere(
+                  (SlotPricingDraft? slot) => !_isSlotPersisted(slot!),
+                  orElse: () => null,
+                );
+            if (unsaved != null) {
+              final String label = unsaved.label.trim().isEmpty
+                  ? 'this slot'
+                  : unsaved.label.trim();
+              return VendorValidationResult.invalid(
+                key,
+                'Save $label before continuing.',
+              );
+            }
             return VendorValidationResult.valid(key);
-          case 1:
-            if (draft.slotConfigs.isEmpty) {
-              return VendorValidationResult.invalid(
-                key,
-                'Add at least one slot before setting pricing.',
-              );
-            }
-            if (draft.slotConfigs.any(
-              (SlotPricingDraft slot) => !_isSlotPricingValid(slot),
-            )) {
-              return VendorValidationResult.invalid(
-                key,
-                'Complete price details for all configured slots.',
-              );
-            }
+          case 2:
             return VendorValidationResult.valid(key);
         }
     }
@@ -279,15 +417,19 @@ class VendorOnboardingValidator {
         switch (subsectionIndex) {
           case 0:
             return draft.title.trim().isNotEmpty ||
-                draft.description.trim().isNotEmpty ||
+                draft.slug.trim().isNotEmpty ||
+                draft.registrationNumber.trim().isNotEmpty ||
                 draft.phone.trim().isNotEmpty ||
-                draft.email.trim().isNotEmpty;
+                draft.email.trim().isNotEmpty ||
+                draft.websiteOrSocialLink.trim().isNotEmpty;
           case 1:
+            return _hasMeaningfulRichText(draft.description);
+          case 2:
             return draft.location.fullAddress.trim().isNotEmpty ||
                 draft.location.exactLocation.trim().isNotEmpty ||
                 draft.location.longitude != null ||
                 draft.location.latitude != null;
-          case 2:
+          case 3:
             return draft.amenities.isNotEmpty || draft.features.isNotEmpty;
         }
       case 1:
@@ -319,36 +461,48 @@ class VendorOnboardingValidator {
   ) {
     switch (sectionIndex) {
       case 0:
-        return draft.name.trim().isNotEmpty ||
-            draft.basePrice != null ||
-            draft.description.trim().isNotEmpty ||
-            (draft.courtType ?? '').trim().isNotEmpty ||
-            draft.availability.days.isNotEmpty ||
-            draft.availability.openTime.trim().isNotEmpty ||
-            draft.availability.closeTime.trim().isNotEmpty;
+        switch (subsectionIndex) {
+          case 0:
+            return draft.name.trim().isNotEmpty ||
+                draft.basePrice != null ||
+                (draft.courtType ?? '').trim().isNotEmpty;
+          case 1:
+            return _hasMeaningfulRichText(draft.description);
+          case 2:
+            return draft.photos.isNotEmpty || draft.memories.isNotEmpty;
+        }
       case 1:
         switch (subsectionIndex) {
           case 0:
-            return draft.enableOnlineBooking;
+            return draft.advancePrice != null ||
+                draft.advancePaymentType != null;
           case 1:
-            return draft.advancePaymentRequired;
-          case 2:
-            return draft.paymentPercent != null;
-          case 3:
             return draft.paymentQr != null;
         }
       case 2:
-        return draft.amenities.isNotEmpty || draft.facilities.isNotEmpty;
-      case 3:
-        return draft.photos.isNotEmpty || draft.memories.isNotEmpty;
-      case 4:
         switch (subsectionIndex) {
           case 0:
-            return draft.slotConfigs.isNotEmpty;
+            return draft.amenities.isNotEmpty;
           case 1:
+            return draft.facilities.isNotEmpty;
+        }
+        return false;
+      case 3:
+        switch (subsectionIndex) {
+          case 0:
+            return draft.weekendDays.isNotEmpty ||
+                draft.holidayDates.isNotEmpty ||
+                draft.closedDates.isNotEmpty;
+          case 1:
+            return draft.slotConfigs.isNotEmpty;
+          case 2:
             return draft.slotConfigs.any(
               (SlotPricingDraft slot) =>
-                  slot.price != null || slot.paymentPercent != null,
+                  slot.price != null ||
+                  slot.weekendPrice != null ||
+                  slot.holidayPrice != null ||
+                  slot.discountPrice != null ||
+                  slot.paymentPercent != null,
             );
         }
     }
@@ -376,46 +530,38 @@ class VendorOnboardingValidator {
         slot.endTime.trim().isNotEmpty;
   }
 
-  static bool _isSlotPricingValid(SlotPricingDraft slot) {
-    return slot.price != null &&
-        (slot.paymentPercent == null ||
-            (slot.paymentPercent! >= 0 && slot.paymentPercent! <= 100));
+  static bool _isSlugValid(String value) {
+    return RegExp(r'^[a-z0-9]+(?:-[a-z0-9]+)*$').hasMatch(value.trim());
   }
+
+  static bool _isOptionalUrlValid(String value) {
+    final String trimmed = value.trim();
+    if (trimmed.isEmpty) return true;
+
+    final Uri? uri = Uri.tryParse(trimmed);
+    return uri != null && uri.hasScheme && uri.host.isNotEmpty;
+  }
+
+  static bool _hasMeaningfulRichText(String value) {
+    final String normalized = value
+        .replaceAll(RegExp(r'<[^>]+>'), ' ')
+        .replaceAll('&nbsp;', ' ')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+    return normalized.isNotEmpty;
+  }
+
+  /// A slot that reached the server carries its numeric backend id. Locally
+  /// added slots use `<courtId>_slot_<timestamp>` until they are saved, which
+  /// is the same rule the cubit applies when deciding whether a delete needs an
+  /// API call.
+  static bool _isSlotPersisted(SlotPricingDraft slot) =>
+      int.tryParse(slot.id) != null;
 
   static bool _hasSlotOverlap(List<SlotPricingDraft> slots) {
-    for (int i = 0; i < slots.length; i++) {
-      for (int j = i + 1; j < slots.length; j++) {
-        if (_sharesDay(slots[i], slots[j]) && _overlaps(slots[i], slots[j])) {
-          return true;
-        }
-      }
+    for (final SlotPricingDraft slot in slots) {
+      if (validateSlotTiming(slot, slots) != null) return true;
     }
     return false;
-  }
-
-  static bool _sharesDay(SlotPricingDraft a, SlotPricingDraft b) {
-    return a.days.any(b.days.contains);
-  }
-
-  static bool _overlaps(SlotPricingDraft a, SlotPricingDraft b) {
-    final int? aStart = _timeToMinutes(a.startTime);
-    final int? aEnd = _timeToMinutes(a.endTime);
-    final int? bStart = _timeToMinutes(b.startTime);
-    final int? bEnd = _timeToMinutes(b.endTime);
-    if (aStart == null || aEnd == null || bStart == null || bEnd == null) {
-      return false;
-    }
-    if (aStart >= aEnd || bStart >= bEnd) return true;
-    return aStart < bEnd && bStart < aEnd;
-  }
-
-  static int? _timeToMinutes(String input) {
-    final List<String> parts = input.trim().split(':');
-    if (parts.length != 2) return null;
-    final int? hour = int.tryParse(parts[0]);
-    final int? minute = int.tryParse(parts[1]);
-    if (hour == null || minute == null) return null;
-    if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
-    return (hour * 60) + minute;
   }
 }

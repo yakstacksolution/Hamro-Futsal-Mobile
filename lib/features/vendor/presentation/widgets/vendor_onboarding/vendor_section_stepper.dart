@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:hamro_footsall/core/theme/light_color.dart';
+import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_models.dart';
 import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/vendor_form_components.dart';
 
@@ -100,11 +100,13 @@ class _SmallHorizontalStep extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           decoration: BoxDecoration(
             color: isSelected
-                ? LightColor.primaryLight
-                : const Color(0xFFF8FAFC),
+                ? LightColor.secondarySoft
+                : LightColor.inputFillColor,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: isSelected ? LightColor.primary : const Color(0xFFE2E8F0),
+              color: isSelected
+                  ? LightColor.secondaryColor
+                  : LightColor.borderColor,
               width: isSelected ? 1.2 : 1,
             ),
           ),
@@ -117,12 +119,14 @@ class _SmallHorizontalStep extends StatelessWidget {
                     width: 24,
                     height: 24,
                     decoration: BoxDecoration(
-                      color: isSelected ? LightColor.primary : Colors.white,
+                      color: isSelected
+                          ? LightColor.secondaryColor
+                          : LightColor.whiteColor,
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
                         color: isSelected
                             ? Colors.transparent
-                            : const Color(0xFFE2E8F0),
+                            : LightColor.borderColor,
                       ),
                     ),
                     child: Icon(
@@ -131,8 +135,12 @@ class _SmallHorizontalStep extends StatelessWidget {
                           : icon,
                       size: 14,
                       color: status == StepStatus.complete
-                          ? (isSelected ? Colors.white : LightColor.secondary)
-                          : (isSelected ? Colors.white : LightColor.primary),
+                          ? (isSelected
+                                ? LightColor.inverseTextColor
+                                : LightColor.secondaryColor)
+                          : (isSelected
+                                ? LightColor.inverseTextColor
+                                : LightColor.secondaryColor),
                     ),
                   ),
                   const SizedBox(width: 6),
@@ -143,8 +151,8 @@ class _SmallHorizontalStep extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: isSelected
-                            ? LightColor.primaryDark
-                            : LightColor.titleText,
+                            ? LightColor.brandTextColor
+                            : LightColor.primaryTextColor,
                         fontSize: 11.5,
                         fontWeight: FontWeight.w800,
                         height: 1.1,
@@ -167,10 +175,10 @@ class _SmallHorizontalStep extends StatelessWidget {
                 height: 3,
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? LightColor.primary
+                      ? LightColor.secondaryColor
                       : status == StepStatus.complete
-                      ? LightColor.secondary.withValues(alpha: 0.25)
-                      : const Color(0xFFE2E8F0),
+                      ? LightColor.secondaryColor.withValues(alpha: 0.25)
+                      : LightColor.borderColor,
                   borderRadius: BorderRadius.circular(999),
                 ),
               ),
@@ -184,17 +192,17 @@ class _SmallHorizontalStep extends StatelessWidget {
   Color _statusColor(StepStatus status) {
     switch (status) {
       case StepStatus.complete:
-        return LightColor.secondary;
+        return LightColor.secondaryColor;
       case StepStatus.inProgress:
-        return LightColor.amber;
+        return LightColor.warningColor;
       case StepStatus.locked:
-        return LightColor.hintText;
+        return LightColor.hintTextColor;
       case StepStatus.pending:
-        return const Color(0xFFCBD5E1);
+        return LightColor.borderColor;
       case StepStatus.notStarted:
-        return const Color(0xFFCBD5E1);
+        return LightColor.borderColor;
       case StepStatus.error:
-        return LightColor.red;
+        return LightColor.redColor;
     }
   }
 }

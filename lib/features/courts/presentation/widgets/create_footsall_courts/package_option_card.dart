@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:hamro_footsall/core/theme/light_color.dart';
-import 'package:hamro_footsall/features/courts/presentation/models/create_courts_package_option.dart';
+import 'package:hamro_footsall/core/theme/app_colors.dart';
+import 'package:hamro_footsall/features/courts/data/model/create_courts_package_option.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class PackageOptionCard extends StatelessWidget {
   const PackageOptionCard({
@@ -25,18 +26,18 @@ class PackageOptionCard extends StatelessWidget {
           duration: const Duration(milliseconds: 220),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: LightColor.elevatedCardColor,
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
               color: isSelected
-                  ? LightColor.skyBlue
-                  : LightColor.lightGrey.withValues(alpha: 0.95),
+                  ? LightColor.secondaryColor
+                  : LightColor.borderColor.withValues(alpha: 0.95),
               width: isSelected ? 1.7 : 1.1,
             ),
             boxShadow: isSelected
                 ? <BoxShadow>[
                     BoxShadow(
-                      color: LightColor.skyBlue.withValues(alpha: 0.14),
+                      color: LightColor.secondaryColor.withValues(alpha: 0.14),
                       blurRadius: 16,
                       offset: const Offset(0, 8),
                     ),
@@ -54,8 +55,8 @@ class PackageOptionCard extends StatelessWidget {
                       children: <Widget>[
                         Text(
                           option.title,
-                          style: const TextStyle(
-                            color: LightColor.titleTextColor,
+                          style: TextStyle(
+                            color: LightColor.primaryTextColor,
                             fontSize: 16,
                             fontWeight: FontWeight.w800,
                           ),
@@ -63,8 +64,8 @@ class PackageOptionCard extends StatelessWidget {
                         const SizedBox(height: 4),
                         Text(
                           option.subtitle,
-                          style: const TextStyle(
-                            color: LightColor.darkgrey,
+                          style: TextStyle(
+                            color: LightColor.secondaryTextColor,
                             fontSize: 12.5,
                             height: 1.4,
                           ),
@@ -79,13 +80,13 @@ class PackageOptionCard extends StatelessWidget {
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: LightColor.orange.withValues(alpha: 0.12),
+                        color: LightColor.warningColor.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(999),
                       ),
-                      child: const Text(
-                        'Recommended',
+                      child: Text(
+                        StringConstants.recommended,
                         style: TextStyle(
-                          color: LightColor.orange,
+                          color: LightColor.warningColor,
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
                         ),
@@ -97,7 +98,7 @@ class PackageOptionCard extends StatelessWidget {
               Text(
                 option.priceLabel,
                 style: const TextStyle(
-                  color: LightColor.skyBlue,
+                  color: LightColor.secondaryColor,
                   fontSize: 18,
                   fontWeight: FontWeight.w800,
                 ),
@@ -111,15 +112,15 @@ class PackageOptionCard extends StatelessWidget {
                       Icons.check_circle_rounded,
                       size: 16,
                       color: isSelected
-                          ? LightColor.skyBlue
-                          : LightColor.secondaryGreen,
+                          ? LightColor.secondaryColor
+                          : LightColor.secondaryColor,
                     ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         feature,
-                        style: const TextStyle(
-                          color: LightColor.titleTextColor,
+                        style: TextStyle(
+                          color: LightColor.primaryTextColor,
                           fontSize: 13,
                           height: 1.35,
                         ),
@@ -136,15 +137,17 @@ class PackageOptionCard extends StatelessWidget {
                         ? Icons.radio_button_checked_rounded
                         : Icons.radio_button_off_rounded,
                     size: 18,
-                    color: isSelected ? LightColor.skyBlue : LightColor.grey,
+                    color: isSelected
+                        ? LightColor.secondaryColor
+                        : LightColor.hintTextColor,
                   ),
                   const SizedBox(width: 8),
                   Text(
                     isSelected ? 'Selected package' : 'Tap to choose package',
                     style: TextStyle(
                       color: isSelected
-                          ? LightColor.skyBlue
-                          : LightColor.darkgrey,
+                          ? LightColor.secondaryColor
+                          : LightColor.secondaryTextColor,
                       fontWeight: FontWeight.w700,
                     ),
                   ),

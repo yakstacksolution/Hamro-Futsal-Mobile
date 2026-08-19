@@ -2,7 +2,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart';
-import 'package:hamro_footsall/core/theme/light_color.dart';
+import 'package:hamro_footsall/core/theme/app_colors.dart';
+import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class KeyboardAttachedToolbar extends StatelessWidget {
   final QuillController controller;
@@ -11,175 +13,189 @@ class KeyboardAttachedToolbar extends StatelessWidget {
 
   QuillIconTheme get _iconTheme => QuillIconTheme(
     iconButtonSelectedData: IconButtonData(
-      color: LightColor.secondary,
+      color: LightColor.secondaryColor,
       style: ButtonStyle(
-        backgroundColor: WidgetStateProperty.all(LightColor.secondaryLight),
-        shape: WidgetStateProperty.all(
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        backgroundColor: MaterialStateProperty.all(
+          LightColor.secondaryLight.withValues(alpha: 0.18),
+        ),
+        shape: MaterialStateProperty.all(
+          RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+          ),
         ),
       ),
     ),
     iconButtonUnselectedData: IconButtonData(
-      color: Colors.black,
+      color: LightColor.primaryTextColor,
       style: ButtonStyle(
         shape: WidgetStateProperty.all(
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+          ),
         ),
       ),
     ),
   );
 
   QuillToolbarToggleStyleButtonOptions get _toggleButtonOptions =>
-      QuillToolbarToggleStyleButtonOptions(iconSize: 12, iconTheme: _iconTheme);
+      QuillToolbarToggleStyleButtonOptions(
+        iconSize: AppDimens.sizeX12,
+        iconTheme: _iconTheme,
+      );
 
   QuillToolbarHistoryButtonOptions get _historyButtonOptions =>
-      QuillToolbarHistoryButtonOptions(iconSize: 12, iconTheme: _iconTheme);
+      QuillToolbarHistoryButtonOptions(
+        iconSize: AppDimens.sizeX12,
+        iconTheme: _iconTheme,
+      );
 
   QuillToolbarClearFormatButtonOptions get _clearFormatButtonOptions =>
-      QuillToolbarClearFormatButtonOptions(iconSize: 12, iconTheme: _iconTheme);
+      QuillToolbarClearFormatButtonOptions(
+        iconSize: AppDimens.sizeX12,
+        iconTheme: _iconTheme,
+      );
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final toolbarColor = isDark
-        ? theme.colorScheme.surfaceContainerHighest
-        : theme.colorScheme.surface;
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     return AnimatedPadding(
       duration: const Duration(milliseconds: 250),
       curve: Curves.easeOut,
       padding: EdgeInsets.only(bottom: bottomInset),
       child: Material(
-        elevation: 8,
-        color: toolbarColor,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _buildQuillButton(
-                      child: QuillToolbarHistoryButton(
-                        options: _historyButtonOptions,
-                        controller: controller,
-                        isUndo: true,
+        elevation: 0,
+        color: LightColor.cardColor,
+        child: SizedBox(
+          width: double.infinity,
+          child: ColoredBox(
+            color: context.appColors.surfaceElevated,
+            child: Column(
+              mainAxisSize: MainAxisSize.max,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _buildQuillButton(
+                        child: QuillToolbarHistoryButton(
+                          options: _historyButtonOptions,
+                          controller: controller,
+                          isUndo: true,
+                        ),
+                        tooltip: StringConstants.undo,
                       ),
-                      tooltip: 'Undo',
-                    ),
-                    _buildQuillButton(
-                      child: QuillToolbarHistoryButton(
-                        options: _historyButtonOptions,
-                        controller: controller,
-                        isUndo: false,
+                      _buildQuillButton(
+                        child: QuillToolbarHistoryButton(
+                          options: _historyButtonOptions,
+                          controller: controller,
+                          isUndo: false,
+                        ),
+                        tooltip: StringConstants.redo,
                       ),
-                      tooltip: 'Redo',
-                    ),
-                    _buildQuillButton(
-                      child: QuillToolbarToggleStyleButton(
-                        options: _toggleButtonOptions,
-                        attribute: Attribute.bold,
-                        controller: controller,
+                      _buildQuillButton(
+                        child: QuillToolbarToggleStyleButton(
+                          options: _toggleButtonOptions,
+                          attribute: Attribute.bold,
+                          controller: controller,
+                        ),
+                        tooltip: StringConstants.bold,
                       ),
-                      tooltip: 'Bold',
-                    ),
-                    _buildQuillButton(
-                      child: QuillToolbarToggleStyleButton(
-                        options: _toggleButtonOptions,
-                        attribute: Attribute.italic,
-                        controller: controller,
+                      _buildQuillButton(
+                        child: QuillToolbarToggleStyleButton(
+                          options: _toggleButtonOptions,
+                          attribute: Attribute.italic,
+                          controller: controller,
+                        ),
+                        tooltip: StringConstants.italic,
                       ),
-                      tooltip: 'Italic',
-                    ),
-                    _buildQuillButton(
-                      child: QuillToolbarToggleStyleButton(
-                        options: _toggleButtonOptions,
-                        attribute: Attribute.underline,
-                        controller: controller,
+                      _buildQuillButton(
+                        child: QuillToolbarToggleStyleButton(
+                          options: _toggleButtonOptions,
+                          attribute: Attribute.underline,
+                          controller: controller,
+                        ),
+                        tooltip: StringConstants.underline,
                       ),
-                      tooltip: 'Underline',
-                    ),
-                    _buildQuillButton(
-                      child: QuillToolbarToggleStyleButton(
-                        options: _toggleButtonOptions,
-                        attribute: Attribute.strikeThrough,
-                        controller: controller,
+                      _buildQuillButton(
+                        child: QuillToolbarToggleStyleButton(
+                          options: _toggleButtonOptions,
+                          attribute: Attribute.strikeThrough,
+                          controller: controller,
+                        ),
+                        tooltip: StringConstants.strikethrough,
                       ),
-                      tooltip: 'Strikethrough',
-                    ),
-                    _buildIconButton(
-                      icon: Icons.link,
-                      tooltip: 'Link',
-                      onTap: () => _showLinkDialog(context),
-                      context: context,
-                    ),
-                  ],
+                      _buildIconButton(
+                        icon: Icons.link,
+                        tooltip: StringConstants.link,
+                        onTap: () => _showLinkDialog(context),
+                        context: context,
+                      ),
+                    ],
+                  ),
                 ),
-              ),
 
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _buildQuillButton(
-                      child: QuillToolbarToggleStyleButton(
-                        options: _toggleButtonOptions,
-                        attribute: Attribute.ul,
-                        controller: controller,
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _buildQuillButton(
+                        child: QuillToolbarToggleStyleButton(
+                          options: _toggleButtonOptions,
+                          attribute: Attribute.ul,
+                          controller: controller,
+                        ),
+                        tooltip: StringConstants.bulletList,
                       ),
-                      tooltip: 'Bullet List',
-                    ),
-                    _buildQuillButton(
-                      child: QuillToolbarToggleStyleButton(
-                        options: _toggleButtonOptions,
-                        attribute: Attribute.ol,
-                        controller: controller,
+                      _buildQuillButton(
+                        child: QuillToolbarToggleStyleButton(
+                          options: _toggleButtonOptions,
+                          attribute: Attribute.ol,
+                          controller: controller,
+                        ),
+                        tooltip: StringConstants.numberedList,
                       ),
-                      tooltip: 'Numbered List',
-                    ),
-                    _buildQuillButton(
-                      child: QuillToolbarToggleStyleButton(
-                        options: _toggleButtonOptions,
-                        attribute: Attribute.blockQuote,
-                        controller: controller,
+                      _buildQuillButton(
+                        child: QuillToolbarToggleStyleButton(
+                          options: _toggleButtonOptions,
+                          attribute: Attribute.blockQuote,
+                          controller: controller,
+                        ),
+                        tooltip: StringConstants.quote,
                       ),
-                      tooltip: 'Quote',
-                    ),
-                    _buildIconButton(
-                      icon: Icons.code,
-                      tooltip: 'Code',
-                      onTap: () =>
-                          controller.formatSelection(Attribute.codeBlock),
-                      context: context,
-                    ),
-                    _buildIconButton(
-                      icon: Icons.format_color_text,
-                      tooltip: 'Text Color',
-                      onTap: () => _showColorPicker(context, false),
-                      context: context,
-                    ),
-                    _buildIconButton(
-                      icon: Icons.format_color_fill,
-                      tooltip: 'Background Color',
-                      onTap: () => _showColorPicker(context, true),
-                      context: context,
-                    ),
-                    _buildQuillButton(
-                      child: QuillToolbarClearFormatButton(
-                        options: _clearFormatButtonOptions,
-                        controller: controller,
+                      _buildIconButton(
+                        icon: Icons.code,
+                        tooltip: StringConstants.code,
+                        onTap: () =>
+                            controller.formatSelection(Attribute.codeBlock),
+                        context: context,
                       ),
-                      tooltip: 'Clear Format',
-                    ),
-                  ],
+                      _buildIconButton(
+                        icon: Icons.format_color_text,
+                        tooltip: StringConstants.textColor,
+                        onTap: () => _showColorPicker(context, false),
+                        context: context,
+                      ),
+                      _buildIconButton(
+                        icon: Icons.format_color_fill,
+                        tooltip: StringConstants.backgroundColor,
+                        onTap: () => _showColorPicker(context, true),
+                        context: context,
+                      ),
+                      _buildQuillButton(
+                        child: QuillToolbarClearFormatButton(
+                          options: _clearFormatButtonOptions,
+                          controller: controller,
+                        ),
+                        tooltip: StringConstants.clearFormat,
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -205,8 +221,6 @@ class KeyboardAttachedToolbar extends StatelessWidget {
     required VoidCallback onTap,
     required BuildContext context,
   }) {
-    final theme = Theme.of(context);
-    final iconColor = theme.colorScheme.onSurface;
     return Tooltip(
       message: tooltip,
       child: Material(
@@ -219,7 +233,7 @@ class KeyboardAttachedToolbar extends StatelessWidget {
             width: 40,
             height: 40,
             alignment: Alignment.center,
-            child: Icon(icon, size: 20, color: iconColor),
+            child: Icon(icon, size: 20, color: LightColor.secondaryColor),
           ),
         ),
       ),
@@ -232,15 +246,15 @@ class KeyboardAttachedToolbar extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Insert Link'),
+        title: const Text(StringConstants.insertLink),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
               controller: urlController,
               decoration: const InputDecoration(
-                hintText: 'https://example.com',
-                labelText: 'URL',
+                hintText: StringConstants.urlExample,
+                labelText: StringConstants.url,
               ),
               keyboardType: TextInputType.url,
             ),
@@ -249,7 +263,7 @@ class KeyboardAttachedToolbar extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: const Text(StringConstants.cancel),
           ),
           ElevatedButton(
             onPressed: () {
@@ -273,7 +287,7 @@ class KeyboardAttachedToolbar extends StatelessWidget {
                 Navigator.pop(context);
               }
             },
-            child: const Text('Insert'),
+            child: const Text(StringConstants.insert),
           ),
         ],
       ),

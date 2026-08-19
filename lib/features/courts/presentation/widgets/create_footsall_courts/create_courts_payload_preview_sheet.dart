@@ -1,8 +1,8 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:hamro_footsall/core/theme/light_color.dart';
-import 'package:hamro_footsall/features/courts/presentation/models/create_footsall_court_payload.dart';
+import 'package:hamro_footsall/core/theme/app_colors.dart';
+import 'package:hamro_footsall/features/courts/data/model/create_footsall_court_payload.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 Future<void> showCreateCourtsPayloadPreviewSheet(
   BuildContext context,
@@ -19,8 +19,8 @@ Future<void> showCreateCourtsPayloadPreviewSheet(
     builder: (BuildContext context) {
       return Container(
         height: MediaQuery.of(context).size.height * 0.72,
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: LightColor.elevatedCardColor,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
@@ -32,24 +32,24 @@ Future<void> showCreateCourtsPayloadPreviewSheet(
                 width: 44,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: LightColor.lightGrey,
+                  color: LightColor.borderColor,
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
             ),
             const SizedBox(height: 14),
-            const Text(
-              'Create Shop Payload',
+            Text(
+              StringConstants.createShopPayload,
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
-                color: LightColor.titleTextColor,
+                color: LightColor.primaryTextColor,
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Matches the backend schema you shared.',
-              style: TextStyle(color: LightColor.darkgrey),
+            Text(
+              StringConstants.matchesTheBackendSchemaYouShared,
+              style: TextStyle(color: LightColor.secondaryTextColor),
             ),
             const SizedBox(height: 12),
             Expanded(
@@ -57,17 +57,17 @@ Future<void> showCreateCourtsPayloadPreviewSheet(
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF7FAFF),
+                  color: LightColor.cardColor,
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: LightColor.lightGrey),
+                  border: Border.all(color: LightColor.borderColor),
                 ),
                 child: SingleChildScrollView(
                   child: SelectableText(
                     prettyJson,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'monospace',
                       fontSize: 12,
-                      color: LightColor.black,
+                      color: LightColor.primaryTextColor,
                     ),
                   ),
                 ),
@@ -79,14 +79,14 @@ Future<void> showCreateCourtsPayloadPreviewSheet(
               child: ElevatedButton(
                 onPressed: () => Navigator.of(context).pop(),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: LightColor.skyBlue,
-                  foregroundColor: Colors.white,
+                  backgroundColor: LightColor.secondaryColor,
+                  foregroundColor: LightColor.inverseTextColor,
                   minimumSize: const Size.fromHeight(48),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: const Text('Close'),
+                child: const Text(StringConstants.close),
               ),
             ),
           ],

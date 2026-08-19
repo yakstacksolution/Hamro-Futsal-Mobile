@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:hamro_footsall/core/theme/light_color.dart';
+import 'package:hamro_footsall/core/theme/app_colors.dart';
+import 'package:hamro_footsall/core/utils/custom_image_view.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class HeaderComponetWidget extends StatelessWidget {
   const HeaderComponetWidget({
@@ -54,7 +56,7 @@ class HeaderComponetWidget extends StatelessWidget {
                       shape: BoxShape.circle,
                       gradient: RadialGradient(
                         colors: [
-                          LightColor.lightBlue.withValues(alpha: 0.5),
+                          LightColor.secondaryLight.withValues(alpha: 0.5),
                           Colors.transparent,
                         ],
                       ),
@@ -66,29 +68,25 @@ class HeaderComponetWidget extends StatelessWidget {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.7),
+                        color: LightColor.onBrandSurface.withValues(alpha: 0.7),
                         width: 2.5,
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: LightColor.skyBlue.withValues(alpha: 0.4),
+                          color: LightColor.secondaryColor.withValues(
+                            alpha: 0.4,
+                          ),
                           blurRadius: 16,
                           offset: const Offset(0, 4),
                         ),
                       ],
                     ),
                     child: ClipOval(
-                      child: Image.network(
-                        avatarUrl,
+                      child: CustomImageView(
+                        url: avatarUrl,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => CircleAvatar(
-                          backgroundColor: Colors.white.withValues(alpha: 0.3),
-                          child: const Icon(
-                            Icons.person_rounded,
-                            color: Colors.white,
-                            size: 38,
-                          ),
-                        ),
+                        width: double.infinity,
+                        height: double.infinity,
                       ),
                     ),
                   ),
@@ -102,8 +100,8 @@ class HeaderComponetWidget extends StatelessWidget {
                       height: 14,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: LightColor.secondaryGreen,
-                        border: Border.all(color: Colors.white, width: 2),
+                        color: LightColor.secondaryColor,
+                        border: Border.all(color: LightColor.onBrandSurface, width: 2),
                       ),
                     ),
                   ),
@@ -122,7 +120,7 @@ class HeaderComponetWidget extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        color: Colors.white,
+                        color: LightColor.onBrandSurface,
                         fontSize: 21,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 0.4,
@@ -137,18 +135,20 @@ class HeaderComponetWidget extends StatelessWidget {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.12),
+                        color: LightColor.onBrandSurface.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.2),
+                          color: LightColor.onBrandSurface.withValues(alpha: 0.2),
                           width: 1,
                         ),
                       ),
                       child: Row(
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.email,
-                            color: Colors.white70,
+                            color: LightColor.onBrandSurface.withValues(
+                              alpha: 0.7,
+                            ),
                             size: 13,
                           ),
                           const SizedBox(width: 4),
@@ -158,7 +158,7 @@ class HeaderComponetWidget extends StatelessWidget {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.9),
+                                color: LightColor.onBrandSurface.withValues(alpha: 0.9),
                                 fontSize: 12.5,
                                 fontWeight: FontWeight.w400,
                               ),
@@ -182,20 +182,20 @@ class HeaderComponetWidget extends StatelessWidget {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    Colors.white.withValues(alpha: 0.22),
-                    Colors.white.withValues(alpha: 0.10),
+                    LightColor.onBrandSurface.withValues(alpha: 0.22),
+                    LightColor.onBrandSurface.withValues(alpha: 0.10),
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.35),
+                  color: LightColor.onBrandSurface.withValues(alpha: 0.35),
                   width: 1,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.10),
+                    color: LightColor.shadowOf(0.10),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -205,9 +205,9 @@ class HeaderComponetWidget extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const Text(
-                    'Change image',
+                    StringConstants.changeImage,
                     style: TextStyle(
-                      color: Colors.white,
+                      color: LightColor.onBrandSurface,
                       fontSize: 10,
                       fontWeight: FontWeight.w500,
                       letterSpacing: 0.2,
@@ -230,20 +230,20 @@ class HeaderComponetWidget extends StatelessWidget {
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              Colors.white.withValues(alpha: 0.22),
-              Colors.white.withValues(alpha: 0.08),
+              LightColor.onBrandSurface.withValues(alpha: 0.22),
+              LightColor.onBrandSurface.withValues(alpha: 0.08),
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: Colors.white.withValues(alpha: 0.25),
+            color: LightColor.onBrandSurface.withValues(alpha: 0.25),
             width: 1,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
+              color: LightColor.shadowOf(0.08),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -254,14 +254,14 @@ class HeaderComponetWidget extends StatelessWidget {
           children: const [
             Icon(
               Icons.arrow_back_ios_new_rounded,
-              color: Colors.white,
+              color: LightColor.onBrandSurface,
               size: 13,
             ),
             SizedBox(width: 4),
             Text(
-              'Back',
+              StringConstants.back,
               style: TextStyle(
-                color: Colors.white,
+                color: LightColor.onBrandSurface,
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 0.2,
@@ -279,14 +279,14 @@ class HeaderComponetWidget extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.15),
+          color: LightColor.onBrandSurface.withValues(alpha: 0.15),
           shape: BoxShape.circle,
           border: Border.all(
-            color: Colors.white.withValues(alpha: 0.2),
+            color: LightColor.onBrandSurface.withValues(alpha: 0.2),
             width: 1,
           ),
         ),
-        child: Icon(icon, color: Colors.white, size: 17),
+        child: Icon(icon, color: LightColor.onBrandSurface, size: 17),
       ),
     );
   }
