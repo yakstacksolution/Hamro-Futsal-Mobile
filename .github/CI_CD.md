@@ -49,6 +49,12 @@ iOS (both workflows):
 | `APP_STORE_CONNECT_API_KEY_ID`                | App Store Connect API key ID                         |
 | `APP_STORE_CONNECT_API_KEY`                   | contents of the `.p8` private key                    |
 
+All workflows:
+
+| Secret        | Contents                                                                  |
+| ------------- | ------------------------------------------------------------------------- |
+| `CICD_TOKEN`  | PAT with `actions: write` on this repo, used by the artifact-cleanup steps |
+
 Optional, all workflows:
 
 | Secret              | Contents                                                        |
