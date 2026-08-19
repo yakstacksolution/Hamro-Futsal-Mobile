@@ -29,7 +29,7 @@ Android staging only:
 | Secret                              | Contents                                                              |
 | ----------------------------------- | --------------------------------------------------------------------- |
 | `FIREBASE_ANDROID_APP_ID`           | Firebase Android app ID, e.g. `1:1234567890:android:abcdef`            |
-| `FIREBASE_CREDENTIAL_FILE_CONTENT`  | Raw JSON of a service account with the Firebase App Distribution role  |
+| `FIREBASE_CREDENTIAL_FILE_CONTENT`  | Service account JSON (raw or base64) with the Firebase App Distribution role |
 
 Android production only:
 
@@ -91,3 +91,23 @@ absent, so a fresh clone still builds locally without the release secrets.
   shared widgets are otherwise dropped and disappear only in release.
 - The Android staging job runs `flutter analyze`/`flutter test` non-blocking;
   the production job requires `flutter test` to pass before building.
+
+## Troubleshooting
+
+### `Failed to authenticate, have you run firebase login?`
+
+The action prints this for *every* credential problem. It never means a missing
+interactive login — CI authenticates with a service account, not `firebase login`.
+Real causes, in order of likelihood:
+
+1. `FIREBASE_CREDENTIAL_FILE_CONTENT` is unset, empty, or under a different name.
+2. The secret holds something other than a service account key — a Firebase CLI
+   token (`firebase login:ci`) or an OAuth client file will not work.
+3. The service account lacks the **Firebase App Distribution Admin** role, or the
+   App Distribution API is not enabled on the project.
+4. `FIREBASE_ANDROID_APP_ID` belongs to a different Firebase project than the
+   service account.
+
+The "Prepare Firebase credentials" step checks 1 and 2 and prints the service
+account email, project ID, and the App ID's project number — compare those two
+project identifiers to rule out 4.

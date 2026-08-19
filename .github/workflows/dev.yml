@@ -103,11 +103,57 @@ jobs:
           path: build/app/outputs/flutter-apk/app-release.apk
           retention-days: 7
 
+      # The action reports a bare "have you run firebase login?" for every
+      # credential problem, so validate the secret here where the error can name
+      # the actual cause. Accepts the service account JSON either raw or base64.
+      - name: 🔐 Prepare Firebase credentials
+        env:
+          FIREBASE_CREDENTIAL_FILE_CONTENT: ${{ secrets.FIREBASE_CREDENTIAL_FILE_CONTENT }}
+          FIREBASE_ANDROID_APP_ID: ${{ secrets.FIREBASE_ANDROID_APP_ID }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "$FIREBASE_CREDENTIAL_FILE_CONTENT" ]; then
+            echo "::error::Secret FIREBASE_CREDENTIAL_FILE_CONTENT is empty or not set."
+            exit 1
+          fi
+          if [ -z "$FIREBASE_ANDROID_APP_ID" ]; then
+            echo "::error::Secret FIREBASE_ANDROID_APP_ID is empty or not set."
+            exit 1
+          fi
+
+          CRED_FILE="$GITHUB_WORKSPACE/firebase_credentials.json"
+          printf '%s' "$FIREBASE_CREDENTIAL_FILE_CONTENT" > "$CRED_FILE"
+
+          # Tolerate a base64-encoded secret by decoding it in place.
+          if ! jq -e . "$CRED_FILE" >/dev/null 2>&1; then
+            echo "Secret is not raw JSON — attempting base64 decode."
+            if base64 --decode < "$CRED_FILE" > "$CRED_FILE.decoded" 2>/dev/null \
+               && jq -e . "$CRED_FILE.decoded" >/dev/null 2>&1; then
+              mv "$CRED_FILE.decoded" "$CRED_FILE"
+            else
+              rm -f "$CRED_FILE.decoded"
+              echo "::error::FIREBASE_CREDENTIAL_FILE_CONTENT is neither valid JSON nor valid base64-encoded JSON. Store the service account key file's contents verbatim."
+              exit 1
+            fi
+          fi
+
+          if [ "$(jq -r '.type // empty' "$CRED_FILE")" != "service_account" ]; then
+            echo "::error::Credential JSON is not a service account key (expected \"type\": \"service_account\"). A Firebase CLI token or OAuth client file will not work here."
+            exit 1
+          fi
+
+          echo "Service account: $(jq -r '.client_email' "$CRED_FILE")"
+          echo "Project:         $(jq -r '.project_id' "$CRED_FILE")"
+
+          APP_PROJECT_NUMBER="$(printf '%s' "$FIREBASE_ANDROID_APP_ID" | cut -d: -f2)"
+          echo "App ID project number: $APP_PROJECT_NUMBER"
+
       - name: 🚀 Deploy to Firebase App Distribution
         uses: wzieba/Firebase-Distribution-Github-Action@v1
         with:
           appId: ${{ secrets.FIREBASE_ANDROID_APP_ID }}
-          serviceCredentialsFileContent: ${{ secrets.FIREBASE_CREDENTIAL_FILE_CONTENT }}
+          serviceCredentialsFile: firebase_credentials.json
           groups: testers
           releaseNotes: |
             Branch: ${{ github.ref_name }}
@@ -151,3 +197,7 @@ jobs:
               }
             ]
           }' "$SLACK_WEBHOOK_URL"
+
+      - name: 🧽 Remove Firebase credentials
+        if: always()
+        run: rm -f "$GITHUB_WORKSPACE/firebase_credentials.json"
