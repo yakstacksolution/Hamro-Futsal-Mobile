@@ -1,0 +1,159 @@
+name: iOS Staging — TestFlight
+
+on:
+  push:
+    branches:
+      - staging
+  workflow_dispatch:
+
+concurrency:
+  group: ios-staging
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    name: Build IPA and upload to TestFlight
+    runs-on: macos-latest
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - name: ⬇️ Check out repository
+        uses: actions/checkout@v4
+
+      - name: 🔨 Set up Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: "latest-stable"
+
+      - name: ⚙️ Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.44.0"
+          channel: "stable"
+          cache: true
+
+      - name: 🚫 Disable Flutter Swift Package Manager
+        run: flutter config --no-enable-swift-package-manager
+
+      - name: 📦 Install Flutter dependencies
+        run: flutter pub get
+
+      - name: 📦 Install CocoaPods
+        run: |
+          cd ios
+          pod install --repo-update
+
+      - name: 🔐 Set up code signing
+        env:
+          P12_DISTRIBUTION_CERTIFICATE_BASE64: ${{ secrets.IOS_P12_DISTRIBUTION_CERTIFICATE_BASE64 }}
+          P12_DISTRIBUTION_CERTIFICATE_PASSWORD: ${{ secrets.IOS_P12_DISTRIBUTION_CERTIFICATE_PASSWORD }}
+          DISTRIBUTION_PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_DISTRIBUTION_PROVISIONING_PROFILE_BASE64 }}
+          KEYCHAIN_PASSWORD: ${{ secrets.IOS_RUNNER_LOCAL_KEYCHAIN_PASSWORD }}
+        run: |
+          CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
+          PROVISIONING_PROFILE_PATH=$RUNNER_TEMP/build_pp.mobileprovision
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+
+          echo -n "$P12_DISTRIBUTION_CERTIFICATE_BASE64" | base64 --decode -o $CERTIFICATE_PATH
+          echo -n "$DISTRIBUTION_PROVISIONING_PROFILE_BASE64" | base64 --decode -o $PROVISIONING_PROFILE_PATH
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security import $CERTIFICATE_PATH -P "$P12_DISTRIBUTION_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp $PROVISIONING_PROFILE_PATH ~/Library/MobileDevice/Provisioning\ Profiles
+
+      - name: 🔑 Configure keychain
+        run: |
+          security list-keychains -d user -s $(security list-keychains -d user | sed s/\"//g) "$RUNNER_TEMP/app-signing.keychain-db"
+          security default-keychain -d user -s "$RUNNER_TEMP/app-signing.keychain-db"
+
+      # Icons are resolved indirectly through shared widgets, so the release
+      # tree-shaker stays off — see the Android workflows for the same note.
+      - name: 🛠 Build iOS app
+        run: flutter build ipa --release --no-tree-shake-icons --export-options-plist=ios/Runner/ExportOptions.plist
+
+      - name: 🧹 Delete old IPA artifacts
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const artifacts = await github.rest.actions.listArtifactsForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              name: 'hamro-futsal-staging-ipa',
+              per_page: 100,
+            });
+            for (const artifact of artifacts.data.artifacts) {
+              await github.rest.actions.deleteArtifact({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                artifact_id: artifact.id,
+              });
+            }
+
+      - name: 📤 Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hamro-futsal-staging-ipa
+          path: build/ios/ipa/*.ipa
+          retention-days: 7
+
+      - name: 🔍 Locate IPA
+        id: ipa
+        run: |
+          IPA_PATH=$(find build/ios/ipa -name "*.ipa" | head -n 1)
+          if [ -z "$IPA_PATH" ]; then
+            echo "❌ IPA file not found!"
+            exit 1
+          fi
+          echo "IPA path found: $IPA_PATH"
+          echo "ipa-path=$IPA_PATH" >> $GITHUB_OUTPUT
+
+      - name: 🚀 Deploy to TestFlight
+        uses: apple-actions/upload-testflight-build@v1
+        with:
+          app-path: ${{ steps.ipa.outputs.ipa-path }}
+          issuer-id: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
+          api-key-id: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          api-private-key: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
+
+      - name: 💬 Notify Slack — success
+        if: success() && env.SLACK_WEBHOOK_URL != ''
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          curl -X POST -H 'Content-type: application/json' --data '{
+            "text": "🎉 Hamro Futsal iOS Staging build uploaded to TestFlight.",
+            "attachments": [
+              {
+                "color": "#36a64f",
+                "fields": [
+                  { "title": "Branch", "value": "${{ github.ref_name }}", "short": true },
+                  { "title": "Commit", "value": "${{ github.sha }}", "short": true }
+                ]
+              }
+            ]
+          }' "$SLACK_WEBHOOK_URL"
+
+      - name: 💬 Notify Slack — failure
+        if: failure() && env.SLACK_WEBHOOK_URL != ''
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          curl -X POST -H 'Content-type: application/json' --data '{
+            "text": "⚠️ Hamro Futsal iOS Staging build FAILED.",
+            "attachments": [
+              {
+                "color": "#FF0000",
+                "fields": [
+                  { "title": "Branch", "value": "${{ github.ref_name }}", "short": true },
+                  { "title": "Commit", "value": "${{ github.sha }}", "short": true },
+                  { "title": "Run", "value": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}", "short": false }
+                ]
+              }
+            ]
+          }' "$SLACK_WEBHOOK_URL"
