@@ -54,6 +54,7 @@ class BrandingReviewSection extends StatelessWidget {
           labelText: StringConstants.shopLogoUrl,
           hintText: StringConstants.cloudinaryImageUrlExample,
           icon: Icons.photo_camera_back_rounded,
+          iconColor: LightColor.monoIconColor,
           validator: bloc.logoUrlValidator,
         ),
         const SizedBox(height: 16),

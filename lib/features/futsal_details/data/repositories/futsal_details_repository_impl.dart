@@ -13,6 +13,7 @@ import 'package:hamro_footsall/features/futsal_details/data/model/recurring_avai
 import 'package:hamro_footsall/features/futsal_details/data/model/time_slot_model.dart';
 import 'package:hamro_footsall/features/futsal_details/data/model/venue_amenities_facilities_model.dart';
 import 'package:hamro_footsall/features/futsal_details/data/model/venue_description_model.dart';
+import 'package:hamro_footsall/features/futsal_details/data/model/venue_review_model.dart';
 import 'package:hamro_footsall/features/futsal_details/domain/repository/futsal_details_repository.dart';
 import 'package:hamro_footsall/core/utils/string_constants.dart';
 
@@ -64,6 +65,39 @@ final class FutsalDetailsRepositoryImpl extends FutsalDetailsRepository {
       return left(
         DefaultException(
           errorMessage: StringConstants.couldNotParseVenueDescriptionFromServer,
+          statusCode: 0,
+        ),
+      );
+    }
+  }
+
+  @override
+  Future<Either<AppException, VenueReviewPageModel>> getVenueReviews({
+    required int venueId,
+    int page = 1,
+    int perPage = 10,
+  }) async {
+    final response = await _remoteDataSource.getVenueReviews(
+      venueId: venueId,
+      page: page,
+      perPage: perPage,
+    );
+    if (response.isError()) {
+      return left(ResponseHelper.error(response));
+    }
+
+    try {
+      return right(
+        VenueReviewPageModel.fromResponse(
+          response.getValue(),
+          requestedPage: page,
+          requestedPerPage: perPage,
+        ),
+      );
+    } catch (_) {
+      return left(
+        DefaultException(
+          errorMessage: StringConstants.couldNotParseReviewsFromServer,
           statusCode: 0,
         ),
       );

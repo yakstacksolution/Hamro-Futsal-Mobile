@@ -50,4 +50,65 @@ void main() {
 
     expect(page.hasMorePages, isTrue);
   });
+
+  test('parses the get-venue-courts venues response and nested media', () {
+    final VenueCourtPageModel page = VenueCourtPageModel.fromResponse(
+      <String, dynamic>{
+        'status': 'success',
+        'data': <String, dynamic>{
+          'venues': <Map<String, dynamic>>[
+            <String, dynamic>{
+              'id': 46,
+              'futsal_name': 'Three star futsal',
+              'futsal_address': 'Kirtipur, Kathmandu, Nepal',
+              'phone': '9898998989',
+              'cover_image_media': <String, dynamic>{
+                'id': 407,
+                'full_url': 'https://example.com/venue.jpg',
+              },
+              'status': 'active',
+              'courts': <Map<String, dynamic>>[
+                <String, dynamic>{
+                  'id': 46,
+                  'venue_id': 46,
+                  'court_type_id': 1,
+                  'match_format_id': 1,
+                  'court_name': 'Court A',
+                  'base_price': '900.00',
+                  'is_payment_required': true,
+                  'advance_payment_required': false,
+                  'court_photos': <String, dynamic>{
+                    'id': 406,
+                    'name': 'court-photo',
+                    'full_url': 'https://example.com/court.jpg',
+                  },
+                  'status': 'active',
+                },
+              ],
+            },
+          ],
+          'pagination': <String, dynamic>{
+            'current_page': 1,
+            'last_page': 1,
+            'per_page': 10,
+            'total': 1,
+            'has_more_pages': false,
+          },
+        },
+      },
+    );
+
+    final venue = page.items.single;
+    final court = venue.courts.single;
+    expect(venue.title, 'Three star futsal');
+    expect(venue.imageUrl, 'https://example.com/venue.jpg');
+    expect(court.venueId, 46);
+    expect(court.name, 'Court A');
+    expect(court.basePrice, 900);
+    expect(court.courtType, 'Indoor');
+    expect(court.matchFormat, '5v5');
+    expect(court.photos.single.remoteUrl, 'https://example.com/court.jpg');
+    expect(court.advancePaymentRequired, isFalse);
+    expect(page.hasMorePages, isFalse);
+  });
 }

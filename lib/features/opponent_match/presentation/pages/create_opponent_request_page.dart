@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -9,6 +11,7 @@ import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/widgets/acknowledge_sheet.dart';
 import 'package:hamro_footsall/core/widgets/custom_app_bar.dart';
 import 'package:hamro_footsall/core/widgets/custom_button.dart';
 import 'package:hamro_footsall/core/widgets/custom_date_picker.dart';
@@ -60,13 +63,6 @@ extension _StepX on _Step {
     _Step.cost => 'Cost split',
     _Step.publish => 'Publish',
   };
-
-  String get shortLabel => switch (this) {
-    _Step.match => 'Match',
-    _Step.venue => 'Venue',
-    _Step.cost => 'Cost',
-    _Step.publish => 'Publish',
-  };
 }
 
 /// Full-page wizard to compose and publish one opponent request.
@@ -104,6 +100,13 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
   StreamSubscription<PublicCourtOptionsState>? _optionsSub;
 
   _Step _step = _Step.match;
+
+  /// Armed by a system back press on the first step, and disarmed a couple of
+  /// seconds later. The wizard holds several steps of work, and the OS back
+  /// gesture is easy to trigger by accident, so leaving takes two presses.
+  Timer? _exitArmedTimer;
+
+  bool get _exitArmed => _exitArmedTimer?.isActive ?? false;
 
   TeamModel? _team;
 
@@ -149,6 +152,16 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
   /// — a platform booking whose total the slot draft never carried, for
   /// instance — so the cost step shows the real figure instead of nothing.
   int? _serverCourtFee;
+
+  /// True while a summary edit sheet is open. The venue flow can be reached
+  /// from there too, and the sheet owns its own save — so the step must not
+  /// advance underneath it.
+  bool _editSheetOpen = false;
+
+  /// Bumped by every [setState]. The summary's edit sheets live on their own
+  /// route, so a page rebuild does not reach them — they listen to this instead
+  /// and re-run the very same section builders step one to three use.
+  final ValueNotifier<int> _editRevision = ValueNotifier<int>(0);
 
   /// True once the server's copy of the draft (`GET /auth/opponent-requests/
   /// {id}`) has filled the plain fields — date, time, message, venue, step.
@@ -221,8 +234,9 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
   /// booking itself for a court booked here, the typed fields for one booked
   /// elsewhere.
   void _hydrateFromDraft(OpponentRequestModel draft) {
-    // Step one's pickers show what the match step saved — not the booked slot,
-    // which `dateTime` prefers and which the venue step owns.
+    // The kickoff the match step saved — not the booked slot, which `dateTime`
+    // prefers and which the venue step owns. Only the booked-elsewhere branch
+    // shows a date picker now, and it is seeded from this.
     final DateTime preferred = draft.preferredDateTime ?? draft.dateTime;
     _date = preferred;
     _time = TimeOfDay(hour: preferred.hour, minute: preferred.minute);
@@ -239,10 +253,12 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
           ? SplitBasis.result
           : SplitBasis.teams;
       final int percent = draft.requestingTeamPercent;
-      if (percent > 0 && percent < 100) {
+      // A result-based rule may legitimately be 100 (loser pays it all), so
+      // only the fixed per-side split rejects the extremes.
+      if (percent > 0 && percent <= 100) {
         if (_basis == SplitBasis.result) {
           _loserPercent = percent;
-        } else {
+        } else if (percent < 100) {
           _myPercent = percent;
         }
       }
@@ -347,11 +363,21 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
   }
 
   @override
+  void setState(VoidCallback fn) {
+    super.setState(fn);
+    // Cheap and synchronous: an open edit sheet is rebuilt from the same state
+    // the page just changed, so the two never disagree.
+    _editRevision.value++;
+  }
+
+  @override
   void dispose() {
+    _editRevision.dispose();
     _messageCtrl.dispose();
     _venueNameCtrl.dispose();
     _venueLocationCtrl.dispose();
     _courtFeeCtrl.dispose();
+    _exitArmedTimer?.cancel();
     _optionsSub?.cancel();
     _publicVenueBloc.close();
     _optionsBloc.close();
@@ -424,6 +450,14 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
     }
     return _combine(_date, _time);
   }
+
+  /// The date half of the kickoff line. When a slot range is shown next to it
+  /// the range already carries the time, so repeating it read as two different
+  /// times — "Tomorrow, 6:00 AM · 6:00 AM – 7:00 AM". Only a kickoff with no
+  /// range keeps its time here.
+  String get _kickoffWhen => _slotLabel.isEmpty
+      ? OpponentFmt.friendlyDateTime(_kickoff)
+      : OpponentFmt.friendlyDate(_kickoff);
 
   /// Human-readable slot for the current venue choice.
   String get _slotLabel {
@@ -526,8 +560,12 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
       AppUtils().showSnackBar(context, MsgType.info, _stepHint(_step));
       return;
     }
-    // Step one opens the request (or patches the one it already opened) before
-    // moving on, so the later steps always have an id to work against.
+    // A step advances only once its call succeeded. The wizard builds one
+    // request on the server step by step, so moving on after a rejected save
+    // would carry the user forward on answers the server never stored — and
+    // every later step patches that same id, so they would all fail too.
+    // The reason is already on screen; the step stays put so it can be fixed.
+    // Step one opens the request (or patches the one it already opened).
     if (_step == _Step.match && !await _saveMatchStep()) return;
     // Step two attaches the venue to that id. Only the "already booked on this
     // platform" branch has an endpoint so far; the other branches still carry
@@ -544,8 +582,9 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
   /// `POST /auth/opponent-requests` the first time, then
   /// `PATCH /auth/opponent-requests/{id}/match` on every later pass.
   ///
-  /// Returns false when the call failed, leaving the wizard on this step with
-  /// the reason on screen.
+  /// Returns false when the call failed, with the reason already on screen —
+  /// the wizard stays on this step, and a summary edit sheet stays open, until
+  /// the change is actually saved.
   Future<bool> _saveMatchStep() async {
     final OpponentMatchBloc bloc = context.read<OpponentMatchBloc>();
     final int? teamId = int.tryParse(_team?.id ?? '');
@@ -570,8 +609,6 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
           teamId: teamId,
           matchFormatId: formatId,
           opponentLevelId: levelId,
-          preferredDate: _date,
-          preferredTime: (hour: _time.hour, minute: _time.minute),
         ),
       ),
     );
@@ -600,8 +637,9 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
   /// (`venue_source: booking`); a court booked elsewhere is described field by
   /// field (`venue_source: external`).
   ///
-  /// Returns false when the call failed, leaving the wizard on the venue step
-  /// with the reason on screen.
+  /// Returns false when the call failed, with the reason already on screen —
+  /// the wizard stays on this step, and a summary edit sheet stays open, until
+  /// the change is actually saved.
   Future<bool> _saveVenueStep() async {
     final OpponentVenueStepRequest? request = _venueStepRequest();
     if (request == null) return false;
@@ -642,8 +680,8 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
             ? null
             : OpponentVenueStepRequest.existingBooking(booking.id);
       }
-      // Booked elsewhere: the court is only known by what the user typed, and
-      // the schedule is the preferred date/time from step one.
+      // Booked elsewhere: the court is only known by what the user typed —
+      // including the match date, which this branch picks itself.
       final String venueName = _venueNameCtrl.text.trim();
       if (venueName.isEmpty) return null;
       if (!_externalWindowValid) return null;
@@ -652,6 +690,8 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
         courtName: '',
         address: _venueLocationCtrl.text.trim(),
         date: _date,
+        // The match day this branch picked, which step one no longer asks for.
+        preferredDate: _date,
         startTime: (hour: _externalStart.hour, minute: _externalStart.minute),
         endTime: (hour: _externalEnd.hour, minute: _externalEnd.minute),
         feeAmount: _enteredCourtFee ?? 0,
@@ -679,6 +719,9 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
       courtName: slot.courtName,
       address: venue?.address ?? '',
       date: slot.selectedDate,
+      // Same payload shape, so the match day travels here too — the slot's own
+      // date is the day being played.
+      preferredDate: slot.selectedDate,
       startTime: (hour: start.hour, minute: start.minute),
       endTime: (hour: end.hour, minute: end.minute),
       feeAmount: _resolvedCourtFee ?? 0,
@@ -688,8 +731,9 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
   /// `PUT /auth/opponent-requests/{id}/cost` — the split rule the accepting
   /// team sees before it pays.
   ///
-  /// Returns false when the call failed, leaving the wizard on the cost step
-  /// with the reason on screen.
+  /// Returns false when the call failed, with the reason already on screen —
+  /// the wizard stays on this step, and a summary edit sheet stays open, until
+  /// the change is actually saved.
   Future<bool> _saveCostStep() async {
     final OpponentMatchBloc bloc = context.read<OpponentMatchBloc>();
     bloc.add(SaveOpponentCostStepEvent(_costStepRequest()));
@@ -743,6 +787,35 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
     _goTo(_Step.values[_step.index - 1]);
   }
 
+  /// The OS back gesture used to close the whole wizard from any step, which
+  /// threw away the steps the user had filled in. It now walks back through
+  /// them the way the Back button does, and leaving from the first step asks
+  /// for a second press.
+  void _handleSystemBack() {
+    if (_step != _Step.match) {
+      _goTo(_Step.values[_step.index - 1]);
+      return;
+    }
+    if (_exitArmed) {
+      _exitArmedTimer?.cancel();
+      Navigator.of(context).pop();
+      return;
+    }
+    HapticFeedback.selectionClick();
+    AppUtils().showSnackBar(
+      context,
+      MsgType.info,
+      StringConstants.pressBackAgainToLeaveRequest,
+      key: 'opponent_request_exit_hint',
+    );
+    // Only a press that follows this one closely counts as confirmation.
+    _exitArmedTimer?.cancel();
+    _exitArmedTimer = Timer(const Duration(seconds: 2), () {
+      if (mounted) setState(() {});
+    });
+    setState(() {});
+  }
+
   String _stepHint(_Step step) => switch (step) {
     _Step.match =>
       _team == null
@@ -755,7 +828,8 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
           ? 'Select the booking that hosts this match.'
           : !_externalWindowValid
           ? 'The end time has to be after the start time.'
-          : 'Fill in the venue, its location, the fee and the booked time.',
+          : 'Fill in the venue, its location, the fee and the booked date '
+                'and time.',
     _ => 'Complete this step to continue.',
   };
 
@@ -772,15 +846,6 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
     if (picked != null) setState(() => _date = picked);
   }
 
-  Future<void> _pickTime() async {
-    final picked = await customCupertinoTimePicker(
-      context,
-      StringConstants.matchTime,
-      initialTime: _time,
-    );
-    if (picked != null) setState(() => _time = picked);
-  }
-
   void _selectVenuePlan(_VenuePlan plan) {
     setState(() {
       _venuePlan = plan;
@@ -792,9 +857,6 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
     }
   }
 
-  /// The same create-team sheet the Teams tab uses, so a user who reaches the
-  /// wizard without a team can make one here instead of backing all the way out.
-  /// The new team lands in `state.teams` and the list below picks it up.
   void _openCreateTeamSheet() {
     final bloc = context.read<OpponentMatchBloc>();
     showModalBottomSheet<void>(
@@ -861,21 +923,140 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
       ),
     );
     if (booking == null || !mounted) return;
+    // Land back on the venue step, not the next one: the confirmed card is the
+    // receipt for what was just booked, and the user gets to see it before the
+    // wizard moves on.
     setState(() {
       _confirmedSlot = booking;
       _date = booking.selectedDate;
       _time = _parseApiTime(booking.apiTime ?? '') ?? _time;
       _submitted = false;
-      _step = _Step.cost;
     });
-    AppUtils().showSnackBar(
-      context,
-      MsgType.success,
-      'Booking complete.',
-      key: 'opponent_request_booking_complete',
-    );
     HapticFeedback.selectionClick();
+
+    // Unclosable on purpose: attaching the booking and moving the wizard on
+    // both happen after this, so the user has to have seen it. Awaiting it is
+    // what replaces the old "let the card paint first" delay.
+    await showAcknowledgeSheet(
+      context: context,
+      title: StringConstants.bookingCompleted,
+      message: StringConstants.bookingCompletedMessage,
+      details: <AcknowledgeLine>[
+        if (_venueLabelText.isNotEmpty)
+          (icon: Icons.location_on_outlined, text: _venueLabelText),
+        (
+          icon: Icons.schedule_outlined,
+          text: _slotLabel.isEmpty
+              ? _kickoffWhen
+              : '$_kickoffWhen · $_slotLabel',
+        ),
+        if ((_resolvedCourtFee ?? 0) > 0)
+          (
+            icon: Icons.payments_outlined,
+            text: '${OpponentFmt.npr(_resolvedCourtFee!)} court fee',
+          ),
+        if (booking.bookingId != null)
+          (
+            icon: Icons.confirmation_number_outlined,
+            text: 'Booking #${booking.bookingId}',
+          ),
+      ],
+    );
+    if (!mounted) return;
+
+    // No booking id means the court was chosen but not booked on this platform,
+    // so there is nothing to attach — the user continues from the step as usual.
+    if (booking.bookingId == null) return;
+    // Reached from a summary edit sheet: it saves and closes on its own terms.
+    if (_editSheetOpen) return;
+
+    // `PUT /auth/opponent-requests/{id}/venue` with
+    // {"venue_source": "booking", "booking_id": <id>} — built by
+    // [_venueStepRequest] from this very slot.
+    // Same rule as Continue: a rejected venue save keeps the user on the step.
+    if (!await _saveVenueStep() || !mounted) return;
+    _goTo(_Step.cost);
   }
+
+  // ───────────────────────────── summary editing ─────────────────────────────
+
+  /// Opens one summary row's controls in a sheet, so a late correction never
+  /// costs the user their place on the publish step.
+  ///
+  /// [body] is the same section builder the wizard step uses — there is no
+  /// second copy of any form. [save] is the step endpoint that owns those
+  /// fields; the sheet closes only once it succeeds, so a rejected change stays
+  /// on screen with its reason.
+  Future<void> _openEditSheet({
+    required String title,
+    required IconData icon,
+    required List<Widget> Function(OpponentMatchState state) body,
+    required Future<bool> Function() save,
+    String? Function()? validate,
+  }) async {
+    final OpponentMatchBloc bloc = context.read<OpponentMatchBloc>();
+    _editSheetOpen = true;
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: LightColor.cardColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppDimens.radiusX20),
+        ),
+      ),
+      builder: (BuildContext sheetContext) =>
+          BlocProvider<OpponentMatchBloc>.value(
+            // The bloc is provided inside this page's route, which a sheet route
+            // cannot see — hand it over explicitly.
+            value: bloc,
+            child: _EditSheet(
+              title: title,
+              icon: icon,
+              revision: _editRevision,
+              body: body,
+              save: save,
+              validate: validate,
+            ),
+          ),
+    );
+    _editSheetOpen = false;
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _editTeam() => _openEditSheet(
+    title: 'Team',
+    icon: Icons.shield_outlined,
+    body: _teamSection,
+    save: _saveMatchStep,
+    validate: () => _team == null ? 'Select the team that will play.' : null,
+  );
+
+  Future<void> _editMatchDetails() => _openEditSheet(
+    title: 'Match format',
+    icon: Icons.sports_soccer_rounded,
+    body: _matchDetailsSection,
+    save: _saveMatchStep,
+    validate: () =>
+        _selectedFormatId == null ? 'Pick a match type to continue.' : null,
+  );
+
+  /// Kickoff and venue are the same answer — the attached booking settles both,
+  /// so both rows open this one sheet.
+  Future<void> _editVenue() => _openEditSheet(
+    title: 'Kickoff & venue',
+    icon: Icons.stadium_outlined,
+    body: (_) => _venueSection(),
+    save: _saveVenueStep,
+    validate: () => _venueSettled ? null : _stepHint(_Step.venue),
+  );
+
+  Future<void> _editCostSplit() => _openEditSheet(
+    title: 'Cost split',
+    icon: Icons.pie_chart_outline_rounded,
+    body: (_) => _costSection(),
+    save: _saveCostStep,
+  );
 
   // ───────────────────────────── publish ─────────────────────────────
 
@@ -1036,106 +1217,119 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: LightColor.background,
-      appBar: CustomAppBar(
-        title: widget.draft == null
-            ? StringConstants.newRequest
-            : StringConstants.completeRequest,
-      ),
-      body: SafeArea(
-        top: false,
-        child: BlocConsumer<OpponentMatchBloc, OpponentMatchState>(
-          // Teams and levels arrive after the page opens; a resumed draft
-          // re-selects itself as soon as they do.
-          listener: (context, state) {
-            _syncServerCourtFee(state);
-            _applyDraftSelections(state);
-            if (state.draftStatus == OpponentMatchStatus.failure) {
-              AppUtils().showSnackBar(
-                context,
-                MsgType.error,
-                state.draftError ?? StringConstants.somethingWentWrong,
-                key: 'opponent_draft_load_failed',
-              );
-            }
-          },
-          builder: (context, state) {
-            // Hold the form back until the draft's own data is in, so the user
-            // never edits fields that are about to be overwritten.
-            if (widget.draft != null &&
-                !_draftHydrated &&
-                state.isLoadingDraft) {
-              return const Center(
-                child: CircularProgressIndicator(
-                  color: LightColor.secondaryColor,
-                ),
-              );
-            }
-            return Column(
-              children: [
-                _StepTracker(
-                  current: _step,
-                  isComplete: _stepComplete,
-                  onTap: (step) {
-                    // Only steps already satisfied can be jumped to, so the
-                    // wizard can't be skipped forward.
-                    if (step.index <= _step.index) _goTo(step);
-                  },
-                ),
-                Expanded(
-                  child: Form(
-                    key: _formKey,
-                    child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 180),
-                      child: ListView(
-                        key: ValueKey<_Step>(_step),
-                        physics: const BouncingScrollPhysics(),
-                        padding: AppUtils().getPadding(
-                          symmetricHorizontal: AppDimens.paddingX20,
-                          top: AppDimens.paddingX6,
-                          bottom: AppDimens.paddingX28,
+    // `canPop: false` hands the system back gesture to [_handleSystemBack];
+    // programmatic pops (publishing, the Back button on the first step) are
+    // unaffected.
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (bool didPop, Object? result) {
+        if (didPop) return;
+        _handleSystemBack();
+      },
+      child: Scaffold(
+        backgroundColor: LightColor.background,
+        appBar: CustomAppBar(
+          title: widget.draft == null
+              ? StringConstants.newRequest
+              : StringConstants.completeRequest,
+          // The visible arrow steps back through the wizard too, instead of
+          // abandoning it from step three.
+          onBack: _back,
+        ),
+        body: SafeArea(
+          top: false,
+          child: BlocConsumer<OpponentMatchBloc, OpponentMatchState>(
+            // Teams and levels arrive after the page opens; a resumed draft
+            // re-selects itself as soon as they do.
+            listener: (context, state) {
+              _syncServerCourtFee(state);
+              _applyDraftSelections(state);
+              if (state.draftStatus == OpponentMatchStatus.failure) {
+                AppUtils().showSnackBar(
+                  context,
+                  MsgType.error,
+                  state.draftError ?? StringConstants.somethingWentWrong,
+                  key: 'opponent_draft_load_failed',
+                );
+              }
+            },
+            builder: (context, state) {
+              // Hold the form back until the draft's own data is in, so the user
+              // never edits fields that are about to be overwritten.
+              if (widget.draft != null &&
+                  !_draftHydrated &&
+                  state.isLoadingDraft) {
+                return const Center(
+                  child: CircularProgressIndicator(
+                    color: LightColor.secondaryColor,
+                  ),
+                );
+              }
+              return Column(
+                children: [
+                  _StepTracker(
+                    current: _step,
+                    isComplete: _stepComplete,
+                    onTap: (step) {
+                      // Only steps already satisfied can be jumped to, so the
+                      // wizard can't be skipped forward.
+                      if (step.index <= _step.index) _goTo(step);
+                    },
+                  ),
+                  Expanded(
+                    child: Form(
+                      key: _formKey,
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 180),
+                        child: ListView(
+                          key: ValueKey<_Step>(_step),
+                          physics: const BouncingScrollPhysics(),
+                          padding: AppUtils().getPadding(
+                            symmetricHorizontal: AppDimens.paddingX20,
+                            top: AppDimens.paddingX6,
+                            bottom: AppDimens.paddingX28,
+                          ),
+                          children: switch (_step) {
+                            _Step.match => _matchStep(state),
+                            _Step.venue => _venueStep(),
+                            _Step.cost => _costStep(),
+                            _Step.publish => _publishStep(state),
+                          },
                         ),
-                        children: switch (_step) {
-                          _Step.match => _matchStep(state),
-                          _Step.venue => _venueStep(),
-                          _Step.cost => _costStep(),
-                          _Step.publish => _publishStep(state),
-                        },
                       ),
                     ),
                   ),
-                ),
-              ],
-            );
-          },
+                ],
+              );
+            },
+          ),
         ),
-      ),
-      bottomNavigationBar: BlocBuilder<OpponentMatchBloc, OpponentMatchState>(
-        buildWhen: (a, b) =>
-            a.matchStepStatus != b.matchStepStatus ||
-            a.venueStepStatus != b.venueStepStatus ||
-            a.costStepStatus != b.costStepStatus ||
-            a.publishStatus != b.publishStatus ||
-            a.draftStatus != b.draftStatus,
-        builder: (context, state) => SizedBox(
-          height: 120,
-          child: _BottomBar(
-            text: _step == _Step.publish ? 'Publish Request' : 'Continue',
-            icon: _step == _Step.publish
-                ? Icons.campaign_rounded
-                : Icons.arrow_forward_rounded,
-            onNext: _next,
-            onBack: _back,
-            backText: _step == _Step.match ? 'Cancel' : 'Back',
-            isBusy:
-                state.isSavingMatchStep ||
-                state.isSavingVenueStep ||
-                state.isSavingCostStep ||
-                state.isPublishing ||
-                (widget.draft != null &&
-                    !_draftHydrated &&
-                    state.isLoadingDraft),
+        bottomNavigationBar: BlocBuilder<OpponentMatchBloc, OpponentMatchState>(
+          buildWhen: (a, b) =>
+              a.matchStepStatus != b.matchStepStatus ||
+              a.venueStepStatus != b.venueStepStatus ||
+              a.costStepStatus != b.costStepStatus ||
+              a.publishStatus != b.publishStatus ||
+              a.draftStatus != b.draftStatus,
+          builder: (context, state) => SizedBox(
+            height: 120,
+            child: _BottomBar(
+              text: _step == _Step.publish ? 'Publish Request' : 'Continue',
+              icon: _step == _Step.publish
+                  ? Icons.campaign_rounded
+                  : Icons.arrow_forward_rounded,
+              onNext: _next,
+              onBack: _back,
+              backText: _step == _Step.match ? 'Cancel' : 'Back',
+              isBusy:
+                  state.isSavingMatchStep ||
+                  state.isSavingVenueStep ||
+                  state.isSavingCostStep ||
+                  state.isPublishing ||
+                  (widget.draft != null &&
+                      !_draftHydrated &&
+                      state.isLoadingDraft),
+            ),
           ),
         ),
       ),
@@ -1144,18 +1338,28 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
 
   // ── Step 1: team + match details ──
 
-  /// Team, format/level and preferred schedule in one step. The team blocks
-  /// progress; everything below it has a sensible default.
+  /// Team plus format/level in one step. The team blocks progress; the format
+  /// and level below it both have a sensible default. The schedule is not asked
+  /// here — it comes from the booking attached on the venue step.
   List<Widget> _matchStep(OpponentMatchState state) => <Widget>[
     const OpponentGuidanceCard(
       icon: Icons.sports_soccer_rounded,
       title: 'Who plays, and what match?',
       message:
           'Pick the team that will play — its roster size drives the per-player '
-          'share shown later — then describe the match you want. Date and time '
-          'can still change when you attach a booking next.',
+          'share shown later — then describe the match you want. The match '
+          'date and time come from the booking you attach next.',
     ),
     const SizedBox(height: AppDimens.paddingX18),
+    ..._teamSection(state),
+    const SizedBox(height: AppDimens.paddingX18),
+    ..._matchDetailsSection(state),
+    const SizedBox(height: AppDimens.paddingX18),
+    ..._matchPreviewSection(state),
+  ];
+
+  /// Team picker. Shared by step one and the summary's "Team" edit sheet.
+  List<Widget> _teamSection(OpponentMatchState state) => <Widget>[
     const OpponentSectionLabel('Select / create team'),
     // Teams arrive asynchronously, so "no teams" is only true once the fetch
     // has actually settled — otherwise a slow load looked like an empty roster.
@@ -1219,7 +1423,11 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
       const SizedBox(height: AppDimens.paddingX8),
       _ValidationNote(message: _stepHint(_Step.match)),
     ],
-    const SizedBox(height: AppDimens.paddingX18),
+  ];
+
+  /// Match type + opponent level. Shared by step one and the summary's "Match"
+  /// edit sheet.
+  List<Widget> _matchDetailsSection(OpponentMatchState state) => <Widget>[
     const OpponentSectionLabel('Match format'),
     OpponentCard(
       child: Column(
@@ -1279,24 +1487,35 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
         ],
       ),
     ),
-    const SizedBox(height: AppDimens.paddingX18),
-    const OpponentSectionLabel('Preferred schedule'),
+  ];
+
+  /// Reads back the three answers step one owns, so the step ends on a
+  /// statement instead of trailing off after the last pill row.
+  List<Widget> _matchPreviewSection(OpponentMatchState state) => <Widget>[
+    const OpponentSectionLabel('Match preview'),
     OpponentCard(
-      padding: EdgeInsets.zero,
       child: Column(
-        children: [
-          OpponentPickerRow(
-            icon: Icons.calendar_month_outlined,
-            label: StringConstants.matchDate,
-            value: OpponentFmt.shortDate(_date),
-            onTap: _pickDate,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          _MiniLine(
+            icon: Icons.shield_outlined,
+            text: _team == null
+                ? 'No team selected yet'
+                : '${_team!.name} · ${_team!.players.length} '
+                      '${_team!.players.length == 1 ? 'player' : 'players'}',
           ),
-          const OpponentRowDivider(),
-          OpponentPickerRow(
+          const SizedBox(height: AppDimens.paddingX8),
+          _MiniLine(
+            icon: Icons.sports_soccer_rounded,
+            text: <String>[
+              _formatLabel,
+              _resolveLevel(_levelOptions(state)).name,
+            ].where((String s) => s.trim().isNotEmpty).join(' · '),
+          ),
+          const SizedBox(height: AppDimens.paddingX8),
+          const _MiniLine(
             icon: Icons.schedule_outlined,
-            label: StringConstants.matchTime,
-            value: OpponentFmt.time(_time),
-            onTap: _pickTime,
+            text: 'Date, time and venue are set on the next step',
           ),
         ],
       ),
@@ -1314,6 +1533,12 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
           'exactly where and when they are playing.',
     ),
     const SizedBox(height: AppDimens.paddingX18),
+    ..._venueSection(),
+  ];
+
+  /// The whole venue branch — arrangement, then whichever form it opens.
+  /// Shared by step two and the summary's "Kickoff"/"Venue" edit sheet.
+  List<Widget> _venueSection() => <Widget>[
     const OpponentSectionLabel('Venue arrangement'),
     _VenuePlanOption(
       title: 'Yes — I already booked a venue',
@@ -1406,7 +1631,7 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
         _ConfirmedVenueCard(
           title: 'Booking attached',
           venue: _venueLabelText,
-          when: OpponentFmt.friendlyDateTime(_kickoff),
+          when: _kickoffWhen,
           slot: _slotLabel,
           fee: booking.bookingTotal.round(),
           reference: booking.bookingRef,
@@ -1462,11 +1687,18 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
           : null,
     ),
     const SizedBox(height: AppDimens.paddingX14),
-    const OpponentSectionLabel('Booked time'),
+    const OpponentSectionLabel('Booked date & time'),
     OpponentCard(
       padding: EdgeInsets.zero,
       child: Column(
         children: <Widget>[
+          OpponentPickerRow(
+            icon: Icons.calendar_month_outlined,
+            label: StringConstants.matchDate,
+            value: OpponentFmt.shortDate(_date),
+            onTap: _pickDate,
+          ),
+          const OpponentRowDivider(),
           OpponentPickerRow(
             icon: Icons.play_circle_outline,
             label: StringConstants.startTime,
@@ -1595,7 +1827,7 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
       _ConfirmedVenueCard(
         title: 'Venue booking confirmed',
         venue: _venueLabelText,
-        when: OpponentFmt.friendlyDateTime(_kickoff),
+        when: _kickoffWhen,
         slot: _slotLabel,
         fee: _resolvedCourtFee ?? 0,
         reference: _confirmedSlot!.bookingId == null
@@ -1620,6 +1852,12 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
           'accepting team sees this exact rule before it pays.',
     ),
     const SizedBox(height: AppDimens.paddingX18),
+    ..._costSection(),
+  ];
+
+  /// The split rule card. Shared by step three and the summary's "Cost split"
+  /// edit sheet.
+  List<Widget> _costSection() => <Widget>[
     const OpponentSectionLabel('Cost split'),
     OpponentCostSplitCard(
       cost: _cost,
@@ -1661,7 +1899,6 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
           controller: _messageCtrl,
           labelText: StringConstants.message,
           hintText: StringConstants.message,
-          icon: Icons.chat_bubble_outline_rounded,
           maxLines: 3,
           minLines: 3,
           textInputAction: TextInputAction.newline,
@@ -1680,30 +1917,30 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
               value: _team == null
                   ? '—'
                   : '${_team!.name} · ${_team!.players.length} players',
-              onEdit: () => _goTo(_Step.match),
+              onEdit: _editTeam,
             ),
             const SizedBox(height: AppDimens.paddingX10),
             _SummaryRow(
               icon: Icons.sports_soccer_rounded,
               label: 'Match',
               value: '$_formatLabel · ${level.name}',
-              onEdit: () => _goTo(_Step.match),
+              onEdit: _editMatchDetails,
             ),
             const SizedBox(height: AppDimens.paddingX10),
             _SummaryRow(
               icon: Icons.schedule_outlined,
               label: 'Kickoff',
               value:
-                  '${OpponentFmt.friendlyDateTime(_kickoff)}'
+                  '$_kickoffWhen'
                   '${_slotLabel.isEmpty ? '' : ' · $_slotLabel'}',
-              onEdit: () => _goTo(_Step.venue),
+              onEdit: _editVenue,
             ),
             const SizedBox(height: AppDimens.paddingX10),
             _SummaryRow(
               icon: Icons.location_on_outlined,
               label: 'Venue',
               value: _venueLabelText.isEmpty ? 'Not set' : _venueLabelText,
-              onEdit: () => _goTo(_Step.venue),
+              onEdit: _editVenue,
             ),
             const SizedBox(height: AppDimens.paddingX10),
             _SummaryRow(
@@ -1712,36 +1949,176 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
               value:
                   '$feeLabel · '
                   '${cost.isResultBased ? 'Loser pays $_loserPercent%' : 'You pay ${cost.myPct ?? 0}%'}',
-              onEdit: () => _goTo(_Step.cost),
+              onEdit: _editCostSplit,
             ),
           ],
         ),
       ),
       const SizedBox(height: AppDimens.paddingX12),
       OpponentCard(
-        child: Row(
-          children: <Widget>[
-            const Icon(
-              Icons.visibility_outlined,
-              size: AppDimens.sizeX18,
-              color: LightColor.secondaryColor,
-            ),
-            const SizedBox(width: AppDimens.paddingX10),
-            Expanded(
-              child: Text(
-                'After publishing, the request becomes visible to all eligible '
-                'teams and their invitations arrive under My Requests.',
-                style: FutsalTheme.getTextTheme(context).bodyTextSmall
-                    ?.copyWith(
-                      color: LightColor.secondaryTextColor,
-                      height: 1.4,
-                    ),
-              ),
-            ),
-          ],
+        child: Text(
+          'After publishing, the request becomes visible to all eligible '
+          'teams and their invitations arrive under My Requests.',
+          style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
+            color: LightColor.secondaryTextColor,
+            height: 1.4,
+          ),
         ),
       ),
     ];
+  }
+}
+
+/// One summary row's controls, hosted on their own route.
+///
+/// It renders the wizard's own section builders — nothing is duplicated — and
+/// rebuilds from [revision] whenever the page's state changes, since a page
+/// rebuild does not reach a sheet route. Save runs the step endpoint that owns
+/// these fields and pops only on success.
+class _EditSheet extends StatefulWidget {
+  const _EditSheet({
+    required this.title,
+    required this.icon,
+    required this.revision,
+    required this.body,
+    required this.save,
+    this.validate,
+  });
+
+  final String title;
+  final IconData icon;
+  final ValueListenable<int> revision;
+  final List<Widget> Function(OpponentMatchState state) body;
+  final Future<bool> Function() save;
+
+  /// Returns why the change cannot be saved yet, or null when it can.
+  final String? Function()? validate;
+
+  @override
+  State<_EditSheet> createState() => _EditSheetState();
+}
+
+class _EditSheetState extends State<_EditSheet> {
+  bool _saving = false;
+
+  Future<void> _save() async {
+    final String? problem = widget.validate?.call();
+    if (problem != null) {
+      AppUtils().showSnackBar(context, MsgType.info, problem);
+      return;
+    }
+    setState(() => _saving = true);
+    final bool ok = await widget.save();
+    if (!mounted) return;
+    setState(() => _saving = false);
+    // The save reports its own failure; keep the sheet up so the change is not
+    // silently lost.
+    if (ok) Navigator.of(context).pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+      child: SafeArea(
+        top: false,
+        child: ConstrainedBox(
+          // Tall enough for the venue branch, short enough to still read as a
+          // sheet over the summary it edits.
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.sizeOf(context).height * 0.86,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              const SizedBox(height: AppDimens.paddingX12),
+              Container(
+                width: AppDimens.sizeX36,
+                height: AppDimens.sizeX4,
+                decoration: BoxDecoration(
+                  color: LightColor.dividerColor,
+                  borderRadius: BorderRadius.circular(AppDimens.radiusX4),
+                ),
+              ),
+              Padding(
+                padding: AppUtils().getPadding(
+                  symmetricHorizontal: AppDimens.paddingX20,
+                  symmetricVertical: AppDimens.paddingX14,
+                ),
+                child: Row(
+                  children: <Widget>[
+                    Icon(
+                      widget.icon,
+                      size: AppDimens.sizeX20,
+                      color: LightColor.secondaryColor,
+                    ),
+                    const SizedBox(width: AppDimens.paddingX10),
+                    Expanded(
+                      child: Text(
+                        widget.title,
+                        style: textTheme.bodyTextLarge?.copyWith(
+                          color: LightColor.primaryTextColor,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: _saving
+                          ? null
+                          : () => Navigator.of(context).pop(),
+                      icon: Icon(
+                        Icons.close_rounded,
+                        size: AppDimens.sizeX20,
+                        color: LightColor.iconGrey,
+                      ),
+                      tooltip: StringConstants.cancel,
+                    ),
+                  ],
+                ),
+              ),
+              Divider(
+                height: 1,
+                thickness: 0.5,
+                color: LightColor.dividerColor,
+              ),
+              Flexible(
+                child: BlocBuilder<OpponentMatchBloc, OpponentMatchState>(
+                  builder: (BuildContext context, OpponentMatchState state) =>
+                      ValueListenableBuilder<int>(
+                        valueListenable: widget.revision,
+                        builder: (BuildContext context, _, _) => ListView(
+                          physics: const BouncingScrollPhysics(),
+                          padding: AppUtils().getPadding(
+                            symmetricHorizontal: AppDimens.paddingX20,
+                            top: AppDimens.paddingX16,
+                            bottom: AppDimens.paddingX16,
+                          ),
+                          shrinkWrap: true,
+                          children: widget.body(state),
+                        ),
+                      ),
+                ),
+              ),
+              Padding(
+                padding: AppUtils().getPadding(
+                  symmetricHorizontal: AppDimens.paddingX20,
+                  top: AppDimens.paddingX8,
+                  bottom: AppDimens.paddingX16,
+                ),
+                child: CustomButton(
+                  text: StringConstants.saveChanges,
+                  icon: Icons.check_rounded,
+                  isLoading: _saving,
+                  onPressed: _save,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -1899,60 +2276,34 @@ class _StepTracker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = FutsalTheme.getTextTheme(context);
     return Container(
       padding: AppUtils().getPadding(
         symmetricHorizontal: AppDimens.paddingX16,
         symmetricVertical: AppDimens.paddingX12,
       ),
       color: LightColor.cardColor,
-      child: Column(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              for (final step in _Step.values) ...<Widget>[
-                if (step.index > 0)
-                  // Connector sits on the dot's centre line and fills in as the
-                  // wizard advances, so progress reads at a glance.
-                  _StepConnector(passed: step.index <= current.index),
-                Expanded(
-                  child: InkWell(
-                    // Forward steps aren't reachable yet; leaving them tappable
-                    // produced a tap that silently did nothing.
-                    onTap: step.index <= current.index
-                        ? () => onTap(step)
-                        : null,
-                    borderRadius: BorderRadius.circular(AppDimens.radiusX8),
-                    child: _StepDot(
-                      step: step,
-                      current: current,
-                      complete: step.index < current.index && isComplete(step),
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
-          const SizedBox(height: AppDimens.paddingX8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              Text(
-                'Step ${current.index + 1} of ${_Step.values.length} · ',
-                style: textTheme.bodyMiniSubTitle?.copyWith(
-                  color: LightColor.hintTextColor,
+          for (final step in _Step.values) ...<Widget>[
+            if (step.index > 0)
+              // Connector sits on the dot's centre line and fills in as the
+              // wizard advances, so progress reads at a glance.
+              _StepConnector(passed: step.index <= current.index),
+            Expanded(
+              child: InkWell(
+                // Forward steps aren't reachable yet; leaving them tappable
+                // produced a tap that silently did nothing.
+                onTap: step.index <= current.index ? () => onTap(step) : null,
+                borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+                child: _StepDot(
+                  step: step,
+                  current: current,
+                  complete: step.index < current.index && isComplete(step),
                 ),
               ),
-              Text(
-                current.title,
-                style: textTheme.bodyTextSmall?.copyWith(
-                  color: LightColor.primaryTextColor,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ],
       ),
     );
@@ -2032,12 +2383,16 @@ class _StepDot extends StatelessWidget {
                 ),
         ),
         const SizedBox(height: AppDimens.sizeX4),
+        // The full name lives here now that the "Step 3 of 4 · …" line is gone.
+        // Two lines, because a column is roughly a quarter of the width.
         Text(
-          step.shortLabel,
-          maxLines: 1,
+          step.title,
+          maxLines: 2,
+          textAlign: TextAlign.center,
           overflow: TextOverflow.ellipsis,
           style: textTheme.bodyMiniSubTitle?.copyWith(
             color: color,
+            height: 1.25,
             fontWeight: active ? FontWeight.w700 : FontWeight.w500,
           ),
         ),

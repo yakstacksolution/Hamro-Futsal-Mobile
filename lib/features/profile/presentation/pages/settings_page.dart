@@ -8,6 +8,7 @@ import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/widgets/custom_app_bar.dart';
+import 'package:hamro_footsall/core/widgets/confirm_word_sheet.dart';
 import 'package:hamro_footsall/core/widgets/custom_switch_widget.dart';
 import 'package:hamro_footsall/features/profile/presentation/controller/settings_controller.dart';
 import 'package:hamro_footsall/core/utils/string_constants.dart';
@@ -120,6 +121,18 @@ class _SettingsPageState extends State<SettingsPage> {
           value: _controller.biometricLogin,
           onChanged: _controller.setBiometricLogin,
         ),
+        _SettingsItem.nav(
+          icon: Icons.delete_forever_rounded,
+          title: _controller.deletingAccount
+              ? StringConstants.deletingAccount
+              : StringConstants.deleteAccount,
+          subtitle: StringConstants.deleteAccountSubtitle,
+          // The id comes from `/auth/me`; the row spins until that answers, but
+          // stays tappable after a failed fetch so the error is reachable.
+          loading: _controller.deletingAccount || !_controller.profileResolved,
+          destructive: true,
+          onTap: _confirmDeleteAccount,
+        ),
       ],
     ),
     _Section(
@@ -188,6 +201,38 @@ class _SettingsPageState extends State<SettingsPage> {
       ],
     ),
   ];
+
+  /// Two-step guard on an irreversible action: a sheet the user has to type
+  /// DELETE into, then the call. On success the session is already cleared by the
+  /// repository, so all that is left is to leave the signed-in shell.
+  Future<void> _confirmDeleteAccount() async {
+    if (_controller.deletingAccount) return;
+
+    final String? reason = await showConfirmWordReasonSheet(
+      context: context,
+      title: StringConstants.deleteAccountPrompt,
+      message: StringConstants.deleteAccountWarning,
+      confirmationWord: StringConstants.deleteAccountConfirmationWord,
+      confirmText: StringConstants.deleteAccount,
+      icon: Icons.delete_forever_rounded,
+      consequences: const <String>[
+        StringConstants.deleteAccountLosesProfile,
+        StringConstants.deleteAccountLosesBookings,
+        StringConstants.deleteAccountLosesTeams,
+      ],
+    );
+    if (reason == null || !mounted) return;
+
+    final bool deleted = await _controller.deleteAccount(reason: reason);
+    if (!deleted || !mounted) return;
+
+    AppUtils().showSnackBar(
+      context,
+      MsgType.success,
+      StringConstants.accountDeleted,
+    );
+    context.goNamed(AppRouterParams.login.name);
+  }
 
   Future<void> _showLanguagePicker() async {
     final String? selected = await _showOptionSheet(
@@ -399,7 +444,10 @@ class _SettingsRow extends StatelessWidget {
                     Text(
                       item.title,
                       style: textTheme.bodyTextMedium?.copyWith(
-                        color: LightColor.primaryTextColor,
+                        color: item.destructive
+                            ? LightColor.redColor
+                            : LightColor.primaryTextColor,
+                        fontWeight: item.destructive ? FontWeight.w600 : null,
                       ),
                     ),
                     if (item.subtitle != null) ...[
@@ -500,6 +548,7 @@ class _SettingsItem {
     this.subtitle,
     this.trailingValue,
     this.loading = false,
+    this.destructive = false,
     this.onTap,
     this.value,
     this.onChanged,
@@ -511,6 +560,7 @@ class _SettingsItem {
     String? subtitle,
     String? trailingValue,
     bool loading = false,
+    bool destructive = false,
     required VoidCallback onTap,
   }) => _SettingsItem._(
     kind: _ItemKind.nav,
@@ -519,6 +569,7 @@ class _SettingsItem {
     subtitle: subtitle,
     trailingValue: trailingValue,
     loading: loading,
+    destructive: destructive,
     onTap: onTap,
   );
 
@@ -545,6 +596,11 @@ class _SettingsItem {
 
   /// Nav rows only: swaps the chevron for a spinner and blocks re-tapping.
   final bool loading;
+
+  /// Renders the row's title in the danger colour — irreversible actions only.
+  /// Icon, chevron and spinner stay on the theme's accent so the row still
+  /// belongs to the list.
+  final bool destructive;
   final VoidCallback? onTap;
   final bool? value;
   final ValueChanged<bool>? onChanged;

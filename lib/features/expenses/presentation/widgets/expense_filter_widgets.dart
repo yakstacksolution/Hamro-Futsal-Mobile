@@ -212,7 +212,9 @@ class ExpenseFilterDropdown extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
-    final fg = active ? LightColor.inverseTextColor : LightColor.secondaryTextColor;
+    final fg = active
+        ? LightColor.inverseTextColor
+        : LightColor.secondaryTextColor;
     return PopupMenuButton<int>(
       onSelected: (i) {
         HapticFeedback.selectionClick();

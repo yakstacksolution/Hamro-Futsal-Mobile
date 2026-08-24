@@ -7,8 +7,9 @@ import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/custom_image_view.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
-import 'package:hamro_footsall/core/widgets/loading_widget.dart';
 import 'package:hamro_footsall/core/widgets/custom_bottom_sheet.dart';
+import 'package:hamro_footsall/core/widgets/custom_button.dart';
+import 'package:hamro_footsall/core/widgets/loading_widget.dart';
 import 'package:hamro_footsall/features/auth/data/repositories/authentication_repository_impl.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/page/dashboard_screen.dart';
 import 'package:hamro_footsall/features/profile/data/model/profile_model.dart';
@@ -137,6 +138,15 @@ class _ProfilePageState extends State<ProfilePage> {
         child: VendorRequestBottomSheet(user: user),
       ),
     );
+  }
+
+  Future<bool> _confirmLogout() async {
+    final bool? confirmed = await showAppBottomSheet<bool>(
+      context: context,
+      bottomSpacing: AppDimens.paddingX20,
+      builder: (_) => const _LogoutConfirmationSheet(),
+    );
+    return confirmed ?? false;
   }
 
   @override
@@ -290,6 +300,9 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _handleLogout() async {
+    final bool confirmed = await _confirmLogout();
+    if (!confirmed || !mounted) return;
+
     setState(() => _isLoggingOut = true);
 
     final response = await AuthenticationRepositoryImpl().logout();
@@ -400,6 +413,95 @@ class _ProfileRow extends StatelessWidget {
   }
 }
 
+class _LogoutConfirmationSheet extends StatelessWidget {
+  const _LogoutConfirmationSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Container(
+              width: AppDimens.sizeX44,
+              height: AppDimens.sizeX44,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: LightColor.redColor.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(AppDimens.radiusX12),
+              ),
+              child: Icon(
+                Icons.logout_rounded,
+                color: LightColor.redColor,
+                size: AppDimens.sizeX24,
+              ),
+            ),
+            const SizedBox(width: AppDimens.paddingX12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(
+                    'Log out?',
+                    style: textTheme.bodyTextLarge?.copyWith(
+                      color: LightColor.primaryTextColor,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: AppDimens.paddingX6),
+                  Text(
+                    'You will need to sign in again to access your bookings, chats, and profile.',
+                    style: textTheme.bodyTextSmall?.copyWith(
+                      color: LightColor.secondaryTextColor,
+                      height: 1.45,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppDimens.paddingX20),
+        Row(
+          children: <Widget>[
+            Expanded(
+              child: CustomButton(
+                key: const Key('cancel-logout-button'),
+                text: StringConstants.cancel,
+                isOutlined: true,
+                backgroundColor: LightColor.whiteColor,
+                foregroundColor: LightColor.primaryTextColor,
+                borderColor: LightColor.greyBorderColor,
+                minHeight: AppDimens.sizeX44,
+                onPressed: () => Navigator.of(context).pop(false),
+              ),
+            ),
+            const SizedBox(width: AppDimens.paddingX12),
+            Expanded(
+              child: CustomButton(
+                key: const Key('confirm-logout-button'),
+                text: 'Log out',
+                icon: Icons.logout_rounded,
+                backgroundColor: LightColor.redColor,
+                foregroundColor: LightColor.inverseTextColor,
+                minHeight: AppDimens.sizeX44,
+                onPressed: () => Navigator.of(context).pop(true),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+// Kept ready for the vendor-status section while that section is feature gated.
+// ignore: unused_element
 class _VendorStatusCard extends StatelessWidget {
   const _VendorStatusCard({required this.user});
 

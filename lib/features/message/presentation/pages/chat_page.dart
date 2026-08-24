@@ -4,12 +4,15 @@ import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import 'package:hamro_footsall/core/routers/app_router_params.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/helper/device_location_helper.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/custom_image_view.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/utils/upload_attachment.dart';
 import 'package:hamro_footsall/core/widgets/custom_button.dart';
 import 'package:hamro_footsall/core/widgets/custom_bottom_sheet.dart';
 import 'package:hamro_footsall/core/widgets/custom_delete_dialog.dart';
@@ -17,9 +20,11 @@ import 'package:hamro_footsall/core/widgets/loading_widget.dart';
 import 'package:hamro_footsall/features/message/data/model/chat_message_model.dart';
 import 'package:hamro_footsall/features/message/data/model/chat_send_request.dart';
 import 'package:hamro_footsall/features/message/data/model/conversation_model.dart';
+import 'package:hamro_footsall/features/dashboard/presentation/page/dashboard_screen.dart';
 import 'package:hamro_footsall/features/message/presentation/bloc/message_bloc/message_bloc.dart';
 import 'package:hamro_footsall/features/message/presentation/widgets/chat_bubble.dart';
 import 'package:hamro_footsall/features/message/presentation/widgets/chat_input_bar.dart';
+import 'package:hamro_footsall/features/message/presentation/pages/group_profile_page.dart';
 import 'package:hamro_footsall/features/message/presentation/widgets/group_conversation_sheet.dart';
 import 'package:hamro_footsall/features/message/presentation/pages/user_profile_page.dart';
 import 'package:hamro_footsall/core/utils/string_constants.dart';
@@ -45,7 +50,8 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
   /// older history (which also grows `messages`) never yanks the viewport.
   int _newestMessageId = 0;
   late final MessageBloc _bloc;
-  final List<PlatformFile> _attachments = <PlatformFile>[];
+  final List<UploadAttachment> _attachments = <UploadAttachment>[];
+  bool _composerSendInFlight = false;
   ChatMessageModel? _replyingTo;
   Timer? _presenceTimer;
   bool? _peerOnline;
@@ -116,51 +122,60 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
   void _send(String text) {
     final request = ChatSendRequest(
       body: text,
-      filePaths: _attachments
-          .map((file) => file.path)
-          .whereType<String>()
-          .toList(growable: false),
+      attachments: List<UploadAttachment>.unmodifiable(_attachments),
       replyToMessageId: _replyingTo?.id,
     );
     if (!request.isValid) return;
+    _composerSendInFlight = true;
     _bloc.add(SendMessageEvent(widget.conversation.id, request));
-    setState(() {
-      _attachments.clear();
-      _replyingTo = null;
-    });
   }
 
   Future<void> _pickAttachments() async {
     final result = await FilePicker.platform.pickFiles(
       allowMultiple: true,
-      withData: false,
+      withData: true,
     );
     if (result == null || !mounted) return;
-    final accepted = result.files
-        .where(
-          (file) =>
-              file.path != null &&
-              file.size <= ChatSendRequest.maxFileBytes &&
-              ChatSendRequest.allowedExtensions.contains(
-                ChatSendRequest.extensionOf(file.name),
-              ),
-        )
-        .toList(growable: false);
     final availableSlots = ChatSendRequest.maxFiles - _attachments.length;
-    final exceededLimit = accepted.length > availableSlots;
+    final bool exceededLimit = result.files.length > availableSlots;
+    final List<UploadAttachment> accepted = <UploadAttachment>[];
+    String? validationMessage;
+    const UploadPolicy policy = UploadPolicy(
+      allowedExtensions: ChatSendRequest.allowedExtensions,
+      maxInputBytes: ChatSendRequest.maxFileBytes,
+    );
+    for (final PlatformFile file in result.files.take(availableSlots)) {
+      try {
+        final Uint8List? pickedBytes = file.bytes;
+        accepted.add(
+          pickedBytes != null && pickedBytes.isNotEmpty
+              ? await normalizeUploadAttachment(
+                  bytes: pickedBytes,
+                  filename: file.name,
+                  sourcePath: file.path,
+                  originalSize: file.size,
+                  policy: policy,
+                )
+              : await loadUploadAttachment(
+                  path: file.path ?? '',
+                  filename: file.name,
+                  policy: policy,
+                ),
+        );
+      } on UploadValidationException catch (error) {
+        validationMessage ??= error.message;
+      }
+    }
+    if (!mounted) return;
     setState(() {
-      final knownPaths = _attachments.map((file) => file.path).toSet();
+      final Set<String> known = _attachments.map(_attachmentKey).toSet();
       for (final file in accepted) {
         if (_attachments.length >= ChatSendRequest.maxFiles) break;
-        if (knownPaths.add(file.path)) _attachments.add(file);
+        if (known.add(_attachmentKey(file))) _attachments.add(file);
       }
     });
-    if (accepted.length != result.files.length) {
-      AppUtils().showSnackBar(
-        context,
-        MsgType.error,
-        'Choose JPG, JPEG, PNG, PDF, DOC or DOCX files up to 10 MB.',
-      );
+    if (validationMessage != null) {
+      AppUtils().showSnackBar(context, MsgType.error, validationMessage);
     }
     if (exceededLimit) {
       AppUtils().showSnackBar(
@@ -170,6 +185,9 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
       );
     }
   }
+
+  String _attachmentKey(UploadAttachment attachment) =>
+      '${attachment.sourcePath ?? attachment.filename}:${attachment.originalSize}';
 
   Future<void> _showAddMenu() async {
     final action = await showAppBottomSheet<String>(
@@ -352,6 +370,8 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
             blocked: !participant.isBlocked,
           ),
         );
+      case _ConversationActionType.groupInfo:
+        await _openGroupProfile(conversation);
       case _ConversationActionType.addMembers:
         final existingIds =
             conversation.participants
@@ -367,6 +387,22 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
           _bloc.add(AddGroupMembersEvent(conversation.id, ids));
         }
     }
+  }
+
+  /// The group behind this chat: its picture, name and members, plus leaving
+  /// it. Opened by tapping the header — the gesture that opens the other
+  /// person's profile in a direct chat.
+  ///
+  /// Leaving pops this chat too: the thread is no longer the user's to read.
+  Future<void> _openGroupProfile(ConversationModel group) async {
+    final bool left = await openGroupProfilePage(
+      context: context,
+      conversation: group,
+    );
+    if (!left || !mounted) return;
+
+    DashboardScreen.selectedNavIndex.value = 2;
+    context.goNamed(AppRouterParams.dashboard.name);
   }
 
   /// The list is reversed, so its max scroll extent is the *top* of the
@@ -414,6 +450,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
         conversation: widget.conversation,
         peerOnline: _peerOnline,
         onActions: _showConversationActions,
+        onOpenGroupProfile: _openGroupProfile,
       ),
       body: SafeArea(
         top: false,
@@ -433,10 +470,18 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
               (prev.actionBusy &&
                   !curr.actionBusy &&
                   curr.errorMessage != prev.errorMessage) ||
-              (prev.sending &&
-                  !curr.sending &&
-                  curr.errorMessage != prev.errorMessage),
+              (prev.sending && !curr.sending),
           listener: (context, state) {
+            if (_composerSendInFlight && !state.sending) {
+              final bool succeeded = state.errorMessage == null;
+              setState(() {
+                if (succeeded) {
+                  _attachments.clear();
+                  _replyingTo = null;
+                }
+                _composerSendInFlight = false;
+              });
+            }
             // Only follow the thread down for genuinely new messages at the
             // bottom; a prepended history page must leave the viewport alone.
             final newestId = state.messages.isEmpty
@@ -488,12 +533,13 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
                   onTypingChanged: (typing) => _bloc.add(
                     SendTypingEvent(widget.conversation.id, typing),
                   ),
-                  onAttach: _showAddMenu,
+                  onAttach: state.sending ? null : _showAddMenu,
                   attachmentNames: _attachments
                       .map((file) => file.name)
                       .toList(growable: false),
-                  onRemoveAttachment: (index) =>
-                      setState(() => _attachments.removeAt(index)),
+                  onRemoveAttachment: state.sending
+                      ? null
+                      : (index) => setState(() => _attachments.removeAt(index)),
                   replyingTo: _replyingTo,
                   onCancelReply: () => setState(() => _replyingTo = null),
                   enabled: !blocked,
@@ -785,11 +831,13 @@ class _ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
     required this.conversation,
     required this.peerOnline,
     required this.onActions,
+    required this.onOpenGroupProfile,
   });
 
   final ConversationModel conversation;
   final bool? peerOnline;
   final VoidCallback onActions;
+  final ValueChanged<ConversationModel> onOpenGroupProfile;
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
@@ -916,8 +964,19 @@ class _ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
             ],
           );
 
-          // Direct chats: tapping the header opens the other user's
-          // view-only profile. Groups have no single counterpart.
+          // Tapping the header opens who this chat is with: the other user's
+          // view-only profile in a direct chat, the group's own page in a
+          // group — name, picture, members and leaving it.
+          if (active.isGroup) {
+            return InkWell(
+              onTap: () => onOpenGroupProfile(active),
+              child: Semantics(
+                button: true,
+                label: StringConstants.groupInfo,
+                child: header,
+              ),
+            );
+          }
           if (peer == null || peer.userId <= 0) return header;
           return InkWell(
             onTap: () => openUserProfilePage(
@@ -925,6 +984,10 @@ class _ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
               userId: peer.userId,
               fallbackName: title,
               fallbackImageUrl: avatar,
+              // This chat *is* the conversation with them; a Message button
+              // here would only lead back one route.
+              canMessage: false,
+              isOnline: peerOnline,
             ),
             child: Semantics(
               button: true,
@@ -938,7 +1001,7 @@ class _ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
   }
 }
 
-enum _ConversationActionType { mute, archive, block, addMembers }
+enum _ConversationActionType { mute, archive, block, addMembers, groupInfo }
 
 final class _ConversationAction {
   const _ConversationAction(this.type, [this.participant]);
@@ -964,6 +1027,14 @@ class _ConversationActions extends StatelessWidget {
     return ListView(
       shrinkWrap: true,
       children: [
+        if (conversation.isGroup)
+          ListTile(
+            leading: const Icon(Icons.info_outline_rounded),
+            title: const Text(StringConstants.groupInfo),
+            onTap: () => Navigator.of(
+              context,
+            ).pop(const _ConversationAction(_ConversationActionType.groupInfo)),
+          ),
         if (conversation.isGroup)
           ListTile(
             leading: const Icon(Icons.person_add_alt_1_rounded),
@@ -1002,19 +1073,15 @@ class _ConversationActions extends StatelessWidget {
             context,
           ).pop(const _ConversationAction(_ConversationActionType.archive)),
         ),
-        if (participants.isNotEmpty) ...[
+        // Group chats keep only the actions that apply to the thread here.
+        // The member list — and blocking one of them — moved to the group's
+        // own page, reached by tapping the chat header, where there is room
+        // for all of them rather than a strip of a sheet.
+        if (!conversation.isGroup && participants.isNotEmpty) ...[
           const Divider(),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-            child: Text(
-              StringConstants.participants,
-              style: TextStyle(fontWeight: FontWeight.w700),
-            ),
-          ),
           for (final participant in participants)
             ListTile(
-              contentPadding: EdgeInsets.symmetric(horizontal: 16),
-
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16),
               leading: CircleAvatar(
                 child: Text(
                   participant.name.isEmpty
@@ -1026,15 +1093,6 @@ class _ConversationActions extends StatelessWidget {
                 participant.name,
                 style: FutsalTheme.getTextTheme(context).bodyTextSmall,
               ),
-
-              subtitle: participant.role.isEmpty
-                  ? null
-                  : Text(
-                      participant.role,
-                      style: FutsalTheme.getTextTheme(
-                        context,
-                      ).bodySubTitle?.copyWith(fontWeight: FontWeight.w400),
-                    ),
               titleAlignment: ListTileTitleAlignment.center,
               trailing: InkWell(
                 onTap: participant.userId <= 0

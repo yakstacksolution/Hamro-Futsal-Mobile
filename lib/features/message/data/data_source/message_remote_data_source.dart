@@ -1,6 +1,7 @@
-import 'dart:typed_data';
-
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
+import 'package:hamro_footsall/core/utils/upload_attachment.dart';
+import 'package:hamro_footsall/core/utils/upload_part.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:hamro_footsall/core/api/api_client/api_constants.dart';
 import 'package:hamro_footsall/core/api/api_client/result.dart';
@@ -28,6 +29,8 @@ abstract class MessageRemoteDataSource {
     int conversationId,
     List<int> participantIds,
   );
+  Future<Result> updateConversationTitle(int conversationId, String title);
+  Future<Result> leaveConversation(int conversationId);
   Future<Result> getConversationDetails(int conversationId);
   Future<Result> getUserPresence(int userId);
   Future<Result> getMessageProfile(int userId);
@@ -90,6 +93,21 @@ final class MessageRemoteDataSourceImpl extends MessageRemoteDataSource {
     'participant_ids': participantIds,
     if (venueId != null) 'venue_id': venueId,
   });
+
+  @override
+  Future<Result> updateConversationTitle(
+    int conversationId,
+    String title,
+  ) async => await Client.instance().getAuthManager().updateConversationTitle(
+    conversationId,
+    title.trim(),
+  );
+
+  @override
+  Future<Result> leaveConversation(int conversationId) async =>
+      await Client.instance().getAuthManager().leaveConversation(
+        conversationId,
+      );
 
   @override
   Future<Result> addConversationParticipants(
@@ -164,13 +182,24 @@ final class MessageRemoteDataSourceImpl extends MessageRemoteDataSource {
         form.fields.add(MapEntry('metadata[]', '$item'));
       }
     }
-    for (final path in request.filePaths.take(ChatSendRequest.maxFiles)) {
-      form.files.add(
-        MapEntry(
-          'files[]',
-          await MultipartFile.fromFile(path, filename: path.split('/').last),
+    try {
+      validateUploadBatch(
+        request.attachments,
+        policy: const UploadPolicy(
+          allowedExtensions: ChatSendRequest.allowedExtensions,
         ),
       );
+      for (final attachment in request.attachments) {
+        if (kDebugMode) {
+          debugPrint(
+            'UPLOAD FILE endpoint=/chat/conversations/$conversationId/messages '
+            'field=files[] name=${attachment.filename} bytes=${attachment.size}',
+          );
+        }
+        form.files.add(MapEntry('files[]', buildUploadPart(attachment)));
+      }
+    } on UploadValidationException catch (error) {
+      return Result.error(DataError(error.message, 0, null));
     }
     return await Client.instance().getAuthManager().sendConversationMessage(
       conversationId,

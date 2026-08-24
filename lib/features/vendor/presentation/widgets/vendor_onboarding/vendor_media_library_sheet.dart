@@ -742,10 +742,14 @@ class _CompactMediaCard extends StatelessWidget {
                                 width: 20,
                                 height: 20,
                                 decoration: BoxDecoration(
-                                  color: LightColor.onBrandSurface.withValues(alpha: 0.96),
+                                  color: LightColor.onBrandSurface.withValues(
+                                    alpha: 0.96,
+                                  ),
                                   borderRadius: BorderRadius.circular(999),
                                   border: Border.all(
-                                    color: LightColor.onBrandSurface.withValues(alpha: 0.95),
+                                    color: LightColor.onBrandSurface.withValues(
+                                      alpha: 0.95,
+                                    ),
                                     width: 1.2,
                                   ),
                                   boxShadow: <BoxShadow>[
@@ -773,14 +777,12 @@ class _CompactMediaCard extends StatelessWidget {
                                     decoration: BoxDecoration(
                                       color: isSelected
                                           ? LightColor.secondaryColor
-                                          : LightColor.onBrandSurface.withValues(
-                                              alpha: 0.96,
-                                            ),
+                                          : LightColor.onBrandSurface
+                                                .withValues(alpha: 0.96),
                                       borderRadius: BorderRadius.circular(999),
                                       border: Border.all(
-                                        color: LightColor.onBrandSurface.withValues(
-                                          alpha: 0.95,
-                                        ),
+                                        color: LightColor.onBrandSurface
+                                            .withValues(alpha: 0.95),
                                         width: 1.2,
                                       ),
                                       boxShadow: <BoxShadow>[
@@ -809,14 +811,12 @@ class _CompactMediaCard extends StatelessWidget {
                                     width: 20,
                                     height: 20,
                                     decoration: BoxDecoration(
-                                      color: LightColor.onBrandSurface.withValues(
-                                        alpha: 0.96,
-                                      ),
+                                      color: LightColor.onBrandSurface
+                                          .withValues(alpha: 0.96),
                                       borderRadius: BorderRadius.circular(999),
                                       border: Border.all(
-                                        color: LightColor.onBrandSurface.withValues(
-                                          alpha: 0.95,
-                                        ),
+                                        color: LightColor.onBrandSurface
+                                            .withValues(alpha: 0.95),
                                         width: 1.2,
                                       ),
                                       boxShadow: <BoxShadow>[

@@ -848,6 +848,8 @@ class _VenueCardV2State extends State<_VenueCardV2> {
                                               ImageConstants.locationIcon,
                                           height: AppDimens.sizeX14,
                                           width: AppDimens.sizeX14,
+                                          fit: BoxFit.contain,
+                                          color: LightColor.secondaryTextColor,
                                         ),
                                         const SizedBox(width: AppDimens.sizeX4),
                                         Expanded(
@@ -1341,6 +1343,18 @@ class _CourtRowV2 extends StatelessWidget {
         ? 'Court $index'
         : court.name.trim();
     final String type = (court.courtType ?? '').trim();
+    final String matchFormat = (court.matchFormat ?? '').trim();
+    final List<String> courtDetails = <String>[
+      type,
+      matchFormat,
+    ].where((String detail) => detail.isNotEmpty).toList(growable: false);
+    final String basePriceLabel = court.basePrice == null
+        ? ''
+        : 'Base Price: Rs ${court.basePrice!.toStringAsFixed(0)}';
+    final String courtDetailsLabel = <String>[
+      courtDetails.join(' • '),
+      basePriceLabel,
+    ].where((String detail) => detail.isNotEmpty).join(' || ');
     final bool isLive = _isCourtActive(court);
     final String photoUrl = court.photos
         .map((UploadRef photo) => (photo.remoteUrl ?? '').trim())
@@ -1403,10 +1417,10 @@ class _CourtRowV2 extends StatelessWidget {
                               color: LightColor.primaryTextColor,
                             ),
                           ),
-                          if (type.isNotEmpty) ...<Widget>[
+                          if (courtDetailsLabel.isNotEmpty) ...<Widget>[
                             const SizedBox(height: AppDimens.sizeX4),
                             Text(
-                              type,
+                              courtDetailsLabel,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: textTheme.bodySubTitle?.copyWith(
@@ -1518,31 +1532,6 @@ class _CourtRowV2 extends StatelessWidget {
                         color: LightColor.secondaryTextColor,
                       ),
                     ),
-                    // if (court.basePrice != null) ...<Widget>[
-                    //   const SizedBox(width: AppDimens.sizeX8),
-                    //   Container(
-                    //     padding: appUtils.getPadding(
-                    //       symmetricHorizontal: AppDimens.paddingX10,
-                    //       symmetricVertical: AppDimens.paddingX4,
-                    //     ),
-                    //     decoration: BoxDecoration(
-                    //       color: LightColor.secondaryColor.withValues(
-                    //         alpha: 0.20,
-                    //       ),
-                    //       borderRadius: BorderRadius.circular(
-                    //         AppDimens.radiusX20,
-                    //       ),
-                    //     ),
-                    //     child: Text(
-                    //       'Rs ${court.basePrice!.toStringAsFixed(0)}',
-                    //       style: textTheme.bodySubTitle?.copyWith(
-                    //         fontWeight: FontWeight.w600,
-                    //         color: LightColor.secondaryColor,
-                    //         height: 1.1,
-                    //       ),
-                    //     ),
-                    //   ),
-                    // ],
                   ],
                 ),
 
@@ -1568,19 +1557,22 @@ class _CourtRowV2 extends StatelessWidget {
                           color: LightColor.secondaryColor,
                         ),
                       ],
-                      const SizedBox(width: AppDimens.sizeX6),
-                      _CourtStatusChip(
-                        icon: Icons.schedule_rounded,
-                        label: StringConstants.booked,
-                        color: LightColor.warningColor,
-                      ),
-                      const SizedBox(width: AppDimens.sizeX6),
-                      _CourtStatusChip(
-                        icon: Icons.sports_soccer_rounded,
-                        label: StringConstants.text5v5,
-                        color: LightColor.brandTextColor,
-                      ),
-                      const SizedBox(width: AppDimens.sizeX6),
+                      if (court.isPaymentRequired == true) ...<Widget>[
+                        const SizedBox(width: AppDimens.sizeX6),
+                        _CourtStatusChip(
+                          icon: Icons.payment_rounded,
+                          label: 'Online payment',
+                          color: LightColor.warningColor,
+                        ),
+                      ],
+                      if (matchFormat.isNotEmpty) ...<Widget>[
+                        const SizedBox(width: AppDimens.sizeX6),
+                        _CourtStatusChip(
+                          icon: Icons.sports_soccer_rounded,
+                          label: matchFormat,
+                          color: LightColor.brandTextColor,
+                        ),
+                      ],
                     ],
                   ),
                 ),

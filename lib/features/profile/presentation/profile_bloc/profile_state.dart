@@ -9,6 +9,8 @@ enum ProfileStatus {
   updateSuccess,
   requestingVendor,
   vendorRequestSuccess,
+  deletingAccount,
+  accountDeleted,
 }
 
 class ProfileState extends Equatable {
@@ -28,6 +30,7 @@ class ProfileState extends Equatable {
 
   bool get isUpdating => status == ProfileStatus.updating;
   bool get isRequestingVendor => status == ProfileStatus.requestingVendor;
+  bool get isDeletingAccount => status == ProfileStatus.deletingAccount;
 
   ProfileState copyWith({
     ProfileStatus? status,

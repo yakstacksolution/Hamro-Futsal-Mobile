@@ -30,6 +30,7 @@ final class MessageState extends Equatable {
     this.createdGroup,
     this.actionBusy = false,
     this.actionMessage,
+    this.leftConversationId,
     this.profileStatus = MessageStatus.initial,
     this.profile,
     this.profileErrorMessage,
@@ -73,6 +74,11 @@ final class MessageState extends Equatable {
   final ConversationModel? createdGroup;
   final bool actionBusy;
   final String? actionMessage;
+
+  /// Set for one emit after the user has left a group, so the screens showing
+  /// that conversation can close themselves. Cleared with
+  /// [ClearLeftConversationEvent] once handled.
+  final int? leftConversationId;
 
   /// Other user's view-only profile, shown in the profile bottom sheet.
   final MessageStatus profileStatus;
@@ -122,6 +128,8 @@ final class MessageState extends Equatable {
     bool? actionBusy,
     String? actionMessage,
     bool clearActionMessage = false,
+    int? leftConversationId,
+    bool clearLeftConversation = false,
     MessageStatus? profileStatus,
     MessageProfileModel? profile,
     String? profileErrorMessage,
@@ -170,6 +178,9 @@ final class MessageState extends Equatable {
           ? null
           : createdGroup ?? this.createdGroup,
       actionBusy: actionBusy ?? this.actionBusy,
+      leftConversationId: clearLeftConversation
+          ? null
+          : leftConversationId ?? this.leftConversationId,
       actionMessage: clearActionMessage
           ? null
           : actionMessage ?? this.actionMessage,
@@ -218,6 +229,7 @@ final class MessageState extends Equatable {
     createdGroup,
     actionBusy,
     actionMessage,
+    leftConversationId,
     profileStatus,
     profile,
     profileErrorMessage,

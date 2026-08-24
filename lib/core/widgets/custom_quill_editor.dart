@@ -166,7 +166,11 @@ class _CustomQuillEditorState extends State<CustomQuillEditor>
       autoFocus: false,
       showCursor: true,
       padding: _EditorTokens.editorPadding,
+      // flutter_quill still marks its supported search configuration as
+      // experimental; this is intentionally pinned to the current API.
+      // ignore: experimental_member_use
       searchConfig: const QuillSearchConfig(
+        // ignore: experimental_member_use
         searchEmbedMode: SearchEmbedMode.plainText,
       ),
       customStyles: DefaultStyles(

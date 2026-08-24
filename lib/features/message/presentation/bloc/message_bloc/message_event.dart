@@ -76,6 +76,33 @@ final class ClearCreatedGroupEvent extends MessageEvent {
   const ClearCreatedGroupEvent();
 }
 
+/// Renames a group.
+final class RenameGroupConversationEvent extends MessageEvent {
+  const RenameGroupConversationEvent(this.conversationId, this.title);
+
+  final int conversationId;
+  final String title;
+
+  @override
+  List<Object?> get props => [conversationId, title];
+}
+
+/// Leaves a group. The conversation stays for its other members; it drops off
+/// this user's inbox.
+final class LeaveGroupConversationEvent extends MessageEvent {
+  const LeaveGroupConversationEvent(this.conversationId);
+
+  final int conversationId;
+
+  @override
+  List<Object?> get props => [conversationId];
+}
+
+/// Clears [MessageState.leftConversationId] once the UI has acted on it.
+final class ClearLeftConversationEvent extends MessageEvent {
+  const ClearLeftConversationEvent();
+}
+
 final class AddGroupMembersEvent extends MessageEvent {
   const AddGroupMembersEvent(this.conversationId, this.participantIds);
   final int conversationId;

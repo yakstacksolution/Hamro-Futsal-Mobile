@@ -406,7 +406,9 @@ class _HeroPanel extends StatelessWidget {
                         Text(
                           StringConstants.feedbackSubtitle,
                           style: textTheme.bodyTextSmall?.copyWith(
-                            color: LightColor.inverseTextColor.withValues(alpha: 0.9),
+                            color: LightColor.inverseTextColor.withValues(
+                              alpha: 0.9,
+                            ),
                             height: 1.4,
                           ),
                         ),

@@ -28,6 +28,15 @@ final class RequestVendorUpgradeEvent extends ProfileEvent {
   List<Object?> get props => <Object?>[businessName, phone, address, message];
 }
 
+final class DeleteAccountEvent extends ProfileEvent {
+  const DeleteAccountEvent({required this.reason});
+
+  final String reason;
+
+  @override
+  List<Object?> get props => <Object?>[reason];
+}
+
 final class UpdateProfileEvent extends ProfileEvent {
   const UpdateProfileEvent({
     this.fullName,

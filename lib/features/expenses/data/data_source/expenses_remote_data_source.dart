@@ -1,4 +1,6 @@
 import 'package:dio/dio.dart';
+import 'package:hamro_footsall/core/utils/upload_attachment.dart';
+import 'package:hamro_footsall/core/utils/upload_part.dart';
 import 'package:hamro_footsall/core/api/api_client/result.dart';
 import 'package:hamro_footsall/core/api/client.dart';
 import 'package:hamro_footsall/features/expenses/domain/entities/expense_entities.dart';
@@ -28,13 +30,14 @@ final class ExpensesRemoteDataSourceImpl extends ExpensesRemoteDataSource {
     final map = data.toApiMap()..removeWhere((_, v) => v == null);
 
     // Attach the document (image/pdf/doc picked from device files) as a
-    // multipart file when present.
-    final path = data.documentPath;
-    if (path != null && path.isNotEmpty) {
-      map['document'] = await MultipartFile.fromFile(
-        path,
-        filename: path.split('/').last,
-      );
+    // multipart file when present. Bytes captured at pick time win over the
+    // path — see [buildUploadPart].
+    try {
+      if (data.document case final document?) {
+        map['document'] = buildUploadPart(document);
+      }
+    } on UploadValidationException catch (error) {
+      return Result.error(DataError(error.message, 0, null));
     }
 
     return await Client.instance().getAuthManager().createExpense(

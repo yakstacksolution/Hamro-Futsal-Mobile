@@ -3,6 +3,7 @@ import 'package:hamro_footsall/core/helper/exception_helper.dart';
 import 'package:hamro_footsall/core/helper/response_helper.dart';
 import 'package:hamro_footsall/features/bookings/data/data_source/booking_data_source.dart';
 import 'package:hamro_footsall/features/bookings/data/model/booking_model.dart';
+import 'package:hamro_footsall/features/bookings/data/model/booking_review_model.dart';
 import 'package:hamro_footsall/features/bookings/domain/repository/booking_repository.dart';
 import 'package:hamro_footsall/core/utils/string_constants.dart';
 import 'package:hamro_footsall/features/bookings/domain/model/paginated_bookings.dart';
@@ -17,10 +18,12 @@ final class BookingRepositoryImpl implements BookingRepository {
   Future<Either<AppException, PaginatedBookings>> getMyBookings({
     required int page,
     required int perPage,
+    String? status,
   }) async {
     final response = await _remoteDataSource.getMyBookings(
       page: page,
       perPage: perPage,
+      status: status,
     );
     if (response.isError()) {
       return left(ResponseHelper.error(response));
@@ -61,10 +64,12 @@ final class BookingRepositoryImpl implements BookingRepository {
   Future<Either<AppException, PaginatedBookings>> getFutsalBookings({
     required int page,
     required int perPage,
+    String? status,
   }) async {
     final response = await _remoteDataSource.getFutsalBookings(
       page: page,
       perPage: perPage,
+      status: status,
     );
     if (response.isError()) {
       return left(ResponseHelper.error(response));
@@ -109,6 +114,46 @@ final class BookingRepositoryImpl implements BookingRepository {
     } catch (_) {
       return right(false);
     }
+  }
+
+  @override
+  Future<Either<AppException, BookingReviewModel?>> getBookingReview(
+    int bookingId,
+  ) async {
+    final response = await _remoteDataSource.getBookingReview(bookingId);
+    if (response.isError()) {
+      final AppException failure = ResponseHelper.error(response);
+      // 404 is how this endpoint says "not reviewed yet". Treating it as an
+      // error would hide the review form behind a failure banner.
+      if (failure.statusCode == 404) return right(null);
+      return left(failure);
+    }
+    try {
+      return right(BookingReviewModel.fromResponse(response.getValue()));
+    } catch (_) {
+      return right(null);
+    }
+  }
+
+  @override
+  Future<Either<AppException, BookingReviewModel>> submitBookingReview({
+    required int bookingId,
+    required double rating,
+    required String review,
+  }) async {
+    final response = await _remoteDataSource.submitBookingReview(bookingId, {
+      'rating': rating,
+      'review': review,
+    });
+    if (response.isError()) {
+      return left(ResponseHelper.error(response));
+    }
+    // The response echoes the saved review, but a thin 200 is just as valid an
+    // acknowledgement — fall back to what was submitted so the UI can show it.
+    return right(
+      BookingReviewModel.fromResponse(response.getValue()) ??
+          BookingReviewModel(rating: rating, review: review),
+    );
   }
 
   /// Flexibly resolves the cancel-boundary payload to a boolean. Accepts a bare

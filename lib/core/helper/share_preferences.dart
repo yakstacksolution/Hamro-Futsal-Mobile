@@ -1,4 +1,6 @@
 import 'dart:convert';
+
+import 'package:hamro_footsall/core/api/api_client/session_gate.dart';
 import 'package:hamro_footsall/features/auth/data/model/token_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -45,10 +47,14 @@ class AppSettings {
   String get khaltiPublicKey =>
       'test_public_key_d5d9f63743584dc38753056b0cc737d5';
 
-  set token(TokenModel token) => _preferences.setString(
-    _AuthPreferenceKeys.tokenModel,
-    jsonEncode(token.toJson()),
-  );
+  set token(TokenModel token) {
+    // A stored token means a live session again — let API traffic through.
+    SessionGate.open();
+    _preferences.setString(
+      _AuthPreferenceKeys.tokenModel,
+      jsonEncode(token.toJson()),
+    );
+  }
   TokenModel get tokenModel {
     final tokenString = _preferences.getString(_AuthPreferenceKeys.tokenModel);
     if (tokenString == null || tokenString.isEmpty) {
@@ -152,6 +158,8 @@ class AppSettings {
   }
 
   void logout() {
+    // Block authenticated requests from anything still winding down.
+    SessionGate.close();
     _preferences.remove(_AuthPreferenceKeys.tokenModel);
   }
 }

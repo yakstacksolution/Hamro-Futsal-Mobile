@@ -417,191 +417,114 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
   }
 
   Widget _buildBottomBar() {
-    return SizedBox(
-      height: 122,
-      child: SlideTransition(
-        position: _bottomBarSlide,
-        child: BlocBuilder<SlotsSelectionBloc, SlotsSelectionState>(
-          builder: (BuildContext context, SlotsSelectionState state) {
-            final bool canBook =
-                state.hasSlotSelection &&
-                (state.selectedCourt?.isAvailable ?? false);
-            final bool canPressAction =
-                !_isConfirmingManualBooking &&
-                (!state.hasSlotSelection || canBook);
+    return SlideTransition(
+      position: _bottomBarSlide,
+      child: BlocBuilder<SlotsSelectionBloc, SlotsSelectionState>(
+        builder: (BuildContext context, SlotsSelectionState state) {
+          final bool canBook =
+              state.hasSlotSelection &&
+              (state.selectedCourt?.isAvailable ?? false);
+          final bool canPressAction =
+              !_isConfirmingManualBooking &&
+              (!state.hasSlotSelection || canBook);
 
-            return Container(
-              padding: EdgeInsets.symmetric(
+          return Container(
+            decoration: BoxDecoration(
+              color: LightColor.cardColor,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(AppDimens.radiusX20),
+                topRight: Radius.circular(AppDimens.radiusX20),
+              ),
+              border: Border.all(
+                color: LightColor.dividerColor.withValues(alpha: 0.7),
+              ),
+              boxShadow: <BoxShadow>[
+                BoxShadow(
+                  color: LightColor.shadowOf(0.12),
+                  blurRadius: AppDimens.radiusX28,
+                  offset: const Offset(0, AppDimens.sizeX10),
+                ),
+              ],
+            ),
+            child: SafeArea(
+              top: false,
+              minimum: EdgeInsets.symmetric(
                 horizontal: _bottomBarInset(context),
                 vertical: AppDimens.paddingX12,
               ),
-              decoration: BoxDecoration(
-                color: LightColor.cardColor,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(AppDimens.radiusX20),
-                  topRight: Radius.circular(AppDimens.radiusX20),
-                ),
-                border: Border.all(
-                  color: LightColor.dividerColor.withValues(alpha: 0.7),
-                ),
-                boxShadow: <BoxShadow>[
-                  BoxShadow(
-                    color: LightColor.shadowOf(0.12),
-                    blurRadius: AppDimens.radiusX28,
-                    offset: const Offset(0, AppDimens.sizeX10),
-                  ),
-                ],
-              ),
-              child: SafeArea(
-                top: false,
-                child: Row(
-                  children: <Widget>[
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          Padding(
-                            padding: const EdgeInsets.only(
-                              left: AppDimens.paddingX6,
-                            ),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: <Widget>[
-                                Text(
-                                  state.priceText,
-                                  style: FutsalTheme.getTextTheme(context)
-                                      .bodyTextLarge
-                                      ?.copyWith(
-                                        color: LightColor.primaryTextColor,
-                                      ),
-                                ),
-                                SizedBox(width: AppDimens.sizeX4),
-                                Flexible(
-                                  child: Padding(
-                                    padding: const EdgeInsets.only(
-                                      bottom: AppDimens.paddingX2,
-                                    ),
-                                    child: Text(
-                                      state.priceUnit,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: FutsalTheme.getTextTheme(context)
-                                          .bodyTextSmall
-                                          ?.copyWith(
-                                            color: LightColor.hintTextColor,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          SizedBox(height: AppDimens.sizeX4),
-                          AnimatedContainer(
-                            duration: const Duration(milliseconds: 220),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: AppDimens.paddingX10,
-                              vertical: AppDimens.paddingX2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: canBook
-                                  ? LightColor.secondarySoft
-                                  : LightColor.inputFillColor,
-                              borderRadius: BorderRadius.circular(
-                                AppDimens.radiusX50,
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: <Widget>[
-                                Icon(
-                                  canBook
-                                      ? Icons.check_circle_rounded
-                                      : Icons.schedule_rounded,
-                                  size: AppDimens.sizeX12,
-                                  color: canBook
-                                      ? LightColor.secondaryColor
-                                      : LightColor.hintTextColor,
-                                ),
-                                SizedBox(width: AppDimens.sizeX4 + 1),
-                                Flexible(
-                                  child: Text(
-                                    state.selectedLabel,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: FutsalTheme.getTextTheme(context)
-                                        .bodyMiniSubTitle
-                                        ?.copyWith(
-                                          color: canBook
-                                              ? LightColor.secondaryColor
-                                              : LightColor.hintTextColor,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          SizedBox(height: AppDimens.sizeX2),
-                        ],
+              child: LayoutBuilder(
+                builder: (BuildContext context, BoxConstraints constraints) {
+                  final double buttonWidth = (constraints.maxWidth * 0.42)
+                      .clamp(AppDimens.sizeX148, AppDimens.sizeX210);
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: <Widget>[
+                      Expanded(
+                        child: _BookingBarSummary(
+                          priceText: state.priceText,
+                          priceUnit: state.priceUnit,
+                          selectedLabel: state.selectedLabel,
+                          canBook: canBook,
+                        ),
                       ),
-                    ),
-                    SizedBox(width: AppDimens.sizeX12),
-                    SizedBox(
-                      width: AppDimens.sizeX116,
-                      height: AppDimens.sizeX42,
-                      child: CustomButton(
-                        text: canBook && widget.manualBooking != null
-                            ? (_isConfirmingManualBooking
-                                  ? 'Confirming…'
-                                  : 'Confirm Booking')
-                            : state.buttonText,
-                        isLoading: _isConfirmingManualBooking,
-                        onPressed: canPressAction
-                            ? () async {
-                                if (!state.hasSlotSelection) {
-                                  AppUtils().showSnackBar(
-                                    context,
-                                    MsgType.error,
-                                    StringConstants.pleaseSelectTimeSlot,
-                                    key: 'slot_selection_required',
-                                  );
-                                  return;
-                                }
-
-                                HapticFeedback.mediumImpact();
-                                final draft = state.bookingDraft
-                                    ?.withManualBooking(widget.manualBooking);
-                                if (draft == null) return;
-                                if (widget.manualBooking != null) {
-                                  await _confirmManualBooking(draft);
-                                  return;
-                                }
-                                final BookingDraft? booked = await context
-                                    .pushNamed<BookingDraft>(
-                                      AppRouterParams.bookingCheckout.name,
-                                      extra: draft,
+                      const SizedBox(width: AppDimens.sizeX12),
+                      SizedBox(
+                        width: buttonWidth,
+                        height: AppDimens.sizeX52,
+                        child: CustomButton(
+                          text: canBook && widget.manualBooking != null
+                              ? (_isConfirmingManualBooking
+                                    ? 'Confirming…'
+                                    : 'Confirm Booking')
+                              : state.buttonText,
+                          isLoading: _isConfirmingManualBooking,
+                          onPressed: canPressAction
+                              ? () async {
+                                  if (!state.hasSlotSelection) {
+                                    AppUtils().showSnackBar(
+                                      context,
+                                      MsgType.error,
+                                      StringConstants.pleaseSelectTimeSlot,
+                                      key: 'slot_selection_required',
                                     );
-                                if (booked != null && context.mounted) {
-                                  Navigator.of(context).pop(booked);
+                                    return;
+                                  }
+
+                                  HapticFeedback.mediumImpact();
+                                  final draft = state.bookingDraft
+                                      ?.withManualBooking(widget.manualBooking);
+                                  if (draft == null) return;
+                                  if (widget.manualBooking != null) {
+                                    await _confirmManualBooking(draft);
+                                    return;
+                                  }
+                                  final BookingDraft? booked = await context
+                                      .pushNamed<BookingDraft>(
+                                        AppRouterParams.bookingCheckout.name,
+                                        extra: draft,
+                                      );
+                                  if (booked != null && context.mounted) {
+                                    Navigator.of(context).pop(booked);
+                                  }
                                 }
-                              }
-                            : null,
-                        backgroundColor: canPressAction
-                            ? LightColor.secondaryColor
-                            : LightColor.dividerColor,
-                        foregroundColor: canPressAction
-                            ? LightColor.inverseTextColor
-                            : LightColor.hintTextColor,
-                        minWidth: AppDimens.sizeX120,
+                              : null,
+                          backgroundColor: canPressAction
+                              ? LightColor.secondaryColor
+                              : LightColor.dividerColor,
+                          foregroundColor: canPressAction
+                              ? LightColor.inverseTextColor
+                              : LightColor.hintTextColor,
+                          minHeight: AppDimens.sizeX52,
+                          minWidth: AppDimens.sizeX148,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
+                    ],
+                  );
+                },
               ),
-            );
-          },
-        ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -691,6 +614,106 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
         ),
         bottomNavigationBar: _buildBottomBar(),
       ),
+    );
+  }
+}
+
+class _BookingBarSummary extends StatelessWidget {
+  const _BookingBarSummary({
+    required this.priceText,
+    required this.priceUnit,
+    required this.selectedLabel,
+    required this.canBook,
+  });
+
+  final String priceText;
+  final String priceUnit;
+  final String selectedLabel;
+  final bool canBook;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Padding(
+          padding: const EdgeInsets.only(left: AppDimens.paddingX6),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: <Widget>[
+              Flexible(
+                child: Text(
+                  priceText,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: textTheme.bodyTextLarge?.copyWith(
+                    color: LightColor.primaryTextColor,
+                  ),
+                ),
+              ),
+              SizedBox(width: AppDimens.sizeX4),
+              Padding(
+                padding: const EdgeInsets.only(bottom: AppDimens.paddingX2),
+                child: Text(
+                  priceUnit,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: textTheme.bodyTextSmall?.copyWith(
+                    color: LightColor.hintTextColor,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(height: AppDimens.sizeX6),
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: AppDimens.sizeX250),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 220),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppDimens.paddingX10,
+              vertical: AppDimens.paddingX4,
+            ),
+            decoration: BoxDecoration(
+              color: canBook
+                  ? LightColor.secondarySoft
+                  : LightColor.inputFillColor,
+              borderRadius: BorderRadius.circular(AppDimens.radiusX50),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Icon(
+                  canBook ? Icons.check_circle_rounded : Icons.schedule_rounded,
+                  size: AppDimens.sizeX12,
+                  color: canBook
+                      ? LightColor.secondaryColor
+                      : LightColor.hintTextColor,
+                ),
+                SizedBox(width: AppDimens.sizeX4 + 1),
+                Flexible(
+                  child: Text(
+                    selectedLabel,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: textTheme.bodyMiniSubTitle?.copyWith(
+                      color: canBook
+                          ? LightColor.secondaryColor
+                          : LightColor.hintTextColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

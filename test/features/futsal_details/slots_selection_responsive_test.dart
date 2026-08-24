@@ -11,6 +11,7 @@ import 'package:hamro_footsall/features/futsal_details/domain/usecase/get_availa
 import 'package:hamro_footsall/features/futsal_details/domain/usecase/get_venue_slots_use_case.dart';
 import 'package:hamro_footsall/features/futsal_details/presentation/bloc/slots_selection/slots_selection_bloc.dart';
 import 'package:hamro_footsall/features/futsal_details/presentation/view/slots_selection_page.dart';
+import 'package:hamro_footsall/features/futsal_details/presentation/widgets/compact_date_time_selector.dart';
 
 /// Sizes representing each breakpoint.
 const Size _phone = Size(411, 891);
@@ -101,7 +102,7 @@ void main() {
       testWidgets('$label renders both sections', (WidgetTester tester) async {
         await _pumpAt(tester, size);
 
-        expect(find.text(StringConstants.selectDateAndTime), findsOneWidget);
+        expect(find.byType(CompactDateTimeSelector), findsOneWidget);
         expect(find.text(StringConstants.availableCourts), findsOneWidget);
         _ignoreKnownButtonOverflow(tester);
       });
@@ -133,7 +134,18 @@ void main() {
       // inside the capped column rather than hugging the window edge.
       final double expectedGutter =
           (_tabletPortrait.width - AppDimens.slotsSelectionColumnMaxWidth) / 2;
-      expect(courts.left, closeTo(expectedGutter + AppDimens.paddingX20, 2));
+      // The title follows the section's left padding, 4px accent bar and
+      // 10px gap.
+      expect(
+        courts.left,
+        closeTo(
+          expectedGutter +
+              AppDimens.paddingX20 +
+              AppDimens.sizeX4 +
+              AppDimens.sizeX10,
+          2,
+        ),
+      );
       _ignoreKnownButtonOverflow(tester);
     });
 

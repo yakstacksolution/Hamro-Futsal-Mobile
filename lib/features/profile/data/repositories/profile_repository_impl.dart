@@ -2,6 +2,9 @@ import 'package:dartz/dartz.dart';
 import 'package:hamro_footsall/core/api/api_client/result.dart';
 import 'package:hamro_footsall/core/helper/exception_helper.dart';
 import 'package:hamro_footsall/core/helper/response_helper.dart';
+import 'package:hamro_footsall/core/helper/share_preferences.dart';
+import 'package:hamro_footsall/core/security/biometric_session_store.dart';
+import 'package:hamro_footsall/core/socket/reverb_connection.dart';
 import 'package:hamro_footsall/features/profile/data/data_source/profile_data_source.dart';
 import 'package:hamro_footsall/features/profile/data/model/profile_model.dart';
 import 'package:hamro_footsall/features/profile/domain/repository/profile_repository.dart';
@@ -55,6 +58,28 @@ final class ProfileRepositoryImpl extends ProfileRepository {
       // A 204 No Content reply still means the preferences were saved.
       if (error.statusCode != 204) return left(error);
     }
+    return right(true);
+  }
+
+  @override
+  Future<Either<AppException, bool>> deleteAccount({
+    required String reason,
+  }) async {
+    final Result response = await _remoteDataSource.deleteAccount(
+      <String, dynamic>{'reason': reason.trim()},
+    );
+    if (response.isError()) {
+      final AppException error = ResponseHelper.error(response);
+      // 204 No Content is a successful delete with nothing to return.
+      if (error.statusCode != 204) return left(error);
+    }
+
+    // The account is gone: drop the token, the biometric session that could
+    // sign back in with it, and the socket bound to the old identity.
+    AppSettings().logout();
+    await BiometricSessionStore().clear();
+    AppSettings().biometricLogin = false;
+    await ReverbConnection.instance.reset();
     return right(true);
   }
 

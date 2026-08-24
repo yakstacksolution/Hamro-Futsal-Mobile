@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hamro_footsall/core/helper/exception_helper.dart';
 import 'package:hamro_footsall/features/bookings/data/model/booking_model.dart';
+import 'package:hamro_footsall/features/bookings/data/model/booking_review_model.dart';
 import 'package:hamro_footsall/features/bookings/domain/repository/booking_repository.dart';
 import 'package:hamro_footsall/features/bookings/domain/model/paginated_bookings.dart';
 import 'package:hamro_footsall/features/bookings/presentation/pages/booking_details_page.dart';
@@ -288,6 +289,18 @@ void main() {
 }
 
 final class _FakeBookingRepository implements BookingRepository {
+  @override
+  Future<Either<AppException, BookingReviewModel?>> getBookingReview(
+    int bookingId,
+  ) async => right(null);
+
+  @override
+  Future<Either<AppException, BookingReviewModel>> submitBookingReview({
+    required int bookingId,
+    required double rating,
+    required String review,
+  }) async => right(BookingReviewModel(rating: rating, review: review));
+
   _FakeBookingRepository(this.booking);
 
   final BookingModel booking;
@@ -313,6 +326,7 @@ final class _FakeBookingRepository implements BookingRepository {
   Future<Either<AppException, PaginatedBookings>> getMyBookings({
     required int page,
     required int perPage,
+    String? status,
   }) async => right(
     PaginatedBookings(
       items: <BookingModel>[booking],
@@ -328,6 +342,7 @@ final class _FakeBookingRepository implements BookingRepository {
   Future<Either<AppException, PaginatedBookings>> getFutsalBookings({
     required int page,
     required int perPage,
+    String? status,
   }) async => right(
     PaginatedBookings(
       items: <BookingModel>[booking],

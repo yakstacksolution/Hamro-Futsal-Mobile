@@ -36,14 +36,14 @@ final class RequestSettlementEvent extends AccountEvent {
   const RequestSettlementEvent({
     required this.amount,
     required this.transactionReference,
-    required this.paymentProofPath,
+    required this.paymentProof,
     this.venueId,
     this.note,
   });
 
   final double amount;
   final String transactionReference;
-  final String paymentProofPath;
+  final UploadAttachment paymentProof;
   final int? venueId;
   final String? note;
 
@@ -51,8 +51,40 @@ final class RequestSettlementEvent extends AccountEvent {
   List<Object?> get props => [
     amount,
     transactionReference,
-    paymentProofPath,
+    paymentProof,
     venueId,
     note,
   ];
+}
+
+/// Loads `/auth/settlement-breakdown`.
+///
+/// Deferred until the Futsal Breakdown screen is actually opened — it is the
+/// only surface that needs the per-futsal balances, and paying for it on every
+/// account load slowed the screen down for vendors who never open it.
+final class LoadSettlementBreakdownEvent extends AccountEvent {
+  const LoadSettlementBreakdownEvent({this.refresh = false});
+
+  /// Refetches even when a breakdown is already held.
+  final bool refresh;
+
+  @override
+  List<Object?> get props => <Object?>[refresh];
+}
+
+/// Loads `/auth/settlement-recent-activity`.
+///
+/// The account summary already carries a short preview of these rows, so the
+/// full ledger is fetched only when the Account statement screen opens.
+final class LoadRecentActivityEvent extends AccountEvent {
+  const LoadRecentActivityEvent({this.loadMore = false, this.refresh = false});
+
+  /// Appends the next page instead of replacing page 1.
+  final bool loadMore;
+
+  /// Refetches page 1 even when rows are already held.
+  final bool refresh;
+
+  @override
+  List<Object?> get props => <Object?>[loadMore, refresh];
 }

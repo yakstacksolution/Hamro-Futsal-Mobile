@@ -47,6 +47,9 @@ class CustomButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final AppUtils appUtils = AppUtils();
     final ColorScheme scheme = Theme.of(context).colorScheme;
+    // The label and icon are painted with explicit colours below, which beat
+    // the ButtonStyle's disabled resolution — so they are dimmed here too.
+    final bool isDisabled = onPressed == null || isLoading;
     final Color resolvedBackground = isOutlined
         ? LightColor.transparentColor
         : (backgroundColor ?? scheme.primary);
@@ -56,6 +59,9 @@ class CustomButton extends StatelessWidget {
         foregroundColor ?? (isOutlined ? scheme.primary : scheme.onPrimary);
     final Color? resolvedBorderColor =
         borderColor ?? (isOutlined ? resolvedForeground : null);
+    final Color labelColor = isDisabled
+        ? resolvedForeground.withValues(alpha: 0.55)
+        : resolvedForeground;
 
     final content = isLoading
         ? SizedBox(
@@ -72,17 +78,29 @@ class CustomButton extends StatelessWidget {
                 // explicit style wins over the ButtonStyle, so passing null
                 // here silently fell back to the text theme's primaryText —
                 // dark-on-green in light mode.
-                Icon(icon, size: AppDimens.sizeX18, color: resolvedForeground),
+                Icon(icon, size: AppDimens.sizeX18, color: labelColor),
                 SizedBox(width: AppDimens.sizeX6),
               ],
-              Text(
-                text,
-                style: FutsalTheme.getTextTheme(context).bodyTextSmall
-                    ?.copyWith(
-                      color: resolvedForeground,
-                      fontWeight: fontWeight,
-                      fontSize: fontSize,
-                    ),
+              // A label wider than the button used to overflow the row (a
+              // two-button dialog gives each side about half the width).
+              // Flexible hands it the space that is actually left and
+              // scaleDown shrinks it to fit, so a long label stays readable
+              // instead of throwing or ellipsising.
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    text,
+                    maxLines: 1,
+                    softWrap: false,
+                    style: FutsalTheme.getTextTheme(context).bodyTextSmall
+                        ?.copyWith(
+                          color: labelColor,
+                          fontWeight: fontWeight,
+                          fontSize: fontSize,
+                        ),
+                  ),
+                ),
               ),
             ],
           );
@@ -109,25 +127,50 @@ class CustomButton extends StatelessWidget {
               borderRadius: BorderRadius.circular(borderRadius),
             ),
           ),
-          side: WidgetStateProperty.all<BorderSide?>(
-            resolvedBorderColor == null
+          side: WidgetStateProperty.resolveWith<BorderSide?>(
+            (Set<WidgetState> states) => resolvedBorderColor == null
                 ? null
-                : BorderSide(color: resolvedBorderColor, width: 1.4),
+                : BorderSide(
+                    color: states.contains(WidgetState.disabled)
+                        ? resolvedBorderColor.withValues(alpha: 0.45)
+                        : resolvedBorderColor,
+                    width: 1.4,
+                  ),
           ),
 
-          backgroundColor: WidgetStateProperty.all<Color>(resolvedBackground),
-          foregroundColor: WidgetStateProperty.all<Color>(resolvedForeground),
-        ),
-        child: Container(
-          alignment: Alignment.center,
-          width: widthFactor != null
-              ? MediaQuery.sizeOf(context).width * widthFactor!
-              : double.infinity,
-          padding: appUtils.getPadding(
-            symmetricVertical: verticalPadding,
-            symmetricHorizontal: AppDimens.paddingX12,
+          // A disabled button has to *look* disabled. These were painted with
+          // `all()`, so `onPressed: null` rendered identically to a live
+          // button — the tap did nothing and the user had no way to tell why.
+          backgroundColor: WidgetStateProperty.resolveWith<Color>(
+            (Set<WidgetState> states) => states.contains(WidgetState.disabled)
+                ? (isOutlined
+                      ? LightColor.transparentColor
+                      : resolvedBackground.withValues(alpha: 0.38))
+                : resolvedBackground,
           ),
-          child: content,
+          foregroundColor: WidgetStateProperty.resolveWith<Color>(
+            (Set<WidgetState> states) => states.contains(WidgetState.disabled)
+                ? resolvedForeground.withValues(alpha: 0.55)
+                : resolvedForeground,
+          ),
+        ),
+        // `double.infinity` fills the parent when the width is bounded, but is
+        // an invalid constraint when it is not — a button placed straight into
+        // a Row or a scrollable's cross axis got infinite width and brought the
+        // whole subtree down. Sizing to the content there instead.
+        child: LayoutBuilder(
+          builder: (BuildContext context, BoxConstraints constraints) =>
+              Container(
+                alignment: Alignment.center,
+                width: widthFactor != null
+                    ? MediaQuery.sizeOf(context).width * widthFactor!
+                    : (constraints.hasBoundedWidth ? double.infinity : null),
+                padding: appUtils.getPadding(
+                  symmetricVertical: verticalPadding,
+                  symmetricHorizontal: AppDimens.paddingX12,
+                ),
+                child: content,
+              ),
         ),
       ),
     );

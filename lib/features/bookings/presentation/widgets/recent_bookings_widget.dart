@@ -627,11 +627,7 @@ class _InlineError extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Icon(
-            Icons.wifi_off_rounded,
-            color: LightColor.redColor,
-            size: 28,
-          ),
+          Icon(Icons.wifi_off_rounded, color: LightColor.redColor, size: 28),
           const SizedBox(height: 8),
           Text(
             message,

@@ -3,6 +3,7 @@
 /// retains, ledger entries, and settlement (payout) requests.
 library;
 
+import 'package:hamro_footsall/core/api/api_client/api_constants.dart';
 import 'package:hamro_footsall/features/futsal_details/data/model/payment_qr_model.dart';
 
 int _asInt(dynamic v) {
@@ -23,6 +24,27 @@ DateTime? _asDate(dynamic v) =>
     v == null ? null : DateTime.tryParse(v.toString())?.toLocal();
 
 String _asString(dynamic v) => (v ?? '').toString().trim();
+
+/// The settlement QR, wherever the endpoint chose to hang it.
+///
+/// [PaymentQrModel.fromResponse] already understands every key shape the API
+/// uses for a QR (media object, flat URL, base64), so the work here is only
+/// picking which sub-map to hand it. A dedicated `payment_qr` block is tried
+/// first, then the recipient, then the payload itself; the first one that
+/// actually yields an image wins, and null means "no QR to show".
+PaymentQrModel? _parsePaymentQr(Map<String, dynamic> data) {
+  final List<dynamic> candidates = <dynamic>[
+    data['payment_qr'] ?? data['paymentQr'] ?? data['qr'],
+    data['recipient'],
+    data,
+  ];
+  for (final dynamic candidate in candidates) {
+    if (candidate == null) continue;
+    final PaymentQrModel parsed = PaymentQrModel.fromResponse(candidate);
+    if (parsed.hasQr) return parsed;
+  }
+  return null;
+}
 
 /// One entry of `data.sections` — the server tells the UI which sub-sections
 /// exist and how many rows each holds, so shortcut tiles never guess.
@@ -261,8 +283,14 @@ class VenueAccountModel {
         json['pending_clearance'] ?? json['pending_balance'],
       ),
       totalEarned: _asDouble(json['total_earned'] ?? json['gross_earnings']),
+      // `/auth/settlement-breakdown` names this plain `commission`. Without it
+      // the per-futsal commission read as 0 and the settlement form fell back
+      // to the venue's balance — several times what is actually owed.
       totalCommission: _asDouble(
-        json['total_commission'] ?? json['commission_due'],
+        json['commission'] ??
+            json['total_commission'] ??
+            json['commission_due'] ??
+            json['commission_payable'],
       ),
       settlementEligible:
           json['settlement_eligible'] != false &&
@@ -356,6 +384,93 @@ class SettlementRecipientModel {
       );
 }
 
+/// One entry of `/auth/qr-codes`:
+///
+/// ```json
+/// { "id": 1, "title": "New", "image": "https://…png",
+///   "status": true, "sort_order": 1 }
+/// ```
+///
+/// The image itself is delegated to [PaymentQrModel], which already handles
+/// every shape the API uses (media object, flat URL, base64).
+class SettlementQrCodeModel {
+  const SettlementQrCodeModel({
+    this.id = 0,
+    this.title = '',
+    this.sortOrder = 0,
+    this.qr = const PaymentQrModel(),
+  });
+
+  final int id;
+
+  /// Display name the vendor picks this QR by, e.g. the bank or wallet.
+  final String title;
+
+  /// The server's own ordering for the slider.
+  final int sortOrder;
+
+  final PaymentQrModel qr;
+
+  bool get hasQr => qr.hasQr;
+
+  factory SettlementQrCodeModel.fromJson(Map<String, dynamic> json) {
+    final String title = _asString(
+      json['title'] ??
+          json['label'] ??
+          json['name'] ??
+          json['bank_name'] ??
+          json['payment_method'],
+    );
+    final PaymentQrModel qr = PaymentQrModel.fromResponse(json);
+    return SettlementQrCodeModel(
+      id: _asInt(json['id'] ?? json['qr_id']),
+      title: title.isEmpty ? _asString(qr.payeeName) : title,
+      sortOrder: _asInt(json['sort_order'] ?? json['sortOrder']),
+      qr: qr,
+    );
+  }
+
+  /// Every usable QR in the payload, in the server's `sort_order`.
+  ///
+  /// Two kinds of entry are dropped: `status: false`, which is the server
+  /// retiring a QR without deleting it, and any entry whose image failed to
+  /// parse — a slide the vendor cannot scan is worse than one slide fewer.
+  static List<SettlementQrCodeModel> listFromResponse(dynamic payload) {
+    final List<dynamic> raw = _qrNodes(payload);
+    final List<SettlementQrCodeModel> parsed = raw
+        .whereType<Map>()
+        .map((Map e) => Map<String, dynamic>.from(e))
+        .where((Map<String, dynamic> e) => e['status'] != false)
+        .map(SettlementQrCodeModel.fromJson)
+        .where((SettlementQrCodeModel e) => e.hasQr)
+        .toList();
+    parsed.sort(
+      (SettlementQrCodeModel a, SettlementQrCodeModel b) =>
+          a.sortOrder.compareTo(b.sortOrder),
+    );
+    return List<SettlementQrCodeModel>.unmodifiable(parsed);
+  }
+
+  /// The list node, wherever the envelope puts it. `/auth/qr-codes` nests it as
+  /// `data.qr_codes`; the other keys cover the shapes used elsewhere.
+  static List<dynamic> _qrNodes(dynamic payload) {
+    if (payload is List) return payload;
+    if (payload is! Map) return const <dynamic>[];
+    final Map<String, dynamic> root = Map<String, dynamic>.from(payload);
+    final dynamic data = root['data'] ?? root;
+    if (data is List) return data;
+    if (data is! Map) return const <dynamic>[];
+    final Map<String, dynamic> map = Map<String, dynamic>.from(data);
+    final dynamic node =
+        map['qr_codes'] ??
+        map['qrCodes'] ??
+        map['items'] ??
+        map['data'] ??
+        map['results'];
+    return node is List ? node : const <dynamic>[];
+  }
+}
+
 /// `/auth/settlement-preview[?venue_id=]`: everything the request form needs,
 /// as the server scopes it — the copy to show, who to pay, how much is
 /// payable, and what a proof file may be.
@@ -376,6 +491,7 @@ class SettlementPreviewModel {
     this.acceptedProofTypes = const <String>['jpg', 'jpeg', 'png', 'pdf'],
     this.proofMaxSizeMb = 10,
     this.blockingReason = '',
+    this.paymentQr,
   });
 
   final String scope;
@@ -406,6 +522,10 @@ class SettlementPreviewModel {
   final int proofMaxSizeMb;
   final String blockingReason;
 
+  /// QR the vendor scans to pay the commission. Null when the server sends
+  /// none — the form then falls back to the phone number on the recipient card.
+  final PaymentQrModel? paymentQr;
+
   bool get isVenueScoped => venue != null || scope == 'venue';
 
   /// Nothing to settle means nothing to request.
@@ -420,10 +540,17 @@ class SettlementPreviewModel {
     final data = root['data'] is Map
         ? Map<String, dynamic>.from(root['data'] as Map)
         : root;
+    // A settlement pays the commission the venue owes Hamro Futsal, so the
+    // commission keys are read first. `maximum_payable` trails them on purpose:
+    // the endpoint fills it with the vendor's cleared balance — the pot the
+    // commission came out of — which is several times the debt. It is a
+    // last-resort figure here, not the preferred one.
     final maximumPayable = _asDouble(
-      data['maximum_payable'] ??
-          data['payable_amount'] ??
-          data['available_balance'],
+      data['commission_payable'] ??
+          data['commission_due'] ??
+          data['total_commission'] ??
+          data['maximum_payable'] ??
+          data['payable_amount'],
     );
     final proofTypes = data['accepted_proof_types'] is List
         ? (data['accepted_proof_types'] as List)
@@ -461,6 +588,7 @@ class SettlementPreviewModel {
       proofMaxSizeMb: data['proof_max_size_mb'] == null
           ? 10
           : _asInt(data['proof_max_size_mb']),
+      paymentQr: _parsePaymentQr(data),
       blockingReason: _asString(
         data['blocking_reason'] ?? data['settlement_blocking_reason'],
       ),
@@ -623,15 +751,29 @@ class SettlementModel {
     this.transactionReference = '',
     this.venueId,
     this.venueName = '',
+    this.venueAddress = '',
     this.requestedAt,
     this.resolvedAt,
+    this.scope = '',
+    this.maximumPayable = 0,
+    this.pendingClearanceAmount = 0,
+    this.itemCount = 0,
+    this.proofPath = '',
+    this.proofUrl = '',
   });
 
   final String id;
+
+  /// What the vendor asked for — `requested_amount`. This is the figure the
+  /// row shows at every status: while pending it is the claim under review,
+  /// and once paid it is what was paid out.
   final double amount;
+
   final SettlementStatus status;
   final String note;
   final String rejectedReason;
+
+  /// Human-facing code for the request (`settlement_code`, e.g. `ST-KSZWOSQ9`).
   final String reference;
 
   /// The vendor's own payment reference sent with the request.
@@ -640,30 +782,99 @@ class SettlementModel {
   /// Set on a venue-scoped settlement; null on a consolidated one.
   final int? venueId;
   final String venueName;
+  final String venueAddress;
   final DateTime? requestedAt;
   final DateTime? resolvedAt;
 
+  /// `venue` for a single-futsal request, `all`/`consolidated` otherwise.
+  final String scope;
+
+  /// Ceiling the server would have allowed at request time, and the earnings
+  /// still inside the clearance window — both reported per request.
+  final double maximumPayable;
+  final double pendingClearanceAmount;
+
+  /// How many ledger rows this request settles.
+  final int itemCount;
+
+  /// Payment proof the vendor attached. [proofPath] is storage-relative;
+  /// [proofUrl] is the absolute link when the API built one. Read
+  /// [proofImageUrl] instead of either — it normalizes both.
+  final String proofPath;
+  final String proofUrl;
+
+  bool get hasProof => proofImageUrl != null;
+
+  /// Absolute, de-duplicated URL for the proof image, or null when there is
+  /// none. The API's `proof_url` arrives with a doubled slash
+  /// (`https://host//storage/…`), which some caches treat as a different path,
+  /// so the path is always collapsed before it is used.
+  String? get proofImageUrl {
+    final String direct = proofUrl.trim();
+    if (direct.isNotEmpty) {
+      final Uri? parsed = Uri.tryParse(direct);
+      if (parsed != null && parsed.hasScheme && parsed.host.isNotEmpty) {
+        return parsed.replace(path: _collapse(parsed.path)).toString();
+      }
+    }
+    final String raw = direct.isNotEmpty ? direct : proofPath.trim();
+    if (raw.isEmpty) return null;
+    final String path = raw.startsWith('/') ? raw : '/$raw';
+    final String storagePath = path.startsWith('/storage/')
+        ? path
+        : '/storage$path';
+    return Uri.parse(APIEndpoint.baseUrl)
+        .replace(path: _collapse(storagePath), query: null, fragment: null)
+        .toString();
+  }
+
+  static String _collapse(String path) =>
+      path.replaceAll(RegExp(r'/{2,}'), '/');
+
   factory SettlementModel.fromJson(Map<String, dynamic> json) {
+    final Map<String, dynamic> venue = json['venue'] is Map
+        ? Map<String, dynamic>.from(json['venue'] as Map)
+        : const <String, dynamic>{};
     return SettlementModel(
       id: _asString(json['id'] ?? json['settlement_id']),
-      amount: _asDouble(json['amount']).abs(),
+      // `/auth/settlements` names the figure `requested_amount`; older
+      // payloads (and the create response) call it `amount`.
+      amount: _asDouble(
+        json['requested_amount'] ?? json['amount'] ?? json['maximum_payable'],
+      ).abs(),
       status: SettlementStatus.parse(_asString(json['status'])),
       note: _asString(json['note'] ?? json['remarks']),
       rejectedReason: _asString(
         json['rejected_reason'] ?? json['rejection_reason'] ?? json['reason'],
       ),
-      reference: _asString(json['reference'] ?? json['ref'] ?? json['code']),
+      reference: _asString(
+        json['settlement_code'] ??
+            json['reference'] ??
+            json['ref'] ??
+            json['code'],
+      ),
       transactionReference: _asString(
         json['transaction_reference'] ?? json['txn_reference'],
       ),
-      venueId: json['venue_id'] == null ? null : _asInt(json['venue_id']),
-      venueName: _asString(json['venue_name'] ?? json['futsal_name']),
+      venueId: (json['venue_id'] ?? venue['id']) == null
+          ? null
+          : _asInt(json['venue_id'] ?? venue['id']),
+      venueName: _asString(
+        json['venue_name'] ?? json['futsal_name'] ?? venue['name'],
+      ),
+      venueAddress: _asString(venue['address']),
       requestedAt: _asDate(
         json['requested_at'] ?? json['created_at'] ?? json['createdAt'],
       ),
       resolvedAt: _asDate(
         json['resolved_at'] ?? json['paid_at'] ?? json['updated_at'],
       ),
+      scope: _asString(json['scope']),
+      maximumPayable: _asDouble(json['maximum_payable']).abs(),
+      pendingClearanceAmount: _asDouble(json['pending_clearance_amount']).abs(),
+      itemCount: _asInt(json['item_count'] ?? json['items_count']),
+      proofPath: _asString(json['proof_path']),
+      proofUrl: _asString(json['proof_url']),
     );
   }
 }
@@ -698,6 +909,87 @@ class SettlementStatusCounts {
 }
 
 /// One page of `/auth/settlements?page=&per_page=`.
+/// One page of `/auth/settlement-recent-activity`.
+///
+/// The same rows the account summary previews, but walked page by page. The
+/// pagination block is optional: without it a full page is taken to mean
+/// another probably follows, which is how the settlement list reads it too.
+class AccountActivityPageModel {
+  const AccountActivityPageModel({
+    this.items = const <AccountEntryModel>[],
+    this.currentPage = 1,
+    this.lastPage = 1,
+    this.perPage = 10,
+    this.total = 0,
+    this.hasMorePages = false,
+  });
+
+  final List<AccountEntryModel> items;
+  final int currentPage;
+  final int lastPage;
+  final int perPage;
+  final int total;
+  final bool hasMorePages;
+
+  static const AccountActivityPageModel empty = AccountActivityPageModel();
+
+  factory AccountActivityPageModel.fromResponse(
+    dynamic payload, {
+    required int requestedPage,
+    required int requestedPerPage,
+  }) {
+    final root = payload is Map
+        ? Map<String, dynamic>.from(payload)
+        : <String, dynamic>{};
+    final dynamic dataNode = payload is List ? payload : (root['data'] ?? root);
+    final Map<String, dynamic> data = dataNode is Map
+        ? Map<String, dynamic>.from(dataNode)
+        : <String, dynamic>{};
+
+    final items = _mapList(
+      dataNode is List
+          ? dataNode
+          : (data['items'] ??
+                data['recent_activity'] ??
+                data['activities'] ??
+                data['entries'] ??
+                data['statement'] ??
+                data['transactions'] ??
+                data['data'] ??
+                data['results']),
+    ).map(AccountEntryModel.fromJson).toList();
+
+    final pagination = data['pagination'] is Map
+        ? Map<String, dynamic>.from(data['pagination'] as Map)
+        : (data['meta'] is Map
+              ? Map<String, dynamic>.from(data['meta'] as Map)
+              : const <String, dynamic>{});
+
+    final currentPage = pagination['current_page'] == null
+        ? requestedPage
+        : _asInt(pagination['current_page']);
+    final perPage = pagination['per_page'] == null
+        ? requestedPerPage
+        : _asInt(pagination['per_page']);
+    final lastPage = pagination['last_page'] == null
+        ? (items.length >= perPage ? currentPage + 1 : currentPage)
+        : _asInt(pagination['last_page']);
+
+    return AccountActivityPageModel(
+      items: List.unmodifiable(items),
+      currentPage: currentPage,
+      lastPage: lastPage,
+      perPage: perPage,
+      total: pagination['total'] == null
+          ? _asInt(data['count'] ?? items.length)
+          : _asInt(pagination['total']),
+      hasMorePages: pagination['has_more_pages'] == null
+          ? currentPage < lastPage
+          : pagination['has_more_pages'] == true,
+    );
+  }
+}
+
 class SettlementPageModel {
   const SettlementPageModel({
     this.items = const <SettlementModel>[],

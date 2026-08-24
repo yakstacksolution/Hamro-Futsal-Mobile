@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/widgets/custom_text_field.dart';
 import 'package:hamro_footsall/features/courts/presentation/bloc/create_footsall_courts_bloc.dart';
 import 'package:hamro_footsall/features/courts/presentation/widgets/create_footsall_courts/policy_toggle_tile.dart';
@@ -53,6 +54,7 @@ class PoliciesSection extends StatelessWidget {
           labelText: StringConstants.bookingAdvanceLimitDays,
           hintText: '30',
           icon: Icons.calendar_month_rounded,
+          iconColor: LightColor.monoIconColor,
           keyboardType: TextInputType.number,
           textInputAction: TextInputAction.next,
           onSubmitted: (_) => bloc.state.allowCancellation
@@ -68,6 +70,7 @@ class PoliciesSection extends StatelessWidget {
           labelText: StringConstants.cancellationWindowHours,
           hintText: bloc.state.allowCancellation ? '12' : 'Disabled',
           icon: Icons.access_time_filled_rounded,
+          iconColor: LightColor.monoIconColor,
           keyboardType: TextInputType.number,
           textInputAction: TextInputAction.next,
           onSubmitted: (_) => bloc.houseRulesFocus.requestFocus(),
@@ -84,6 +87,7 @@ class PoliciesSection extends StatelessWidget {
           hintText: StringConstants
               .exampleNonMarkingShoesOnlyReport15MinutesEarlyNo3d1a39a7,
           icon: Icons.gavel_rounded,
+          iconColor: LightColor.monoIconColor,
           keyboardType: TextInputType.multiline,
           textInputAction: TextInputAction.newline,
           minLines: 3,

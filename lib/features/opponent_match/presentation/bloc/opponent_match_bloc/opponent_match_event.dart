@@ -60,6 +60,19 @@ final class CreateTeamEvent extends OpponentMatchEvent {
   List<Object?> get props => [name];
 }
 
+/// Loads the invitations on one of my requests
+/// (`GET /auth/opponent-requests/{id}/invitations`) — what the review screen
+/// lists. [force] re-fetches a request whose invitations are already loaded.
+final class LoadInvitationsEvent extends OpponentMatchEvent {
+  const LoadInvitationsEvent(this.requestId, {this.force = false});
+
+  final String requestId;
+  final bool force;
+
+  @override
+  List<Object?> get props => [requestId, force];
+}
+
 /// Renames the team with [teamId].
 final class UpdateTeamEvent extends OpponentMatchEvent {
   const UpdateTeamEvent(this.teamId, this.name);
@@ -131,9 +144,7 @@ final class SaveOpponentMatchStepEvent extends OpponentMatchEvent {
   List<Object?> get props => <Object?>[
     request.teamId,
     request.matchFormatId,
-    request.opponentLevelId,
-    request.preferredDate,
-    request.preferredTime,
+    request.opponentLevelId, 
   ];
 }
 
@@ -229,14 +240,40 @@ final class DeleteOpponentRequestEvent extends OpponentMatchEvent {
   List<Object?> get props => [request];
 }
 
-/// Requester picks this request's opponent — the match is confirmed and
-/// every other invitation is rejected.
-final class SelectOpponentEvent extends OpponentMatchEvent {
-  const SelectOpponentEvent(this.request);
-  final OpponentRequestModel request;
+/// Appends the next page of one section, when the list is scrolled to its
+/// end. The bloc ignores it unless the server said more pages exist.
+final class LoadMoreOpponentRequestsEvent extends OpponentMatchEvent {
+  const LoadMoreOpponentRequestsEvent(this.tab);
+  final OpponentRequestTab tab;
 
   @override
-  List<Object?> get props => [request];
+  List<Object?> get props => [tab];
+}
+
+/// Reads the confirmed match behind a settled request
+/// (`GET /auth/opponent-requests/{id}/match-details`). Idempotent unless
+/// [force]: a match already fetched is served from state.
+final class LoadMatchDetailsEvent extends OpponentMatchEvent {
+  const LoadMatchDetailsEvent(this.requestId, {this.force = false});
+  final String requestId;
+  final bool force;
+
+  @override
+  List<Object?> get props => [requestId, force];
+}
+
+/// Requester picks this request's opponent — the match is confirmed and
+/// every other invitation is rejected.
+///
+/// [invitation] is the accepted invitation, which names the team being
+/// confirmed; the endpoint is scoped to it.
+final class SelectOpponentEvent extends OpponentMatchEvent {
+  const SelectOpponentEvent(this.request, this.invitation);
+  final OpponentRequestModel request;
+  final OpponentInvitationModel invitation;
+
+  @override
+  List<Object?> get props => [request, invitation];
 }
 
 /// Requester turns the acceptance down with [reason] — the request re-opens

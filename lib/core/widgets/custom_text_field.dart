@@ -10,6 +10,7 @@ class CustomTextField extends StatefulWidget {
     super.key,
     required this.labelText,
     this.icon,
+    this.iconColor,
     this.hintText,
     this.suffixIcon,
     this.controller,
@@ -36,6 +37,9 @@ class CustomTextField extends StatefulWidget {
 
   final String labelText;
   final IconData? icon;
+
+  /// Overrides the prefix icon tint. Defaults to [LightColor.secondaryTextColor].
+  final Color? iconColor;
   final String? hintText;
   final Widget? suffixIcon;
   final TextEditingController? controller;
@@ -158,6 +162,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
         isRequired: widget.isRequired ?? true,
         hintText: widget.hintText,
         icon: widget.icon,
+        iconColor: widget.iconColor,
         suffixIcon: widget.suffixIcon,
       ),
     );
@@ -169,6 +174,7 @@ InputDecoration customTextFieldDecoration({
   required String labelText,
   bool isRequired = false,
   IconData? icon,
+  Color? iconColor,
   String? hintText,
   Widget? suffixIcon,
 }) {
@@ -217,7 +223,7 @@ InputDecoration customTextFieldDecoration({
     prefixIcon: icon != null
         ? Icon(
             icon,
-            color: LightColor.secondaryTextColor,
+            color: iconColor ?? LightColor.secondaryTextColor,
             size: AppDimens.sizeX20,
           )
         : null,

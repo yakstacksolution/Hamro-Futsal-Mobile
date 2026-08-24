@@ -178,14 +178,17 @@ void main() {
 
         expect(tester.takeException(), isNull);
         // The Wrap must produce more than one row, i.e. tiles are not all on
-        // a single line running off the edge.
-        final Size wrapSize = tester.getSize(find.byType(Wrap).first);
-        final double tileHeight = tester
-            .getSize(find.byType(IntrinsicWidth).first)
-            .height;
+        // a single line running off the edge. The current equal-width grid no
+        // longer uses IntrinsicWidth, so compare actual tile positions.
+        final double firstRowTop = tester
+            .getTopLeft(find.text(features.first))
+            .dy;
+        final double lastRowTop = tester
+            .getTopLeft(find.text(features.last))
+            .dy;
         expect(
-          wrapSize.height,
-          greaterThan(tileHeight * 1.5),
+          lastRowTop,
+          greaterThan(firstRowTop),
           reason: 'tiles should span multiple rows',
         );
       });

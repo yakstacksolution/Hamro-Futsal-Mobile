@@ -1,4 +1,3 @@
-import 'dart:developer';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -6,10 +5,11 @@ import 'package:hamro_footsall/core/api/api_client/api_constants.dart';
 import 'package:hamro_footsall/core/api/api_client/dio_http.dart';
 import 'package:hamro_footsall/core/api/api_client/ihttp.dart';
 import 'package:hamro_footsall/core/api/api_client/result.dart';
+import 'package:hamro_footsall/core/api/api_client/session_gate.dart';
 import 'package:hamro_footsall/core/api/client.dart';
 import 'package:hamro_footsall/core/helper/share_preferences.dart';
+import 'package:hamro_footsall/core/utils/upload_attachment.dart';
 import 'package:hamro_footsall/features/auth/data/model/token_model.dart';
-import 'package:jwt_decode/jwt_decode.dart';
 
 typedef ApiCall = Future<Response> Function();
 
@@ -45,6 +45,11 @@ class ApiCallWrapper {
     dynamic data,
     Map? query,
   }) async {
+    // A cleared session means every authenticated endpoint would 401; refuse
+    // the call here so late teardown work never reaches the network.
+    if (SessionGate.blocks(url)) {
+      return Result.error(DataError('Session ended', 401, null));
+    }
     printTokenDetails(token);
     try {
       if (isTokenFreshApiCalling) {
@@ -67,7 +72,12 @@ class ApiCallWrapper {
       if (error is MissingPluginException) {
         return Result.error(DataError(error.message.toString(), 0, null));
       }
-      error as DioException;
+      if (error is UploadValidationException) {
+        return Result.error(DataError(error.message, 0, null));
+      }
+      if (error is! DioException) {
+        return Result.error(_getErrorData(error));
+      }
       if (error.response?.statusCode == 401 && token != null) {
         if (isTokenFreshApiCalling) {
           return await retryApiCallWithDelay(url, method, data, query);
@@ -182,7 +192,11 @@ class ApiCallWrapper {
         );
         break;
       case HttpVerb.delete:
-        response = await _iHttp.delete(url: url, token: token);
+        response = await _iHttp.delete(
+          url: url,
+          data: requestData,
+          token: token,
+        );
         break;
       case HttpVerb.patch:
         response = await _iHttp.patch(
@@ -201,7 +215,10 @@ class ApiCallWrapper {
   Future revokeAuthFromApp() async {
     isTokenFreshApiCalling = false;
     numberOfRetry = 0;
-    await Client.revokeAuth!();
+    // The session is gone (refresh failed / token revoked): stop all
+    // authenticated traffic until a new token is stored.
+    SessionGate.close();
+    await Client.revokeAuth?.call();
   }
 
   /// Parses the `/auth/refresh-token` response into a [TokenModel].
@@ -232,35 +249,37 @@ class ApiCallWrapper {
 
   DataError _getErrorData(error) {
     String errorDescription = "";
+    int statusCode = 0;
+    dynamic responseData;
     if (error is DioException) {
       DioException dioError = error;
-      errorDescription = dioError.message ?? "";
+      statusCode = dioError.response?.statusCode ?? 0;
+      responseData = dioError.response?.data;
+      final bool isUpload = dioError.requestOptions.data is FormData;
+      if (isUpload && dioError.type == DioExceptionType.sendTimeout) {
+        errorDescription =
+            'The upload timed out while sending the attachment. '
+            'Check your connection and try again.';
+      } else if (isUpload && dioError.type == DioExceptionType.receiveTimeout) {
+        errorDescription =
+            'The upload timed out while the server was processing it. '
+            'Check whether your change was saved before trying again.';
+      } else {
+        errorDescription = dioError.message ?? "";
+      }
+    } else if (error is UploadValidationException) {
+      errorDescription = error.message;
     } else {
       errorDescription = 'Unexpected error';
     }
-    return DataError(
-      errorDescription,
-      error?.response?.statusCode ?? 0,
-      error?.response?.data,
-    );
+    return DataError(errorDescription, statusCode, responseData);
   }
 
   void printTokenDetails(String? token) {
-    if (kDebugMode) {
-      if (!isTokenPrinted && token != null && token.isNotEmpty) {
-        isTokenPrinted = true;
-        Map<String, dynamic> payload = Jwt.parseJwt(token);
-        print(
-          "\n\n===============================================================\n\n",
-        );
-        print("token-details start");
-        log(token);
-        print(payload);
-        print("token-details end");
-        print(
-          "\n\n===============================================================\n\n",
-        );
-      }
+    // Never write bearer tokens or decoded identity claims to device logs.
+    // Keep the flag because refresh handling uses it to track a new session.
+    if (kDebugMode && !isTokenPrinted && token?.isNotEmpty == true) {
+      isTokenPrinted = true;
     }
   }
 }

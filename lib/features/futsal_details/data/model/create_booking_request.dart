@@ -1,4 +1,4 @@
-import 'dart:typed_data';
+import 'package:hamro_footsall/core/utils/upload_attachment.dart';
 
 class CreateBookingRequest {
   const CreateBookingRequest({
@@ -12,9 +12,7 @@ class CreateBookingRequest {
     this.couponCode,
     this.repeatWeeks,
     this.bookingDates = const <String>[],
-    this.paymentProofPath,
-    this.paymentProofBytes,
-    this.paymentProofName,
+    this.paymentProof,
     this.paymentNote,
     this.bookingType,
     this.customerName,
@@ -47,16 +45,9 @@ class CreateBookingRequest {
   /// the first. Empty for a single-session booking.
   final List<String> bookingDates;
 
-  /// Where the proof was picked from. Reference only — the upload uses
-  /// [paymentProofBytes], because a picker's cache path can be invalidated
-  /// between attaching the file and confirming the booking.
-  final String? paymentProofPath;
-
-  /// The proof's contents, read when it was attached. This is what is sent.
-  final Uint8List? paymentProofBytes;
-
-  /// Filename to send with [paymentProofBytes].
-  final String? paymentProofName;
+  /// Byte-backed proof captured when it was attached. Its optional source path
+  /// is used only by the local receipt validator.
+  final UploadAttachment? paymentProof;
 
   final String? paymentNote;
   final String? bookingType;

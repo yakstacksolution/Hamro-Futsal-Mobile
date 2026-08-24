@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -7,17 +9,15 @@ import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/widgets/custom_date_picker.dart';
-import 'package:hamro_footsall/features/bookings/data/model/booking_model.dart';
 import 'package:hamro_footsall/features/bookings/data/repositories/booking_repository_impl.dart';
 import 'package:hamro_footsall/features/bookings/domain/usecase/get_bookings_use_case.dart';
 import 'package:hamro_footsall/features/bookings/presentation/bloc/booking_bloc/booking_bloc.dart';
 import 'package:hamro_footsall/features/bookings/presentation/utils/booking_search.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/page/dashboard_screen.dart';
-import 'package:hamro_footsall/features/bookings/presentation/widgets/futsal_bookings_tab.dart';
-import 'package:hamro_footsall/features/bookings/presentation/widgets/my_bookings_tab.dart';
 import 'package:hamro_footsall/features/profile/presentation/profile_bloc/profile_bloc.dart';
 import 'package:hamro_footsall/core/utils/string_constants.dart';
 import 'package:hamro_footsall/features/bookings/presentation/widgets/booking_shared_widgets.dart';
+import 'package:hamro_footsall/features/bookings/presentation/widgets/booking_status_page.dart';
 
 enum _BookingTab { futsal, mine }
 
@@ -83,8 +83,21 @@ class _BookingsViewState extends State<_BookingsView>
   // swiping both drive the same index, so the underline, filters, date control
   // and the walk-in FAB switch with the gesture instead of after it settles.
   late final TabController _tabController;
-  BookingStatus? _futsalSelectedFilter;
-  BookingStatus? _mySelectedFilter;
+  // One page per status, per list. The pager and the chips are two views of
+  // the same selection: tapping a chip animates the pager, swiping the pager
+  // selects the chip.
+  // Held in notifiers rather than in setState fields: a page change concerns
+  // only the chip strip, and rebuilding the whole screen for it (tab bar,
+  // search box, both pagers and every page inside them) is what made the swipe
+  // stutter.
+  final ValueNotifier<BookingStatusFilter> _futsalFilterVN =
+      ValueNotifier<BookingStatusFilter>(BookingStatusFilter.all);
+  final ValueNotifier<BookingStatusFilter> _myFilterVN =
+      ValueNotifier<BookingStatusFilter>(BookingStatusFilter.all);
+  late final PageController _futsalPageCtrl = PageController();
+  late final PageController _myPageCtrl = PageController();
+  final ScrollController _chipCtrl = ScrollController();
+  Timer? _searchDebounce;
   // Newest bookings first — the most recent activity is what vendors and
   // players look for when they open the list.
   BookingDateOrder _dateOrder = BookingDateOrder.descending;
@@ -97,29 +110,24 @@ class _BookingsViewState extends State<_BookingsView>
   final TextEditingController _futsalSearchController = TextEditingController();
   final TextEditingController _mySearchController = TextEditingController();
 
-  static const List<_Filter> _myBookingFilters = [
-    _Filter(label: StringConstants.all, status: null),
-    _Filter(label: StringConstants.pending, status: BookingStatus.pending),
-    _Filter(label: StringConstants.confirmed, status: BookingStatus.confirmed),
-    _Filter(label: StringConstants.completed, status: BookingStatus.completed),
-    _Filter(label: StringConstants.cancelled, status: BookingStatus.cancelled),
-    _Filter(label: StringConstants.rejected, status: BookingStatus.rejected),
-  ];
+  /// Both lists offer the same statuses — the endpoints take the same `status`
+  /// values — so one label map serves the chips of either tab.
+  static String _filterLabel(BookingStatusFilter filter) => switch (filter) {
+    BookingStatusFilter.all => StringConstants.all,
+    BookingStatusFilter.pending => StringConstants.pending,
+    BookingStatusFilter.confirmed => StringConstants.confirmed,
+    BookingStatusFilter.completed => StringConstants.completed,
+    BookingStatusFilter.cancelled => StringConstants.cancelled,
+    BookingStatusFilter.rejected => StringConstants.rejected,
+  };
 
-  static const List<_Filter> _futsalBookingFilters = [
-    _Filter(label: StringConstants.all, status: null),
-    _Filter(label: StringConstants.pending, status: BookingStatus.pending),
-    _Filter(label: StringConstants.confirmed, status: BookingStatus.confirmed),
-    _Filter(label: StringConstants.completed, status: BookingStatus.completed),
-    _Filter(label: StringConstants.cancelled, status: BookingStatus.cancelled),
-    _Filter(label: StringConstants.rejected, status: BookingStatus.rejected),
-  ];
+  ValueNotifier<BookingStatusFilter> get _activeFilterVN =>
+      _showsMyBookings ? _myFilterVN : _futsalFilterVN;
 
-  List<_Filter> get _activeFilters =>
-      _showsMyBookings ? _myBookingFilters : _futsalBookingFilters;
+  BookingStatusFilter get _activeFilter => _activeFilterVN.value;
 
-  BookingStatus? get _activeSelectedFilter =>
-      _showsMyBookings ? _mySelectedFilter : _futsalSelectedFilter;
+  PageController get _activePageCtrl =>
+      _showsMyBookings ? _myPageCtrl : _futsalPageCtrl;
 
   TextEditingController get _activeSearchController =>
       _showsMyBookings ? _mySearchController : _futsalSearchController;
@@ -153,6 +161,12 @@ class _BookingsViewState extends State<_BookingsView>
       ..dispose();
     _futsalSearchController.dispose();
     _mySearchController.dispose();
+    _searchDebounce?.cancel();
+    _myFilterVN.dispose();
+    _futsalFilterVN.dispose();
+    _futsalPageCtrl.dispose();
+    _myPageCtrl.dispose();
+    _chipCtrl.dispose();
     super.dispose();
   }
 
@@ -167,16 +181,26 @@ class _BookingsViewState extends State<_BookingsView>
     if (!mounted) return;
     final BookingBloc bloc = context.read<BookingBloc>();
     if (_showsMyBookings) {
-      final BookingLoadStatus status = bloc.state.myBookingsStatus;
-      if (status == BookingLoadStatus.loading) return;
+      final BookingStatusFilter filter = _myFilterVN.value;
+      final BookingListSlice slice = bloc.state.mySlice(filter);
+      if (slice.loadStatus == BookingLoadStatus.loading) return;
       bloc.add(
-        FetchMyBookingsEvent(silent: status == BookingLoadStatus.success),
+        FetchMyBookingsEvent(
+          filter: filter,
+          silent: slice.loadStatus == BookingLoadStatus.success,
+          force: true,
+        ),
       );
     } else {
-      final BookingLoadStatus status = bloc.state.futsalBookingsStatus;
-      if (status == BookingLoadStatus.loading) return;
+      final BookingStatusFilter filter = _futsalFilterVN.value;
+      final BookingListSlice slice = bloc.state.futsalSlice(filter);
+      if (slice.loadStatus == BookingLoadStatus.loading) return;
       bloc.add(
-        FetchFutsalBookingsEvent(silent: status == BookingLoadStatus.success),
+        FetchFutsalBookingsEvent(
+          filter: filter,
+          silent: slice.loadStatus == BookingLoadStatus.success,
+          force: true,
+        ),
       );
     }
   }
@@ -191,37 +215,118 @@ class _BookingsViewState extends State<_BookingsView>
     setState(() => _activeTab = tab);
 
     final BookingBloc bloc = context.read<BookingBloc>();
-    if (tab == _BookingTab.mine &&
-        bloc.state.myBookingsStatus == BookingLoadStatus.idle) {
-      bloc.add(const FetchMyBookingsEvent());
-    } else if (tab == _BookingTab.futsal &&
-        bloc.state.futsalBookingsStatus == BookingLoadStatus.idle) {
-      bloc.add(const FetchFutsalBookingsEvent());
+    // `.select` is a no-op for a status already fetched, so switching tabs
+    // back and forth costs nothing.
+    if (tab == _BookingTab.mine) {
+      bloc.add(FetchMyBookingsEvent.select(_myFilterVN.value));
+    } else {
+      bloc.add(FetchFutsalBookingsEvent.select(_futsalFilterVN.value));
+    }
+    _revealChip(_activeFilter.index);
+  }
+
+  /// A chip tap: animate the pager onto that status, which is the same act as
+  /// swiping to it — [_onStatusPageChanged] then selects and loads it.
+  void _onFilterSelected(BookingStatusFilter filter) {
+    final int target = filter.index;
+    if (_activeFilter == filter) {
+      // Same chip again on All also clears the other filters, which is what it
+      // read as before the pager existed.
+      if (filter == BookingStatusFilter.all) _clearNarrowingFilters();
+      return;
+    }
+    final PageController controller = _activePageCtrl;
+    if (!controller.hasClients) {
+      _onStatusPageChanged(target);
+      return;
+    }
+    // Animating across several pages scrolls *through* the ones in between,
+    // building and laying out each on the way — All → Rejected built five
+    // pages for one tap. Only neighbours animate; a longer jump lands directly.
+    final int current = (controller.page ?? controller.initialPage.toDouble())
+        .round();
+    if ((target - current).abs() > 1) {
+      controller.jumpToPage(target);
+    } else {
+      controller.animateToPage(
+        target,
+        duration: const Duration(milliseconds: 240),
+        curve: Curves.easeOutCubic,
+      );
     }
   }
 
-  void _onFilterSelected(BookingStatus? status) {
-    final bool isAll = status == null;
-    if (_activeSelectedFilter == status && !isAll) return;
+  /// Swiping the pager is the same act as tapping a chip: it selects the
+  /// status, which is what triggers that status's lazy fetch.
+  void _onStatusPageChanged(int index) {
+    final BookingStatusFilter filter = BookingStatusFilter.values[index];
+    if (filter == _activeFilter) return;
 
-    setState(() {
+    // Notifier, not setState: this repaints the chips and nothing else.
+    _activeFilterVN.value = filter;
+    _revealChip(index);
+
+    // Landing on a status asks the endpoint for it again (`?status=…`), so the
+    // page is current rather than however it looked when it was last visited.
+    // `.refresh` keeps the rows it already has on screen while that request is
+    // out, and the bloc drops the call if one is already in flight for this
+    // status — swiping back and forth cannot stack requests.
+    //
+    // It goes out after the frame that finishes the swipe: emitting into a page
+    // that is still animating costs a rebuild mid-gesture, which is exactly
+    // where a dropped frame shows.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final BookingBloc bloc = context.read<BookingBloc>();
       if (_showsMyBookings) {
-        _mySelectedFilter = status;
+        bloc.add(FetchMyBookingsEvent.refresh(filter));
       } else {
-        _futsalSelectedFilter = status;
-      }
-      if (isAll) {
-        _activeSearchController.clear();
-        if (_showsMyBookings) {
-          _fromDate = null;
-          _toDate = null;
-        } else {
-          final DateTime now = DateTime.now();
-          _futsalDate = DateTime(now.year, now.month, now.day);
-          _futsalDateActive = false;
-        }
+        bloc.add(FetchFutsalBookingsEvent.refresh(filter));
       }
     });
+    if (filter == BookingStatusFilter.all) _clearNarrowingFilters();
+  }
+
+  /// The All page shows everything, so the search box and the date filters are
+  /// released when it is selected.
+  void _clearNarrowingFilters() {
+    setState(() {
+      _activeSearchController.clear();
+      if (_showsMyBookings) {
+        _fromDate = null;
+        _toDate = null;
+      } else {
+        final DateTime now = DateTime.now();
+        _futsalDate = DateTime(now.year, now.month, now.day);
+        _futsalDateActive = false;
+      }
+    });
+  }
+
+  /// Search re-filters the rows in hand, so it rebuilds the pages — which is
+  /// worth doing once the user stops typing, not on every keystroke.
+  void _onSearchChanged(String _) {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 250), () {
+      if (mounted) setState(() {});
+    });
+  }
+
+  /// Keeps the selected chip on screen as the pager moves.
+  void _revealChip(int index) {
+    if (!_chipCtrl.hasClients) return;
+    // Approximate chip pitch — enough to bring the active one into view, and
+    // clamped to the strip's own extent either way.
+    const double chipExtent = 104;
+    final double target = (chipExtent * index - chipExtent).clamp(
+      0.0,
+      _chipCtrl.position.maxScrollExtent,
+    );
+    _chipCtrl.animateTo(
+      target,
+      duration: const Duration(milliseconds: 240),
+      curve: Curves.easeOut,
+    );
   }
 
   Future<void> _openDateFilter() async {
@@ -388,30 +493,12 @@ class _BookingsViewState extends State<_BookingsView>
         const SizedBox(height: AppDimens.paddingX8),
         Expanded(
           child: widget.isCandidate
-              ? MyBookingsTab(
-                  filter: _mySelectedFilter,
-                  searchQuery: _mySearchController.text,
-                  dateOrder: _dateOrder,
-                  fromDate: _fromDate,
-                  toDate: _toDate,
-                )
+              ? _statusPager(BookingListKind.mine)
               : TabBarView(
                   controller: _tabController,
                   children: [
-                    FutsalBookingsTab(
-                      filter: _futsalSelectedFilter,
-                      searchQuery: _futsalSearchController.text,
-                      dateOrder: _dateOrder,
-                      fromDate: _futsalDateActive ? _futsalDate : null,
-                      toDate: _futsalDateActive ? _futsalDate : null,
-                    ),
-                    MyBookingsTab(
-                      filter: _mySelectedFilter,
-                      searchQuery: _mySearchController.text,
-                      dateOrder: _dateOrder,
-                      fromDate: _fromDate,
-                      toDate: _toDate,
-                    ),
+                    _statusPager(BookingListKind.futsal),
+                    _statusPager(BookingListKind.mine),
                   ],
                 ),
         ),
@@ -496,7 +583,7 @@ class _BookingsViewState extends State<_BookingsView>
                   child: TextField(
                     key: const Key('booking-search-field'),
                     controller: searchController,
-                    onChanged: (_) => setState(() {}),
+                    onChanged: _onSearchChanged,
                     textInputAction: TextInputAction.search,
                     style: textTheme.bodyTextSmall?.copyWith(
                       color: LightColor.primaryTextColor,
@@ -573,6 +660,36 @@ class _BookingsViewState extends State<_BookingsView>
     );
   }
 
+  /// One page per status, swipeable left/right. Every page is built from the
+  /// same state, so a status already fetched is there the moment it is swiped
+  /// to — with the rows and the scroll offset it had — and one not fetched yet
+  /// shows its own skeleton while [_onStatusPageChanged] triggers its call.
+  Widget _statusPager(BookingListKind kind) {
+    final bool isMine = kind == BookingListKind.mine;
+    return PageView.builder(
+      controller: isMine ? _myPageCtrl : _futsalPageCtrl,
+      physics: const BouncingScrollPhysics(),
+      itemCount: BookingStatusFilter.values.length,
+      onPageChanged: _onStatusPageChanged,
+      // Each page paints into its own layer, so the one sliding in does not
+      // force the one sliding out to repaint with it.
+      itemBuilder: (BuildContext context, int index) => RepaintBoundary(
+        child: BookingStatusPage(
+          kind: kind,
+          filter: BookingStatusFilter.values[index],
+          searchQuery: isMine
+              ? _mySearchController.text
+              : _futsalSearchController.text,
+          dateOrder: _dateOrder,
+          fromDate: isMine
+              ? _fromDate
+              : (_futsalDateActive ? _futsalDate : null),
+          toDate: isMine ? _toDate : (_futsalDateActive ? _futsalDate : null),
+        ),
+      ),
+    );
+  }
+
   Widget _filterRow(BuildContext context) {
     return SizedBox(
       height: AppDimens.sizeX32,
@@ -582,18 +699,21 @@ class _BookingsViewState extends State<_BookingsView>
         padding: AppUtils().getPadding(
           symmetricHorizontal: AppDimens.paddingX20,
         ),
-        itemCount: _activeFilters.length,
+        controller: _chipCtrl,
+        itemCount: BookingStatusFilter.values.length,
         separatorBuilder: (_, __) {
           return const SizedBox(width: AppDimens.paddingX8);
         },
         itemBuilder: (context, index) {
-          final filter = _activeFilters[index];
-          final isSelected = _activeSelectedFilter == filter.status;
+          final BookingStatusFilter filter = BookingStatusFilter.values[index];
 
-          return _FilterChipItem(
-            label: filter.label,
-            isSelected: isSelected,
-            onTap: () => _onFilterSelected(filter.status),
+          return ValueListenableBuilder<BookingStatusFilter>(
+            valueListenable: _activeFilterVN,
+            builder: (_, BookingStatusFilter selected, __) => _FilterChipItem(
+              label: _filterLabel(filter),
+              isSelected: selected == filter,
+              onTap: () => _onFilterSelected(filter),
+            ),
           );
         },
       ),
@@ -1373,11 +1493,4 @@ String _formatNavigatorDate(DateTime date) {
     'Dec',
   ];
   return '${months[date.month - 1]} ${date.day} ${date.year}';
-}
-
-class _Filter {
-  const _Filter({required this.label, required this.status});
-
-  final String label;
-  final BookingStatus? status;
 }

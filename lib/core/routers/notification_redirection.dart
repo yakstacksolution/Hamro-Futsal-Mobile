@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -44,9 +43,6 @@ _NotificationKind? _kindOf(String? type) {
     case 'opponent_match':
     case 'match_request':
     case 'match':
-    // Opponent-request lifecycle events land on the opponent-match screen —
-    // the `opponent_` prefix keeps the payment ones out of the generic
-    // `payment` kind, which routes to bookings.
     case 'opponent_request_accepted':
     case 'opponent_request_declined':
     case 'opponent_payment_verified':

@@ -17,7 +17,6 @@ import 'package:hamro_footsall/features/courts_details/presentation/widget/court
 import 'package:hamro_footsall/features/courts_details/presentation/widget/court_hosted_by_section.dart';
 import 'package:hamro_footsall/features/courts_details/presentation/widget/court_intro_widget.dart';
 import 'package:hamro_footsall/features/courts_details/presentation/widget/court_location_map_section.dart';
-import 'package:hamro_footsall/features/courts_details/presentation/widget/court_reviews_section.dart';
 import 'package:hamro_footsall/features/courts_details/presentation/widget/court_rules_section.dart';
 import 'package:hamro_footsall/features/courts_details/presentation/widget/details_image_gallery.dart';
 import 'package:hamro_footsall/features/futsal_details/data/model/hosted_by_model.dart';
@@ -26,9 +25,12 @@ import 'package:hamro_footsall/features/futsal_details/data/repositories/futsal_
 import 'package:hamro_footsall/features/futsal_details/domain/usecase/get_hosted_by_use_case.dart';
 import 'package:hamro_footsall/features/futsal_details/domain/usecase/get_venue_amenities_facilities_use_case.dart';
 import 'package:hamro_footsall/features/futsal_details/domain/usecase/get_venue_description_use_case.dart';
+import 'package:hamro_footsall/features/futsal_details/domain/usecase/get_venue_reviews_use_case.dart';
 import 'package:hamro_footsall/features/futsal_details/presentation/bloc/hosted_by/hosted_by_bloc.dart';
 import 'package:hamro_footsall/features/futsal_details/presentation/bloc/venue_amenities_facilities/venue_amenities_facilities_bloc.dart';
 import 'package:hamro_footsall/features/futsal_details/presentation/bloc/venue_description/venue_description_bloc.dart';
+import 'package:hamro_footsall/features/futsal_details/presentation/bloc/venue_reviews/venue_reviews_bloc.dart';
+import 'package:hamro_footsall/features/futsal_details/presentation/widgets/venue_reviews_section.dart';
 import 'package:hamro_footsall/features/futsal_details/presentation/widgets/loading/hosted_by_section_loading.dart';
 import 'package:hamro_footsall/features/public/data/model/public_venue_model.dart';
 import 'package:hamro_footsall/core/utils/string_constants.dart';
@@ -56,6 +58,7 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
   HostedByBloc? _hostedByBloc;
   VenueDescriptionBloc? _venueDescriptionBloc;
   VenueAmenitiesFacilitiesBloc? _venueAmenitiesFacilitiesBloc;
+  VenueReviewsBloc? _venueReviewsBloc;
 
   @override
   void initState() {
@@ -75,6 +78,15 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
       _venueAmenitiesFacilitiesBloc = VenueAmenitiesFacilitiesBloc(
         GetVenueAmenitiesFacilitiesUseCase(repository),
       )..add(FetchVenueAmenitiesFacilitiesEvent(venueId: venueId));
+      // Only the preview is fetched here. "See all" opens its own page with
+      // its own bloc and a larger page size.
+      _venueReviewsBloc = VenueReviewsBloc(GetVenueReviewsUseCase(repository))
+        ..add(
+          FetchVenueReviewsEvent(
+            venueId: venueId,
+            perPage: kVenueReviewsPreviewSize,
+          ),
+        );
     }
 
     _bottomBarController = AnimationController(
@@ -165,6 +177,7 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
     _hostedByBloc?.close();
     _venueDescriptionBloc?.close();
     _venueAmenitiesFacilitiesBloc?.close();
+    _venueReviewsBloc?.close();
     _bottomBarController.dispose();
     super.dispose();
   }
@@ -278,6 +291,21 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
           description: state.venueDescription.description,
         );
       },
+    );
+  }
+
+  Widget _buildReviewsSection() {
+    final VenueReviewsBloc? bloc = _venueReviewsBloc;
+    final int? venueId = widget.publicVenue?.id;
+    if (bloc == null || venueId == null) return const SizedBox.shrink();
+    return BlocProvider<VenueReviewsBloc>.value(
+      value: bloc,
+      child: VenueReviewsSection(
+        venueId: venueId,
+        venueName: _court.name,
+        fallbackRating: _court.rating,
+        fallbackReviewCount: _court.reviewCount,
+      ),
     );
   }
 
@@ -656,23 +684,7 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
 
                 _buildPolicySection(),
                 _buildRulesSection(),
-                // Hide the reviews section until the venue has
-                // at least one review.
-                if (_court.reviewCount > 0)
-                  CourtReviewsSection(
-                    rating: _court.rating,
-                    reviewCount: _court.reviewCount,
-                    reviews: _court.reviews
-                        .map(
-                          (r) => CourtReviewItem(
-                            name: r.name,
-                            date: r.date,
-                            comment: r.comment,
-                            rating: r.rating,
-                          ),
-                        )
-                        .toList(),
-                  ),
+                _buildReviewsSection(),
 
                 SizedBox(
                   height: desktop

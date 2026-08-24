@@ -79,6 +79,7 @@ class AmenitiesFacilitiesSection extends StatelessWidget {
           hintText: StringConstants
               .mentionEquipmentQualitySeatingCapacityOrAnyPremiumServices,
           icon: Icons.sticky_note_2_rounded,
+          iconColor: LightColor.monoIconColor,
           minLines: 3,
           maxLines: 4,
           keyboardType: TextInputType.multiline,

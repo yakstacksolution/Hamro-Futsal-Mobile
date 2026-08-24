@@ -203,16 +203,24 @@ extension RequestStatusX on RequestStatus {
   /// request under review are both still in flight.
   bool get isSettled => !isOpen && !isDraft && !isAwaitingApproval;
 
-  /// Maps a wire status (`open | invitation_sent | accepted | declined |
-  /// expired | cancelled`) onto the UI lifecycle. An `open`
-  /// request is [sent] when it's mine, [fresh] while its accept deadline is
-  /// still running, [pending] when the server gave no deadline, and shows as
-  /// [expired] once the deadline has passed (until the server sweep catches
-  /// up).
+  /// Maps a wire status onto the UI lifecycle.
+  ///
+  /// Two vocabularies arrive here. The lifecycle one — `draft | published |
+  /// matched | closed | cancelled`, sent as `raw_status` — is what the caller
+  /// should pass. The tabbed list also sends a display bucket as `status`
+  /// (`invite | settled | closed`), which is coarser: it says which section a
+  /// row belongs to, not where the request stands. Both are understood so a
+  /// payload carrying only one of them still maps correctly.
+  ///
+  /// An `open`/`published` request is [sent] when it's mine, [fresh] while its
+  /// accept deadline is still running, [pending] when the server gave no
+  /// deadline, and shows as [expired] once the deadline has passed (until the
+  /// server sweep catches up).
   static RequestStatus fromApi(
     dynamic raw, {
     required bool isMine,
     DateTime? acceptDeadline,
+    bool? serverExpired,
   }) {
     switch (raw?.toString().trim().toLowerCase() ?? '') {
       // Wizard-in-progress: `/auth/opponent-requests` returns these to their
@@ -226,8 +234,29 @@ extension RequestStatusX on RequestStatus {
         return RequestStatus.pendingApproval;
       case 'open':
       case 'published':
-        if (isMine) return RequestStatus.sent;
-        if (acceptDeadline == null) return RequestStatus.pending;
+      // The `my_requests` display bucket for a live request: published and
+      // collecting invitations. Same lifecycle position as `published`.
+      case 'invite':
+      case 'inviting':
+        // A request of mine whose window has run out is closed, not still
+        // waiting — otherwise it keeps offering "Invitations" and "Remove" on
+        // a row nobody can act on any more.
+        if (isMine) {
+          if (serverExpired == true) return RequestStatus.expired;
+          if (acceptDeadline != null &&
+              !acceptDeadline.isAfter(DateTime.now())) {
+            return RequestStatus.expired;
+          }
+          return RequestStatus.sent;
+        }
+        // `countdown.is_expired` is the server's own verdict — trust it over a
+        // comparison against a device clock that may be minutes out.
+        if (serverExpired == true) return RequestStatus.expired;
+        if (acceptDeadline == null) {
+          return serverExpired == false
+              ? RequestStatus.fresh
+              : RequestStatus.pending;
+        }
         return acceptDeadline.isAfter(DateTime.now())
             ? RequestStatus.fresh
             : RequestStatus.expired;
@@ -238,7 +267,12 @@ extension RequestStatusX on RequestStatus {
       case 'accept_pending_payment':
       case 'payment_pending':
         return RequestStatus.invitationSent;
+      // The opponent is locked in and the match exists. `matched` is the
+      // lifecycle name; `settled` is the display bucket the tabbed list uses
+      // for the same thing.
       case 'accepted':
+      case 'matched':
+      case 'settled':
         return RequestStatus.accepted;
       case 'declined':
       case 'rejected':
@@ -246,6 +280,12 @@ extension RequestStatusX on RequestStatus {
       case 'cancelled':
       case 'canceled':
         return RequestStatus.cancelled;
+      // `closed` is how the authenticated list reports a request that is over
+      // — its window ran out or the owner shut it. Nothing can act on it, so
+      // it shares the terminal state the badges render as "Closed".
+      case 'closed':
+      case 'completed':
+        return RequestStatus.expired;
       case 'expired':
         return RequestStatus.expired;
       default:
@@ -289,6 +329,7 @@ class OpponentInvitationModel {
     this.share = 0,
     this.message = '',
     this.acceptedAt,
+    this.respondedAt,
   });
 
   final String id;
@@ -310,6 +351,10 @@ class OpponentInvitationModel {
   final String message;
   final DateTime? acceptedAt;
 
+  /// `responded_at` — when the requester acted on this invitation. Null while
+  /// it is still waiting on a decision.
+  final DateTime? respondedAt;
+
   factory OpponentInvitationModel.fromJson(Map<String, dynamic> json) {
     final team = _asMap(json['team'] ?? json['accepted_by']);
     final captain = _asMap(json['captain'] ?? json['user']);
@@ -328,10 +373,15 @@ class OpponentInvitationModel {
                   '')
               .toString()
               .trim(),
+      // `/invitations` names the accepting captain `invitation_sender_id` and
+      // sends no captain block — without it the requester has no one to open a
+      // chat with and the message actions stay hidden.
       captainUserId: _asInt(
         json['user_id'] ??
             captain['id'] ??
             captain['user_id'] ??
+            json['invitation_sender_id'] ??
+            json['sender_id'] ??
             team['user_id'],
       ),
       playerCount: _asInt(
@@ -340,6 +390,7 @@ class OpponentInvitationModel {
       share: _asInt(json['share'] ?? json['accepter_share'] ?? json['amount']),
       message: (json['message'] ?? json['note'] ?? '').toString().trim(),
       acceptedAt: _asDate(json['accepted_at'] ?? json['created_at']),
+      respondedAt: _asDate(json['responded_at']),
     );
   }
 
@@ -550,6 +601,8 @@ class OpponentRequestModel {
     this.venueCourtName = '',
     this.venueAddress = '',
     this.venueBookingId = '',
+    this.conversationId = '',
+    this.serverStatusLabel = '',
     this.venueBooking = const <String, dynamic>{},
     this.preferredDateTime,
     this.venueStartTime,
@@ -558,6 +611,13 @@ class OpponentRequestModel {
     this.splitType = '',
     this.splitBasis = '',
     this.requestingTeamPercent = 0,
+    this.costType = '',
+    this.acceptRemaining,
+    this.acceptExpired,
+    this.loserPayPercent,
+    this.winnerPayPercent,
+    this.loserPayAmount,
+    this.winnerPayAmount,
   });
 
   final String id;
@@ -619,7 +679,9 @@ class OpponentRequestModel {
   final int perPlayerAmount;
 
   /// The `cost` block's own fields — `split_type` (`even` | `custom`),
-  /// `split_basis` (`team` | `result`) and `requesting_team_percent` — kept raw
+  /// `split_basis` (`team` | `result`) and the percentage the basis names
+  /// (`requesting_team_percent`, or `loser_pay_percent` when result-keyed) —
+  /// kept raw
   /// so the wizard can restore the exact rule a draft saved. Empty/0 until the
   /// cost step has run.
   final String splitType;
@@ -651,11 +713,109 @@ class OpponentRequestModel {
   /// Set when the venue is a booking made on this platform.
   final String venueBookingId;
 
+  /// The thread the server opened for this match, once an opponent is
+  /// confirmed. Empty until then — the chat action falls back to opening (or
+  /// reusing) a direct thread with [requesterUserId].
+  final String conversationId;
+
+  /// The server's own word for this row's state (`invite` | `settled` |
+  /// `closed`), sent as `status_label` beside the lifecycle. Empty when the
+  /// payload carried none. Presented through [statusBadgeLabel], which title
+  /// cases it — the wire value is lowercase.
+  final String serverStatusLabel;
+
   /// The whole nested `venue.booking` payload, untouched. `booking`-sourced
   /// venues arrive as a full booking rather than an id, and it parses straight
   /// into a `BookingModel` — which is what lets the wizard re-select the
   /// booking behind a resumed draft.
   final Map<String, dynamic> venueBooking;
+
+  /// `countdown.remaining_seconds`, floored. The server's own view of how long
+  /// acceptance stays open, which is what the card ticks down from — a device
+  /// clock minutes out of step would otherwise show the wrong time left, or a
+  /// live request as already gone.
+  final Duration? acceptRemaining;
+
+  /// `countdown.is_expired`. Null when the payload carried no countdown.
+  final bool? acceptExpired;
+
+  /// Time left on the accept window: `countdown.accept_until_at` measured
+  /// against the current moment, so it keeps falling between refreshes instead
+  /// of restating a figure the response fixed. `is_expired` still closes it
+  /// outright, and [acceptRemaining] covers a payload that carried a count but
+  /// no timestamp. Zero once closed.
+  Duration get remainingToAccept {
+    if (acceptExpired == true) return Duration.zero;
+    final DateTime? deadline = acceptDeadline;
+    if (deadline != null) {
+      final Duration left = deadline.difference(DateTime.now());
+      return left.isNegative ? Duration.zero : left;
+    }
+    return acceptRemaining ?? Duration.zero;
+  }
+
+  /// True once acceptance has closed: the server's verdict when it gave one,
+  /// otherwise `accept_until_at` having gone past.
+  bool get hasAcceptWindowClosed =>
+      acceptExpired ??
+      ((acceptDeadline != null || acceptRemaining != null) &&
+          remainingToAccept == Duration.zero);
+
+  /// `cost.cost_type` — `even`, `custom`, `result`. The server's own name for
+  /// the rule, which is more direct than inferring it from split_type +
+  /// split_basis, but empty on older payloads, so both are read.
+  final String costType;
+
+  /// `cost.list_display` (falling back to the `cost` block): what each side
+  /// pays under a result-keyed rule. Null when the server has not worked it out
+  /// — a request whose cost step ran before this block existed, say.
+  final int? loserPayPercent;
+  final int? winnerPayPercent;
+  final int? loserPayAmount;
+  final int? winnerPayAmount;
+
+  /// True when the fee follows the result rather than being fixed per side.
+  bool get isResultCost =>
+      costType.toLowerCase() == 'result' ||
+      splitBasis.toLowerCase() == 'result';
+
+  /// The loser's percentage, from whichever key the payload carried. Falls back
+  /// to [requestingTeamPercent], which is what a result-keyed rule stores when
+  /// the server sends no explicit pair.
+  int? get resolvedLoserPercent {
+    if (loserPayPercent != null && loserPayPercent! > 0) return loserPayPercent;
+    if (!isResultCost) return null;
+    return requestingTeamPercent > 0 ? requestingTeamPercent : null;
+  }
+
+  int? get resolvedWinnerPercent {
+    if (winnerPayPercent != null && winnerPayPercent! > 0) {
+      return winnerPayPercent;
+    }
+    final int? loser = resolvedLoserPercent;
+    return loser == null ? null : 100 - loser;
+  }
+
+  /// The loser's amount: the server's figure when it sent one, otherwise
+  /// derived from the percentage and the court fee.
+  int? get resolvedLoserAmount {
+    if (loserPayAmount != null && loserPayAmount! > 0) return loserPayAmount;
+    final int? pct = resolvedLoserPercent;
+    if (pct == null || totalFee <= 0) return null;
+    return (totalFee * pct / 100).round();
+  }
+
+  int? get resolvedWinnerAmount {
+    if (winnerPayAmount != null && winnerPayAmount! > 0) return winnerPayAmount;
+    final int? loser = resolvedLoserAmount;
+    return loser == null ? null : totalFee - loser;
+  }
+
+  /// Payment state of the linked booking, when the venue is one. Null for an
+  /// external court — there is no booking here to have been paid for.
+  OpponentBookingPayment? get bookingPayment => venueBooking.isEmpty
+      ? null
+      : OpponentBookingPayment.fromBooking(venueBooking);
 
   /// `invitations_summary` counts. The list endpoint reports only these
   /// numbers, so they stand in for [invitations] on the cards.
@@ -687,6 +847,14 @@ class OpponentRequestModel {
   /// is linked to the request.
   bool get isMatchConfirmed => status == RequestStatus.accepted;
 
+  /// What the status badge shows. The server's `status_label` wins so both
+  /// sides of a request read the same word and a wording change needs no app
+  /// release; the app's own copy covers a payload that sent none.
+  String get statusBadgeLabel {
+    if (serverStatusLabel.isEmpty) return status.label;
+    return serverStatusLabel[0].toUpperCase() + serverStatusLabel.substring(1);
+  }
+
   /// A request row from `GET /opponent-requests` or
   /// `GET /auth/opponent-requests?tab=all`. Tolerant of three payload shapes:
   /// flat, the public list's nested `requester`/`match`/`pricing`, and the
@@ -694,7 +862,13 @@ class OpponentRequestModel {
   /// (which carries drafts, hence `preferred_date`/`preferred_time` and
   /// `main_step`/`sub_step`).
   factory OpponentRequestModel.fromJson(Map<String, dynamic> json) {
-    final requester = _asMap(json['requester']);
+    // The authenticated list names the captain who opened the request
+    // `opponent_requester` ({id, name}); the public list and the detail
+    // endpoint call the same block `requester`. Read either — this is the
+    // person the accepting side chats with, so losing it hides the chat action.
+    final requester = _asMap(json['opponent_requester']).isNotEmpty
+        ? _asMap(json['opponent_requester'])
+        : _asMap(json['requester']);
     final ownTeam = _asMap(json['team']);
     final matchFormat = _asMap(json['match_format']);
     final opponentLevel = _asMap(json['opponent_level']);
@@ -702,6 +876,7 @@ class OpponentRequestModel {
     // A `booking`-sourced venue describes itself through the nested booking; an
     // `external` one carries the same facts as flat keys. Read both.
     final costBlock = _asMap(json['cost']);
+    final listDisplay = _asMap(costBlock['list_display']);
     final venueBooking = _asMap(venueBlock['booking']);
     final bookingVenue = _asMap(venueBooking['venue']);
     final bookingCourt = _asMap(venueBooking['court']);
@@ -728,7 +903,12 @@ class OpponentRequestModel {
         venueBlock['fee_amount'] ??
         venueBooking['total_amount'] ??
         venueBooking['subtotal'];
-    final acceptedBy = _asMap(json['accepted_by']);
+    // The authenticated list names the winning side `accepted_team`; the
+    // public list and the detail endpoint call it `accepted_by`. Read either,
+    // otherwise a `settled` row loses its opponent name and chat target.
+    final acceptedBy = _asMap(json['accepted_by']).isNotEmpty
+        ? _asMap(json['accepted_by'])
+        : _asMap(json['accepted_team']);
     final invitationsSummary = _asMap(json['invitations_summary']);
 
     // `match`/`pricing` are the public list's nesting; the authenticated list
@@ -745,7 +925,12 @@ class OpponentRequestModel {
             'start_time': venueStartValue.isNotEmpty
                 ? venueStartValue
                 : json['preferred_time'],
-            'end_time': venueEndValue,
+            // Before a venue is attached the request still states the window
+            // it wants, so the slot line reads "6:00 PM – 7:00 PM" instead of
+            // just a start time.
+            'end_time': venueEndValue.isNotEmpty
+                ? venueEndValue
+                : json['preferred_end_time'],
             'venue_name': [
               venueNameValue,
               courtNameValue,
@@ -760,7 +945,10 @@ class OpponentRequestModel {
     final pricing = _asMap(json['pricing']).isNotEmpty
         ? _asMap(json['pricing'])
         : <String, dynamic>{
-            'total_fee': costBlock['court_fee_amount'] ?? venueFeeValue,
+            'total_fee':
+                listDisplay['total_amount'] ??
+                costBlock['court_fee_amount'] ??
+                venueFeeValue,
             'split_mode': costBlock['split_type'],
             'requester_pct': costBlock['requesting_team_percent'],
             'accepter_pct': costBlock['opponent_team_percent'],
@@ -769,9 +957,32 @@ class OpponentRequestModel {
           };
 
     final bool isMine = json['is_mine'] == true || json['isMine'] == true;
+    // The authenticated list calls the accept window `expires_at`; the public
+    // list calls it `accept_deadline`. Without it a live request never shows
+    // its countdown and never reads as expired until the server sweeps it.
+    // `countdown` is the block the server built for exactly this: the moment
+    // acceptance closes, whether it already has, and how long is left by its
+    // own clock. `expires_at` stays the last resort — on this payload it is the
+    // kickoff, an hour past the accept window.
+    final countdown = _asMap(json['countdown']);
     final DateTime? acceptDeadline = _asDate(
-      json['accept_deadline'] ?? json['acceptDeadline'],
+      countdown['accept_until_at'] ??
+          json['accept_until_at'] ??
+          json['accept_deadline'] ??
+          json['acceptDeadline'] ??
+          json['expires_at'],
     );
+    final bool? serverExpired = countdown['is_expired'] is bool
+        ? countdown['is_expired'] as bool
+        : null;
+    // Fractional seconds arrive here (60943.046504), and a negative or absent
+    // value is no countdown at all rather than a zero-length one.
+    final num? remainingRaw = countdown['remaining_seconds'] is num
+        ? countdown['remaining_seconds'] as num
+        : num.tryParse((countdown['remaining_seconds'] ?? '').toString());
+    final Duration? acceptRemaining = remainingRaw == null
+        ? null
+        : Duration(seconds: remainingRaw.floor().clamp(0, 1 << 31));
 
     final String startTime = (match['start_time'] ?? '').toString().trim();
     final String endTime = (match['end_time'] ?? '').toString().trim();
@@ -791,9 +1002,11 @@ class OpponentRequestModel {
     final String splitMode = (pricing['split_mode'] ?? '').toString();
     final bool isResultSplit =
         splitMode == 'custom_result' ||
-        (costBlock['split_basis'] ?? '').toString().toLowerCase() == 'result';
+        (costBlock['split_basis'] ?? '').toString().toLowerCase() == 'result' ||
+        (costBlock['cost_type'] ?? '').toString().toLowerCase() == 'result' ||
+        (listDisplay['type'] ?? '').toString().toLowerCase() == 'result';
     final int totalFee = _asInt(pricing['total_fee'] ?? json['total_fee']);
-    final int accepterShare = _asInt(
+    final int accepterShareRaw = _asInt(
       pricing['accepter_share'] ?? json['your_share'],
     );
     final int requesterPct = _asInt(pricing['requester_pct']);
@@ -802,6 +1015,13 @@ class OpponentRequestModel {
     // "Your" side of the money depends on which side of the request you're on.
     // The server's own amounts win over percentage maths when it sent them.
     final int requesterShare = _asInt(pricing['requester_share']);
+    // `cost.opponent_team_amount` is null until the server has a roster to
+    // divide by, while the percentages are set as soon as the cost step runs.
+    // Fall back to the percentage so an incoming request still shows what the
+    // accepting side would owe instead of Rs 0.
+    final int accepterShare = accepterShareRaw > 0
+        ? accepterShareRaw
+        : (isResultSplit ? 0 : (totalFee * accepterPct / 100).round());
     final int yourShare = isMine
         ? (isResultSplit
               ? 0
@@ -832,10 +1052,13 @@ class OpponentRequestModel {
               .trim(),
       dateTime: dateTime,
       summary: summary,
+      // `raw_status` is the lifecycle; `status` is the coarser display bucket
+      // the tabbed list sends beside it. Read the precise one when it is there.
       status: RequestStatusX.fromApi(
-        json['status'],
+        json['raw_status'] ?? json['status'],
         isMine: isMine,
         acceptDeadline: acceptDeadline,
+        serverExpired: serverExpired,
       ),
       venue: (match['venue_name'] ?? json['venue'] ?? '').toString().trim(),
       slot: slot.isEmpty ? (json['slot'] ?? '').toString() : slot,
@@ -843,13 +1066,36 @@ class OpponentRequestModel {
       yourShare: yourShare,
       myPct: myPct,
       createdAt: _asDate(json['created_at'] ?? json['createdAt']),
-      requesterUserId: _asInt(requester['user_id']),
-      requesterName: (requester['name'] ?? '').toString().trim(),
+      // The authenticated list sends no `requester` block; the person who booked
+      // the court is that same requester, so the linked booking identifies them
+      // when nothing else does. Without this the chat action has no one to open
+      // a conversation with and stays hidden.
+      requesterUserId: _asInt(
+        // `opponent_requester` keys the captain as `id`; the older block used
+        // `user_id`. The linked booking's owner is the same person, and stays
+        // the last resort for a payload that carries no requester block at all.
+        requester['user_id'] ??
+            requester['id'] ??
+            json['user_id'] ??
+            venueBooking['user_id'],
+      ),
+      requesterName:
+          (requester['name'] ??
+                  venueBooking['customer_name'] ??
+                  ownTeam['name'] ??
+                  '')
+              .toString()
+              .trim(),
       requesterTeamId: (requester['team_id'] ?? ownTeam['id'] ?? '').toString(),
       isMine: isMine,
       acceptDeadline: acceptDeadline,
-      acceptedByTeamId: (acceptedBy['team_id'] ?? '').toString(),
-      acceptedByTeamName: (acceptedBy['team_name'] ?? '').toString().trim(),
+      // `accepted_team` on the tabbed list keys the winning side as
+      // {id, name, roster_size}; `accepted_by` elsewhere uses team_id/team_name.
+      acceptedByTeamId: (acceptedBy['team_id'] ?? acceptedBy['id'] ?? '')
+          .toString(),
+      acceptedByTeamName: (acceptedBy['team_name'] ?? acceptedBy['name'] ?? '')
+          .toString()
+          .trim(),
       acceptedByUserId: _asInt(acceptedBy['user_id']),
       invitations: _invitationsFrom(json, acceptedBy, accepterShare),
       mainStep: _asInt(json['main_step']),
@@ -869,6 +1115,10 @@ class OpponentRequestModel {
       venueAddress: venueAddressValue,
       venueBookingId: (venueBlock['booking_id'] ?? venueBooking['id'] ?? '')
           .toString(),
+      conversationId: (json['conversation_id'] ?? json['conversationId'] ?? '')
+          .toString()
+          .trim(),
+      serverStatusLabel: (json['status_label'] ?? '').toString().trim(),
       venueBooking: venueBooking,
       preferredDateTime: _asDate(
         '${json['preferred_date'] ?? ''} ${json['preferred_time'] ?? ''}'
@@ -883,8 +1133,31 @@ class OpponentRequestModel {
       splitBasis: (costBlock['split_basis'] ?? costBlock['basis'] ?? '')
           .toString()
           .trim(),
+      // A result-keyed split reports the two sides instead of a requester
+      // share, so read the loser's percentage — that is what the slider holds.
       requestingTeamPercent: _asInt(
-        costBlock['requesting_team_percent'] ?? costBlock['requester_pct'],
+        costBlock['loser_pay_percent'] ??
+            costBlock['requesting_team_percent'] ??
+            costBlock['requester_pct'],
+      ),
+      costType: (costBlock['cost_type'] ?? listDisplay['type'] ?? '')
+          .toString()
+          .trim(),
+      acceptRemaining: acceptRemaining,
+      acceptExpired: serverExpired,
+      // `list_display` is the block the server built for exactly this — the
+      // cards — so it wins over the raw cost fields beside it.
+      loserPayPercent: _asIntOrNull(
+        listDisplay['loser_pay_percent'] ?? costBlock['loser_pay_percent'],
+      ),
+      winnerPayPercent: _asIntOrNull(
+        listDisplay['winner_pay_percent'] ?? costBlock['winner_pay_percent'],
+      ),
+      loserPayAmount: _asIntOrNull(
+        listDisplay['loser_pay_amount'] ?? costBlock['loser_pay_amount'],
+      ),
+      winnerPayAmount: _asIntOrNull(
+        listDisplay['winner_pay_amount'] ?? costBlock['winner_pay_amount'],
       ),
     );
   }
@@ -911,21 +1184,30 @@ class OpponentRequestModel {
           .toList(growable: false);
     }
     if (acceptedBy.isEmpty) return const <OpponentInvitationModel>[];
-    final String status = (json['status'] ?? '')
+    final String status = (json['raw_status'] ?? json['status'] ?? '')
         .toString()
         .trim()
         .toLowerCase();
     return <OpponentInvitationModel>[
       OpponentInvitationModel(
-        id: (acceptedBy['team_id'] ?? '').toString(),
-        teamId: (acceptedBy['team_id'] ?? '').toString(),
-        teamName: (acceptedBy['team_name'] ?? '').toString().trim(),
-        status: status == 'accepted'
+        id: (acceptedBy['team_id'] ?? acceptedBy['id'] ?? '').toString(),
+        teamId: (acceptedBy['team_id'] ?? acceptedBy['id'] ?? '').toString(),
+        teamName: (acceptedBy['team_name'] ?? acceptedBy['name'] ?? '')
+            .toString()
+            .trim(),
+        // A row that carries an `accepted_team` has had its opponent chosen,
+        // whichever vocabulary said so.
+        status:
+            status == 'accepted' ||
+                status == 'matched' ||
+                status == 'settled'
             ? InvitationStatus.selected
             : InvitationStatus.pending,
-        captainName: (acceptedBy['name'] ?? '').toString().trim(),
+        captainName: (acceptedBy['captain_name'] ?? '').toString().trim(),
         captainUserId: _asInt(acceptedBy['user_id']),
-        playerCount: _asInt(acceptedBy['player_count']),
+        playerCount: _asInt(
+          acceptedBy['player_count'] ?? acceptedBy['roster_size'],
+        ),
         share: accepterShare,
         acceptedAt: _asDate(acceptedBy['accepted_at']),
       ),
@@ -968,6 +1250,8 @@ class OpponentRequestModel {
     venueCourtName: venueCourtName,
     venueAddress: venueAddress,
     venueBookingId: venueBookingId,
+    conversationId: conversationId,
+    serverStatusLabel: serverStatusLabel,
     venueBooking: venueBooking,
     preferredDateTime: preferredDateTime,
     venueStartTime: venueStartTime,
@@ -976,6 +1260,13 @@ class OpponentRequestModel {
     splitType: splitType,
     splitBasis: splitBasis,
     requestingTeamPercent: requestingTeamPercent,
+    costType: costType,
+    acceptRemaining: acceptRemaining,
+    acceptExpired: acceptExpired,
+    loserPayPercent: loserPayPercent,
+    winnerPayPercent: winnerPayPercent,
+    loserPayAmount: loserPayAmount,
+    winnerPayAmount: winnerPayAmount,
   );
 
   String get initials {
@@ -990,8 +1281,142 @@ class OpponentRequestModel {
   }
 }
 
+/// Payment state of the platform booking behind a `booking`-sourced venue.
+///
+/// Read straight off the nested `venue.booking` the list endpoint sends, so it
+/// cannot drift from what the server said. The distinction that matters is
+/// *verified* money versus *submitted* money: a cash payment sits at
+/// `verification_status: pending` with a proof image until a vendor confirms
+/// it, so `paid_amount` is still 0 while the requester has in fact paid.
+class OpponentBookingPayment {
+  const OpponentBookingPayment({
+    required this.bookingCode,
+    required this.paymentStatus,
+    required this.bookingStatus,
+    required this.totalAmount,
+    required this.paidAmount,
+    required this.balanceDue,
+    required this.advanceAmount,
+    required this.payableNow,
+    required this.submittedAmount,
+    required this.awaitingVerification,
+    required this.hasProof,
+    required this.method,
+  });
+
+  factory OpponentBookingPayment.fromBooking(Map<String, dynamic> booking) {
+    final List<Map<String, dynamic>> payments =
+        (booking['payments'] is List
+                ? (booking['payments'] as List)
+                : const <dynamic>[])
+            .map(_asMap)
+            .where((Map<String, dynamic> p) => p.isNotEmpty)
+            .toList(growable: false);
+
+    bool isPending(Map<String, dynamic> p) {
+      final String verification = (p['verification_status'] ?? '')
+          .toString()
+          .toLowerCase();
+      final String status = (p['status'] ?? '').toString().toLowerCase();
+      return verification == 'pending' ||
+          (verification.isEmpty && status == 'pending');
+    }
+
+    final Iterable<Map<String, dynamic>> pending = payments.where(isPending);
+
+    return OpponentBookingPayment(
+      bookingCode: (booking['booking_code'] ?? '').toString().trim(),
+      paymentStatus: (booking['payment_status'] ?? '')
+          .toString()
+          .trim()
+          .toLowerCase(),
+      bookingStatus: (booking['booking_status'] ?? booking['status'] ?? '')
+          .toString()
+          .trim()
+          .toLowerCase(),
+      totalAmount: _asInt(booking['total_amount'] ?? booking['subtotal']),
+      paidAmount: _asInt(booking['paid_amount']),
+      balanceDue: _asInt(
+        booking['balance_due'] ?? booking['balance_due_later'],
+      ),
+      advanceAmount: _asInt(booking['advance_amount']),
+      payableNow: _asInt(booking['payable_now']),
+      // What the requester has actually handed over but nobody has confirmed.
+      submittedAmount: pending.fold<int>(
+        0,
+        (int sum, Map<String, dynamic> p) => sum + _asInt(p['amount']),
+      ),
+      awaitingVerification: pending.isNotEmpty,
+      hasProof: payments.any(
+        (Map<String, dynamic> p) =>
+            p['has_payment_proof'] == true ||
+            (p['payment_proof_url'] ?? '').toString().trim().isNotEmpty,
+      ),
+      method: payments.isEmpty
+          ? ''
+          : (payments.last['payment_method'] ??
+                    payments.last['payment_type'] ??
+                    '')
+                .toString()
+                .trim(),
+    );
+  }
+
+  /// `BK-…`, the reference the venue knows this booking by.
+  final String bookingCode;
+
+  /// `paid` | `partial` | `pending` | `unpaid`, as the server reports it.
+  final String paymentStatus;
+
+  /// `pending` | `confirmed` | `cancelled`, as the server reports it.
+  final String bookingStatus;
+
+  final int totalAmount;
+
+  /// Money the server has counted as received.
+  final int paidAmount;
+  final int balanceDue;
+
+  /// The deposit this booking was created against, and what was due at the
+  /// time of booking.
+  final int advanceAmount;
+  final int payableNow;
+
+  /// Money handed over that is still waiting on someone to verify it.
+  final int submittedAmount;
+  final bool awaitingVerification;
+  final bool hasProof;
+
+  /// `cash`, `khalti`, … — empty when no payment has been recorded.
+  final String method;
+
+  bool get isFullyPaid => paymentStatus == 'paid' || balanceDue <= 0;
+
+  /// One line for the payment's state, honest about unverified money.
+  String get statusLabel {
+    if (isFullyPaid) return 'Paid in full';
+    if (awaitingVerification) return 'Awaiting payment verification';
+    return switch (paymentStatus) {
+      'partial' => 'Partially paid',
+      'pending' || 'unpaid' || '' => 'Payment pending',
+      final String other => other,
+    };
+  }
+}
+
 Map<String, dynamic> _asMap(dynamic value) =>
     value is Map ? Map<String, dynamic>.from(value) : const {};
+
+/// Like [_asInt] but keeps "the server said nothing" distinct from zero — a
+/// 0% share and an unstated one mean different things on a card.
+int? _asIntOrNull(dynamic value) {
+  if (value == null) return null;
+  final String raw = value.toString().trim();
+  if (raw.isEmpty) return null;
+  if (value is int) return value;
+  if (value is num) return value.round();
+  return int.tryParse(raw) ?? double.tryParse(raw)?.round();
+}
 
 int _asInt(dynamic value) {
   if (value is int) return value;

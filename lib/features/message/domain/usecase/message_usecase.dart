@@ -106,6 +106,15 @@ final class MessageUseCase {
     bool muted,
   ) async => await repository.setMuted(conversationId, muted);
 
+  Future<Either<AppException, ConversationModel?>> updateConversationTitle(
+    int conversationId,
+    String title,
+  ) async => await repository.updateConversationTitle(conversationId, title);
+
+  Future<Either<AppException, bool>> leaveConversation(
+    int conversationId,
+  ) async => await repository.leaveConversation(conversationId);
+
   Future<Either<AppException, bool>> setParticipantBlocked(
     int conversationId,
     int userId,

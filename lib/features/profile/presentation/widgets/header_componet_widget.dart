@@ -101,7 +101,10 @@ class HeaderComponetWidget extends StatelessWidget {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: LightColor.secondaryColor,
-                        border: Border.all(color: LightColor.onBrandSurface, width: 2),
+                        border: Border.all(
+                          color: LightColor.onBrandSurface,
+                          width: 2,
+                        ),
                       ),
                     ),
                   ),
@@ -135,10 +138,14 @@ class HeaderComponetWidget extends StatelessWidget {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: LightColor.onBrandSurface.withValues(alpha: 0.12),
+                        color: LightColor.onBrandSurface.withValues(
+                          alpha: 0.12,
+                        ),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: LightColor.onBrandSurface.withValues(alpha: 0.2),
+                          color: LightColor.onBrandSurface.withValues(
+                            alpha: 0.2,
+                          ),
                           width: 1,
                         ),
                       ),
@@ -158,7 +165,9 @@ class HeaderComponetWidget extends StatelessWidget {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
-                                color: LightColor.onBrandSurface.withValues(alpha: 0.9),
+                                color: LightColor.onBrandSurface.withValues(
+                                  alpha: 0.9,
+                                ),
                                 fontSize: 12.5,
                                 fontWeight: FontWeight.w400,
                               ),

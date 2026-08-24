@@ -107,23 +107,26 @@ void main() {
     expect(http.data, <String, dynamic>{'booking_type': 'regular'});
   });
 
-  test('keeps sending the optional slot-time filters as query params', () async {
-    await client.getAvailableCourts(
-      venueId: 2,
-      selectDate: '2026-07-28',
-      slotStartTime: '06:00:00',
-      slotEndTime: '07:00:00',
-      bookingType: BookingTypePayload.manual,
-    );
+  test(
+    'keeps sending the optional slot-time filters as query params',
+    () async {
+      await client.getAvailableCourts(
+        venueId: 2,
+        selectDate: '2026-07-28',
+        slotStartTime: '06:00:00',
+        slotEndTime: '07:00:00',
+        bookingType: BookingTypePayload.manual,
+      );
 
-    expect(http.query, <String, dynamic>{
-      'venue_id': 2,
-      'select_date': '2026-07-28',
-      'slot_start_time': '06:00:00',
-      'slot_end_time': '07:00:00',
-    });
-    expect(http.data, <String, dynamic>{'booking_type': 'manual'});
-  });
+      expect(http.query, <String, dynamic>{
+        'venue_id': 2,
+        'select_date': '2026-07-28',
+        'slot_start_time': '06:00:00',
+        'slot_end_time': '07:00:00',
+      });
+      expect(http.data, <String, dynamic>{'booking_type': 'manual'});
+    },
+  );
 
   test('BookingTypePayload.of maps the flow to the API value', () {
     expect(BookingTypePayload.of(isManual: true), 'manual');

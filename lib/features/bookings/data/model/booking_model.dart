@@ -918,6 +918,10 @@ enum BookingStatus {
   const BookingStatus(this.value);
   final String value;
 
+  /// The `status` query value `/bookings` and `/futsal-bookings` accept.
+  /// `null` — no status picked — is the endpoints' `all`.
+  static String queryValue(BookingStatus? status) => status?.value ?? 'all';
+
   static BookingStatus fromString(String? value) {
     return switch (value?.trim().toLowerCase()) {
       'confirmed' ||

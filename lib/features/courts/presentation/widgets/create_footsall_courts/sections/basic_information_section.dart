@@ -22,6 +22,7 @@ class BasicInformationSection extends StatelessWidget {
           labelText: StringConstants.futsalNameRequired,
           hintText: StringConstants.hamroFutsalArena,
           icon: Icons.badge_rounded,
+          iconColor: LightColor.monoIconColor,
           validator: (String? value) =>
               bloc.requiredValidator(value, fieldName: 'Futsal name'),
         ),
@@ -35,6 +36,7 @@ class BasicInformationSection extends StatelessWidget {
           labelText: StringConstants.futsalSlug,
           hintText: StringConstants.hamroFutsalArenaSlugExample,
           icon: Icons.link_rounded,
+          iconColor: LightColor.monoIconColor,
           suffixIcon: IconButton(
             tooltip: StringConstants.autoGenerateFromFutsalName,
             icon: Icon(
@@ -62,6 +64,7 @@ class BasicInformationSection extends StatelessWidget {
           hintText:
               StringConstants.describeYourFutsalFacilitiesAndWhatMakesItSpecial,
           icon: Icons.description_rounded,
+          iconColor: LightColor.monoIconColor,
           validator: (String? value) =>
               bloc.requiredValidator(value, fieldName: 'Description'),
         ),
@@ -76,6 +79,7 @@ class BasicInformationSection extends StatelessWidget {
           labelText: StringConstants.contactPhone,
           hintText: StringConstants.text97798xxxxxxxx,
           icon: Icons.call_rounded,
+          iconColor: LightColor.monoIconColor,
           validator: (String? value) {
             final String? baseError = bloc.requiredValidator(
               value,
@@ -96,6 +100,7 @@ class BasicInformationSection extends StatelessWidget {
           labelText: StringConstants.contactEmail,
           hintText: StringConstants.helloHamrofutsalCom,
           icon: Icons.mail_rounded,
+          iconColor: LightColor.monoIconColor,
           validator: (String? value) {
             final String? baseError = bloc.requiredValidator(
               value,
@@ -116,6 +121,7 @@ class BasicInformationSection extends StatelessWidget {
           labelText: StringConstants.websiteOptional,
           hintText: StringConstants.hamroFutsalWebsiteUrl,
           icon: Icons.language_rounded,
+          iconColor: LightColor.monoIconColor,
           validator: bloc.websiteValidator,
         ),
       ],

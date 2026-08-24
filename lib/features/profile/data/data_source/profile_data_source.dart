@@ -6,6 +6,7 @@ abstract class ProfileRemoteDataSource {
   Future<Result> requestVendorUpgrade(Map<String, dynamic> data);
   Future<Result> updateProfile(Map<String, dynamic> data);
   Future<Result> updateNotificationPreferences(Map<String, dynamic> data);
+  Future<Result> deleteAccount(Map<String, dynamic> data);
 }
 
 final class ProfileDataSourceImpl extends ProfileRemoteDataSource {
@@ -27,4 +28,8 @@ final class ProfileDataSourceImpl extends ProfileRemoteDataSource {
   ) async => await Client.instance()
       .getAuthManager()
       .updateNotificationPreferences(data);
+
+  @override
+  Future<Result> deleteAccount(Map<String, dynamic> data) async =>
+      await Client.instance().getAuthManager().deleteAccount(data);
 }

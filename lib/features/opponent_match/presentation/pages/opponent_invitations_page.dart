@@ -5,6 +5,7 @@ import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 import 'package:hamro_footsall/core/widgets/custom_app_bar.dart';
 import 'package:hamro_footsall/core/widgets/custom_button.dart';
 import 'package:hamro_footsall/core/widgets/custom_confirm_dialog.dart';
@@ -32,6 +33,18 @@ class OpponentInvitationsPage extends StatefulWidget {
 class _OpponentInvitationsPageState extends State<OpponentInvitationsPage> {
   String? _selectedId;
 
+  @override
+  void initState() {
+    super.initState();
+    context.read<OpponentMatchBloc>().add(
+      LoadInvitationsEvent(widget.requestId),
+    );
+  }
+
+  void _reload() => context.read<OpponentMatchBloc>().add(
+    LoadInvitationsEvent(widget.requestId, force: true),
+  );
+
   OpponentRequestModel? _request(OpponentMatchState state) =>
       state.requestById(widget.requestId);
 
@@ -57,9 +70,30 @@ class _OpponentInvitationsPageState extends State<OpponentInvitationsPage> {
     );
     if (!confirmed || !mounted) return;
     HapticFeedback.mediumImpact();
-    // This is the server call that locks the match in for the chosen team and
-    // closes the request for everyone else.
-    context.read<OpponentMatchBloc>().add(SelectOpponentEvent(request));
+    // `POST /auth/opponent-requests/{id}/invitations/{invitationId}/accept` —
+    // the server call that locks the match in for the chosen team and closes
+    // the request for everyone else.
+    final OpponentMatchBloc bloc = context.read<OpponentMatchBloc>();
+    bloc.add(SelectOpponentEvent(request, invitation));
+
+    // The match only exists once the server says so, so the confirmation waits
+    // for the call rather than announcing a match that may have been refused —
+    // another team may have been picked, or the window may have closed.
+    final OpponentMatchState result = await bloc.stream.firstWhere(
+      (OpponentMatchState s) =>
+          s.selectOpponentStatus != OpponentMatchStatus.loading,
+    );
+    if (!mounted) return;
+
+    if (result.selectOpponentStatus == OpponentMatchStatus.failure) {
+      AppUtils().showSnackBar(
+        context,
+        MsgType.error,
+        result.selectOpponentError ?? StringConstants.somethingWentWrong,
+        key: 'opponent_select_failed',
+      );
+      return;
+    }
     AppUtils().showSnackBar(
       context,
       MsgType.success,
@@ -82,6 +116,16 @@ class _OpponentInvitationsPageState extends State<OpponentInvitationsPage> {
           builder: (context, state) {
             final OpponentRequestModel? request = _request(state);
             if (request == null) {
+              // The row is looked up by id across the fetched tabs, so a page
+              // opened before (or alongside) that fetch has nothing yet — that
+              // is loading, not a request that has gone away.
+              if (state.isLoadingAnyRequests) {
+                return const Center(
+                  child: CircularProgressIndicator(
+                    color: LightColor.secondaryColor,
+                  ),
+                );
+              }
               return const Center(
                 child: Padding(
                   padding: EdgeInsets.all(AppDimens.paddingX32),
@@ -100,9 +144,12 @@ class _OpponentInvitationsPageState extends State<OpponentInvitationsPage> {
                 Expanded(
                   child: RefreshIndicator(
                     color: LightColor.secondaryColor,
-                    onRefresh: () async => context
-                        .read<OpponentMatchBloc>()
-                        .add(const LoadOpponentRequestsEvent()),
+                    onRefresh: () async {
+                      _reload();
+                      context.read<OpponentMatchBloc>().add(
+                        const LoadOpponentRequestsEvent(),
+                      );
+                    },
                     child: ListView(
                       physics: const BouncingScrollPhysics(),
                       padding: AppUtils().getPadding(
@@ -150,9 +197,22 @@ class _OpponentInvitationsPageState extends State<OpponentInvitationsPage> {
                                 : '${invitations.length} '
                                       '${invitations.length == 1 ? 'invitation' : 'invitations'} received',
                           ),
-                        if (invitations.isEmpty)
+                        if (invitations.isEmpty &&
+                            state.isLoadingInvitations(request.id))
+                          const _InvitationsLoading()
+                        else if (invitations.isEmpty &&
+                            state.invitationErrorFor(request.id) != null)
+                          _InvitationsError(
+                            message: state.invitationErrorFor(request.id)!,
+                            onRetry: _reload,
+                          )
+                        else if (invitations.isEmpty)
                           const _WaitingCard()
-                        else
+                        else ...<Widget>[
+                          // Rows are already on screen, so a refetch reports
+                          // itself here instead of replacing them.
+                          if (state.isLoadingInvitations(request.id))
+                            const _RefreshingStrip(),
                           ...invitations.map(
                             (invitation) => Padding(
                               padding: AppUtils().getPadding(
@@ -177,17 +237,25 @@ class _OpponentInvitationsPageState extends State<OpponentInvitationsPage> {
                               ),
                             ),
                           ),
+                        ],
                       ],
                     ),
                   ),
                 ),
-                if (!request.isMatchConfirmed && invitations.isNotEmpty)
+                // Once one of the invitations is `selected` the choice is made
+                // and cannot be remade, so the footer goes away — the request's
+                // own status can lag a beat behind that, which is why the
+                // invitation is what gates it rather than [isMatchConfirmed].
+                if (!request.isMatchConfirmed &&
+                    request.selectedInvitation == null &&
+                    invitations.isNotEmpty)
                   _SelectFooter(
-                    enabled: selected != null,
+                    enabled: selected != null && !state.isSelectingOpponent,
+                    busy: state.isSelectingOpponent,
                     othersCount: request.pendingInvitations
                         .where((i) => i.id != selected?.id)
                         .length,
-                    onConfirm: selected == null
+                    onConfirm: selected == null || state.isSelectingOpponent
                         ? null
                         : () => _confirmOpponent(request, selected),
                   ),
@@ -209,6 +277,171 @@ class _OpponentInvitationsPageState extends State<OpponentInvitationsPage> {
     }
     final pending = request.pendingInvitations;
     return pending.length == 1 ? pending.first : null;
+  }
+}
+
+/// Placeholder cards standing in for the invitations being fetched. Shaped like
+/// the real ones so the list does not jump when they land, and carrying one
+/// spinner so the wait is legible as work in progress.
+class _InvitationsLoading extends StatelessWidget {
+  const _InvitationsLoading();
+
+  /// Two is enough to read as a list without pretending to know how many
+  /// invitations are coming.
+  static const int _cards = 2;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    return Column(
+      children: <Widget>[
+        for (int i = 0; i < _cards; i++)
+          Padding(
+            padding: AppUtils().getPadding(bottom: AppDimens.paddingX12),
+            child: OpponentCard(
+              child: Row(
+                children: <Widget>[
+                  Container(
+                    width: AppDimens.sizeX40,
+                    height: AppDimens.sizeX40,
+                    decoration: BoxDecoration(
+                      color: LightColor.dividerColor.withValues(alpha: 0.55),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: AppDimens.paddingX12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        _LoadingBar(widthFactor: 0.45),
+                        const SizedBox(height: AppDimens.paddingX8),
+                        _LoadingBar(widthFactor: 0.7, height: AppDimens.sizeX8),
+                      ],
+                    ),
+                  ),
+                  if (i == 0) ...<Widget>[
+                    const SizedBox(width: AppDimens.paddingX12),
+                    const SizedBox(
+                      width: AppDimens.sizeX18,
+                      height: AppDimens.sizeX18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: LightColor.secondaryColor,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        Text(
+          'Loading invitations…',
+          style: textTheme.bodyMiniSubTitle?.copyWith(
+            color: LightColor.hintTextColor,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Grey bar standing in for a line of text that has not arrived.
+class _LoadingBar extends StatelessWidget {
+  const _LoadingBar({
+    required this.widthFactor,
+    this.height = AppDimens.sizeX10,
+  });
+
+  final double widthFactor;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    return FractionallySizedBox(
+      alignment: Alignment.centerLeft,
+      widthFactor: widthFactor,
+      child: Container(
+        height: height,
+        decoration: BoxDecoration(
+          color: LightColor.dividerColor.withValues(alpha: 0.55),
+          borderRadius: BorderRadius.circular(AppDimens.radiusX4),
+        ),
+      ),
+    );
+  }
+}
+
+/// Quiet "checking for new invitations" line, shown above a list that already
+/// has rows so a refresh never blanks them out.
+class _RefreshingStrip extends StatelessWidget {
+  const _RefreshingStrip();
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    return Padding(
+      padding: AppUtils().getPadding(bottom: AppDimens.paddingX12),
+      child: Row(
+        children: <Widget>[
+          const SizedBox(
+            width: AppDimens.sizeX14,
+            height: AppDimens.sizeX14,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: LightColor.secondaryColor,
+            ),
+          ),
+          const SizedBox(width: AppDimens.paddingX8),
+          Text(
+            'Checking for new invitations…',
+            style: textTheme.bodyMiniSubTitle?.copyWith(
+              color: LightColor.hintTextColor,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The invitations call failed — say so and offer a retry, rather than showing
+/// the "waiting for acceptances" card for a request that may well have some.
+class _InvitationsError extends StatelessWidget {
+  const _InvitationsError({required this.message, required this.onRetry});
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    return OpponentCard(
+      child: Column(
+        children: <Widget>[
+          Icon(
+            Icons.cloud_off_rounded,
+            size: AppDimens.sizeX28,
+            color: LightColor.hintTextColor,
+          ),
+          const SizedBox(height: AppDimens.paddingX10),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: textTheme.bodyTextSmall?.copyWith(
+              color: LightColor.secondaryTextColor,
+            ),
+          ),
+          const SizedBox(height: AppDimens.paddingX12),
+          CustomButton(
+            text: StringConstants.retry,
+            icon: Icons.refresh_rounded,
+            minHeight: AppDimens.sizeX44,
+            onPressed: onRetry,
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -238,7 +471,10 @@ class _RequestStrip extends StatelessWidget {
                   ),
                 ),
               ),
-              OpponentStatusBadge(status: request.status),
+              OpponentStatusBadge(
+                status: request.status,
+                label: request.statusBadgeLabel,
+              ),
             ],
           ),
           const SizedBox(height: AppDimens.paddingX8),
@@ -283,13 +519,40 @@ class _InvitationCard extends StatelessWidget {
   final VoidCallback onSelect;
   final VoidCallback? onMessage;
 
+  /// What this team carries of the court fee.
+  ///
+  /// Under a result-keyed rule nothing is owed by a side until the match is
+  /// played, and `yourShare` is 0 for it — so `totalFee - yourShare` quoted the
+  /// whole fee as "their share", which is not what either team agreed to.
+  String _shareLine() {
+    if (invitation.share > 0) {
+      return 'Their share ${OpponentFmt.npr(invitation.share)}';
+    }
+    if (request.isResultCost) {
+      final int? loser = request.resolvedLoserAmount;
+      final int? pct = request.resolvedLoserPercent;
+      if (loser == null) return 'Loser pays — decided by the result';
+      return 'If they lose ${OpponentFmt.npr(loser)}'
+          '${pct == null ? '' : ' ($pct%)'}';
+    }
+    return 'Their share ${OpponentFmt.npr(request.totalFee - request.yourShare)}';
+  }
+
+  /// The subtitle under the team name: who is behind the invitation and when it
+  /// arrived or was answered.
+  String _metaLine() => <String>[
+    if (invitation.captainName.isNotEmpty) invitation.captainName,
+    if (invitation.playerCount > 0) '${invitation.playerCount} players',
+    if (invitation.respondedAt != null)
+      'answered ${OpponentFmt.friendlyDateTime(invitation.respondedAt!)}'
+    else if (invitation.acceptedAt != null)
+      'accepted ${OpponentFmt.friendlyDateTime(invitation.acceptedAt!)}',
+  ].join(' · ');
+
   @override
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
     final bool rejected = invitation.status == InvitationStatus.rejected;
-    final int share = invitation.share > 0
-        ? invitation.share
-        : request.totalFee - request.yourShare;
     return Opacity(
       opacity: rejected ? 0.6 : 1,
       child: Material(
@@ -355,14 +618,7 @@ class _InvitationCard extends StatelessWidget {
                           ),
                           const SizedBox(height: AppDimens.sizeX2),
                           Text(
-                            <String>[
-                              if (invitation.captainName.isNotEmpty)
-                                invitation.captainName,
-                              if (invitation.playerCount > 0)
-                                '${invitation.playerCount} players',
-                              if (invitation.acceptedAt != null)
-                                'accepted ${OpponentFmt.friendlyDateTime(invitation.acceptedAt!)}',
-                            ].join(' · '),
+                            _metaLine(),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: textTheme.bodyMiniSubTitle?.copyWith(
@@ -372,18 +628,8 @@ class _InvitationCard extends StatelessWidget {
                         ],
                       ),
                     ),
-                    if (onMessage != null)
-                      IconButton(
-                        onPressed: onMessage,
-                        visualDensity: VisualDensity.compact,
-                        tooltip: 'Message captain',
-                        icon: const Icon(
-                          Icons.chat_bubble_outline_rounded,
-                          size: AppDimens.sizeX18,
-                          color: LightColor.secondaryColor,
-                        ),
-                      ),
-                    if (selectable)
+                    if (selectable) ...<Widget>[
+                      const SizedBox(width: AppDimens.paddingX8),
                       Icon(
                         selected
                             ? Icons.radio_button_checked_rounded
@@ -393,6 +639,7 @@ class _InvitationCard extends StatelessWidget {
                             ? LightColor.secondaryColor
                             : LightColor.hintTextColor,
                       ),
+                    ],
                   ],
                 ),
                 const SizedBox(height: AppDimens.paddingX12),
@@ -401,7 +648,7 @@ class _InvitationCard extends StatelessWidget {
                     Expanded(
                       child: _Line(
                         icon: Icons.payments_outlined,
-                        text: 'Their share ${OpponentFmt.npr(share)}',
+                        text: _shareLine(),
                       ),
                     ),
                     _StatusPill(status: invitation.status),
@@ -451,7 +698,7 @@ class _InvitationCard extends StatelessWidget {
                       ),
                       label: Text(
                         invitation.captainName.isEmpty
-                            ? 'Chat before deciding'
+                            ? 'Chat with ${invitation.teamName.isEmpty ? 'this team' : invitation.teamName}'
                             : 'Chat with ${invitation.captainName}',
                         style: textTheme.bodyTextSmall?.copyWith(
                           color: LightColor.secondaryColor,
@@ -622,11 +869,16 @@ class _ConfirmedBanner extends StatelessWidget {
 class _SelectFooter extends StatelessWidget {
   const _SelectFooter({
     required this.enabled,
+    required this.busy,
     required this.othersCount,
     required this.onConfirm,
   });
 
   final bool enabled;
+
+  /// The confirm call is in flight — the button spins rather than accepting a
+  /// second tap that would try to confirm the same invitation twice.
+  final bool busy;
   final int othersCount;
   final VoidCallback? onConfirm;
 
@@ -668,6 +920,7 @@ class _SelectFooter extends StatelessWidget {
               child: CustomButton(
                 text: 'Select This Opponent',
                 icon: Icons.handshake_outlined,
+                isLoading: busy,
                 onPressed: enabled ? onConfirm : null,
               ),
             ),

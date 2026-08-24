@@ -37,6 +37,11 @@ class ApiClient {
     return _get(url: '$_baseUrl/auth/me');
   }
 
+  /// Permanently deletes the signed-in user's account.
+  Future<Result> deleteAccount({required Map<String, dynamic> data}) {
+    return _delete(url: '$_baseUrl/auth/account', data: data);
+  }
+
   Future<Result> requestVendorUpgrade({required Map<String, dynamic> data}) {
     return _post(url: '$_baseUrl/auth/vendor-request', data: data);
   }
@@ -279,10 +284,24 @@ class ApiClient {
     return _get(url: '$_baseUrl/auth/settlement-breakdown');
   }
 
+  /// Payment QRs the platform accepts a commission payment on.
+  Future<Result> getQrCodes() {
+    return _get(url: '$_baseUrl/auth/qr-codes');
+  }
+
   Future<Result> getSettlementPreview({int? venueId}) {
     return _get(
       url: '$_baseUrl/auth/settlement-preview',
       query: venueId == null ? null : <String, dynamic>{'venue_id': venueId},
+    );
+  }
+
+  /// The account ledger, paged. Backs the full "Account statement" screen;
+  /// the account summary carries only a short preview of the same rows.
+  Future<Result> getSettlementRecentActivity({Map<String, dynamic>? query}) {
+    return _get(
+      url: '$_baseUrl/auth/settlement-recent-activity',
+      query: query ?? <String, dynamic>{'page': 1, 'per_page': 10},
     );
   }
 
@@ -337,6 +356,23 @@ class ApiClient {
       url: '$_baseUrl/conversations/$conversationId/participants',
       data: <String, dynamic>{'participant_ids': participantIds},
     );
+  }
+
+  /// Renaming a group. The server returns the updated conversation.
+  Future<Result> updateConversationTitle({
+    required int conversationId,
+    required String title,
+  }) {
+    return _patch(
+      url: '$_baseUrl/conversations/$conversationId/title',
+      data: <String, dynamic>{'title': title},
+    );
+  }
+
+  /// Leaving a group the signed-in user is a member of. The server drops them
+  /// from `participants` and keeps the conversation for everyone else.
+  Future<Result> leaveConversation({required int conversationId}) {
+    return _post(url: '$_baseUrl/conversations/$conversationId/leave');
   }
 
   Future<Result> getConversationDetails({required int conversationId}) {
@@ -448,6 +484,18 @@ class ApiClient {
 
   Future<Result> getVenueHostedBy({required int venueId}) {
     return _get(url: '$_baseUrl/hosted-by/$venueId');
+  }
+
+  /// One page of a venue's reviews, newest first as the server orders them.
+  Future<Result> getVenueReviews({
+    required int venueId,
+    int page = 1,
+    int perPage = 10,
+  }) {
+    return _get(
+      url: '$_baseUrl/venues/$venueId/reviews',
+      query: <String, dynamic>{'page': page, 'per_page': perPage},
+    );
   }
 
   Future<Result> getVenueDescription({required int venueId}) {
@@ -644,10 +692,22 @@ class ApiClient {
     );
   }
 
-  Future<Result> getMyBookings({required int page, required int perPage}) {
+  /// [status] is the endpoint's own filter — `all`, `pending`, `confirmed`,
+  /// `completed`, `cancelled` or `rejected`. Filtering on the server rather
+  /// than over the page in hand: a status filtered on-device only ever sees
+  /// the rows already fetched, so it hid matches sitting on later pages.
+  Future<Result> getMyBookings({
+    required int page,
+    required int perPage,
+    String? status,
+  }) {
     return _get(
       url: '$_baseUrl/bookings',
-      query: <String, dynamic>{'page': page, 'per_page': perPage},
+      query: <String, dynamic>{
+        'page': page,
+        'per_page': perPage,
+        if (status != null && status.trim().isNotEmpty) 'status': status.trim(),
+      },
     );
   }
 
@@ -655,10 +715,19 @@ class ApiClient {
     return _get(url: '$_baseUrl/bookings/$bookingId');
   }
 
-  Future<Result> getFutsalBookings({required int page, required int perPage}) {
+  /// Same `status` filter as [getMyBookings].
+  Future<Result> getFutsalBookings({
+    required int page,
+    required int perPage,
+    String? status,
+  }) {
     return _get(
       url: '$_baseUrl/futsal-bookings',
-      query: <String, dynamic>{'page': page, 'per_page': perPage},
+      query: <String, dynamic>{
+        'page': page,
+        'per_page': perPage,
+        if (status != null && status.trim().isNotEmpty) 'status': status.trim(),
+      },
     );
   }
 
@@ -676,6 +745,20 @@ class ApiClient {
   /// window.
   Future<Result> getBookingCancelBoundary({required int bookingId}) {
     return _get(url: '$_baseUrl/bookings/$bookingId/cancel-boundary');
+  }
+
+  /// The review this customer left on the booking, if any. A 404 here is a
+  /// normal answer — it means "not reviewed yet", not a failure.
+  Future<Result> getBookingReview({required int bookingId}) {
+    return _get(url: '$_baseUrl/bookings/$bookingId/review');
+  }
+
+  /// Submits `{ rating, review }` for a completed booking.
+  Future<Result> submitBookingReview({
+    required int bookingId,
+    required Map<String, dynamic> data,
+  }) {
+    return _post(url: '$_baseUrl/bookings/$bookingId/review', data: data);
   }
 
   // ── Payment proof verification ──
@@ -778,29 +861,24 @@ class ApiClient {
 
   // ── Opponent-match requests ──
 
-  Future<Result> getOpponentRequests({Map<String, dynamic>? query}) {
-    return _get(url: '$_baseUrl/opponent-requests', query: query);
-  }
-
+  /// One opponent request by id. Authenticated (`/auth`) so the response is
+  /// scoped to the caller — the unauthenticated variant does not answer for a
+  /// request the caller is part of, which is what reading a request back after
+  /// accepting it needs.
   Future<Result> getOpponentRequest({required String requestId}) {
-    return _get(url: '$_baseUrl/opponent-requests/$requestId');
+    return _get(url: '$_baseUrl/auth/opponent-requests/$requestId');
   }
 
   Future<Result> createOpponentRequest({required Map<String, dynamic> data}) {
     return _post(url: '$_baseUrl/opponent-requests', data: data);
   }
 
-  /// Opens a request from the wizard's first step, carrying only the match
-  /// section (team, format, level, preferred date & time). The response's id
-  /// is what every later step updates.
   Future<Result> createOpponentMatchRequest({
     required Map<String, dynamic> data,
   }) {
     return _post(url: '$_baseUrl/auth/opponent-requests', data: data);
   }
 
-  /// Re-sends the match section of an already-opened request — the user went
-  /// back to step one and changed something.
   Future<Result> updateOpponentRequestMatch({
     required String requestId,
     required Map<String, dynamic> data,
@@ -811,28 +889,24 @@ class ApiClient {
     );
   }
 
-  /// The signed-in user's own opponent requests, served by the backend rather
-  /// than filtered out of the public list. `tab` selects the slice the backend
-  /// returns and defaults to `all`.
-  Future<Result> getMyOpponentRequests({Map<String, dynamic>? query}) {
+  /// Loads one server-defined opponent-request tab. The API must always know
+  /// which slice is requested; `tab=all` is not a valid replacement for the
+  /// `my_requests`, `need_opponent`, and `settled` screens.
+  Future<Result> getOpponentRequests({
+    required String tab,
+    int page = 1,
+    int perPage = 15,
+  }) {
     return _get(
       url: '$_baseUrl/auth/opponent-requests',
-      query: {'tab': 'all', ...?query},
+      query: <String, dynamic>{'tab': tab, 'page': page, 'per_page': perPage},
     );
   }
 
-  /// One of my own requests by id — drafts included, hence the `/auth` path.
-  /// Used to hydrate the wizard when a draft is resumed.
   Future<Result> getMyOpponentRequest({required String requestId}) {
     return _get(url: '$_baseUrl/auth/opponent-requests/$requestId');
   }
 
-  /// Sends the wizard's venue step (step two) for an already-opened request.
-  /// [data] carries the `venue_source` discriminator plus whatever that source
-  /// needs — a `booking_id` when the court is already booked on this platform.
-  ///
-  /// The route is PUT: the venue is a section of an existing request, so POST
-  /// comes back 405.
   Future<Result> saveOpponentRequestVenue({
     required String requestId,
     required Map<String, dynamic> data,
@@ -893,6 +967,49 @@ class ApiClient {
     return _post(
       url: '$_baseUrl/opponent-requests/$requestId/accept',
       data: data,
+    );
+  }
+
+  /// The confirmed match behind a settled request: fixture, linked venue,
+  /// agreed split and the chat room the server opened with it. Only answers
+  /// once an opponent has been selected.
+  Future<Result> getOpponentMatchDetails({required String requestId}) {
+    return _get(
+      url: '$_baseUrl/auth/opponent-requests/$requestId/match-details',
+    );
+  }
+
+  Future<Result> getOpponentInvitations({
+    required String requestId,
+    Map<String, dynamic>? query,
+  }) {
+    return _get(
+      url: '$_baseUrl/auth/opponent-requests/$requestId/invitations',
+      query: query,
+    );
+  }
+
+  Future<Result> createOpponentInvitation({
+    required String requestId,
+    required Map<String, dynamic> data,
+  }) {
+    return _post(
+      url: '$_baseUrl/auth/opponent-requests/$requestId/invitations',
+      data: data,
+    );
+  }
+
+  /// Requester confirms one of the teams that accepted: the match is created
+  /// with that invitation and every other invitation on the request is
+  /// rejected by the server.
+  Future<Result> acceptOpponentInvitation({
+    required String requestId,
+    required String invitationId,
+  }) {
+    return _post(
+      url:
+          '$_baseUrl/auth/opponent-requests/$requestId/invitations/'
+          '$invitationId/accept',
     );
   }
 
@@ -976,9 +1093,21 @@ class ApiClient {
     );
   }
 
-  Future<Result> _delete({required String url}) {
+  Future<Result> _delete({required String url, dynamic data}) {
+    final dynamic requestData;
+    if (data is Map<String, dynamic>) {
+      requestData = AppUtils().cleanUnwantedMapValue(data);
+    } else if (data is Map) {
+      requestData = AppUtils().cleanUnwantedMapValue(
+        Map<String, dynamic>.from(data),
+      );
+    } else {
+      requestData = data;
+    }
+
     return _apiCallWrapper.makeRequest(
       url: url,
+      data: requestData,
       token: AppSettings().tokenModel.accessToken,
       method: HttpVerb.delete,
     );

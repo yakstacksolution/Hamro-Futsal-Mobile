@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hamro_footsall/core/helper/exception_helper.dart';
 import 'package:hamro_footsall/features/bookings/data/model/booking_model.dart';
+import 'package:hamro_footsall/features/bookings/data/model/booking_review_model.dart';
 import 'package:hamro_footsall/features/bookings/domain/repository/booking_repository.dart';
 import 'package:hamro_footsall/features/bookings/domain/model/paginated_bookings.dart';
 import 'package:hamro_footsall/features/bookings/domain/usecase/get_bookings_use_case.dart';
@@ -54,6 +56,195 @@ void main() {
       expect(repository.futsalBookingsCalls, 1);
       expect(state.futsalBookings, isEmpty);
       expect(state.futsalBookingsError, 'Futsal access is unavailable.');
+    });
+
+    test('sends the endpoint\'s status filter, `all` when none is picked', () async {
+      final _FakeBookingRepository repository = _FakeBookingRepository();
+      final BookingBloc bloc = BookingBloc(GetBookingsUseCase(repository));
+      addTearDown(bloc.close);
+
+      // refreshTick is bumped once per *finished* fetch, so this skips the
+      // intermediate emit that clears the old filter's rows.
+      int tick = bloc.state.refreshTick;
+      Future<BookingState> settled() async {
+        final BookingState state = await bloc.stream.firstWhere(
+          (BookingState state) => state.refreshTick != tick,
+        );
+        tick = state.refreshTick;
+        return state;
+      }
+
+      Future<BookingState> done = settled();
+      bloc.add(const FetchMyBookingsEvent());
+      await done;
+      expect(repository.myStatuses, <String?>['all']);
+
+      // Selecting a status fetches it, from page 1, and makes it the visible
+      // one — the `all` rows stay in their own slice.
+      done = settled();
+      bloc.add(
+        const FetchMyBookingsEvent.select(BookingStatusFilter.pending),
+      );
+      BookingState state = await done;
+      expect(repository.myStatuses.last, 'pending');
+      expect(state.mySelectedFilter, BookingStatusFilter.pending);
+      expect(state.myStatusFilter, BookingStatus.pending);
+      expect(state.myCurrentPage, 1);
+      expect(state.mySlice(BookingStatusFilter.all).bookings, isNotEmpty);
+
+      // A plain refresh keeps the selected status rather than reverting to all.
+      done = settled();
+      bloc.add(const FetchMyBookingsEvent(silent: true));
+      state = await done;
+      expect(repository.myStatuses.last, 'pending');
+      expect(state.myStatusFilter, BookingStatus.pending);
+
+      // Selecting a status already loaded is served from state: no request.
+      final int calls = repository.myBookingsCalls;
+      bloc.add(const FetchMyBookingsEvent.select(BookingStatusFilter.all));
+      await Future<void>.delayed(Duration.zero);
+      expect(repository.myBookingsCalls, calls);
+      expect(bloc.state.mySelectedFilter, BookingStatusFilter.all);
+      expect(bloc.state.myBookings, isNotEmpty);
+
+      // …unless it is forced, which is what pull-to-refresh does.
+      done = settled();
+      bloc.add(
+        const FetchMyBookingsEvent.select(
+          BookingStatusFilter.all,
+          force: true,
+        ),
+      );
+      state = await done;
+      expect(repository.myStatuses.last, 'all');
+      expect(state.myStatusFilter, isNull);
+    });
+
+    test('every status page maps to its query value and back', () {
+      expect(
+        BookingStatusFilter.values.map((BookingStatusFilter f) => f.query),
+        <String>[
+          'all',
+          'pending',
+          'confirmed',
+          'completed',
+          'cancelled',
+          'rejected',
+        ],
+      );
+      for (final BookingStatusFilter filter in BookingStatusFilter.values) {
+        expect(BookingStatusFilter.of(filter.status), filter);
+      }
+      expect(BookingStatus.queryValue(null), 'all');
+      expect(BookingStatus.queryValue(BookingStatus.rejected), 'rejected');
+    });
+
+    test('landing on a status refetches it without blanking its rows', () async {
+      final _FakeBookingRepository repository = _FakeBookingRepository();
+      final BookingBloc bloc = BookingBloc(GetBookingsUseCase(repository));
+      addTearDown(bloc.close);
+
+      int tick = bloc.state.refreshTick;
+      Future<BookingState> settled() async {
+        final BookingState state = await bloc.stream.firstWhere(
+          (BookingState state) => state.refreshTick != tick,
+        );
+        tick = state.refreshTick;
+        return state;
+      }
+
+      Future<BookingState> done = settled();
+      bloc.add(const FetchMyBookingsEvent.select(BookingStatusFilter.pending));
+      await done;
+      final int callsAfterFirstVisit = repository.myBookingsCalls;
+
+      // Coming back to the status asks the endpoint again — the point of the
+      // refresh — and the rows already held stay on screen while it does.
+      final List<BookingState> emitted = <BookingState>[];
+      final StreamSubscription<BookingState> sub = bloc.stream.listen(
+        emitted.add,
+      );
+      done = settled();
+      bloc.add(const FetchMyBookingsEvent.refresh(BookingStatusFilter.pending));
+      final BookingState state = await done;
+      await sub.cancel();
+
+      expect(repository.myBookingsCalls, callsAfterFirstVisit + 1);
+      expect(repository.myStatuses.last, 'pending');
+      expect(state.mySlice(BookingStatusFilter.pending).bookings, isNotEmpty);
+      // No skeleton: nothing along the way dropped the rows or went `loading`.
+      for (final BookingState step in emitted) {
+        final BookingListSlice slice = step.mySlice(
+          BookingStatusFilter.pending,
+        );
+        expect(slice.loadStatus, BookingLoadStatus.success);
+        expect(slice.bookings, isNotEmpty);
+      }
+      // The refresh announced itself so the page can show its progress line.
+      expect(
+        emitted.any(
+          (BookingState step) =>
+              step.mySlice(BookingStatusFilter.pending).isRefreshing,
+        ),
+        isTrue,
+      );
+      expect(state.mySlice(BookingStatusFilter.pending).isRefreshing, isFalse);
+    });
+
+    test('a second landing while the first is in flight is dropped', () async {
+      final _FakeBookingRepository repository = _FakeBookingRepository();
+      final BookingBloc bloc = BookingBloc(GetBookingsUseCase(repository));
+      addTearDown(bloc.close);
+
+      // Hold the first request open, then swipe onto the same status again.
+      repository.myGate = Completer<void>();
+      bloc.add(const FetchMyBookingsEvent.refresh(BookingStatusFilter.all));
+      await Future<void>.delayed(Duration.zero);
+      bloc.add(const FetchMyBookingsEvent.refresh(BookingStatusFilter.all));
+      await Future<void>.delayed(Duration.zero);
+
+      // The second is dropped rather than stacked: whichever answered last
+      // would otherwise decide what the page shows.
+      expect(repository.myBookingsCalls, 1);
+
+      repository.myGate!.complete();
+      await bloc.stream.firstWhere(
+        (BookingState state) => state.refreshTick > 0,
+      );
+      expect(repository.myBookingsCalls, 1);
+    });
+
+    test('each futsal status keeps its own slice', () async {
+      final _FakeBookingRepository repository = _FakeBookingRepository();
+      final BookingBloc bloc = BookingBloc(GetBookingsUseCase(repository));
+      addTearDown(bloc.close);
+
+      int tick = bloc.state.refreshTick;
+      Future<BookingState> settled() async {
+        final BookingState state = await bloc.stream.firstWhere(
+          (BookingState state) => state.refreshTick != tick,
+        );
+        tick = state.refreshTick;
+        return state;
+      }
+
+      Future<BookingState> done = settled();
+      bloc.add(const FetchFutsalBookingsEvent());
+      await done;
+
+      done = settled();
+      bloc.add(
+        const FetchFutsalBookingsEvent.select(BookingStatusFilter.cancelled),
+      );
+      final BookingState state = await done;
+      expect(repository.futsalStatuses, <String?>['all', 'cancelled']);
+      expect(state.futsalStatusFilter, BookingStatus.cancelled);
+      expect(state.futsalCurrentPage, 1);
+      // Each status keeps its own slice rather than overwriting one list.
+      expect(state.futsalLists.keys, <BookingStatusFilter>[
+        BookingStatusFilter.all,
+        BookingStatusFilter.cancelled,
+      ]);
     });
   });
 
@@ -172,6 +363,18 @@ void main() {
 }
 
 final class _FakeBookingRepository implements BookingRepository {
+  @override
+  Future<Either<AppException, BookingReviewModel?>> getBookingReview(
+    int bookingId,
+  ) async => right(null);
+
+  @override
+  Future<Either<AppException, BookingReviewModel>> submitBookingReview({
+    required int bookingId,
+    required double rating,
+    required String review,
+  }) async => right(BookingReviewModel(rating: rating, review: review));
+
   _FakeBookingRepository({
     this.futsalError,
     BookingModel? booking,
@@ -196,6 +399,9 @@ final class _FakeBookingRepository implements BookingRepository {
   final AppException? rejectBookingError;
   int myBookingsCalls = 0;
   int futsalBookingsCalls = 0;
+  final List<String?> myStatuses = <String?>[];
+  Completer<void>? myGate;
+  final List<String?> futsalStatuses = <String?>[];
   int verifyPaymentCalls = 0;
   int acceptBookingCalls = 0;
   int rejectBookingCalls = 0;
@@ -206,8 +412,13 @@ final class _FakeBookingRepository implements BookingRepository {
   Future<Either<AppException, PaginatedBookings>> getMyBookings({
     required int page,
     required int perPage,
+    String? status,
   }) async {
     myBookingsCalls++;
+    myStatuses.add(status);
+    // Lets a test hold a request open, so a second one can be attempted while
+    // the first is still out.
+    if (myGate != null) await myGate!.future;
     return right(
       PaginatedBookings(
         items: <BookingModel>[booking],
@@ -231,8 +442,10 @@ final class _FakeBookingRepository implements BookingRepository {
   Future<Either<AppException, PaginatedBookings>> getFutsalBookings({
     required int page,
     required int perPage,
+    String? status,
   }) async {
     futsalBookingsCalls++;
+    futsalStatuses.add(status);
     final AppException? error = futsalError;
     return error == null
         ? right(

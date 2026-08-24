@@ -1,5 +1,8 @@
+import 'dart:typed_data';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hamro_footsall/core/api/api_client/result.dart';
+import 'package:hamro_footsall/core/utils/upload_attachment.dart';
 import 'package:hamro_footsall/features/account/data/data_source/account_remote_data_source.dart';
 import 'package:hamro_footsall/features/account/data/model/account_models.dart';
 import 'package:hamro_footsall/features/account/data/repositories/account_repository_impl.dart';
@@ -8,6 +11,12 @@ import 'package:hamro_footsall/features/account/data/repositories/account_reposi
 // getSummary/getStatement/requestSettlement, which no longer exist, and asserted
 // that backend failures fall back to dummy finance figures — the repository now
 // surfaces those as a Left instead, which is the behaviour pinned below.
+
+UploadAttachment proof() => UploadAttachment(
+  filename: 'proof.png',
+  bytes: Uint8List.fromList(<int>[1, 2, 3]),
+  sourcePath: '/tmp/proof.png',
+);
 
 void main() {
   group('AccountRepositoryImpl', () {
@@ -40,7 +49,7 @@ void main() {
       await repository.createSettlement(
         amount: 5000,
         transactionReference: 'unique-1',
-        paymentProofPath: '/tmp/proof.png',
+        paymentProof: proof(),
         venueId: 101,
         note: 'Weekly payout',
       );
@@ -48,7 +57,10 @@ void main() {
       // Sent as a decimal string so paisa survive the round trip.
       expect(remote.lastSettlement?['amount'], '5000');
       expect(remote.lastSettlement?['transaction_reference'], 'unique-1');
-      expect(remote.lastSettlement?['payment_proof_path'], '/tmp/proof.png');
+      expect(
+        remote.lastSettlement?['payment_proof_attachment'],
+        isA<UploadAttachment>(),
+      );
       expect(remote.lastSettlement?['venue_id'], 101);
       expect(remote.lastSettlement?['note'], 'Weekly payout');
     });
@@ -63,7 +75,7 @@ void main() {
       await repository.createSettlement(
         amount: 250,
         transactionReference: 'ref-2',
-        paymentProofPath: '/tmp/p.png',
+        paymentProof: proof(),
       );
 
       expect(remote.lastSettlement?.containsKey('venue_id'), isFalse);
@@ -80,7 +92,7 @@ void main() {
       await repository.createSettlement(
         amount: 11711.99,
         transactionReference: 'ref-3',
-        paymentProofPath: '/tmp/p.png',
+        paymentProof: proof(),
       );
 
       expect(remote.lastSettlement?['amount'], '11711.99');
@@ -114,7 +126,7 @@ void main() {
           (await repository.createSettlement(
             amount: 5000,
             transactionReference: 'dummy-request-1',
-            paymentProofPath: '/tmp/proof.png',
+            paymentProof: proof(),
           )).isLeft(),
           isTrue,
         );
@@ -152,6 +164,14 @@ class _ErrorAccountRemoteDataSource implements AccountRemoteDataSource {
   Future<Result> getSettlementPreview({int? venueId}) async => _error;
 
   @override
+  Future<Result> getQrCodes() async => _error;
+
+  @override
+  Future<Result> getSettlementRecentActivity({
+    Map<String, dynamic>? query,
+  }) async => _error;
+
+  @override
   Future<Result> getSettlements({Map<String, dynamic>? query}) async => _error;
 
   @override
@@ -169,6 +189,14 @@ class _MalformedAccountRemoteDataSource implements AccountRemoteDataSource {
 
   @override
   Future<Result> getSettlementPreview({int? venueId}) async => _junk;
+
+  @override
+  Future<Result> getQrCodes() async => _junk;
+
+  @override
+  Future<Result> getSettlementRecentActivity({
+    Map<String, dynamic>? query,
+  }) async => _junk;
 
   @override
   Future<Result> getSettlements({Map<String, dynamic>? query}) async => _junk;
@@ -198,6 +226,18 @@ class _FakeAccountRemoteDataSource implements AccountRemoteDataSource {
   @override
   Future<Result> getSettlementBreakdown() async =>
       Result.success(<String, dynamic>{'data': <dynamic>[]});
+
+  @override
+  Future<Result> getQrCodes() async => Result.success(<String, dynamic>{
+    'data': <String, dynamic>{'qr_codes': <dynamic>[]},
+  });
+
+  @override
+  Future<Result> getSettlementRecentActivity({
+    Map<String, dynamic>? query,
+  }) async => Result.success(<String, dynamic>{
+    'data': <String, dynamic>{'items': <dynamic>[]},
+  });
 
   @override
   Future<Result> getSettlementPreview({int? venueId}) async =>

@@ -21,8 +21,8 @@ Android (both workflows):
 
 | Secret                              | Contents                                                              |
 | ----------------------------------- | --------------------------------------------------------------------- |
-| `KEYSTORE_BASE64`                   | `base64 -i hamro-futsal-release-key.keystore`                          |
-| `KEYSTORE_PROPERTIES_BASE64`        | `base64 -i keystore.properties` (see format below)                     |
+| `KEYSTORE_BASE64`                   | `base64 -i android/upload-keystore.jks`                                |
+| `KEYSTORE_PROPERTIES_BASE64`        | `base64 -i android/keystore.properties` (see format below)             |
 
 Android staging only:
 
@@ -45,15 +45,11 @@ iOS (both workflows):
 | `IOS_P12_DISTRIBUTION_CERTIFICATE_PASSWORD`   | password for that `.p12`                             |
 | `IOS_DISTRIBUTION_PROVISIONING_PROFILE_BASE64`| base64 of the App Store `.mobileprovision`           |
 | `IOS_RUNNER_LOCAL_KEYCHAIN_PASSWORD`          | any string — throwaway keychain password on the runner |
+| `APPLE_TEAM_ID`                               | 10-character Apple Developer Team ID                  |
+| `IOS_PROVISIONING_PROFILE_NAME`               | App Store provisioning profile name for `com.np.hamrofutsal` |
 | `APP_STORE_CONNECT_API_ISSUER_ID`             | App Store Connect API issuer ID                      |
 | `APP_STORE_CONNECT_API_KEY_ID`                | App Store Connect API key ID                         |
 | `APP_STORE_CONNECT_API_KEY`                   | contents of the `.p8` private key                    |
-
-All workflows:
-
-| Secret        | Contents                                                                  |
-| ------------- | ------------------------------------------------------------------------- |
-| `CICD_TOKEN`  | PAT with `actions: write` on this repo, used by the artifact-cleanup steps |
 
 Optional, all workflows:
 
@@ -67,7 +63,7 @@ Lives at `android/keystore.properties`, git-ignored, decoded by CI from
 `KEYSTORE_PROPERTIES_BASE64`. `storeFile` is resolved relative to `android/`:
 
 ```properties
-storeFile=hamro-futsal-release-key.keystore
+storeFile=upload-keystore.jks
 storePassword=<store password>
 keyAlias=<alias>
 keyPassword=<key password>
@@ -78,10 +74,11 @@ absent, so a fresh clone still builds locally without the release secrets.
 
 ## Before the first iOS run
 
-`ios/Runner/ExportOptions.plist` ships with two placeholders that must be filled in:
+`ios/Runner/ExportOptions.plist` ships with two placeholders. The workflows replace
+them at runtime from secrets, so you do not need to commit real signing values:
 
-- `teamID` → your 10-character Apple Developer Team ID
-- `provisioningProfiles["com.np.hamrofutsal"]` → the App Store provisioning profile **name**
+- `APPLE_TEAM_ID` → your 10-character Apple Developer Team ID
+- `IOS_PROVISIONING_PROFILE_NAME` → the App Store provisioning profile **name**
 
 ## Notes
 

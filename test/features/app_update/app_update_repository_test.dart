@@ -274,13 +274,16 @@ void main() {
       expect(result.sourceReachable, isFalse);
     });
 
-    test('an answered but unparsable manifest still counts as reachable', () async {
-      remote.payload = <String, dynamic>{'data': <String, dynamic>{}};
+    test(
+      'an answered but unparsable manifest still counts as reachable',
+      () async {
+        remote.payload = <String, dynamic>{'data': <String, dynamic>{}};
 
-      final AppUpdateCheck result = await check();
-      expect(result.requirement, UpdateRequirement.none);
-      expect(result.sourceReachable, isTrue);
-    });
+        final AppUpdateCheck result = await check();
+        expect(result.requirement, UpdateRequirement.none);
+        expect(result.sourceReachable, isTrue);
+      },
+    );
   });
 
   group('snoozing', () {

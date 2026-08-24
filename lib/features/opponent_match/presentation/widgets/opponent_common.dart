@@ -455,14 +455,18 @@ class OpponentRowDivider extends StatelessWidget {
 }
 
 class OpponentStatusBadge extends StatelessWidget {
-  const OpponentStatusBadge({super.key, required this.status});
+  const OpponentStatusBadge({super.key, required this.status, this.label});
   final RequestStatus status;
+
+  /// The server's own word for the state, when the row carried one. The tone
+  /// still comes from [status] — only the text is overridden.
+  final String? label;
 
   @override
   Widget build(BuildContext context) {
     // A request I sent stays "Pending" until the opponent replies; a timed
     // out request reads as "Closed".
-    final (Color fg, Color bg, String label) = switch (status) {
+    final (Color fg, Color bg, String copy) = switch (status) {
       RequestStatus.accepted => (
         LightColor.successColor,
         LightColor.secondaryColor.withValues(alpha: 0.10),
@@ -507,6 +511,11 @@ class OpponentStatusBadge extends StatelessWidget {
         'Closed',
       ),
     };
+    // The server's word wins when the row carried one; the tone above still
+    // comes from the lifecycle status.
+    final String text = (label?.trim().isNotEmpty ?? false)
+        ? label!.trim()
+        : copy;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
@@ -514,7 +523,7 @@ class OpponentStatusBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppDimens.radiusX20),
       ),
       child: Text(
-        label,
+        text,
         style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
           fontSize: AppDimens.fontBodySubTitle,
           fontWeight: FontWeight.w600,

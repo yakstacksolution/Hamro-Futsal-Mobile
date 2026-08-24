@@ -22,4 +22,8 @@ final class ProfileUseCase {
   Future<Either<AppException, bool>> updateNotificationPreferences(
     NotificationPreferences preferences,
   ) async => await repository.updateNotificationPreferences(preferences);
+
+  Future<Either<AppException, bool>> deleteAccount({
+    required String reason,
+  }) async => await repository.deleteAccount(reason: reason);
 }

@@ -28,7 +28,10 @@ void main() {
     expect(manual.amountDueForCollection, 35);
     expect(manual.payments, hasLength(2));
     expect(manual.payments.first.type, 'cash');
-    expect(manual.payments.last.createdAt, DateTime.parse('2026-07-27 22:01:20'));
+    expect(
+      manual.payments.last.createdAt,
+      DateTime.parse('2026-07-27 22:01:20'),
+    );
     expect(manual.extraItems.first.productPrice, 25);
     expect(manual.extraItems.first.productIsActive, isTrue);
     expect(manual.createdAt, DateTime.parse('2026-07-26 10:08:05'));

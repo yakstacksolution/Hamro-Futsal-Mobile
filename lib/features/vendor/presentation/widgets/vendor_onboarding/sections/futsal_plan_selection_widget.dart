@@ -455,7 +455,9 @@ class _CommissionPackageCard extends StatelessWidget {
                     style: FutsalTheme.getTextTheme(context).bodyTextMedium
                         ?.copyWith(
                           fontWeight: FontWeight.w700,
-                          color: isSelected ? color : LightColor.primaryTextColor,
+                          color: isSelected
+                              ? color
+                              : LightColor.primaryTextColor,
                         ),
                   ),
                   const SizedBox(height: AppDimens.sizeX4),

@@ -4,9 +4,11 @@ import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 import 'package:hamro_footsall/core/widgets/custom_app_bar.dart';
 import 'package:hamro_footsall/core/widgets/custom_button.dart';
 import 'package:hamro_footsall/features/message/presentation/pages/chat_launcher.dart';
+import 'package:hamro_footsall/features/opponent_match/data/model/opponent_match_details_model.dart';
 import 'package:hamro_footsall/features/opponent_match/data/model/opponent_match_model.dart';
 import 'package:hamro_footsall/features/opponent_match/presentation/bloc/opponent_match_bloc/opponent_match_bloc.dart';
 import 'package:hamro_footsall/features/opponent_match/presentation/utils/opponent_ui_utils.dart';
@@ -15,17 +17,60 @@ import 'package:hamro_footsall/features/opponent_match/presentation/widgets/oppo
 /// The confirmed-match view both teams land on once an opponent is selected:
 /// the fixture, the linked venue booking, the agreed cost split, and the chat
 /// room that was created with the match.
-class OpponentMatchDetailsPage extends StatelessWidget {
+class OpponentMatchDetailsPage extends StatefulWidget {
   const OpponentMatchDetailsPage({super.key, required this.requestId});
 
   final String requestId;
 
-  OpponentRequestModel? _request(OpponentMatchState state) =>
-      state.requestById(requestId);
+  @override
+  State<OpponentMatchDetailsPage> createState() =>
+      _OpponentMatchDetailsPageState();
+}
 
-  /// Who this side chats with: the requester talks to the accepting captain,
-  /// the accepter talks to the requester.
-  int _peerId(OpponentRequestModel r) {
+class _OpponentMatchDetailsPageState extends State<OpponentMatchDetailsPage> {
+  @override
+  void initState() {
+    super.initState();
+    // The settled request's own endpoint is the authority here — the list row
+    // is only a summary built for a card.
+    context.read<OpponentMatchBloc>().add(
+      LoadMatchDetailsEvent(widget.requestId),
+    );
+  }
+
+  void _reload() => context.read<OpponentMatchBloc>().add(
+    LoadMatchDetailsEvent(widget.requestId, force: true),
+  );
+
+  /// Opens the room the server created with the match. Falls back to a direct
+  /// thread with the other captain only while the room's id is unknown — the
+  /// shared room is where both teams already are.
+  Future<void> _openChat(OpponentMatchDetailsModel match) {
+    final int id = match.chat.conversationId ?? 0;
+    if (id > 0) {
+      return ChatLauncher.openConversation(context, conversationId: id);
+    }
+    final int peer = _fallbackPeerId();
+    if (peer <= 0) {
+      AppUtils().showSnackBar(
+        context,
+        MsgType.info,
+        'The match chat is not open yet.',
+      );
+      return Future<void>.value();
+    }
+    return ChatLauncher.startDirectUser(context, userId: peer);
+  }
+
+  /// Who this side would chat with without a room: the requester talks to the
+  /// accepting captain, the accepter talks to the requester. Read off the list
+  /// row, which is the only place those user ids exist.
+  int _fallbackPeerId() {
+    final OpponentRequestModel? r = context
+        .read<OpponentMatchBloc>()
+        .state
+        .requestById(widget.requestId);
+    if (r == null) return 0;
     if (r.isMine) {
       final int captain = r.selectedInvitation?.captainUserId ?? 0;
       return captain > 0 ? captain : r.acceptedByUserId;
@@ -42,169 +87,281 @@ class OpponentMatchDetailsPage extends StatelessWidget {
         top: false,
         child: BlocBuilder<OpponentMatchBloc, OpponentMatchState>(
           builder: (context, state) {
-            final OpponentRequestModel? request = _request(state);
-            if (request == null) {
-              return const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(AppDimens.paddingX32),
-                  child: Text('This match is no longer available.'),
-                ),
+            final OpponentMatchDetailsModel? match = state.matchDetailsFor(
+              widget.requestId,
+            );
+            if (match == null) {
+              if (state.isLoadingMatchDetails(widget.requestId)) {
+                return const Center(
+                  child: CircularProgressIndicator(
+                    color: LightColor.secondaryColor,
+                  ),
+                );
+              }
+              return _MatchDetailsError(
+                message:
+                    state.matchDetailErrorFor(widget.requestId) ??
+                    'This match is no longer available.',
+                onRetry: _reload,
               );
             }
-            final String opponentName = _opponentName(request);
-            final int peer = _peerId(request);
-
-            return Column(
-              children: <Widget>[
-                Expanded(
-                  child: ListView(
-                    physics: const BouncingScrollPhysics(),
-                    padding: AppUtils().getPadding(
-                      symmetricHorizontal: AppDimens.paddingX20,
-                      top: AppDimens.paddingX14,
-                      bottom: AppDimens.paddingX24,
-                    ),
-                    children: <Widget>[
-                      _Fixture(
-                        home: request.isMine ? request.team : opponentName,
-                        away: request.isMine ? opponentName : request.team,
-                        confirmed: request.isMatchConfirmed,
-                      ),
-                      const SizedBox(height: AppDimens.paddingX18),
-                      const OpponentSectionLabel('Kickoff'),
-                      OpponentCard(
-                        child: Column(
-                          children: <Widget>[
-                            _DetailRow(
-                              icon: Icons.event_outlined,
-                              label: 'Date & time',
-                              value: OpponentFmt.friendlyDateTime(
-                                request.dateTime,
-                              ),
-                            ),
-                            if (request.slot.isNotEmpty) ...<Widget>[
-                              const SizedBox(height: AppDimens.paddingX12),
-                              _DetailRow(
-                                icon: Icons.schedule_outlined,
-                                label: 'Slot',
-                                value: request.slot,
-                              ),
-                            ],
-                            if (request.summary.isNotEmpty) ...<Widget>[
-                              const SizedBox(height: AppDimens.paddingX12),
-                              _DetailRow(
-                                icon: Icons.sports_soccer_rounded,
-                                label: 'Format',
-                                value: request.summary,
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: AppDimens.paddingX18),
-                      const OpponentSectionLabel('Linked venue booking'),
-                      OpponentCard(
-                        child: Column(
-                          children: <Widget>[
-                            _DetailRow(
-                              icon: Icons.location_on_outlined,
-                              label: 'Venue',
-                              value: request.venue.isEmpty
-                                  ? 'Not set'
-                                  : request.venue,
-                            ),
-                            const SizedBox(height: AppDimens.paddingX12),
-                            _DetailRow(
-                              icon: Icons.link_rounded,
-                              label: 'Status',
-                              value: request.isMatchConfirmed
-                                  ? 'Venue linked to this match'
-                                  : 'Awaiting confirmation',
-                              accent: request.isMatchConfirmed,
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: AppDimens.paddingX18),
-                      const OpponentSectionLabel('Cost split'),
-                      OpponentCard(
-                        child: Column(
-                          children: <Widget>[
-                            _MoneyRow(
-                              label: 'Total court fee',
-                              value: OpponentFmt.npr(request.totalFee),
-                            ),
-                            const SizedBox(height: AppDimens.paddingX8),
-                            _MoneyRow(
-                              label: request.myPct == null
-                                  ? 'Your share if you lose'
-                                  : 'Your share (${request.myPct}%)',
-                              value: OpponentFmt.npr(request.yourShare),
-                              emphasised: true,
-                            ),
-                            const SizedBox(height: AppDimens.paddingX8),
-                            _MoneyRow(
-                              label: 'Settlement',
-                              value: 'Paid at the venue',
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: AppDimens.paddingX18),
-                      const OpponentSectionLabel('Match chat'),
-                      _ChatCard(
-                        opponentName: opponentName,
-                        enabled: peer > 0,
-                        onOpen: () =>
-                            ChatLauncher.startDirectUser(context, userId: peer),
-                      ),
-                    ],
-                  ),
-                ),
-                if (peer > 0)
-                  Container(
-                    padding: AppUtils().getPadding(all: AppDimens.paddingX16),
-                    decoration: BoxDecoration(
-                      color: LightColor.cardColor,
-                      borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(AppDimens.radiusX20),
-                        topRight: Radius.circular(AppDimens.radiusX20),
-                      ),
-                      border: Border.all(
-                        color: LightColor.dividerColor.withValues(alpha: 0.7),
-                      ),
-                    ),
-                    child: SafeArea(
-                      top: false,
-                      child: SizedBox(
-                        height: AppDimens.sizeX54,
-                        width: double.infinity,
-                        child: CustomButton(
-                          text: 'Open Match Chat',
-                          icon: Icons.chat_bubble_outline_rounded,
-                          onPressed: () => ChatLauncher.startDirectUser(
-                            context,
-                            userId: peer,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
+            return _MatchDetailsBody(
+              match: match,
+              onRefresh: _reload,
+              onOpenChat: () => _openChat(match),
             );
           },
         ),
       ),
     );
   }
+}
 
-  String _opponentName(OpponentRequestModel request) {
-    if (!request.isMine) return request.team;
-    final String selected = request.selectedInvitation?.teamName ?? '';
-    if (selected.isNotEmpty) return selected;
-    return request.acceptedByTeamName.isEmpty
-        ? 'Opponent'
-        : request.acceptedByTeamName;
+/// The screen once `/match-details` has landed. Every section renders from its
+/// own block of the response, and the server's copy is used as sent so both
+/// teams read the same wording.
+class _MatchDetailsBody extends StatelessWidget {
+  const _MatchDetailsBody({
+    required this.match,
+    required this.onRefresh,
+    required this.onOpenChat,
+  });
+
+  final OpponentMatchDetailsModel match;
+  final VoidCallback onRefresh;
+  final VoidCallback onOpenChat;
+
+  @override
+  Widget build(BuildContext context) {
+    final MatchKickoff kickoff = match.kickoff;
+    final MatchVenue venue = match.venue;
+    final MatchCostSplit cost = match.cost;
+    final MatchChat chat = match.chat;
+
+    return Column(
+      children: <Widget>[
+        Expanded(
+          child: RefreshIndicator(
+            color: LightColor.secondaryColor,
+            onRefresh: () async => onRefresh(),
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(
+                parent: BouncingScrollPhysics(),
+              ),
+              padding: AppUtils().getPadding(
+                symmetricHorizontal: AppDimens.paddingX20,
+                top: AppDimens.paddingX14,
+                bottom: AppDimens.paddingX24,
+              ),
+              children: <Widget>[
+                _Fixture(
+                  home: match.summary.requestingTeam,
+                  away: match.summary.opponentTeam,
+                  confirmed: match.isConfirmed,
+                  statusLine: match.summary.statusLine,
+                ),
+                const SizedBox(height: AppDimens.paddingX18),
+                const OpponentSectionLabel('Kickoff'),
+                OpponentCard(
+                  child: Column(
+                    children: <Widget>[
+                      if (kickoff.whenLabel.isNotEmpty)
+                        _DetailRow(
+                          icon: Icons.event_outlined,
+                          label: 'Date',
+                          value: kickoff.whenLabel,
+                        ),
+                      if (kickoff.slotLabel.isNotEmpty) ...<Widget>[
+                        const SizedBox(height: AppDimens.paddingX12),
+                        _DetailRow(
+                          icon: Icons.schedule_outlined,
+                          label: 'Slot',
+                          value: kickoff.slotLabel,
+                        ),
+                      ],
+                      if (kickoff.formatLabel.isNotEmpty) ...<Widget>[
+                        const SizedBox(height: AppDimens.paddingX12),
+                        _DetailRow(
+                          icon: Icons.sports_soccer_rounded,
+                          label: 'Format',
+                          value: kickoff.formatLabel,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(height: AppDimens.paddingX18),
+                const OpponentSectionLabel('Linked venue booking'),
+                OpponentCard(
+                  child: Column(
+                    children: <Widget>[
+                      _DetailRow(
+                        icon: Icons.location_on_outlined,
+                        label: 'Venue',
+                        value: venue.isEmpty ? 'Not set' : venue.displayName,
+                      ),
+                      if (venue.venueAddress.isNotEmpty) ...<Widget>[
+                        const SizedBox(height: AppDimens.paddingX12),
+                        _DetailRow(
+                          icon: Icons.map_outlined,
+                          label: 'Address',
+                          value: venue.venueAddress,
+                        ),
+                      ],
+                      const SizedBox(height: AppDimens.paddingX12),
+                      // The server explains the link state in its own words —
+                      // an external court has no booking to point at.
+                      _DetailRow(
+                        icon: venue.isLinked
+                            ? Icons.link_rounded
+                            : Icons.link_off_rounded,
+                        label: 'Status',
+                        value: venue.label.isEmpty
+                            ? (venue.isLinked
+                                  ? 'Venue linked to this match'
+                                  : 'Arranged outside the app')
+                            : venue.label,
+                        accent: venue.isLinked,
+                      ),
+                      if (venue.bookingId.isNotEmpty) ...<Widget>[
+                        const SizedBox(height: AppDimens.paddingX12),
+                        _DetailRow(
+                          icon: Icons.confirmation_number_outlined,
+                          label: 'Booking reference',
+                          value: venue.bookingId,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(height: AppDimens.paddingX18),
+                const OpponentSectionLabel('Cost split'),
+                OpponentCard(
+                  child: Column(
+                    children: <Widget>[
+                      _MoneyRow(
+                        label: 'Total court fee',
+                        value: OpponentFmt.npr(cost.totalCourtFee),
+                      ),
+                      // Both sides are named, so each captain can see what the
+                      // other owes rather than only their own half.
+                      if (!cost.requestingTeamShare.isEmpty) ...<Widget>[
+                        const SizedBox(height: AppDimens.paddingX8),
+                        _ShareRow(share: cost.requestingTeamShare, own: true),
+                      ],
+                      if (!cost.opponentTeamShare.isEmpty) ...<Widget>[
+                        const SizedBox(height: AppDimens.paddingX8),
+                        _ShareRow(share: cost.opponentTeamShare, own: false),
+                      ],
+                      if (cost.settlementNote.isNotEmpty) ...<Widget>[
+                        const SizedBox(height: AppDimens.paddingX8),
+                        _MoneyRow(
+                          label: 'Settlement',
+                          value: cost.settlementNote,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(height: AppDimens.paddingX18),
+                const OpponentSectionLabel('Match chat'),
+                _ChatCard(
+                  title: chat.title,
+                  description: chat.description,
+                  enabled: chat.canOpen,
+                  onOpen: onOpenChat,
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (chat.canOpen)
+          Container(
+            padding: AppUtils().getPadding(all: AppDimens.paddingX16),
+            decoration: BoxDecoration(
+              color: LightColor.cardColor,
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(AppDimens.radiusX20),
+                topRight: Radius.circular(AppDimens.radiusX20),
+              ),
+              border: Border.all(
+                color: LightColor.dividerColor.withValues(alpha: 0.7),
+              ),
+            ),
+            child: SafeArea(
+              top: false,
+              child: SizedBox(
+                height: AppDimens.sizeX54,
+                width: double.infinity,
+                child: CustomButton(
+                  text: chat.ctaLabel.isEmpty
+                      ? 'Open Match Chat'
+                      : chat.ctaLabel,
+                  icon: Icons.chat_bubble_outline_rounded,
+                  onPressed: onOpenChat,
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _MatchDetailsError extends StatelessWidget {
+  const _MatchDetailsError({required this.message, required this.onRetry});
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) => Center(
+    child: Padding(
+      padding: const EdgeInsets.all(AppDimens.paddingX32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Text(message, textAlign: TextAlign.center),
+          const SizedBox(height: AppDimens.paddingX16),
+          SizedBox(
+            height: AppDimens.sizeX54,
+            child: CustomButton(
+              text: StringConstants.tryAgain,
+              icon: Icons.refresh_rounded,
+              onPressed: onRetry,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+/// One side's share of the court fee, using the server's own label.
+class _ShareRow extends StatelessWidget {
+  const _ShareRow({required this.share, required this.own});
+
+  final MatchShare share;
+
+  /// The signed-in side's row carries the emphasis.
+  final bool own;
+
+  @override
+  Widget build(BuildContext context) {
+    final String label = share.label.isNotEmpty
+        ? share.label
+        : <String>[
+            own ? 'Your share' : 'Opponent share',
+            if (share.percent != null) '(${share.percent}%)',
+          ].join(' ');
+    return _MoneyRow(
+      label: label,
+      // A result-keyed split has no amount until the match is played.
+      value: share.amount == null
+          ? 'Decided by result'
+          : OpponentFmt.npr(share.amount!),
+      emphasised: own,
+    );
   }
 }
 
@@ -214,11 +371,15 @@ class _Fixture extends StatelessWidget {
     required this.home,
     required this.away,
     required this.confirmed,
+    required this.statusLine,
   });
 
-  final String home;
-  final String away;
+  final MatchTeamRef home;
+  final MatchTeamRef away;
   final bool confirmed;
+
+  /// "Match created · chat room opened", built by the server.
+  final String statusLine;
 
   @override
   Widget build(BuildContext context) {
@@ -244,7 +405,7 @@ class _Fixture extends StatelessWidget {
         children: <Widget>[
           Row(
             children: <Widget>[
-              Expanded(child: _TeamBadge(name: home)),
+              Expanded(child: _TeamBadge(team: home)),
               Padding(
                 padding: AppUtils().getPadding(
                   symmetricHorizontal: AppDimens.paddingX8,
@@ -257,7 +418,7 @@ class _Fixture extends StatelessWidget {
                   ),
                 ),
               ),
-              Expanded(child: _TeamBadge(name: away)),
+              Expanded(child: _TeamBadge(team: away)),
             ],
           ),
           const SizedBox(height: AppDimens.paddingX12),
@@ -275,9 +436,11 @@ class _Fixture extends StatelessWidget {
               ),
               const SizedBox(width: AppDimens.paddingX6),
               Text(
-                confirmed
-                    ? 'Match created · chat room opened'
-                    : 'Waiting on final confirmation',
+                statusLine.isNotEmpty
+                    ? statusLine
+                    : (confirmed
+                          ? 'Match created · chat room opened'
+                          : 'Waiting on final confirmation'),
                 style: textTheme.bodyTextSmall?.copyWith(
                   color: confirmed
                       ? LightColor.successColor
@@ -294,24 +457,17 @@ class _Fixture extends StatelessWidget {
 }
 
 class _TeamBadge extends StatelessWidget {
-  const _TeamBadge({required this.name});
+  const _TeamBadge({required this.team});
 
-  final String name;
+  final MatchTeamRef team;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
-    final String initials = () {
-      final parts = name
-          .trim()
-          .split(RegExp(r'\s+'))
-          .where((p) => p.isNotEmpty)
-          .toList();
-      if (parts.isEmpty) return '?';
-      if (parts.length == 1) return parts.first.substring(0, 1).toUpperCase();
-      return (parts[0].substring(0, 1) + parts[1].substring(0, 1))
-          .toUpperCase();
-    }();
+    // The server sends the initials with the team; [MatchTeamRef] derives them
+    // only when it did not.
+    final String initials = team.initials;
+    final String name = team.name;
     return Column(
       children: <Widget>[
         Container(
@@ -351,12 +507,16 @@ class _TeamBadge extends StatelessWidget {
 
 class _ChatCard extends StatelessWidget {
   const _ChatCard({
-    required this.opponentName,
+    required this.title,
+    required this.description,
     required this.enabled,
     required this.onOpen,
   });
 
-  final String opponentName;
+  /// Both lines come from `match_chat`; the fallbacks only cover a bare
+  /// section.
+  final String title;
+  final String description;
   final bool enabled;
   final VoidCallback onOpen;
 
@@ -385,9 +545,11 @@ class _ChatCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Text(
-                  enabled
-                      ? 'Chat room created automatically'
-                      : 'Chat opens once the opponent is confirmed',
+                  title.isNotEmpty
+                      ? title
+                      : (enabled
+                            ? 'Chat room created automatically'
+                            : 'Chat opens once the opponent is confirmed'),
                   style: textTheme.bodyTextSmall?.copyWith(
                     color: LightColor.primaryTextColor,
                     fontWeight: FontWeight.w700,
@@ -395,11 +557,13 @@ class _ChatCard extends StatelessWidget {
                 ),
                 const SizedBox(height: AppDimens.sizeX2),
                 Text(
-                  enabled
-                      ? 'Coordinate kit, arrival time and the court fee '
-                            'with $opponentName.'
-                      : 'Both captains get access as soon as the match is '
-                            'created.',
+                  description.isNotEmpty
+                      ? description
+                      : (enabled
+                            ? 'Coordinate kit, arrival time and the court fee '
+                                  'with the other captain.'
+                            : 'Both captains get access as soon as the match '
+                                  'is created.'),
                   style: textTheme.bodyMiniSubTitle?.copyWith(
                     color: LightColor.secondaryTextColor,
                     height: 1.4,

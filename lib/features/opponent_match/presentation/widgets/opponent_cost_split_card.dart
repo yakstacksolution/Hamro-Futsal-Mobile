@@ -108,8 +108,12 @@ class OpponentCostSplitCard extends StatelessWidget {
               percent: cost.isResultBased ? cost.loserPercent : cost.myPercent,
               leftLabel: cost.isResultBased ? 'Loser pays' : 'My side pays',
               rightLabel: cost.isResultBased ? 'Winner' : 'Opponent',
+              // Result-based reaches 100: "loser pays everything, winner pays
+              // nothing" is a rule people actually agree on. A fixed per-side
+              // split still stops short of 0/100, which would make one team's
+              // share meaningless.
               min: cost.isResultBased ? 50 : 10,
-              max: 90,
+              max: cost.isResultBased ? 100 : 90,
               onChanged: cost.isResultBased
                   ? onLoserPctChange
                   : onPercentChange,

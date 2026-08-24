@@ -355,7 +355,11 @@ class CustomHeaderWidget extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.camera_alt_outlined, color: LightColor.onBrandSurface, size: _iconSize),
+          Icon(
+            Icons.camera_alt_outlined,
+            color: LightColor.onBrandSurface,
+            size: _iconSize,
+          ),
           SizedBox(width: 6 * _scale),
           Text(
             StringConstants.changeImage,
@@ -400,7 +404,11 @@ class CustomHeaderWidget extends StatelessWidget {
               width: 1,
             ),
           ),
-          child: Icon(icon, color: LightColor.onBrandSurface, size: size ?? _iconSize),
+          child: Icon(
+            icon,
+            color: LightColor.onBrandSurface,
+            size: size ?? _iconSize,
+          ),
         ),
       );
 }

@@ -77,8 +77,9 @@ Uint8List _oneByOnePngBytes() {
 }
 
 void main() {
-  testWidgets('CustomImageView does not crash with infinite dimensions',
-      (WidgetTester tester) async {
+  testWidgets('CustomImageView does not crash with infinite dimensions', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
@@ -102,4 +103,3 @@ void main() {
     expect(find.byType(CustomImageView), findsOneWidget);
   });
 }
-

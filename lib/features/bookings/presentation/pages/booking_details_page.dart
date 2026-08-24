@@ -21,6 +21,7 @@ import 'package:hamro_footsall/features/bookings/domain/usecase/get_bookings_use
 import 'package:hamro_footsall/features/bookings/presentation/bloc/booking_details_bloc/booking_details_bloc.dart';
 import 'package:hamro_footsall/features/bookings/presentation/widgets/booking_details_widgets.dart';
 import 'package:hamro_footsall/features/bookings/presentation/widgets/booking_products_sheet.dart';
+import 'package:hamro_footsall/features/bookings/presentation/widgets/booking_review_section.dart';
 import 'package:hamro_footsall/features/bookings/presentation/widgets/booking_shared_widgets.dart';
 import 'package:hamro_footsall/features/futsal_details/data/repositories/futsal_details_repository_impl.dart';
 import 'package:hamro_footsall/features/futsal_details/domain/usecase/get_hosted_by_use_case.dart';
@@ -368,7 +369,24 @@ class _BookingDetailsView extends StatelessWidget {
           );
         }
       },
-      child: _buildScaffold(context),
+      child: BlocListener<BookingDetailsBloc, BookingDetailsState>(
+        listenWhen:
+            (BookingDetailsState previous, BookingDetailsState current) =>
+                previous.reviewStatus == BookingReviewStatus.submitting &&
+                current.reviewStatus != BookingReviewStatus.submitting,
+        listener: (BuildContext context, BookingDetailsState state) {
+          if (state.hasReviewed) {
+            AppUtils().showSnackBar(
+              context,
+              MsgType.success,
+              'Thanks for reviewing this booking.',
+            );
+          } else if (state.reviewError != null) {
+            AppUtils().showSnackBar(context, MsgType.error, state.reviewError!);
+          }
+        },
+        child: _buildScaffold(context),
+      ),
     );
   }
 
@@ -528,6 +546,16 @@ class _BookingDetailsView extends StatelessWidget {
                                   ? () => _chatWithVenue(context, booking)
                                   : null),
                         ),
+                      ],
+                      // Reviews belong to the customer who played, so this is
+                      // the customer view only, and only once the booking has
+                      // actually been completed.
+                      if (!isFutsalView &&
+                          booking.status == BookingStatus.completed) ...[
+                        const _SectionGap(),
+                        const BookingSectionHeader(title: 'Your review'),
+                        const _HeaderGap(),
+                        BookingReviewSection(bookingId: booking.id),
                       ],
                       // Vendors can sell add-ons; customers still see what was
                       // charged to their booking.

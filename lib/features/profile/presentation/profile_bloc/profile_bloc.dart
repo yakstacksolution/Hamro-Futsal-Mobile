@@ -18,9 +18,52 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     on<FetchProfileEvent>(_onFetchProfile);
     on<UpdateProfileEvent>(_onUpdateProfile);
     on<RequestVendorUpgradeEvent>(_onRequestVendorUpgrade);
+    on<DeleteAccountEvent>(_onDeleteAccount);
   }
 
   final ProfileUseCase _profileUseCase;
+
+  FutureOr<void> _onDeleteAccount(
+    DeleteAccountEvent event,
+    Emitter<ProfileState> emit,
+  ) async {
+    final String reason = event.reason.trim();
+    if (reason.isEmpty || state.isDeletingAccount) return;
+
+    try {
+      emit(
+        state.copyWith(
+          status: ProfileStatus.deletingAccount,
+          clearErrorMessage: true,
+          clearSuccessMessage: true,
+        ),
+      );
+      final Either<AppException, bool> response = await _profileUseCase
+          .deleteAccount(reason: reason);
+      response.fold(
+        (AppException failure) => emit(
+          state.copyWith(
+            status: ProfileStatus.failure,
+            errorMessage: failure.errorMessage,
+          ),
+        ),
+        (_) => emit(
+          state.copyWith(
+            status: ProfileStatus.accountDeleted,
+            successMessage: StringConstants.accountDeleted,
+            clearErrorMessage: true,
+          ),
+        ),
+      );
+    } catch (error) {
+      emit(
+        state.copyWith(
+          status: ProfileStatus.failure,
+          errorMessage: error.toString(),
+        ),
+      );
+    }
+  }
 
   FutureOr<void> _onRequestVendorUpgrade(
     RequestVendorUpgradeEvent event,

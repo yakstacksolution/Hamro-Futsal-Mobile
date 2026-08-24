@@ -14,6 +14,8 @@ jobs:
   build:
     name: Build APK and distribute to testers
     runs-on: ubuntu-latest
+    env:
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
     permissions:
       actions: write
       contents: read
@@ -56,11 +58,27 @@ jobs:
 
       - name: 🔐 Decode keystore
         run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > "$GITHUB_WORKSPACE/android/hamro-futsal-release-key.keystore"
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > "$GITHUB_WORKSPACE/android/upload-keystore.jks"
 
       - name: 🔐 Decode keystore properties
         run: |
           echo "${{ secrets.KEYSTORE_PROPERTIES_BASE64 }}" | base64 --decode > "$GITHUB_WORKSPACE/android/keystore.properties"
+
+      - name: ✅ Validate Android signing files
+        run: |
+          set -euo pipefail
+          test -s "$GITHUB_WORKSPACE/android/upload-keystore.jks" || {
+            echo "::error::KEYSTORE_BASE64 did not produce android/upload-keystore.jks."
+            exit 1
+          }
+          test -s "$GITHUB_WORKSPACE/android/keystore.properties" || {
+            echo "::error::KEYSTORE_PROPERTIES_BASE64 did not produce android/keystore.properties."
+            exit 1
+          }
+          grep -q '^storeFile=upload-keystore.jks$' "$GITHUB_WORKSPACE/android/keystore.properties" || {
+            echo "::error::android/keystore.properties must contain storeFile=upload-keystore.jks to match the decoded keystore."
+            exit 1
+          }
 
       - name: 🔎 Analyze
         run: flutter analyze --no-fatal-infos
@@ -80,7 +98,7 @@ jobs:
       - name: 🧹 Delete old APK artifacts
         uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.CICD_TOKEN }}
+          github-token: ${{ github.token }}
           script: |
             const artifacts = await github.rest.actions.listArtifactsForRepo({
               owner: context.repo.owner,
@@ -163,8 +181,6 @@ jobs:
 
       - name: 💬 Notify Slack — success
         if: success() && env.SLACK_WEBHOOK_URL != ''
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
           curl -X POST -H 'Content-type: application/json' --data '{
             "text": "✅ Hamro Futsal Android staging build succeeded — APK is on Firebase App Distribution.",
@@ -181,8 +197,6 @@ jobs:
 
       - name: 💬 Notify Slack — failure
         if: failure() && env.SLACK_WEBHOOK_URL != ''
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
           curl -X POST -H 'Content-type: application/json' --data '{
             "text": "⚠️ Hamro Futsal Android staging build FAILED.",

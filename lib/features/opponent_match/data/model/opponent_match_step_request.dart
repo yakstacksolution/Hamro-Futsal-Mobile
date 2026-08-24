@@ -10,35 +10,17 @@ class OpponentMatchStepRequest {
     required this.teamId,
     required this.matchFormatId,
     required this.opponentLevelId,
-    required this.preferredDate,
-    required this.preferredTime,
   });
 
   final int teamId;
   final int matchFormatId;
   final int opponentLevelId;
 
-  /// Local calendar date; only the date part is sent.
-  final DateTime preferredDate;
-
-  /// Minutes past midnight, local. Kept as (hour, minute) rather than a
-  /// DateTime so a time picker maps onto it directly.
-  final ({int hour, int minute}) preferredTime;
-
   Map<String, dynamic> toJson() => <String, dynamic>{
     'team_id': teamId,
     'match_format_id': matchFormatId,
     'opponent_level_id': opponentLevelId,
-    'preferred_date': _date(preferredDate),
-    'preferred_time':
-        '${_two(preferredTime.hour)}:${_two(preferredTime.minute)}',
   };
-
-  static String _date(DateTime date) =>
-      '${date.year.toString().padLeft(4, '0')}-'
-      '${_two(date.month)}-${_two(date.day)}';
-
-  static String _two(int value) => value.toString().padLeft(2, '0');
 }
 
 /// Where the court behind an opponent request comes from. The server switches
@@ -72,10 +54,15 @@ class OpponentVenueStepRequest {
       date = null,
       startTime = null,
       endTime = null,
+      preferredDate = null,
       feeAmount = 0;
 
   /// The "booked elsewhere" branch: the court is described by hand. [endTime]
   /// is optional — the server derives one when it is absent.
+  ///
+  /// [preferredDate] is the match day. Step one no longer asks for a date, so
+  /// this branch is where it is stated and it travels as `preferred_date`
+  /// alongside the booked window.
   const OpponentVenueStepRequest.external({
     required this.venueName,
     required this.courtName,
@@ -84,6 +71,7 @@ class OpponentVenueStepRequest {
     required this.startTime,
     required this.feeAmount,
     this.endTime,
+    this.preferredDate,
   }) : source = OpponentVenueSource.external,
        bookingId = 0;
 
@@ -101,6 +89,11 @@ class OpponentVenueStepRequest {
   final ({int hour, int minute})? endTime;
   final int feeAmount;
 
+  /// The match day, sent as `preferred_date`. Defaults to [date] when the
+  /// caller leaves it out, since for an external court the booked day *is* the
+  /// match day.
+  final DateTime? preferredDate;
+
   Map<String, dynamic> toJson() => switch (source) {
     OpponentVenueSource.booking => <String, dynamic>{
       'venue_source': source.wireValue,
@@ -114,6 +107,8 @@ class OpponentVenueStepRequest {
       if (courtName.isNotEmpty) 'external_court_name': courtName,
       if (address.isNotEmpty) 'external_address': address,
       if (date != null) 'external_date': _date(date!),
+      if ((preferredDate ?? date) != null)
+        'preferred_date': _date((preferredDate ?? date)!),
       if (startTime != null) 'external_start_time': _time(startTime!),
       if (endTime != null) 'external_end_time': _time(endTime!),
       'external_fee_amount': feeAmount,
@@ -168,9 +163,13 @@ class OpponentCostStepRequest {
       basis = null,
       requestingTeamPercent = 0;
 
-  /// A custom percentage for the requesting team, either fixed ([basis] =
-  /// [OpponentSplitBasis.team]) or applied to the losing side
-  /// ([OpponentSplitBasis.result]).
+  /// A custom percentage, read according to [basis].
+  ///
+  /// With [OpponentSplitBasis.team] it is the requesting team's fixed share and
+  /// travels as `requesting_team_percent`. With [OpponentSplitBasis.result] it
+  /// is the *loser's* share, and the pair `loser_pay_percent` /
+  /// `winner_pay_percent` travels instead — neither side is fixed in advance,
+  /// so naming one "the requesting team" would say the wrong thing.
   const OpponentCostStepRequest.custom({
     required OpponentSplitBasis this.basis,
     required this.requestingTeamPercent,
@@ -181,14 +180,26 @@ class OpponentCostStepRequest {
   /// Null for an even split, which has no percentage to key.
   final OpponentSplitBasis? basis;
 
-  /// 1–99. Percentage of the court fee the requesting team carries.
+  /// Percentage of the court fee carried by the side [basis] names: the
+  /// requesting team for a fixed split (1–99), the loser when keyed to the
+  /// result (1–100, where 100 means the loser covers the whole fee).
   final int requestingTeamPercent;
+
+  /// The loser's share of a result-keyed split.
+  int get loserPayPercent => requestingTeamPercent;
+
+  /// What is left for the winner. 0 when the loser carries the whole fee.
+  int get winnerPayPercent => 100 - requestingTeamPercent;
 
   Map<String, dynamic> toJson() => <String, dynamic>{
     'split_type': splitType.wireValue,
     if (splitType == OpponentSplitType.custom) ...<String, dynamic>{
       'split_basis': basis!.wireValue,
-      'requesting_team_percent': requestingTeamPercent,
+      if (basis == OpponentSplitBasis.result) ...<String, dynamic>{
+        'loser_pay_percent': loserPayPercent,
+        'winner_pay_percent': winnerPayPercent,
+      } else
+        'requesting_team_percent': requestingTeamPercent,
     },
   };
 }

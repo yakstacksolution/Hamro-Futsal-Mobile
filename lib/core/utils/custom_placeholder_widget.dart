@@ -49,7 +49,11 @@ class CustomPlaceHolder extends StatelessWidget {
     return Shimmer.fromColors(
       baseColor: LightColor.skeletonBaseColor,
       highlightColor: LightColor.skeletonHighlightColor,
-      child: Container(width: width, height: height, color: LightColor.skeletonBaseColor),
+      child: Container(
+        width: width,
+        height: height,
+        color: LightColor.skeletonBaseColor,
+      ),
     );
   }
 }

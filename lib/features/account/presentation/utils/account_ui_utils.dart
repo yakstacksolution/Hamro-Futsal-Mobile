@@ -46,6 +46,15 @@ class AccountFmt {
   /// e.g. `May 03, 2026`.
   static String date(DateTime d) =>
       '${_months[d.month - 1]} ${d.day.toString().padLeft(2, '0')}, ${d.year}';
+
+  /// e.g. `Aug 20, 2026 · 9:31 PM`. Used where the exact moment matters, like
+  /// when a settlement was requested or paid.
+  static String dateTime(DateTime d) {
+    final int hour = d.hour % 12 == 0 ? 12 : d.hour % 12;
+    final String minute = d.minute.toString().padLeft(2, '0');
+    final String period = d.hour < 12 ? 'AM' : 'PM';
+    return '${date(d)} · $hour:$minute $period';
+  }
 }
 
 /// Visual identity (icon + accent) for each ledger entry type.
@@ -60,7 +69,7 @@ extension AccountEntryTypeUi on AccountEntryType {
   };
 
   Color get color => switch (this) {
-    AccountEntryType.bookingIncome => LightColor.secondaryColor,
+    AccountEntryType.bookingIncome => LightColor.brandTextColor,
     AccountEntryType.opponentMatchIncome => LightColor.categoryAccent(
       LightColor.secondaryDark,
     ),
@@ -105,7 +114,7 @@ extension SettlementStatusUi on SettlementStatus {
     SettlementStatus.pending => LightColor.warningColor,
     SettlementStatus.processing => LightColor.blueColor,
     SettlementStatus.approved => LightColor.blueColor,
-    SettlementStatus.paid => LightColor.secondaryColor,
+    SettlementStatus.paid => LightColor.brandTextColor,
     SettlementStatus.rejected => LightColor.redColor,
     SettlementStatus.cancelled => LightColor.secondaryTextColor,
     SettlementStatus.failed => LightColor.redColor,

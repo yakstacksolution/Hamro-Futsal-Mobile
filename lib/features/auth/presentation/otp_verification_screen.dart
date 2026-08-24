@@ -292,10 +292,7 @@ class _OtpDigitField extends StatelessWidget {
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(AppDimens.radiusX12),
-            borderSide: BorderSide(
-              color: LightColor.borderColor,
-              width: 1.1,
-            ),
+            borderSide: BorderSide(color: LightColor.borderColor, width: 1.1),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(AppDimens.radiusX12),

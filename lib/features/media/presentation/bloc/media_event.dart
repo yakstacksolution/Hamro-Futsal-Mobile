@@ -14,7 +14,7 @@ final class FetchMediaEvent extends MediaEvent {
 final class CreateMediaEvent extends MediaEvent {
   const CreateMediaEvent(this.mediaFiles);
 
-  final List<String> mediaFiles;
+  final List<UploadAttachment> mediaFiles;
 
   @override
   List<Object?> get props => <Object?>[mediaFiles];
