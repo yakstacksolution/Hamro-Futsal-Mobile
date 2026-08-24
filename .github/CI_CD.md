@@ -36,6 +36,11 @@ Android staging only:
 | `FIREBASE_ANDROID_APP_ID`           | Firebase Android app ID, e.g. `1:1234567890:android:abcdef`            |
 | `FIREBASE_CREDENTIAL_FILE_CONTENT`  | Service account JSON (raw or base64) with the Firebase App Distribution role |
 
+The Android staging workflow is bound to the GitHub Actions `staging`
+environment, so these Firebase secrets may live in
+**Settings → Environments → staging → Environment secrets**. Repository secrets
+with the same names also work when environment-level overrides are not used.
+
 Android production only:
 
 | Secret                              | Contents                                                              |
@@ -120,6 +125,8 @@ interactive login — CI authenticates with a service account, not `firebase log
 Real causes, in order of likelihood:
 
 1. `FIREBASE_CREDENTIAL_FILE_CONTENT` is unset, empty, or under a different name.
+   If the value is stored as an environment secret, confirm it is under
+   **Settings → Environments → staging**, not a differently named environment.
 2. The secret holds something other than a service account key — a Firebase CLI
    token (`firebase login:ci`) or an OAuth client file will not work.
 3. The service account lacks the **Firebase App Distribution Admin** role, or the

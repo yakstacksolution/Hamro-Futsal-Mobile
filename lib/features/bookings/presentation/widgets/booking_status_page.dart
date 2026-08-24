@@ -181,6 +181,9 @@ class BookingStatusPage extends StatelessWidget {
                     onTap: () async {
                       await context.pushNamed(
                         AppRouterParams.bookingDetails.name,
+                        queryParameters: <String, String>{
+                          'futsal': _isMine ? 'false' : 'true',
+                        },
                         extra: items[i],
                       );
                       // Refresh with the latest data on returning from details.
