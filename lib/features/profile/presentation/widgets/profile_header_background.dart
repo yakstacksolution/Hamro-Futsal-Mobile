@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:hamro_footsall/core/theme/app_colors.dart';
 
 const String kProfileHeaderSurfaceHeroTag = 'profile-header-surface';
 
@@ -11,12 +12,14 @@ class ProfileHeaderBackground extends StatefulWidget {
     this.child,
     this.borderRadius,
     this.heroTag,
+    this.backgroundColors,
   });
 
   final double height;
   final Widget? child;
   final BorderRadius? borderRadius;
   final Object? heroTag;
+  final List<Color>? backgroundColors;
 
   @override
   State<ProfileHeaderBackground> createState() =>
@@ -121,6 +124,7 @@ class _ProfileHeaderBackgroundState extends State<ProfileHeaderBackground>
                                   driftX: driftX,
                                   driftY: driftY,
                                   shimmerShift: shimmerShift,
+                                  backgroundColors: widget.backgroundColors,
                                 ),
                               )
                             : _HeaderSurface(
@@ -128,6 +132,7 @@ class _ProfileHeaderBackgroundState extends State<ProfileHeaderBackground>
                                 driftX: driftX,
                                 driftY: driftY,
                                 shimmerShift: shimmerShift,
+                                backgroundColors: widget.backgroundColors,
                               ),
                       ),
                       if (widget.child != null)
@@ -181,9 +186,46 @@ class _ProfileHeaderBackgroundState extends State<ProfileHeaderBackground>
           driftX: heroDriftX,
           driftY: heroDriftY,
           shimmerShift: -0.20 + (0.60 * t),
+          backgroundColors: _lerpColorList(
+            fromSurface.backgroundColors,
+            toSurface.backgroundColors,
+            t,
+          ),
         );
       },
     );
+  }
+
+  static List<Color>? _lerpColorList(
+    List<Color>? from,
+    List<Color>? to,
+    double t,
+  ) {
+    if (from == null && to == null) {
+      return null;
+    }
+
+    final List<Color> fallback =
+        from ??
+        to ??
+        <Color>[
+          LightColor.secondaryColor,
+          LightColor.primaryDark,
+          LightColor.secondaryColor,
+        ];
+    final int length = math.max(from?.length ?? 0, to?.length ?? 0);
+
+    return List<Color>.generate(length == 0 ? fallback.length : length, (
+      int index,
+    ) {
+      final Color begin = index < (from?.length ?? 0)
+          ? from![index]
+          : fallback[index % fallback.length];
+      final Color end = index < (to?.length ?? 0)
+          ? to![index]
+          : fallback[index % fallback.length];
+      return Color.lerp(begin, end, t) ?? end;
+    });
   }
 }
 
@@ -218,12 +260,22 @@ class _HeaderSurface extends StatelessWidget {
     required this.driftX,
     required this.driftY,
     required this.shimmerShift,
+    this.backgroundColors,
   });
 
   final BorderRadius borderRadius;
   final double driftX;
   final double driftY;
   final double shimmerShift;
+  final List<Color>? backgroundColors;
+
+  List<Color> get _resolvedBackgroundColors =>
+      backgroundColors ??
+      <Color>[
+        LightColor.secondaryColor,
+        LightColor.primaryDark,
+        LightColor.secondaryColor,
+      ];
 
   @override
   Widget build(BuildContext context) {
@@ -234,13 +286,9 @@ class _HeaderSurface extends StatelessWidget {
         children: <Widget>[
           Positioned.fill(
             child: DecoratedBox(
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: <Color>[
-                    Color(0xFF173A5E),
-                    Color(0xFF245FCC),
-                    Color(0xFF2D86E5),
-                  ],
+                  colors: _resolvedBackgroundColors,
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -254,9 +302,9 @@ class _HeaderSurface extends StatelessWidget {
                   begin: Alignment(-1.25 + shimmerShift, -1),
                   end: Alignment(0.55 + shimmerShift, 1),
                   colors: <Color>[
-                    Colors.white.withValues(alpha: 0),
-                    Colors.white.withValues(alpha: 0.11),
-                    Colors.white.withValues(alpha: 0),
+                    LightColor.onBrandSurface.withValues(alpha: 0),
+                    LightColor.onBrandSurface.withValues(alpha: 0.11),
+                    LightColor.onBrandSurface.withValues(alpha: 0),
                   ],
                   stops: const <double>[0.18, 0.48, 0.82],
                 ),
@@ -269,7 +317,7 @@ class _HeaderSurface extends StatelessWidget {
             child: _Blob(
               width: 170,
               height: 160,
-              color: const Color(0xFF69B9F5).withValues(alpha: 0.28),
+              color: _resolvedBackgroundColors.last.withValues(alpha: 0.24),
             ),
           ),
           Positioned(
@@ -278,7 +326,7 @@ class _HeaderSurface extends StatelessWidget {
             child: _Blob(
               width: 190,
               height: 150,
-              color: const Color(0xFF2D86E5).withValues(alpha: 0.22),
+              color: _resolvedBackgroundColors[1].withValues(alpha: 0.20),
             ),
           ),
           Positioned(
@@ -287,7 +335,7 @@ class _HeaderSurface extends StatelessWidget {
             child: _Blob(
               width: 200,
               height: 200,
-              color: const Color(0xFF245FCC).withValues(alpha: 0.20),
+              color: _resolvedBackgroundColors.first.withValues(alpha: 0.18),
             ),
           ),
           Positioned(
@@ -298,7 +346,7 @@ class _HeaderSurface extends StatelessWidget {
               height: 110,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: const Color(0xFF26B58A).withValues(alpha: 0.18),
+                color: LightColor.secondaryLight.withValues(alpha: 0.34),
               ),
             ),
           ),

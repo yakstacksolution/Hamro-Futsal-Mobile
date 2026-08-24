@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:hamro_footsall/core/theme/light_color.dart';
+import 'package:hamro_footsall/core/theme/app_colors.dart';
+import 'package:hamro_footsall/core/theme/futsal_theme.dart';
+import 'package:hamro_footsall/core/utils/app_utils.dart';
+import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/widgets/custom_button.dart';
 
 Future<bool> showConfirmDialog({
@@ -8,8 +11,9 @@ Future<bool> showConfirmDialog({
   required String message,
   String confirmText = 'Confirm',
   String cancelText = 'Cancel',
-  Color confirmColor = LightColor.red,
+  Color confirmColor = LightColor.secondaryColor,
   IconData? icon,
+  Widget? iconWidget,
 }) async {
   final bool? result = await showDialog<bool>(
     context: context,
@@ -21,6 +25,7 @@ Future<bool> showConfirmDialog({
       cancelText: cancelText,
       confirmColor: confirmColor,
       icon: icon,
+      iconWidget: iconWidget,
     ),
   );
   return result ?? false;
@@ -33,85 +38,137 @@ class CustomConfirmDialog extends StatelessWidget {
     required this.message,
     this.confirmText = 'Confirm',
     this.cancelText = 'Cancel',
-    this.confirmColor = LightColor.red,
+    this.confirmColor,
     this.icon,
+    this.iconWidget,
   });
 
   final String title;
   final String message;
   final String confirmText;
   final String cancelText;
-  final Color confirmColor;
+  final Color? confirmColor;
   final IconData? icon;
+  final Widget? iconWidget;
 
   @override
   Widget build(BuildContext context) {
+    final AppUtils appUtils = AppUtils();
+    final Color confirmColor = this.confirmColor ?? context.appColors.danger;
+    final textTheme = FutsalTheme.getTextTheme(context);
+    final double dialogWidth = MediaQuery.sizeOf(context).width;
+    final bool stackActions = dialogWidth < 360;
+
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      backgroundColor: LightColor.surface,
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            if (icon != null) ...<Widget>[
-              Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  color: confirmColor.withValues(alpha: 0.12),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, color: confirmColor, size: 28),
-              ),
-              const SizedBox(height: 16),
-            ],
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: LightColor.titleText,
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: LightColor.subtitleText,
-                fontSize: 13,
-                height: 1.45,
-              ),
-            ),
-            const SizedBox(height: 22),
-            Row(
-              children: <Widget>[
-                Expanded(
-                  child: CustomButton(
-                    text: cancelText,
-                    isOutlined: true,
-                    backgroundColor: Colors.white,
-                    foregroundColor: LightColor.subtitleText,
-                    borderColor: LightColor.border,
-                    minHeight: 44,
-                    onPressed: () => Navigator.of(context).pop(false),
+      insetPadding: appUtils.getPadding(
+        symmetricHorizontal: AppDimens.paddingX20,
+        symmetricVertical: AppDimens.paddingX24,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppDimens.radiusX16),
+      ),
+      backgroundColor: context.appColors.surfaceElevated,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 360),
+        child: Container(
+          padding: appUtils.getPadding(all: AppDimens.paddingX20),
+          decoration: BoxDecoration(
+            color: context.appColors.surfaceElevated,
+            borderRadius: BorderRadius.circular(AppDimens.radiusX16),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              if (icon != null || iconWidget != null) ...<Widget>[
+                Container(
+                  width: AppDimens.sizeX58,
+                  height: AppDimens.sizeX58,
+                  decoration: BoxDecoration(
+                    color: confirmColor.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(AppDimens.radiusX16),
                   ),
+                  alignment: Alignment.center,
+                  child: iconWidget == null
+                      ? Icon(icon, color: confirmColor, size: AppDimens.sizeX28)
+                      : IconTheme(
+                          data: IconThemeData(
+                            color: confirmColor,
+                            size: AppDimens.sizeX28,
+                          ),
+                          child: iconWidget!,
+                        ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: CustomButton(
-                    text: confirmText,
-                    backgroundColor: confirmColor,
-                    foregroundColor: Colors.white,
-                    minHeight: 44,
-                    onPressed: () => Navigator.of(context).pop(true),
-                  ),
-                ),
+                const SizedBox(height: AppDimens.sizeX16),
               ],
-            ),
-          ],
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: textTheme.bodyTextLarge?.copyWith(
+                  color: LightColor.primaryTextColor,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: AppDimens.sizeX8),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: textTheme.bodyTextSmall?.copyWith(
+                  color: LightColor.secondaryTextColor,
+                  fontWeight: FontWeight.w500,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: AppDimens.sizeX24),
+              if (stackActions)
+                Column(
+                  children: <Widget>[
+                    CustomButton(
+                      text: confirmText,
+                      backgroundColor: confirmColor,
+                      foregroundColor: LightColor.inverseTextColor,
+                      minHeight: AppDimens.sizeX46,
+                      onPressed: () => Navigator.of(context).pop(true),
+                    ),
+                    const SizedBox(height: AppDimens.sizeX10),
+                    CustomButton(
+                      text: cancelText,
+                      isOutlined: true,
+                      backgroundColor: LightColor.whiteColor,
+                      foregroundColor: LightColor.primaryTextColor,
+                      borderColor: LightColor.greyBorderColor,
+                      minHeight: AppDimens.sizeX46,
+                      onPressed: () => Navigator.of(context).pop(false),
+                    ),
+                  ],
+                )
+              else
+                Row(
+                  children: <Widget>[
+                    Expanded(
+                      child: CustomButton(
+                        text: cancelText,
+                        isOutlined: true,
+                        backgroundColor: LightColor.whiteColor,
+                        foregroundColor: LightColor.primaryTextColor,
+                        borderColor: LightColor.greyBorderColor,
+                        minHeight: AppDimens.sizeX46,
+                        onPressed: () => Navigator.of(context).pop(false),
+                      ),
+                    ),
+                    const SizedBox(width: AppDimens.sizeX12),
+                    Expanded(
+                      child: CustomButton(
+                        text: confirmText,
+                        backgroundColor: confirmColor,
+                        foregroundColor: LightColor.inverseTextColor,
+                        minHeight: AppDimens.sizeX46,
+                        onPressed: () => Navigator.of(context).pop(true),
+                      ),
+                    ),
+                  ],
+                ),
+            ],
+          ),
         ),
       ),
     );

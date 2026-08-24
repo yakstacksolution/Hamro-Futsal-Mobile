@@ -1,0 +1,127 @@
+{
+  "success": true,
+  "message": "Expenses fetched successfully.",
+  "data": {
+    "summary": {
+      "total_spend": 11006,
+      "avg_per_day": 3668.67,
+      "entries": 4,
+      "top_category": { "id": 3, "title": "Maintenance", "total": 7506 },
+      "top_venue": { "id": 1, "name": "Dhananjay sports", "total": 11006 },
+      "top_court": { "id": 3, "name": "Himalayan Courts", "total": 11006 }
+    },
+    "analytics": {
+      "monthly_spend": [
+        { "month": "2026-06", "label": "Jun 2026", "total": 11006 }
+      ],
+      "category_wise_spends": [
+        { "id": 3, "title": "Maintenance", "total": 7506, "percentage": 68.2 },
+        { "id": 6, "title": "Marketing", "total": 2500, "percentage": 22.7 },
+        { "id": 2, "title": "Bills", "total": 1000, "percentage": 9.1 }
+      ],
+      "court_wise_spends": [
+        { "id": 3, "name": "Himalayan Courts", "total": 11006, "percentage": 100 }
+      ]
+    },
+    "records": {
+      "items": [
+        {
+          "id": 3,
+          "amount": 2500,
+          "purpose": "This jsy y is a good idea to you so",
+          "date": "2026-06-06",
+          "payment_method": "online",
+          "note": null,
+          "document_url": null,
+          "expense_category_id": 6,
+          "category": {
+            "id": 6,
+            "title": "Marketing",
+            "slug": "marketing",
+            "image": "https://hamrofutsal.com/storage/expense_categories/6/image/35/image_1780727304_6a23be08ceb38.svg"
+          },
+          "venue_id": 1,
+          "venue": { "id": 1, "name": "Dhananjay sports" },
+          "court_id": 3,
+          "court": { "id": 3, "name": "Himalayan Courts" },
+          "user_id": 4,
+          "user": { "id": 4, "full_name": "Dilli Bhandari" },
+          "created_at": "2026-06-06 14:17:48",
+          "updated_at": "2026-06-06 14:17:48"
+        },
+        {
+          "id": 4,
+          "amount": 2506,
+          "purpose": "Ho sir tyo I have a new",
+          "date": "2026-06-06",
+          "payment_method": "online",
+          "note": null,
+          "document_url": null,
+          "expense_category_id": 3,
+          "category": {
+            "id": 3,
+            "title": "Maintenance",
+            "slug": "maintenance",
+            "image": "https://hamrofutsal.com/storage/expense_categories/3/image/32/image_1780727254_6a23bdd6159d0.svg"
+          },
+          "venue_id": 1,
+          "venue": { "id": 1, "name": "Dhananjay sports" },
+          "court_id": 3,
+          "court": { "id": 3, "name": "Himalayan Courts" },
+          "user_id": 4,
+          "user": { "id": 4, "full_name": "Dilli Bhandari" },
+          "created_at": "2026-06-06 14:21:09",
+          "updated_at": "2026-06-06 14:21:09"
+        },
+        {
+          "id": 1,
+          "amount": 1000,
+          "purpose": "Bill",
+          "date": "2026-06-06",
+          "payment_method": "cash",
+          "note": "Hi",
+          "document_url": "https://hamrofutsal.com/storage/expenses/1/document/31/document_1780727073_6a23bd2187fae.png",
+          "expense_category_id": 2,
+          "category": {
+            "id": 2,
+            "title": "Bills",
+            "slug": "bills",
+            "image": "https://hamrofutsal.com/storage/expense_categories/2/image/30/image_1780723776_6a23b040661ae.svg"
+          },
+          "venue_id": 1,
+          "venue": { "id": 1, "name": "Dhananjay sports" },
+          "court_id": 3,
+          "court": { "id": 3, "name": "Himalayan Courts" },
+          "user_id": 4,
+          "user": { "id": 4, "full_name": "Dilli Bhandari" },
+          "created_at": "2026-06-06 06:24:33",
+          "updated_at": "2026-06-06 06:24:33"
+        },
+        {
+          "id": 2,
+          "amount": 5000,
+          "purpose": "Ramjil",
+          "date": "2026-06-04",
+          "payment_method": "online",
+          "note": "Hi",
+          "document_url": "https://hamrofutsal.com/storage/expenses/2/document/38/document_1780728421_6a23c26510838.png",
+          "expense_category_id": 3,
+          "category": {
+            "id": 3,
+            "title": "Maintenance",
+            "slug": "maintenance",
+            "image": "https://hamrofutsal.com/storage/expense_categories/3/image/32/image_1780727254_6a23bdd6159d0.svg"
+          },
+          "venue_id": 1,
+          "venue": { "id": 1, "name": "Dhananjay sports" },
+          "court_id": 3,
+          "court": { "id": 3, "name": "Himalayan Courts" },
+          "user_id": 4,
+          "user": { "id": 4, "full_name": "Dilli Bhandari" },
+          "created_at": "2026-06-06 06:47:01",
+          "updated_at": "2026-06-06 06:47:01"
+        }
+      ]
+    }
+  }
+}

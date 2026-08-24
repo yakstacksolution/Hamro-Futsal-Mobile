@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/features/profile/presentation/widgets/header_componet_widget.dart';
 import 'package:hamro_footsall/features/profile/presentation/widgets/profile_header_background.dart';
 
@@ -11,6 +12,7 @@ class ProfileHeader extends StatelessWidget {
   final VoidCallback? onSettingsTap;
   final VoidCallback? onChangeImageTap;
   final Object? heroTag;
+  final List<Color>? backgroundColors;
 
   const ProfileHeader({
     super.key,
@@ -22,6 +24,7 @@ class ProfileHeader extends StatelessWidget {
     this.onSettingsTap,
     this.onChangeImageTap,
     this.heroTag = kProfileHeaderSurfaceHeroTag,
+    this.backgroundColors,
   });
 
   @override
@@ -31,6 +34,13 @@ class ProfileHeader extends StatelessWidget {
       child: ProfileHeaderBackground(
         height: 230,
         heroTag: heroTag,
+        backgroundColors:
+            backgroundColors ??
+            <Color>[
+              LightColor.secondaryDark,
+              LightColor.secondaryColor,
+              LightColor.secondaryColor,
+            ],
         child: HeaderComponetWidget(
           name: name,
           location: location,

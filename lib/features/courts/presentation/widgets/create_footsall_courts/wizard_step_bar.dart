@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:hamro_footsall/core/theme/light_color.dart';
-import 'package:hamro_footsall/features/courts/presentation/models/create_courts_step_definition.dart';
+import 'package:hamro_footsall/core/theme/app_colors.dart';
+import 'package:hamro_footsall/features/courts/data/model/create_courts_step_definition.dart';
 
 class WizardStepBar extends StatelessWidget {
   const WizardStepBar({
@@ -15,7 +15,7 @@ class WizardStepBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Colors.white,
+      color: LightColor.elevatedCardColor,
       padding: const EdgeInsets.symmetric(vertical: 14),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
@@ -32,8 +32,8 @@ class WizardStepBar extends StatelessWidget {
                   margin: const EdgeInsets.only(bottom: 22),
                   decoration: BoxDecoration(
                     color: isCompleted
-                        ? LightColor.skyBlue
-                        : LightColor.lightGrey,
+                        ? LightColor.secondaryColor
+                        : LightColor.borderColor,
                     borderRadius: BorderRadius.circular(1),
                   ),
                 ),
@@ -57,18 +57,18 @@ class WizardStepBar extends StatelessWidget {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: isCompleted || isActive
-                          ? LightColor.skyBlue
-                          : Colors.white,
+                          ? LightColor.secondaryColor
+                          : LightColor.inverseTextColor,
                       border: Border.all(
                         color: isCompleted || isActive
-                            ? LightColor.skyBlue
-                            : LightColor.lightGrey,
+                            ? LightColor.secondaryColor
+                            : LightColor.borderColor,
                         width: 2,
                       ),
                       boxShadow: isActive
                           ? <BoxShadow>[
                               BoxShadow(
-                                color: LightColor.skyBlue.withValues(
+                                color: LightColor.secondaryColor.withValues(
                                   alpha: 0.28,
                                 ),
                                 blurRadius: 10,
@@ -81,18 +81,18 @@ class WizardStepBar extends StatelessWidget {
                       child: AnimatedSwitcher(
                         duration: const Duration(milliseconds: 200),
                         child: isCompleted
-                            ? const Icon(
+                            ? Icon(
                                 Icons.check_rounded,
                                 key: ValueKey<String>('check'),
-                                color: Colors.white,
+                                color: LightColor.elevatedCardColor,
                                 size: 18,
                               )
                             : Icon(
                                 step.icon,
                                 key: ValueKey<int>(stepIndex),
                                 color: isActive
-                                    ? Colors.white
-                                    : LightColor.grey,
+                                    ? LightColor.inverseTextColor
+                                    : LightColor.hintTextColor,
                                 size: 17,
                               ),
                       ),
@@ -108,10 +108,10 @@ class WizardStepBar extends StatelessWidget {
                       fontSize: 10,
                       fontWeight: isActive ? FontWeight.w700 : FontWeight.w400,
                       color: isActive
-                          ? LightColor.skyBlue
+                          ? LightColor.secondaryColor
                           : isCompleted
-                          ? LightColor.darkgrey
-                          : LightColor.grey,
+                          ? LightColor.secondaryTextColor
+                          : LightColor.hintTextColor,
                       letterSpacing: isActive ? 0.2 : 0,
                     ),
                   ),

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:hamro_footsall/core/theme/light_color.dart';
+import 'package:hamro_footsall/core/theme/app_colors.dart';
 
 class SelectionOptionChip extends StatelessWidget {
   const SelectionOptionChip({
@@ -19,18 +19,20 @@ class SelectionOptionChip extends StatelessWidget {
       label: Text(label),
       selected: isSelected,
       onSelected: (_) => onTap(),
-      selectedColor: LightColor.skyBlue.withValues(alpha: 0.14),
-      checkmarkColor: LightColor.skyBlue,
+      selectedColor: LightColor.secondaryColor.withValues(alpha: 0.14),
+      checkmarkColor: LightColor.secondaryColor,
       labelStyle: TextStyle(
-        color: isSelected ? LightColor.skyBlue : LightColor.titleTextColor,
+        color: isSelected
+            ? LightColor.secondaryColor
+            : LightColor.primaryTextColor,
         fontWeight: FontWeight.w700,
       ),
       side: BorderSide(
         color: isSelected
-            ? LightColor.skyBlue.withValues(alpha: 0.45)
-            : LightColor.lightGrey,
+            ? LightColor.secondaryColor.withValues(alpha: 0.45)
+            : LightColor.borderColor,
       ),
-      backgroundColor: Colors.white,
+      backgroundColor: LightColor.elevatedCardColor,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
       visualDensity: const VisualDensity(horizontal: -1, vertical: -1),

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:hamro_footsall/core/theme/light_color.dart';
+import 'package:hamro_footsall/core/theme/app_colors.dart';
 
 class InfoBanner extends StatelessWidget {
   const InfoBanner({
@@ -34,8 +34,8 @@ class InfoBanner extends StatelessWidget {
           Expanded(
             child: Text(
               message,
-              style: const TextStyle(
-                color: LightColor.darkgrey,
+              style: TextStyle(
+                color: LightColor.secondaryTextColor,
                 fontSize: 12.5,
               ),
             ),

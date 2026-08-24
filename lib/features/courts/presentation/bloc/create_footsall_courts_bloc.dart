@@ -1,11 +1,12 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:hamro_footsall/features/courts/data/model/create_courts_action_result.dart';
+import 'package:hamro_footsall/features/courts/data/model/create_courts_package_option.dart';
+import 'package:hamro_footsall/features/courts/data/model/create_footsall_court_payload.dart';
+import 'package:hamro_footsall/features/courts/data/model/picked_location.dart';
 import 'package:hamro_footsall/features/courts/presentation/bloc/create_footsall_courts_state.dart';
-import 'package:hamro_footsall/features/courts/presentation/models/create_courts_action_result.dart';
-import 'package:hamro_footsall/features/courts/presentation/models/create_courts_package_option.dart';
-import 'package:hamro_footsall/features/courts/presentation/models/create_courts_step_definition.dart';
-import 'package:hamro_footsall/features/courts/presentation/models/create_footsall_court_payload.dart';
-import 'package:hamro_footsall/features/courts/presentation/models/picked_location.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
+import 'package:hamro_footsall/features/courts/data/model/create_courts_step_definition.dart';
 
 class CreateFootsallCourtsBloc extends ChangeNotifier {
   CreateFootsallCourtsBloc()
@@ -20,40 +21,41 @@ class CreateFootsallCourtsBloc extends ChangeNotifier {
   static const List<CreateCourtsStepDefinition>
   steps = <CreateCourtsStepDefinition>[
     CreateCourtsStepDefinition(
-      label: 'Basic',
-      title: 'Basic Information',
-      subtitle: 'Public identity and contact details of your futsal.',
+      label: StringConstants.basic,
+      title: StringConstants.basicInformation,
+      subtitle: StringConstants.publicIdentityAndContactDetailsOfYourFutsal,
       icon: Icons.store_rounded,
     ),
     CreateCourtsStepDefinition(
-      label: 'Business',
-      title: 'Business & Registration',
-      subtitle: 'Pricing, operational details, and registration information.',
+      label: StringConstants.business,
+      title: StringConstants.businessAndRegistration,
+      subtitle:
+          StringConstants.pricingOperationalDetailsAndRegistrationInformation,
       icon: Icons.apartment_rounded,
     ),
     CreateCourtsStepDefinition(
-      label: 'Amenities',
-      title: 'Amenities & Facilities',
-      subtitle:
-          'Highlight the services and on-site facilities your venue offers.',
+      label: StringConstants.amenities,
+      title: StringConstants.amenitiesAndFacilities,
+      subtitle: StringConstants
+          .highlightTheServicesAndOnSiteFacilitiesYourVenueOffers,
       icon: Icons.weekend_rounded,
     ),
     CreateCourtsStepDefinition(
-      label: 'Policies',
-      title: 'Policies',
-      subtitle: 'Define booking rules, payments, and venue house policies.',
+      label: StringConstants.policies,
+      title: StringConstants.policies,
+      subtitle: StringConstants.defineBookingRulesPaymentsAndVenueHousePolicies,
       icon: Icons.rule_folder_rounded,
     ),
     CreateCourtsStepDefinition(
-      label: 'Package',
-      title: 'Choose Package',
-      subtitle: 'Pick the operational package that fits your business.',
+      label: StringConstants.package,
+      title: StringConstants.choosePackage,
+      subtitle: StringConstants.pickTheOperationalPackageThatFitsYourBusiness,
       icon: Icons.workspace_premium_rounded,
     ),
     CreateCourtsStepDefinition(
-      label: 'Branding',
-      title: 'Branding & Review',
-      subtitle: 'Optional visual identity and final confirmation.',
+      label: StringConstants.branding,
+      title: StringConstants.brandingAndReview,
+      subtitle: StringConstants.optionalVisualIdentityAndFinalConfirmation,
       icon: Icons.image_rounded,
     ),
   ];
@@ -78,8 +80,8 @@ class CreateFootsallCourtsBloc extends ChangeNotifier {
       <CreateCourtsPackageOption>[
         CreateCourtsPackageOption(
           id: 'starter',
-          title: 'Starter',
-          subtitle: 'Best for a single venue getting online.',
+          title: StringConstants.starter,
+          subtitle: StringConstants.bestForASingleVenueGettingOnline,
           priceLabel: 'NPR 2,500 / month',
           features: <String>[
             '1 venue profile',
@@ -89,8 +91,8 @@ class CreateFootsallCourtsBloc extends ChangeNotifier {
         ),
         CreateCourtsPackageOption(
           id: 'growth',
-          title: 'Growth',
-          subtitle: 'Balanced package for active futsal operations.',
+          title: StringConstants.growth,
+          subtitle: StringConstants.balancedPackageForActiveFutsalOperations,
           priceLabel: 'NPR 5,500 / month',
           features: <String>[
             'Priority listing placement',
@@ -101,8 +103,8 @@ class CreateFootsallCourtsBloc extends ChangeNotifier {
         ),
         CreateCourtsPackageOption(
           id: 'elite',
-          title: 'Elite',
-          subtitle: 'For premium venues and multi-court operators.',
+          title: StringConstants.elite,
+          subtitle: StringConstants.forPremiumVenuesAndMultiCourtOperators,
           priceLabel: 'NPR 9,500 / month',
           features: <String>[
             'Multi-court management',
@@ -140,6 +142,24 @@ class CreateFootsallCourtsBloc extends ChangeNotifier {
       TextEditingController();
   final TextEditingController houseRulesController = TextEditingController();
   final TextEditingController shopLogoController = TextEditingController();
+
+  // Focus nodes for keyboard "next" traversal between fields.
+  final FocusNode shopNameFocus = FocusNode();
+  final FocusNode slugFocus = FocusNode();
+  final FocusNode descriptionFocus = FocusNode();
+  final FocusNode phoneFocus = FocusNode();
+  final FocusNode emailFocus = FocusNode();
+  final FocusNode websiteFocus = FocusNode();
+  final FocusNode cityFocus = FocusNode();
+  final FocusNode countryFocus = FocusNode();
+  final FocusNode establishedYearFocus = FocusNode();
+  final FocusNode basicPriceFocus = FocusNode();
+  final FocusNode registrationFocus = FocusNode();
+  final FocusNode amenitiesNotesFocus = FocusNode();
+  final FocusNode bookingAdvanceDaysFocus = FocusNode();
+  final FocusNode cancellationWindowFocus = FocusNode();
+  final FocusNode houseRulesFocus = FocusNode();
+  final FocusNode shopLogoFocus = FocusNode();
 
   CreateFootsallCourtsState _state;
 
@@ -197,6 +217,22 @@ class CreateFootsallCourtsBloc extends ChangeNotifier {
     cancellationWindowController.dispose();
     houseRulesController.dispose();
     shopLogoController.dispose();
+    shopNameFocus.dispose();
+    slugFocus.dispose();
+    descriptionFocus.dispose();
+    phoneFocus.dispose();
+    emailFocus.dispose();
+    websiteFocus.dispose();
+    cityFocus.dispose();
+    countryFocus.dispose();
+    establishedYearFocus.dispose();
+    basicPriceFocus.dispose();
+    registrationFocus.dispose();
+    amenitiesNotesFocus.dispose();
+    bookingAdvanceDaysFocus.dispose();
+    cancellationWindowFocus.dispose();
+    houseRulesFocus.dispose();
+    shopLogoFocus.dispose();
     super.dispose();
   }
 
@@ -388,8 +424,11 @@ class CreateFootsallCourtsBloc extends ChangeNotifier {
     }
   }
 
+  /// Advance payment is a platform rule — the court policy cannot opt out, so
+  /// the flag only ever settles on true.
   void toggleRequiresAdvancePayment(bool value) {
-    _emit(_state.copyWith(requiresAdvancePayment: value));
+    if (_state.requiresAdvancePayment) return;
+    _emit(_state.copyWith(requiresAdvancePayment: true));
   }
 
   void toggleSupportsRefunds(bool value) {

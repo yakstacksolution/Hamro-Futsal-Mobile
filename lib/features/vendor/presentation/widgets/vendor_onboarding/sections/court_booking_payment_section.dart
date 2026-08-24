@@ -1,10 +1,14 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
-import 'package:hamro_footsall/core/theme/light_color.dart';
-import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit.dart';
+import 'package:hamro_footsall/core/theme/app_colors.dart';
+import 'package:hamro_footsall/core/theme/futsal_theme.dart';
+import 'package:hamro_footsall/core/utils/app_utils.dart';
+import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/features/media/presentation/widgets/media_library_sheet.dart';
+import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_cubit.dart';
 import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_models.dart';
 import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/vendor_form_components.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class CourtBookingPaymentSection extends StatelessWidget {
   const CourtBookingPaymentSection({
@@ -18,67 +22,48 @@ class CourtBookingPaymentSection extends StatelessWidget {
   final CourtDraft court;
   final int subsectionIndex;
 
+  Future<void> _openPaymentQrLibrary(BuildContext context) async {
+    final List<UploadRef>? picked = await showVendorMediaLibrarySheet(
+      context: context,
+      cubit: cubit,
+      allowedExtensions: const <String>['png', 'jpg', 'jpeg', 'webp'],
+      allowMultiple: false,
+      initiallySelected: court.paymentQr == null
+          ? const <UploadRef>[]
+          : <UploadRef>[court.paymentQr!],
+    );
+    if (picked == null || picked.isEmpty) return;
+    cubit.setCourtPaymentQr(picked.first);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final _CourtPaymentSectionMeta meta = _sectionMeta(subsectionIndex);
     return VendorPanel(
+      padding: AppUtils().getPadding(all: AppDimens.paddingX12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          const VendorPanelHeading(
-            title: 'Booking and Payment',
-            subtitle:
-                'Keep payment requirements conditional so the flow stays simple when advance payment is not needed.',
+          VendorOnboardingSectionHeader(
+            title: meta.title,
+            subtitle: meta.subtitle,
+            icon: meta.icon,
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: AppDimens.sizeX12),
           if (subsectionIndex == 0)
-            SwitchListTile.adaptive(
-              contentPadding: EdgeInsets.zero,
-              value: court.enableOnlineBooking,
-              activeThumbColor: LightColor.secondary,
-              title: const Text(
-                'Enable online booking',
-                style: TextStyle(fontWeight: FontWeight.w700),
-              ),
-              subtitle: const Text(
-                'Disable if this court is managed manually.',
-              ),
-              onChanged: cubit.toggleCourtOnlineBooking,
+            _AdvancePaymentSection(
+              court: court,
+              onTypeChanged: cubit.setCourtAdvancePaymentType,
+              onPriceChanged: (String raw) =>
+                  cubit.setCourtAdvancePrice(parseDouble(raw)),
             ),
           if (subsectionIndex == 1)
-            SwitchListTile.adaptive(
-              contentPadding: EdgeInsets.zero,
-              value: court.advancePaymentRequired,
-              activeThumbColor: LightColor.secondary,
-              title: const Text(
-                'Advance payment required',
-                style: TextStyle(fontWeight: FontWeight.w700),
-              ),
-              subtitle: const Text(
-                'Enable to collect a percentage before booking.',
-              ),
-              onChanged: court.enableOnlineBooking
-                  ? cubit.toggleCourtAdvancePayment
-                  : null,
-            ),
-          if (subsectionIndex == 2)
-            VendorInputField(
-              label: 'Payment %',
-              initialValue: formatDouble(court.paymentPercent),
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              onChanged: (String value) => cubit.updateActiveCourt(
-                court.copyWith(
-                  paymentPercent: parseDouble(value),
-                  clearPaymentPercent: value.trim().isEmpty,
-                ),
-              ),
-            ),
-          if (subsectionIndex == 3)
             VendorUploadSection(
-              title: 'Payment QR',
-              subtitle: 'Upload the QR used to collect advance payment.',
-              onPick: () => unawaited(cubit.pickCourtPaymentQr()),
+              title: StringConstants.paymentQr,
+              subtitle: StringConstants.uploadTheQrUsedToCollectAdvancePayment,
+              onPick: () => unawaited(_openPaymentQrLibrary(context)),
+              actionLabel: 'Gallery',
+              actionIcon: Icons.qr_code_2_rounded,
               files: court.paymentQr == null
                   ? const <UploadRef>[]
                   : <UploadRef>[court.paymentQr!],
@@ -87,6 +72,333 @@ class CourtBookingPaymentSection extends StatelessWidget {
                   : (UploadRef _) => cubit.removeCourtPaymentQr(),
             ),
         ],
+      ),
+    );
+  }
+
+  _CourtPaymentSectionMeta _sectionMeta(int index) {
+    return switch (index) {
+      0 => const _CourtPaymentSectionMeta(
+        title: StringConstants.advancePayment,
+        subtitle: StringConstants.requirementAndCollectionAmount,
+        icon: Icons.payments_rounded,
+      ),
+      1 => const _CourtPaymentSectionMeta(
+        title: StringConstants.paymentQr,
+        subtitle: StringConstants.uploadTheQrUsedToCollectAdvancePayments,
+        icon: Icons.qr_code_2_rounded,
+      ),
+      _ => const _CourtPaymentSectionMeta(
+        title: StringConstants.bookingAndPaymentTitle,
+        subtitle: StringConstants.manageBookingAndPaymentSettings,
+        icon: Icons.account_balance_wallet_rounded,
+      ),
+    };
+  }
+}
+
+class _CourtPaymentSectionMeta {
+  const _CourtPaymentSectionMeta({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+}
+
+class _AdvancePaymentSection extends StatefulWidget {
+  const _AdvancePaymentSection({
+    required this.court,
+    required this.onTypeChanged,
+    required this.onPriceChanged,
+  });
+
+  final CourtDraft court;
+  final ValueChanged<AdvancePaymentType> onTypeChanged;
+  final ValueChanged<String> onPriceChanged;
+
+  @override
+  State<_AdvancePaymentSection> createState() => _AdvancePaymentSectionState();
+}
+
+class _AdvancePaymentSectionState extends State<_AdvancePaymentSection> {
+  // Assigned in initState, never as a lazy field initialiser: a lazy
+  // `late final` runs on first *read*, so a state that is torn down before the
+  // input subtree builds would construct the controller inside dispose() —
+  // throwing while the framework finalises the widget tree.
+  late final TextEditingController _priceController;
+
+  @override
+  void initState() {
+    super.initState();
+    _priceController = TextEditingController(
+      text: formatDouble(widget.court.advancePrice),
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant _AdvancePaymentSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final String desired = formatDouble(widget.court.advancePrice);
+    // Only sync the field from state when the value didn't come from the
+    // user typing into it — i.e. defaults or auto-fill from base price.
+    if (!widget.court.advancePriceUserEdited &&
+        desired != _priceController.text) {
+      _priceController.value = TextEditingValue(
+        text: desired,
+        selection: TextSelection.collapsed(offset: desired.length),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _priceController.dispose();
+    super.dispose();
+  }
+
+  String get _minimumPercentLabel => kMinimumAdvancePercent.toStringAsFixed(0);
+
+  /// The lowest flat amount allowed for this court: the minimum share of the
+  /// base price. Null while no base price has been entered.
+  double? get _minimumFlatAmount {
+    final double? base = widget.court.basePrice;
+    if (base == null || base <= 0) return null;
+    return base * kMinimumAdvancePercent / 100;
+  }
+
+  String? _priceError() {
+    final CourtDraft court = widget.court;
+    final AdvancePaymentType? type = court.advancePaymentType;
+    final double? price = court.advancePrice;
+    if (type == null) return null;
+    if (price == null) return 'Enter the advance amount.';
+    if (price <= 0) return 'Amount must be greater than zero.';
+    if (type == AdvancePaymentType.percentage) {
+      if (price < kMinimumAdvancePercent) {
+        return 'The advance must be at least $_minimumPercentLabel%.';
+      }
+      if (price > 100) return 'Percentage cannot exceed 100.';
+    }
+    if (type == AdvancePaymentType.flat) {
+      final double? base = court.basePrice;
+      if (base != null && price > base) {
+        return 'Flat amount cannot exceed the base price (${formatDouble(base)}).';
+      }
+      final double? minimum = _minimumFlatAmount;
+      if (minimum != null && price < minimum) {
+        return 'The advance must be at least $_minimumPercentLabel% of the '
+            'base price (${formatDouble(minimum)}).';
+      }
+    }
+    return null;
+  }
+
+  String _priceHint(AdvancePaymentType? type) {
+    switch (type) {
+      case AdvancePaymentType.percentage:
+        return 'Minimum $_minimumPercentLabel%, up to 100%';
+      case AdvancePaymentType.flat:
+        final double? minimum = _minimumFlatAmount;
+        final double? base = widget.court.basePrice;
+        if (minimum == null || base == null) {
+          return 'Enter the flat advance amount';
+        }
+        return 'From ${formatDouble(minimum)} to ${formatDouble(base)}';
+      case null:
+        return 'Enter the advance amount';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    final CourtDraft court = widget.court;
+    final AdvancePaymentType? type = court.advancePaymentType;
+    final String? error = _priceError();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        // Advance payment is a platform rule, not a per-court choice: the row
+        // states the requirement instead of offering a switch.
+        Container(
+          padding: AppUtils().getPadding(all: AppDimens.paddingX12),
+          decoration: BoxDecoration(
+            color: LightColor.secondaryColor.withValues(alpha: 0.07),
+            borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+            border: Border.all(
+              color: LightColor.secondaryColor.withValues(alpha: 0.35),
+              width: 0.7,
+            ),
+          ),
+          child: Row(
+            children: <Widget>[
+              Icon(
+                Icons.lock_rounded,
+                size: AppDimens.sizeX18,
+                color: LightColor.brandTextColor,
+              ),
+              const SizedBox(width: AppDimens.sizeX10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      StringConstants.advancePaymentRequired,
+                      style: textTheme.bodyTextMedium?.copyWith(
+                        color: LightColor.primaryTextColor,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: AppDimens.sizeX2),
+                    Text(
+                      'Every court collects an advance of at least '
+                      '$_minimumPercentLabel% before a booking is confirmed.',
+                      style: textTheme.bodyTextSmall?.copyWith(
+                        color: LightColor.secondaryTextColor,
+                        height: 1.3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: AppDimens.sizeX16),
+        Text(
+          StringConstants.advancePaymentType,
+          style: textTheme.bodyTextSmall?.copyWith(
+            color: LightColor.primaryTextColor,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: AppDimens.sizeX8),
+        _AdvanceTypeSelector(selected: type, onSelected: widget.onTypeChanged),
+        const SizedBox(height: AppDimens.sizeX16),
+        VendorInputField(
+          controller: _priceController,
+          initialValue: '',
+          label: type == AdvancePaymentType.percentage
+              ? 'Advance percentage (%)'
+              : 'Advance amount',
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          hintText: _priceHint(type),
+          onChanged: widget.onPriceChanged,
+        ),
+        if (error != null) ...<Widget>[
+          const SizedBox(height: AppDimens.sizeX6),
+          Text(
+            error,
+            style: textTheme.bodyTextSmall?.copyWith(
+              color: LightColor.redColor,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _AdvanceTypeSelector extends StatelessWidget {
+  const _AdvanceTypeSelector({
+    required this.selected,
+    required this.onSelected,
+  });
+
+  final AdvancePaymentType? selected;
+  final ValueChanged<AdvancePaymentType> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: AppUtils().getPadding(all: AppDimens.sizeX4),
+      decoration: BoxDecoration(
+        color: LightColor.inputFillColor,
+        borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+      ),
+      child: Row(
+        children: <Widget>[
+          Expanded(
+            child: _AdvanceTypeOption(
+              label: StringConstants.flat,
+              icon: Icons.attach_money_rounded,
+              isSelected: selected == AdvancePaymentType.flat,
+              onTap: () => onSelected(AdvancePaymentType.flat),
+            ),
+          ),
+          const SizedBox(width: AppDimens.sizeX4),
+          Expanded(
+            child: _AdvanceTypeOption(
+              label: StringConstants.percentage,
+              icon: Icons.percent_rounded,
+              isSelected: selected == AdvancePaymentType.percentage,
+              onTap: () => onSelected(AdvancePaymentType.percentage),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AdvanceTypeOption extends StatelessWidget {
+  const _AdvanceTypeOption({
+    required this.label,
+    required this.icon,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: AppUtils().getPadding(
+          vertical: AppDimens.sizeX10,
+          horizontal: AppDimens.sizeX12,
+        ),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? LightColor.secondaryColor
+              : LightColor.transparentColor,
+          borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            Icon(
+              icon,
+              size: AppDimens.sizeX16,
+              color: isSelected
+                  ? LightColor.inverseTextColor
+                  : LightColor.secondaryTextColor,
+            ),
+            const SizedBox(width: AppDimens.sizeX6),
+            Text(
+              label,
+              style: textTheme.bodyTextSmall?.copyWith(
+                color: isSelected
+                    ? LightColor.inverseTextColor
+                    : LightColor.primaryTextColor,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

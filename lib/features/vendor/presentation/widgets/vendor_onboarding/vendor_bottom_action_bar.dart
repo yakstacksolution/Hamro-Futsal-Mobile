@@ -1,8 +1,16 @@
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:hamro_footsall/core/theme/app_colors.dart';
+import 'package:hamro_footsall/core/theme/futsal_theme.dart';
+import 'package:hamro_footsall/core/utils/app_utils.dart';
+import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/widgets/custom_bottom_sheet.dart';
 import 'package:hamro_footsall/core/widgets/custom_button.dart';
-import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_models.dart';
+import 'package:hamro_footsall/core/widgets/custom_text_field.dart';
+import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_cubit.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class VendorBottomActionBar extends StatelessWidget {
   const VendorBottomActionBar({
@@ -10,45 +18,54 @@ class VendorBottomActionBar extends StatelessWidget {
     required this.hasPrevious,
     required this.isSubmitting,
     required this.nextLabel,
-    required this.saveStatus,
-    required this.lastSavedAt,
     required this.onPrevious,
-    required this.onSave,
     required this.onNext,
+    this.cubit,
   });
 
   final bool hasPrevious;
   final bool isSubmitting;
   final String nextLabel;
-  final DraftSaveStatus saveStatus;
-  final DateTime? lastSavedAt;
   final VoidCallback onPrevious;
-  final VoidCallback onSave;
   final VoidCallback onNext;
+  final VendorOnboardingCubit? cubit;
 
   @override
   Widget build(BuildContext context) {
     final bool canInteract = !isSubmitting;
+    final bool isAddFirstCourt = nextLabel == 'Add First Court';
 
     return SafeArea(
       top: false,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+        padding: AppUtils().getPadding(top: AppDimens.paddingX8),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(22),
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(AppDimens.radiusX14),
+            topRight: Radius.circular(AppDimens.radiusX14),
+          ),
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+            filter: ImageFilter.blur(
+              sigmaX: AppDimens.sizeX18,
+              sigmaY: AppDimens.sizeX18,
+            ),
             child: Container(
-              padding: const EdgeInsets.all(10),
+              padding: AppUtils().getPadding(all: AppDimens.paddingX8),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.94),
-                borderRadius: BorderRadius.circular(22),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
+                // ignore: deprecated_member_use
+                color: LightColor.whiteColor.withOpacity(0.94),
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(AppDimens.radiusX14),
+                  topRight: Radius.circular(AppDimens.radiusX14),
+                ),
+                border: Border.symmetric(
+                  horizontal: BorderSide(color: LightColor.greyBorderColor),
+                ),
                 boxShadow: <BoxShadow>[
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.06),
-                    blurRadius: 22,
-                    offset: const Offset(0, 10),
+                    color: LightColor.shadowOf(0.06),
+                    blurRadius: AppDimens.radiusX22,
+                    offset: const Offset(0, AppDimens.sizeX10),
                   ),
                 ],
               ),
@@ -57,21 +74,19 @@ class VendorBottomActionBar extends StatelessWidget {
                   if (hasPrevious) ...<Widget>[
                     _SecondaryActionButton(
                       icon: Icons.arrow_back_ios,
-                      label: 'Back',
+                      label: StringConstants.back,
                       onTap: canInteract ? onPrevious : null,
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: AppDimens.sizeX12),
                   ],
-                  _IconOnlyAction(
-                    icon: Icons.bookmark_border_rounded,
-                    onTap: canInteract ? onSave : null,
-                    isLoading: false,
-                  ),
-                  const SizedBox(width: 12),
                   Expanded(
                     child: _PrimaryActionButton(
                       label: nextLabel,
-                      onTap: canInteract ? onNext : null,
+                      onTap: canInteract
+                          ? () => isAddFirstCourt
+                                ? _showAddCourtSheet(context)
+                                : onNext()
+                          : null,
                       isLoading: isSubmitting,
                     ),
                   ),
@@ -82,6 +97,18 @@ class VendorBottomActionBar extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _showAddCourtSheet(BuildContext context) async {
+    if (cubit == null) return;
+    final String? courtName = await showAppBottomSheet<String>(
+      context: context,
+      child: const _AddCourtSheet(),
+    );
+
+    if (courtName != null) {
+      cubit!.addCourt(name: courtName);
+    }
   }
 }
 
@@ -99,91 +126,41 @@ class _SecondaryActionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bool isDisabled = onTap == null;
-
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppDimens.radiusX8),
         child: Ink(
-          height: 48,
-          padding: const EdgeInsets.symmetric(horizontal: 14),
+          height: AppDimens.sizeX46,
+          padding: AppUtils().getPadding(horizontal: AppDimens.paddingX20),
           decoration: BoxDecoration(
-            color: const Color(0xFFF8FAFC),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
+            color: LightColor.whiteColor,
+            borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+            border: Border.all(color: LightColor.greyBorderColor),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
               Icon(
                 icon,
-                size: 18,
+                size: AppDimens.sizeX16,
                 color: isDisabled
-                    ? const Color(0xFF94A3B8)
-                    : const Color(0xFF334155),
+                    ? LightColor.greyBorderColor
+                    : LightColor.primaryTextColor,
               ),
-              const SizedBox(width: 6),
+              const SizedBox(width: AppDimens.sizeX8),
               Text(
                 label,
-                style: TextStyle(
-                  color: isDisabled
-                      ? const Color(0xFF94A3B8)
-                      : const Color(0xFF334155),
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                ),
+                style: FutsalTheme.getTextTheme(context).bodyTextSmall
+                    ?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: isDisabled
+                          ? LightColor.greyBorderColor
+                          : LightColor.primaryTextColor,
+                    ),
               ),
             ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _IconOnlyAction extends StatelessWidget {
-  const _IconOnlyAction({
-    required this.icon,
-    required this.onTap,
-    required this.isLoading,
-  });
-
-  final IconData icon;
-  final VoidCallback? onTap;
-  final bool isLoading;
-
-  @override
-  Widget build(BuildContext context) {
-    final bool isDisabled = onTap == null;
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
-        child: Ink(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
-            color: const Color(0xFFF8FAFC),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
-          ),
-          child: Center(
-            child: isLoading
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2.2),
-                  )
-                : Icon(
-                    icon,
-                    size: 20,
-                    color: isDisabled
-                        ? const Color(0xFF94A3B8)
-                        : const Color(0xFF334155),
-                  ),
           ),
         ),
       ),
@@ -207,13 +184,109 @@ class _PrimaryActionButton extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: SizedBox(
-        height: 48,
+        height: AppDimens.sizeX46,
         child: CustomButton(
           text: label,
           onPressed: onTap,
           isLoading: isLoading,
         ),
       ),
+    );
+  }
+}
+
+class _AddCourtSheet extends StatefulWidget {
+  const _AddCourtSheet();
+
+  @override
+  State<_AddCourtSheet> createState() => _AddCourtSheetState();
+}
+
+class _AddCourtSheetState extends State<_AddCourtSheet> {
+  final TextEditingController _nameController = TextEditingController();
+  final FocusNode _focusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _focusNode.requestFocus();
+    });
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final String name = _nameController.text.trim();
+    if (name.isEmpty) {
+      Navigator.of(context).pop();
+      return;
+    }
+    Navigator.of(context).pop(name);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Text(
+          StringConstants.addFirstCourt,
+          style: FutsalTheme.getTextTheme(context).bodyTextLarge?.copyWith(
+            color: LightColor.primaryTextColor,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: AppDimens.sizeX10),
+        Text(
+          'Enter a name for your first court. You can change it later.\nMake sure to use a proper standard name for the court.',
+          style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
+            color: LightColor.secondaryTextColor,
+            fontWeight: FontWeight.w500,
+            height: 1.5,
+          ),
+        ),
+        const SizedBox(height: AppDimens.sizeX18),
+        CustomTextField(
+          controller: _nameController,
+          focusNode: _focusNode,
+          labelText: StringConstants.courtNameTitleCase,
+          hintText: StringConstants.eGCourtAMainField,
+          icon: Icons.sports_soccer_rounded,
+          textInputAction: TextInputAction.done,
+        ),
+        const SizedBox(height: AppDimens.sizeX20),
+        Row(
+          children: <Widget>[
+            Expanded(
+              child: CustomButton(
+                text: StringConstants.cancel,
+                isOutlined: true,
+                backgroundColor: LightColor.elevatedCardColor,
+                foregroundColor: LightColor.brandTextColor,
+                borderColor: LightColor.secondaryColor,
+                minHeight: AppDimens.sizeX46,
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ),
+            const SizedBox(width: AppDimens.sizeX14),
+            Expanded(
+              child: CustomButton(
+                text: StringConstants.addCourt,
+                minHeight: AppDimens.sizeX46,
+                onPressed: _submit,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppDimens.sizeX20),
+      ],
     );
   }
 }

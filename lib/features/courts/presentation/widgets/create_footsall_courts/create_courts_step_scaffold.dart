@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:hamro_footsall/core/theme/light_color.dart';
+import 'package:hamro_footsall/core/theme/app_colors.dart';
 
 class CreateCourtsStepScaffold extends StatelessWidget {
   const CreateCourtsStepScaffold({
@@ -38,18 +38,21 @@ class CreateCourtsStepScaffold extends StatelessWidget {
                   gradient: const LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: <Color>[LightColor.skyBlue, Color(0xFF2F87E0)],
+                    colors: <Color>[
+                      LightColor.secondaryColor,
+                      Color(0xFF2F87E0),
+                    ],
                   ),
                   borderRadius: BorderRadius.circular(8),
                   boxShadow: <BoxShadow>[
                     BoxShadow(
-                      color: LightColor.skyBlue.withValues(alpha: 0.30),
+                      color: LightColor.secondaryColor.withValues(alpha: 0.30),
                       blurRadius: 14,
                       offset: const Offset(0, 5),
                     ),
                   ],
                 ),
-                child: Icon(icon, color: Colors.white, size: 26),
+                child: Icon(icon, color: LightColor.inverseTextColor, size: 26),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -60,7 +63,7 @@ class CreateCourtsStepScaffold extends StatelessWidget {
                       'Step ${stepIndex + 1} of $totalSteps',
                       style: const TextStyle(
                         fontSize: 12,
-                        color: LightColor.skyBlue,
+                        color: LightColor.secondaryColor,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 0.6,
                       ),
@@ -68,19 +71,19 @@ class CreateCourtsStepScaffold extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w800,
-                        color: LightColor.titleTextColor,
+                        color: LightColor.primaryTextColor,
                         height: 1.15,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       subtitle,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 10,
-                        color: LightColor.darkgrey,
+                        color: LightColor.secondaryTextColor,
                       ),
                     ),
                   ],
@@ -97,7 +100,7 @@ class CreateCourtsStepScaffold extends StatelessWidget {
                   width: 32,
                   height: 3,
                   decoration: BoxDecoration(
-                    color: LightColor.skyBlue,
+                    color: LightColor.secondaryColor,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -106,7 +109,7 @@ class CreateCourtsStepScaffold extends StatelessWidget {
                   width: 8,
                   height: 3,
                   decoration: BoxDecoration(
-                    color: LightColor.skyBlue.withValues(alpha: 0.35),
+                    color: LightColor.secondaryColor.withValues(alpha: 0.35),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -116,16 +119,16 @@ class CreateCourtsStepScaffold extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.92),
+              color: LightColor.inverseTextColor.withValues(alpha: 0.92),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: LightColor.lightGrey.withValues(alpha: 0.75),
+                color: LightColor.borderColor.withValues(alpha: 0.75),
               ),
-              boxShadow: const <BoxShadow>[
+              boxShadow: <BoxShadow>[
                 BoxShadow(
-                  color: Color(0x0D000000),
+                  color: LightColor.shadowOf(0.05),
                   blurRadius: 12,
-                  offset: Offset(0, 4),
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),

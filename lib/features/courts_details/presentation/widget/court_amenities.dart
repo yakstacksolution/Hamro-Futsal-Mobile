@@ -1,30 +1,47 @@
 import 'package:flutter/material.dart';
-import 'package:hamro_footsall/core/theme/light_color.dart';
+import 'package:hamro_footsall/core/theme/app_colors.dart';
+import 'package:hamro_footsall/core/theme/futsal_theme.dart';
+import 'package:hamro_footsall/core/utils/custom_image_view.dart';
+import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class CourtAmenitiesSection extends StatelessWidget {
-  const CourtAmenitiesSection({super.key, required this.features});
+  const CourtAmenitiesSection({
+    super.key,
+    required this.features,
+    this.categories,
+    this.iconUrls,
+    this.descriptions,
+  });
 
   final List<String> features;
+
+  final Map<String, String>? categories;
+  final Map<String, String>? iconUrls;
+  final Map<String, String>? descriptions;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+      padding: const EdgeInsets.only(
+        left: AppDimens.paddingX16,
+        top: AppDimens.paddingX12,
+        right: AppDimens.paddingX16,
+      ),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppDimens.paddingX16),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
+          gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFFFFFFFF), Color(0xFFF8FAFC)],
+            colors: [LightColor.elevatedCardColor, LightColor.cardColor],
           ),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFFE5E7EB)),
+          borderRadius: BorderRadius.circular(AppDimens.radiusX10),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 16,
-              offset: const Offset(0, 8),
+              color: LightColor.shadowColor.withValues(alpha: 0.04),
+              blurRadius: AppDimens.sizeX16,
+              offset: const Offset(0, AppDimens.sizeX8),
             ),
           ],
         ),
@@ -32,8 +49,9 @@ class CourtAmenitiesSection extends StatelessWidget {
           features: features,
           featureIcons: _featureIcons,
           featureColors: _featureColors,
-          featureBgColors: _featureBgColors,
-          featureCategories: _featureCategories,
+          featureCategories: categories ?? _featureCategories,
+          iconUrls: iconUrls ?? const <String, String>{},
+          descriptions: descriptions ?? const <String, String>{},
         ),
       ),
     );
@@ -64,18 +82,6 @@ const Map<String, Color> _featureColors = <String, Color>{
   'AC': Color(0xFF0F6E56),
 };
 
-const Map<String, Color> _featureBgColors = <String, Color>{
-  'Indoor': Color(0xFFE6F1FB),
-  'Outdoor': Color(0xFFEAF3DE),
-  'Floodlight': Color(0xFFFAEEDA),
-  'Parking': Color(0xFFEEEDFE),
-  'Changing Room': Color(0xFFE1F5EE),
-  'Cafeteria': Color(0xFFFAECE7),
-  'First Aid': Color(0xFFFCEBEB),
-  'WiFi': Color(0xFFE6F1FB),
-  'AC': Color(0xFFE1F5EE),
-};
-
 const Map<String, String> _featureCategories = <String, String>{
   'Indoor': 'Facility',
   'Outdoor': 'Facility',
@@ -93,15 +99,17 @@ class _FeaturesGrid extends StatefulWidget {
     required this.features,
     required this.featureIcons,
     required this.featureColors,
-    required this.featureBgColors,
     required this.featureCategories,
+    required this.iconUrls,
+    required this.descriptions,
   });
 
   final List<String> features;
   final Map<String, IconData> featureIcons;
   final Map<String, Color> featureColors;
-  final Map<String, Color> featureBgColors;
   final Map<String, String> featureCategories;
+  final Map<String, String> iconUrls;
+  final Map<String, String> descriptions;
 
   @override
   State<_FeaturesGrid> createState() => _FeaturesGridState();
@@ -132,29 +140,31 @@ class _FeaturesGridState extends State<_FeaturesGrid> {
   @override
   Widget build(BuildContext context) {
     final features = widget.features;
+    final textTheme = FutsalTheme.getTextTheme(context);
 
     if (features.isEmpty) {
       return Container(
-        padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 14),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF5F7FA),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFFE5E7EB)),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppDimens.paddingX14,
+          vertical: AppDimens.paddingX18,
         ),
-        child: const Row(
+        decoration: BoxDecoration(
+          color: LightColor.inputFillColor,
+          borderRadius: BorderRadius.circular(AppDimens.radiusX14),
+        ),
+        child: Row(
           children: [
             Icon(
               Icons.info_outline_rounded,
-              color: Color(0xFF6B7280),
-              size: 18,
+              color: LightColor.secondaryTextColor,
+              size: AppDimens.sizeX18,
             ),
-            SizedBox(width: 10),
+            const SizedBox(width: AppDimens.sizeX10),
             Expanded(
               child: Text(
-                'No amenities information available yet.',
-                style: TextStyle(
-                  color: Color(0xFF6B7280),
-                  fontSize: 13,
+                StringConstants.noAmenitiesInformationAvailableYet,
+                style: textTheme.bodyTextSmall?.copyWith(
+                  color: LightColor.secondaryTextColor,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -169,98 +179,84 @@ class _FeaturesGridState extends State<_FeaturesGrid> {
       children: [
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(AppDimens.paddingX12),
           decoration: BoxDecoration(
-            color: LightColor.secondary.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: LightColor.secondary.withValues(alpha: 0.3),
-            ),
+            color: LightColor.secondaryColor.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(AppDimens.radiusX8),
           ),
           child: Row(
             children: [
               Container(
-                width: 34,
-                height: 34,
+                width: AppDimens.sizeX34,
+                height: AppDimens.sizeX34,
                 decoration: BoxDecoration(
-                  color: LightColor.secondary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
+                  color: LightColor.secondaryColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(AppDimens.radiusX8),
                 ),
                 child: const Icon(
                   Icons.widgets_rounded,
-                  size: 18,
-                  color: LightColor.secondary,
+                  size: AppDimens.sizeX18,
+                  color: LightColor.secondaryColor,
                 ),
               ),
-              const SizedBox(width: 10),
-              const Expanded(
+              const SizedBox(width: AppDimens.sizeX10),
+              Expanded(
                 child: Text(
-                  'Amenities & Features',
-                  style: TextStyle(
-                    fontSize: 15,
+                  StringConstants.amenitiesAndFeatures,
+                  style: textTheme.bodyTextMedium?.copyWith(
                     fontWeight: FontWeight.w800,
-                    color: Color(0xFF1F2937),
-                    letterSpacing: -0.2,
+                    color: LightColor.primaryTextColor,
                   ),
                 ),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 6,
+                  horizontal: AppDimens.paddingX10,
+                  vertical: AppDimens.paddingX4,
                 ),
                 decoration: BoxDecoration(
-                  color: LightColor.secondary,
-                  borderRadius: BorderRadius.circular(999),
+                  color: LightColor.secondaryColor,
+                  borderRadius: BorderRadius.circular(AppDimens.radiusX50),
                 ),
                 child: Text(
                   '${_visibleFeatures.length}/${features.length}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
+                  style: textTheme.bodyMiniSubTitle?.copyWith(
+                    color: LightColor.inverseTextColor,
                   ),
                 ),
               ),
             ],
           ),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: AppDimens.sizeX14),
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: Row(
             children: _categories.map((cat) {
               final isActive = cat == _selectedCategory;
               return Padding(
-                padding: const EdgeInsets.only(right: 6),
+                padding: const EdgeInsets.only(right: AppDimens.paddingX6),
                 child: GestureDetector(
                   onTap: () => setState(() => _selectedCategory = cat),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 180),
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 8,
+                      horizontal: AppDimens.paddingX14,
+                      vertical: AppDimens.paddingX8,
                     ),
                     decoration: BoxDecoration(
                       color: isActive
-                          ? LightColor.secondary
-                          : const Color(0xFFFFFFFF),
-                      borderRadius: BorderRadius.circular(999),
-                      border: Border.all(
-                        color: isActive
-                            ? LightColor.secondary
-                            : const Color(0xFFD1D5DB),
-                        width: 1,
-                      ),
+                          ? LightColor.secondaryColor
+                          : LightColor.whiteColor,
+                      borderRadius: BorderRadius.circular(AppDimens.radiusX50),
                     ),
                     child: Text(
                       cat,
-                      style: TextStyle(
-                        fontSize: 11.5,
+                      style: textTheme.bodySubTitle?.copyWith(
                         fontWeight: FontWeight.w600,
                         color: isActive
-                            ? Colors.white
-                            : const Color(0xFF4B5563),
+                            ? LightColor.inverseTextColor
+                            : LightColor.secondaryTextColor,
                       ),
                     ),
                   ),
@@ -269,84 +265,121 @@ class _FeaturesGridState extends State<_FeaturesGrid> {
             }).toList(),
           ),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: AppDimens.sizeX14),
         AnimatedSwitcher(
           duration: const Duration(milliseconds: 220),
           child: _visibleFeatures.isEmpty
               ? Container(
                   key: const ValueKey('empty'),
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 20),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF5F7FA),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: const Color(0xFFE5E7EB)),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: AppDimens.paddingX20,
                   ),
-                  child: const Center(
+                  decoration: BoxDecoration(
+                    color: LightColor.inputFillColor,
+                    borderRadius: BorderRadius.circular(AppDimens.radiusX14),
+                  ),
+                  child: Center(
                     child: Text(
-                      'No amenities in this category.',
-                      style: TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
+                      StringConstants.noAmenitiesInThisCategory,
+                      style: textTheme.bodyTextSmall?.copyWith(
+                        color: LightColor.secondaryTextColor,
+                      ),
                     ),
                   ),
                 )
               : LayoutBuilder(
                   key: ValueKey(_selectedCategory),
-                  builder: (context, constraints) => GridView.builder(
-                    shrinkWrap: true,
-
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: _visibleFeatures.length,
-                    padding: EdgeInsets.zero,
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 3,
-                          crossAxisSpacing: 8,
-                          mainAxisSpacing: 8,
-                          childAspectRatio: 1.5,
-                        ),
-                    itemBuilder: (context, index) =>
-                        _buildFeatureTile(_visibleFeatures[index]),
-                  ),
+                  builder: (BuildContext context, BoxConstraints constraints) {
+                    final double tileWidth =
+                        (constraints.maxWidth - AppDimens.sizeX8) / 2;
+                    return Wrap(
+                      spacing: AppDimens.sizeX8,
+                      runSpacing: AppDimens.sizeX8,
+                      children: _visibleFeatures
+                          .map(
+                            (String feature) => SizedBox(
+                              width: tileWidth,
+                              child: _buildFeatureTile(context, feature),
+                            ),
+                          )
+                          .toList(),
+                    );
+                  },
                 ),
         ),
       ],
     );
   }
 
-  Widget _buildFeatureTile(String feature) {
+  Widget _buildFeatureTile(BuildContext context, String feature) {
     final icon = widget.featureIcons[feature] ?? Icons.check_circle_rounded;
-    final color = widget.featureColors[feature] ?? const Color(0xFF185FA5);
+    final String? iconUrl = widget.iconUrls[feature];
+    final String? description = widget.descriptions[feature];
+    final Color color = LightColor.categoryAccent(
+      widget.featureColors[feature] ?? const Color(0xFF185FA5),
+    );
+    final textTheme = FutsalTheme.getTextTheme(context);
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: LightColor.secondary.withValues(alpha: 0.18)),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 30,
-            height: 30,
-            decoration: BoxDecoration(borderRadius: BorderRadius.circular(7)),
-            child: Icon(icon, size: 16, color: color),
-          ),
-          const SizedBox(height: 5),
-          Text(
-            feature,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Color(0xFF111827),
-              fontSize: 10.5,
-              fontWeight: FontWeight.w600,
-              height: 1.2,
+    return SizedBox(
+      height: description == null ? AppDimens.sizeX48 : AppDimens.sizeX72,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppDimens.paddingX10,
+          vertical: AppDimens.paddingX8,
+        ),
+        decoration: BoxDecoration(
+          color: LightColor.whiteColor,
+          borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (iconUrl != null)
+              CustomImageView(
+                url: iconUrl,
+                color: LightColor.monoIconColor,
+                width: AppDimens.sizeX24,
+                height: AppDimens.sizeX24,
+                cacheWidth: AppDimens.sizeX48,
+                cacheHeight: AppDimens.sizeX48,
+                fit: BoxFit.contain,
+                isHidePlaceholderImage: true,
+              )
+            else
+              Icon(icon, size: AppDimens.sizeX18, color: color),
+            const SizedBox(width: AppDimens.sizeX8),
+            Flexible(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    feature,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: textTheme.bodySubTitle?.copyWith(
+                      color: LightColor.primaryTextColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  if (description != null) ...[
+                    const SizedBox(height: AppDimens.sizeX2),
+                    Text(
+                      description,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: textTheme.bodyMiniSubTitle?.copyWith(
+                        color: LightColor.secondaryTextColor,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

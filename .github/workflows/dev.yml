@@ -1,0 +1,253 @@
+name: Android Staging — Firebase App Distribution
+
+on:
+  push:
+    branches:
+      - staging
+  workflow_dispatch:
+
+concurrency:
+  group: android-staging-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build APK and distribute to testers
+    runs-on: ubuntu-latest
+    env:
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - name: ⬇️ Check out repository
+        uses: actions/checkout@v6
+
+      - name: 🧹 Free disk space (GitHub hosted runner)
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/powershell"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          sudo docker system prune -af || true
+          df -h
+
+      - name: ☕ Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          java-version: "17"
+          distribution: "temurin"
+
+      - name: ⚙️ Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.44.0"
+          channel: "stable"
+          cache: true
+
+      - name: 🤖 Set up Android SDK
+        uses: android-actions/setup-android@v4
+
+      - name: 🧰 Pre-install Android CMake and NDK
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "cmake;3.22.1" "ndk;28.2.13676358"
+
+      - name: 📦 Install dependencies
+        run: flutter pub get
+
+      - name: 🔐 Prepare Android release signing
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PROPERTIES_BASE64: ${{ secrets.KEYSTORE_PROPERTIES_BASE64 }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${KEYSTORE_BASE64:-}" ] && [ -z "${KEYSTORE_PROPERTIES_BASE64:-}" ]; then
+            echo "::warning::Android signing secrets are not set. Building the staging APK with the debug signing key for Firebase App Distribution."
+            exit 0
+          fi
+
+          if [ -z "${KEYSTORE_BASE64:-}" ]; then
+            echo "::error::Secret KEYSTORE_BASE64 is empty or not set. Add base64 of android/upload-keystore.jks, or remove KEYSTORE_PROPERTIES_BASE64 to use debug signing for staging."
+            exit 1
+          fi
+          if [ -z "${KEYSTORE_PROPERTIES_BASE64:-}" ]; then
+            echo "::error::Secret KEYSTORE_PROPERTIES_BASE64 is empty or not set. Add base64 of android/keystore.properties, or remove KEYSTORE_BASE64 to use debug signing for staging."
+            exit 1
+          fi
+
+          CLEAN_KEYSTORE_BASE64="$(printf '%s' "$KEYSTORE_BASE64" | tr -d '\r\n[:space:]')"
+          if [ -z "$CLEAN_KEYSTORE_BASE64" ]; then
+            echo "::error::Secret KEYSTORE_BASE64 contains only whitespace. Recreate it from android/upload-keystore.jks."
+            exit 1
+          fi
+          printf '%s' "$CLEAN_KEYSTORE_BASE64" | base64 --decode > "$GITHUB_WORKSPACE/android/upload-keystore.jks"
+
+          if printf '%s' "$KEYSTORE_PROPERTIES_BASE64" | tr -d '\r\n[:space:]' | base64 --decode > "$GITHUB_WORKSPACE/android/keystore.properties" 2>/dev/null; then
+            :
+          elif printf '%s' "$KEYSTORE_PROPERTIES_BASE64" | grep -q '^storeFile='; then
+            printf '%s\n' "$KEYSTORE_PROPERTIES_BASE64" > "$GITHUB_WORKSPACE/android/keystore.properties"
+          else
+            echo "::error::KEYSTORE_PROPERTIES_BASE64 is neither valid base64 nor raw keystore.properties content."
+            exit 1
+          fi
+
+          test -s "$GITHUB_WORKSPACE/android/upload-keystore.jks" || {
+            echo "::error::KEYSTORE_BASE64 did not produce android/upload-keystore.jks. Recreate the secret from the real .jks file, not from keystore.properties."
+            exit 1
+          }
+          KEYSTORE_SIZE="$(wc -c < "$GITHUB_WORKSPACE/android/upload-keystore.jks" | tr -d ' ')"
+          if [ "$KEYSTORE_SIZE" -lt 1024 ]; then
+            echo "::error::Decoded android/upload-keystore.jks is only ${KEYSTORE_SIZE} bytes. Your KEYSTORE_BASE64 secret is not the real .jks file."
+            exit 1
+          fi
+          test -s "$GITHUB_WORKSPACE/android/keystore.properties" || {
+            echo "::error::KEYSTORE_PROPERTIES_BASE64 did not produce android/keystore.properties."
+            exit 1
+          }
+          grep -q '^storeFile=upload-keystore.jks$' "$GITHUB_WORKSPACE/android/keystore.properties" || {
+            echo "::error::android/keystore.properties must contain storeFile=upload-keystore.jks to match the decoded keystore."
+            exit 1
+          }
+          keytool -list -keystore "$GITHUB_WORKSPACE/android/upload-keystore.jks" \
+            -storepass "$(grep '^storePassword=' "$GITHUB_WORKSPACE/android/keystore.properties" | cut -d= -f2-)" >/dev/null || {
+            echo "::error::Decoded android/upload-keystore.jks is not readable with storePassword from keystore.properties."
+            exit 1
+          }
+
+      - name: 🔎 Analyze
+        run: flutter analyze --no-fatal-infos
+        continue-on-error: true
+
+      - name: 🧪 Run tests
+        run: flutter test
+        continue-on-error: true
+
+      # Several screens select Material/Cupertino icons through shared widgets and
+      # runtime state. The release icon tree-shaker cannot reliably discover every
+      # glyph reached that way, so it stays disabled to keep icons from vanishing
+      # only in release builds.
+      - name: 🛠 Build APK
+        run: flutter build apk --release --no-tree-shake-icons
+
+      - name: 🧹 Delete old APK artifacts
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const artifacts = await github.rest.actions.listArtifactsForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              name: 'hamro-futsal-staging-apk',
+              per_page: 100,
+            });
+            for (const artifact of artifacts.data.artifacts) {
+              await github.rest.actions.deleteArtifact({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                artifact_id: artifact.id,
+              });
+            }
+
+      - name: 📤 Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hamro-futsal-staging-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 7
+
+      # The action reports a bare "have you run firebase login?" for every
+      # credential problem, so validate the secret here where the error can name
+      # the actual cause. Accepts the service account JSON either raw or base64.
+      - name: 🔐 Prepare Firebase credentials
+        env:
+          FIREBASE_CREDENTIAL_FILE_CONTENT: ${{ secrets.FIREBASE_CREDENTIAL_FILE_CONTENT }}
+          FIREBASE_ANDROID_APP_ID: ${{ secrets.FIREBASE_ANDROID_APP_ID }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "$FIREBASE_CREDENTIAL_FILE_CONTENT" ]; then
+            echo "::error::Secret FIREBASE_CREDENTIAL_FILE_CONTENT is empty or not set."
+            exit 1
+          fi
+          if [ -z "$FIREBASE_ANDROID_APP_ID" ]; then
+            echo "::error::Secret FIREBASE_ANDROID_APP_ID is empty or not set."
+            exit 1
+          fi
+
+          CRED_FILE="$GITHUB_WORKSPACE/firebase_credentials.json"
+          printf '%s' "$FIREBASE_CREDENTIAL_FILE_CONTENT" > "$CRED_FILE"
+
+          # Tolerate a base64-encoded secret by decoding it in place.
+          if ! jq -e . "$CRED_FILE" >/dev/null 2>&1; then
+            echo "Secret is not raw JSON — attempting base64 decode."
+            if base64 --decode < "$CRED_FILE" > "$CRED_FILE.decoded" 2>/dev/null \
+               && jq -e . "$CRED_FILE.decoded" >/dev/null 2>&1; then
+              mv "$CRED_FILE.decoded" "$CRED_FILE"
+            else
+              rm -f "$CRED_FILE.decoded"
+              echo "::error::FIREBASE_CREDENTIAL_FILE_CONTENT is neither valid JSON nor valid base64-encoded JSON. Store the service account key file's contents verbatim."
+              exit 1
+            fi
+          fi
+
+          if [ "$(jq -r '.type // empty' "$CRED_FILE")" != "service_account" ]; then
+            echo "::error::Credential JSON is not a service account key (expected \"type\": \"service_account\"). A Firebase CLI token or OAuth client file will not work here."
+            exit 1
+          fi
+
+          echo "Service account: $(jq -r '.client_email' "$CRED_FILE")"
+          echo "Project:         $(jq -r '.project_id' "$CRED_FILE")"
+
+          APP_PROJECT_NUMBER="$(printf '%s' "$FIREBASE_ANDROID_APP_ID" | cut -d: -f2)"
+          echo "App ID project number: $APP_PROJECT_NUMBER"
+
+      - name: 🚀 Deploy to Firebase App Distribution
+        uses: wzieba/Firebase-Distribution-Github-Action@v1
+        with:
+          appId: ${{ secrets.FIREBASE_ANDROID_APP_ID }}
+          serviceCredentialsFile: firebase_credentials.json
+          groups: testers
+          releaseNotes: |
+            Branch: ${{ github.ref_name }}
+            Commit: ${{ github.sha }}
+            ${{ github.event.head_commit.message }}
+          file: build/app/outputs/flutter-apk/app-release.apk
+
+      - name: 💬 Notify Slack — success
+        if: success() && env.SLACK_WEBHOOK_URL != ''
+        run: |
+          curl -X POST -H 'Content-type: application/json' --data '{
+            "text": "✅ Hamro Futsal Android staging build succeeded — APK is on Firebase App Distribution.",
+            "attachments": [
+              {
+                "color": "#36a64f",
+                "fields": [
+                  { "title": "Branch", "value": "${{ github.ref_name }}", "short": true },
+                  { "title": "Commit", "value": "${{ github.sha }}", "short": true }
+                ]
+              }
+            ]
+          }' "$SLACK_WEBHOOK_URL"
+
+      - name: 💬 Notify Slack — failure
+        if: failure() && env.SLACK_WEBHOOK_URL != ''
+        run: |
+          curl -X POST -H 'Content-type: application/json' --data '{
+            "text": "⚠️ Hamro Futsal Android staging build FAILED.",
+            "attachments": [
+              {
+                "color": "#FF0000",
+                "fields": [
+                  { "title": "Branch", "value": "${{ github.ref_name }}", "short": true },
+                  { "title": "Commit", "value": "${{ github.sha }}", "short": true },
+                  { "title": "Run", "value": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}", "short": false }
+                ]
+              }
+            ]
+          }' "$SLACK_WEBHOOK_URL"
+
+      - name: 🧽 Remove Firebase credentials
+        if: always()
+        run: rm -f "$GITHUB_WORKSPACE/firebase_credentials.json"

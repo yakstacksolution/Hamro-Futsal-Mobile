@@ -1,0 +1,199 @@
+name: Android Production — Google Play
+
+on:
+  push:
+    branches:
+      - production
+  workflow_dispatch:
+
+concurrency:
+  group: android-production
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build AAB and release to Google Play
+    runs-on: ubuntu-latest
+    env:
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - name: ⬇️ Check out repository
+        uses: actions/checkout@v6
+
+      - name: 🧹 Free disk space (GitHub hosted runner)
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/powershell"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          sudo docker system prune -af || true
+          df -h
+
+      - name: ☕ Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          java-version: "17"
+          distribution: "temurin"
+
+      - name: ⚙️ Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.44.0"
+          channel: "stable"
+          cache: true
+
+      - name: 🤖 Set up Android SDK
+        uses: android-actions/setup-android@v4
+
+      - name: 🧰 Pre-install Android CMake and NDK
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "cmake;3.22.1" "ndk;28.2.13676358"
+
+      - name: 📦 Install dependencies
+        run: flutter pub get
+
+      - name: 🔐 Create Google Play service account
+        run: echo "${{ secrets.GOOGLE_PLAY_SERVICEACCOUNT }}" | base64 --decode > /tmp/google_play_key.json
+
+      - name: 🔐 Decode keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          set -euo pipefail
+          if [ -z "${KEYSTORE_BASE64:-}" ]; then
+            echo "::error::Secret KEYSTORE_BASE64 is empty or not set. Add base64 of android/upload-keystore.jks in GitHub repository secrets."
+            exit 1
+          fi
+          CLEAN_KEYSTORE_BASE64="$(printf '%s' "$KEYSTORE_BASE64" | tr -d '\r\n[:space:]')"
+          if [ -z "$CLEAN_KEYSTORE_BASE64" ]; then
+            echo "::error::Secret KEYSTORE_BASE64 contains only whitespace. Recreate it from android/upload-keystore.jks."
+            exit 1
+          fi
+          printf '%s' "$CLEAN_KEYSTORE_BASE64" | base64 --decode > "$GITHUB_WORKSPACE/android/upload-keystore.jks"
+
+      - name: 🔐 Decode keystore properties
+        env:
+          KEYSTORE_PROPERTIES_BASE64: ${{ secrets.KEYSTORE_PROPERTIES_BASE64 }}
+        run: |
+          set -euo pipefail
+          if [ -z "${KEYSTORE_PROPERTIES_BASE64:-}" ]; then
+            echo "::error::Secret KEYSTORE_PROPERTIES_BASE64 is empty or not set. Add base64 of android/keystore.properties in GitHub repository secrets."
+            exit 1
+          fi
+          if printf '%s' "$KEYSTORE_PROPERTIES_BASE64" | tr -d '\r\n[:space:]' | base64 --decode > "$GITHUB_WORKSPACE/android/keystore.properties" 2>/dev/null; then
+            :
+          elif printf '%s' "$KEYSTORE_PROPERTIES_BASE64" | grep -q '^storeFile='; then
+            printf '%s\n' "$KEYSTORE_PROPERTIES_BASE64" > "$GITHUB_WORKSPACE/android/keystore.properties"
+          else
+            echo "::error::KEYSTORE_PROPERTIES_BASE64 is neither valid base64 nor raw keystore.properties content."
+            exit 1
+          fi
+
+      - name: ✅ Validate Android signing files
+        run: |
+          set -euo pipefail
+          test -s "$GITHUB_WORKSPACE/android/upload-keystore.jks" || {
+            echo "::error::KEYSTORE_BASE64 did not produce android/upload-keystore.jks. Recreate the secret from the real .jks file, not from keystore.properties."
+            exit 1
+          }
+          KEYSTORE_SIZE="$(wc -c < "$GITHUB_WORKSPACE/android/upload-keystore.jks" | tr -d ' ')"
+          if [ "$KEYSTORE_SIZE" -lt 1024 ]; then
+            echo "::error::Decoded android/upload-keystore.jks is only ${KEYSTORE_SIZE} bytes. Your KEYSTORE_BASE64 secret is not the real .jks file."
+            exit 1
+          fi
+          test -s "$GITHUB_WORKSPACE/android/keystore.properties" || {
+            echo "::error::KEYSTORE_PROPERTIES_BASE64 did not produce android/keystore.properties."
+            exit 1
+          }
+          grep -q '^storeFile=upload-keystore.jks$' "$GITHUB_WORKSPACE/android/keystore.properties" || {
+            echo "::error::android/keystore.properties must contain storeFile=upload-keystore.jks to match the decoded keystore."
+            exit 1
+          }
+          keytool -list -keystore "$GITHUB_WORKSPACE/android/upload-keystore.jks" \
+            -storepass "$(grep '^storePassword=' "$GITHUB_WORKSPACE/android/keystore.properties" | cut -d= -f2-)" >/dev/null || {
+            echo "::error::Decoded android/upload-keystore.jks is not readable with storePassword from keystore.properties."
+            exit 1
+          }
+
+      - name: 🧪 Run tests
+        run: flutter test
+
+      # Several screens select Material/Cupertino icons through shared widgets and
+      # runtime state. The release icon tree-shaker cannot reliably discover every
+      # glyph reached that way, so it stays disabled to keep icons from vanishing
+      # only in the production build.
+      - name: 🛠 Build AAB
+        run: flutter build appbundle --release --no-tree-shake-icons
+
+      - name: 🧹 Delete old AAB artifacts
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const artifacts = await github.rest.actions.listArtifactsForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              name: 'hamro-futsal-production-aab',
+              per_page: 100,
+            });
+            for (const artifact of artifacts.data.artifacts) {
+              await github.rest.actions.deleteArtifact({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                artifact_id: artifact.id,
+              });
+            }
+
+      - name: 📤 Upload AAB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hamro-futsal-production-aab
+          path: build/app/outputs/bundle/release/app-release.aab
+          retention-days: 30
+
+      - name: 🚀 Deploy to Google Play
+        uses: r0adkll/upload-google-play@v1.1.5
+        with:
+          serviceAccountJson: /tmp/google_play_key.json
+          packageName: com.np.hamrofutsal
+          releaseFiles: build/app/outputs/bundle/release/app-release.aab
+          tracks: production
+          status: completed
+          changesNotSentForReview: false
+
+      - name: 💬 Notify Slack — success
+        if: success() && env.SLACK_WEBHOOK_URL != ''
+        run: |
+          curl -X POST -H 'Content-type: application/json' --data '{
+            "text": "🎉 Hamro Futsal Android production release succeeded — AAB uploaded to Google Play.",
+            "attachments": [
+              {
+                "color": "#36a64f",
+                "fields": [
+                  { "title": "Branch", "value": "${{ github.ref_name }}", "short": true },
+                  { "title": "Commit", "value": "${{ github.sha }}", "short": true }
+                ]
+              }
+            ]
+          }' "$SLACK_WEBHOOK_URL"
+
+      - name: 💬 Notify Slack — failure
+        if: failure() && env.SLACK_WEBHOOK_URL != ''
+        run: |
+          curl -X POST -H 'Content-type: application/json' --data '{
+            "text": "⚠️ Hamro Futsal Android production release FAILED.",
+            "attachments": [
+              {
+                "color": "#FF0000",
+                "fields": [
+                  { "title": "Branch", "value": "${{ github.ref_name }}", "short": true },
+                  { "title": "Commit", "value": "${{ github.sha }}", "short": true },
+                  { "title": "Run", "value": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}", "short": false }
+                ]
+              }
+            ]
+          }' "$SLACK_WEBHOOK_URL"

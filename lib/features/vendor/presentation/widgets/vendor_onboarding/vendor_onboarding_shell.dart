@@ -1,52 +1,87 @@
 import 'package:flutter/material.dart';
-import 'package:hamro_footsall/core/theme/light_color.dart';
+import 'package:hamro_footsall/core/theme/app_colors.dart';
+import 'package:hamro_footsall/core/theme/futsal_theme.dart';
+import 'package:hamro_footsall/core/utils/custom_image_view.dart';
+import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/utils/image_constants.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
+import 'package:hamro_footsall/core/widgets/custom_confirm_dialog.dart';
 
 class VendorOnboardingShell extends StatelessWidget {
   const VendorOnboardingShell({
     super.key,
     required this.isSubmitting,
-    required this.onSaveDraft,
-    required this.onReset,
+    required this.onExitToHome,
     required this.body,
     required this.bottomBar,
   });
 
   final bool isSubmitting;
-  final VoidCallback onSaveDraft;
-  final VoidCallback onReset;
+  final Future<void> Function() onExitToHome;
   final Widget body;
   final Widget bottomBar;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: LightColor.white,
+      backgroundColor: context.appColors.background,
       appBar: AppBar(
-        backgroundColor: LightColor.white,
+        backgroundColor: context.appColors.background,
         surfaceTintColor: Colors.transparent,
-        title: const Text(
-          'Vendor Onboarding',
-          style: TextStyle(fontWeight: FontWeight.w500, fontSize: 20),
+        centerTitle: false,
+        title: Text(
+          StringConstants.vendorOnboarding,
+          style: FutsalTheme.getTextTheme(
+            context,
+          ).headingSmall?.copyWith(fontWeight: FontWeight.w500),
         ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_rounded),
-          onPressed: isSubmitting ? null : () => Navigator.of(context).pop(),
+
+        leading: InkWell(
+          onTap: isSubmitting ? null : () => Navigator.of(context).pop(),
+          child: Icon(
+            size: AppDimens.sizeX18,
+            Icons.arrow_back_ios_rounded,
+            color: LightColor.primaryTextColor,
+          ),
         ),
         actions: <Widget>[
-          PopupMenuButton<String>(
-            onSelected: (String value) {
-              if (value == 'reset') {
-                onReset();
-              }
-            },
-            itemBuilder: (BuildContext context) =>
-                const <PopupMenuEntry<String>>[
-                  PopupMenuItem<String>(
-                    value: 'reset',
-                    child: Text('Reset onboarding'),
-                  ),
-                ],
+          IconButton(
+            tooltip: 'Home',
+            onPressed: isSubmitting
+                ? null
+                : () async {
+                    final bool shouldExit = await showConfirmDialog(
+                      context: context,
+                      title: 'Save changes & exit?',
+
+                      message:
+                          'Your current onboarding progress will be saved before returning home.',
+                      confirmText: 'Save & go home',
+                      cancelText: 'Stay here',
+                      iconWidget: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: CustomImageView(
+                          imagePath: ImageConstants.navHomeFill,
+                          width: AppDimens.sizeX28,
+                          height: AppDimens.sizeX20,
+                          fit: BoxFit.contain,
+                          color: LightColor.brandTextColor,
+                        ),
+                      ),
+                    );
+                    if (context.mounted && shouldExit) {
+                      await onExitToHome();
+                    }
+                  },
+            icon: CustomImageView(
+              imagePath: ImageConstants.navHome,
+              width: AppDimens.sizeX22,
+              height: AppDimens.sizeX22,
+              fit: BoxFit.contain,
+              color: LightColor.brandTextColor,
+            ),
           ),
+          const SizedBox(width: AppDimens.sizeX8),
         ],
       ),
       bottomNavigationBar: bottomBar,

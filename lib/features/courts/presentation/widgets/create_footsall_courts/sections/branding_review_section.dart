@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:hamro_footsall/core/theme/light_color.dart';
+import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/widgets/custom_text_field.dart';
 import 'package:hamro_footsall/features/courts/presentation/bloc/create_footsall_courts_bloc.dart';
 import 'package:hamro_footsall/features/courts/presentation/widgets/create_footsall_courts/info_banner.dart';
 import 'package:hamro_footsall/features/courts/presentation/widgets/create_footsall_courts/logo_picker_card.dart';
 import 'package:hamro_footsall/features/courts/presentation/widgets/create_footsall_courts/review_summary_tile.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class BrandingReviewSection extends StatelessWidget {
   const BrandingReviewSection({
@@ -33,12 +34,12 @@ class BrandingReviewSection extends StatelessWidget {
           onRemove: bloc.removeSelectedLogo,
         ),
         const SizedBox(height: 14),
-        const Align(
+        Align(
           alignment: Alignment.centerLeft,
           child: Text(
-            'OR provide a direct image URL',
+            StringConstants.orProvideADirectImageUrl,
             style: TextStyle(
-              color: LightColor.darkgrey,
+              color: LightColor.secondaryTextColor,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -46,94 +47,98 @@ class BrandingReviewSection extends StatelessWidget {
         const SizedBox(height: 8),
         CustomTextField(
           controller: bloc.shopLogoController,
+          focusNode: bloc.shopLogoFocus,
+          ensureVisibleOnFocus: true,
+          isRequired: false,
           textInputAction: TextInputAction.done,
-          labelText: 'Shop Logo URL',
-          hintText: 'https://res.cloudinary.com/demo/image/upload/sample.jpg',
+          labelText: StringConstants.shopLogoUrl,
+          hintText: StringConstants.cloudinaryImageUrlExample,
           icon: Icons.photo_camera_back_rounded,
+          iconColor: LightColor.monoIconColor,
           validator: bloc.logoUrlValidator,
         ),
         const SizedBox(height: 16),
-        const InfoBanner(
+        InfoBanner(
           icon: Icons.info_outline_rounded,
-          color: LightColor.orange,
-          backgroundColor: Color(0xFFFFF8F3),
-          borderColor: LightColor.orange,
-          message:
-              'You can use either uploaded file or logo URL. Owner will be assigned automatically from logged-in AdminUser.',
+          color: LightColor.warningColor,
+          backgroundColor: LightColor.warningLightColor,
+          borderColor: LightColor.warningColor,
+          message: StringConstants
+              .youCanUseEitherUploadedFileOrLogoUrlOwnerWillBeA12d1d437,
         ),
         const SizedBox(height: 16),
         ReviewSummaryTile(
-          label: 'Futsal Name',
+          label: StringConstants.futsalName,
           value: bloc.shopNameController.text.trim(),
           icon: Icons.badge_rounded,
         ),
         ReviewSummaryTile(
-          label: 'Slug',
+          label: StringConstants.slug,
           value: bloc.slugController.text.trim(),
           icon: Icons.link_rounded,
         ),
         ReviewSummaryTile(
-          label: 'Established Year',
+          label: StringConstants.establishedYear,
           value: bloc.establishedYearController.text.trim(),
           icon: Icons.event_available_rounded,
         ),
         ReviewSummaryTile(
-          label: 'Basic Price',
+          label: StringConstants.basicPrice,
           value: bloc.basicPriceController.text.trim().isEmpty
               ? ''
               : 'NPR ${bloc.basicPriceController.text.trim()}',
           icon: Icons.payments_rounded,
         ),
         ReviewSummaryTile(
-          label: 'Website',
+          label: StringConstants.website,
           value: bloc.websiteController.text.trim().isEmpty
               ? 'Not provided'
               : bloc.websiteController.text.trim(),
           icon: Icons.language_rounded,
         ),
         ReviewSummaryTile(
-          label: 'Exact Location',
+          label: StringConstants.exactLocation,
           value: bloc.exactLocationController.text.trim(),
           icon: Icons.place_rounded,
         ),
         ReviewSummaryTile(
-          label: 'Coordinates',
+          label: StringConstants.coordinates,
           value: coordinates,
           icon: Icons.my_location_rounded,
         ),
         ReviewSummaryTile(
-          label: 'Location',
+          label: StringConstants.location,
           value:
               '${bloc.cityController.text.trim()}, ${bloc.countryController.text.trim()}',
           icon: Icons.location_on_rounded,
         ),
         ReviewSummaryTile(
-          label: 'Status',
+          label: StringConstants.status,
           value: bloc.state.status.toUpperCase(),
           icon: Icons.toggle_on_rounded,
         ),
         ReviewSummaryTile(
-          label: 'Amenities',
+          label: StringConstants.amenities,
           value: bloc.amenitiesSummary,
           icon: Icons.local_activity_rounded,
         ),
         ReviewSummaryTile(
-          label: 'Facilities',
+          label: StringConstants.facilities,
           value: bloc.facilitiesSummary,
           icon: Icons.home_work_rounded,
         ),
         ReviewSummaryTile(
-          label: 'Policies',
+          label: StringConstants.policies,
           value: bloc.policiesSummary,
           icon: Icons.policy_rounded,
         ),
         ReviewSummaryTile(
-          label: 'Package',
+          label: StringConstants.package,
           value: bloc.selectedPackageOption?.title ?? '',
           icon: Icons.workspace_premium_rounded,
         ),
         ReviewSummaryTile(
-          label: 'Logo',
+          label: StringConstants.logo,
           value: (bloc.state.selectedLogoName ?? bloc.shopLogoController.text)
               .trim(),
           icon: Icons.image_rounded,

@@ -1,15 +1,22 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_quill_delta_from_html/flutter_quill_delta_from_html.dart';
+import 'package:hamro_footsall/core/utils/app_utils.dart';
+import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/widgets/loading_widget.dart';
+import 'package:hamro_footsall/features/courts/data/model/picked_location.dart';
 import 'package:vsc_quill_delta_to_html/vsc_quill_delta_to_html.dart';
-import 'package:hamro_footsall/core/theme/light_color.dart';
 import 'package:hamro_footsall/core/widgets/custom_quill_editor.dart';
-import 'package:hamro_footsall/features/courts/presentation/models/picked_location.dart';
 import 'package:hamro_footsall/features/courts/presentation/widgets/create_footsall_courts/exact_location_picker_sheet.dart';
-import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit.dart';
+import 'package:hamro_footsall/features/public/presentation/bloc/public_templates/public_templates_bloc.dart';
+import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_cubit.dart';
 import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_models.dart';
+import 'package:hamro_footsall/features/vendor/presentation/utils/vendor_template_defaults.dart';
+import 'package:hamro_footsall/features/vendor/presentation/validation/vendor_onboarding_validator.dart';
 import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/vendor_form_components.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class FutsalInformationSection extends StatefulWidget {
   const FutsalInformationSection({
@@ -30,19 +37,109 @@ class FutsalInformationSection extends StatefulWidget {
 
 class _FutsalInformationSectionState extends State<FutsalInformationSection> {
   final ScrollController _scrollController = ScrollController();
+  TextEditingController? _exactLocationController;
+  TextEditingController? _longitudeController;
+  TextEditingController? _latitudeController;
   late final QuillController _quillController;
   Timer? _debounceTimer;
   String _lastHtmlContent = '';
   bool _initialized = false;
+  bool _isFlushRegistered = false;
+  final Object _flushOwner = Object();
+
+  // Basic Information (subsection 0) field focus nodes, for keyboard "next"
+  // traversal and focusing the first invalid field when validation fails.
+  final FocusNode _nameFocus = FocusNode();
+  final FocusNode _registrationFocus = FocusNode();
+  final FocusNode _phoneFocus = FocusNode();
+  final FocusNode _emailFocus = FocusNode();
+  final FocusNode _websiteFocus = FocusNode();
 
   @override
   void initState() {
     super.initState();
     _lastHtmlContent = widget.draft.description;
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    if (widget.subsectionIndex == 2) {
+      _exactLocationController = TextEditingController();
+      _longitudeController = TextEditingController();
+      _latitudeController = TextEditingController();
+      _syncLocationControllers();
+    }
+
+    if (widget.subsectionIndex == 1) {
+      _registerFlush();
       _initializeEditor();
+    }
+
+    widget.cubit.focusInvalidFieldRequest.addListener(
+      _handleFocusInvalidRequest,
+    );
+  }
+
+  void _handleFocusInvalidRequest() {
+    if (widget.subsectionIndex != 0) return;
+    final String? raw = widget.cubit.focusInvalidFieldRequest.value;
+    if (raw == null) return;
+    if (raw.split('#').first !=
+        VendorOnboardingValidator.futsalSubstepKey(0, 0)) {
+      return;
+    }
+    final FocusNode? target = _firstInvalidBasicInfoFocus();
+    if (target == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) target.requestFocus();
     });
+  }
+
+  FocusNode? _firstInvalidBasicInfoFocus() {
+    final FutsalDraft draft = widget.cubit.state.futsal;
+    final String slug = draft.slug.trim();
+    final bool slugValid = RegExp(r'^[a-z0-9]+(?:-[a-z0-9]+)*$').hasMatch(slug);
+    if (draft.title.trim().isEmpty || slug.isEmpty || !slugValid) {
+      return _nameFocus;
+    }
+    if (draft.phone.trim().isEmpty) return _phoneFocus;
+    if (draft.email.trim().isEmpty) return _emailFocus;
+    return _websiteFocus;
+  }
+
+  @override
+  void didUpdateWidget(covariant FutsalInformationSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.subsectionIndex != widget.subsectionIndex) {
+      if (oldWidget.subsectionIndex == 1) {
+        _flushPendingChanges();
+        _unregisterFlush();
+      }
+      if (widget.subsectionIndex == 1) {
+        _registerFlush();
+        _initializeEditor();
+      }
+      if (widget.subsectionIndex == 2 && _exactLocationController == null) {
+        _exactLocationController = TextEditingController();
+        _longitudeController = TextEditingController();
+        _latitudeController = TextEditingController();
+        _syncLocationControllers();
+      }
+    }
+
+    if (oldWidget.draft.location != widget.draft.location) {
+      _syncLocationControllers();
+    }
+
+    if (oldWidget.draft.description != widget.draft.description &&
+        _initialized) {
+      if (widget.draft.description != _lastHtmlContent) {
+        _replaceEditorContent(widget.draft.description);
+      }
+    }
+  }
+
+  void _syncLocationControllers() {
+    _exactLocationController?.text = widget.draft.location.exactLocation;
+    _longitudeController?.text = formatDouble(widget.draft.location.longitude);
+    _latitudeController?.text = formatDouble(widget.draft.location.latitude);
   }
 
   void _initializeEditor() {
@@ -56,13 +153,35 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
     setState(() => _initialized = true);
   }
 
+  void _registerFlush() {
+    if (_isFlushRegistered) return;
+    widget.cubit.registerActiveEditorFlush(_flushOwner, _flushPendingChanges);
+    _isFlushRegistered = true;
+  }
+
+  void _unregisterFlush() {
+    if (!_isFlushRegistered) return;
+    widget.cubit.unregisterActiveEditorFlush(_flushOwner);
+    _isFlushRegistered = false;
+  }
+
+  void _replaceEditorContent(String html) {
+    _lastHtmlContent = html;
+    final Document document = _buildDocumentFromHtml(html);
+    _quillController.document = document;
+    _quillController.updateSelection(
+      const TextSelection.collapsed(offset: 0),
+      ChangeSource.local,
+    );
+  }
+
   void _onEditorChanged() {
     _debounceTimer?.cancel();
     _debounceTimer = Timer(const Duration(milliseconds: 300), () {
       if (!mounted) return;
+      _debounceTimer = null;
 
-      final delta = _quillController.document.toDelta();
-      final htmlConverter = QuillDeltaToHtmlConverter(delta.toJson()).convert();
+      final String htmlConverter = _currentEditorHtml();
 
       if (htmlConverter != _lastHtmlContent) {
         _lastHtmlContent = htmlConverter;
@@ -73,13 +192,43 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
     });
   }
 
+  String _currentEditorHtml() {
+    final delta = _quillController.document.toDelta();
+    return QuillDeltaToHtmlConverter(delta.toJson()).convert();
+  }
+
+  void _flushPendingChanges() {
+    if (!_initialized || _debounceTimer == null) return;
+
+    final String html = _currentEditorHtml();
+    if (html == _lastHtmlContent) return;
+
+    _lastHtmlContent = html;
+    widget.cubit.updateFutsal(
+      widget.cubit.state.futsal.copyWith(description: html),
+    );
+  }
+
   @override
   void dispose() {
+    _flushPendingChanges();
+    _unregisterFlush();
+    widget.cubit.focusInvalidFieldRequest.removeListener(
+      _handleFocusInvalidRequest,
+    );
     _debounceTimer?.cancel();
     if (_initialized) {
       _quillController.removeListener(_onEditorChanged);
       _quillController.dispose();
     }
+    _exactLocationController?.dispose();
+    _longitudeController?.dispose();
+    _latitudeController?.dispose();
+    _nameFocus.dispose();
+    _registrationFocus.dispose();
+    _phoneFocus.dispose();
+    _emailFocus.dispose();
+    _websiteFocus.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -110,14 +259,7 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
   }
 
   QuillController _initializeQuillController({String? html}) {
-    late final Document document;
-
-    if (html != null && html.trim().isNotEmpty) {
-      final delta = HtmlToDelta().convert(html);
-      document = Document.fromDelta(delta);
-    } else {
-      document = Document();
-    }
+    final Document document = _buildDocumentFromHtml(html);
 
     return QuillController(
       document: document,
@@ -125,17 +267,68 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
     );
   }
 
+  Document _buildDocumentFromHtml(String? html) {
+    if (html != null && html.trim().isNotEmpty) {
+      try {
+        final delta = HtmlToDelta().convert(html);
+        return Document.fromDelta(delta);
+      } catch (_) {
+        final String fallbackText = _stripHtml(html);
+        final Document doc = Document();
+        if (fallbackText.isNotEmpty) {
+          doc.insert(0, '$fallbackText\n');
+        }
+        return doc;
+      }
+    }
+    return Document();
+  }
+
+  String _stripHtml(String html) =>
+      html.replaceAll(RegExp(r'<[^>]+>'), '').trim();
+
+  void _resetDescription(String html) {
+    final String normalized = html.trim();
+    if (normalized.isEmpty) return;
+
+    if (_initialized) {
+      _replaceEditorContent(normalized);
+    }
+
+    widget.cubit.updateFutsal(widget.draft.copyWith(description: normalized));
+  }
+
   @override
   Widget build(BuildContext context) {
     final _SectionMeta meta = _sectionMeta(widget.subsectionIndex);
+    final String? defaultDescription = context.select((
+      PublicTemplatesBloc bloc,
+    ) {
+      return templateDefaultFor(
+        bloc.state.templates,
+        VendorTemplateField.futsalDescription,
+      );
+    });
 
     return VendorPanel(
-      padding: const EdgeInsets.all(14),
+      padding: AppUtils().getPadding(all: AppDimens.paddingX12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          _CompactSectionHeader(meta: meta),
-          const SizedBox(height: 16),
+          VendorOnboardingSectionHeader(
+            title: meta.title,
+            subtitle: meta.subtitle,
+            icon: meta.icon,
+            trailing:
+                widget.subsectionIndex == 1 &&
+                    defaultDescription != null &&
+                    defaultDescription.trim().isNotEmpty
+                ? VendorTemplateResetButton(
+                    onTap: () => _resetDescription(defaultDescription),
+                  )
+                : null,
+          ),
+          const SizedBox(height: AppDimens.sizeX12),
           if (widget.subsectionIndex == 0) _buildBasicInfo(),
           if (widget.subsectionIndex == 1) _buildDescription(),
           if (widget.subsectionIndex == 2) _buildLocationInfo(),
@@ -149,20 +342,30 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
     return Column(
       children: <Widget>[
         const SizedBox(height: 10),
-
         VendorInputField(
-          label: 'Futsal Club Name',
-          hintText: 'Enter futsal name',
+          label: StringConstants.futsalClubName,
+          isRequired: true,
+          hintText: StringConstants.enterFutsalClubName,
           enableIcon: true,
+          focusNode: _nameFocus,
+          ensureVisibleOnFocus: true,
+          textInputAction: TextInputAction.next,
+          onSubmitted: (_) => _registrationFocus.requestFocus(),
           initialValue: widget.draft.title,
-          onChanged: (String value) =>
-              widget.cubit.updateFutsal(widget.draft.copyWith(title: value)),
+          onChanged: widget.cubit.updateFutsalBasicIdentity,
         ),
+
         const SizedBox(height: 20),
         VendorInputField(
-          label: 'Registration Number (optional)',
-          hintText: 'Enter club registration number',
+          isRequired: true,
+          label: StringConstants.registrationNumber,
+          hintText: StringConstants.enterFutsalRegistrationNumber,
           enableIcon: true,
+          readOnly: false,
+          focusNode: _registrationFocus,
+          ensureVisibleOnFocus: true,
+          textInputAction: TextInputAction.next,
+          onSubmitted: (_) => _phoneFocus.requestFocus(),
           initialValue: widget.draft.registrationNumber,
           onChanged: (String value) => widget.cubit.updateFutsal(
             widget.draft.copyWith(registrationNumber: value),
@@ -171,36 +374,56 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
         const SizedBox(height: 20),
 
         VendorInputField(
-          label: 'Phone Number',
-          hintText: '98XXXXXXXX',
+          label: StringConstants.phoneNumber,
+          hintText: StringConstants.text98xxxxxxxx,
           initialValue: widget.draft.phone,
           enableIcon: true,
           keyboardType: TextInputType.phone,
+          isRequired: true,
+          focusNode: _phoneFocus,
+          ensureVisibleOnFocus: true,
+          textInputAction: TextInputAction.next,
+          onSubmitted: (_) => _emailFocus.requestFocus(),
           onChanged: (String value) =>
               widget.cubit.updateFutsal(widget.draft.copyWith(phone: value)),
         ),
         const SizedBox(height: 20),
         VendorInputField(
-          label: 'Email Address',
-          hintText: 'name@example.com',
+          isRequired: true,
+          label: StringConstants.emailAddress,
+          hintText: StringConstants.futsalGmailCom,
           initialValue: widget.draft.email,
           enableIcon: true,
           keyboardType: TextInputType.emailAddress,
+          focusNode: _emailFocus,
+          ensureVisibleOnFocus: true,
+          textInputAction: TextInputAction.next,
+          onSubmitted: (_) => _websiteFocus.requestFocus(),
           onChanged: (String value) =>
               widget.cubit.updateFutsal(widget.draft.copyWith(email: value)),
         ),
         const SizedBox(height: 20),
+        VendorInputField(
+          label: StringConstants.websiteOrSocialMediaLink,
+          hintText: StringConstants.hamroFutsalWebsiteUrlWithTrailingSlash,
+          initialValue: widget.draft.websiteOrSocialLink,
+          enableIcon: true,
+          keyboardType: TextInputType.url,
+          focusNode: _websiteFocus,
+          ensureVisibleOnFocus: true,
+          textInputAction: TextInputAction.done,
+          onChanged: widget.cubit.updateFutsalWebsiteOrSocialLink,
+        ),
+        const SizedBox(height: 10),
       ],
     );
   }
 
   Widget _buildDescription() {
     if (!_initialized) {
-      return const SizedBox(
-        height: 250,
-        child: Center(child: CircularProgressIndicator()),
-      );
+      return const SizedBox(height: 250, child: Center(child: LoadingWidget()));
     }
+
     return Column(
       children: [
         SizedBox(
@@ -209,7 +432,7 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
             isReadOnly: false,
             controller: _quillController,
             scrollController: _scrollController,
-            hintText: 'Description about your futsal...',
+            hintText: StringConstants.descriptionAboutYourFutsal,
           ),
         ),
       ],
@@ -221,9 +444,9 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
       children: <Widget>[
         const SizedBox(height: 10),
         VendorInputField(
-          label: 'Futsal Address',
+          label: StringConstants.futsalAddress,
           enableIcon: true,
-          hintText: 'Street, city, area',
+          hintText: StringConstants.streetCityArea,
           initialValue: widget.draft.location.fullAddress,
           onChanged: (String value) => widget.cubit.updateFutsal(
             widget.draft.copyWith(
@@ -234,9 +457,10 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
 
         const SizedBox(height: 20),
         VendorInputField(
-          label: 'Exact location',
-          hintText: 'Tap to pick location on map',
-          initialValue: widget.draft.location.exactLocation,
+          label: StringConstants.exactLocationSentenceCase,
+          hintText: StringConstants.tapToPickLocationOnMap,
+          controller: _exactLocationController,
+          initialValue: '',
           enableIcon: true,
           readOnly: true,
           onTap: _openLocationPicker,
@@ -247,9 +471,10 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
           children: <Widget>[
             Expanded(
               child: VendorInputField(
-                label: 'Longitude',
-                hintText: 'Auto-filled',
-                initialValue: formatDouble(widget.draft.location.longitude),
+                label: StringConstants.longitude,
+                hintText: StringConstants.autoFilled,
+                controller: _longitudeController,
+                initialValue: '',
                 readOnly: true,
                 onChanged: (_) {},
               ),
@@ -257,9 +482,10 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
             const SizedBox(width: 10),
             Expanded(
               child: VendorInputField(
-                label: 'Latitude',
-                hintText: 'Auto-filled',
-                initialValue: formatDouble(widget.draft.location.latitude),
+                label: StringConstants.latitude,
+                hintText: StringConstants.autoFilled,
+                controller: _latitudeController,
+                initialValue: '',
                 readOnly: true,
                 onChanged: (_) {},
               ),
@@ -274,8 +500,8 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        _CompactGroupCard(
-          title: 'Amenities',
+        VendorGroupedContentCard(
+          title: StringConstants.amenities,
           icon: Icons.chair_alt_rounded,
           child: GridView.builder(
             shrinkWrap: true,
@@ -299,8 +525,8 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
           ),
         ),
         const SizedBox(height: 12),
-        _CompactGroupCard(
-          title: 'Features',
+        VendorGroupedContentCard(
+          title: StringConstants.features,
           icon: Icons.auto_awesome_rounded,
           child: GridView.builder(
             shrinkWrap: true,
@@ -331,156 +557,35 @@ class _FutsalInformationSectionState extends State<FutsalInformationSection> {
     switch (index) {
       case 0:
         return const _SectionMeta(
-          title: 'Basic Information',
-          subtitle: 'Venue identity and contact details',
+          title: StringConstants.basicInformation,
+          subtitle: StringConstants.venueIdentityAndContactDetails,
           icon: Icons.storefront_rounded,
         );
       case 1:
         return const _SectionMeta(
-          title: 'Description',
-          subtitle: 'Tell customers about your futsal',
+          title: StringConstants.description,
+          subtitle: StringConstants.tellCustomersAboutYourFutsalSubtitle,
           icon: Icons.description_rounded,
         );
       case 2:
         return const _SectionMeta(
-          title: 'Location Details',
-          subtitle: 'Address and map coordinates',
+          title: StringConstants.locationDetails,
+          subtitle: StringConstants.addressAndMapCoordinates,
           icon: Icons.location_on_rounded,
         );
       case 3:
         return const _SectionMeta(
-          title: 'Amenities & Features',
-          subtitle: 'Highlight what your futsal offers',
+          title: StringConstants.amenitiesAndFeatures,
+          subtitle: StringConstants.highlightWhatYourFutsalOffers,
           icon: Icons.dashboard_customize_rounded,
         );
       default:
         return const _SectionMeta(
-          title: 'Futsal Information',
-          subtitle: 'Complete the required details',
+          title: StringConstants.futsalInformation,
+          subtitle: StringConstants.completeTheRequiredDetails,
           icon: Icons.info_rounded,
         );
     }
-  }
-}
-
-class _CompactSectionHeader extends StatelessWidget {
-  const _CompactSectionHeader({required this.meta});
-
-  final _SectionMeta meta;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: <Color>[
-            LightColor.secondaryLight.withValues(alpha: 0.5),
-            LightColor.secondaryLight.withValues(alpha: 0.3),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: LightColor.secondary.withValues(alpha: 0.2)),
-      ),
-      child: Row(
-        children: <Widget>[
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: LightColor.secondaryLight,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(meta.icon, size: 19, color: LightColor.secondary),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  meta.title,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
-                    color: LightColor.titleText,
-                    height: 1.15,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  meta.subtitle,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w500,
-                    color: LightColor.subtitleText,
-                    height: 1.3,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CompactGroupCard extends StatelessWidget {
-  const _CompactGroupCard({
-    required this.title,
-    required this.icon,
-    required this.child,
-  });
-
-  final String title;
-  final IconData icon;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: LightColor.backgroundWarm,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: LightColor.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Row(
-            children: <Widget>[
-              Container(
-                width: 30,
-                height: 30,
-                decoration: BoxDecoration(
-                  color: LightColor.white,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(icon, size: 16, color: LightColor.secondary),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                title,
-                style: const TextStyle(
-                  color: LightColor.titleText,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          child,
-        ],
-      ),
-    );
   }
 }
 
@@ -495,436 +600,3 @@ class _SectionMeta {
   final String subtitle;
   final IconData icon;
 }
-
-// import 'dart:async';
-// import 'package:flutter/material.dart';
-// import 'package:flutter_quill/flutter_quill.dart';
-// import 'package:flutter_quill_delta_from_html/flutter_quill_delta_from_html.dart';
-// import 'package:vsc_quill_delta_to_html/vsc_quill_delta_to_html.dart';
-// import 'package:hamro_footsall/core/theme/light_color.dart';
-// import 'package:hamro_footsall/core/widgets/custom_quill_editor.dart';
-// import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit.dart';
-// import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_models.dart';
-// import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/vendor_form_components.dart';
-
-// class FutsalInformationSection extends StatefulWidget {
-//   const FutsalInformationSection({
-//     super.key,
-//     required this.cubit,
-//     required this.draft,
-//     required this.subsectionIndex,
-//   });
-
-//   final VendorOnboardingCubit cubit;
-//   final FutsalDraft draft;
-//   final int subsectionIndex;
-
-//   @override
-//   State<FutsalInformationSection> createState() =>
-//       _FutsalInformationSectionState();
-// }
-
-// class _FutsalInformationSectionState extends State<FutsalInformationSection> {
-//   final ScrollController _scrollController = ScrollController();
-//   late final QuillController _quillController;
-//   Timer? _debounceTimer;
-//   String _lastHtmlContent = '';
-
-//   @override
-//   void initState() {
-//     super.initState();
-//     _lastHtmlContent = widget.draft.description;
-//     _quillController = _initializeQuillController(
-//       html: widget.draft.description,
-//     );
-//   }
-
-//   @override
-//   void dispose() {
-//     _debounceTimer?.cancel();
-//     _quillController.dispose();
-//     _scrollController.dispose();
-//     super.dispose();
-//   }
-
-//   QuillController _initializeQuillController({String? html}) {
-//     late final Document document;
-
-//     if (html != null && html.trim().isNotEmpty) {
-//       final delta = HtmlToDelta().convert(html);
-//       document = Document.fromDelta(delta);
-//     } else {
-//       document = Document();
-//     }
-
-//     final controller = QuillController(
-//       document: document,
-//       selection: const TextSelection.collapsed(offset: 0),
-//     );
-
-//     controller.addListener(() {
-//       _debounceTimer?.cancel();
-//       _debounceTimer = Timer(const Duration(milliseconds: 300), () {
-//         if (!mounted) return;
-
-//         final delta = controller.document.toDelta();
-//         final htmlConverter = QuillDeltaToHtmlConverter(
-//           delta.toJson(),
-//         ).convert();
-
-//         if (htmlConverter != _lastHtmlContent) {
-//           _lastHtmlContent = htmlConverter;
-//           widget.cubit.updateFutsal(
-//             widget.draft.copyWith(description: htmlConverter),
-//           );
-//         }
-//       });
-//     });
-
-//     return controller;
-//   }
-
-//   @override
-//   Widget build(BuildContext context) {
-//     final _SectionMeta meta = _sectionMeta(widget.subsectionIndex);
-
-//     return VendorPanel(
-//       padding: const EdgeInsets.all(14),
-//       child: Column(
-//         crossAxisAlignment: CrossAxisAlignment.start,
-//         children: <Widget>[
-//           _CompactSectionHeader(meta: meta),
-//           const SizedBox(height: 14),
-//           if (widget.subsectionIndex == 0) _buildBasicInfo(),
-//           if (widget.subsectionIndex == 1) _buildLocationInfo(),
-//           if (widget.subsectionIndex == 2) _buildAmenitiesAndFeatures(),
-//         ],
-//       ),
-//     );
-//   }
-
-//   Widget _buildBasicInfo() {
-//     return Column(
-//       children: <Widget>[
-//         VendorInputField(
-//           label: 'Futsal Club Name',
-//           hintText: 'Enter futsal name',
-//           initialValue: widget.draft.title,
-//           onChanged: (String value) =>
-//               widget.cubit.updateFutsal(widget.draft.copyWith(title: value)),
-//         ),
-//         const SizedBox(height: 16),
-//         // VendorInputField(
-//         //   label: 'Description',
-//         //   hintText: 'Short description about your futsal',
-//         //   initialValue: draft.description,
-//         //   maxLines: 3,
-//         //   onChanged: (String value) =>
-//         //       cubit.updateFutsal(draft.copyWith(description: value)),
-//         // ),
-//         CustomQuillEditor(
-//           isReadOnly: false,
-//           controller: _quillController,
-//           scrollController: _scrollController,
-//         ),
-//         const SizedBox(height: 16),
-//         VendorInputField(
-//           label: 'Phone',
-//           hintText: '98XXXXXXXX',
-//           initialValue: widget.draft.phone,
-//           keyboardType: TextInputType.phone,
-//           onChanged: (String value) =>
-//               widget.cubit.updateFutsal(widget.draft.copyWith(phone: value)),
-//         ),
-//         const SizedBox(height: 16),
-
-//         VendorInputField(
-//           label: 'Email',
-//           hintText: 'name@example.com',
-//           initialValue: widget.draft.email,
-//           keyboardType: TextInputType.emailAddress,
-//           onChanged: (String value) =>
-//               widget.cubit.updateFutsal(widget.draft.copyWith(email: value)),
-//         ),
-//       ],
-//     );
-//   }
-
-//   Widget _buildLocationInfo() {
-//     return Column(
-//       children: <Widget>[
-//         VendorInputField(
-//           label: 'Full address',
-//           hintText: 'Street, city, area',
-//           initialValue: widget.draft.location.fullAddress,
-//           maxLines: 2,
-//           onChanged: (String value) => widget.cubit.updateFutsal(
-//             widget.draft.copyWith(
-//               location: widget.draft.location.copyWith(fullAddress: value),
-//             ),
-//           ),
-//         ),
-//         const SizedBox(height: 12),
-//         VendorInputField(
-//           label: 'Exact location',
-//           hintText: 'Landmark or nearby area',
-//           initialValue: widget.draft.location.exactLocation,
-//           onChanged: (String value) => widget.cubit.updateFutsal(
-//             widget.draft.copyWith(
-//               location: widget.draft.location.copyWith(exactLocation: value),
-//             ),
-//           ),
-//         ),
-//         const SizedBox(height: 12),
-//         Row(
-//           children: <Widget>[
-//             Expanded(
-//               child: VendorInputField(
-//                 label: 'Longitude',
-//                 hintText: 'e.g. 85.3240',
-//                 initialValue: formatDouble(widget.draft.location.longitude),
-//                 keyboardType: const TextInputType.numberWithOptions(
-//                   decimal: true,
-//                   signed: true,
-//                 ),
-//                 onChanged: (String value) => widget.cubit.updateFutsal(
-//                   widget.draft.copyWith(
-//                     location: widget.draft.location.copyWith(
-//                       longitude: parseDouble(value),
-//                       clearLongitude: value.trim().isEmpty,
-//                     ),
-//                   ),
-//                 ),
-//               ),
-//             ),
-//             const SizedBox(width: 10),
-//             Expanded(
-//               child: VendorInputField(
-//                 label: 'Latitude',
-//                 hintText: 'e.g. 27.7172',
-//                 initialValue: formatDouble(widget.draft.location.latitude),
-//                 keyboardType: const TextInputType.numberWithOptions(
-//                   decimal: true,
-//                   signed: true,
-//                 ),
-//                 onChanged: (String value) => widget.cubit.updateFutsal(
-//                   widget.draft.copyWith(
-//                     location: widget.draft.location.copyWith(
-//                       latitude: parseDouble(value),
-//                       clearLatitude: value.trim().isEmpty,
-//                     ),
-//                   ),
-//                 ),
-//               ),
-//             ),
-//           ],
-//         ),
-//       ],
-//     );
-//   }
-
-//   Widget _buildAmenitiesAndFeatures() {
-//     return Column(
-//       crossAxisAlignment: CrossAxisAlignment.start,
-//       children: <Widget>[
-//         _CompactGroupCard(
-//           title: 'Amenities',
-//           icon: Icons.chair_alt_rounded,
-//           child: Wrap(
-//             spacing: 8,
-//             runSpacing: 8,
-//             children: futsalAmenityOptions
-//                 .map(
-//                   (String item) => VendorSelectableChip(
-//                     label: item,
-//                     isSelected: widget.draft.amenities.contains(item),
-//                     onTap: () => widget.cubit.toggleFutsalAmenity(item),
-//                   ),
-//                 )
-//                 .toList(),
-//           ),
-//         ),
-//         const SizedBox(height: 12),
-//         _CompactGroupCard(
-//           title: 'Features',
-//           icon: Icons.auto_awesome_rounded,
-//           child: Wrap(
-//             spacing: 8,
-//             runSpacing: 8,
-//             children: futsalFeatureOptions
-//                 .map(
-//                   (String item) => VendorSelectableChip(
-//                     label: item,
-//                     isSelected: widget.draft.features.contains(item),
-//                     onTap: () => widget.cubit.toggleFutsalFeature(item),
-//                   ),
-//                 )
-//                 .toList(),
-//           ),
-//         ),
-//       ],
-//     );
-//   }
-
-//   _SectionMeta _sectionMeta(int index) {
-//     switch (index) {
-//       case 0:
-//         return const _SectionMeta(
-//           title: 'Basic Information',
-//           subtitle: 'Venue identity and contact details',
-//           icon: Icons.storefront_rounded,
-//         );
-//       case 1:
-//         return const _SectionMeta(
-//           title: 'Location Details',
-//           subtitle: 'Address and map coordinates',
-//           icon: Icons.location_on_rounded,
-//         );
-//       case 2:
-//         return const _SectionMeta(
-//           title: 'Amenities & Features',
-//           subtitle: 'Highlight what your futsal offers',
-//           icon: Icons.dashboard_customize_rounded,
-//         );
-//       default:
-//         return const _SectionMeta(
-//           title: 'Futsal Information',
-//           subtitle: 'Complete the required details',
-//           icon: Icons.info_rounded,
-//         );
-//     }
-//   }
-// }
-
-// class _CompactSectionHeader extends StatelessWidget {
-//   const _CompactSectionHeader({required this.meta});
-
-//   final _SectionMeta meta;
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Container(
-//       padding: const EdgeInsets.all(12),
-//       decoration: BoxDecoration(
-//         gradient: LinearGradient(
-//           colors: <Color>[
-//             LightColor.secondaryLight.withValues(alpha: 0.5),
-//             LightColor.secondaryLight.withValues(alpha: 0.3),
-//           ],
-//           begin: Alignment.topLeft,
-//           end: Alignment.bottomRight,
-//         ),
-//         borderRadius: BorderRadius.circular(16),
-//         border: Border.all(color: LightColor.secondary.withValues(alpha: 0.2)),
-//       ),
-//       child: Row(
-//         children: <Widget>[
-//           Container(
-//             width: 38,
-//             height: 38,
-//             decoration: BoxDecoration(
-//               color: LightColor.secondaryLight,
-//               borderRadius: BorderRadius.circular(12),
-//             ),
-//             child: Icon(meta.icon, size: 19, color: LightColor.secondary),
-//           ),
-//           const SizedBox(width: 10),
-//           Expanded(
-//             child: Column(
-//               crossAxisAlignment: CrossAxisAlignment.start,
-//               children: <Widget>[
-//                 Text(
-//                   meta.title,
-//                   style: const TextStyle(
-//                     fontSize: 14,
-//                     fontWeight: FontWeight.w800,
-//                     color: LightColor.titleText,
-//                     height: 1.15,
-//                   ),
-//                 ),
-//                 const SizedBox(height: 3),
-//                 Text(
-//                   meta.subtitle,
-//                   maxLines: 2,
-//                   overflow: TextOverflow.ellipsis,
-//                   style: const TextStyle(
-//                     fontSize: 11.5,
-//                     fontWeight: FontWeight.w500,
-//                     color: LightColor.subtitleText,
-//                     height: 1.3,
-//                   ),
-//                 ),
-//               ],
-//             ),
-//           ),
-//         ],
-//       ),
-//     );
-//   }
-// }
-
-// class _CompactGroupCard extends StatelessWidget {
-//   const _CompactGroupCard({
-//     required this.title,
-//     required this.icon,
-//     required this.child,
-//   });
-
-//   final String title;
-//   final IconData icon;
-//   final Widget child;
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Container(
-//       width: double.infinity,
-//       padding: const EdgeInsets.all(12),
-//       decoration: BoxDecoration(
-//         color: LightColor.backgroundWarm,
-//         borderRadius: BorderRadius.circular(16),
-//         border: Border.all(color: LightColor.border),
-//       ),
-//       child: Column(
-//         crossAxisAlignment: CrossAxisAlignment.start,
-//         children: <Widget>[
-//           Row(
-//             children: <Widget>[
-//               Container(
-//                 width: 30,
-//                 height: 30,
-//                 decoration: BoxDecoration(
-//                   color: LightColor.white,
-//                   borderRadius: BorderRadius.circular(10),
-//                 ),
-//                 child: Icon(icon, size: 16, color: LightColor.secondary),
-//               ),
-//               const SizedBox(width: 8),
-//               Text(
-//                 title,
-//                 style: const TextStyle(
-//                   color: LightColor.titleText,
-//                   fontSize: 13,
-//                   fontWeight: FontWeight.w800,
-//                 ),
-//               ),
-//             ],
-//           ),
-//           const SizedBox(height: 10),
-//           child,
-//         ],
-//       ),
-//     );
-//   }
-// }
-
-// class _SectionMeta {
-//   const _SectionMeta({
-//     required this.title,
-//     required this.subtitle,
-//     required this.icon,
-//   });
-
-//   final String title;
-//   final String subtitle;
-//   final IconData icon;
-// }

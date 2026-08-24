@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 enum VendorCategory { futsal, court }
 
 enum StepStatus { locked, notStarted, inProgress, complete, error, pending }
 
 enum DraftSaveStatus { idle, saving, saved, failure, error, unsaved }
+
+enum VendorErrorOrigin { validation, api, local }
 
 enum FutsalSection { information, policyRules, business }
 
@@ -18,24 +21,16 @@ enum CourtSection {
   information,
   bookingPayment,
   amenitiesFacilities,
-  photosMemories,
   slotsPayments,
 }
 
-enum CourtInformationSubstep { basicInfo, description, timeSchedules }
+enum CourtInformationSubstep { basicInfo, description, photosMemories }
 
-enum CourtBookingPaymentSubstep {
-  onlineBooking,
-  advancePayment,
-  paymentPercentage,
-  paymentQr,
-}
+enum CourtBookingPaymentSubstep { advancePayment, paymentQr }
 
-enum CourtAmenitiesSubstep { details }
+enum CourtAmenitiesSubstep { amenities, facilities }
 
-enum CourtMediaSubstep { uploads }
-
-enum CourtSlotsSubstep { slotSchedule, slotPricing }
+enum CourtSlotsSubstep { slotSchedule, weekendHolidays, slotPricing }
 
 class VendorSubstepDefinition {
   const VendorSubstepDefinition({
@@ -150,75 +145,76 @@ const List<VendorSectionDefinition> futsalSectionDefinitions =
     <VendorSectionDefinition>[
       VendorSectionDefinition(
         id: 'futsal_information',
-        title: 'Information',
-        subtitle: 'Title, contacts, location, amenities, and features.',
+        title: StringConstants.information,
+        subtitle: StringConstants.titleContactsLocationAmenitiesAndFeatures,
         icon: Icons.storefront_rounded,
         substeps: <VendorSubstepDefinition>[
           VendorSubstepDefinition(
             id: 'basic_info',
-            title: 'Basic Info',
-            subtitle: 'Title, phone, and email.',
+            title: StringConstants.basicInfo,
+            subtitle: StringConstants.titlePhoneAndEmail,
           ),
           VendorSubstepDefinition(
             id: 'description',
-            title: 'Description',
-            subtitle: 'Tell customers about your futsal.',
+            title: StringConstants.description,
+            subtitle: StringConstants.tellCustomersAboutYourFutsal,
           ),
           VendorSubstepDefinition(
             id: 'location',
-            title: 'Location',
-            subtitle: 'Address, exact location, longitude, and latitude.',
+            title: StringConstants.location,
+            subtitle: StringConstants.addressExactLocationLongitudeAndLatitude,
           ),
-          VendorSubstepDefinition(
-            id: 'amenities_features',
-            title: 'Amenities',
-            subtitle: 'Venue amenities and key features.',
-          ),
+          // VendorSubstepDefinition(
+          //   id: 'amenities_features',
+          //   title: StringConstants.amenities,
+          //   subtitle: StringConstants.venueAmenitiesAndKeyFeatures,
+          // ),
         ],
       ),
       VendorSectionDefinition(
         id: 'futsal_policy_rules',
-        title: 'Policy & Rules',
-        subtitle: 'Cancellation policy, futsal rules, and commissions.',
+        title: StringConstants.policyAndRules,
+        subtitle:
+            StringConstants.refundCancellationPolicyFutsalRulesAndCommissions,
         icon: Icons.policy_rounded,
         substeps: <VendorSubstepDefinition>[
           VendorSubstepDefinition(
             id: 'cancellation_policy',
-            title: 'Cancellation Policy',
-            subtitle: 'How refunds and cancellations are handled.',
+            title: StringConstants.refundCancellationPolicyCompact,
+            subtitle: StringConstants.howRefundsAndCancellationsAreHandled,
           ),
           VendorSubstepDefinition(
             id: 'futsal_rules',
-            title: 'Futsal Rules',
-            subtitle: 'House rules for players and bookings.',
+            title: StringConstants.futsalRules,
+            subtitle: StringConstants.houseRulesForPlayersAndBookings,
           ),
           VendorSubstepDefinition(
             id: 'commissions',
-            title: 'Commissions',
-            subtitle: 'Platform commission and commercial terms.',
+            title: StringConstants.commissions,
+            subtitle: StringConstants.platformCommissionAndCommercialTerms,
           ),
         ],
       ),
       VendorSectionDefinition(
         id: 'futsal_business',
-        title: 'Business',
-        subtitle: 'Cover media, gallery, and business documents.',
+        title: StringConstants.business,
+        subtitle: StringConstants.coverMediaGalleryAndBusinessDocuments,
         icon: Icons.business_center_rounded,
         substeps: <VendorSubstepDefinition>[
           VendorSubstepDefinition(
             id: 'cover_image',
-            title: 'Cover Image',
-            subtitle: 'Primary futsal cover image.',
+            title: StringConstants.coverImage,
+            subtitle: StringConstants.primaryFutsalCoverImage,
           ),
           VendorSubstepDefinition(
             id: 'gallery',
-            title: 'Gallery',
-            subtitle: 'Venue-level photos for the listing.',
+            title: StringConstants.gallery,
+            subtitle: StringConstants.venueLevelPhotosForTheListing,
           ),
           VendorSubstepDefinition(
             id: 'company_documents',
-            title: 'Company Docs',
-            subtitle: 'Legal and supporting company documents.',
+            title: StringConstants.companyDocs,
+            subtitle: StringConstants.legalAndSupportingCompanyDocuments,
           ),
         ],
       ),
@@ -228,96 +224,83 @@ const List<VendorSectionDefinition> courtSectionDefinitions =
     <VendorSectionDefinition>[
       VendorSectionDefinition(
         id: 'court_information',
-        title: 'Information',
-        subtitle: 'Court identity, pricing, type, and availability.',
+        title: StringConstants.information,
+        subtitle: StringConstants.courtIdentityDescriptionPhotosAndMemories,
         icon: Icons.stadium_rounded,
         substeps: <VendorSubstepDefinition>[
           VendorSubstepDefinition(
             id: 'court_basic_info',
-            title: 'Court Info',
-            subtitle: 'Name, base price, and court type.',
+            title: StringConstants.courtInfo,
+            subtitle: StringConstants.nameBasePriceAndCourtType,
           ),
           VendorSubstepDefinition(
             id: 'court_description',
-            title: 'Description',
-            subtitle: 'Tell customers about this court.',
+            title: StringConstants.description,
+            subtitle: StringConstants.tellCustomersAboutThisCourt,
           ),
           VendorSubstepDefinition(
-            id: 'court_time_schedules',
-            title: 'Time Schedules',
-            subtitle: 'Availability days and operating hours.',
+            id: 'court_photos_memories',
+            title: StringConstants.photosAndMemories,
+            subtitle: StringConstants.courtPhotosAndMemories,
           ),
         ],
       ),
       VendorSectionDefinition(
         id: 'court_booking_payment',
-        title: 'Booking & Payment',
-        subtitle: 'Online booking, advance payment, percentage, and QR.',
+        title: StringConstants.bookingAndPayment,
+        subtitle: StringConstants.advancePaymentRequirementsAndQr,
         icon: Icons.payments_rounded,
         substeps: <VendorSubstepDefinition>[
           VendorSubstepDefinition(
-            id: 'online_booking',
-            title: 'Online Booking',
-            subtitle: 'Enable or disable online booking for this court.',
-          ),
-          VendorSubstepDefinition(
             id: 'advance_payment',
-            title: 'Advance Payment',
-            subtitle: 'Whether advance payment is required.',
-          ),
-          VendorSubstepDefinition(
-            id: 'payment_percentage',
-            title: 'Payment %',
-            subtitle: 'Advance collection percentage.',
+            title: StringConstants.advancePayment,
+            subtitle: StringConstants.requirementAndCollectionPercentage,
           ),
           VendorSubstepDefinition(
             id: 'payment_qr',
-            title: 'Payment QR',
-            subtitle: 'QR code used for advance payment.',
+            title: StringConstants.paymentQr,
+            subtitle: StringConstants.qrCodeUsedForAdvancePayment,
           ),
         ],
       ),
       VendorSectionDefinition(
         id: 'court_amenities',
-        title: 'Amenities',
-        subtitle: 'Court-specific amenities and facilities.',
+        title: StringConstants.amenitiesAndFacilities,
+        subtitle: StringConstants.courtSpecificAmenitiesAndFacilities,
         icon: Icons.weekend_rounded,
         substeps: <VendorSubstepDefinition>[
           VendorSubstepDefinition(
             id: 'court_amenities_form',
-            title: 'Amenities',
-            subtitle: 'Amenities and facilities for this court.',
+            title: StringConstants.amenities,
+            subtitle: StringConstants.courtSpecificAmenitiesForThisCourt,
           ),
-        ],
-      ),
-      VendorSectionDefinition(
-        id: 'court_media',
-        title: 'Photos',
-        subtitle: 'Photos and memories for the active court.',
-        icon: Icons.photo_library_rounded,
-        substeps: <VendorSubstepDefinition>[
           VendorSubstepDefinition(
-            id: 'court_media_uploads',
-            title: 'Uploads',
-            subtitle: 'Court photos and memories.',
+            id: 'court_facilities_form',
+            title: StringConstants.facilities,
+            subtitle: StringConstants.playerFacingFacilitiesForThisCourt,
           ),
         ],
       ),
       VendorSectionDefinition(
         id: 'court_slots_payments',
-        title: 'Slots & Payments',
-        subtitle: 'Time slots with pricing and payment options.',
+        title: StringConstants.slotsAndPayments,
+        subtitle: StringConstants.timeSlotsWithPricingAndPaymentOptions,
         icon: Icons.schedule_rounded,
         substeps: <VendorSubstepDefinition>[
           VendorSubstepDefinition(
+            id: 'weekend_holidays',
+            title: StringConstants.weekendAndClosures,
+            subtitle: StringConstants.markWeekendDaysHolidayDatesAndClosedDates,
+          ),
+          VendorSubstepDefinition(
             id: 'slot_schedule',
-            title: 'Slot Schedule',
-            subtitle: 'Configure date and time slots.',
+            title: StringConstants.slotSchedule,
+            subtitle: StringConstants.configureDateAndTimeSlots,
           ),
           VendorSubstepDefinition(
             id: 'slot_pricing',
-            title: 'Slot Pricing',
-            subtitle: 'Set slot-based price and payment percentages.',
+            title: StringConstants.slotPricing,
+            subtitle: StringConstants.setDefaultWeekendHolidayAndDiscountPrices,
           ),
         ],
       ),
@@ -374,6 +357,15 @@ const List<String> courtAmenityOptions = <String>[
   'Lighting',
 ];
 
+const Map<String, IconData> courtAmenityIcons = <String, IconData>{
+  'Goal Nets': Icons.sports_soccer_rounded,
+  'Scoreboard': Icons.scoreboard_rounded,
+  'Ball Stand': Icons.sports_baseball_rounded,
+  'Benches': Icons.weekend_rounded,
+  'Drinking Water': Icons.water_drop_rounded,
+  'Lighting': Icons.light_mode_rounded,
+};
+
 const List<String> courtFacilityOptions = <String>[
   'Indoor',
   'Roofed',
@@ -383,13 +375,18 @@ const List<String> courtFacilityOptions = <String>[
   'Spectator Zone',
 ];
 
-const List<String> courtTypeOptions = <String>[
-  '5v5',
-  '6v6',
-  '7v7',
-  'Indoor Turf',
-  'Outdoor Turf',
-];
+const Map<String, IconData> courtFacilityIcons = <String, IconData>{
+  'Indoor': Icons.home_work_rounded,
+  'Roofed': Icons.roofing_rounded,
+  'Changing Area': Icons.checkroom_rounded,
+  'Washroom Access': Icons.wc_rounded,
+  'Parking Access': Icons.local_parking_rounded,
+  'Spectator Zone': Icons.event_seat_rounded,
+};
+
+const List<String> courtTypeOptions = <String>['Indoor', 'Outdoor'];
+
+const List<String> matchFormatOptions = <String>['5v5', '6v6', '7v7'];
 
 const List<String> weekdayOptions = <String>[
   'Sun',

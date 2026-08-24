@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:hamro_footsall/core/theme/light_color.dart';
+import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/features/courts/presentation/bloc/create_footsall_courts_bloc.dart';
 import 'package:hamro_footsall/features/courts/presentation/widgets/create_footsall_courts/package_option_card.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class ChoosePackageSection extends StatelessWidget {
   const ChoosePackageSection({super.key, required this.bloc});
@@ -13,10 +14,11 @@ class ChoosePackageSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        const Text(
-          'Choose the package that matches your current stage and operational needs.',
+        Text(
+          StringConstants
+              .chooseThePackageThatMatchesYourCurrentStageAndOp2398b90f,
           style: TextStyle(
-            color: LightColor.darkgrey,
+            color: LightColor.secondaryTextColor,
             fontSize: 12.8,
             height: 1.45,
           ),
@@ -36,8 +38,8 @@ class ChoosePackageSection extends StatelessWidget {
             padding: const EdgeInsets.only(top: 4),
             child: Text(
               bloc.packageSelectionError()!,
-              style: const TextStyle(
-                color: LightColor.darkgrey,
+              style: TextStyle(
+                color: LightColor.secondaryTextColor,
                 fontSize: 12.5,
                 fontWeight: FontWeight.w600,
               ),

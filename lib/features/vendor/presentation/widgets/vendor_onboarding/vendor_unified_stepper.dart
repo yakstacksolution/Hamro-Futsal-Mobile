@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:hamro_footsall/core/theme/light_color.dart';
+import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/utils/app_utils.dart';
+import 'package:hamro_footsall/core/theme/app_colors.dart';
+import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_models.dart';
 import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/vendor_form_components.dart';
 
-/// A compact unified stepper that displays both main steps and substeps
-/// in a single section with minimal spacing.
 class VendorUnifiedStepper extends StatelessWidget {
   const VendorUnifiedStepper({
     super.key,
@@ -29,91 +30,112 @@ class VendorUnifiedStepper extends StatelessWidget {
   final StepStatus Function(int subsectionIndex) statusForSubstep;
   final ValueChanged<int> onSubstepSelected;
 
+  static final AppUtils _appUtils = AppUtils();
+  static final EdgeInsets _badgePadding = _appUtils.getPadding(
+    horizontal: AppDimens.sizeX8,
+    vertical: AppDimens.sizeX6,
+  );
+  static final EdgeInsets _dividerPadding = _appUtils.getPadding(
+    vertical: AppDimens.sizeX8,
+  );
+  static final EdgeInsets _stepChipPadding = _appUtils.getPadding(
+    horizontal: AppDimens.sizeX10,
+    vertical: AppDimens.sizeX6,
+  );
+  static const Duration _chipAnimationDuration = Duration(milliseconds: 90);
+
   @override
   Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    final TextStyle? titleStyle = textTheme.bodyTextMedium?.copyWith(
+      color: LightColor.primaryTextColor,
+      fontWeight: FontWeight.w700,
+    );
+    final TextStyle? badgeStyle = textTheme.bodySubTitle?.copyWith(
+      color: LightColor.inverseTextColor,
+      fontWeight: FontWeight.w700,
+    );
+    final TextStyle? stepStyle = textTheme.bodyTextSmall?.copyWith(
+      fontSize: AppDimens.fontBodySubTitle + AppDimens.sizeX1,
+      fontWeight: FontWeight.w700,
+    );
+    final TextStyle? substepStyle = textTheme.bodyMiniSubTitle?.copyWith(
+      fontWeight: FontWeight.w600,
+    );
+    final TextStyle? substepBadgeStyle = textTheme.bodyMiniSubTitle?.copyWith(
+      fontWeight: FontWeight.w700,
+    );
+
     return VendorPanel(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          // Header with title and current step info
           Row(
             children: <Widget>[
-              Expanded(
-                child: Text(
-                  title,
-                  style: const TextStyle(
-                    color: LightColor.titleText,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
+              Expanded(child: Text(title, style: titleStyle)),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: _badgePadding,
                 decoration: BoxDecoration(
-                  color: LightColor.secondaryLight,
-                  borderRadius: BorderRadius.circular(8),
+                  color: LightColor.secondaryColor,
+                  borderRadius: BorderRadius.circular(AppDimens.sizeX4),
                 ),
                 child: Text(
                   '${activeSectionIndex + 1}.${activeSubstepIndex + 1}',
-                  style: const TextStyle(
-                    color: LightColor.secondary,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                  ),
+                  style: badgeStyle,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 10),
-
-          // Main Steps Row
+          const SizedBox(height: AppDimens.sizeX8),
           SizedBox(
-            height: 36,
+            height: AppDimens.sizeX36,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               physics: const BouncingScrollPhysics(),
               itemCount: sections.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 6),
+              separatorBuilder: (_, __) =>
+                  const SizedBox(width: AppDimens.sizeX8),
               itemBuilder: (BuildContext context, int index) {
                 final VendorSectionDefinition section = sections[index];
                 final StepStatus status = statusForSection(index);
-
                 return _CompactStepChip(
                   index: index,
-                  title: _shortTitle(section.title),
+                  title: section.title,
                   icon: section.icon,
                   status: status,
                   isSelected: activeSectionIndex == index,
+                  textStyle: stepStyle,
                   onTap: () => onSectionSelected(index),
                 );
               },
             ),
           ),
 
-          // Subtle divider
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
+            padding: _dividerPadding,
             child: Row(
               children: <Widget>[
                 Container(
-                  width: 2,
-                  height: 2,
-                  decoration: const BoxDecoration(
-                    color: LightColor.border,
+                  width: AppDimens.sizeX2,
+                  height: AppDimens.sizeX2,
+                  decoration: BoxDecoration(
+                    color: LightColor.borderColor,
                     shape: BoxShape.circle,
                   ),
                 ),
-                const SizedBox(width: 6),
+                const SizedBox(width: AppDimens.sizeX6),
                 Expanded(
-                  child: Container(height: 1, color: LightColor.borderLight),
+                  child: Container(
+                    height: AppDimens.sizeX1,
+                    color: LightColor.dividerColor,
+                  ),
                 ),
-                const SizedBox(width: 6),
+                const SizedBox(width: AppDimens.sizeX6),
                 Container(
-                  width: 2,
-                  height: 2,
-                  decoration: const BoxDecoration(
-                    color: LightColor.border,
+                  width: AppDimens.sizeX2,
+                  height: AppDimens.sizeX2,
+                  decoration: BoxDecoration(
+                    color: LightColor.borderColor,
                     shape: BoxShape.circle,
                   ),
                 ),
@@ -123,21 +145,23 @@ class VendorUnifiedStepper extends StatelessWidget {
 
           // Substeps Row
           SizedBox(
-            height: 28,
+            height: AppDimens.sizeX28,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               physics: const BouncingScrollPhysics(),
               itemCount: substeps.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 6),
+              separatorBuilder: (_, __) =>
+                  const SizedBox(width: AppDimens.sizeX6),
               itemBuilder: (BuildContext context, int index) {
                 final VendorSubstepDefinition substep = substeps[index];
                 final StepStatus status = statusForSubstep(index);
-
                 return _CompactSubstepChip(
                   index: index,
-                  title: _compactTitle(substep.title),
+                  title: substep.title, //_compactTitle(substep.title),
                   status: status,
                   isSelected: index == activeSubstepIndex,
+                  titleStyle: substepStyle,
+                  badgeStyle: substepBadgeStyle,
                   onTap: () => onSubstepSelected(index),
                 );
               },
@@ -146,33 +170,6 @@ class VendorUnifiedStepper extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  String _shortTitle(String title) {
-    final String value = title.trim();
-    if (value.length <= 10) return value;
-
-    final List<String> words = value.split(' ');
-    if (words.length >= 2) {
-      return words.take(2).join(' ');
-    }
-    return value.substring(0, 10);
-  }
-
-  String _compactTitle(String value) {
-    final String title = value.trim();
-    final List<String> words = title.split(' ');
-
-    // Single word - return full word
-    if (words.length == 1) return title;
-
-    // Multiple words - return first two words if total <= 15 chars
-    if (words.length >= 2) {
-      final String twoWords = '${words[0]} ${words[1]}';
-      if (twoWords.length <= 15) return twoWords;
-      return words[0];
-    }
-    return title;
   }
 }
 
@@ -183,6 +180,7 @@ class _CompactStepChip extends StatelessWidget {
     required this.icon,
     required this.status,
     required this.isSelected,
+    required this.textStyle,
     required this.onTap,
   });
 
@@ -191,41 +189,36 @@ class _CompactStepChip extends StatelessWidget {
   final IconData icon;
   final StepStatus status;
   final bool isSelected;
+  final TextStyle? textStyle;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.transparent,
+      color: LightColor.transparentColor,
       child: InkWell(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(AppDimens.radiusX10),
         onTap: onTap,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
+          duration: VendorUnifiedStepper._chipAnimationDuration,
           curve: Curves.easeOut,
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          padding: VendorUnifiedStepper._stepChipPadding,
           decoration: BoxDecoration(
-            gradient: isSelected
-                ? const LinearGradient(
-                    colors: <Color>[
-                      LightColor.secondary,
-                      LightColor.secondaryDark,
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  )
-                : null,
-            color: isSelected ? null : LightColor.surfaceSubtle,
-            borderRadius: BorderRadius.circular(10),
+            color: isSelected
+                ? LightColor.secondaryColor
+                : LightColor.whiteColor,
+            borderRadius: BorderRadius.circular(AppDimens.radiusX8),
             border: Border.all(
-              color: isSelected ? Colors.transparent : LightColor.border,
+              color: isSelected
+                  ? Colors.transparent
+                  : LightColor.greyBorderColor,
             ),
             boxShadow: isSelected
                 ? <BoxShadow>[
                     BoxShadow(
-                      color: LightColor.secondary.withValues(alpha: 0.2),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
+                      color: LightColor.secondaryColor.withValues(alpha: 0.2),
+                      blurRadius: AppDimens.radiusX8,
+                      offset: const Offset(0, AppDimens.sizeX2),
                     ),
                   ]
                 : null,
@@ -235,29 +228,30 @@ class _CompactStepChip extends StatelessWidget {
             children: <Widget>[
               Icon(
                 status == StepStatus.complete ? Icons.check_rounded : icon,
-                size: 14,
+                size: AppDimens.sizeX16,
                 color: isSelected
-                    ? LightColor.white
+                    ? LightColor.inverseTextColor
                     : status == StepStatus.complete
-                    ? LightColor.secondary
-                    : LightColor.secondary,
+                    ? LightColor.primaryTextColor
+                    : LightColor.primaryTextColor,
               ),
-              const SizedBox(width: 6),
+              const SizedBox(width: AppDimens.sizeX6),
               Text(
                 title,
-                style: TextStyle(
-                  color: isSelected ? LightColor.white : LightColor.titleText,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
+
+                style: textStyle?.copyWith(
+                  color: isSelected
+                      ? LightColor.inverseTextColor
+                      : LightColor.primaryTextColor,
                 ),
               ),
               if (status == StepStatus.complete && !isSelected) ...<Widget>[
-                const SizedBox(width: 4),
+                const SizedBox(width: AppDimens.sizeX4),
                 Container(
-                  width: 6,
-                  height: 6,
+                  width: AppDimens.sizeX6,
+                  height: AppDimens.sizeX6,
                   decoration: const BoxDecoration(
-                    color: LightColor.secondary,
+                    color: LightColor.secondaryColor,
                     shape: BoxShape.circle,
                   ),
                 ),
@@ -276,6 +270,8 @@ class _CompactSubstepChip extends StatelessWidget {
     required this.title,
     required this.status,
     required this.isSelected,
+    required this.titleStyle,
+    required this.badgeStyle,
     required this.onTap,
   });
 
@@ -283,79 +279,97 @@ class _CompactSubstepChip extends StatelessWidget {
   final String title;
   final StepStatus status;
   final bool isSelected;
+  final TextStyle? titleStyle;
+  final TextStyle? badgeStyle;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final Color statusColor = _statusColor(status);
+    final Color backgroundColor = isSelected
+        ? LightColor.secondaryColor
+        : status == StepStatus.locked
+        ? LightColor.inputFillColor
+        : LightColor.whiteColor;
+    final Color borderColor = isSelected
+        ? LightColor.secondaryColor
+        : status == StepStatus.complete
+        ? LightColor.secondarySoft
+        : status == StepStatus.error
+        ? LightColor.redColor.withValues(alpha: 0.22)
+        : LightColor.dividerColor;
+    final Color badgeColor = isSelected
+        ? LightColor.inverseTextColor
+        : status == StepStatus.complete
+        ? LightColor.secondarySoft
+        : status == StepStatus.error
+        ? LightColor.redLightColor.withValues(alpha: 0.55)
+        : status == StepStatus.inProgress
+        ? LightColor.warningLightColor
+        : LightColor.inputFillColor;
+    final Color badgeTextColor = isSelected
+        ? LightColor.secondaryColor
+        : status == StepStatus.complete
+        ? LightColor.secondaryColor
+        : status == StepStatus.error
+        ? LightColor.redColor
+        : status == StepStatus.inProgress
+        ? LightColor.warningColor
+        : status == StepStatus.locked
+        ? LightColor.hintTextColor
+        : LightColor.primaryTextColor;
+    final Color titleColor = isSelected
+        ? LightColor.inverseTextColor
+        : status == StepStatus.error
+        ? LightColor.redColor
+        : status == StepStatus.locked
+        ? LightColor.hintTextColor
+        : LightColor.secondaryTextColor;
 
     return Material(
-      color: Colors.transparent,
+      color: LightColor.transparentColor,
       child: InkWell(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppDimens.radiusX8),
         onTap: onTap,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
+          duration: VendorUnifiedStepper._chipAnimationDuration,
           curve: Curves.easeOut,
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          padding: VendorUnifiedStepper._stepChipPadding,
           decoration: BoxDecoration(
-            color: isSelected ? LightColor.secondaryLight : LightColor.surface,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: isSelected ? LightColor.secondary : LightColor.borderLight,
-            ),
+            color: backgroundColor,
+            borderRadius: BorderRadius.circular(AppDimens.radiusX6),
+            border: Border.all(color: borderColor, width: isSelected ? 1.2 : 1),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
               Container(
-                width: 18,
-                height: 18,
+                width: AppDimens.sizeX16,
+                height: AppDimens.sizeX16,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: isSelected
-                      ? LightColor.secondary
-                      : status == StepStatus.complete
-                      ? LightColor.secondaryLight
-                      : LightColor.surfaceSubtle,
+                  color: badgeColor,
                   shape: BoxShape.circle,
                 ),
                 child: status == StepStatus.complete
                     ? Icon(
                         Icons.check_rounded,
-                        size: 10,
-                        color: isSelected
-                            ? LightColor.white
-                            : LightColor.secondary,
+                        size: AppDimens.sizeX10,
+                        color: badgeTextColor,
                       )
                     : Text(
                         '${index + 1}',
-                        style: TextStyle(
-                          color: isSelected
-                              ? LightColor.white
-                              : LightColor.titleText,
-                          fontSize: 9,
-                          fontWeight: FontWeight.w700,
-                        ),
+                        style: badgeStyle?.copyWith(color: badgeTextColor),
                       ),
               ),
-              const SizedBox(width: 6),
-              Text(
-                title,
-                style: TextStyle(
-                  color: isSelected
-                      ? LightColor.secondaryDark
-                      : LightColor.subtitleText,
-                  fontSize: 8,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(width: 6),
+              const SizedBox(width: AppDimens.sizeX6),
+              Text(title, style: titleStyle?.copyWith(color: titleColor)),
+              const SizedBox(width: AppDimens.sizeX6),
               Container(
-                width: 5,
-                height: 5,
+                width: AppDimens.sizeX4,
+                height: AppDimens.sizeX4,
                 decoration: BoxDecoration(
-                  color: isSelected ? LightColor.secondary : statusColor,
+                  color: isSelected ? LightColor.whiteColor : statusColor,
                   shape: BoxShape.circle,
                 ),
               ),
@@ -369,17 +383,17 @@ class _CompactSubstepChip extends StatelessWidget {
   Color _statusColor(StepStatus status) {
     switch (status) {
       case StepStatus.complete:
-        return LightColor.secondary;
+        return LightColor.secondaryColor;
       case StepStatus.inProgress:
-        return LightColor.amber;
+        return LightColor.warningColor;
       case StepStatus.error:
-        return LightColor.red;
+        return LightColor.redColor;
       case StepStatus.locked:
-        return LightColor.hintText;
+        return LightColor.hintTextColor;
       case StepStatus.notStarted:
-        return LightColor.mutedText;
+        return LightColor.disabledTextColor;
       case StepStatus.pending:
-        return LightColor.mutedText;
+        return LightColor.disabledTextColor;
     }
   }
 }

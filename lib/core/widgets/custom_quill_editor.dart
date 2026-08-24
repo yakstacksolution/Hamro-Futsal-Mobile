@@ -2,35 +2,33 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_quill_extensions/flutter_quill_extensions.dart';
-import 'package:hamro_footsall/core/theme/light_color.dart';
+import 'package:hamro_footsall/core/theme/app_colors.dart';
+import 'package:hamro_footsall/core/theme/futsal_theme.dart';
+import 'package:hamro_footsall/core/utils/app_utils.dart';
+import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/widgets/keyboard_attached_toolbar.dart';
 
 typedef FutureStringCallback = Future<String> Function(String htmlText);
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Design tokens
-// ─────────────────────────────────────────────────────────────────────────────
 class _EditorTokens {
-  static const double radiusLg = 16;
-  static const double radiusMd = 12;
   static const double radiusSm = 8;
+  static const double toolbarDividerWidth = 1;
+  static Color get fieldFill => LightColor.inputFillColor;
 
-  static const EdgeInsets editorPadding = EdgeInsets.symmetric(
-    horizontal: 20,
-    vertical: 16,
+  static EdgeInsets editorPadding = AppUtils().getPadding(
+    symmetricHorizontal: AppDimens.paddingX14,
+    symmetricVertical: AppDimens.paddingX12,
   );
-  static const EdgeInsets hintPadding = EdgeInsets.symmetric(
-    horizontal: 20,
-    vertical: 18,
+
+  static EdgeInsets hintPadding = AppUtils().getPadding(
+    symmetricHorizontal: AppDimens.paddingX14,
+    symmetricVertical: AppDimens.paddingX14,
   );
 
   static const Duration animDuration = Duration(milliseconds: 220);
   static const Curve animCurve = Curves.easeInOut;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Widget
-// ─────────────────────────────────────────────────────────────────────────────
 class CustomQuillEditor extends StatefulWidget {
   final String? initialContent;
   final FutureStringCallback? onContentChanged;
@@ -94,19 +92,6 @@ class _CustomQuillEditorState extends State<CustomQuillEditor>
 
   void _onTextChanged() {
     _checkIfEmpty();
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!widget.scrollController.hasClients || !mounted) return;
-      final offset = widget.scrollController.offset;
-      final maxScroll = widget.scrollController.position.maxScrollExtent;
-      if (maxScroll - offset < 150) {
-        widget.scrollController.animateTo(
-          maxScroll,
-          duration: const Duration(milliseconds: 250),
-          curve: Curves.easeOut,
-        );
-      }
-    });
   }
 
   @override
@@ -118,21 +103,19 @@ class _CustomQuillEditorState extends State<CustomQuillEditor>
     super.dispose();
   }
 
-  // ───────────────────────────────────────────────────────────────────────────
-  // Build
-  // ───────────────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
+    final TextSelectionThemeData selectionTheme = TextSelectionThemeData(
+      cursorColor: LightColor.primaryTextColor,
+      selectionColor: LightColor.primaryTextColor.withValues(alpha: 0.18),
+      selectionHandleColor: LightColor.primaryTextColor,
+    );
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       resizeToAvoidBottomInset: true,
       body: Column(
         children: [
-          // ── Floating toolbar pill ──────────────────────────────────────────
-          _AnimatedToolbar(controller: widget.controller),
-          const SizedBox(height: 6),
-
-          // ── Editor card ────────────────────────────────────────────────────
           Expanded(
             child: AnimatedBuilder(
               animation: _borderOpacity,
@@ -140,20 +123,27 @@ class _CustomQuillEditorState extends State<CustomQuillEditor>
                 focusProgress: _borderOpacity.value,
                 child: child!,
               ),
-              child: Stack(
+              child: Column(
                 children: [
-                  // Hint text
-                  if (_showHint && widget.hintText != null)
-                    _HintOverlay(text: widget.hintText!),
-
-                  // Quill editor
-                  CupertinoScrollbar(
-                    controller: widget.scrollController,
-                    child: QuillEditor(
-                      controller: widget.controller,
-                      scrollController: widget.scrollController,
-                      focusNode: _focusNode,
-                      config: _buildEditorConfig(context),
+                  _EmbeddedToolbar(controller: widget.controller),
+                  Expanded(
+                    child: Stack(
+                      children: [
+                        if (_showHint && widget.hintText != null)
+                          _HintOverlay(text: widget.hintText!),
+                        CupertinoScrollbar(
+                          controller: widget.scrollController,
+                          child: TextSelectionTheme(
+                            data: selectionTheme,
+                            child: QuillEditor(
+                              controller: widget.controller,
+                              scrollController: widget.scrollController,
+                              focusNode: _focusNode,
+                              config: _buildEditorConfig(context),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -165,9 +155,6 @@ class _CustomQuillEditorState extends State<CustomQuillEditor>
     );
   }
 
-  // ───────────────────────────────────────────────────────────────────────────
-  // Editor config
-  // ───────────────────────────────────────────────────────────────────────────
   QuillEditorConfig _buildEditorConfig(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
@@ -179,17 +166,21 @@ class _CustomQuillEditorState extends State<CustomQuillEditor>
       autoFocus: false,
       showCursor: true,
       padding: _EditorTokens.editorPadding,
+      // flutter_quill still marks its supported search configuration as
+      // experimental; this is intentionally pinned to the current API.
+      // ignore: experimental_member_use
       searchConfig: const QuillSearchConfig(
+        // ignore: experimental_member_use
         searchEmbedMode: SearchEmbedMode.plainText,
       ),
       customStyles: DefaultStyles(
         paragraph: DefaultTextBlockStyle(
-          TextStyle(
-            fontSize: 15.5,
+          FutsalTheme.getTextTheme(context).bodyTextMedium!.copyWith(
             height: 1.65,
             letterSpacing: 0.1,
             color: cs.onSurface,
           ),
+
           const HorizontalSpacing(0, 0),
           const VerticalSpacing(0, 0),
           const VerticalSpacing(0, 0),
@@ -200,9 +191,9 @@ class _CustomQuillEditorState extends State<CustomQuillEditor>
         underline: const TextStyle(decoration: TextDecoration.underline),
         strikeThrough: const TextStyle(decoration: TextDecoration.lineThrough),
         link: TextStyle(
-          color: LightColor.primary,
+          color: LightColor.secondaryColor,
           decoration: TextDecoration.underline,
-          decorationColor: LightColor.primary.withValues(alpha: 0.5),
+          decorationColor: LightColor.secondaryColor.withValues(alpha: 0.5),
         ),
         h1: _headingStyle(cs, 26, FontWeight.w800, 20, 10),
         h2: _headingStyle(cs, 22, FontWeight.w700, 16, 8),
@@ -223,7 +214,7 @@ class _CustomQuillEditorState extends State<CustomQuillEditor>
     double vBottom,
   ) {
     return DefaultTextBlockStyle(
-      TextStyle(
+      FutsalTheme.getTextTheme(context).bodyTextLarge!.copyWith(
         fontSize: size,
         height: 1.3,
         fontWeight: weight,
@@ -238,37 +229,27 @@ class _CustomQuillEditorState extends State<CustomQuillEditor>
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Animated toolbar (slides in from top, pill-shaped)
-// ─────────────────────────────────────────────────────────────────────────────
-class _AnimatedToolbar extends StatelessWidget {
+class _EmbeddedToolbar extends StatelessWidget {
   final QuillController controller;
-  const _AnimatedToolbar({required this.controller});
+  const _EmbeddedToolbar({required this.controller});
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     return Container(
       decoration: BoxDecoration(
-        color: cs.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(_EditorTokens.radiusMd),
-        boxShadow: [
-          BoxShadow(
-            color: cs.shadow.withValues(alpha: 0.06),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+        color: context.appColors.surface,
+        border: Border(
+          bottom: BorderSide(
+            color: LightColor.greyBorderColor,
+            width: _EditorTokens.toolbarDividerWidth,
           ),
-        ],
+        ),
       ),
-      clipBehavior: Clip.antiAlias,
       child: KeyboardAttachedToolbar(controller: controller),
     );
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Editor card with animated focus ring
-// ─────────────────────────────────────────────────────────────────────────────
 class _EditorCard extends StatelessWidget {
   final double focusProgress;
   final Widget child;
@@ -277,51 +258,22 @@ class _EditorCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final focusBorderColor = Color.lerp(
-      cs.outlineVariant,
-      LightColor.transparent,
-      focusProgress,
-    )!;
-    final shadowAlpha = lerpDouble(0.04, 0.12, focusProgress);
+    final Color focusBorderColor = LightColor.greyBorderColor;
 
     return AnimatedContainer(
       duration: _EditorTokens.animDuration,
       curve: _EditorTokens.animCurve,
       decoration: BoxDecoration(
-        color: cs.surface,
-        borderRadius: BorderRadius.circular(_EditorTokens.radiusLg),
-        border: Border.all(
-          color: focusBorderColor,
-          width: lerpDouble(1.0, 1.5, focusProgress)!,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: cs.shadow.withValues(alpha: shadowAlpha),
-            blurRadius: lerpDouble(6, 20, focusProgress)!,
-            offset: const Offset(0, 4),
-          ),
-          if (focusProgress > 0)
-            BoxShadow(
-              color: LightColor.secondaryLight.withValues(
-                alpha: 0.06 * focusProgress,
-              ),
-              blurRadius: 24,
-              spreadRadius: -4,
-            ),
-        ],
+        color: _EditorTokens.fieldFill,
+        borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+        border: Border.all(color: focusBorderColor, width: 1.15),
       ),
       clipBehavior: Clip.antiAlias,
       child: child,
     );
   }
-
-  static double lerpDouble(double a, double b, double t) => a + (b - a) * t;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Animated hint overlay
-// ─────────────────────────────────────────────────────────────────────────────
 class _HintOverlay extends StatelessWidget {
   final String text;
   const _HintOverlay({required this.text});
@@ -340,14 +292,13 @@ class _HintOverlay extends StatelessWidget {
               duration: _EditorTokens.animDuration,
               child: Text(
                 text,
-                style: TextStyle(
-                  fontSize: 15.5,
-                  height: 1.65,
-                  letterSpacing: 0.1,
-                  color: cs.onSurfaceVariant.withValues(alpha: 0.45),
-                  fontStyle: FontStyle.italic,
-                  fontWeight: FontWeight.w400,
-                ),
+                style: FutsalTheme.getTextTheme(context).bodyTextMedium
+                    ?.copyWith(
+                      color: cs.onSurfaceVariant.withValues(alpha: 0.45),
+                      fontStyle: FontStyle.italic,
+                      letterSpacing: 0.1,
+                      fontWeight: FontWeight.w400,
+                    ),
               ),
             ),
           ),
@@ -357,9 +308,6 @@ class _HintOverlay extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Timestamp embed builder
-// ─────────────────────────────────────────────────────────────────────────────
 class TimeStampEmbedBuilder extends EmbedBuilder {
   @override
   String get key => 'timeStamp';
@@ -371,7 +319,10 @@ class TimeStampEmbedBuilder extends EmbedBuilder {
   Widget build(BuildContext context, EmbedContext embedContext) {
     final cs = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 2),
+      padding: AppUtils().getPadding(
+        symmetricHorizontal: AppDimens.paddingX2,
+        symmetricVertical: AppDimens.paddingX4,
+      ),
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: cs.primaryContainer.withValues(alpha: 0.35),
@@ -382,20 +333,27 @@ class TimeStampEmbedBuilder extends EmbedBuilder {
           ),
         ),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+          padding: AppUtils().getPadding(
+            symmetricHorizontal: AppDimens.paddingX8,
+            symmetricVertical: AppDimens.paddingX2,
+          ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.schedule_rounded, size: 13, color: cs.primary),
-              const SizedBox(width: 5),
+              Icon(
+                Icons.schedule_rounded,
+                size: AppDimens.sizeX14,
+                color: cs.primary,
+              ),
+              const SizedBox(width: AppDimens.sizeX4),
               Text(
                 embedContext.node.value.data as String,
-                style: TextStyle(
-                  color: cs.primary,
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w500,
-                  letterSpacing: 0.2,
-                ),
+                style: FutsalTheme.getTextTheme(context).bodyTextSmall
+                    ?.copyWith(
+                      color: cs.primary,
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: 0.2,
+                    ),
               ),
             ],
           ),
@@ -404,258 +362,3 @@ class TimeStampEmbedBuilder extends EmbedBuilder {
     );
   }
 }
-
-// import 'package:flutter/cupertino.dart';
-// import 'package:flutter/material.dart';
-// import 'package:flutter_quill/flutter_quill.dart';
-// import 'package:flutter_quill_extensions/flutter_quill_extensions.dart';
-// import 'package:hamro_footsall/core/widgets/keyboard_attached_toolbar.dart';
-
-// typedef FutureStringCallback = Future<String> Function(String htmlText);
-
-// class CustomQuillEditor extends StatefulWidget {
-//   final String? initialContent;
-//   final FutureStringCallback? onContentChanged;
-//   final bool isReadOnly;
-//   final QuillController controller;
-//   final ScrollController scrollController;
-//   final String? hintText;
-
-//   const CustomQuillEditor({
-//     super.key,
-//     this.initialContent,
-//     this.onContentChanged,
-//     required this.isReadOnly,
-//     required this.controller,
-//     required this.scrollController,
-//     this.hintText,
-//   });
-
-//   @override
-//   State<CustomQuillEditor> createState() => _CustomQuillEditorState();
-// }
-
-// class _CustomQuillEditorState extends State<CustomQuillEditor> {
-//   final FocusNode _focusNode = FocusNode();
-//   bool _showHint = true;
-
-//   @override
-//   void initState() {
-//     super.initState();
-//     _checkIfEmpty();
-//     widget.controller.addListener(_onTextChanged);
-//   }
-
-//   void _checkIfEmpty() {
-//     final plainText = widget.controller.document.toPlainText();
-//     final isEmpty = plainText.trim().isEmpty || plainText == '\n';
-//     if (_showHint != isEmpty) {
-//       setState(() {
-//         _showHint = isEmpty;
-//       });
-//     }
-//   }
-
-//   void _onTextChanged() {
-//     _checkIfEmpty();
-
-//     WidgetsBinding.instance.addPostFrameCallback((_) {
-//       if (widget.scrollController.hasClients && mounted) {
-//         final currentScroll = widget.scrollController.offset;
-//         final maxScroll = widget.scrollController.position.maxScrollExtent;
-
-//         if (maxScroll - currentScroll < 150) {
-//           widget.scrollController.animateTo(
-//             maxScroll,
-//             duration: const Duration(milliseconds: 250),
-//             curve: Curves.easeOut,
-//           );
-//         }
-//       }
-//     });
-//   }
-
-//   @override
-//   void dispose() {
-//     widget.controller.removeListener(_onTextChanged);
-//     _focusNode.dispose();
-//     super.dispose();
-//   }
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       backgroundColor: Colors.transparent,
-//       resizeToAvoidBottomInset: true,
-//       body: Column(
-//         children: [
-//           KeyboardAttachedToolbar(controller: widget.controller),
-//           SizedBox(height: 2),
-//           Expanded(
-//             child: Container(
-//               decoration: _editorDecoration(),
-//               child: Stack(
-//                 children: [
-//                   if (_showHint && widget.hintText != null)
-//                     Positioned.fill(
-//                       child: Padding(
-//                         padding: const EdgeInsets.all(16),
-//                         child: IgnorePointer(
-//                           child: Align(
-//                             alignment: Alignment.topLeft,
-//                             child: Text(
-//                               widget.hintText!,
-//                               style: TextStyle(
-//                                 fontSize: 16,
-//                                 height: 1.5,
-//                                 color: Theme.of(context)
-//                                     .colorScheme
-//                                     .onSurfaceVariant
-//                                     .withValues(alpha: 0.6),
-//                                 fontStyle: FontStyle.italic,
-//                                 fontWeight: FontWeight.w400,
-//                               ),
-//                             ),
-//                           ),
-//                         ),
-//                       ),
-//                     ),
-//                   CupertinoScrollbar(
-//                     controller: widget.scrollController,
-//                     child: QuillEditor(
-//                       controller: widget.controller,
-//                       scrollController: widget.scrollController,
-//                       focusNode: _focusNode,
-//                       config: _editorConfig(),
-//                     ),
-//                   ),
-//                 ],
-//               ),
-//             ),
-//           ),
-//         ],
-//       ),
-//     );
-//   }
-
-//   BoxDecoration _editorDecoration() {
-//     return BoxDecoration(
-//       color: Theme.of(context).colorScheme.surface,
-//       borderRadius: BorderRadius.circular(8),
-//     );
-//   }
-
-//   QuillEditorConfig _editorConfig() {
-//     final theme = Theme.of(context);
-//     return QuillEditorConfig(
-//       scrollable: true,
-//       expands: false,
-//       scrollBottomInset: 50,
-//       detectWordBoundary: true,
-//       searchConfig: QuillSearchConfig(
-//         searchEmbedMode: SearchEmbedMode.plainText,
-//       ),
-//       autoFocus: false,
-//       showCursor: true,
-//       padding: const EdgeInsets.all(16),
-//       customStyles: DefaultStyles(
-//         paragraph: DefaultTextBlockStyle(
-//           TextStyle(
-//             fontSize: 16,
-//             height: 1.5,
-//             color: theme.colorScheme.onSurface,
-//           ),
-//           const HorizontalSpacing(2, 8),
-//           const VerticalSpacing(0, 0),
-//           const VerticalSpacing(0, 0),
-//           null,
-//         ),
-//         bold: const TextStyle(fontWeight: FontWeight.bold),
-//         italic: const TextStyle(fontStyle: FontStyle.italic),
-//         underline: const TextStyle(decoration: TextDecoration.underline),
-//         strikeThrough: const TextStyle(decoration: TextDecoration.lineThrough),
-//         link: TextStyle(
-//           color: theme.colorScheme.primary,
-//           decoration: TextDecoration.underline,
-//         ),
-//         h1: DefaultTextBlockStyle(
-//           TextStyle(
-//             fontSize: 28,
-//             height: 1.3,
-//             fontWeight: FontWeight.bold,
-//             color: theme.colorScheme.onSurface,
-//           ),
-//           const HorizontalSpacing(0, 0),
-//           const VerticalSpacing(16, 8),
-//           const VerticalSpacing(0, 0),
-//           null,
-//         ),
-//         h2: DefaultTextBlockStyle(
-//           TextStyle(
-//             fontSize: 24,
-//             height: 1.3,
-//             fontWeight: FontWeight.bold,
-//             color: theme.colorScheme.onSurface,
-//           ),
-//           const HorizontalSpacing(0, 0),
-//           const VerticalSpacing(12, 8),
-//           const VerticalSpacing(0, 0),
-//           null,
-//         ),
-//         h3: DefaultTextBlockStyle(
-//           TextStyle(
-//             fontSize: 20,
-//             height: 1.3,
-//             fontWeight: FontWeight.w600,
-//             color: theme.colorScheme.onSurface,
-//           ),
-//           const HorizontalSpacing(0, 0),
-//           const VerticalSpacing(10, 6),
-//           const VerticalSpacing(0, 0),
-//           null,
-//         ),
-//       ),
-
-//       embedBuilders: [
-//         ...FlutterQuillEmbeds.editorBuilders(),
-//         TimeStampEmbedBuilder(),
-//       ],
-//     );
-//   }
-// }
-
-// class TimeStampEmbedBuilder extends EmbedBuilder {
-//   @override
-//   String get key => 'timeStamp';
-
-//   @override
-//   String toPlainText(Embed node) {
-//     return node.value.data;
-//   }
-
-//   @override
-//   Widget build(BuildContext context, EmbedContext embedContext) {
-//     final theme = Theme.of(context);
-//     return Padding(
-//       padding: const EdgeInsets.symmetric(vertical: 4),
-//       child: Row(
-//         mainAxisSize: MainAxisSize.min,
-//         children: [
-//           Icon(
-//             Icons.access_time_rounded,
-//             size: 16,
-//             color: theme.colorScheme.onSurfaceVariant,
-//           ),
-//           const SizedBox(width: 4),
-//           Text(
-//             embedContext.node.value.data as String,
-//             style: TextStyle(
-//               color: theme.colorScheme.onSurfaceVariant,
-//               fontSize: 14,
-//             ),
-//           ),
-//         ],
-//       ),
-//     );
-//   }
-// }

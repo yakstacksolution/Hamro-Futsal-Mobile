@@ -1,9 +1,9 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:go_router/go_router.dart';
-import 'package:hamro_footsall/core/routers/app_router_params.dart';
-import 'package:hamro_footsall/features/courts_details/presentation/model/time_slot_model.dart';
+import 'package:hamro_footsall/core/theme/app_colors.dart';
+import 'package:hamro_footsall/core/theme/futsal_theme.dart';
+import 'package:hamro_footsall/core/utils/app_utils.dart';
+import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/features/courts_details/presentation/widget/court_amenities.dart';
 import 'package:hamro_footsall/features/courts_details/presentation/widget/court_booking_policies_section.dart';
 import 'package:hamro_footsall/features/courts_details/presentation/widget/court_hosted_by_section.dart';
@@ -12,12 +12,11 @@ import 'package:hamro_footsall/features/courts_details/presentation/widget/court
 import 'package:hamro_footsall/features/courts_details/presentation/widget/court_rules_section.dart';
 import 'package:hamro_footsall/features/courts_details/presentation/widget/court_time_slot.dart';
 import 'package:hamro_footsall/features/courts_details/presentation/widget/details_image_gallery.dart';
-import 'package:hamro_footsall/features/vendor/presentation/pages/vendor_onboarding_page.dart';
+import 'package:hamro_footsall/features/futsal_details/data/model/time_slot_model.dart';
+import 'package:hamro_footsall/core/utils/string_constants.dart';
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// COURT DETAIL MODEL
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 class CourtDetailModel {
+  final int? venueId;
   final String name;
   final String location;
   final String address;
@@ -44,6 +43,7 @@ class CourtDetailModel {
   final int maxPlayers;
 
   const CourtDetailModel({
+    this.venueId,
     required this.name,
     required this.location,
     required this.address,
@@ -87,10 +87,6 @@ class ReviewModel {
   });
 }
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// COURT DETAIL PAGE
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
 class CourtDetailPage extends StatefulWidget {
   final CourtDetailModel? court;
 
@@ -102,17 +98,12 @@ class CourtDetailPage extends StatefulWidget {
 
 class _CourtDetailPageState extends State<CourtDetailPage>
     with TickerProviderStateMixin {
-  late final PageController _imagePageController;
   late final AnimationController _bottomBarController;
   late final Animation<Offset> _bottomBarSlide;
 
-  int _currentImageIndex = 0;
-  bool _isSaved = false;
   int _selectedDateIndex = 0;
   int _selectedSlotIndex = -1;
-  bool _showAllDescription = false;
 
-  // ── Sample Data ──
   late final CourtDetailModel _court;
 
   late final List<DateTime> _dates;
@@ -203,8 +194,6 @@ class _CourtDetailPageState extends State<CourtDetailPage>
           maxPlayers: 14,
         );
 
-    _imagePageController = PageController();
-
     _bottomBarController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 600),
@@ -221,20 +210,20 @@ class _CourtDetailPageState extends State<CourtDetailPage>
 
     for (int d = 0; d < 14; d++) {
       _timeSlotsByDate.add([
-        TimeSlotModel(time: '6:00 AM', isAvailable: d != 0),
+        TimeSlotModel(time: '6:00 AM', status: _mockStatus(d != 0)),
         const TimeSlotModel(time: '7:00 AM'),
-        TimeSlotModel(time: '8:00 AM', isAvailable: d % 2 == 0),
+        TimeSlotModel(time: '8:00 AM', status: _mockStatus(d % 2 == 0)),
         const TimeSlotModel(time: '9:00 AM'),
-        TimeSlotModel(time: '10:00 AM', isAvailable: d % 3 != 0),
-        const TimeSlotModel(time: '11:00 AM', isAvailable: false),
-        const TimeSlotModel(time: '12:00 PM', isAvailable: false),
+        TimeSlotModel(time: '10:00 AM', status: _mockStatus(d % 3 != 0)),
+        const TimeSlotModel(time: '11:00 AM', status: SlotStatus.booked),
+        const TimeSlotModel(time: '12:00 PM', status: SlotStatus.closed),
         const TimeSlotModel(time: '1:00 PM'),
-        TimeSlotModel(time: '2:00 PM', isAvailable: d != 1),
+        TimeSlotModel(time: '2:00 PM', status: _mockStatus(d != 1)),
         const TimeSlotModel(time: '3:00 PM'),
         const TimeSlotModel(time: '4:00 PM'),
-        TimeSlotModel(time: '5:00 PM', isAvailable: d % 2 != 0),
+        TimeSlotModel(time: '5:00 PM', status: _mockStatus(d % 2 != 0)),
         const TimeSlotModel(time: '6:00 PM'),
-        TimeSlotModel(time: '7:00 PM', isAvailable: d != 2),
+        TimeSlotModel(time: '7:00 PM', status: _mockStatus(d != 2)),
         const TimeSlotModel(time: '8:00 PM'),
         const TimeSlotModel(time: '9:00 PM'),
       ]);
@@ -247,12 +236,13 @@ class _CourtDetailPageState extends State<CourtDetailPage>
 
   @override
   void dispose() {
-    _imagePageController.dispose();
     _bottomBarController.dispose();
     super.dispose();
   }
 
-  // ── Helpers ──
+  SlotStatus _mockStatus(bool available) =>
+      available ? SlotStatus.available : SlotStatus.unavailable;
+
   String _dayName(DateTime date) {
     const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     return days[date.weekday - 1];
@@ -276,175 +266,6 @@ class _CourtDetailPageState extends State<CourtDetailPage>
     return months[date.month - 1];
   }
 
-  Widget _glassButton({
-    required IconData icon,
-    required VoidCallback onTap,
-    Color iconColor = Colors.white,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(14),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-          child: Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.25),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: Colors.white.withOpacity(0.15)),
-            ),
-            child: Icon(icon, color: iconColor, size: 22),
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // HEADER INFO
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // FEATURES
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // Widget _buildFeatures() {
-  //   final featureIcons = <String, IconData>{
-  //     'Indoor': Icons.house_rounded,
-  //     'Outdoor': Icons.park_rounded,
-  //     'Floodlight': Icons.lightbulb_rounded,
-  //     'Parking': Icons.local_parking_rounded,
-  //     'Changing Room': Icons.checkroom_rounded,
-  //     'Cafeteria': Icons.local_cafe_rounded,
-  //     'First Aid': Icons.medical_services_rounded,
-  //     'WiFi': Icons.wifi_rounded,
-  //     'AC': Icons.ac_unit_rounded,
-  //   };
-
-  //   final featureColors = <String, Color>{
-  //     'Indoor': DS.blue,
-  //     'Outdoor': DS.primary,
-  //     'Floodlight': DS.orange,
-  //     'Parking': DS.purple,
-  //     'Changing Room': const Color(0xFF06B6D4),
-  //     'Cafeteria': const Color(0xFFEC4899),
-  //     'First Aid': DS.red,
-  //     'WiFi': DS.blue,
-  //     'AC': const Color(0xFF06B6D4),
-  //   };
-
-  //   return _sectionWrapper(
-  //     title: 'Amenities & Features',
-  //     child: Wrap(
-  //       spacing: 10,
-  //       runSpacing: 10,
-  //       children: _court.features.map((f) {
-  //         final icon = featureIcons[f] ?? Icons.check_circle_outline_rounded;
-  //         final color = featureColors[f] ?? DS.primary;
-  //         return Container(
-  //           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-  //           decoration: BoxDecoration(
-  //             color: color.withOpacity(0.08),
-  //             borderRadius: BorderRadius.circular(12),
-  //             border: Border.all(color: color.withOpacity(0.15)),
-  //           ),
-  //           child: Row(
-  //             mainAxisSize: MainAxisSize.min,
-  //             children: [
-  //               Icon(icon, size: 16, color: color),
-  //               const SizedBox(width: 8),
-  //               Text(
-  //                 f,
-  //                 style: TextStyle(
-  //                   color: color,
-  //                   fontSize: 13,
-  //                   fontWeight: FontWeight.w700,
-  //                 ),
-  //               ),
-  //             ],
-  //           ),
-  //         );
-  //       }).toList(),
-  //     ),
-  //   );
-  // }
-
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // DESCRIPTION
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  Widget _buildDescription() {
-    const maxChars = 180;
-    final isLong = _court.description.length > maxChars;
-    final shortDescription = isLong
-        ? '${_court.description.substring(0, maxChars)}...'
-        : _court.description;
-
-    return _sectionWrapper(
-      title: 'About This Court',
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          AnimatedCrossFade(
-            firstChild: Text(
-              shortDescription,
-              style: const TextStyle(
-                color: DS.textSecondary,
-                fontSize: 14,
-                fontWeight: FontWeight.w400,
-                height: 1.65,
-              ),
-            ),
-            secondChild: Text(
-              _court.description,
-              style: const TextStyle(
-                color: DS.textSecondary,
-                fontSize: 14,
-                fontWeight: FontWeight.w400,
-                height: 1.65,
-              ),
-            ),
-            crossFadeState: _showAllDescription
-                ? CrossFadeState.showSecond
-                : CrossFadeState.showFirst,
-            duration: const Duration(milliseconds: 300),
-          ),
-          if (isLong) ...[
-            const SizedBox(height: 8),
-            GestureDetector(
-              onTap: () =>
-                  setState(() => _showAllDescription = !_showAllDescription),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    _showAllDescription ? 'Show less' : 'Read more',
-                    style: const TextStyle(
-                      color: DS.primary,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  Icon(
-                    _showAllDescription
-                        ? Icons.keyboard_arrow_up_rounded
-                        : Icons.keyboard_arrow_down_rounded,
-                    color: DS.primary,
-                    size: 18,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // BOTTOM BOOKING BAR
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   Widget _buildBottomBar() {
     final hasSelection = _selectedSlotIndex >= 0;
     final selectedTime = hasSelection
@@ -458,19 +279,21 @@ class _CourtDetailPageState extends State<CourtDetailPage>
     return SlideTransition(
       position: _bottomBarSlide,
       child: Container(
-        padding: const EdgeInsets.all(12),
+        padding: AppUtils().getPadding(all: AppDimens.paddingX12),
         decoration: BoxDecoration(
-          color: DS.surface,
+          color: LightColor.cardColor,
           borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(20),
-            topRight: Radius.circular(20),
+            topLeft: Radius.circular(AppDimens.radiusX20),
+            topRight: Radius.circular(AppDimens.radiusX20),
           ),
-          border: Border.all(color: DS.border.withOpacity(0.7)),
+          border: Border.all(
+            color: LightColor.dividerColor.withValues(alpha: 0.7),
+          ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.12),
-              blurRadius: 28,
-              offset: const Offset(0, 10),
+              color: LightColor.shadowOf(0.12),
+              blurRadius: AppDimens.sizeX28,
+              offset: const Offset(0, AppDimens.sizeX10),
             ),
           ],
         ),
@@ -479,53 +302,63 @@ class _CourtDetailPageState extends State<CourtDetailPage>
           children: [
             Row(
               children: [
-                // SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Padding(
-                        padding: const EdgeInsets.only(left: 6),
+                        padding: AppUtils().getPadding(
+                          left: AppDimens.paddingX6,
+                        ),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
-                            Text(
-                              _court.price,
-                              style: const TextStyle(
-                                color: DS.textPrimary,
-                                fontSize: 20,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: -0.5,
+                            Flexible(
+                              child: Text(
+                                _court.price,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: FutsalTheme.getTextTheme(context)
+                                    .headingSmall
+                                    ?.copyWith(
+                                      color: LightColor.primaryTextColor,
+                                      fontWeight: FontWeight.w900,
+                                    ),
                               ),
                             ),
-                            const SizedBox(width: 4),
-                            const Padding(
-                              padding: EdgeInsets.only(bottom: 3),
+                            const SizedBox(width: AppDimens.sizeX4),
+                            Padding(
+                              padding: AppUtils().getPadding(
+                                bottom: AppDimens.paddingX2,
+                              ),
                               child: Text(
-                                '/ hour',
-                                style: TextStyle(
-                                  color: DS.textTertiary,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500,
-                                ),
+                                StringConstants.perHourSuffix,
+                                style: FutsalTheme.getTextTheme(context)
+                                    .bodyTextSmall
+                                    ?.copyWith(
+                                      color: LightColor.hintTextColor,
+                                      fontWeight: FontWeight.w500,
+                                    ),
                               ),
                             ),
                           ],
                         ),
                       ),
-                      SizedBox(height: 4),
+                      const SizedBox(height: AppDimens.sizeX4),
 
                       AnimatedContainer(
                         duration: const Duration(milliseconds: 220),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 5,
+                        padding: AppUtils().getPadding(
+                          horizontal: AppDimens.paddingX10,
+                          vertical: AppDimens.paddingX4,
                         ),
                         decoration: BoxDecoration(
                           color: hasSelection
-                              ? DS.primaryLight
-                              : DS.borderLight,
-                          borderRadius: BorderRadius.circular(999),
+                              ? LightColor.secondarySoft
+                              : LightColor.inputFillColor,
+                          borderRadius: BorderRadius.circular(
+                            AppDimens.radiusX50,
+                          ),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -534,71 +367,87 @@ class _CourtDetailPageState extends State<CourtDetailPage>
                               hasSelection
                                   ? Icons.check_circle_rounded
                                   : Icons.schedule_rounded,
-                              size: 12,
+                              size: AppDimens.sizeX12,
                               color: hasSelection
-                                  ? DS.primary
-                                  : DS.textTertiary,
+                                  ? LightColor.secondaryColor
+                                  : LightColor.hintTextColor,
                             ),
-                            const SizedBox(width: 5),
+                            const SizedBox(width: AppDimens.sizeX4),
                             Flexible(
                               child: Text(
                                 selectedLabel,
                                 overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: hasSelection
-                                      ? DS.primary
-                                      : DS.textTertiary,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                                style: FutsalTheme.getTextTheme(context)
+                                    .bodySubTitle
+                                    ?.copyWith(
+                                      color: hasSelection
+                                          ? LightColor.secondaryColor
+                                          : LightColor.hintTextColor,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                               ),
                             ),
                           ],
                         ),
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(height: AppDimens.sizeX2),
                     ],
                   ),
                 ),
-                SizedBox(width: 10),
+                const SizedBox(width: AppDimens.sizeX10),
                 Expanded(
                   child: GestureDetector(
                     onTap: hasSelection
                         ? () {
                             HapticFeedback.mediumImpact();
-                            // context.goNamed(
-                            //   AppRouterParams.vendorOnboarding.name,
-                            // );
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => VendorOnboardingPage(),
-                              ),
-                            );
-
-                            // Handle booking
                           }
                         : null,
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 260),
-                      height: 46,
+                      height: AppDimens.sizeX46,
                       decoration: BoxDecoration(
-                        gradient: hasSelection ? DS.primaryGradient : null,
-                        color: hasSelection ? null : DS.border,
-                        borderRadius: BorderRadius.circular(10),
-                        boxShadow: hasSelection ? DS.shadowPrimary : null,
+                        gradient: hasSelection
+                            ? LinearGradient(
+                                colors: [
+                                  LightColor.secondaryColor,
+                                  LightColor.secondaryDark,
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              )
+                            : null,
+                        color: hasSelection ? null : LightColor.dividerColor,
+                        borderRadius: BorderRadius.circular(
+                          AppDimens.radiusX10,
+                        ),
+                        boxShadow: hasSelection
+                            ? [
+                                BoxShadow(
+                                  color: LightColor.secondaryColor.withValues(
+                                    alpha: 0.35,
+                                  ),
+                                  blurRadius: AppDimens.sizeX20,
+                                  offset: const Offset(0, AppDimens.sizeX8),
+                                ),
+                              ]
+                            : null,
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Text(
-                            hasSelection ? 'Book Now' : 'Select Slot',
-                            style: TextStyle(
-                              color: hasSelection
-                                  ? Colors.white
-                                  : DS.textTertiary,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w800,
+                          Flexible(
+                            child: Text(
+                              hasSelection ? 'Book Now' : 'Select Slot',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: FutsalTheme.getTextTheme(context)
+                                  .bodyTextMedium
+                                  ?.copyWith(
+                                    color: hasSelection
+                                        ? LightColor.inverseTextColor
+                                        : LightColor.hintTextColor,
+                                    fontWeight: FontWeight.w800,
+                                  ),
                             ),
                           ),
                         ],
@@ -614,77 +463,6 @@ class _CourtDetailPageState extends State<CourtDetailPage>
     );
   }
 
-  Widget _actionNavButton({
-    required IconData icon,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 44,
-        height: 52,
-        decoration: BoxDecoration(
-          color: DS.borderLight,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: DS.border.withOpacity(0.8)),
-        ),
-        child: Icon(icon, color: color, size: 20),
-      ),
-    );
-  }
-
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // SECTION WRAPPER
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  Widget _sectionWrapper({
-    required String title,
-    required Widget child,
-    Widget? trailing,
-    IconData? icon,
-    Color? iconColor,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 28),
-          Row(
-            children: [
-              if (icon != null) ...[
-                Container(
-                  width: 28,
-                  height: 28,
-                  decoration: BoxDecoration(
-                    color: (iconColor ?? DS.primary).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(icon, size: 15, color: iconColor ?? DS.primary),
-                ),
-                const SizedBox(width: 10),
-              ],
-              Expanded(
-                child: Text(
-                  title,
-                  style: const TextStyle(
-                    color: DS.textPrimary,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.3,
-                  ),
-                ),
-              ),
-              if (trailing != null) trailing,
-            ],
-          ),
-          const SizedBox(height: 16),
-          child,
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
@@ -692,53 +470,50 @@ class _CourtDetailPageState extends State<CourtDetailPage>
         statusBarColor: Colors.transparent,
       ),
       child: Scaffold(
-        backgroundColor: DS.background,
+        backgroundColor: LightColor.background,
         body: SafeArea(
+          top: false,
           bottom: true,
           child: Stack(
             children: [
               CustomScrollView(
                 physics: const BouncingScrollPhysics(),
                 slivers: [
-                  SliverToBoxAdapter(child: DetailsImageGallery()),
-
+                  SliverToBoxAdapter(
+                    child: DetailsImageGallery(images: [_court.images.first]),
+                  ),
                   SliverToBoxAdapter(
                     child: Container(
-                      decoration: const BoxDecoration(
-                        color: DS.background,
+                      decoration: BoxDecoration(
+                        color: LightColor.background,
                         borderRadius: BorderRadius.vertical(
-                          top: Radius.circular(28),
+                          top: Radius.circular(AppDimens.radiusX28),
                         ),
                       ),
-                      transform: Matrix4.translationValues(0, -24, 0),
+                      transform: Matrix4.translationValues(
+                        0,
+                        -AppDimens.sizeX24,
+                        0,
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Drag handle
                           Center(
                             child: Container(
-                              margin: const EdgeInsets.only(top: 12, bottom: 4),
-                              width: 40,
-                              height: 4,
+                              margin: AppUtils().getMargin(
+                                top: AppDimens.marginX12,
+                                bottom: AppDimens.marginX4,
+                              ),
+                              width: AppDimens.sizeX40,
+                              height: AppDimens.sizeX4,
                               decoration: BoxDecoration(
-                                color: DS.border,
+                                color: LightColor.dividerColor,
                                 borderRadius: BorderRadius.circular(100),
                               ),
                             ),
                           ),
-
                           CourtIntroWidget(court: _court),
-
-                          // _buildHeaderInfo(),
                           CourtAmenitiesSection(features: _court.features),
-
-                          // _buildDescription(),
-
-                          // // Divider
-                          // Padding(
-                          //   padding: const EdgeInsets.symmetric(horizontal: 20),
-                          //   child: Divider(color: DS.divider, height: 40),
-                          // ),
                           CourtTimeSlotSection(
                             dates: _dates,
                             timeSlotsByDate: _timeSlotsByDate,
@@ -753,7 +528,6 @@ class _CourtDetailPageState extends State<CourtDetailPage>
                               });
                             },
                           ),
-
                           CourtHostedBySection(
                             hostName: _court.hostedByName,
                             hostSince: _court.hostedSince,
@@ -779,8 +553,6 @@ class _CourtDetailPageState extends State<CourtDetailPage>
                                 )
                                 .toList(),
                           ),
-
-                          // Bottom spacing for the bar
                           SizedBox(
                             height: MediaQuery.of(context).padding.bottom + 100,
                           ),
@@ -790,8 +562,6 @@ class _CourtDetailPageState extends State<CourtDetailPage>
                   ),
                 ],
               ),
-
-              // ── Bottom booking bar ──
               Positioned(
                 bottom: 0,
                 left: 0,
@@ -804,77 +574,4 @@ class _CourtDetailPageState extends State<CourtDetailPage>
       ),
     );
   }
-}
-
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// DESIGN TOKENS
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-class DS {
-  DS._();
-
-  static const Color primary = Color(0xFF0D9E5C);
-  static const Color primaryDark = Color(0xFF087A45);
-  static const Color primaryLight = Color(0xFFE8F8F0);
-  static const Color primarySurface = Color(0xFFF0FDF4);
-  static const Color surface = Color(0xFFFFFFFF);
-  static const Color background = Color(0xFFF7F9FC);
-  static const Color textPrimary = Color(0xFF0F1923);
-  static const Color textSecondary = Color(0xFF6B7280);
-  static const Color textTertiary = Color(0xFF9CA3AF);
-  static const Color border = Color(0xFFE5E7EB);
-  static const Color borderLight = Color(0xFFF3F4F6);
-  static const Color divider = Color(0xFFF0F2F5);
-  static const Color orange = Color(0xFFF59E0B);
-  static const Color orangeLight = Color(0xFFFFF7ED);
-  static const Color blue = Color(0xFF3B82F6);
-  static const Color blueLight = Color(0xFFEFF6FF);
-  static const Color red = Color(0xFFEF4444);
-  static const Color redLight = Color(0xFFFEF2F2);
-  static const Color purple = Color(0xFF8B5CF6);
-  static const Color purpleLight = Color(0xFFFAF5FF);
-  static const Color yellow = Color(0xFFFBBF24);
-
-  static const LinearGradient primaryGradient = LinearGradient(
-    colors: [Color(0xFF0D9E5C), Color(0xFF059669)],
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-  );
-
-  static const LinearGradient darkGradient = LinearGradient(
-    colors: [Color(0xFF111827), Color(0xFF1F2937)],
-    begin: Alignment.topCenter,
-    end: Alignment.bottomCenter,
-  );
-
-  static List<BoxShadow> shadowSm = [
-    BoxShadow(
-      color: Colors.black.withOpacity(0.04),
-      blurRadius: 8,
-      offset: const Offset(0, 2),
-    ),
-  ];
-
-  static List<BoxShadow> shadowMd = [
-    BoxShadow(
-      color: Colors.black.withOpacity(0.06),
-      blurRadius: 16,
-      offset: const Offset(0, 4),
-    ),
-  ];
-
-  static List<BoxShadow> shadowLg = [
-    BoxShadow(
-      color: Colors.black.withOpacity(0.1),
-      blurRadius: 30,
-      offset: const Offset(0, 10),
-    ),
-  ];
-
-  static List<BoxShadow> shadowPrimary = [
-    BoxShadow(
-      color: primary.withOpacity(0.35),
-      blurRadius: 20,
-      offset: const Offset(0, 8),
-    ),
-  ];
 }

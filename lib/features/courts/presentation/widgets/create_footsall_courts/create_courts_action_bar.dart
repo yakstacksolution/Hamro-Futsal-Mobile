@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:hamro_footsall/core/theme/light_color.dart';
+import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/widgets/custom_button.dart';
 
 class CreateCourtsActionBar extends StatelessWidget {
@@ -26,10 +26,10 @@ class CreateCourtsActionBar extends StatelessWidget {
         height: 66,
         padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: LightColor.elevatedCardColor,
           boxShadow: <BoxShadow>[
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
+              color: LightColor.shadowOf(0.06),
               blurRadius: 16,
               offset: const Offset(0, -4),
             ),
@@ -46,9 +46,9 @@ class CreateCourtsActionBar extends StatelessWidget {
                     : Icons.refresh_rounded,
                 onPressed: isSubmitting ? null : onSecondaryPressed,
                 isOutlined: true,
-                backgroundColor: Colors.white,
-                foregroundColor: LightColor.skyBlue,
-                borderColor: LightColor.skyBlue,
+                backgroundColor: LightColor.elevatedCardColor,
+                foregroundColor: LightColor.secondaryColor,
+                borderColor: LightColor.secondaryColor,
                 minHeight: 50,
                 verticalPadding: 2,
               ),
@@ -64,9 +64,9 @@ class CreateCourtsActionBar extends StatelessWidget {
                 onPressed: isSubmitting ? null : onPrimaryPressed,
                 isLoading: isSubmitting,
                 backgroundColor: isLastStep
-                    ? LightColor.orange
-                    : LightColor.skyBlue,
-                foregroundColor: Colors.white,
+                    ? LightColor.warningColor
+                    : LightColor.secondaryColor,
+                foregroundColor: LightColor.inverseTextColor,
                 minHeight: 50,
                 fontWeight: FontWeight.w700,
               ),
