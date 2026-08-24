@@ -72,6 +72,23 @@ keyPassword=<key password>
 `android/app/build.gradle.kts` falls back to the debug keys when this file is
 absent, so a fresh clone still builds locally without the release secrets.
 
+To create the GitHub secrets from macOS:
+
+```sh
+base64 -i android/upload-keystore.jks | pbcopy
+# Save clipboard as KEYSTORE_BASE64
+
+base64 -i android/keystore.properties | pbcopy
+# Save clipboard as KEYSTORE_PROPERTIES_BASE64
+```
+
+`KEYSTORE_BASE64` must come from the binary `.jks` file. Do not paste
+`keystore.properties` into that secret.
+
+After changing either local signing file, update the matching GitHub secret in
+**Settings → Secrets and variables → Actions → Repository secrets**. The local
+files are git-ignored, so CI only sees the values stored in GitHub secrets.
+
 ## Before the first iOS run
 
 `ios/Runner/ExportOptions.plist` ships with two placeholders. The workflows replace
