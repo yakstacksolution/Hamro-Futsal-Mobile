@@ -17,12 +17,17 @@ rejects an AAB whose build number it has already seen.
 
 ## Required repository secrets
 
-Android (both workflows):
+Android production:
 
 | Secret                              | Contents                                                              |
 | ----------------------------------- | --------------------------------------------------------------------- |
 | `KEYSTORE_BASE64`                   | `base64 -i android/upload-keystore.jks`                                |
 | `KEYSTORE_PROPERTIES_BASE64`        | `base64 -i android/keystore.properties` (see format below)             |
+
+Android staging uses the same secrets when present. If both are absent, the
+staging workflow builds the Firebase tester APK with the debug signing key. If
+only one of the two secrets exists, the workflow fails so CI does not silently
+use a half-configured release signing setup.
 
 Android staging only:
 

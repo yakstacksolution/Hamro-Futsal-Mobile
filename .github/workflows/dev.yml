@@ -56,15 +56,27 @@ jobs:
       - name: 📦 Install dependencies
         run: flutter pub get
 
-      - name: 🔐 Decode keystore
+      - name: 🔐 Prepare Android release signing
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PROPERTIES_BASE64: ${{ secrets.KEYSTORE_PROPERTIES_BASE64 }}
         run: |
           set -euo pipefail
+
+          if [ -z "${KEYSTORE_BASE64:-}" ] && [ -z "${KEYSTORE_PROPERTIES_BASE64:-}" ]; then
+            echo "::warning::Android signing secrets are not set. Building the staging APK with the debug signing key for Firebase App Distribution."
+            exit 0
+          fi
+
           if [ -z "${KEYSTORE_BASE64:-}" ]; then
-            echo "::error::Secret KEYSTORE_BASE64 is empty or not set. Add base64 of android/upload-keystore.jks in GitHub repository secrets."
+            echo "::error::Secret KEYSTORE_BASE64 is empty or not set. Add base64 of android/upload-keystore.jks, or remove KEYSTORE_PROPERTIES_BASE64 to use debug signing for staging."
             exit 1
           fi
+          if [ -z "${KEYSTORE_PROPERTIES_BASE64:-}" ]; then
+            echo "::error::Secret KEYSTORE_PROPERTIES_BASE64 is empty or not set. Add base64 of android/keystore.properties, or remove KEYSTORE_BASE64 to use debug signing for staging."
+            exit 1
+          fi
+
           CLEAN_KEYSTORE_BASE64="$(printf '%s' "$KEYSTORE_BASE64" | tr -d '\r\n[:space:]')"
           if [ -z "$CLEAN_KEYSTORE_BASE64" ]; then
             echo "::error::Secret KEYSTORE_BASE64 contains only whitespace. Recreate it from android/upload-keystore.jks."
@@ -72,15 +84,6 @@ jobs:
           fi
           printf '%s' "$CLEAN_KEYSTORE_BASE64" | base64 --decode > "$GITHUB_WORKSPACE/android/upload-keystore.jks"
 
-      - name: 🔐 Decode keystore properties
-        env:
-          KEYSTORE_PROPERTIES_BASE64: ${{ secrets.KEYSTORE_PROPERTIES_BASE64 }}
-        run: |
-          set -euo pipefail
-          if [ -z "${KEYSTORE_PROPERTIES_BASE64:-}" ]; then
-            echo "::error::Secret KEYSTORE_PROPERTIES_BASE64 is empty or not set. Add base64 of android/keystore.properties in GitHub repository secrets."
-            exit 1
-          fi
           if printf '%s' "$KEYSTORE_PROPERTIES_BASE64" | tr -d '\r\n[:space:]' | base64 --decode > "$GITHUB_WORKSPACE/android/keystore.properties" 2>/dev/null; then
             :
           elif printf '%s' "$KEYSTORE_PROPERTIES_BASE64" | grep -q '^storeFile='; then
@@ -90,9 +93,6 @@ jobs:
             exit 1
           fi
 
-      - name: ✅ Validate Android signing files
-        run: |
-          set -euo pipefail
           test -s "$GITHUB_WORKSPACE/android/upload-keystore.jks" || {
             echo "::error::KEYSTORE_BASE64 did not produce android/upload-keystore.jks. Recreate the secret from the real .jks file, not from keystore.properties."
             exit 1
