@@ -7,6 +7,7 @@ import 'package:hamro_footsall/core/utils/custom_image_view.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/utils/string_constants.dart';
 import 'package:hamro_footsall/features/account/data/model/account_models.dart';
+import 'package:hamro_footsall/features/futsal_details/data/model/payment_qr_model.dart';
 import 'package:hamro_footsall/features/account/presentation/utils/account_ui_utils.dart';
 
 /// Gradient hero card: the commission the vendor owes Hamro Futsal, which is
@@ -63,13 +64,13 @@ class AccountBalanceCard extends StatelessWidget {
               Icon(
                 Icons.percent_rounded,
                 size: AppDimens.sizeX16,
-                color: LightColor.inverseTextColor.withValues(alpha: 0.85),
+                color: LightColor.onBrandSurface.withValues(alpha: 0.85),
               ),
               const SizedBox(width: AppDimens.paddingX6),
               Text(
                 StringConstants.commissionPayable,
                 style: textTheme.bodyTextSmall?.copyWith(
-                  color: LightColor.inverseTextColor.withValues(alpha: 0.85),
+                  color: LightColor.onBrandSurface.withValues(alpha: 0.85),
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -79,7 +80,7 @@ class AccountBalanceCard extends StatelessWidget {
           Text(
             AccountFmt.npr(commissionPayable),
             style: textTheme.headingLarge?.copyWith(
-              color: LightColor.inverseTextColor,
+              color: LightColor.onBrandSurface,
               fontWeight: FontWeight.w800,
               letterSpacing: -0.5,
             ),
@@ -92,7 +93,7 @@ class AccountBalanceCard extends StatelessWidget {
               '${StringConstants.availableBalance} ${AccountFmt.npr(availableBalance)}',
             ].join('  ·  '),
             style: textTheme.bodyTextSmall?.copyWith(
-              color: LightColor.inverseTextColor.withValues(alpha: 0.75),
+              color: LightColor.onBrandSurface.withValues(alpha: 0.75),
               fontSize: AppDimens.fontBodySubTitle,
               fontWeight: FontWeight.w500,
             ),
@@ -104,13 +105,13 @@ class AccountBalanceCard extends StatelessWidget {
                 Icon(
                   Icons.hourglass_top_rounded,
                   size: 12,
-                  color: LightColor.inverseTextColor.withValues(alpha: 0.7),
+                  color: LightColor.onBrandSurface.withValues(alpha: 0.7),
                 ),
                 const SizedBox(width: AppDimens.paddingX4),
                 Text(
                   '${AccountFmt.npr(pendingClearance)} ${StringConstants.pendingClearance.toLowerCase()}',
                   style: textTheme.bodyTextSmall?.copyWith(
-                    color: LightColor.inverseTextColor.withValues(alpha: 0.7),
+                    color: LightColor.onBrandSurface.withValues(alpha: 0.7),
                     fontSize: AppDimens.fontBodySubTitle,
                     fontWeight: FontWeight.w500,
                   ),
@@ -123,8 +124,8 @@ class AccountBalanceCard extends StatelessWidget {
             width: double.infinity,
             child: Material(
               color: onRequestSettlement != null
-                  ? LightColor.whiteColor
-                  : LightColor.whiteColor.withValues(alpha: 0.35),
+                  ? LightColor.onBrandSurface
+                  : LightColor.onBrandSurface.withValues(alpha: 0.35),
               borderRadius: BorderRadius.circular(AppDimens.radiusX10),
               child: InkWell(
                 onTap: onRequestSettlement,
@@ -160,7 +161,7 @@ class AccountBalanceCard extends StatelessWidget {
             Text(
               disabledReason!,
               style: textTheme.bodyTextSmall?.copyWith(
-                color: LightColor.inverseTextColor.withValues(alpha: 0.75),
+                color: LightColor.onBrandSurface.withValues(alpha: 0.75),
                 fontSize: AppDimens.fontBodySubTitle,
               ),
             ),
@@ -240,7 +241,11 @@ class _StatTile extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: AppDimens.sizeX16, color: color),
+          Icon(
+            icon,
+            size: AppDimens.sizeX16,
+            color: LightColor.categoryAccent(color),
+          ),
           const SizedBox(height: AppDimens.paddingX8),
           FittedBox(
             fit: BoxFit.scaleDown,
@@ -307,10 +312,14 @@ class AccountNavTile extends StatelessWidget {
                 height: 36,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: iconColor.withValues(alpha: 0.1),
+                  color: LightColor.categoryContainer(iconColor),
                   borderRadius: BorderRadius.circular(AppDimens.radiusX10),
                 ),
-                child: Icon(icon, size: 18, color: iconColor),
+                child: Icon(
+                  icon,
+                  size: 18,
+                  color: LightColor.categoryAccent(iconColor),
+                ),
               ),
               const SizedBox(width: AppDimens.paddingX12),
               Expanded(
@@ -419,7 +428,7 @@ class AccountEntryTile extends StatelessWidget {
           '${entry.isCredit ? '+' : '-'} ${AccountFmt.npr(entry.amount)}',
           style: textTheme.bodyTextSmall?.copyWith(
             color: entry.isCredit
-                ? LightColor.secondaryColor
+                ? LightColor.brandTextColor
                 : LightColor.redColor,
             fontWeight: FontWeight.w700,
           ),
@@ -429,103 +438,387 @@ class AccountEntryTile extends StatelessWidget {
   }
 }
 
-/// One settlement request row with its status badge and lifecycle dates.
-class SettlementTile extends StatelessWidget {
-  const SettlementTile({super.key, required this.settlement});
+/// One settlement request, as an amount-led card.
+///
+/// The figure is the anchor — it is what the vendor scans the list for — with
+/// its caption naming which figure it is, so a pending claim is never read as
+/// money already received. Identity (code, venue, timestamp) sits underneath,
+/// and the references and the proof link share a footer below a hairline.
+///
+/// Everything is optional in the payload: a missing venue, reference, proof or
+/// timestamp takes its own slot away rather than leaving an empty one, and long
+/// values truncate instead of overflowing.
+class SettlementCard extends StatelessWidget {
+  const SettlementCard({super.key, required this.settlement});
 
   final SettlementModel settlement;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
-    final status = settlement.status;
+    final SettlementStatus status = settlement.status;
+    final String? proofUrl = settlement.proofImageUrl;
+
+    final String amountCaption = switch (status) {
+      SettlementStatus.approved => StringConstants.approvedAmount,
+      SettlementStatus.paid => StringConstants.paidAmount,
+      _ => StringConstants.requestedAmount,
+    };
+
+    // Venue-scoped requests name their futsal; a consolidated one says so
+    // instead of leaving the line blank.
+    final String scopeLabel = settlement.venueName.isNotEmpty
+        ? settlement.venueName
+        : (settlement.scope.isEmpty
+              ? ''
+              : (settlement.scope.toLowerCase() == 'venue'
+                    ? StringConstants.singleVenue
+                    : StringConstants.allVenues));
+    final String identityLine = <String>[
+      if (settlement.reference.isNotEmpty)
+        settlement.reference
+      else
+        '${StringConstants.settlement} #${settlement.id}',
+      if (scopeLabel.isNotEmpty) scopeLabel,
+    ].join('  ·  ');
     final DateTime? shownDate = settlement.resolvedAt ?? settlement.requestedAt;
-    final subtitleParts = [
-      if (shownDate != null) AccountFmt.date(shownDate),
-      if (settlement.reference.isNotEmpty) settlement.reference,
-      if (settlement.venueName.isNotEmpty) settlement.venueName,
-    ];
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: status.color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(AppDimens.radiusX10),
-              ),
-              child: Icon(status.icon, size: 18, color: status.color),
-            ),
-            const SizedBox(width: AppDimens.paddingX12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    AccountFmt.npr(settlement.amount),
-                    style: textTheme.bodyTextSmall?.copyWith(
-                      color: LightColor.primaryTextColor,
-                      fontWeight: FontWeight.w700,
+
+    // One line of references: what the vendor quotes when chasing a payout.
+    final String metaLine = <String>[
+      if (settlement.transactionReference.isNotEmpty)
+        '${StringConstants.txnShort} ${settlement.transactionReference}',
+      if (settlement.itemCount > 0)
+        '${settlement.itemCount} '
+            '${settlement.itemCount == 1 ? 'item' : 'items'}',
+    ].join('  ·  ');
+
+    final bool showClearing =
+        settlement.pendingClearanceAmount > 0 &&
+        (status == SettlementStatus.pending ||
+            status == SettlementStatus.processing);
+    final bool showFooter = metaLine.isNotEmpty || proofUrl != null;
+
+    return Container(
+      padding: const EdgeInsets.all(AppDimens.paddingX14),
+      decoration: BoxDecoration(
+        color: LightColor.cardColor,
+        borderRadius: BorderRadius.circular(AppDimens.radiusX14),
+        border: Border.all(color: LightColor.dividerColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    FittedBox(
+                      // Six-figure payouts must not clip on a narrow phone.
+                      fit: BoxFit.scaleDown,
+                      alignment: AlignmentDirectional.centerStart,
+                      child: Text(
+                        AccountFmt.npr(settlement.amount),
+                        style: textTheme.bodyTextLarge?.copyWith(
+                          color: LightColor.primaryTextColor,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.2,
+                        ),
+                      ),
                     ),
-                  ),
-                  if (subtitleParts.isNotEmpty) ...[
                     const SizedBox(height: 2),
                     Text(
-                      subtitleParts.join(' · '),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                      amountCaption,
                       style: textTheme.bodyTextSmall?.copyWith(
                         color: LightColor.hintTextColor,
                         fontSize: AppDimens.fontBodySubTitle,
-                        fontWeight: FontWeight.w500,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.3,
                       ),
                     ),
                   ],
-                ],
-              ),
-            ),
-            const SizedBox(width: AppDimens.paddingX8),
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppDimens.paddingX8,
-                vertical: AppDimens.paddingX4,
-              ),
-              decoration: BoxDecoration(
-                color: status.color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(AppDimens.radiusX20),
-              ),
-              child: Text(
-                status.label,
-                style: textTheme.bodyTextSmall?.copyWith(
-                  color: status.color,
-                  fontSize: AppDimens.fontBodySubTitle,
-                  fontWeight: FontWeight.w700,
                 ),
+              ),
+              const SizedBox(width: AppDimens.paddingX8),
+              _StatusPill(status: status),
+            ],
+          ),
+          if (showClearing) ...[
+            const SizedBox(height: AppDimens.paddingX6),
+            Text(
+              '${AccountFmt.npr(settlement.pendingClearanceAmount)} '
+              '${StringConstants.stillClearing}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: textTheme.bodyTextSmall?.copyWith(
+                color: LightColor.hintTextColor,
+                fontSize: AppDimens.fontBodySubTitle,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ],
-        ),
-        if (status == SettlementStatus.rejected &&
-            settlement.rejectedReason.isNotEmpty) ...[
-          const SizedBox(height: AppDimens.paddingX8),
-          Padding(
-            padding: const EdgeInsets.only(left: 40 + AppDimens.paddingX12),
+          const SizedBox(height: AppDimens.paddingX10),
+          Text(
+            identityLine,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: textTheme.bodyTextSmall?.copyWith(
+              color: LightColor.primaryTextColor,
+              fontSize: AppDimens.fontBodyTextSmall,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          if (shownDate != null) ...[
+            const SizedBox(height: 2),
+            Text(
+              AccountFmt.dateTime(shownDate),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: textTheme.bodyTextSmall?.copyWith(
+                color: LightColor.hintTextColor,
+                fontSize: AppDimens.fontBodySubTitle,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+          if (showFooter) ...[
+            const SizedBox(height: AppDimens.paddingX10),
+            Divider(height: 1, thickness: 1, color: LightColor.dividerColor),
+            const SizedBox(height: AppDimens.paddingX6),
+            Row(
+              children: [
+                Expanded(
+                  child: metaLine.isEmpty
+                      ? const SizedBox.shrink()
+                      : InkWell(
+                          onTap: settlement.transactionReference.isEmpty
+                              ? null
+                              : () => _copy(
+                                  context,
+                                  settlement.transactionReference,
+                                  StringConstants.transactionReferenceCopied,
+                                ),
+                          child: Text(
+                            metaLine,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: textTheme.bodyTextSmall?.copyWith(
+                              color: LightColor.secondaryTextColor,
+                              fontSize: AppDimens.fontBodySubTitle,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                ),
+                if (proofUrl != null) ...[
+                  const SizedBox(width: AppDimens.paddingX8),
+                  _SettlementProofAction(imageUrl: proofUrl),
+                ],
+              ],
+            ),
+          ],
+          if (settlement.rejectedReason.isNotEmpty &&
+              (status == SettlementStatus.rejected ||
+                  status == SettlementStatus.failed ||
+                  status == SettlementStatus.cancelled)) ...[
+            const SizedBox(height: AppDimens.paddingX8),
+            _RejectionBanner(reason: settlement.rejectedReason),
+          ],
+        ],
+      ),
+    );
+  }
+
+  void _copy(BuildContext context, String value, String message) {
+    Clipboard.setData(ClipboardData(text: value));
+    AppUtils().showSnackBar(context, MsgType.success, message);
+  }
+}
+
+/// Status badge — colour and wording come from the parsed status, never from
+/// the raw string, so an unknown server status still renders sensibly.
+class _StatusPill extends StatelessWidget {
+  const _StatusPill({required this.status});
+
+  final SettlementStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppDimens.paddingX8,
+        vertical: 3,
+      ),
+      decoration: BoxDecoration(
+        color: status.color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(AppDimens.radiusX20),
+        border: Border.all(color: status.color.withValues(alpha: 0.28)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 5,
+            height: 5,
+            decoration: BoxDecoration(
+              color: status.color,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: AppDimens.paddingX4),
+          Text(
+            status.label,
+            style: textTheme.bodyTextSmall?.copyWith(
+              color: status.color,
+              fontSize: AppDimens.fontBodySubTitle,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Why a request did not go through, called out rather than buried in the meta.
+class _RejectionBanner extends StatelessWidget {
+  const _RejectionBanner({required this.reason});
+
+  final String reason;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppDimens.paddingX8,
+        vertical: AppDimens.paddingX6,
+      ),
+      decoration: BoxDecoration(
+        color: LightColor.redColor.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.info_outline_rounded,
+            size: 12,
+            color: LightColor.redColor,
+          ),
+          const SizedBox(width: AppDimens.paddingX6),
+          Expanded(
             child: Text(
-              settlement.rejectedReason,
+              reason,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: textTheme.bodyTextSmall?.copyWith(
                 color: LightColor.redColor,
                 fontSize: AppDimens.fontBodySubTitle,
+                height: 1.35,
               ),
             ),
           ),
         ],
-      ],
+      ),
+    );
+  }
+}
+
+/// Compact text action that opens the attached proof full screen.
+///
+/// Deliberately no inline thumbnail: the list would otherwise pull a full-size
+/// receipt per row over the network, and a half-loaded image reads as a broken
+/// card. The image is fetched only once the vendor asks to see it.
+class _SettlementProofAction extends StatelessWidget {
+  const _SettlementProofAction({required this.imageUrl});
+
+  final String imageUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    return InkWell(
+      key: const Key('settlement-proof-action'),
+      borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+      onTap: () => Navigator.of(context).push<void>(
+        MaterialPageRoute<void>(
+          builder: (_) => SettlementProofViewer(imageUrl: imageUrl),
+        ),
+      ),
+      child: Padding(
+        // Keeps the row a comfortable target without adding card height.
+        padding: const EdgeInsets.symmetric(vertical: AppDimens.paddingX6),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.receipt_outlined,
+              size: 13,
+              color: LightColor.secondaryColor,
+            ),
+            const SizedBox(width: AppDimens.paddingX4),
+            Text(
+              StringConstants.viewProof,
+              style: textTheme.bodyTextSmall?.copyWith(
+                color: LightColor.secondaryColor,
+                fontSize: AppDimens.fontBodySubTitle,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            Icon(
+              Icons.chevron_right_rounded,
+              size: 14,
+              color: LightColor.secondaryColor,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Full-screen, zoomable view of a settlement's payment proof.
+class SettlementProofViewer extends StatelessWidget {
+  const SettlementProofViewer({super.key, required this.imageUrl});
+
+  final String imageUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        title: const Text(
+          StringConstants.paymentProof,
+          style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+        ),
+      ),
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (BuildContext context, BoxConstraints constraints) {
+            return InteractiveViewer(
+              minScale: 0.8,
+              maxScale: 5,
+              child: Center(
+                child: CustomImageView(
+                  url: imageUrl,
+                  width: constraints.maxWidth,
+                  height: constraints.maxHeight,
+                  fit: BoxFit.contain,
+                  isHidePlaceholderImage: true,
+                ),
+              ),
+            );
+          },
+        ),
+      ),
     );
   }
 }
@@ -557,13 +850,13 @@ class AccountEmptyState extends StatelessWidget {
             width: 64,
             height: 64,
             decoration: BoxDecoration(
-              color: LightColor.secondaryColor.withValues(alpha: 0.08),
+              color: LightColor.categoryContainer(LightColor.secondaryColor),
               shape: BoxShape.circle,
             ),
             child: Icon(
               icon,
               size: 28,
-              color: LightColor.secondaryColor.withValues(alpha: 0.7),
+              color: LightColor.brandTextColor.withValues(alpha: 0.7),
             ),
           ),
           const SizedBox(height: AppDimens.paddingX14),
@@ -588,6 +881,302 @@ class AccountEmptyState extends StatelessWidget {
   }
 }
 
+/// The QR step of the settlement form, as one card.
+///
+/// Every QR shares the card's chrome — header, amount row, border — and only
+/// the code itself slides. Giving each QR its own full card duplicated all of
+/// that per slide and forced a fixed slide height with dead space inside it;
+/// here the card is exactly as tall as one QR plus its label.
+class SettlementQrCarouselCard extends StatefulWidget {
+  const SettlementQrCarouselCard({
+    super.key,
+    required this.codes,
+    required this.amountLabel,
+    required this.amountValue,
+    this.fallbackQr,
+    this.fallbackPayeeName = '',
+    this.payeePhone = '',
+  });
+
+  /// `/auth/qr-codes`, already filtered and ordered by the model.
+  final List<SettlementQrCodeModel> codes;
+
+  final String amountLabel;
+  final String amountValue;
+
+  /// Used when [codes] is empty — the QR the settlement preview carried.
+  final PaymentQrModel? fallbackQr;
+  final String fallbackPayeeName;
+  final String payeePhone;
+
+  @override
+  State<SettlementQrCarouselCard> createState() =>
+      _SettlementQrCarouselCardState();
+}
+
+class _SettlementQrCarouselCardState extends State<SettlementQrCarouselCard> {
+  final PageController _controller = PageController();
+  int _index = 0;
+
+  static const double _qrSize = AppDimens.sizeX180;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  /// One synthetic entry keeps the slider a single code path when the list is
+  /// empty — the layout below never has to branch on which source it drew.
+  List<SettlementQrCodeModel> get _slides => widget.codes.isNotEmpty
+      ? widget.codes
+      : <SettlementQrCodeModel>[
+          SettlementQrCodeModel(
+            title: widget.fallbackPayeeName,
+            qr: widget.fallbackQr ?? const PaymentQrModel(),
+          ),
+        ];
+
+  void _zoom(SettlementQrCodeModel code) {
+    if (!code.hasQr) return;
+    showDialog<void>(
+      context: context,
+      builder: (BuildContext context) => Dialog(
+        backgroundColor: LightColor.qrSurface,
+        insetPadding: const EdgeInsets.all(AppDimens.paddingX24),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppDimens.radiusX16),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(AppDimens.paddingX24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              _QrImage(qr: code.qr, size: AppDimens.sizeX250),
+              if (code.title.isNotEmpty) ...<Widget>[
+                const SizedBox(height: AppDimens.sizeX12),
+                Text(
+                  code.title,
+                  textAlign: TextAlign.center,
+                  style: FutsalTheme.getTextTheme(context).bodyTextMedium
+                      ?.copyWith(
+                        color: LightColor.onQrSurface,
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    final List<SettlementQrCodeModel> slides = _slides;
+    final bool isSlider = slides.length > 1;
+    final int active = _index.clamp(0, slides.length - 1);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppDimens.paddingX14),
+      decoration: BoxDecoration(
+        color: LightColor.cardColor,
+        borderRadius: BorderRadius.circular(AppDimens.radiusX12),
+        border: Border.all(color: LightColor.dividerColor),
+      ),
+      child: Column(
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Icon(
+                Icons.qr_code_2_rounded,
+                size: AppDimens.sizeX18,
+                color: LightColor.brandTextColor,
+              ),
+              const SizedBox(width: AppDimens.paddingX6),
+              Expanded(
+                child: Text(
+                  isSlider ? 'Scan any QR to pay' : 'Scan to pay',
+                  style: textTheme.bodyTextSmall?.copyWith(
+                    color: LightColor.primaryTextColor,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              if (isSlider)
+                Text(
+                  '${active + 1}/${slides.length}',
+                  style: textTheme.bodyMiniSubTitle?.copyWith(
+                    color: LightColor.secondaryTextColor,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: AppDimens.paddingX12),
+          SizedBox(
+            // The card is sized to its content rather than a guessed constant:
+            // the QR box plus the single label line under it.
+            height: _qrSize + AppDimens.sizeX24,
+            child: PageView.builder(
+              controller: _controller,
+              itemCount: slides.length,
+              physics: isSlider
+                  ? const BouncingScrollPhysics()
+                  : const NeverScrollableScrollPhysics(),
+              onPageChanged: (int i) => setState(() => _index = i),
+              itemBuilder: (BuildContext context, int i) {
+                final SettlementQrCodeModel code = slides[i];
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    GestureDetector(
+                      onTap: () => _zoom(code),
+                      child: Container(
+                        padding: const EdgeInsets.all(AppDimens.paddingX8),
+                        decoration: BoxDecoration(
+                          color: LightColor.qrSurface,
+                          borderRadius: BorderRadius.circular(
+                            AppDimens.radiusX10,
+                          ),
+                        ),
+                        child: _QrImage(
+                          qr: code.qr,
+                          size: _qrSize - AppDimens.sizeX16,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: AppDimens.sizeX6),
+                    Text(
+                      code.title.isEmpty
+                          ? widget.fallbackPayeeName
+                          : code.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: textTheme.bodyTextSmall?.copyWith(
+                        color: LightColor.primaryTextColor,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+          if (isSlider) ...<Widget>[
+            const SizedBox(height: AppDimens.sizeX10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List<Widget>.generate(slides.length, (int i) {
+                final bool isActive = i == active;
+                return GestureDetector(
+                  onTap: () => _controller.animateToPage(
+                    i,
+                    duration: const Duration(milliseconds: 260),
+                    curve: Curves.easeOutCubic,
+                  ),
+                  behavior: HitTestBehavior.opaque,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppDimens.paddingX2,
+                      vertical: AppDimens.paddingX4,
+                    ),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 220),
+                      curve: Curves.easeOut,
+                      height: AppDimens.sizeX6,
+                      // The active dot stretches instead of only recolouring,
+                      // so position reads without counting dots.
+                      width: isActive ? AppDimens.sizeX18 : AppDimens.sizeX6,
+                      decoration: BoxDecoration(
+                        color: isActive
+                            ? LightColor.secondaryColor
+                            : LightColor.dividerColor,
+                        borderRadius: BorderRadius.circular(
+                          AppDimens.radiusX50,
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }),
+            ),
+          ],
+          const SizedBox(height: AppDimens.paddingX12),
+          Divider(height: 1, thickness: 1, color: LightColor.dividerColor),
+          const SizedBox(height: AppDimens.paddingX12),
+          _RecipientRow(
+            label: widget.amountLabel,
+            value: widget.amountValue,
+            emphasise: true,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// QR bitmap from either of the two shapes the API sends, with a neutral
+/// placeholder when it sends neither.
+class _QrImage extends StatelessWidget {
+  const _QrImage({required this.qr, required this.size});
+
+  final PaymentQrModel qr;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final Uint8List? bytes = qr.qrImageBytes;
+    if (bytes != null) {
+      return Image.memory(
+        bytes,
+        width: size,
+        height: size,
+        fit: BoxFit.contain,
+        gaplessPlayback: true,
+        errorBuilder: (_, __, ___) => _placeholder(),
+      );
+    }
+    final String? url = qr.qrImageUrl;
+    if (url != null && url.isNotEmpty) {
+      return CustomImageView(
+        url: url,
+        width: size,
+        height: size,
+        fit: BoxFit.contain,
+      );
+    }
+    return _placeholder();
+  }
+
+  Widget _placeholder() => SizedBox(
+    width: size,
+    height: size,
+    child: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: <Widget>[
+        Icon(
+          Icons.qr_code_2_rounded,
+          size: size * 0.4,
+          color: LightColor.onQrSurfaceMuted,
+        ),
+        const SizedBox(height: AppDimens.sizeX6),
+        Text(
+          StringConstants.qrUnavailable,
+          style: TextStyle(
+            color: LightColor.onQrSurfaceMuted,
+            fontSize: AppDimens.sizeX12,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
 /// Who the vendor pays, as `/auth/settlement-preview` reports it — logo, name
 /// and the phone to send the transfer to, plus the payable figures.
 class SettlementRecipientCard extends StatelessWidget {
@@ -596,11 +1185,16 @@ class SettlementRecipientCard extends StatelessWidget {
     required this.recipient,
     required this.maximumPayable,
     this.pendingClearance = 0,
+    this.totalEarned = 0,
   });
 
   final SettlementRecipientModel recipient;
   final double maximumPayable;
   final double pendingClearance;
+
+  /// Lifetime gross earnings. Context for the commission — it is where the
+  /// commission was charged from — never a figure this request pays.
+  final double totalEarned;
 
   @override
   Widget build(BuildContext context) {
@@ -622,24 +1216,26 @@ class SettlementRecipientCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(AppDimens.radiusX10),
                   child: CustomImageView(
                     imagePath: recipient.logoUrl,
-                    height: 44,
-                    width: 44,
+                    height: 46,
+                    width: 90,
                     fit: BoxFit.cover,
                   ),
                 )
               else
                 Container(
-                  height: 44,
-                  width: 44,
+                  height: 46,
+                  width: 90,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: LightColor.secondaryColor.withValues(alpha: 0.1),
+                    color: LightColor.categoryContainer(
+                      LightColor.secondaryColor,
+                    ),
                     borderRadius: BorderRadius.circular(AppDimens.radiusX10),
                   ),
                   child: Icon(
                     Icons.account_balance_rounded,
                     size: 20,
-                    color: LightColor.secondaryColor,
+                    color: LightColor.brandTextColor,
                   ),
                 ),
               const SizedBox(width: AppDimens.paddingX12),
@@ -693,18 +1289,27 @@ class SettlementRecipientCard extends StatelessWidget {
           const SizedBox(height: AppDimens.paddingX12),
           Divider(height: 1, thickness: 1, color: LightColor.dividerColor),
           const SizedBox(height: AppDimens.paddingX12),
+          if (totalEarned > 0) ...[
+            _RecipientRow(
+              label: StringConstants.totalEarned,
+              value: AccountFmt.npr(totalEarned),
+            ),
+            const SizedBox(height: AppDimens.paddingX6),
+          ],
+          if (pendingClearance > 0) ...[
+            _RecipientRow(
+              label: StringConstants.pendingClearance,
+              value: AccountFmt.npr(pendingClearance),
+            ),
+            const SizedBox(height: AppDimens.paddingX6),
+          ],
+          // The amount this request actually pays sits last and emphasised, so
+          // the context rows above it can never be mistaken for the total due.
           _RecipientRow(
             label: 'Commission payable',
             value: AccountFmt.npr(maximumPayable),
             emphasise: true,
           ),
-          if (pendingClearance > 0) ...[
-            const SizedBox(height: AppDimens.paddingX6),
-            _RecipientRow(
-              label: StringConstants.pendingClearance,
-              value: AccountFmt.npr(pendingClearance),
-            ),
-          ],
         ],
       ),
     );
@@ -742,7 +1347,7 @@ class _RecipientRow extends StatelessWidget {
           value,
           style: textTheme.bodyTextSmall?.copyWith(
             color: emphasise
-                ? LightColor.secondaryColor
+                ? LightColor.brandTextColor
                 : LightColor.primaryTextColor,
             fontWeight: emphasise ? FontWeight.w800 : FontWeight.w600,
           ),
@@ -757,7 +1362,7 @@ class _RecipientRow extends StatelessWidget {
               child: Icon(
                 Icons.copy_rounded,
                 size: AppDimens.sizeX16,
-                color: LightColor.secondaryColor,
+                color: LightColor.brandTextColor,
               ),
             ),
           ),

@@ -4,10 +4,12 @@ import 'package:bloc/bloc.dart';
 import 'package:dartz/dartz.dart';
 import 'package:equatable/equatable.dart';
 import 'package:hamro_footsall/core/helper/exception_helper.dart';
+import 'package:hamro_footsall/features/opponent_match/data/model/opponent_match_details_model.dart';
 import 'package:hamro_footsall/features/opponent_match/data/model/opponent_match_model.dart';
 import 'package:hamro_footsall/features/opponent_match/data/model/opponent_match_step_request.dart';
 import 'package:hamro_footsall/features/opponent_match/domain/entities/opponent_match_entities.dart';
 import 'package:hamro_footsall/features/opponent_match/data/model/opponent_request_tab.dart';
+import 'package:hamro_footsall/features/opponent_match/data/model/opponent_request_summary_model.dart';
 import 'package:hamro_footsall/features/opponent_match/domain/usecase/opponent_match_usecase.dart';
 
 part 'opponent_match_event.dart';
@@ -21,6 +23,7 @@ class OpponentMatchBloc extends Bloc<OpponentMatchEvent, OpponentMatchState> {
     on<LoadPositionsEvent>(_onLoadPositions);
     on<LoadOpponentLevelsEvent>(_onLoadOpponentLevels);
     on<LoadOpponentRequestsEvent>(_onLoadRequests);
+    on<LoadMoreOpponentRequestsEvent>(_onLoadMoreRequests);
     on<RefreshOpponentRequestsEvent>(_onRefreshRequests);
     on<CreateTeamEvent>(_onCreateTeam);
     on<UpdateTeamEvent>(_onUpdateTeam);
@@ -37,7 +40,9 @@ class OpponentMatchBloc extends Bloc<OpponentMatchEvent, OpponentMatchState> {
     on<SendOpponentRequestEvent>(_onSendRequest);
     on<DeclineRequestEvent>(_onDeclineRequest);
     on<RequestAcceptedEvent>(_onRequestAccepted);
+    on<LoadInvitationsEvent>(_onLoadInvitations);
     on<DeleteOpponentRequestEvent>(_onDeleteRequest);
+    on<LoadMatchDetailsEvent>(_onLoadMatchDetails);
     on<SelectOpponentEvent>(_onSelectOpponent);
     on<RejectInvitationEvent>(_onRejectInvitation);
     on<ClearOpponentMessagesEvent>(
@@ -121,7 +126,9 @@ class OpponentMatchBloc extends Bloc<OpponentMatchEvent, OpponentMatchState> {
     emit(
       state.withTab(tab, status: OpponentMatchStatus.loading, clearError: true),
     );
-    final result = await useCase.getRequestsByTab(tab);
+    // Always the first page: this event either opens a section or refreshes
+    // it, and both start the list over rather than appending.
+    final result = await useCase.getRequestsByTab(tab, page: 1);
     result.fold(
       (failure) => emit(
         state.withTab(
@@ -130,14 +137,67 @@ class OpponentMatchBloc extends Bloc<OpponentMatchEvent, OpponentMatchState> {
           error: failure.errorMessage,
         ),
       ),
-      (requests) => emit(
+      (page) => emit(
         state.withTab(
           tab,
-          requests: requests,
+          requests: page.items,
           status: OpponentMatchStatus.success,
           clearError: true,
+          page: page.currentPage,
+          hasMore: page.hasMore,
+          total: page.total,
+          summary: page.summary,
+          loadingMore: false,
         ),
       ),
+    );
+  }
+
+  /// Appends the next page of a section the user has scrolled to the end of.
+  ///
+  /// Ignored unless the server said more exist, and while a page is already in
+  /// flight — the list dispatches this from a scroll listener, which fires far
+  /// more often than pages are needed.
+  Future<void> _onLoadMoreRequests(
+    LoadMoreOpponentRequestsEvent event,
+    Emitter<OpponentMatchState> emit,
+  ) async {
+    final tab = event.tab;
+    if (!state.hasLoadedTab(tab)) return;
+    if (!state.hasMoreFor(tab)) return;
+    if (state.isLoadingMore(tab) || state.isLoadingTab(tab)) return;
+
+    final int next = state.pageFor(tab) + 1;
+    emit(state.withTab(tab, loadingMore: true));
+
+    final result = await useCase.getRequestsByTab(tab, page: next);
+    result.fold(
+      // A failed page leaves the rows already on screen alone — the user keeps
+      // what they have and the scroll listener can try the same page again.
+      (failure) => emit(
+        state.withTab(tab, loadingMore: false, error: failure.errorMessage),
+      ),
+      (page) {
+        // Ids already held win over the incoming copy: a row that moved
+        // between pages while the user scrolled would otherwise appear twice.
+        final List<OpponentRequestModel> current = state.requestsFor(tab);
+        final Set<String> seen = current.map((r) => r.id).toSet();
+        emit(
+          state.withTab(
+            tab,
+            requests: <OpponentRequestModel>[
+              ...current,
+              ...page.items.where((r) => !seen.contains(r.id)),
+            ],
+            page: page.currentPage,
+            hasMore: page.hasMore,
+            total: page.total,
+            summary: page.summary,
+            loadingMore: false,
+            clearError: true,
+          ),
+        );
+      },
     );
   }
 
@@ -496,6 +556,45 @@ class OpponentMatchBloc extends Bloc<OpponentMatchEvent, OpponentMatchState> {
   /// Deletes one of my requests. On success the row is dropped from every
   /// loaded section in place — the server already told us it is gone, so no tab
   /// is fetched again — and the server's message is surfaced as a confirmation.
+  /// Loads the teams that accepted one request and patches them onto that row
+  /// wherever it is rendered, so the review screen, the card's invitation count
+  /// and the confirm flow all read from one list.
+  Future<void> _onLoadInvitations(
+    LoadInvitationsEvent event,
+    Emitter<OpponentMatchState> emit,
+  ) async {
+    final String id = event.requestId;
+    if (id.isEmpty) return;
+    if (state.isLoadingInvitations(id)) return;
+    if (state.hasLoadedInvitations(id) && !event.force) return;
+
+    emit(
+      state.withInvitations(
+        id,
+        status: OpponentMatchStatus.loading,
+        clearError: true,
+      ),
+    );
+    final result = await useCase.getInvitations(id);
+    result.fold(
+      (failure) => emit(
+        state.withInvitations(
+          id,
+          status: OpponentMatchStatus.failure,
+          error: failure.errorMessage,
+        ),
+      ),
+      (invitations) => emit(
+        state.withInvitations(
+          id,
+          status: OpponentMatchStatus.success,
+          invitations: invitations,
+          clearError: true,
+        ),
+      ),
+    );
+  }
+
   Future<void> _onDeleteRequest(
     DeleteOpponentRequestEvent event,
     Emitter<OpponentMatchState> emit,
@@ -524,11 +623,92 @@ class OpponentMatchBloc extends Bloc<OpponentMatchEvent, OpponentMatchState> {
     );
   }
 
+  /// One settled request, one call. The screen re-dispatches this on open, so
+  /// a match already read is served from state unless the caller forces it.
+  Future<void> _onLoadMatchDetails(
+    LoadMatchDetailsEvent event,
+    Emitter<OpponentMatchState> emit,
+  ) async {
+    final String id = event.requestId;
+    if (id.isEmpty) return;
+    if (state.isLoadingMatchDetails(id)) return;
+    if (state.matchDetailsFor(id) != null && !event.force) return;
+
+    emit(
+      state.copyWith(
+        matchDetailStatuses: {
+          ...state.matchDetailStatuses,
+          id: OpponentMatchStatus.loading,
+        },
+        matchDetailErrors: {...state.matchDetailErrors, id: null},
+      ),
+    );
+
+    final result = await useCase.getMatchDetails(id);
+    result.fold(
+      (failure) => emit(
+        state.copyWith(
+          matchDetailStatuses: {
+            ...state.matchDetailStatuses,
+            id: OpponentMatchStatus.failure,
+          },
+          matchDetailErrors: {
+            ...state.matchDetailErrors,
+            id: failure.errorMessage,
+          },
+        ),
+      ),
+      (match) => emit(
+        state.copyWith(
+          matchDetails: {...state.matchDetails, id: match},
+          matchDetailStatuses: {
+            ...state.matchDetailStatuses,
+            id: OpponentMatchStatus.success,
+          },
+          matchDetailErrors: {...state.matchDetailErrors, id: null},
+        ),
+      ),
+    );
+  }
+
   Future<void> _onSelectOpponent(
     SelectOpponentEvent event,
     Emitter<OpponentMatchState> emit,
   ) async {
-    _applyRequests(await useCase.selectOpponent(event.request.id), emit);
+    if (event.invitation.id.isEmpty) {
+      emit(
+        state.copyWith(
+          selectOpponentStatus: OpponentMatchStatus.failure,
+          selectOpponentError:
+              'That invitation is missing its id — refresh and try again.',
+        ),
+      );
+      return;
+    }
+    emit(
+      state.copyWith(
+        selectOpponentStatus: OpponentMatchStatus.loading,
+        clearSelectOpponentError: true,
+      ),
+    );
+
+    final result = await useCase.selectOpponent(
+      event.request.id,
+      event.invitation.id,
+    );
+    emit(
+      state.copyWith(
+        selectOpponentStatus: result.isLeft()
+            ? OpponentMatchStatus.failure
+            : OpponentMatchStatus.success,
+        selectOpponentError: result.fold((f) => f.errorMessage, (_) => null),
+        clearSelectOpponentError: result.isRight(),
+      ),
+    );
+    // The confirmed match changes every list this request appears on, so the
+    // reload runs on success and failure alike — a rejected confirmation may
+    // still mean the request moved on without this device knowing.
+    _applyRequests(result, emit);
   }
 
   Future<void> _onRejectInvitation(

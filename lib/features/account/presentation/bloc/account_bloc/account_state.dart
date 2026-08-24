@@ -7,6 +7,13 @@ final class AccountState extends Equatable {
     this.summaryStatus = AccountStatus.initial,
     this.statementStatus = AccountStatus.initial,
     this.settlementsStatus = AccountStatus.initial,
+    this.breakdownStatus = AccountStatus.initial,
+    this.activityStatus = AccountStatus.initial,
+    this.activityEntries = const <AccountEntryModel>[],
+    this.activityPage = 0,
+    this.activityHasMore = false,
+    this.activityLoadingMore = false,
+    this.activityLoadMoreError,
     this.submitStatus = AccountStatus.initial,
     this.summary = AccountSummaryModel.empty,
     this.entries = const [],
@@ -23,6 +30,23 @@ final class AccountState extends Equatable {
   final AccountStatus summaryStatus;
   final AccountStatus statementStatus;
   final AccountStatus settlementsStatus;
+
+  /// Status of the deferred `/auth/settlement-breakdown` request.
+  final AccountStatus breakdownStatus;
+
+  /// The full ledger, from `/auth/settlement-recent-activity`. Kept apart from
+  /// [entries]: that is the summary's short preview for the main screen, this
+  /// is the paged list the statement screen walks.
+  final AccountStatus activityStatus;
+  final List<AccountEntryModel> activityEntries;
+  final int activityPage;
+  final bool activityHasMore;
+  final bool activityLoadingMore;
+  final String? activityLoadMoreError;
+
+  /// Whether the breakdown is already held, so reopening the screen does not
+  /// refetch it.
+  bool get hasBreakdown => breakdownStatus == AccountStatus.success;
 
   /// Settlement-request submission lifecycle.
   final AccountStatus submitStatus;
@@ -61,6 +85,14 @@ final class AccountState extends Equatable {
     AccountStatus? summaryStatus,
     AccountStatus? statementStatus,
     AccountStatus? settlementsStatus,
+    AccountStatus? breakdownStatus,
+    AccountStatus? activityStatus,
+    List<AccountEntryModel>? activityEntries,
+    int? activityPage,
+    bool? activityHasMore,
+    bool? activityLoadingMore,
+    String? activityLoadMoreError,
+    bool clearActivityLoadMoreError = false,
     AccountStatus? submitStatus,
     AccountSummaryModel? summary,
     List<AccountEntryModel>? entries,
@@ -79,6 +111,15 @@ final class AccountState extends Equatable {
       summaryStatus: summaryStatus ?? this.summaryStatus,
       statementStatus: statementStatus ?? this.statementStatus,
       settlementsStatus: settlementsStatus ?? this.settlementsStatus,
+      breakdownStatus: breakdownStatus ?? this.breakdownStatus,
+      activityStatus: activityStatus ?? this.activityStatus,
+      activityEntries: activityEntries ?? this.activityEntries,
+      activityPage: activityPage ?? this.activityPage,
+      activityHasMore: activityHasMore ?? this.activityHasMore,
+      activityLoadingMore: activityLoadingMore ?? this.activityLoadingMore,
+      activityLoadMoreError: clearActivityLoadMoreError
+          ? null
+          : activityLoadMoreError ?? this.activityLoadMoreError,
       submitStatus: submitStatus ?? this.submitStatus,
       summary: summary ?? this.summary,
       entries: entries ?? this.entries,
@@ -103,6 +144,13 @@ final class AccountState extends Equatable {
     summaryStatus,
     statementStatus,
     settlementsStatus,
+    breakdownStatus,
+    activityStatus,
+    activityEntries,
+    activityPage,
+    activityHasMore,
+    activityLoadingMore,
+    activityLoadMoreError,
     submitStatus,
     summary,
     entries,

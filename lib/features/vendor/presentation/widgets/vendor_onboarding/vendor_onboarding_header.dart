@@ -26,7 +26,9 @@ class VendorOnboardingHeader extends StatelessWidget {
     final bool isCourt = state.isInCourtCategory;
 
     final Color foreground = LightColor.onBrandSurface.withValues(alpha: 0.96);
-    final Color mutedForeground = LightColor.onBrandSurface.withValues(alpha: 0.76);
+    final Color mutedForeground = LightColor.onBrandSurface.withValues(
+      alpha: 0.76,
+    );
     final Color surface = LightColor.onBrandSurface.withValues(alpha: 0.12);
     final Color border = LightColor.onBrandSurface.withValues(alpha: 0.10);
 

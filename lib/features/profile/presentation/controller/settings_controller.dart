@@ -43,6 +43,15 @@ class SettingsController extends ChangeNotifier {
   bool _notificationSyncing = false;
   bool _disposed = false;
 
+  /// Signed-in user's id, from `/auth/me`. Kept for pages that need account
+  /// context; deletion itself now targets the signed-in account directly.
+  int? _userId;
+  bool _deletingAccount = false;
+
+  /// True once `/auth/me` has answered, either way. Distinguishes "still
+  /// loading" from "loaded, but the fetch failed" for the delete row.
+  bool _profileResolved = false;
+
   bool get pushNotifications => _pushNotifications;
   bool get bookingAlerts => _bookingAlerts;
   bool get opponentRequests => _opponentRequests;
@@ -50,6 +59,12 @@ class SettingsController extends ChangeNotifier {
   bool get biometricLogin => _biometricLogin;
   bool get darkMode => _darkMode;
   String get language => _language;
+  int? get userId => _userId;
+  bool get deletingAccount => _deletingAccount;
+  bool get profileResolved => _profileResolved;
+
+  /// Whether the account can be deleted yet.
+  bool get canDeleteAccount => !_deletingAccount;
 
   /// Languages the app advertises in the picker.
   static const List<String> languages = <String>['English', 'नेपाली', 'हिन्दी'];
@@ -69,11 +84,13 @@ class SettingsController extends ChangeNotifier {
   /// them from `/auth/me` so the toggles reflect the stored preferences.
   Future<void> _seedNotificationPrefsFromProfile() async {
     final result = await _profileUseCase.getProfile();
+    _profileResolved = true;
     result.fold(
       (_) {
         // Offline or failed fetch: keep the locally cached values.
       },
       (profile) {
+        _userId = profile.data.id;
         final NotificationPreferences serverPrefs =
             profile.data.notificationPreferences;
         _syncedNotificationPrefs = serverPrefs;
@@ -85,6 +102,9 @@ class SettingsController extends ChangeNotifier {
         _notifyIfActive();
       },
     );
+    // The id arrives on the success path only; notify either way so a
+    // successful fetch that changed no toggle still enables the delete row.
+    _notifyIfActive();
   }
 
   void _applyNotificationPrefs(NotificationPreferences prefs) {
@@ -202,6 +222,39 @@ class SettingsController extends ChangeNotifier {
     _language = value;
     _settings.appLanguage = value;
     _notifyIfActive();
+  }
+
+  /// `DELETE /auth/account` — irreversible. The repository clears
+  /// the token, the biometric session and the socket on success, so the caller
+  /// only has to navigate away from the signed-in shell.
+  ///
+  /// Returns true when the account was deleted; failures are reported through
+  /// [onError] and leave the session untouched.
+  Future<bool> deleteAccount({required String reason}) async {
+    final String trimmedReason = reason.trim();
+    if (trimmedReason.isEmpty) {
+      onError?.call('Please add a reason for deleting your account.');
+      return false;
+    }
+    if (_deletingAccount) return false;
+    _deletingAccount = true;
+    _notifyIfActive();
+
+    final result = await _profileUseCase.deleteAccount(reason: trimmedReason);
+    _deletingAccount = false;
+    _notifyIfActive();
+
+    return result.fold(
+      (failure) {
+        onError?.call(failure.errorMessage);
+        return false;
+      },
+      (_) {
+        // The biometric switch is off now that its stored session is gone.
+        _biometricLogin = false;
+        return true;
+      },
+    );
   }
 
   @override

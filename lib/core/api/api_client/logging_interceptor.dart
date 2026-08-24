@@ -11,6 +11,19 @@ class LoggingInterceptor extends Interceptor {
         "\n\n===============================================================\n\n",
       );
       print('REQUEST[${options.method}] => PATH: ${options.path}');
+      if (options.data case final FormData form) {
+        debugPrint(
+          'UPLOAD BODY endpoint=${options.path} files=${form.files.length} '
+          'bytes=${form.length}',
+        );
+        for (final MapEntry<String, MultipartFile> entry in form.files) {
+          debugPrint(
+            'UPLOAD FILE endpoint=${options.path} field=${entry.key} '
+            'name=${entry.value.filename ?? 'attachment'} '
+            'bytes=${entry.value.length}',
+          );
+        }
+      }
       log(options.toCurlCmd());
     }
     return super.onRequest(options, handler);
@@ -80,6 +93,9 @@ class LoggingInterceptor extends Interceptor {
       }
       dioE = DioException(
         requestOptions: err.requestOptions,
+        type: err.type,
+        error: err.error,
+        message: err.message,
         response: Response(
           requestOptions: err.requestOptions,
           statusCode: statusCode,
@@ -119,6 +135,10 @@ extension Curl on RequestOptions {
           if (key == "content-type" &&
               value.toString().contains("multipart/form-data")) {
             value = "multipart/form-data;";
+          }
+          final String lowerKey = key.toLowerCase();
+          if (lowerKey == 'authorization' || lowerKey == 'x-api-token') {
+            value = '<redacted>';
           }
           return MapEntry(key, "-H '$key: $value'");
         })

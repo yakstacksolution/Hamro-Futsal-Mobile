@@ -191,10 +191,14 @@ class _BookingSkeletonLoaderState extends State<BookingSkeletonLoader>
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _anim,
-      builder: (_, __) => Opacity(
-        opacity: _anim.value,
+    // FadeTransition, not an AnimatedBuilder around the list: the previous
+    // shape rebuilt four cards and their decorations on every one of the
+    // pulse's frames. Now the list is built once and only its opacity layer is
+    // re-composited — which matters because the status pager keeps the
+    // neighbouring pages' loaders alive while the user swipes.
+    return RepaintBoundary(
+      child: FadeTransition(
+        opacity: _anim,
         child: ListView.separated(
           physics: const NeverScrollableScrollPhysics(),
           padding: AppUtils().getPadding(

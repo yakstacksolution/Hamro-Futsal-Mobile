@@ -384,9 +384,8 @@ class _AuthBrandPanel extends StatelessWidget {
                                 child: Text(
                                   copy.highlights[i],
                                   style: theme.bodyTextLarge?.copyWith(
-                                    color: LightColor.inverseTextColor.withValues(
-                                      alpha: 0.92,
-                                    ),
+                                    color: LightColor.inverseTextColor
+                                        .withValues(alpha: 0.92),
                                     fontWeight: FontWeight.w500,
                                     fontSize: AppDimens.fontBodyTextMedium,
                                   ),

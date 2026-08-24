@@ -5,6 +5,7 @@ import 'package:hamro_footsall/features/media/data/data_source/media_remote_data
 import 'package:hamro_footsall/features/media/data/model/media_model.dart';
 import 'package:hamro_footsall/features/media/domain/repository/media_repository.dart';
 import 'package:hamro_footsall/core/utils/string_constants.dart';
+import 'package:hamro_footsall/core/utils/upload_attachment.dart';
 
 final class MediaRepositoryImpl extends MediaRepository {
   MediaRepositoryImpl({MediaRemoteDataSource? remoteDataSource})
@@ -41,7 +42,7 @@ final class MediaRepositoryImpl extends MediaRepository {
 
   @override
   Future<Either<AppException, List<MediaModel>>> createMedia(
-    List<String> mediaFiles,
+    List<UploadAttachment> mediaFiles,
   ) async {
     final response = await _remoteDataSource.createMedia(mediaFiles);
     if (response.isError()) {

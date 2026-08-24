@@ -92,13 +92,13 @@ class PaymentQrCard extends StatelessWidget {
           Icon(
             Icons.qr_code_2_rounded,
             size: size * 0.4,
-            color: LightColor.hintTextColor,
+            color: LightColor.onQrSurfaceMuted,
           ),
           const SizedBox(height: AppDimens.sizeX6),
           Text(
             StringConstants.qrUnavailable,
             style: TextStyle(
-              color: LightColor.hintTextColor,
+              color: LightColor.onQrSurfaceMuted,
               fontSize: AppDimens.sizeX12,
               fontWeight: FontWeight.w500,
             ),
@@ -113,7 +113,7 @@ class PaymentQrCard extends StatelessWidget {
     showDialog<void>(
       context: context,
       builder: (BuildContext context) => Dialog(
-        backgroundColor: LightColor.whiteColor,
+        backgroundColor: LightColor.qrSurface,
         insetPadding: AppUtils().getPadding(all: AppDimens.paddingX24),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppDimens.radiusX16),
@@ -130,7 +130,7 @@ class PaymentQrCard extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: FutsalTheme.getTextTheme(context).bodyTextMedium
                     ?.copyWith(
-                      color: LightColor.primaryTextColor,
+                      color: LightColor.onQrSurface,
                       fontWeight: FontWeight.w700,
                     ),
               ),
@@ -163,7 +163,10 @@ class PaymentQrCard extends StatelessWidget {
             child: Container(
               padding: AppUtils().getPadding(all: AppDimens.paddingX12),
               decoration: BoxDecoration(
-                color: LightColor.whiteColor,
+                // Always light, in both themes: scanners need the quiet zone,
+                // and a QR with a transparent background disappears entirely
+                // against the dark surface token.
+                color: LightColor.qrSurface,
                 borderRadius: BorderRadius.circular(AppDimens.radiusX12),
                 border: Border.all(
                   color: LightColor.dividerColor.withValues(alpha: 0.9),
@@ -228,7 +231,7 @@ class PaymentQrCard extends StatelessWidget {
                     amountValue!,
                     textAlign: TextAlign.right,
                     style: textTheme.bodyTextMedium?.copyWith(
-                      color: LightColor.secondaryColor,
+                      color: LightColor.brandTextColor,
                       fontWeight: FontWeight.w800,
                     ),
                   ),

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:hamro_footsall/core/helper/share_preferences.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
@@ -15,11 +16,11 @@ import 'package:hamro_footsall/features/message/data/service/reverb_chat_socket_
 import 'package:hamro_footsall/features/message/domain/usecase/message_usecase.dart';
 import 'package:hamro_footsall/features/message/presentation/bloc/message_bloc/message_bloc.dart';
 import 'package:hamro_footsall/features/message/presentation/pages/chat_page.dart';
+import 'package:hamro_footsall/features/message/presentation/pages/create_group_conversation_page.dart';
 import 'package:hamro_footsall/features/message/presentation/widgets/message_card.dart';
 import 'package:hamro_footsall/features/message/presentation/widgets/message_empty_view.dart';
 import 'package:hamro_footsall/features/message/presentation/widgets/message_filter_chip.dart';
 import 'package:hamro_footsall/features/message/presentation/widgets/message_search_field.dart';
-import 'package:hamro_footsall/features/message/presentation/widgets/group_conversation_sheet.dart';
 import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 class MessagesPage extends StatelessWidget {
@@ -146,14 +147,21 @@ class _MessagesViewState extends State<_MessagesView>
     _presenceRefreshTimer = null;
   }
 
+  bool get _hasSession =>
+      AppSettings().tokenModel.accessToken?.isNotEmpty ?? false;
+
   Future<void> _sendHeartbeat() async {
     if (!_appActive || DashboardScreen.selectedNavIndex.value != 2) return;
+    if (!_hasSession) return;
     final socketId = ReverbChatSocketService.instance.socketId?.trim();
     if (socketId == null || socketId.isEmpty) return;
     await _bloc.useCase.sendPresenceHeartbeat(socketId);
   }
 
   Future<void> _setOwnPresence(bool online) async {
+    // Logout clears the session before this widget is disposed; without this
+    // guard the trailing offline call fires unauthenticated and 401s.
+    if (!_hasSession) return;
     final result = await _bloc.useCase.setPresence(online);
     result.fold((_) {
       // Permit a later lifecycle/tab event to retry a failed presence update.
@@ -206,8 +214,8 @@ class _MessagesViewState extends State<_MessagesView>
 
   Future<void> _createGroup() async {
     final bloc = context.read<MessageBloc>();
-    final draft = await showGroupConversationSheet(
-      context: context,
+    final draft = await CreateGroupConversationPage.open(
+      context,
       currentUserId: bloc.state.currentUserId,
       participants: bloc.state.conversations.expand(
         (conversation) => conversation.participants,
@@ -250,10 +258,12 @@ class _MessagesViewState extends State<_MessagesView>
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<MessageBloc, MessageState>(
+      // Every finished create is reported: the old condition also required the
+      // error text to *change*, so failing twice with the same message showed
+      // nothing the second time.
       listenWhen: (previous, current) =>
           previous.createdGroup != current.createdGroup ||
-          (previous.groupCreating &&
-              current.errorMessage != previous.errorMessage),
+          (previous.groupCreating && !current.groupCreating),
       listener: (context, state) {
         final bloc = context.read<MessageBloc>();
         final created = state.createdGroup;

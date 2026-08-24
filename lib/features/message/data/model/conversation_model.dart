@@ -255,6 +255,7 @@ class ConversationModel {
   }
 
   ConversationModel copyWith({
+    String? title,
     int? unreadCount,
     bool? isMuted,
     bool? isPinned,
@@ -263,7 +264,7 @@ class ConversationModel {
   }) => ConversationModel(
     id: id,
     type: type,
-    title: title,
+    title: title ?? this.title,
     status: status,
     venueId: venueId,
     venue: venue,

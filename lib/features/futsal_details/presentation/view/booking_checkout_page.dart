@@ -38,6 +38,11 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
     with WidgetsBindingObserver {
   final TextEditingController _couponCtrl = TextEditingController();
 
+  /// Free text the payer adds about their payment — a transaction id, who sent
+  /// it — carried to the venue as `payment_note`. Optional: a booking is never
+  /// blocked on it.
+  final TextEditingController _paymentDescCtrl = TextEditingController();
+
   static const String _payeeName = 'Hamro Futsal Pvt. Ltd.';
   static const String _payeeId = '9800000000';
 
@@ -90,10 +95,18 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _couponCtrl.dispose();
+    _paymentDescCtrl.dispose();
     super.dispose();
   }
 
   double get _subtotal => widget.draft.subtotal;
+
+  /// The typed payment description, or null when it was left empty — the field
+  /// is optional and an empty string would be sent as one.
+  String? get _paymentDescription {
+    final String text = _paymentDescCtrl.text.trim();
+    return text.isEmpty ? null : text;
+  }
 
   bool get _canConfirm =>
       _isManual ||
@@ -101,6 +114,7 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
           (!_paymentDocValidationApplied ||
               _receiptValidation?.accepted == true) &&
           !_isValidatingReceipt &&
+          _paymentDescription != null &&
           _agreedToTerms);
 
   /// Effective server quote: from the coupon-apply response once a coupon is
@@ -200,10 +214,6 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
     context.read<CouponBloc>().add(const RemoveCouponEvent());
   }
 
-  /// Attaches the payment receipt through the shared media picker — gallery,
-  /// camera or files, downscaled and HEIC-converted the same way media-library
-  /// uploads are. A receipt is usually a screenshot or a photo of a counter
-  /// slip, so the camera path matters here.
   Future<void> _pickPaymentDoc({bool applyValidate = true}) async {
     final PickedMediaFile? file = await pickMediaFile(
       context,
@@ -296,6 +306,15 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
       );
       return;
     }
+    if (!_isManual && _paymentDescription == null) {
+      AppUtils().showSnackBar(
+        context,
+        MsgType.error,
+        StringConstants.paymentDescriptionRequired,
+        key: 'payment_description_required',
+      );
+      return;
+    }
     if (!_isManual && !_agreedToTerms) {
       AppUtils().showSnackBar(
         context,
@@ -326,6 +345,7 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
             ? 'Paid at counter'
             : 'Online (QR) · proof attached',
         paymentProofName: _paymentDoc?.name,
+        paymentDescription: _paymentDescription,
       ),
     );
 
@@ -351,10 +371,10 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
           couponCode: coupon.hasApplied ? coupon.appliedCode : null,
           repeatWeeks: draft.repeatWeeksPayload,
           bookingDates: draft.apiSessionDates,
-          paymentProofPath: _paymentDoc?.path,
-          paymentProofBytes: _paymentDoc?.bytes,
-          paymentProofName: _paymentDoc?.name,
-          paymentNote: manual?.paymentNote,
+          paymentProof: _paymentDoc,
+          // The vendor's manual flow supplies its own note; a customer booking
+          // carries whatever the payer typed.
+          paymentNote: manual?.paymentNote ?? _paymentDescription,
           bookingType: manual == null ? null : 'manual',
           customerName: manual?.customerName,
           customerPhone: manual?.customerPhone,
@@ -515,6 +535,14 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
                       _receiptValidation = null;
                       _paymentDocValidationApplied = false;
                     }),
+                  ),
+                  const SizedBox(height: AppDimens.sizeX16),
+                  _PaymentDescriptionField(
+                    controller: _paymentDescCtrl,
+                    highlightMissing: _submitted && _paymentDescription == null,
+                    // The confirm button turns on this field's contents, so
+                    // every keystroke has to reach the bottom bar.
+                    onChanged: (_) => setState(() {}),
                   ),
                   const SizedBox(height: AppDimens.sizeX12),
                   const _PaymentNoteCard(),
@@ -1664,6 +1692,7 @@ class _BookingOverviewSheet extends StatelessWidget {
     required this.couponCode,
     required this.paymentMethodLabel,
     required this.paymentProofName,
+    required this.paymentDescription,
   });
 
   final BookingDraft draft;
@@ -1671,6 +1700,7 @@ class _BookingOverviewSheet extends StatelessWidget {
   final String? couponCode;
   final String paymentMethodLabel;
   final String? paymentProofName;
+  final String? paymentDescription;
 
   @override
   Widget build(BuildContext context) {
@@ -1757,6 +1787,14 @@ class _BookingOverviewSheet extends StatelessWidget {
                     ],
                   ),
                 ),
+                // The amount being committed to, beside the title: it used to
+                // sit at the bottom of the price card, below the fold on a
+                // recurring booking, so the sheet asked for a decision without
+                // showing the figure it turns on.
+                if (pricing.ready) ...<Widget>[
+                  const SizedBox(width: AppDimens.sizeX10),
+                  _DueNowBadge(amount: pricing.advance),
+                ],
               ],
             ),
             const SizedBox(height: AppDimens.sizeX18),
@@ -1766,6 +1804,7 @@ class _BookingOverviewSheet extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
+                    const _SectionLabel(StringConstants.bookingDetails),
                     _ReviewCourtCard(draft: draft, timeRange: timeRange),
                     if (draft.isRecurring) ...<Widget>[
                       const SizedBox(height: AppDimens.sizeX12),
@@ -1775,13 +1814,16 @@ class _BookingOverviewSheet extends StatelessWidget {
                         sessionDates: sessionDates,
                       ),
                     ],
-                    const SizedBox(height: AppDimens.sizeX12),
+                    const SizedBox(height: AppDimens.sizeX16),
+                    const _SectionLabel(StringConstants.paymentAndProof),
                     _ReviewPaymentCard(
                       paymentMethodLabel: paymentMethodLabel,
                       paymentProofName: paymentProofName,
+                      paymentDescription: paymentDescription,
                       couponCode: couponCode,
                     ),
-                    const SizedBox(height: AppDimens.sizeX12),
+                    const SizedBox(height: AppDimens.sizeX16),
+                    const _SectionLabel(StringConstants.priceSummary),
                     _PriceBreakdown(lines: pricing.lines, ready: pricing.ready),
                     const SizedBox(height: AppDimens.sizeX4),
                   ],
@@ -1975,17 +2017,25 @@ class _ReviewPaymentCard extends StatelessWidget {
   const _ReviewPaymentCard({
     required this.paymentMethodLabel,
     required this.paymentProofName,
+    required this.paymentDescription,
     required this.couponCode,
   });
 
   final String paymentMethodLabel;
   final String? paymentProofName;
+
+  /// The transaction ID the payer entered, echoed back so they can catch a
+  /// mistyped one before the booking is created.
+  final String? paymentDescription;
   final String? couponCode;
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+
     return _Surface(
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           _ReviewDetailRow(
             icon: Icons.payments_rounded,
@@ -1998,6 +2048,7 @@ class _ReviewPaymentCard extends StatelessWidget {
               icon: Icons.attach_file_rounded,
               label: StringConstants.proof,
               value: paymentProofName!,
+              valueColor: LightColor.successColor,
             ),
           ],
           if (couponCode != null && couponCode!.trim().isNotEmpty) ...<Widget>[
@@ -2009,8 +2060,147 @@ class _ReviewPaymentCard extends StatelessWidget {
               valueColor: LightColor.secondaryColor,
             ),
           ],
+          // Free text gets its own block rather than a value column: a
+          // transaction id and a sentence about who paid both need the width,
+          // and neither reads as a label/value pair.
+          if (paymentDescription case final String note
+              when note.trim().isNotEmpty) ...<Widget>[
+            const SizedBox(height: AppDimens.sizeX12),
+            Container(
+              width: double.infinity,
+              padding: AppUtils().getPadding(all: AppDimens.paddingX10),
+              decoration: BoxDecoration(
+                color: LightColor.secondaryColor.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+                border: Border(
+                  left: BorderSide(
+                    color: LightColor.secondaryColor.withValues(alpha: 0.5),
+                    width: 3,
+                  ),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(
+                    StringConstants.paymentDescription,
+                    style: textTheme.bodyMiniSubTitle?.copyWith(
+                      color: LightColor.hintTextColor,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: AppDimens.sizeX4),
+                  Text(
+                    note.trim(),
+                    style: textTheme.bodyTextSmall?.copyWith(
+                      color: LightColor.primaryTextColor,
+                      fontWeight: FontWeight.w500,
+                      height: 1.35,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
+    );
+  }
+}
+
+/// The amount the user is committing to right now, as a pill in the sheet's
+/// header.
+class _DueNowBadge extends StatelessWidget {
+  const _DueNowBadge({required this.amount});
+
+  final double amount;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    return Container(
+      padding: AppUtils().getPadding(
+        horizontal: AppDimens.paddingX10,
+        vertical: AppDimens.paddingX6,
+      ),
+      decoration: BoxDecoration(
+        color: LightColor.secondaryColor.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(AppDimens.radiusX12),
+        border: Border.all(
+          color: LightColor.secondaryColor.withValues(alpha: 0.28),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: <Widget>[
+          Text(
+            StringConstants.amountDueNow,
+            style: textTheme.bodyMiniSubTitle?.copyWith(
+              color: LightColor.secondaryTextColor,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          Text(
+            'Rs ${amount.toStringAsFixed(0)}',
+            style: textTheme.bodyTextMedium?.copyWith(
+              color: LightColor.secondaryColor,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The payer's transaction ID — required, because it is what the venue matches
+/// the payment against.
+class _PaymentDescriptionField extends StatelessWidget {
+  const _PaymentDescriptionField({
+    required this.controller,
+    required this.highlightMissing,
+    required this.onChanged,
+  });
+
+  final TextEditingController controller;
+
+  /// Set once the user has tried to confirm without filling this in — the same
+  /// treatment the proof upload and the terms checkbox get.
+  final bool highlightMissing;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        CustomTextField(
+          controller: controller,
+          onChanged: onChanged,
+          labelText: StringConstants.paymentDescription,
+          hintText: StringConstants.paymentDescriptionHint,
+          textCapitalization: TextCapitalization.characters,
+          textInputAction: TextInputAction.done,
+          ensureVisibleOnFocus: true,
+          inputFormatters: <TextInputFormatter>[
+            LengthLimitingTextInputFormatter(255),
+          ],
+        ),
+        const SizedBox(height: AppDimens.sizeX6),
+        Text(
+          highlightMissing
+              ? StringConstants.paymentDescriptionRequired
+              : StringConstants.paymentDescriptionHelp,
+          style: textTheme.bodyMiniSubTitle?.copyWith(
+            color: highlightMissing
+                ? LightColor.redColor
+                : LightColor.secondaryTextColor,
+            fontWeight: highlightMissing ? FontWeight.w700 : FontWeight.w500,
+            height: 1.35,
+          ),
+        ),
+      ],
     );
   }
 }

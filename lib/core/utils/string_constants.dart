@@ -49,13 +49,17 @@ final class StringConstants {
       'Final pricing is confirmed by the server.';
   static const String requestExpiredMessage =
       'This request has expired and can no longer be accepted.';
+  static const String invitationNoLongerAvailable =
+      'This invitation is no longer available.';
   static const String requestJustAcceptedByAnotherTeam =
       'This request was just accepted by another team.';
   static const String submitAndAccept = 'Submit & Accept';
   static const String whichTeamWillPlay = 'Which team will play?';
   static const String yourTeamShare = "Your team's share";
   static const String account = 'Account';
+  static const String financeAndPayouts = 'Finance & Payouts';
   static const String accountStatement = 'Statement';
+  static const String recentActivity = 'Recent activity';
   static const String availableBalance = 'Available balance';
   static const String commissionPaid = 'Commission paid';
   static const String couldNotParseAccountFromServer =
@@ -153,6 +157,20 @@ final class StringConstants {
   static const String balanceDueLater = 'Balance due later';
   static const String balanceDue = 'Balance due';
   static const String paidAmount = 'Paid amount';
+  static const String settlement = 'Settlement';
+  static const String requestedAmount = 'Requested';
+  static const String stillClearing = 'still clearing';
+  static const String requestedOn = 'Requested on';
+  static const String paidOn = 'Paid on';
+  static const String updatedOn = 'Updated on';
+  static const String maximumPayable = 'Maximum payable';
+  static const String singleVenue = 'Single venue';
+  static const String viewPaymentProof = 'View payment proof';
+  static const String viewProof = 'View proof';
+  static const String approvedAmount = 'Approved';
+  static const String txnShort = 'Txn';
+  static const String transactionReferenceCopied =
+      'Transaction reference copied.';
   static const String balancedPackageForActiveFutsalOperations =
       'Balanced package for active futsal operations.';
   static const String basePrice = 'Base price';
@@ -168,6 +186,9 @@ final class StringConstants {
   static const String bookCourtsManageMatchesAndKeepYourFutsalPlansMov11f51a89 =
       'Book courts, manage matches, and keep your futsal plans moving without the back-and-forth.';
   static const String bookNow = 'Book Now';
+  static const String bookingCompleted = 'Your booking is completed';
+  static const String bookingCompletedMessage =
+      'The court is held for your match. Continue to set the cost split.';
   static const String booked = 'Booked';
   static const String bookedVia = 'Booked via';
   static const String booking = 'Booking';
@@ -201,6 +222,7 @@ final class StringConstants {
   static const String canWeRescheduleTonightSBooking =
       'Can we reschedule tonight’s booking?';
   static const String cancel = 'Cancel';
+  static const String okay = 'Okay';
   static const String cancelBooking = 'Cancel booking';
   static const String cancelBookingConfirmation =
       'Are you sure you want to cancel this booking? This cannot be undone.';
@@ -331,6 +353,8 @@ final class StringConstants {
       'Could not parse match formats from server.';
   static const String couldNotParseMediaListFromServer =
       'Could not parse media list from server.';
+  static const String couldNotParseReviewsFromServer =
+      'Could not parse reviews from server.';
   static const String couldNotParsePaymentQrFromServer =
       'Could not parse payment QR from server.';
   static const String couldNotParsePublicPackagesFromServer =
@@ -394,6 +418,26 @@ final class StringConstants {
   static const String defineBookingRulesPaymentsAndVenueHousePolicies =
       'Define booking rules, payments, and venue house policies.';
   static const String delete = 'Delete';
+  static const String deleteAccount = 'Delete Account';
+  static const String deleteAccountPrompt = 'Delete your account?';
+  static const String deleteAccountWarning =
+      'This cannot be undone. Everything below is removed for good.';
+  static const String deleteAccountLosesProfile =
+      'Your profile, login and biometric access';
+  static const String deleteAccountLosesBookings =
+      'Your bookings and payment history';
+  static const String deleteAccountLosesTeams =
+      'Your teams and opponent requests';
+  static const String deleteAccountConfirmationWord = 'DELETE';
+  static const String deleteAccountSubtitle =
+      'Permanently remove your account and data';
+  static const String deleteAccountReason = 'Reason for deletion';
+  static const String deleteAccountReasonHint =
+      'Tell us why you are deleting your account';
+  static const String deleteAccountReasonRequired =
+      'Please add a reason before deleting your account.';
+  static const String accountDeleted = 'Your account has been deleted';
+  static const String deletingAccount = 'Deleting account…';
   static const String deleteCourt = 'Delete Court';
   static const String deleteCourtPrompt = 'Delete Court?';
   static const String deleteFile = 'Delete File?';
@@ -1348,4 +1392,54 @@ final class StringConstants {
       'Could not generate a coupon right now. Please try again.';
   static const String needMorePointsToRedeem = 'Need more points to redeem';
   static const String rewardPointsExpiring = 'points expiring on';
+
+  // Create opponent request
+  static const String pressBackAgainToLeaveRequest =
+      'Press back again to leave this request.';
+
+  // Booking checkout
+  static const String paymentDescription = 'Payment description';
+  static const String paymentDescriptionHint =
+      'Please provide your transaction ID';
+  static const String paymentDescriptionHelp =
+      'The venue matches your payment against this, so enter the transaction '
+      'ID exactly as it appears on your receipt.';
+  static const String paymentDescriptionRequired =
+      'Please provide your transaction ID.';
+  static const String amountDueNow = 'Due now';
+  static const String paymentAndProof = 'Payment & proof';
+  static const String priceSummary = 'Price summary';
+
+  // Group info
+  static const String changeGroupName = 'Change group name';
+  static const String enterAGroupName = 'Enter a group name.';
+  static const String groupNameTooLong =
+      'Group name must be 255 characters or fewer.';
+  static const String offline = 'Offline';
+  static const String about = 'About';
+  static const String groupInfo = 'Group Info';
+  static const String blocked = 'Blocked';
+  static const String moreOptions = 'More options';
+  static const String leaveGroup = 'Leave group';
+  static const String leaveGroupQuestion = 'Leave this group?';
+  static const String leaveGroupMessage =
+      'You will stop receiving messages from this group and it will be '
+      'removed from your chats.';
+  static const String leaving = 'Leaving…';
+  static const String you = 'You';
+  static const String groupMembersSectionHint =
+      'Tap a member to see their profile';
+
+  // Create group
+  static const String unknownUser = 'Unknown user';
+  static const String online = 'Online';
+  static const String selectAll = 'Select all';
+  static const String groupFull = 'Group is full';
+  static const String tapANameToAddOrRemoveThem =
+      'Tap a name to add or remove them';
+  static const String nameTheGroupAndChooseWhoIsInIt =
+      'Name the group and choose who is in it';
+  static const String createGroupAction = 'Create group';
+  static const String groupMemberLimitReached =
+      'That is the most members a group can hold.';
 }

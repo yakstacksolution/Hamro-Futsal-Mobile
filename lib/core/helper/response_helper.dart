@@ -23,8 +23,9 @@ class ResponseHelper {
       case 522:
       case 504:
       case 552:
-        errorMessage =
-            'The server encountered an error and could not complete your request, please retry again.';
+        errorMessage = error.message.toLowerCase().contains('upload timed out')
+            ? error.message
+            : 'The server encountered an error and could not complete your request, please retry again.';
         return ServerException(
           errorMessage: errorMessage,
           statusCode: statusCode,
@@ -75,6 +76,14 @@ class ResponseHelper {
           icon: icon,
           data: errorData,
         );
+      case 413:
+        return ValidationException(
+          errorMessage:
+              'The selected file is too large for the server. Choose a smaller file and try again.',
+          statusCode: statusCode,
+          icon: icon,
+          data: errorData,
+        );
       default:
         errorMessage = _extractMessage(error);
         return DefaultException(
@@ -99,18 +108,36 @@ class ResponseHelper {
 
     if (payload is Map) {
       final String? nestedError = _extractNestedErrorMessage(payload['errors']);
-      if (nestedError != null) return nestedError;
+      if (nestedError != null) return _actionableUploadMessage(nestedError);
 
       final String? message = _readMessageValue(payload['message']);
-      if (message != null) return message;
+      if (message != null) return _actionableUploadMessage(message);
 
       final String? errorText = _readMessageValue(
         payload['error'] ?? payload['detail'],
       );
-      if (errorText != null) return errorText;
+      if (errorText != null) return _actionableUploadMessage(errorText);
     }
 
-    return _extractMessage(error);
+    return _actionableUploadMessage(_extractMessage(error));
+  }
+
+  static String _actionableUploadMessage(String message) {
+    final String lower = message.toLowerCase();
+    final bool mentionsUpload =
+        lower.contains('upload') ||
+        lower.contains('file') ||
+        lower.contains('proof') ||
+        lower.contains('document');
+    final bool unreadable =
+        lower.contains('failed to upload') ||
+        lower.contains('size 0') ||
+        lower.contains('zero byte') ||
+        lower.contains('empty');
+    if (mentionsUpload && unreadable) {
+      return 'The server could not read the attachment. Reattach a smaller file and try again.';
+    }
+    return message;
   }
 
   static String _extractMessage(DataError error) {

@@ -3,13 +3,14 @@
 /// The backend decides what belongs in each slice, so the three sections of
 /// the requests list are three separate calls rather than one list filtered
 /// on-device.
-enum OpponentRequestTab { needOpponent, myRequests, settled }
+enum OpponentRequestTab { needOpponent, myRequests, invitations, settled }
 
 extension OpponentRequestTabX on OpponentRequestTab {
   /// Value sent as the `tab` query parameter.
   String get query => switch (this) {
     OpponentRequestTab.needOpponent => 'need_opponent',
     OpponentRequestTab.myRequests => 'my_requests',
+    OpponentRequestTab.invitations => 'invitation',
     OpponentRequestTab.settled => 'settled',
   };
 

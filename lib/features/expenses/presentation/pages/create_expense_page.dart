@@ -7,6 +7,7 @@ import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/custom_image_view.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/utils/upload_attachment.dart';
 import 'package:hamro_footsall/core/widgets/custom_app_bar.dart';
 import 'package:hamro_footsall/core/widgets/custom_button.dart';
 import 'package:hamro_footsall/core/widgets/custom_date_picker.dart';
@@ -66,7 +67,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
       : widget.courts.where((c) => c.id == widget.initial!.courtId).firstOrNull;
   late DateTime _date = widget.initial?.date ?? DateTime.now();
   late PaymentMethod _method = widget.initial?.method ?? PaymentMethod.cash;
-  PlatformFile? _document;
+  UploadAttachment? _document;
   bool _submitted = false;
 
   bool get _isEdit => widget.initial != null;
@@ -95,7 +96,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
     'doc',
     'docx',
   ];
-  static const _maxDocumentBytes = 10 * 1024 * 1024;
+  static const _maxDocumentBytes = kUploadMaxFileBytes;
 
   static const _presets = [500, 1000, 2500, 5000, 10000];
 
@@ -148,22 +149,46 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: _documentExtensions,
+      // Read now while the picker-owned file is still guaranteed to exist.
+      withData: true,
     );
-    final file = result?.files.singleOrNull;
+    final PlatformFile? file = result?.files.singleOrNull;
     if (file == null || !mounted) return;
-    if (file.path == null) return;
-    if (file.size > _maxDocumentBytes) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          const SnackBar(
-            content: Text(StringConstants.documentMustBeSmallerThan10Mb),
-            behavior: SnackBarBehavior.floating,
-          ),
+    try {
+      const UploadPolicy policy = UploadPolicy(
+        allowedExtensions: <String>{
+          'jpg',
+          'jpeg',
+          'png',
+          'webp',
+          'pdf',
+          'doc',
+          'docx',
+        },
+        maxInputBytes: _maxDocumentBytes,
+      );
+      final UploadAttachment attachment;
+      if (file.bytes case final bytes? when bytes.isNotEmpty) {
+        attachment = await normalizeUploadAttachment(
+          bytes: bytes,
+          filename: file.name,
+          sourcePath: file.path,
+          originalSize: file.size,
+          policy: policy,
         );
-      return;
+      } else {
+        attachment = await loadUploadAttachment(
+          path: file.path ?? '',
+          filename: file.name,
+          policy: policy,
+        );
+      }
+      if (!mounted) return;
+      setState(() => _document = attachment);
+    } on UploadValidationException catch (error) {
+      if (!mounted) return;
+      AppUtils().showSnackBar(context, MsgType.error, error.message);
     }
-    setState(() => _document = file);
   }
 
   void _save() {
@@ -182,7 +207,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
         method: _method,
         courtId: _court?.id,
         note: note.isEmpty ? null : note,
-        documentPath: _document?.path,
+        document: _document,
       ),
     );
   }
@@ -593,7 +618,7 @@ class _DocumentField extends StatelessWidget {
     required this.onRemove,
   });
 
-  final PlatformFile? document;
+  final UploadAttachment? document;
   final VoidCallback onPick;
   final VoidCallback onRemove;
 

@@ -87,6 +87,16 @@ class _VenueFilterViewState extends State<_VenueFilterView> {
   bool get _isPriceConstrained =>
       _priceRange.start > _priceMin || _priceRange.end < _priceMax;
 
+  int get _activeFilterCount {
+    int count = 0;
+    if (_isPriceConstrained) count += 1;
+    if (_matchTypeId != null) count += 1;
+    if (_courtTypeId != null) count += 1;
+    if (_minRating != null) count += 1;
+    if (_timeSlots.isNotEmpty) count += 1;
+    return count;
+  }
+
   void _reset() {
     setState(() {
       _priceRange = const RangeValues(_priceMin, _priceMax);
@@ -153,11 +163,12 @@ class _VenueFilterViewState extends State<_VenueFilterView> {
         backgroundColor: LightColor.background,
         elevation: 0,
         surfaceTintColor: LightColor.background,
-        centerTitle: true,
+        centerTitle: false,
         leading: IconButton(
+          tooltip: StringConstants.close,
           icon: Icon(
             Icons.close_rounded,
-            size: AppDimens.sizeX22,
+            size: AppDimens.sizeX20,
             color: LightColor.primaryTextColor,
           ),
           onPressed: () => Navigator.of(context).maybePop(),
@@ -165,23 +176,41 @@ class _VenueFilterViewState extends State<_VenueFilterView> {
         title: Text(
           StringConstants.filtersAndSorting,
           style: textTheme.bodyTextMedium?.copyWith(
-            fontSize: AppDimens.fontHeadingSmall,
+            fontSize: AppDimens.fontBodyTextLarge,
+            fontWeight: FontWeight.w700,
             color: LightColor.primaryTextColor,
           ),
         ),
         actions: <Widget>[
-          TextButton(
-            onPressed: _reset,
-            child: Text(
-              StringConstants.reset,
-              style: textTheme.bodyTextSmall?.copyWith(
-                color: LightColor.secondaryColor,
+          Padding(
+            padding: const EdgeInsets.only(right: AppDimens.paddingX12),
+            child: TextButton(
+              onPressed: _reset,
+              style: TextButton.styleFrom(
+                foregroundColor: LightColor.brandTextColor,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppDimens.paddingX10,
+                  vertical: AppDimens.paddingX8,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+                ),
+              ),
+              child: Text(
+                StringConstants.reset,
+                style: textTheme.bodyTextSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ),
         ],
       ),
-      bottomNavigationBar: _BottomBar(onClearAll: _reset, onApply: _apply),
+      bottomNavigationBar: _BottomBar(
+        activeFilterCount: _activeFilterCount,
+        onClearAll: _reset,
+        onApply: _apply,
+      ),
       body: BlocBuilder<PublicCourtOptionsBloc, PublicCourtOptionsState>(
         builder: (BuildContext context, PublicCourtOptionsState optionsState) {
           final List<PublicOptionModel> matchTypeOptions = _selectableOptions(
@@ -191,200 +220,199 @@ class _VenueFilterViewState extends State<_VenueFilterView> {
             optionsState.courtTypes,
           );
 
-          // Price / match type / court type on one side, rating and time
-          // slots on the other, so a wide window is not one long scroll.
           final List<Widget> primary = <Widget>[
-            _SectionTitle(
+            _FilterSectionCard(
+              icon: Icons.payments_outlined,
               title: StringConstants.priceRange,
-              trailing: Text(
-                '${_priceLabel(_priceRange.start)} - ${_priceLabel(_priceRange.end)}',
-                style: textTheme.bodyTextSmall?.copyWith(
-                  color: LightColor.secondaryColor,
-                  fontWeight: FontWeight.w700,
-                ),
+              subtitle: 'Set your hourly budget',
+              trailing: _SelectionPill(
+                label:
+                    '${_priceLabel(_priceRange.start)} – ${_priceLabel(_priceRange.end)}',
               ),
-            ),
-            SizedBox(height: AppDimens.sizeX14),
-            SliderTheme(
-              data: SliderTheme.of(context).copyWith(
-                trackHeight: 4,
-                activeTrackColor: LightColor.secondaryColor,
-                inactiveTrackColor: LightColor.dividerColor,
-                thumbColor: LightColor.inverseTextColor,
-                overlayColor: LightColor.secondaryColor.withValues(alpha: 0.12),
-                rangeThumbShape: const RoundRangeSliderThumbShape(
-                  enabledThumbRadius: 11,
-                  elevation: 2,
-                ),
-                rangeTickMarkShape: const RoundRangeSliderTickMarkShape(
-                  tickMarkRadius: 0,
-                ),
-                rangeTrackShape: const RoundedRectRangeSliderTrackShape(),
-                rangeValueIndicatorShape:
-                    const PaddleRangeSliderValueIndicatorShape(),
-                valueIndicatorColor: LightColor.secondaryColor,
-              ),
-              child: RangeSlider(
-                values: _priceRange,
-                min: _priceMin,
-                max: _priceMax,
-                divisions: 50,
-
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppDimens.sizeX4,
-                ),
-                labels: RangeLabels(
-                  _priceLabel(_priceRange.start),
-                  _priceLabel(_priceRange.end),
-                ),
-                onChanged: (RangeValues value) =>
-                    setState(() => _priceRange = value),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppDimens.sizeX4),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              child: Column(
                 children: <Widget>[
-                  Text(
-                    _priceLabel(_priceMin),
-                    style: textTheme.bodyTextSmall?.copyWith(
-                      color: LightColor.secondaryTextColor,
-                      fontSize: AppDimens.fontBodySubTitle,
-                      fontWeight: FontWeight.w500,
+                  SliderTheme(
+                    data: SliderTheme.of(context).copyWith(
+                      trackHeight: 4,
+                      activeTrackColor: LightColor.secondaryColor,
+                      inactiveTrackColor: LightColor.dividerColor,
+                      thumbColor: LightColor.inverseTextColor,
+                      overlayColor: LightColor.secondaryColor.withValues(
+                        alpha: 0.12,
+                      ),
+                      rangeThumbShape: const RoundRangeSliderThumbShape(
+                        enabledThumbRadius: 11,
+                        elevation: 2,
+                      ),
+                      rangeTickMarkShape: const RoundRangeSliderTickMarkShape(
+                        tickMarkRadius: 0,
+                      ),
+                      rangeTrackShape: const RoundedRectRangeSliderTrackShape(),
+                      rangeValueIndicatorShape:
+                          const PaddleRangeSliderValueIndicatorShape(),
+                      valueIndicatorColor: LightColor.secondaryColor,
+                    ),
+                    child: RangeSlider(
+                      values: _priceRange,
+                      min: _priceMin,
+                      max: _priceMax,
+                      divisions: 50,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppDimens.sizeX4,
+                      ),
+                      labels: RangeLabels(
+                        _priceLabel(_priceRange.start),
+                        _priceLabel(_priceRange.end),
+                      ),
+                      onChanged: (RangeValues value) =>
+                          setState(() => _priceRange = value),
                     ),
                   ),
-                  Text(
-                    _priceLabel(_priceMax),
-                    style: textTheme.bodyTextSmall?.copyWith(
-                      color: LightColor.secondaryTextColor,
-                      fontSize: AppDimens.fontBodySubTitle,
-                      fontWeight: FontWeight.w500,
+                  const SizedBox(height: AppDimens.paddingX8),
+                  Row(
+                    children: <Widget>[
+                      Expanded(
+                        child: _PriceBoundary(
+                          label: 'Minimum',
+                          value: _priceLabel(_priceRange.start),
+                        ),
+                      ),
+                      const SizedBox(width: AppDimens.paddingX10),
+                      Expanded(
+                        child: _PriceBoundary(
+                          label: 'Maximum',
+                          value: _priceLabel(_priceRange.end),
+                          alignEnd: true,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppDimens.paddingX14),
+            _FilterSectionCard(
+              icon: Icons.stadium_outlined,
+              title: 'Court preferences',
+              subtitle: 'Choose the court and match you prefer',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  const _FilterFieldLabel(title: StringConstants.matchType),
+                  const SizedBox(height: AppDimens.paddingX10),
+                  _OptionStateView(
+                    status: optionsState.status,
+                    isEmpty: matchTypeOptions.isEmpty,
+                    emptyMessage: StringConstants.noMatchFormatsAvailable,
+                    errorMessage: optionsState.errorMessage,
+                    loading: const _PillRowLoading(),
+                    child: Wrap(
+                      spacing: AppDimens.paddingX8,
+                      runSpacing: AppDimens.paddingX8,
+                      children: matchTypeOptions
+                          .map((PublicOptionModel option) {
+                            return _PillChip(
+                              label: option.name,
+                              isSelected: _matchTypeId == option.idAsInt,
+                              onTap: () => _selectMatchType(option),
+                            );
+                          })
+                          .toList(growable: false),
+                    ),
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(
+                      vertical: AppDimens.paddingX16,
+                    ),
+                    child: Divider(height: 1),
+                  ),
+                  const _FilterFieldLabel(title: StringConstants.courtType),
+                  const SizedBox(height: AppDimens.paddingX10),
+                  _OptionStateView(
+                    status: optionsState.status,
+                    isEmpty: courtTypeOptions.isEmpty,
+                    emptyMessage: StringConstants.noCourtTypesAvailable,
+                    errorMessage: optionsState.errorMessage,
+                    loading: const _CourtTypeRowLoading(),
+                    child: _CourtTypeGrid(
+                      options: courtTypeOptions,
+                      selectedId: _courtTypeId,
+                      onTap: _selectCourtType,
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: AppDimens.paddingX20),
-            const _SectionTitle(title: StringConstants.matchType),
-            const SizedBox(height: AppDimens.paddingX14),
-            _OptionStateView(
-              status: optionsState.status,
-              isEmpty: matchTypeOptions.isEmpty,
-              emptyMessage: StringConstants.noMatchFormatsAvailable,
-              errorMessage: optionsState.errorMessage,
-              loading: const _PillRowLoading(),
-              child: Wrap(
-                spacing: AppDimens.paddingX8,
-                runSpacing: AppDimens.paddingX8,
-                children: matchTypeOptions
-                    .map((PublicOptionModel option) {
-                      return _PillChip(
-                        label: option.name,
-                        isSelected: _matchTypeId == option.idAsInt,
-                        onTap: () => _selectMatchType(option),
-                      );
-                    })
-                    .toList(growable: false),
-              ),
-            ),
-            const SizedBox(height: AppDimens.paddingX20),
-
-            const _SectionTitle(title: StringConstants.courtType),
-            const SizedBox(height: AppDimens.paddingX14),
-            _OptionStateView(
-              status: optionsState.status,
-              isEmpty: courtTypeOptions.isEmpty,
-              emptyMessage: StringConstants.noCourtTypesAvailable,
-              errorMessage: optionsState.errorMessage,
-              loading: const _CourtTypeRowLoading(),
-              child: _CourtTypeGrid(
-                options: courtTypeOptions,
-                selectedId: _courtTypeId,
-                onTap: _selectCourtType,
-              ),
-            ),
           ];
 
           final List<Widget> secondary = <Widget>[
-            Row(
-              children: [
-                const _SectionTitle(title: StringConstants.rating),
-                Spacer(),
-                Text(
-                  '( ${_minRating?.toStringAsFixed(1) ?? 'Any'} & up )',
-                  style: textTheme.bodyTextMedium?.copyWith(
-                    color: LightColor.secondaryColor,
+            _FilterSectionCard(
+              icon: Icons.star_outline_rounded,
+              title: StringConstants.rating,
+              subtitle: 'Only show courts with your preferred rating',
+              trailing: _SelectionPill(
+                label: _minRating == null
+                    ? 'Any rating'
+                    : '${_minRating!.toStringAsFixed(1)} & up',
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  _RatingSelector(
+                    value: _minRating,
+                    onChanged: (double? value) =>
+                        setState(() => _minRating = value),
                   ),
-                ),
-              ],
+                  const SizedBox(height: AppDimens.paddingX6),
+                  Text(
+                    'Tap a star to set the minimum venue rating.',
+                    style: textTheme.bodyTextSmall?.copyWith(
+                      color: LightColor.secondaryTextColor,
+                      fontSize: AppDimens.fontBodySubTitle,
+                    ),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: AppDimens.paddingX14),
-            _RatingSelector(
-              value: _minRating,
-              onChanged: (double? value) => setState(() => _minRating = value),
+            _FilterSectionCard(
+              icon: Icons.schedule_outlined,
+              title: StringConstants.timeSlots,
+              subtitle: 'Select one or more convenient play times',
+              child: Column(
+                children: List<Widget>.generate(_timeSlotOptions.length, (
+                  int index,
+                ) {
+                  final _TimeSlotOption slot = _timeSlotOptions[index];
+                  return Padding(
+                    padding: EdgeInsets.only(
+                      bottom: index == _timeSlotOptions.length - 1
+                          ? 0
+                          : AppDimens.paddingX10,
+                    ),
+                    child: _TimeSlotRow(
+                      option: slot,
+                      isSelected: _timeSlots.contains(slot.key),
+                      onTap: () => _toggle(_timeSlots, slot.key),
+                    ),
+                  );
+                }),
+              ),
             ),
-            const SizedBox(height: AppDimens.paddingX20),
-
-            const _SectionTitle(title: StringConstants.timeSlots),
-            const SizedBox(height: AppDimens.paddingX14),
-            ..._timeSlotOptions.map((_TimeSlotOption slot) {
-              return Padding(
-                padding: const EdgeInsets.only(bottom: AppDimens.paddingX12),
-                child: _TimeSlotRow(
-                  option: slot,
-                  isSelected: _timeSlots.contains(slot.key),
-                  onTap: () => _toggle(_timeSlots, slot.key),
-                ),
-              );
-            }),
           ];
 
           final EdgeInsets padding = EdgeInsets.only(
             left: context.responsive<double>(
-              mobile: AppDimens.paddingX20,
+              mobile: AppDimens.paddingX16,
               tablet: AppDimens.paddingX32,
             ),
             right: context.responsive<double>(
-              mobile: AppDimens.paddingX20,
+              mobile: AppDimens.paddingX16,
               tablet: AppDimens.paddingX32,
             ),
-            top: AppDimens.paddingX8,
-            bottom: AppDimens.paddingX24,
+            top: AppDimens.paddingX12,
+            bottom: AppDimens.paddingX125 + AppDimens.paddingX12,
           );
-
-          if (context.isDesktop) {
-            return ListView(
-              padding: padding,
-              children: <Widget>[
-                Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(
-                      maxWidth: AppDimens.filterDesktopMaxWidth,
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: primary,
-                          ),
-                        ),
-                        const SizedBox(width: AppDimens.paddingX32),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: secondary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            );
-          }
 
           return ListView(
             padding: padding,
@@ -392,16 +420,37 @@ class _VenueFilterViewState extends State<_VenueFilterView> {
               Center(
                 child: ConstrainedBox(
                   constraints: BoxConstraints(
-                    maxWidth: context.isTablet
+                    maxWidth: context.isDesktop
+                        ? AppDimens.filterDesktopMaxWidth
+                        : context.isTablet
                         ? AppDimens.filterColumnMaxWidth
                         : double.infinity,
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: <Widget>[
-                      ...primary,
-                      const SizedBox(height: AppDimens.paddingX20),
-                      ...secondary,
+                      _FilterOverview(activeFilterCount: _activeFilterCount),
+                      const SizedBox(height: AppDimens.paddingX16),
+                      if (context.isDesktop)
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: primary,
+                              ),
+                            ),
+                            const SizedBox(width: AppDimens.paddingX20),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: secondary,
+                              ),
+                            ),
+                          ],
+                        )
+                      else ...<Widget>[...primary, ...secondary],
                     ],
                   ),
                 ),
@@ -430,26 +479,251 @@ class _TimeSlotOption {
   final IconData icon;
 }
 
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle({required this.title, this.trailing});
+class _FilterOverview extends StatelessWidget {
+  const _FilterOverview({required this.activeFilterCount});
 
+  final int activeFilterCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    final bool hasFilters = activeFilterCount > 0;
+    return Container(
+      padding: const EdgeInsets.all(AppDimens.paddingX16),
+      decoration: BoxDecoration(
+        color: LightColor.cardColor,
+        borderRadius: BorderRadius.circular(AppDimens.radiusX14),
+        border: Border.all(color: LightColor.dividerColor),
+      ),
+      child: Row(
+        children: <Widget>[
+          Container(
+            width: AppDimens.sizeX44,
+            height: AppDimens.sizeX44,
+            decoration: BoxDecoration(
+              color: LightColor.secondarySoft,
+              borderRadius: BorderRadius.circular(AppDimens.radiusX12),
+            ),
+            child: Icon(
+              Icons.tune_rounded,
+              color: LightColor.brandTextColor,
+              size: AppDimens.sizeX22,
+            ),
+          ),
+          const SizedBox(width: AppDimens.paddingX12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  hasFilters
+                      ? 'Your preferences are ready'
+                      : 'Refine your search',
+                  style: textTheme.bodyTextSmall?.copyWith(
+                    color: LightColor.primaryTextColor,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: AppDimens.sizeX2),
+                Text(
+                  hasFilters
+                      ? 'Adjust selections or apply them to see matching courts.'
+                      : 'Choose a budget, court type, rating, or play time.',
+                  style: textTheme.bodyTextSmall?.copyWith(
+                    color: LightColor.secondaryTextColor,
+                    fontSize: AppDimens.fontBodySubTitle,
+                    height: 1.35,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (hasFilters) _SelectionPill(label: '$activeFilterCount selected'),
+        ],
+      ),
+    );
+  }
+}
+
+class _FilterSectionCard extends StatelessWidget {
+  const _FilterSectionCard({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.child,
+    this.trailing,
+  });
+
+  final IconData icon;
   final String title;
+  final String subtitle;
+  final Widget child;
   final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: <Widget>[
-        Text(
-          title,
-          style: FutsalTheme.getTextTheme(context).bodyTextMedium?.copyWith(
-            color: LightColor.primaryTextColor,
-            fontWeight: FontWeight.w500,
+    final textTheme = FutsalTheme.getTextTheme(context);
+    return Container(
+      padding: const EdgeInsets.all(AppDimens.paddingX16),
+      decoration: BoxDecoration(
+        color: LightColor.cardColor,
+        borderRadius: BorderRadius.circular(AppDimens.radiusX14),
+        border: Border.all(color: LightColor.dividerColor),
+        boxShadow: <BoxShadow>[
+          BoxShadow(
+            color: LightColor.shadowOf(0.035),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Container(
+                width: AppDimens.sizeX36,
+                height: AppDimens.sizeX36,
+                decoration: BoxDecoration(
+                  color: LightColor.secondarySoft,
+                  borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+                ),
+                child: Icon(
+                  icon,
+                  size: AppDimens.sizeX18,
+                  color: LightColor.brandTextColor,
+                ),
+              ),
+              const SizedBox(width: AppDimens.paddingX10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      title,
+                      style: textTheme.bodyTextSmall?.copyWith(
+                        color: LightColor.primaryTextColor,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: AppDimens.sizeX2),
+                    Text(
+                      subtitle,
+                      style: textTheme.bodyTextSmall?.copyWith(
+                        color: LightColor.secondaryTextColor,
+                        fontSize: AppDimens.fontBodySubTitle,
+                        height: 1.3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (trailing != null) ...<Widget>[
+                const SizedBox(width: AppDimens.paddingX8),
+                trailing!,
+              ],
+            ],
+          ),
+          const SizedBox(height: AppDimens.paddingX16),
+          child,
+        ],
+      ),
+    );
+  }
+}
+
+class _FilterFieldLabel extends StatelessWidget {
+  const _FilterFieldLabel({required this.title});
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      title,
+      style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
+        color: LightColor.primaryTextColor,
+        fontWeight: FontWeight.w600,
+      ),
+    );
+  }
+}
+
+class _SelectionPill extends StatelessWidget {
+  const _SelectionPill({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppDimens.paddingX8,
+        vertical: AppDimens.paddingX4,
+      ),
+      decoration: BoxDecoration(
+        color: LightColor.secondarySoft,
+        borderRadius: BorderRadius.circular(AppDimens.radiusX20),
+      ),
+      child: Text(
+        label,
+        style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
+          color: LightColor.brandTextColor,
+          fontSize: AppDimens.fontBodyMiniSubTitle,
+          fontWeight: FontWeight.w700,
         ),
-        if (trailing != null) trailing!,
-      ],
+      ),
+    );
+  }
+}
+
+class _PriceBoundary extends StatelessWidget {
+  const _PriceBoundary({
+    required this.label,
+    required this.value,
+    this.alignEnd = false,
+  });
+
+  final String label;
+  final String value;
+  final bool alignEnd;
+
+  @override
+  Widget build(BuildContext context) {
+    final CrossAxisAlignment alignment = alignEnd
+        ? CrossAxisAlignment.end
+        : CrossAxisAlignment.start;
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppDimens.paddingX10,
+        vertical: AppDimens.paddingX8,
+      ),
+      decoration: BoxDecoration(
+        color: LightColor.inputFillColor,
+        borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+      ),
+      child: Column(
+        crossAxisAlignment: alignment,
+        children: <Widget>[
+          Text(
+            label,
+            style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
+              color: LightColor.secondaryTextColor,
+              fontSize: AppDimens.fontBodyMiniSubTitle,
+            ),
+          ),
+          const SizedBox(height: AppDimens.sizeX2),
+          Text(
+            value,
+            style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
+              color: LightColor.primaryTextColor,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -631,33 +905,47 @@ class _PillChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
     return Material(
-      color: isSelected ? LightColor.secondaryColor : LightColor.cardColor,
-      borderRadius: BorderRadius.circular(AppDimens.radiusX6),
+      color: isSelected ? LightColor.secondarySoft : LightColor.inputFillColor,
+      borderRadius: BorderRadius.circular(AppDimens.radiusX20),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(AppDimens.radiusX6),
+        borderRadius: BorderRadius.circular(AppDimens.radiusX20),
         child: Container(
           padding: const EdgeInsets.symmetric(
-            horizontal: AppDimens.paddingX16,
-            vertical: AppDimens.paddingX10,
+            horizontal: AppDimens.paddingX12,
+            vertical: AppDimens.paddingX8,
           ),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppDimens.radiusX6),
+            borderRadius: BorderRadius.circular(AppDimens.radiusX20),
             border: Border.all(
               color: isSelected
                   ? LightColor.secondaryColor
                   : LightColor.dividerColor,
             ),
           ),
-          child: Text(
-            label,
-            style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
-              color: isSelected
-                  ? LightColor.inverseTextColor
-                  : LightColor.secondaryTextColor,
-              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-            ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              if (isSelected) ...<Widget>[
+                Icon(
+                  Icons.check_rounded,
+                  size: AppDimens.sizeX14,
+                  color: LightColor.brandTextColor,
+                ),
+                const SizedBox(width: AppDimens.sizeX4),
+              ],
+              Text(
+                label,
+                style: textTheme.bodyTextSmall?.copyWith(
+                  color: isSelected
+                      ? LightColor.brandTextColor
+                      : LightColor.secondaryTextColor,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -742,19 +1030,20 @@ class _CourtTypeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: isSelected ? LightColor.secondaryColor : LightColor.cardColor,
-      borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+      color: isSelected ? LightColor.secondarySoft : LightColor.inputFillColor,
+      borderRadius: BorderRadius.circular(AppDimens.radiusX10),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+        borderRadius: BorderRadius.circular(AppDimens.radiusX10),
         child: Container(
-          padding: const EdgeInsets.all(AppDimens.paddingX14),
+          padding: const EdgeInsets.all(AppDimens.paddingX12),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+            borderRadius: BorderRadius.circular(AppDimens.radiusX10),
             border: Border.all(
               color: isSelected
                   ? LightColor.secondaryColor
                   : LightColor.dividerColor,
+              width: isSelected ? 1.4 : 1,
             ),
           ),
           child: Row(
@@ -763,8 +1052,8 @@ class _CourtTypeCard extends StatelessWidget {
                 icon,
                 size: AppDimens.sizeX16,
                 color: isSelected
-                    ? LightColor.inverseTextColor
-                    : LightColor.secondaryColor,
+                    ? LightColor.brandTextColor
+                    : LightColor.secondaryTextColor,
               ),
               const SizedBox(width: AppDimens.sizeX8),
               Expanded(
@@ -776,14 +1065,22 @@ class _CourtTypeCard extends StatelessWidget {
                   style: FutsalTheme.getTextTheme(context).bodyTextSmall
                       ?.copyWith(
                         color: isSelected
-                            ? LightColor.inverseTextColor
+                            ? LightColor.brandTextColor
                             : LightColor.secondaryTextColor,
                         fontWeight: isSelected
-                            ? FontWeight.w600
+                            ? FontWeight.w700
                             : FontWeight.w500,
                       ),
                 ),
               ),
+              if (isSelected) ...<Widget>[
+                const SizedBox(width: AppDimens.paddingX6),
+                Icon(
+                  Icons.check_circle_rounded,
+                  size: AppDimens.sizeX16,
+                  color: LightColor.brandTextColor,
+                ),
+              ],
             ],
           ),
         ),
@@ -808,17 +1105,15 @@ class _TimeSlotRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
     return Material(
-      color: isSelected
-          ? LightColor.secondaryColor.withValues(alpha: 0.08)
-          : LightColor.cardColor,
-      borderRadius: BorderRadius.circular(AppDimens.radiusX14),
+      color: isSelected ? LightColor.secondarySoft : LightColor.inputFillColor,
+      borderRadius: BorderRadius.circular(AppDimens.radiusX10),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+        borderRadius: BorderRadius.circular(AppDimens.radiusX10),
         child: Container(
-          padding: const EdgeInsets.all(AppDimens.paddingX14),
+          padding: const EdgeInsets.all(AppDimens.paddingX12),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+            borderRadius: BorderRadius.circular(AppDimens.radiusX10),
             border: Border.all(
               color: isSelected
                   ? LightColor.secondaryColor
@@ -832,15 +1127,15 @@ class _TimeSlotRow extends StatelessWidget {
                 width: AppDimens.sizeX38,
                 height: AppDimens.sizeX38,
                 decoration: BoxDecoration(
-                  color: isSelected
-                      ? LightColor.secondaryColor.withValues(alpha: 0.15)
-                      : LightColor.background,
+                  color: LightColor.cardColor,
                   borderRadius: BorderRadius.circular(AppDimens.radiusX8),
                 ),
                 child: Icon(
                   option.icon,
                   size: AppDimens.sizeX18,
-                  color: LightColor.secondaryColor,
+                  color: isSelected
+                      ? LightColor.brandTextColor
+                      : LightColor.secondaryTextColor,
                 ),
               ),
               const SizedBox(width: AppDimens.sizeX12),
@@ -906,8 +1201,13 @@ class _SelectIndicator extends StatelessWidget {
 }
 
 class _BottomBar extends StatelessWidget {
-  const _BottomBar({required this.onClearAll, required this.onApply});
+  const _BottomBar({
+    required this.activeFilterCount,
+    required this.onClearAll,
+    required this.onApply,
+  });
 
+  final int activeFilterCount;
   final VoidCallback onClearAll;
   final VoidCallback onApply;
 
@@ -915,10 +1215,17 @@ class _BottomBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
     return Container(
-      height: 120,
+      height: AppDimens.sizeX140,
       decoration: BoxDecoration(
-        color: LightColor.whiteColor,
+        color: LightColor.elevatedCardColor,
         border: Border(top: BorderSide(color: LightColor.dividerColor)),
+        boxShadow: <BoxShadow>[
+          BoxShadow(
+            color: LightColor.shadowOf(0.08),
+            blurRadius: 18,
+            offset: const Offset(0, -4),
+          ),
+        ],
       ),
       child: SafeArea(
         top: false,
@@ -939,47 +1246,78 @@ class _BottomBar extends StatelessWidget {
                 ),
                 vertical: AppDimens.paddingX12,
               ),
-              child: Row(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  InkWell(
-                    onTap: onClearAll,
-                    borderRadius: BorderRadius.circular(AppDimens.radiusX8),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppDimens.paddingX10,
-                        vertical: AppDimens.paddingX8,
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: <Widget>[
-                          Icon(
-                            Icons.refresh_rounded,
-                            size: AppDimens.sizeX18,
-                            color: LightColor.secondaryTextColor,
-                          ),
-                          const SizedBox(width: AppDimens.sizeX6),
-                          Text(
-                            StringConstants.clearAll,
-                            style: textTheme.bodyTextSmall?.copyWith(
-                              color: LightColor.secondaryTextColor,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
+                  Text(
+                    activeFilterCount == 0
+                        ? 'Showing all courts'
+                        : '$activeFilterCount filter${activeFilterCount == 1 ? '' : 's'} selected',
+                    style: textTheme.bodyTextSmall?.copyWith(
+                      color: LightColor.secondaryTextColor,
+                      fontSize: AppDimens.fontBodySubTitle,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                  const SizedBox(width: AppDimens.sizeX32),
-                  Expanded(
-                    flex: 2,
-                    child: SizedBox(
-                      height: AppDimens.sizeX50,
-                      child: CustomButton(
-                        minHeight: 42,
-                        text: StringConstants.applyFilters,
-                        onPressed: onApply,
-                      ),
-                    ),
+                  const SizedBox(height: AppDimens.paddingX8),
+                  LayoutBuilder(
+                    builder:
+                        (BuildContext context, BoxConstraints constraints) {
+                          final bool compact = constraints.maxWidth < 360;
+                          final double gap = compact
+                              ? AppDimens.paddingX8
+                              : AppDimens.paddingX12;
+                          final EdgeInsets buttonPadding = EdgeInsets.symmetric(
+                            horizontal: compact
+                                ? AppDimens.paddingX8
+                                : AppDimens.paddingX12,
+                          );
+                          final Widget clearButton = SizedBox(
+                            height: AppDimens.sizeX42,
+                            child: OutlinedButton.icon(
+                              onPressed: onClearAll,
+                              icon: const Icon(Icons.refresh_rounded, size: 18),
+                              label: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(StringConstants.clearAll),
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: LightColor.secondaryTextColor,
+                                side: BorderSide(
+                                  color: LightColor.dividerColor,
+                                ),
+                                padding: buttonPadding,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(
+                                    AppDimens.radiusX8,
+                                  ),
+                                ),
+                                textStyle: textTheme.bodyTextSmall?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          );
+                          final Widget applyButton = SizedBox(
+                            height: AppDimens.sizeX42,
+                            child: CustomButton(
+                              minHeight: AppDimens.sizeX42,
+                              text: activeFilterCount == 0
+                                  ? 'Show courts'
+                                  : StringConstants.applyFilters,
+                              onPressed: onApply,
+                            ),
+                          );
+
+                          return Row(
+                            children: <Widget>[
+                              Expanded(child: clearButton),
+                              SizedBox(width: gap),
+                              Expanded(child: applyButton),
+                            ],
+                          );
+                        },
                   ),
                 ],
               ),

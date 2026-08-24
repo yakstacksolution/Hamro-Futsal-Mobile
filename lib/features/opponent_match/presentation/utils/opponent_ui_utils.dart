@@ -47,6 +47,33 @@ class OpponentFmt {
     return '${time(start)} – ${time(end)}';
   }
 
+  /// Time left on a countdown, scaled to how much there is.
+  ///
+  /// `mm:ss` under an hour, `h:mm:ss` past it, and `Nd hh:mm` past a day. A
+  /// plain `mm:ss` was showing 16 hours and 55 minutes as `55:43`, which reads
+  /// as under an hour — the opposite of the truth.
+  static String countdown(Duration d) {
+    if (d.isNegative) return '00:00';
+    final int days = d.inDays;
+    final String hh = d.inHours.remainder(24).toString().padLeft(2, '0');
+    final String mm = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final String ss = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    if (days > 0) return '${days}d $hh:$mm';
+    if (d.inHours > 0) return '${d.inHours}:$mm:$ss';
+    return '$mm:$ss';
+  }
+
+  /// `Today` / `Tomorrow` / `May 03` — the date on its own, for lines that
+  /// already state the time (a slot range, say).
+  static String friendlyDate(DateTime d) {
+    final now = DateTime.now();
+    final day = DateTime(d.year, d.month, d.day);
+    final today = DateTime(now.year, now.month, now.day);
+    if (day == today) return 'Today';
+    if (day == today.add(const Duration(days: 1))) return 'Tomorrow';
+    return shortDate(d);
+  }
+
   /// `Today, 6:30 PM` / `Tomorrow, 5:00 PM` / `May 03 · 6:00 PM`.
   static String friendlyDateTime(DateTime d) {
     final now = DateTime.now();

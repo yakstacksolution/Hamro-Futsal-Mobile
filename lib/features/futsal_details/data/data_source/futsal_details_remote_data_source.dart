@@ -1,7 +1,6 @@
-import 'dart:io';
-import 'dart:typed_data';
-
 import 'package:dio/dio.dart';
+import 'package:hamro_footsall/core/utils/upload_attachment.dart';
+import 'package:hamro_footsall/core/utils/upload_part.dart';
 import 'package:hamro_footsall/core/api/api_client/booking_type_payload.dart';
 import 'package:hamro_footsall/core/api/api_client/result.dart';
 import 'package:hamro_footsall/core/api/client.dart';
@@ -10,6 +9,7 @@ import 'package:hamro_footsall/features/futsal_details/data/model/create_booking
 abstract class FutsalDetailsRemoteDataSource {
   Future<Result> getHostedBy({required int venueId});
   Future<Result> getVenueDescription({required int venueId});
+  Future<Result> getVenueReviews({required int venueId, int page, int perPage});
   Future<Result> getVenueAmenitiesFacilities({required int venueId});
   Future<Result> getAvailableCourts({
     required int venueId,
@@ -39,6 +39,17 @@ final class FutsalDetailsRemoteDataSourceImpl
   @override
   Future<Result> getVenueDescription({required int venueId}) async =>
       await Client.instance().getAuthManager().getVenueDescription(venueId);
+
+  @override
+  Future<Result> getVenueReviews({
+    required int venueId,
+    int page = 1,
+    int perPage = 10,
+  }) async => await Client.instance().getAuthManager().getVenueReviews(
+    venueId,
+    page: page,
+    perPage: perPage,
+  );
 
   @override
   Future<Result> getVenueAmenitiesFacilities({required int venueId}) async =>
@@ -84,37 +95,14 @@ final class FutsalDetailsRemoteDataSourceImpl
       ..removeWhere((_, dynamic value) => value == null);
 
     // Payment proof travels as multipart `payment_proof`, built from the bytes
-    // captured when the user attached it. Reading the path again here is what
-    // used to produce a 0-byte upload: by the time Confirm is pressed, the
-    // picker's cached file may already have been reclaimed by the OS.
-    final Uint8List? proofBytes = request.paymentProofBytes;
-    final String? proofPath = request.paymentProofPath;
-    if (proofBytes != null && proofBytes.isNotEmpty) {
-      fields['payment_proof'] = MultipartFile.fromBytes(
-        proofBytes,
-        filename:
-            request.paymentProofName ??
-            proofPath?.split(Platform.pathSeparator).last ??
-            'payment_proof.jpg',
-      );
-    } else if (proofPath != null && proofPath.isNotEmpty) {
-      // Callers that only have a path (no bytes) still work, but the file has
-      // to be readable right now.
-      final File proof = File(proofPath);
-      final int size = await proof.exists() ? await proof.length() : 0;
-      if (size == 0) {
-        return Result.error(
-          DataError(
-            'The payment proof could not be read. Please attach it again.',
-            0,
-            null,
-          ),
-        );
+    // captured when the user attached it — see [buildUploadPart] for why the
+    // path alone is not enough.
+    try {
+      if (request.paymentProof case final proof?) {
+        fields['payment_proof'] = buildUploadPart(proof);
       }
-      fields['payment_proof'] = await MultipartFile.fromFile(
-        proofPath,
-        filename: proofPath.split(Platform.pathSeparator).last,
-      );
+    } on UploadValidationException catch (error) {
+      return Result.error(DataError(error.message, 0, null));
     }
 
     return await Client.instance().getAuthManager().createBooking(

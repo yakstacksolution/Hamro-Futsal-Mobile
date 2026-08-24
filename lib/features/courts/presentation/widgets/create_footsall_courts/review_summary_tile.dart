@@ -36,7 +36,7 @@ class ReviewSummaryTile extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       child: Row(
         children: <Widget>[
-          Icon(icon, size: 16, color: LightColor.secondaryColor),
+          Icon(icon, size: 16, color: LightColor.monoIconColor),
           const SizedBox(width: 10),
           Expanded(
             child: Column(

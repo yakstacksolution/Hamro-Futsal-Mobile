@@ -84,3 +84,28 @@ final class RejectBookingEvent extends BookingDetailsEvent {
   @override
   List<Object?> get props => <Object?>[bookingId, note];
 }
+
+/// Asks whether this booking already carries a review.
+final class CheckBookingReviewEvent extends BookingDetailsEvent {
+  const CheckBookingReviewEvent({required this.bookingId});
+
+  final int bookingId;
+
+  @override
+  List<Object?> get props => <Object?>[bookingId];
+}
+
+final class SubmitBookingReviewEvent extends BookingDetailsEvent {
+  const SubmitBookingReviewEvent({
+    required this.bookingId,
+    required this.rating,
+    required this.review,
+  });
+
+  final int bookingId;
+  final double rating;
+  final String review;
+
+  @override
+  List<Object?> get props => <Object?>[bookingId, rating, review];
+}

@@ -84,7 +84,9 @@ class RewardBalanceCard extends StatelessWidget {
                             child: Text(
                               StringConstants.availablePoints,
                               style: textTheme.bodyTextSmall?.copyWith(
-                                color: LightColor.onBrandSurface.withValues(alpha: 0.85),
+                                color: LightColor.onBrandSurface.withValues(
+                                  alpha: 0.85,
+                                ),
                                 fontWeight: FontWeight.w600,
                                 letterSpacing: 0.3,
                               ),
@@ -95,7 +97,9 @@ class RewardBalanceCard extends StatelessWidget {
                           if (onTap != null && summary.tier.isEmpty)
                             Icon(
                               Icons.chevron_right_rounded,
-                              color: LightColor.onBrandSurface.withValues(alpha: 0.9),
+                              color: LightColor.onBrandSurface.withValues(
+                                alpha: 0.9,
+                              ),
                               size: AppDimens.sizeX20,
                             ),
                         ],
@@ -125,7 +129,9 @@ class RewardBalanceCard extends StatelessWidget {
                             child: Text(
                               StringConstants.rewardPoints.toLowerCase(),
                               style: textTheme.bodyTextSmall?.copyWith(
-                                color: LightColor.onBrandSurface.withValues(alpha: 0.8),
+                                color: LightColor.onBrandSurface.withValues(
+                                  alpha: 0.8,
+                                ),
                               ),
                             ),
                           ),
@@ -332,7 +338,9 @@ class _RedeemButton extends StatelessWidget {
                         style: textTheme.bodyTextMedium?.copyWith(
                           color: enabled
                               ? LightColor.secondaryColor
-                              : LightColor.onBrandSurface.withValues(alpha: 0.9),
+                              : LightColor.onBrandSurface.withValues(
+                                  alpha: 0.9,
+                                ),
                           fontWeight: FontWeight.w700,
                         ),
                       ),

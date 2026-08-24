@@ -15,11 +15,13 @@ abstract class VenueCourtRemoteDataSource {
 final class VenueCourtRemoteDataSourceImpl
     implements VenueCourtRemoteDataSource {
   @override
-  Future<Result> getVenueCourt({required int page, required int perPage}) async =>
-      await Client.instance().getAuthManager().getVenueCourt(
-        page: page,
-        perPage: perPage,
-      );
+  Future<Result> getVenueCourt({
+    required int page,
+    required int perPage,
+  }) async => await Client.instance().getAuthManager().getVenueCourt(
+    page: page,
+    perPage: perPage,
+  );
 
   @override
   Future<Result> getCourtDetails(int courtId) async =>

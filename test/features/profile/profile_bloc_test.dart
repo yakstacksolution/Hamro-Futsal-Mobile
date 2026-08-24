@@ -116,6 +116,11 @@ class _FakeProfileRepository implements ProfileRepository {
   }
 
   @override
+  Future<Either<AppException, bool>> deleteAccount({
+    required String reason,
+  }) async => right(true);
+
+  @override
   Future<Either<AppException, String>> requestVendorUpgrade(
     Map<String, dynamic> data,
   ) async {

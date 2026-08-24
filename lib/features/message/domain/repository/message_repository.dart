@@ -59,6 +59,16 @@ abstract class MessageRepository {
     bool archived,
   );
   Future<Either<AppException, bool>> setMuted(int conversationId, bool muted);
+
+  /// Renames a group. The updated conversation when the server echoes it back,
+  /// null when it only acknowledges the change.
+  Future<Either<AppException, ConversationModel?>> updateConversationTitle(
+    int conversationId,
+    String title,
+  );
+
+  /// Leaves a group; true once the server has dropped the caller from it.
+  Future<Either<AppException, bool>> leaveConversation(int conversationId);
   Future<Either<AppException, bool>> setParticipantBlocked(
     int conversationId,
     int userId,

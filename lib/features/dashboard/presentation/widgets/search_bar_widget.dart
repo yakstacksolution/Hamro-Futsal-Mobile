@@ -249,7 +249,7 @@ class _ExpandableFocusSearchBarState extends State<ExpandableFocusSearchBar>
 
         SizeTransition(
           sizeFactor: _expandAnimation,
-           child: FadeTransition(
+          child: FadeTransition(
             opacity: _expandAnimation,
             child: ValueListenableBuilder<List<String>>(
               valueListenable: _recentStore.searches,

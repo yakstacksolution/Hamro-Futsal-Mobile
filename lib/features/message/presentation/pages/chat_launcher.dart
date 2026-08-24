@@ -67,6 +67,51 @@ class ChatLauncher {
     );
   }
 
+  /// Opens a thread the server already created, by its id — e.g. the match
+  /// chat room that comes with a confirmed opponent request.
+  ///
+  /// Preferred over [startDirectUser] whenever a conversation id is known: it
+  /// lands in the room both teams share rather than opening a second,
+  /// captain-to-captain thread beside it.
+  static Future<void> openConversation(
+    BuildContext context, {
+    required int conversationId,
+  }) async {
+    if (conversationId <= 0) return;
+    if (!_opening.add('c:$conversationId')) return;
+    final useCase = MessageUseCase(MessageRepositoryImpl());
+
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(
+        child: CircularProgressIndicator(color: LightColor.secondaryColor),
+      ),
+    );
+
+    final result = await useCase.getConversationDetails(conversationId);
+    _opening.remove('c:$conversationId');
+
+    if (!context.mounted) return;
+    Navigator.of(context).pop();
+
+    result.fold(
+      (failure) =>
+          AppUtils().showSnackBar(context, MsgType.error, failure.errorMessage),
+      (conversation) => Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => BlocProvider(
+            create: (_) => MessageBloc(
+              useCase,
+              socketService: ReverbChatSocketService.instance,
+            ),
+            child: ChatPage(conversation: conversation),
+          ),
+        ),
+      ),
+    );
+  }
+
   /// The signed-in user's id, taken from the access token's `sub` claim.
   static int _currentUserId() => MessageRepositoryImpl().currentUserId;
 

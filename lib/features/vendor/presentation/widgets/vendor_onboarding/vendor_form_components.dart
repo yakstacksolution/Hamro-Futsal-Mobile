@@ -498,6 +498,7 @@ class VendorSelectableChip extends StatelessWidget {
             if (imageUrl != null && imageUrl!.isNotEmpty) ...[
               CustomImageView(
                 url: imageUrl,
+                color: LightColor.monoIconColor,
                 height: AppDimens.sizeX20,
                 width: AppDimens.sizeX20,
                 fit: BoxFit.contain,

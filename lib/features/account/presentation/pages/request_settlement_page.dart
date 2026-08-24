@@ -1,6 +1,10 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:hamro_footsall/core/utils/app_utils.dart';
+import 'package:hamro_footsall/features/account/presentation/bloc/account_bloc/account_bloc.dart';
+import 'package:hamro_footsall/core/utils/upload_attachment.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
@@ -17,22 +21,36 @@ typedef SettlementRequestDraft = ({
   double amount,
   String transactionReference,
   String? note,
-  String paymentProofPath,
+  UploadAttachment paymentProof,
 });
 
-/// Full-page settlement request form, driven entirely by
-/// `/auth/settlement-preview`: the server supplies the copy, who to pay, the
-/// ceiling, whether a partial amount is allowed, and what a proof file may be.
-///
-/// Pops with a [SettlementRequestDraft] on submit, null when dismissed.
 class RequestSettlementPage extends StatefulWidget {
   const RequestSettlementPage({
     super.key,
     required this.preview,
     this.venueName = '',
+    this.commissionPayable = 0,
+    this.totalEarned = 0,
+    this.qrCodes = const <SettlementQrCodeModel>[],
+    this.venueId,
   });
 
   final SettlementPreviewModel preview;
+
+  /// Commission the venue owes Hamro Futsal, as the account summary reports it.
+  /// A settlement pays this and nothing else, so it stands in when the preview
+  /// carries no figure of its own — never the venue's cleared earnings.
+  final double commissionPayable;
+
+  /// Lifetime gross earnings, shown as context above the commission.
+  final double totalEarned;
+
+  /// `/auth/qr-codes` — every QR the commission may be sent to. Empty falls
+  /// back to whatever QR the preview carried.
+  final List<SettlementQrCodeModel> qrCodes;
+
+  /// Set for a per-futsal settlement; null files a consolidated one.
+  final int? venueId;
 
   /// Falls back into the scope line when the server sent no `subtitle`.
   final String venueName;
@@ -46,13 +64,37 @@ class _RequestSettlementPageState extends State<RequestSettlementPage> {
   late final TextEditingController _amountCtrl;
   final _refCtrl = TextEditingController();
   final _noteCtrl = TextEditingController();
-  PlatformFile? _proof;
+  UploadAttachment? _proof;
   bool _proofMissing = false;
   String? _proofError;
 
   SettlementPreviewModel get _preview => widget.preview;
 
-  /// The whole payable balance must go in one request — the field is shown
+  List<SettlementQrCodeModel> get _qrCodes => widget.qrCodes;
+
+  /// What this request pays: the commission owed to Hamro Futsal.
+  ///
+  /// The commission leads deliberately. `/auth/settlement-preview` returns the
+  /// vendor's *cleared balance* in `maximum_payable` — the pot the commission
+  /// was taken out of, not the debt — so honouring it billed the vendor several
+  /// times what they owed. The preview's figure is kept only as a fallback for
+  /// when the summary has no commission to report.
+  double get _payable => widget.commissionPayable > 0
+      ? widget.commissionPayable
+      : _preview.maximumPayable;
+
+  /// What the amount field is pre-filled with. The whole commission is the
+  /// default, and the server's own `default_amount` is honoured only while it
+  /// stays within that — it is derived from the same balance as
+  /// [SettlementPreviewModel.maximumPayable] and overshoots for the same reason.
+  double get _defaultAmount {
+    final double preferred = _preview.defaultAmount > 0
+        ? _preview.defaultAmount
+        : _payable;
+    return preferred > _payable ? _payable : preferred;
+  }
+
+  /// The whole commission must go in one request — the field is shown
   /// read-only rather than validated, so the rule is visible up front.
   bool get _amountLocked => _preview.exactAmountRequired;
 
@@ -60,7 +102,7 @@ class _RequestSettlementPageState extends State<RequestSettlementPage> {
   void initState() {
     super.initState();
     _amountCtrl = TextEditingController(
-      text: AccountFmt.amountInput(_preview.defaultAmount),
+      text: AccountFmt.amountInput(_defaultAmount),
     );
   }
 
@@ -75,13 +117,13 @@ class _RequestSettlementPageState extends State<RequestSettlementPage> {
   String? _validateAmount(String? value) {
     final amount = double.tryParse(value?.trim() ?? '') ?? 0;
     if (amount <= 0) return 'Enter a valid amount.';
-    if (amount > _preview.maximumPayable) {
-      return "Amount can't exceed ${AccountFmt.npr(_preview.maximumPayable)}.";
+    if (amount > _payable) {
+      return "Amount can't exceed ${AccountFmt.npr(_payable)}.";
     }
     // Compared in paisa: 11711.99 never equals itself in binary floating point.
     if (_amountLocked &&
-        (amount * 100).round() != (_preview.defaultAmount * 100).round()) {
-      return 'Settle the full ${AccountFmt.npr(_preview.defaultAmount)}.';
+        (amount * 100).round() != (_defaultAmount * 100).round()) {
+      return 'Settle the full ${AccountFmt.npr(_defaultAmount)}.';
     }
     return null;
   }
@@ -91,28 +133,55 @@ class _RequestSettlementPageState extends State<RequestSettlementPage> {
       type: FileType.custom,
       allowedExtensions: _preview.acceptedProofTypes,
       allowMultiple: false,
+      // The bytes are read here, while the pick is fresh. Re-reading the path
+      // at submit time is what produced 0-byte uploads: this form is filled in
+      // between the two, and the OS can reclaim the picker's cached copy in
+      // the meantime.
+      withData: true,
     );
-    final file = result?.files.singleOrNull;
-    if (!mounted || file?.path == null) return;
-    if (file!.size > _preview.proofMaxBytes) {
+    final PlatformFile? file = result?.files.singleOrNull;
+    if (!mounted || file == null) return;
+    try {
+      final UploadPolicy policy = UploadPolicy(
+        allowedExtensions: _preview.acceptedProofTypes.toSet(),
+        maxInputBytes: _preview.proofMaxBytes,
+      );
+      final UploadAttachment attachment;
+      final Uint8List? pickedBytes = file.bytes;
+      if (pickedBytes != null && pickedBytes.isNotEmpty) {
+        attachment = await normalizeUploadAttachment(
+          bytes: pickedBytes,
+          filename: file.name,
+          sourcePath: file.path,
+          originalSize: file.size,
+          policy: policy,
+        );
+      } else {
+        attachment = await loadUploadAttachment(
+          path: file.path ?? '',
+          filename: file.name,
+          policy: policy,
+        );
+      }
+      if (!mounted) return;
+      setState(() {
+        _proof = attachment;
+        _proofMissing = false;
+        _proofError = null;
+      });
+    } on UploadValidationException catch (error) {
+      if (!mounted) return;
       setState(() {
         _proof = null;
         _proofMissing = true;
-        _proofError =
-            'That file is larger than ${_preview.proofMaxSizeMb} MB. Pick a smaller one.';
+        _proofError = error.message;
       });
-      return;
     }
-    setState(() {
-      _proof = file;
-      _proofMissing = false;
-      _proofError = null;
-    });
   }
 
   void _submit() {
     final valid = _formKey.currentState?.validate() ?? false;
-    final hasProof = _proof?.path != null;
+    final bool hasProof = _proof != null && _proof!.bytes.isNotEmpty;
     setState(() {
       _proofMissing = !hasProof;
       if (!hasProof) {
@@ -122,16 +191,24 @@ class _RequestSettlementPageState extends State<RequestSettlementPage> {
     });
     if (!valid || !hasProof) return;
     HapticFeedback.mediumImpact();
+    FocusScope.of(context).unfocus();
     final note = _noteCtrl.text.trim();
-    Navigator.of(context).pop((
-      // Locked scope submits the server's own figure, not the rendered text.
-      amount: _amountLocked
-          ? _preview.defaultAmount
-          : double.parse(_amountCtrl.text.trim()),
-      transactionReference: _refCtrl.text.trim(),
-      note: note.isEmpty ? null : note,
-      paymentProofPath: _proof!.path!,
-    ));
+    // Filed from here rather than popped back to the caller: an upload can take
+    // a while, and the vendor needs to watch it on the screen they filled in —
+    // popping first left them on the account screen with no idea whether their
+    // payment had gone through.
+    context.read<AccountBloc>().add(
+      RequestSettlementEvent(
+        // Locked scope submits the server's own figure, not the rendered text.
+        amount: _amountLocked
+            ? _defaultAmount
+            : double.parse(_amountCtrl.text.trim()),
+        transactionReference: _refCtrl.text.trim(),
+        note: note.isEmpty ? null : note,
+        paymentProof: _proof!,
+        venueId: widget.venueId,
+      ),
+    );
   }
 
   String get _scopeLabel {
@@ -150,14 +227,45 @@ class _RequestSettlementPageState extends State<RequestSettlementPage> {
 
   @override
   Widget build(BuildContext context) {
+    return BlocListener<AccountBloc, AccountState>(
+      listenWhen: (AccountState p, AccountState c) =>
+          p.submitStatus != c.submitStatus,
+      listener: (BuildContext context, AccountState state) {
+        // Success only lands once the account has been reconciled, so by the
+        // time this pops the screen underneath is already up to date.
+        if (state.submitStatus == AccountStatus.success) {
+          Navigator.of(context).pop(true);
+        } else if (state.submitStatus == AccountStatus.failure) {
+          // Stay put: the form is still filled in, so the vendor can retry
+          // without re-attaching the proof.
+          AppUtils().showSnackBar(
+            context,
+            MsgType.error,
+            state.errorMessage ??
+                StringConstants.couldNotSubmitSettlementRequest,
+          );
+        }
+      },
+      child: BlocBuilder<AccountBloc, AccountState>(
+        buildWhen: (AccountState p, AccountState c) =>
+            p.submitStatus != c.submitStatus,
+        builder: (BuildContext context, AccountState state) {
+          // Leaving mid-upload would strand the request with no screen to
+          // report back to, and the vendor with no idea whether they paid.
+          return PopScope(
+            canPop: state.submitStatus != AccountStatus.loading,
+            child: _buildScaffold(context),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildScaffold(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
     return Scaffold(
       backgroundColor: LightColor.background,
-      appBar: CustomAppBar(
-        title: _preview.title.isEmpty
-            ? StringConstants.payCommission
-            : _preview.title,
-      ),
+      appBar: CustomAppBar(title: StringConstants.payCommission),
       body: SafeArea(
         top: false,
         child: Form(
@@ -195,10 +303,34 @@ class _RequestSettlementPageState extends State<RequestSettlementPage> {
                   const SizedBox(height: AppDimens.paddingX12),
                   SettlementRecipientCard(
                     recipient: _preview.recipient,
-                    maximumPayable: _preview.maximumPayable,
+                    maximumPayable: _payable,
                     pendingClearance: _preview.pendingClearance,
+                    totalEarned: widget.totalEarned,
                   ),
                   const SizedBox(height: AppDimens.paddingX20),
+                  const _StepHeader(
+                    step: 1,
+                    title: 'Scan and pay',
+                    subtitle:
+                        'Send the commission to Hamro Futsal using this QR.',
+                  ),
+                  const SizedBox(height: AppDimens.paddingX12),
+                  SettlementQrCarouselCard(
+                    codes: _qrCodes,
+                    fallbackQr: _preview.paymentQr,
+                    fallbackPayeeName: _preview.recipient.name,
+                    payeePhone: _preview.recipient.phone,
+                    amountLabel: 'Commission to pay',
+                    amountValue: AccountFmt.npr(_payable),
+                  ),
+                  const SizedBox(height: AppDimens.paddingX20),
+                  const _StepHeader(
+                    step: 2,
+                    title: 'Confirm the payment',
+                    subtitle:
+                        'Enter what you sent and attach the receipt as proof.',
+                  ),
+                  const SizedBox(height: AppDimens.paddingX12),
                   CustomTextField(
                     labelText: 'Commission amount (NPR)',
                     controller: _amountCtrl,
@@ -243,6 +375,7 @@ class _RequestSettlementPageState extends State<RequestSettlementPage> {
                   const SizedBox(height: AppDimens.paddingX16),
                   _ProofPicker(
                     proof: _proof,
+                    uploadBytes: _proof?.size,
                     showError: _proofMissing,
                     hint: _proofHint,
                     errorText: _proofError,
@@ -259,24 +392,32 @@ class _RequestSettlementPageState extends State<RequestSettlementPage> {
                     ensureVisibleOnFocus: true,
                   ),
                   const SizedBox(height: AppDimens.paddingX24),
-                  if (context.isTabletOrWider)
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: SizedBox(
-                        width: AppDimens.formActionMaxWidth,
-                        child: CustomButton(
-                          text: 'Submit Commission Payment',
-                          icon: Icons.lock_outline_rounded,
-                          onPressed: _submit,
+                  BlocBuilder<AccountBloc, AccountState>(
+                    buildWhen: (AccountState p, AccountState c) =>
+                        p.submitStatus != c.submitStatus,
+                    builder: (BuildContext context, AccountState state) {
+                      final bool submitting =
+                          state.submitStatus == AccountStatus.loading;
+                      // The button carries the whole wait: the upload, and the
+                      // account refresh that follows it.
+                      final Widget button = CustomButton(
+                        text: submitting
+                            ? 'Submitting…'
+                            : 'Submit Commission Payment',
+                        icon: Icons.lock_outline_rounded,
+                        isLoading: submitting,
+                        onPressed: submitting ? () {} : _submit,
+                      );
+                      if (!context.isTabletOrWider) return button;
+                      return Align(
+                        alignment: Alignment.centerRight,
+                        child: SizedBox(
+                          width: AppDimens.formActionMaxWidth,
+                          child: button,
                         ),
-                      ),
-                    )
-                  else
-                    CustomButton(
-                      text: 'Submit Commission Payment',
-                      icon: Icons.lock_outline_rounded,
-                      onPressed: _submit,
-                    ),
+                      );
+                    },
+                  ),
                 ],
               ),
             ),
@@ -287,17 +428,93 @@ class _RequestSettlementPageState extends State<RequestSettlementPage> {
   }
 }
 
+/// Numbered step label that splits the form into "pay" and "confirm". The two
+/// halves ask for very different things, and the QR is useless once the vendor
+/// has already paid — the numbering makes the order explicit.
+class _StepHeader extends StatelessWidget {
+  const _StepHeader({
+    required this.step,
+    required this.title,
+    required this.subtitle,
+  });
+
+  final int step;
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: AppDimens.sizeX24,
+          height: AppDimens.sizeX24,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: LightColor.secondaryColor,
+            shape: BoxShape.circle,
+          ),
+          child: Text(
+            '$step',
+            style: textTheme.bodyMiniSubTitle?.copyWith(
+              color: LightColor.onBrandSurface,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+        const SizedBox(width: AppDimens.paddingX10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: textTheme.bodyTextMedium?.copyWith(
+                  color: LightColor.primaryTextColor,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                style: textTheme.bodyTextSmall?.copyWith(
+                  color: LightColor.secondaryTextColor,
+                  fontSize: AppDimens.fontBodySubTitle,
+                  fontWeight: FontWeight.w500,
+                  height: 1.4,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 /// Receipt/screenshot upload tile with inline validation message.
+String _formatSize(int bytes) {
+  if (bytes < 1024) return '$bytes B';
+  if (bytes < 1024 * 1024) return '${(bytes / 1024).round()} KB';
+  return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+}
+
 class _ProofPicker extends StatelessWidget {
   const _ProofPicker({
     required this.proof,
+    this.uploadBytes,
     required this.showError,
     required this.hint,
     required this.errorText,
     required this.onTap,
   });
 
-  final PlatformFile? proof;
+  final UploadAttachment? proof;
+
+  /// Byte count of what will be sent, once compression has run.
+  final int? uploadBytes;
   final bool showError;
 
   /// Accepted types and size ceiling, as the server reported them.
@@ -312,7 +529,7 @@ class _ProofPicker extends StatelessWidget {
         ? LightColor.redColor
         : proof == null
         ? LightColor.dividerColor
-        : LightColor.secondaryColor;
+        : LightColor.brandTextColor;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -334,7 +551,7 @@ class _ProofPicker extends StatelessWidget {
                       ? Icons.cloud_upload_outlined
                       : Icons.check_circle_rounded,
                   size: AppDimens.sizeX22,
-                  color: LightColor.secondaryColor,
+                  color: LightColor.brandTextColor,
                 ),
                 const SizedBox(width: AppDimens.paddingX12),
                 Expanded(
@@ -352,7 +569,12 @@ class _ProofPicker extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        hint,
+                        // The size that will actually be uploaded, after
+                        // compression — the number that decides whether the
+                        // server accepts it.
+                        uploadBytes == null
+                            ? hint
+                            : '${_formatSize(uploadBytes!)} · $hint',
                         style: textTheme.bodyTextSmall?.copyWith(
                           color: LightColor.hintTextColor,
                           fontSize: AppDimens.fontBodySubTitle,

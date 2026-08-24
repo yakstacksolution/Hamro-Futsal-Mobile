@@ -1,4 +1,7 @@
+import 'dart:typed_data';
+
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hamro_footsall/core/utils/upload_attachment.dart';
 import 'package:hamro_footsall/features/message/data/model/chat_message_model.dart';
 import 'package:hamro_footsall/features/message/data/model/chat_send_request.dart';
 import 'package:hamro_footsall/features/message/data/model/conversation_model.dart';
@@ -99,13 +102,25 @@ void main() {
   test('infers multipart message types', () {
     expect(const ChatSendRequest(body: 'Hi').resolvedType, 'text');
     expect(
-      const ChatSendRequest(filePaths: ['/tmp/photo.jpg']).resolvedType,
+      ChatSendRequest(
+        attachments: <UploadAttachment>[
+          UploadAttachment(
+            filename: 'photo.jpg',
+            bytes: Uint8List.fromList(<int>[1]),
+          ),
+        ],
+      ).resolvedType,
       'image',
     );
     expect(
-      const ChatSendRequest(
+      ChatSendRequest(
         body: 'See this',
-        filePaths: ['/tmp/file.pdf'],
+        attachments: <UploadAttachment>[
+          UploadAttachment(
+            filename: 'file.pdf',
+            bytes: Uint8List.fromList(<int>[1]),
+          ),
+        ],
       ).resolvedType,
       'mixed',
     );

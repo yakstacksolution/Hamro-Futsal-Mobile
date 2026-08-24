@@ -3,7 +3,7 @@ class IHttp {
 
   post({String? url, dynamic data, Map? query, String? token}) {}
 
-  delete({String? url, String? token}) {}
+  delete({String? url, dynamic data, String? token}) {}
 
   patch({String? url, dynamic data, String? token}) {}
 

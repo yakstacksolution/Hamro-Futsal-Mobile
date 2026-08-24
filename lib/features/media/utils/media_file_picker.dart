@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -7,6 +6,7 @@ import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/utils/upload_attachment.dart';
 import 'package:hamro_footsall/features/media/utils/heic_to_png_jpg.dart';
 import 'package:hamro_footsall/features/media/utils/stable_media_file.dart';
 import 'package:image_picker/image_picker.dart';
@@ -16,7 +16,7 @@ import 'package:image_picker/image_picker.dart';
 const Set<String> kImageUploadExtensions = <String>{'jpg', 'jpeg', 'png'};
 
 /// Server-side cap for an uploaded proof/media file.
-const int kMaxUploadBytes = 10 * 1024 * 1024;
+const int kMaxUploadBytes = kUploadMaxFileBytes;
 
 /// Where a file came from. Mirrors the media library's "Pick from" menu.
 enum MediaPickSource {
@@ -39,35 +39,7 @@ enum MediaPickSource {
 /// OS-managed caches (image_picker's temp dir, a content-provider copy), and
 /// those can be reclaimed or invalidated between attaching a file and pressing
 /// Confirm, which is how a proof ended up being sent as 0 bytes.
-class PickedMediaFile {
-  const PickedMediaFile({
-    required this.path,
-    required this.name,
-    required this.bytes,
-  });
-
-  /// Where the file was picked from. Kept for reference only — never re-read at
-  /// upload time.
-  final String path;
-  final String name;
-  final Uint8List bytes;
-
-  int get size => bytes.length;
-
-  String get extension {
-    final int dot = name.lastIndexOf('.');
-    return dot < 0 ? '' : name.substring(dot + 1).toLowerCase();
-  }
-
-  bool get isImage => kImageUploadExtensions.contains(extension);
-
-  /// `842 KB` / `1.4 MB` — the label shown next to an attached file.
-  String get sizeLabel {
-    if (size < 1024) return '$size B';
-    if (size < 1024 * 1024) return '${(size / 1024).toStringAsFixed(0)} KB';
-    return '${(size / (1024 * 1024)).toStringAsFixed(1)} MB';
-  }
-}
+typedef PickedMediaFile = UploadAttachment;
 
 /// Asks where to take the file from, then picks and normalises a single one —
 /// the same gallery/camera/files flow (and the same 1920px, quality-85
@@ -93,10 +65,14 @@ Future<PickedMediaFile?> pickMediaFile(
   if (source == null || !context.mounted) return null;
 
   try {
+    final UploadPolicy policy = UploadPolicy(
+      allowedExtensions: allowedExtensions,
+      maxInputBytes: maxBytes,
+    );
     final _RawPick raw = switch (source) {
-      MediaPickSource.gallery => await _pickImage(ImageSource.gallery),
-      MediaPickSource.camera => await _pickImage(ImageSource.camera),
-      MediaPickSource.files => await _pickFile(allowedExtensions),
+      MediaPickSource.gallery => await _pickImage(ImageSource.gallery, policy),
+      MediaPickSource.camera => await _pickImage(ImageSource.camera, policy),
+      MediaPickSource.files => await _pickFile(allowedExtensions, policy),
     };
     if (!context.mounted) return null;
 
@@ -117,12 +93,16 @@ Future<PickedMediaFile?> pickMediaFile(
     }
     if (raw.file == null) return null;
 
-    return _validate(
+    return raw.file;
+  } on UploadValidationException catch (error) {
+    if (!context.mounted) return null;
+    AppUtils().showSnackBar(
       context,
-      raw.file!,
-      allowedExtensions: allowedExtensions,
-      maxBytes: maxBytes,
+      MsgType.error,
+      error.message,
+      key: 'media_validation_failed',
     );
+    return null;
   } catch (_) {
     if (!context.mounted) return null;
     AppUtils().showSnackBar(
@@ -317,7 +297,7 @@ class _RawPick {
 /// Gallery/camera through image_picker, downscaled exactly like the media
 /// library's, then stabilised so an unflushed camera file cannot be uploaded
 /// empty.
-Future<_RawPick> _pickImage(ImageSource source) async {
+Future<_RawPick> _pickImage(ImageSource source, UploadPolicy policy) async {
   final XFile? captured = await ImagePicker().pickImage(
     source: source,
     maxWidth: 1920,
@@ -327,11 +307,18 @@ Future<_RawPick> _pickImage(ImageSource source) async {
   if (captured == null) return const _RawPick();
   final XFile? stable = await stabilizePickedMedia(captured);
   if (stable == null) return const _RawPick(unreadable: true);
-  final PickedMediaFile? file = await _fromPath(stable.path, stable.name);
+  final PickedMediaFile? file = await _fromPath(
+    stable.path,
+    stable.name,
+    policy,
+  );
   return file == null ? const _RawPick(unreadable: true) : _RawPick(file: file);
 }
 
-Future<_RawPick> _pickFile(Set<String> allowedExtensions) async {
+Future<_RawPick> _pickFile(
+  Set<String> allowedExtensions,
+  UploadPolicy policy,
+) async {
   final FilePickerResult? result = await FilePicker.platform.pickFiles(
     type: FileType.custom,
     allowedExtensions: allowedExtensions.toList(growable: false),
@@ -339,7 +326,11 @@ Future<_RawPick> _pickFile(Set<String> allowedExtensions) async {
   );
   final PlatformFile? file = result?.files.singleOrNull;
   if (file?.path == null) return const _RawPick();
-  final PickedMediaFile? picked = await _fromPath(file!.path!, file.name);
+  final PickedMediaFile? picked = await _fromPath(
+    file!.path!,
+    file.name,
+    policy,
+  );
   return picked == null
       ? const _RawPick(unreadable: true)
       : _RawPick(file: picked);
@@ -348,45 +339,18 @@ Future<_RawPick> _pickFile(Set<String> allowedExtensions) async {
 /// Converts HEIC/HEIF (what an iPhone gallery hands over) to JPEG, then reads
 /// the file into memory straight away — the only moment it is guaranteed to
 /// still be there. An empty read is reported as a failed pick.
-Future<PickedMediaFile?> _fromPath(String path, String name) async {
+Future<PickedMediaFile?> _fromPath(
+  String path,
+  String name,
+  UploadPolicy policy,
+) async {
   final String finalPath = await heicToPngJpg(path);
-  final File file = File(finalPath);
-  if (!await file.exists()) return null;
-  final Uint8List bytes = await file.readAsBytes();
-  if (bytes.isEmpty) return null;
   final String finalName = finalPath == path
       ? name
       : finalPath.split(Platform.pathSeparator).last;
-  return PickedMediaFile(path: finalPath, name: finalName, bytes: bytes);
-}
-
-PickedMediaFile? _validate(
-  BuildContext context,
-  PickedMediaFile file, {
-  required Set<String> allowedExtensions,
-  required int maxBytes,
-}) {
-  if (!allowedExtensions.contains(file.extension)) {
-    AppUtils().showSnackBar(
-      context,
-      MsgType.error,
-      'Only ${allowedExtensions.map((String e) => e.toUpperCase()).join(', ')} '
-      'files can be uploaded.',
-      key: 'media_type_not_allowed',
-    );
-    return null;
-  }
-  if (file.size > maxBytes) {
-    AppUtils().showSnackBar(
-      context,
-      MsgType.error,
-      'The file must be smaller than '
-      '${(maxBytes / (1024 * 1024)).toStringAsFixed(0)} MB.',
-      key: 'media_too_large',
-    );
-    return null;
-  }
-  // No success snack: the attached-file card is the confirmation, and a screen
-  // that validates further (OCR, server checks) owns that message instead.
-  return file;
+  return loadUploadAttachment(
+    path: finalPath,
+    filename: finalName,
+    policy: policy,
+  );
 }

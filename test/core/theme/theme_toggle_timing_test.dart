@@ -8,8 +8,10 @@ import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 class _GlobalColour extends StatelessWidget {
   const _GlobalColour();
   @override
-  Widget build(BuildContext context) =>
-      ColoredBox(color: LightColor.background, child: const SizedBox.square(dimension: 4));
+  Widget build(BuildContext context) => ColoredBox(
+    color: LightColor.background,
+    child: const SizedBox.square(dimension: 4),
+  );
 }
 
 /// Reads the inherited theme (the shape ~84 call sites use).
@@ -23,7 +25,9 @@ class _ThemedColour extends StatelessWidget {
 }
 
 Color _colour(WidgetTester tester, Finder of) => tester
-    .widget<ColoredBox>(find.descendant(of: of, matching: find.byType(ColoredBox)))
+    .widget<ColoredBox>(
+      find.descendant(of: of, matching: find.byType(ColoredBox)),
+    )
     .color;
 
 void main() {
@@ -82,10 +86,16 @@ void main() {
 
     AppThemeController.instance.setDarkMode(true);
     await tester.pump();
-    final Color afterOneFrame = _colour(tester, find.byType(_GlobalColour).first);
+    final Color afterOneFrame = _colour(
+      tester,
+      find.byType(_GlobalColour).first,
+    );
 
     await tester.pump(const Duration(milliseconds: 400));
-    final Color afterSettling = _colour(tester, find.byType(_GlobalColour).first);
+    final Color afterSettling = _colour(
+      tester,
+      find.byType(_GlobalColour).first,
+    );
 
     // A second step would show up as these two differing.
     expect(afterSettling, afterOneFrame);

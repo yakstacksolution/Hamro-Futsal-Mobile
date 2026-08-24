@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:hamro_footsall/core/api/api_client/result.dart';
 import 'package:hamro_footsall/core/api/client.dart';
 import 'package:hamro_footsall/features/opponent_match/data/model/accept_opponent_request_request.dart';
+import 'package:hamro_footsall/features/opponent_match/data/model/opponent_request_tab.dart';
 
 /// Compile-time switch that serves opponent requests from contract-shaped
 /// canned JSON only (network never attempted) — run with
@@ -100,15 +101,24 @@ final class OpponentMatchLocalDataSourceImpl
   ];
 }
 
-/// Opponent requests over `/opponent-requests` — list/create plus the
-/// single-call accept (the accepting team, no payment).
+/// Opponent requests. Every list the app shows comes from the authenticated
+/// `/auth/opponent-requests?tab=…` slices — there is no unauthenticated list
+/// call — plus the single-call accept (the accepting team, no payment), which
+/// posts an invitation to `/auth/opponent-requests/{id}/invitations`.
 abstract class OpponentRequestRemoteDataSource {
-  Future<Result> fetchRequests({Map<String, dynamic>? query});
   Future<Result> fetchRequest(String requestId);
 
-  /// The signed-in user's own requests, straight from
-  /// `/auth/opponent-requests?tab=all` — no client-side filtering.
-  Future<Result> fetchMyRequests({Map<String, dynamic>? query});
+  /// `GET /auth/opponent-requests/{id}/match-details` — the confirmed match
+  /// behind a settled request.
+  Future<Result> fetchMatchDetails(String requestId);
+
+  /// One server-side request tab, e.g.
+  /// `/auth/opponent-requests?tab=settled&page=1&per_page=15`.
+  Future<Result> fetchRequests({
+    required OpponentRequestTab tab,
+    int page = 1,
+    int perPage = 15,
+  });
 
   /// One of my own requests by id (`/auth/opponent-requests/{id}`) — the
   /// authoritative copy the wizard hydrates a resumed draft from.
@@ -133,32 +143,45 @@ abstract class OpponentRequestRemoteDataSource {
   Future<Result> publishRequest(String requestId, Map<String, dynamic> data);
 
   Future<Result> accept(AcceptOpponentRequestRequest request);
+
+  /// The teams that accepted one of my requests
+  /// (`GET /auth/opponent-requests/{id}/invitations`).
+  Future<Result> fetchInvitations(String requestId);
+
   Future<Result> decline(String requestId);
   Future<Result> delete(String requestId);
 
   /// Requester confirms the chosen opponent (closing the request for the
   /// other invitations) or releases it back to the pool.
-  Future<Result> selectOpponent(String requestId);
+  ///
+  /// [invitationId] is the invitation being accepted — the team the requester
+  /// picked from the invitations list.
+  Future<Result> selectOpponent(String requestId, String invitationId);
   Future<Result> rejectInvitation(String requestId, String reason);
 }
 
 final class OpponentRequestRemoteDataSourceImpl
     implements OpponentRequestRemoteDataSource {
   @override
-  Future<Result> fetchRequests({Map<String, dynamic>? query}) async =>
-      await Client.instance().getAuthManager().getOpponentRequests(
-        query: query,
-      );
-
-  @override
   Future<Result> fetchRequest(String requestId) async =>
       await Client.instance().getAuthManager().getOpponentRequest(requestId);
 
   @override
-  Future<Result> fetchMyRequests({Map<String, dynamic>? query}) async =>
-      await Client.instance().getAuthManager().getMyOpponentRequests(
-        query: {'tab': 'all', ...?query},
+  Future<Result> fetchMatchDetails(String requestId) async =>
+      await Client.instance().getAuthManager().getOpponentMatchDetails(
+        requestId,
       );
+
+  @override
+  Future<Result> fetchRequests({
+    required OpponentRequestTab tab,
+    int page = 1,
+    int perPage = 15,
+  }) async => await Client.instance().getAuthManager().getOpponentRequests(
+    tab: tab.query,
+    page: page,
+    perPage: perPage,
+  );
 
   @override
   Future<Result> fetchMyRequest(String requestId) async =>
@@ -209,13 +232,22 @@ final class OpponentRequestRemoteDataSourceImpl
 
   @override
   Future<Result> accept(AcceptOpponentRequestRequest request) async {
+    // Accepting a `need_opponent` row creates an invitation on that request:
+    // `POST /auth/opponent-requests/{id}/invitations`, with my team in the
+    // body. The request id is the listed row's own id.
     final Map<String, dynamic> fields = request.toFields()
       ..removeWhere((_, dynamic value) => value == null);
-    return await Client.instance().getAuthManager().acceptOpponentRequest(
+    return await Client.instance().getAuthManager().createOpponentInvitation(
       request.requestId,
       fields,
     );
   }
+
+  @override
+  Future<Result> fetchInvitations(String requestId) async =>
+      await Client.instance().getAuthManager().getOpponentInvitations(
+        requestId,
+      );
 
   @override
   Future<Result> decline(String requestId) async => await Client.instance()
@@ -227,8 +259,11 @@ final class OpponentRequestRemoteDataSourceImpl
       await Client.instance().getAuthManager().deleteOpponentRequest(requestId);
 
   @override
-  Future<Result> selectOpponent(String requestId) async =>
-      await Client.instance().getAuthManager().verifyOpponentPayment(requestId);
+  Future<Result> selectOpponent(String requestId, String invitationId) async =>
+      await Client.instance().getAuthManager().acceptOpponentInvitation(
+        requestId,
+        invitationId,
+      );
 
   @override
   Future<Result> rejectInvitation(String requestId, String reason) async =>
@@ -273,13 +308,6 @@ final class OpponentRequestFallbackDataSourceImpl
   }
 
   @override
-  Future<Result> fetchRequests({Map<String, dynamic>? query}) => _withFallback(
-    'list',
-    () => _remote.fetchRequests(query: query),
-    () => _mock.fetchRequests(query: query),
-  );
-
-  @override
   Future<Result> fetchRequest(String requestId) => _withFallback(
     'detail',
     () => _remote.fetchRequest(requestId),
@@ -287,12 +315,21 @@ final class OpponentRequestFallbackDataSourceImpl
   );
 
   @override
-  Future<Result> fetchMyRequests({Map<String, dynamic>? query}) =>
-      _withFallback(
-        'mine',
-        () => _remote.fetchMyRequests(query: query),
-        () => _mock.fetchMyRequests(query: query),
-      );
+  Future<Result> fetchRequests({
+    required OpponentRequestTab tab,
+    int page = 1,
+    int perPage = 15,
+  }) => _withFallback(
+    tab.query,
+    () => _remote.fetchRequests(tab: tab, page: page, perPage: perPage),
+    () => _mock.fetchRequests(tab: tab, page: page, perPage: perPage),
+  );
+
+  /// Reading a confirmed match never falls back: a canned stand-in would show
+  /// a fixture, a venue and a split that belong to nobody. Reports its errors.
+  @override
+  Future<Result> fetchMatchDetails(String requestId) =>
+      _remote.fetchMatchDetails(requestId);
 
   /// Hydrating a resumed draft: a canned stand-in would silently autofill the
   /// wizard with somebody else's data, so this one call reports its errors.
@@ -300,43 +337,30 @@ final class OpponentRequestFallbackDataSourceImpl
   Future<Result> fetchMyRequest(String requestId) =>
       _remote.fetchMyRequest(requestId);
 
+  /// The create-request wizard's write steps never fall back. Each one builds
+  /// up a real draft on the server, and a canned success would hide the reason
+  /// the server refused — a 422 like "attach a venue with a fee amount before
+  /// configuring the cost split" is exactly what the user needs to read. They
+  /// report the API's own error so the wizard can show it.
   @override
-  Future<Result> createRequest(Map<String, dynamic> data) => _withFallback(
-    'create',
-    () => _remote.createRequest(data),
-    () => _mock.createRequest(data),
-  );
+  Future<Result> createRequest(Map<String, dynamic> data) =>
+      _remote.createRequest(data);
 
   @override
-  Future<Result> createMatchStep(Map<String, dynamic> data) => _withFallback(
-    'create-match-step',
-    () => _remote.createMatchStep(data),
-    () => _mock.createMatchStep(data),
-  );
+  Future<Result> createMatchStep(Map<String, dynamic> data) =>
+      _remote.createMatchStep(data);
 
   @override
   Future<Result> updateMatchStep(String requestId, Map<String, dynamic> data) =>
-      _withFallback(
-        'update-match-step',
-        () => _remote.updateMatchStep(requestId, data),
-        () => _mock.updateMatchStep(requestId, data),
-      );
+      _remote.updateMatchStep(requestId, data);
 
   @override
   Future<Result> saveVenueStep(String requestId, Map<String, dynamic> data) =>
-      _withFallback(
-        'save-venue-step',
-        () => _remote.saveVenueStep(requestId, data),
-        () => _mock.saveVenueStep(requestId, data),
-      );
+      _remote.saveVenueStep(requestId, data);
 
   @override
   Future<Result> saveCostStep(String requestId, Map<String, dynamic> data) =>
-      _withFallback(
-        'save-cost-step',
-        () => _remote.saveCostStep(requestId, data),
-        () => _mock.saveCostStep(requestId, data),
-      );
+      _remote.saveCostStep(requestId, data);
 
   /// Publishing is a state change the user is told succeeded — a canned
   /// success would claim the request is live when it is still a draft, so this
@@ -345,12 +369,19 @@ final class OpponentRequestFallbackDataSourceImpl
   Future<Result> publishRequest(String requestId, Map<String, dynamic> data) =>
       _remote.publishRequest(requestId, data);
 
+  /// Sending an acceptance is a write the user is told succeeded, so it never
+  /// falls back to a canned response: a swallowed 409/422 would show
+  /// "Acceptance sent" for an invitation the server never created. This one
+  /// call reports the API's own error instead.
   @override
-  Future<Result> accept(AcceptOpponentRequestRequest request) => _withFallback(
-    'accept',
-    () => _remote.accept(request),
-    () => _mock.accept(request),
-  );
+  Future<Result> accept(AcceptOpponentRequestRequest request) =>
+      _remote.accept(request);
+
+  /// Never falls back: the requester picks a real opponent from this list, so
+  /// a canned team would be worse than an error the page can retry.
+  @override
+  Future<Result> fetchInvitations(String requestId) =>
+      _remote.fetchInvitations(requestId);
 
   @override
   Future<Result> decline(String requestId) => _withFallback(
@@ -366,12 +397,12 @@ final class OpponentRequestFallbackDataSourceImpl
   @override
   Future<Result> delete(String requestId) => _remote.delete(requestId);
 
+  /// Confirming the opponent creates the match and rejects every other
+  /// invitation — a canned success would tell the requester the match is on
+  /// while the server never made it. Reports the API's own error instead.
   @override
-  Future<Result> selectOpponent(String requestId) => _withFallback(
-    'select-opponent',
-    () => _remote.selectOpponent(requestId),
-    () => _mock.selectOpponent(requestId),
-  );
+  Future<Result> selectOpponent(String requestId, String invitationId) =>
+      _remote.selectOpponent(requestId, invitationId);
 
   @override
   Future<Result> rejectInvitation(String requestId, String reason) =>
@@ -579,24 +610,77 @@ final class OpponentRequestMockDataSourceImpl
     return null;
   }
 
+  /// Mirrors the server's list slices and paginates the rows just as the
+  /// live endpoint does. This keeps the debug mock faithful to the typed
+  /// `tab`, `page`, and `per_page` contract.
   @override
-  Future<Result> fetchRequests({Map<String, dynamic>? query}) async {
+  Future<Result> fetchRequests({
+    required OpponentRequestTab tab,
+    int page = 1,
+    int perPage = 15,
+  }) async {
     await Future.delayed(const Duration(milliseconds: 350));
-    return Result.success({
-      'data': {'requests': _store},
-    });
-  }
-
-  /// Mirrors the endpoint's contract: the same rows the public list serves,
-  /// narrowed to the ones the caller owns.
-  @override
-  Future<Result> fetchMyRequests({Map<String, dynamic>? query}) async {
-    await Future.delayed(const Duration(milliseconds: 350));
-    final List<Map<String, dynamic>> mine = _store
-        .where((r) => r['is_mine'] == true)
+    final List<Map<String, dynamic>> rows = _store
+        .where(
+          (Map<String, dynamic> row) => switch (tab) {
+            OpponentRequestTab.myRequests => row['is_mine'] == true,
+            OpponentRequestTab.needOpponent =>
+              row['is_mine'] != true && row['status'] == 'open',
+            // Requests another team's, that mine has accepted and is waiting
+            // on the requester to choose.
+            OpponentRequestTab.invitations =>
+              row['is_mine'] != true &&
+                  (row['status'] == 'invitation_sent' ||
+                      row['status'] == 'invite'),
+            OpponentRequestTab.settled =>
+              row['status'] == 'accepted' || row['status'] == 'settled',
+          },
+        )
         .toList(growable: false);
+    final int safePage = page < 1 ? 1 : page;
+    final int safePerPage = perPage < 1 ? 15 : perPage;
+    final int first = (safePage - 1) * safePerPage;
+    final List<Map<String, dynamic>> items = first >= rows.length
+        ? const <Map<String, dynamic>>[]
+        : rows.skip(first).take(safePerPage).toList(growable: false);
     return Result.success({
-      'data': {'requests': mine},
+      'data': {
+        'requests': items,
+        'pagination': {
+          'current_page': safePage,
+          'last_page': (rows.length / safePerPage).ceil().clamp(1, 1 << 31),
+          'per_page': safePerPage,
+          'total': rows.length,
+          'has_more_pages': first + items.length < rows.length,
+        },
+        // Mirrors the real endpoint: every tab's count beside the page, so the
+        // chips read the same way against the fake store.
+        'summary': {
+          'all': _store.length,
+          'my_requests': _store
+              .where((row) => row['is_mine'] == true)
+              .length,
+          'need_opponent': _store
+              .where(
+                (row) => row['is_mine'] != true && row['status'] == 'open',
+              )
+              .length,
+          'invitation': _store
+              .where(
+                (row) =>
+                    row['is_mine'] != true &&
+                    (row['status'] == 'invitation_sent' ||
+                        row['status'] == 'invite'),
+              )
+              .length,
+          'settled': _store
+              .where(
+                (row) =>
+                    row['status'] == 'accepted' || row['status'] == 'settled',
+              )
+              .length,
+        },
+      },
     });
   }
 
@@ -605,6 +689,15 @@ final class OpponentRequestMockDataSourceImpl
     final r = _find(requestId);
     if (r == null) {
       return Result.error(DataError('Request not found.', 404, null));
+    }
+    return Result.success({'data': r});
+  }
+
+  @override
+  Future<Result> fetchMatchDetails(String requestId) async {
+    final r = _find(requestId);
+    if (r == null) {
+      return Result.error(DataError('Match not found.', 404, null));
     }
     return Result.success({'data': r});
   }
@@ -788,6 +881,15 @@ final class OpponentRequestMockDataSourceImpl
   }
 
   @override
+  Future<Result> fetchInvitations(String requestId) async {
+    final r = _find(requestId);
+    final dynamic invitations = r?['invitations'];
+    return Result.success({
+      'data': invitations is List ? invitations : const <dynamic>[],
+    });
+  }
+
+  @override
   Future<Result> decline(String requestId) async {
     final r = _find(requestId);
     if (r != null) r['status'] = 'declined';
@@ -803,7 +905,7 @@ final class OpponentRequestMockDataSourceImpl
   }
 
   @override
-  Future<Result> selectOpponent(String requestId) async {
+  Future<Result> selectOpponent(String requestId, String invitationId) async {
     await Future.delayed(const Duration(milliseconds: 400));
     final r = _find(requestId);
     if (r != null) {
@@ -815,9 +917,17 @@ final class OpponentRequestMockDataSourceImpl
           if (i is! Map) continue;
           i['status'] = i['status'] == 'pending' ? 'rejected' : i['status'];
         }
-        if (invitations.isNotEmpty && invitations.first is Map) {
-          (invitations.first as Map)['status'] = 'selected';
-        }
+        final Iterable<Map> chosen = invitations.whereType<Map>().where(
+          (i) => i['id'].toString() == invitationId,
+        );
+        // Fall back to the first row only when the id matches nothing, so a
+        // canned store still lands somewhere rather than selecting no one.
+        final Map? target = chosen.isNotEmpty
+            ? chosen.first
+            : (invitations.whereType<Map>().isEmpty
+                  ? null
+                  : invitations.whereType<Map>().first);
+        target?['status'] = 'selected';
       }
     }
     return Result.success({

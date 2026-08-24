@@ -8,6 +8,7 @@ import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/custom_image_view.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/utils/upload_attachment.dart';
 import 'package:hamro_footsall/core/widgets/custom_bottom_sheet.dart';
 import 'package:hamro_footsall/core/widgets/custom_button.dart';
 import 'package:hamro_footsall/core/widgets/custom_confirm_dialog.dart';
@@ -16,6 +17,7 @@ import 'package:hamro_footsall/features/media/data/model/media_model.dart';
 import 'package:hamro_footsall/features/media/data/repositories/media_repository_impl.dart';
 import 'package:hamro_footsall/features/media/domain/usecase/media_use_case.dart';
 import 'package:hamro_footsall/features/media/presentation/bloc/media_bloc.dart';
+import 'package:hamro_footsall/features/media/utils/heic_to_png_jpg.dart';
 import 'package:hamro_footsall/features/media/utils/stable_media_file.dart';
 import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_cubit.dart';
 import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_state.dart';
@@ -89,7 +91,7 @@ class _VendorMediaLibrarySheetState extends State<MediaLibrarySheet> {
   _LibraryFilter _filter = _LibraryFilter.all;
   bool _isAdding = false;
   bool _isCapturing = false;
-  List<UploadRef> _pendingUploadFiles = const <UploadRef>[];
+  List<UploadAttachment> _pendingUploadFiles = const <UploadAttachment>[];
 
   @override
   void initState() {
@@ -273,19 +275,15 @@ class _VendorMediaLibrarySheetState extends State<MediaLibrarySheet> {
       setState(() {
         _isAdding = false;
         _isCapturing = false;
-        _pendingUploadFiles = const <UploadRef>[];
+        _pendingUploadFiles = const <UploadAttachment>[];
       });
       return;
     }
 
     if (state.createStatus == MediaStatus.success) {
       if (_pendingUploadFiles.isNotEmpty) {
-        final List<MediaModel> created = newlyAddedRemote.isNotEmpty
-            ? newlyAddedRemote
-            : state.items
-                  .take(_pendingUploadFiles.length.clamp(0, state.items.length))
-                  .toList();
-        final List<UploadRef> createdRefs = created
+        final List<UploadRef> createdRefs = newlyAddedRemote
+            .where((MediaModel item) => item.url.trim().isNotEmpty)
             .map(
               (MediaModel item) => UploadRef(
                 id: _asInt(item.id),
@@ -296,25 +294,22 @@ class _VendorMediaLibrarySheetState extends State<MediaLibrarySheet> {
               ),
             )
             .toList();
+        if (createdRefs.isEmpty) {
+          AppUtils().showSnackBar(
+            context,
+            MsgType.error,
+            'The upload completed without a usable media reference. Please try again.',
+          );
+        }
         setState(() {
-          if (!widget.allowMultiple) {
+          if (!widget.allowMultiple && createdRefs.isNotEmpty) {
             _selectedPaths
               ..clear()
-              ..add(
-                _itemKey(
-                  createdRefs.isNotEmpty
-                      ? createdRefs.first
-                      : _pendingUploadFiles.first,
-                ),
-              );
+              ..add(_itemKey(createdRefs.first));
           } else {
-            _selectedPaths.addAll(
-              (createdRefs.isNotEmpty ? createdRefs : _pendingUploadFiles).map(
-                _itemKey,
-              ),
-            );
+            _selectedPaths.addAll(createdRefs.map(_itemKey));
           }
-          _pendingUploadFiles = const <UploadRef>[];
+          _pendingUploadFiles = const <UploadAttachment>[];
           _isAdding = false;
           _isCapturing = false;
         });
@@ -386,14 +381,39 @@ class _VendorMediaLibrarySheetState extends State<MediaLibrarySheet> {
   }) async {
     setState(() => _isAdding = true);
 
-    final List<UploadRef> files = await widget.cubit.pickFilesForMediaLibrary(
-      allowedExtensions: extensions,
-      allowMultiple: allowMultiple,
-    );
-
-    if (!mounted) return;
-
-    await _confirmAndUpload(files);
+    try {
+      final List<UploadRef> files = await widget.cubit.pickFilesForMediaLibrary(
+        allowedExtensions: extensions,
+        allowMultiple: allowMultiple,
+      );
+      if (!mounted) return;
+      if (files.length > kUploadMaxFilesPerRequest) {
+        throw const UploadValidationException(
+          UploadValidationCode.tooManyFiles,
+          'You can upload at most 5 files at once.',
+        );
+      }
+      final UploadPolicy policy = UploadPolicy(
+        allowedExtensions: extensions.toSet(),
+      );
+      final List<UploadAttachment> attachments = <UploadAttachment>[];
+      for (final UploadRef file in files) {
+        final String path = file.remoteUrl?.trim() ?? '';
+        attachments.add(
+          await loadUploadAttachment(
+            path: path,
+            filename: file.name,
+            policy: policy,
+          ),
+        );
+      }
+      if (!mounted) return;
+      await _confirmAndUpload(attachments);
+    } on UploadValidationException catch (error) {
+      if (!mounted) return;
+      AppUtils().showSnackBar(context, MsgType.error, error.message);
+      setState(() => _isAdding = false);
+    }
   }
 
   Future<void> _handleAddImagesFromGallery({
@@ -441,14 +461,25 @@ class _VendorMediaLibrarySheetState extends State<MediaLibrarySheet> {
         return;
       }
 
-      await _confirmAndUpload(
-        stableImages
-            .map(
-              (XFile image) =>
-                  UploadRef(name: image.name, remoteUrl: image.path),
-            )
-            .toList(),
+      if (stableImages.length > kUploadMaxFilesPerRequest) {
+        throw const UploadValidationException(
+          UploadValidationCode.tooManyFiles,
+          'You can upload at most 5 files at once.',
+        );
+      }
+      final UploadPolicy policy = UploadPolicy(
+        allowedExtensions: widget.allowedExtensions.toSet(),
       );
+      final List<UploadAttachment> attachments = <UploadAttachment>[];
+      for (final XFile image in stableImages) {
+        attachments.add(await _loadImageAttachment(image, policy));
+      }
+      if (!mounted) return;
+      await _confirmAndUpload(attachments);
+    } on UploadValidationException catch (error) {
+      if (!mounted) return;
+      AppUtils().showSnackBar(context, MsgType.error, error.message);
+      setState(() => _isAdding = false);
     } catch (error) {
       if (!mounted) return;
       AppUtils().showSnackBar(
@@ -487,12 +518,22 @@ class _VendorMediaLibrarySheetState extends State<MediaLibrarySheet> {
         return;
       }
 
-      await _confirmAndUpload(
-        photo == null
-            ? const <UploadRef>[]
-            : <UploadRef>[UploadRef(name: photo.name, remoteUrl: photo.path)],
-        isCamera: true,
-      );
+      final List<UploadAttachment> attachments = photo == null
+          ? const <UploadAttachment>[]
+          : <UploadAttachment>[
+              await _loadImageAttachment(
+                photo,
+                UploadPolicy(
+                  allowedExtensions: widget.allowedExtensions.toSet(),
+                ),
+              ),
+            ];
+      if (!mounted) return;
+      await _confirmAndUpload(attachments, isCamera: true);
+    } on UploadValidationException catch (error) {
+      if (!mounted) return;
+      AppUtils().showSnackBar(context, MsgType.error, error.message);
+      setState(() => _isCapturing = false);
     } catch (error) {
       if (!mounted) return;
       AppUtils().showSnackBar(
@@ -505,7 +546,7 @@ class _VendorMediaLibrarySheetState extends State<MediaLibrarySheet> {
   }
 
   Future<void> _confirmAndUpload(
-    List<UploadRef> files, {
+    List<UploadAttachment> files, {
     bool isCamera = false,
   }) async {
     if (!mounted) return;
@@ -518,15 +559,10 @@ class _VendorMediaLibrarySheetState extends State<MediaLibrarySheet> {
       return;
     }
 
-    final List<UploadRef> uploadableFiles = files
-        .where((UploadRef item) => _isLocalPath(item.remoteUrl))
-        .toList();
-    if (uploadableFiles.length != files.length) {
-      AppUtils().showSnackBar(
-        context,
-        MsgType.error,
-        'Selected file is not accessible from this device.',
-      );
+    try {
+      validateUploadBatch(files);
+    } on UploadValidationException catch (error) {
+      AppUtils().showSnackBar(context, MsgType.error, error.message);
       setState(() {
         _isAdding = false;
         if (isCamera) _isCapturing = false;
@@ -534,7 +570,9 @@ class _VendorMediaLibrarySheetState extends State<MediaLibrarySheet> {
       return;
     }
 
-    final bool confirmed = await _confirmUpload(uploadableFiles);
+    final bool confirmed = await _confirmUpload(
+      files.map(_previewRefForAttachment).toList(growable: false),
+    );
     if (!mounted) return;
 
     if (!confirmed) {
@@ -546,12 +584,26 @@ class _VendorMediaLibrarySheetState extends State<MediaLibrarySheet> {
     }
 
     setState(() {
-      _pendingUploadFiles = uploadableFiles;
+      _pendingUploadFiles = files;
     });
-    context.read<MediaBloc>().add(
-      CreateMediaEvent(
-        uploadableFiles.map((UploadRef item) => item.remoteUrl!).toList(),
-      ),
+    context.read<MediaBloc>().add(CreateMediaEvent(files));
+  }
+
+  UploadRef _previewRefForAttachment(UploadAttachment attachment) =>
+      UploadRef(name: attachment.filename, remoteUrl: attachment.sourcePath);
+
+  Future<UploadAttachment> _loadImageAttachment(
+    XFile image,
+    UploadPolicy policy,
+  ) async {
+    final String convertedPath = await heicToPngJpg(image.path);
+    final String convertedName = convertedPath == image.path
+        ? image.name
+        : convertedPath.split(Platform.pathSeparator).last;
+    return loadUploadAttachment(
+      path: convertedPath,
+      filename: convertedName,
+      policy: policy,
     );
   }
 

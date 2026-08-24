@@ -18,6 +18,7 @@ class AccountLoadingView extends StatelessWidget {
       ),
       child: _AccountShimmer(
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             _BalanceCardSkeleton(),
@@ -58,6 +59,10 @@ class AccountSettlementListLoading extends StatelessWidget {
   Widget build(BuildContext context) {
     return _AccountShimmer(
       child: Column(
+        // Shimmer paints its gradient across the whole of its child's bounds.
+        // A max-size Column fills the viewport, so the sweep ran over the entire
+        // screen instead of the rows — mainAxisSize.min keeps it on the rows.
+        mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           for (int i = 0; i < itemCount; i++) ...<Widget>[
             if (i > 0)
@@ -230,6 +235,7 @@ class _ListCardSkeleton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final child = Column(
+      mainAxisSize: MainAxisSize.min,
       children: <Widget>[
         for (int i = 0; i < itemCount; i++) ...<Widget>[
           if (i > 0)

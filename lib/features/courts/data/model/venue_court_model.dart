@@ -160,6 +160,8 @@ CourtDraft _courtFromJson(Map<String, dynamic> json) {
   // The list endpoint sends `match_type` (e.g. "5v5"); detail/other endpoints
   // may use `match_format`. Accept both.
   final Object? matchFormat = json['match_format'] ?? json['match_type'];
+  final int? courtTypeId = _asInt(json['court_type_id'] ?? courtType);
+  final int? matchFormatId = _asInt(json['match_format_id'] ?? matchFormat);
   final String slug = _asString(json['slug']);
   final String code = _asString(json['code']);
   final String surfaceType = _asString(json['surface_type']);
@@ -206,10 +208,20 @@ CourtDraft _courtFromJson(Map<String, dynamic> json) {
     name: _asString(json['name'] ?? json['court_name']),
     basePrice: _asDouble(json['base_price'] ?? json['price']),
     description: _asString(json['description']),
-    courtTypeId: _asInt(json['court_type_id'] ?? courtType),
-    courtType: _resolveOptionName(courtType, json['court_type_name']),
-    matchFormatId: _asInt(json['match_format_id'] ?? matchFormat),
-    matchFormat: _resolveOptionName(matchFormat, json['match_format_name']),
+    courtTypeId: courtTypeId,
+    courtType: _optionDisplayName(
+      value: courtType,
+      explicitName: json['court_type_name'],
+      id: courtTypeId,
+      labelsById: const <int, String>{1: 'Indoor', 2: 'Outdoor'},
+    ),
+    matchFormatId: matchFormatId,
+    matchFormat: _optionDisplayName(
+      value: matchFormat,
+      explicitName: json['match_format_name'],
+      id: matchFormatId,
+      labelsById: const <int, String>{1: '5v5', 2: '6v6', 3: '7v7'},
+    ),
     maxPlayers:
         _asInt(json['capacity'] ?? json['max_player'] ?? json['max_players']) ??
         10,
@@ -333,17 +345,25 @@ String? _optionName(Object? value) {
   return null;
 }
 
-/// Resolves a display name that the backend may send either as an object
-/// (`{id, name}`), as a plain scalar string (`"Hard Court"`, `"5v5"`), or via a
-/// separate `*_name` field. Returns an empty string when none are present.
-String _resolveOptionName(Object? value, Object? fallbackName) {
+/// Resolves a human-readable option name. List responses commonly include
+/// only the type/format id, while detail responses may provide a nested option
+/// or a dedicated `*_name` field. Numeric ids must never be rendered as the
+/// label, so known ids get their corresponding display names instead.
+String _optionDisplayName({
+  required Object? value,
+  required Object? explicitName,
+  required int? id,
+  required Map<int, String> labelsById,
+}) {
   final String? fromOption = _optionName(value);
   if (fromOption != null && fromOption.isNotEmpty) return fromOption;
-  if (value is! Map) {
+  final String named = _asString(explicitName);
+  if (named.isNotEmpty) return named;
+  if (value is! Map && _asInt(value) == null) {
     final String scalar = _asString(value);
     if (scalar.isNotEmpty) return scalar;
   }
-  return _asString(fallbackName);
+  return labelsById[id] ?? '';
 }
 
 int? _asInt(Object? value) {
@@ -442,10 +462,33 @@ Set<String> _nameSetFromAny(dynamic value) {
 }
 
 List<UploadRef> _uploadsFromAny(dynamic value) {
+  if (value is Map) {
+    final Map<String, dynamic> media = Map<String, dynamic>.from(value);
+    final List<dynamic> nested = _listFromAny(media);
+    if (nested.isEmpty) {
+      // The venue-courts endpoint returns a single `court_photos` object,
+      // unlike the court-detail endpoint which returns a media list.
+      return _isMediaMap(media)
+          ? <UploadRef>[_uploadRefFromMap(media)]
+          : const <UploadRef>[];
+    }
+    return nested
+        .whereType<Map>()
+        .map((Map item) => _uploadRefFromMap(Map<String, dynamic>.from(item)))
+        .toList(growable: false);
+  }
   return _listFromAny(value)
       .whereType<Map>()
       .map((Map item) => _uploadRefFromMap(Map<String, dynamic>.from(item)))
       .toList(growable: false);
+}
+
+bool _isMediaMap(Map<String, dynamic> map) {
+  return map.containsKey('id') ||
+      map.containsKey('media_id') ||
+      map.containsKey('full_url') ||
+      map.containsKey('url') ||
+      map.containsKey('file_url');
 }
 
 UploadRef _uploadRefFromMap(Map<String, dynamic> map) {

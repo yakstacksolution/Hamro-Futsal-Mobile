@@ -10,7 +10,8 @@ void main() {
   testWidgets('renders notifications and marks all as read', (
     WidgetTester tester,
   ) async {
-    final _FakeNotificationRepository repository = _FakeNotificationRepository();
+    final _FakeNotificationRepository repository =
+        _FakeNotificationRepository();
 
     await tester.pumpWidget(
       MaterialApp(home: NotificationsPage(repository: repository)),
@@ -31,7 +32,8 @@ void main() {
   testWidgets('marks a read notification as unread from the menu', (
     WidgetTester tester,
   ) async {
-    final _FakeNotificationRepository repository = _FakeNotificationRepository();
+    final _FakeNotificationRepository repository =
+        _FakeNotificationRepository();
 
     repository.seedReadNotification();
 

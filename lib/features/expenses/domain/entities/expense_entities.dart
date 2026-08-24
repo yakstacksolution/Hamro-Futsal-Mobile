@@ -1,3 +1,4 @@
+import 'package:hamro_footsall/core/utils/upload_attachment.dart';
 import 'package:hamro_footsall/features/expenses/data/model/expense_model.dart';
 
 /// Payload for creating a new expense from the UI.
@@ -12,7 +13,7 @@ class CreateExpenseEntity {
     this.categoryDetail,
     this.courtId,
     this.note,
-    this.documentPath,
+    this.document,
   });
 
   final DateTime date;
@@ -27,9 +28,8 @@ class CreateExpenseEntity {
   final String? courtId;
   final String? note;
 
-  /// Local path of the attached document (image/pdf/doc picked from device
-  /// files); uploaded as multipart `document`.
-  final String? documentPath;
+  /// Image/PDF/Word document captured as bytes when it was picked.
+  final UploadAttachment? document;
 
   ExpenseModel toModel(String id) => ExpenseModel(
     id: id,
@@ -43,7 +43,7 @@ class CreateExpenseEntity {
     method: method,
     courtId: courtId,
     note: note,
-    document: documentPath,
+    document: document?.sourcePath,
   );
 
   Map<String, dynamic> toMap() => {

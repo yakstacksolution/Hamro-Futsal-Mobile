@@ -24,6 +24,9 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
     on<SendMessageEvent>(_onSendMessage);
     on<CreateGroupConversationEvent>(_onCreateGroup);
     on<AddGroupMembersEvent>(_onAddGroupMembers);
+    on<RenameGroupConversationEvent>(_onRenameGroup);
+    on<LeaveGroupConversationEvent>(_onLeaveGroup);
+    on<ClearLeftConversationEvent>(_onClearLeftConversation);
     on<ClearCreatedGroupEvent>(_onClearCreatedGroup);
     on<LoadMessageProfileEvent>(_onLoadMessageProfile);
     on<ClearMessageProfileEvent>(_onClearMessageProfile);
@@ -295,7 +298,7 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
     SendMessageEvent event,
     Emitter<MessageState> emit,
   ) async {
-    emit(state.copyWith(sending: true));
+    emit(state.copyWith(sending: true, clearErrorMessage: true));
     final result = await useCase.sendMessage(
       event.conversationId,
       request: event.request,
@@ -361,6 +364,101 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
     ClearCreatedGroupEvent event,
     Emitter<MessageState> emit,
   ) => emit(state.copyWith(clearCreatedGroup: true));
+
+  /// Renaming a group. The title is patched onto the conversation everywhere
+  /// it is held — the open thread and the inbox row — so the header and the
+  /// list both read the new name without a refetch.
+  Future<void> _onRenameGroup(
+    RenameGroupConversationEvent event,
+    Emitter<MessageState> emit,
+  ) async {
+    final String title = event.title.trim();
+    if (title.isEmpty || state.actionBusy) return;
+
+    emit(
+      state.copyWith(
+        actionBusy: true,
+        clearActionMessage: true,
+        clearErrorMessage: true,
+      ),
+    );
+    final result = await useCase.updateConversationTitle(
+      event.conversationId,
+      title,
+    );
+    result.fold(
+      (failure) => emit(
+        state.copyWith(actionBusy: false, errorMessage: failure.errorMessage),
+      ),
+      (updated) {
+        // The server's own copy when it echoed one back; otherwise the title
+        // that was just accepted, applied to the conversation in hand.
+        final ConversationModel? active = state.activeConversation;
+        final ConversationModel? renamedActive =
+            active?.id == event.conversationId
+            ? (updated ?? active!.copyWith(title: title))
+            : active;
+        emit(
+          state.copyWith(
+            actionBusy: false,
+            actionMessage: 'Group name updated.',
+            activeConversation: renamedActive,
+            conversations: state.conversations
+                .map(
+                  (conversation) => conversation.id == event.conversationId
+                      ? (updated ?? conversation.copyWith(title: title))
+                      : conversation,
+                )
+                .toList(growable: false),
+            clearErrorMessage: true,
+          ),
+        );
+      },
+    );
+  }
+
+  /// Leaving drops the conversation from this user's inbox, so the row goes
+  /// as well as the membership — a refresh would not bring it back.
+  Future<void> _onLeaveGroup(
+    LeaveGroupConversationEvent event,
+    Emitter<MessageState> emit,
+  ) async {
+    if (state.actionBusy) return;
+    emit(
+      state.copyWith(
+        actionBusy: true,
+        clearActionMessage: true,
+        clearErrorMessage: true,
+        clearLeftConversation: true,
+      ),
+    );
+    final result = await useCase.leaveConversation(event.conversationId);
+    result.fold(
+      (failure) => emit(
+        state.copyWith(actionBusy: false, errorMessage: failure.errorMessage),
+      ),
+      (_) {
+        final bool wasActive = state.activeConversationId == event.conversationId;
+        emit(
+          state.copyWith(
+            actionBusy: false,
+            actionMessage: 'You left the group.',
+            leftConversationId: event.conversationId,
+            conversations: state.conversations
+                .where((c) => c.id != event.conversationId)
+                .toList(growable: false),
+            clearActiveConversation: wasActive,
+            clearErrorMessage: true,
+          ),
+        );
+      },
+    );
+  }
+
+  void _onClearLeftConversation(
+    ClearLeftConversationEvent event,
+    Emitter<MessageState> emit,
+  ) => emit(state.copyWith(clearLeftConversation: true));
 
   Future<void> _onAddGroupMembers(
     AddGroupMembersEvent event,

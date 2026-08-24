@@ -73,7 +73,7 @@ class LogoPickerCard extends StatelessWidget {
                         Icon(
                           Icons.cloud_upload_rounded,
                           size: 34,
-                          color: LightColor.secondaryColor,
+                          color: LightColor.monoIconColor,
                         ),
                         SizedBox(height: 8),
                         Text(
@@ -99,10 +99,10 @@ class LogoPickerCard extends StatelessWidget {
             const SizedBox(height: 10),
             Row(
               children: <Widget>[
-                const Icon(
+                Icon(
                   Icons.image_rounded,
                   size: 16,
-                  color: LightColor.secondaryColor,
+                  color: LightColor.monoIconColor,
                 ),
                 const SizedBox(width: 8),
                 Expanded(

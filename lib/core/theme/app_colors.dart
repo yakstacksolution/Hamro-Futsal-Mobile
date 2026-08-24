@@ -78,6 +78,20 @@ class LightColor {
   static Color get buttonDisabledColor => _semantic.disabled;
   static Color get iconGrey => _semantic.iconMuted;
 
+  /// A QR code's ground stays light in BOTH themes — scanners rely on the
+  /// contrast, and QR art with a transparent background vanishes on a dark
+  /// surface. Content drawn on it must use [onQrSurface] / [onQrSurfaceMuted]
+  /// rather than the theme's text tokens.
+  static const Color qrSurface = Color(0xFFFFFFFF);
+  static const Color onQrSurface = Color(0xFF14181A);
+  static const Color onQrSurfaceMuted = Color(0xFF6B7280);
+
+  /// Tint for supplied monochrome glyphs — the amenity/facility marks the API
+  /// serves as flat single-colour art. They carry no hue of their own to
+  /// preserve, so they invert with the ground: black on light, white on dark.
+  static Color get monoIconColor =>
+      _isDark ? const Color(0xFFFFFFFF) : const Color(0xFF000000);
+
   static Color get shadowColor => _semantic.shadow;
   static Color get scrimColor => _semantic.scrim;
   static Color get dividerColor => _semantic.divider;
@@ -90,12 +104,8 @@ class LightColor {
 
   /// Drop shadow at a caller-tuned strength. Dark mode deepens the alpha,
   /// because a faint black shadow is invisible against a dark ground.
-  static Color shadowOf(double alpha) => Color.fromRGBO(
-    0,
-    0,
-    0,
-    _isDark ? (alpha * 2.2).clamp(0.0, 0.8) : alpha,
-  );
+  static Color shadowOf(double alpha) =>
+      Color.fromRGBO(0, 0, 0, _isDark ? (alpha * 2.2).clamp(0.0, 0.8) : alpha);
 
   static Color get skeletonBaseColor => _semantic.skeletonBase;
   static Color get skeletonHighlightColor => _semantic.skeletonHighlight;
@@ -157,7 +167,9 @@ class LightColor {
     if (!_isDark) return base;
     final HSLColor hsl = HSLColor.fromColor(base);
     return hsl
-        .withLightness(hsl.lightness.clamp(0.0, 1.0) < 0.62 ? 0.68 : hsl.lightness)
+        .withLightness(
+          hsl.lightness.clamp(0.0, 1.0) < 0.62 ? 0.68 : hsl.lightness,
+        )
         .withSaturation((hsl.saturation * 0.85).clamp(0.0, 1.0))
         .toColor();
   }

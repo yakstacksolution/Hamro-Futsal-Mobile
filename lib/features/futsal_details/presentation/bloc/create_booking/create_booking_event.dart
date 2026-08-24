@@ -21,6 +21,6 @@ class SubmitBookingEvent extends CreateBookingEvent {
     request.endTime,
     request.couponCode,
     request.repeatWeeks,
-    request.paymentProofPath,
+    request.paymentProof,
   ];
 }

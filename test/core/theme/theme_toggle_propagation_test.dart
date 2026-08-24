@@ -13,8 +13,10 @@ class _GlobalColourWidget extends StatelessWidget {
   const _GlobalColourWidget();
 
   @override
-  Widget build(BuildContext context) =>
-      ColoredBox(color: LightColor.background, child: const SizedBox(width: 10, height: 10));
+  Widget build(BuildContext context) => ColoredBox(
+    color: LightColor.background,
+    child: const SizedBox(width: 10, height: 10),
+  );
 }
 
 /// Reads through the inherited theme, so it was always updated correctly.
@@ -55,38 +57,41 @@ void main() {
     ),
   );
 
-  testWidgets('toggling dark mode repaints widgets that read the global palette',
-      (WidgetTester tester) async {
-    AppThemeController.instance.setDarkMode(false);
-    await tester.pumpWidget(harness());
-    await tester.pumpAndSettle();
+  testWidgets(
+    'toggling dark mode repaints widgets that read the global palette',
+    (WidgetTester tester) async {
+      AppThemeController.instance.setDarkMode(false);
+      await tester.pumpWidget(harness());
+      await tester.pumpAndSettle();
 
-    final Finder global = find.byType(_GlobalColourWidget);
-    final Finder themed = find.byType(_ThemeDependentWidget);
+      final Finder global = find.byType(_GlobalColourWidget);
+      final Finder themed = find.byType(_ThemeDependentWidget);
 
-    expect(_colourOf(tester, global), AppThemeColors.light.background);
-    expect(_colourOf(tester, themed), AppThemeColors.light.background);
+      expect(_colourOf(tester, global), AppThemeColors.light.background);
+      expect(_colourOf(tester, themed), AppThemeColors.light.background);
 
-    AppThemeController.instance.setDarkMode(true);
-    await tester.pumpAndSettle();
+      AppThemeController.instance.setDarkMode(true);
+      await tester.pumpAndSettle();
 
-    // The regression: this one used to keep the light background until restart.
-    expect(
-      _colourOf(tester, global),
-      AppThemeColors.dark.background,
-      reason: 'widget reading LightColor.* did not repaint after the toggle',
-    );
-    expect(_colourOf(tester, themed), AppThemeColors.dark.background);
+      // The regression: this one used to keep the light background until restart.
+      expect(
+        _colourOf(tester, global),
+        AppThemeColors.dark.background,
+        reason: 'widget reading LightColor.* did not repaint after the toggle',
+      );
+      expect(_colourOf(tester, themed), AppThemeColors.dark.background);
 
-    // And back again, so the fix is not one-directional.
-    AppThemeController.instance.setDarkMode(false);
-    await tester.pumpAndSettle();
-    expect(_colourOf(tester, global), AppThemeColors.light.background);
-    expect(_colourOf(tester, themed), AppThemeColors.light.background);
-  });
+      // And back again, so the fix is not one-directional.
+      AppThemeController.instance.setDarkMode(false);
+      await tester.pumpAndSettle();
+      expect(_colourOf(tester, global), AppThemeColors.light.background);
+      expect(_colourOf(tester, themed), AppThemeColors.light.background);
+    },
+  );
 
-  testWidgets('toggling preserves State below the toggle point',
-      (WidgetTester tester) async {
+  testWidgets('toggling preserves State below the toggle point', (
+    WidgetTester tester,
+  ) async {
     AppThemeController.instance.setDarkMode(false);
     await tester.pumpWidget(harness());
     await tester.pumpAndSettle();

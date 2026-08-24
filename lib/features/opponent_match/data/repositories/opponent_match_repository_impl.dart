@@ -6,9 +6,12 @@ import 'package:hamro_footsall/core/helper/response_helper.dart';
 import 'package:hamro_footsall/core/utils/string_constants.dart';
 import 'package:hamro_footsall/features/opponent_match/data/data_source/opponent_match_data_source.dart';
 import 'package:hamro_footsall/features/opponent_match/data/model/accept_opponent_request_request.dart';
+import 'package:hamro_footsall/features/opponent_match/data/model/opponent_match_details_model.dart';
 import 'package:hamro_footsall/features/opponent_match/data/model/opponent_match_model.dart';
 import 'package:hamro_footsall/features/opponent_match/data/model/opponent_match_step_request.dart';
 import 'package:hamro_footsall/features/opponent_match/domain/entities/opponent_match_entities.dart';
+import 'package:hamro_footsall/features/opponent_match/data/model/opponent_request_page_model.dart';
+import 'package:hamro_footsall/features/opponent_match/data/model/opponent_request_summary_model.dart';
 import 'package:hamro_footsall/features/opponent_match/data/model/opponent_request_tab.dart';
 import 'package:hamro_footsall/features/opponent_match/domain/repository/opponent_match_repository.dart';
 
@@ -140,35 +143,38 @@ final class OpponentMatchRepositoryImpl extends OpponentMatchRepository {
   }
 
   @override
-  Future<Either<AppException, List<OpponentRequestModel>>> getRequests() async {
-    final response = await _requestDataSource.fetchRequests();
+  Future<Either<AppException, OpponentMatchDetailsModel>> getMatchDetails(
+    String id,
+  ) async {
+    final response = await _requestDataSource.fetchMatchDetails(id);
     if (response.isError()) {
       return left(ResponseHelper.error(response));
     }
+    // The endpoint answers with the match under the usual `data` envelope, in
+    // its own screen-shaped sections — not the request row the lists send.
+    final Map<String, dynamic> row = _asMap(response.getValue())['data'] is Map
+        ? _asMap(_asMap(response.getValue())['data'])
+        : _asMap(response.getValue());
+    if (row.isEmpty) {
+      return left(_error('Could not read the match details.'));
+    }
     try {
-      final items = _findList(
-        response.getValue(),
-        keys: const ['data', 'requests', 'items', 'results'],
-        depth: 0,
-      );
-      final requests = items
-          .whereType<Map>()
-          .map(
-            (e) => OpponentRequestModel.fromJson(Map<String, dynamic>.from(e)),
-          )
-          .toList(growable: false);
-      return right(requests);
+      return right(OpponentMatchDetailsModel.fromJson(row));
     } catch (_) {
-      return left(_error('Could not parse opponent requests from server.'));
+      return left(_error('Could not parse the match details from server.'));
     }
   }
 
   @override
-  Future<Either<AppException, List<OpponentRequestModel>>> getRequestsByTab(
-    OpponentRequestTab tab,
-  ) async {
-    final response = await _requestDataSource.fetchMyRequests(
-      query: <String, dynamic>{'tab': tab.query},
+  Future<Either<AppException, OpponentRequestPageModel>> getRequestsByTab(
+    OpponentRequestTab tab, {
+    int page = 1,
+    int perPage = 15,
+  }) async {
+    final response = await _requestDataSource.fetchRequests(
+      tab: tab,
+      page: page,
+      perPage: perPage,
     );
     if (response.isError()) {
       return left(ResponseHelper.error(response));
@@ -192,15 +198,36 @@ final class OpponentMatchRepositoryImpl extends OpponentMatchRepository {
           .where((row) => row.isNotEmpty)
           .map(OpponentRequestModel.fromJson)
           .toList(growable: false);
-      return right(requests);
+      // `pagination` sits beside `items` inside `data`.
+      final Map<String, dynamic> envelope = _asMap(
+        _asMap(response.getValue())['data'],
+      );
+      final Map<String, dynamic> pagination = _asMap(envelope['pagination']);
+      // `summary` counts every tab, not just the one requested — one call is
+      // enough to fill in all four chips.
+      final Map<String, dynamic> summaryJson = _asMap(envelope['summary']);
+      final OpponentRequestSummaryModel? summary = summaryJson.isEmpty
+          ? null
+          : OpponentRequestSummaryModel.fromJson(summaryJson);
+      return right(
+        pagination.isEmpty
+            ? OpponentRequestPageModel.single(requests, summary: summary)
+            : OpponentRequestPageModel.fromJson(
+                pagination,
+                requests,
+                summary: summary,
+              ),
+      );
     } catch (_) {
       return left(_error('Could not parse opponent requests from server.'));
     }
   }
 
   @override
-  Future<Either<AppException, List<OpponentRequestModel>>> getMyRequests() =>
-      getRequestsByTab(OpponentRequestTab.myRequests);
+  Future<Either<AppException, List<OpponentRequestModel>>>
+  getMyRequests() async => (await getRequestsByTab(
+    OpponentRequestTab.myRequests,
+  )).map((OpponentRequestPageModel page) => page.items);
 
   @override
   Future<Either<AppException, OpponentRequestModel>> getMyRequest(
@@ -406,8 +433,6 @@ final class OpponentMatchRepositoryImpl extends OpponentMatchRepository {
     final OpponentRequestRefModel ref = OpponentRequestRefModel.fromResponse(
       response.getValue(),
     );
-    // An update that echoes nothing still applied — fall back to the id we
-    // patched against so the wizard does not lose its request.
     if (!ref.isValid && requestId != null && requestId.isNotEmpty) {
       return right(OpponentRequestRefModel(id: requestId));
     }
@@ -517,9 +542,10 @@ final class OpponentMatchRepositoryImpl extends OpponentMatchRepository {
   @override
   Future<Either<AppException, List<OpponentRequestModel>>> selectOpponent(
     String id,
+    String invitationId,
   ) async {
     return _mutateRequestsThenReload(
-      () => _requestDataSource.selectOpponent(id),
+      () => _requestDataSource.selectOpponent(id, invitationId),
     );
   }
 
@@ -534,6 +560,52 @@ final class OpponentMatchRepositoryImpl extends OpponentMatchRepository {
   }
 
   @override
+  Future<Either<AppException, List<OpponentInvitationModel>>> getInvitations(
+    String requestId,
+  ) async {
+    final response = await _requestDataSource.fetchInvitations(requestId);
+    if (response.isError()) {
+      return left(ResponseHelper.error(response));
+    }
+    try {
+      final List<dynamic> rows = _findList(
+        response.getValue(),
+        keys: const ['data', 'items', 'invitations', 'acceptances', 'results'],
+        depth: 0,
+      );
+      final invitations = rows
+          .whereType<Map>()
+          .map(
+            (raw) => OpponentInvitationModel.fromJson(
+              _unwrapInvitation(Map<String, dynamic>.from(raw)),
+            ),
+          )
+          // A row with neither an id nor a team cannot be reviewed or picked.
+          .where((i) => i.id.isNotEmpty || i.teamId.isNotEmpty)
+          .toList(growable: false);
+      return right(invitations);
+    } catch (_) {
+      return left(_error('Could not parse the invitations from server.'));
+    }
+  }
+
+  /// An invitation row may be the object itself or a wrapper carrying it under
+  /// `invitation`; both shapes have been served by this endpoint.
+  Map<String, dynamic> _unwrapInvitation(Map<String, dynamic> raw) {
+    for (final key in const ['invitation', 'opponent_invitation']) {
+      final dynamic child = raw[key];
+      if (child is Map) {
+        // Wrapper fields (team, status, timestamps) stay; the nested
+        // invitation wins where both name the same key.
+        return <String, dynamic>{...raw}
+          ..remove(key)
+          ..addAll(Map<String, dynamic>.from(child));
+      }
+    }
+    return raw;
+  }
+
+  @override
   Future<Either<AppException, OpponentRequestModel>> acceptRequest(
     AcceptOpponentRequestRequest request,
   ) async {
@@ -542,12 +614,56 @@ final class OpponentMatchRepositoryImpl extends OpponentMatchRepository {
       return left(ResponseHelper.error(response));
     }
     try {
-      return right(
-        OpponentRequestModel.fromJson(_unwrapRequest(response.getValue())),
-      );
+      final Map<String, dynamic> row = _unwrapRequest(response.getValue());
+      // The endpoint creates an invitation, so its 201 may echo the invitation
+      // rather than the whole request. An invitation row cannot build a card,
+      // so read the request back instead of showing a half-empty one.
+      if (_isRequestRow(row)) {
+        return right(
+          OpponentRequestModel.fromJson(<String, dynamic>{
+            ...row,
+            'id': row['id'] ?? request.requestId,
+          }),
+        );
+      }
+      return _refetchAfterAccept(request.requestId);
     } catch (_) {
       return left(_error('Could not parse the accepted request from server.'));
     }
+  }
+
+  /// True when [row] is the request itself rather than the created invitation.
+  /// An invitation row carries no schedule or venue of its own, which is what
+  /// the cards and the details screen are built from.
+  bool _isRequestRow(Map<String, dynamic> row) {
+    if (row.isEmpty) return false;
+    const List<String> requestOnlyKeys = <String>[
+      'venue',
+      'match',
+      'cost',
+      'pricing',
+      'preferred_date',
+      'match_format',
+      'main_step',
+    ];
+    return requestOnlyKeys.any((String key) => row[key] != null);
+  }
+
+  /// Reads the request back after an accept whose response only echoed the
+  /// invitation. A failure here is not an accept failure: the acceptance did
+  /// land, so surface the server's own message and let the list refresh.
+  Future<Either<AppException, OpponentRequestModel>> _refetchAfterAccept(
+    String requestId,
+  ) async {
+    final response = await _requestDataSource.fetchRequest(requestId);
+    if (response.isError()) {
+      return left(ResponseHelper.error(response));
+    }
+    final Map<String, dynamic> row = _unwrapRequest(response.getValue());
+    if (row.isEmpty) {
+      return left(_error('Could not read the request after accepting.'));
+    }
+    return right(OpponentRequestModel.fromJson(row));
   }
 
   /// POST/DELETE then refresh the list — the server copy is the truth after
@@ -560,7 +676,12 @@ final class OpponentMatchRepositoryImpl extends OpponentMatchRepository {
       final AppException error = ResponseHelper.error(response);
       if (error.statusCode != 204) return left(error);
     }
-    return getRequests();
+    // Every list in the app is a tab of `/auth/opponent-requests`; the
+    // `need_opponent` slice is the one a mutation lands back on, and the bloc
+    // re-fetches whichever other tabs are already on screen.
+    return (await getRequestsByTab(
+      OpponentRequestTab.needOpponent,
+    )).map((OpponentRequestPageModel page) => page.items);
   }
 
   Map<String, dynamic> _unwrapRequest(dynamic payload) {

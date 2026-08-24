@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hamro_footsall/core/helper/exception_helper.dart';
+import 'package:hamro_footsall/core/utils/upload_attachment.dart';
 import 'package:hamro_footsall/features/message/data/model/chat_message_model.dart';
 import 'package:hamro_footsall/features/message/data/model/chat_message_page_model.dart';
 import 'package:hamro_footsall/features/message/data/model/chat_send_request.dart';
@@ -48,6 +49,48 @@ void main() {
 
       expect(bloc.state.messages.map((item) => item.id), [60]);
     });
+
+    test(
+      'failed attachment send retains the byte-backed retry input',
+      () async {
+        await _loadConversationAndChat(bloc);
+        final Completer<Either<AppException, ChatMessageModel>> response =
+            Completer<Either<AppException, ChatMessageModel>>();
+        repository.sendResponse = response;
+        final UploadAttachment attachment = UploadAttachment(
+          filename: 'proof.jpg',
+          bytes: Uint8List.fromList(<int>[7, 8, 9]),
+        );
+
+        bloc.add(
+          SendMessageEvent(
+            4,
+            ChatSendRequest(attachments: <UploadAttachment>[attachment]),
+          ),
+        );
+        await bloc.stream.firstWhere((state) => state.sending);
+        response.complete(
+          left(
+            NetworkException(
+              errorMessage: 'Connection interrupted. Retry the upload.',
+              statusCode: 0,
+            ),
+          ),
+        );
+        final state = await bloc.stream.firstWhere((state) => !state.sending);
+
+        expect(state.errorMessage, contains('Retry'));
+        expect(
+          repository.lastSendRequest?.attachments.single,
+          same(attachment),
+        );
+        expect(repository.lastSendRequest?.attachments.single.bytes, <int>[
+          7,
+          8,
+          9,
+        ]);
+      },
+    );
 
     test('applies duplicate incoming delivery and unread count once', () async {
       await _loadConversations(bloc);
@@ -142,6 +185,21 @@ void main() {
       );
       expect(state.conversations, isEmpty);
     });
+
+    test('leaves a group and removes it from the active inbox', () async {
+      await _loadConversationAndChat(bloc);
+
+      bloc.add(const LeaveGroupConversationEvent(4));
+      final state = await bloc.stream.firstWhere(
+        (state) => state.leftConversationId == 4,
+      );
+
+      expect(repository.leaveCalls, [4]);
+      expect(state.actionBusy, isFalse);
+      expect(state.actionMessage, 'You left the group.');
+      expect(state.conversations.where((item) => item.id == 4), isEmpty);
+      expect(state.activeConversationId, isNull);
+    });
   });
 }
 
@@ -179,6 +237,7 @@ ChatMessageModel _message({required int id, required int senderId}) =>
 
 final class _FakeMessageRepository implements MessageRepository {
   Completer<Either<AppException, ChatMessageModel>>? sendResponse;
+  ChatSendRequest? lastSendRequest;
   final List<int> markReadCalls = <int>[];
   int? lastConversationsPerPage;
 
@@ -228,7 +287,10 @@ final class _FakeMessageRepository implements MessageRepository {
   Future<Either<AppException, ChatMessageModel>> sendMessage(
     int conversationId, {
     required ChatSendRequest request,
-  }) => sendResponse!.future;
+  }) {
+    lastSendRequest = request;
+    return sendResponse!.future;
+  }
 
   @override
   Future<Either<AppException, ConversationModel>> createGroupConversation({
@@ -335,6 +397,25 @@ final class _FakeMessageRepository implements MessageRepository {
   @override
   Future<Either<AppException, bool>> setMuted(int conversationId, bool muted) =>
       Future.value(right(true));
+
+  @override
+  Future<Either<AppException, ConversationModel?>> updateConversationTitle(
+    int conversationId,
+    String title,
+  ) {
+    titleCalls.add(MapEntry<int, String>(conversationId, title));
+    return Future.value(right(null));
+  }
+
+  final List<MapEntry<int, String>> titleCalls = <MapEntry<int, String>>[];
+
+  @override
+  Future<Either<AppException, bool>> leaveConversation(int conversationId) {
+    leaveCalls.add(conversationId);
+    return Future.value(right(true));
+  }
+
+  final List<int> leaveCalls = <int>[];
 }
 
 final class _FakeChatSocketService implements ChatSocketService {

@@ -19,6 +19,7 @@ const Size _desktopWindow = Size(1440, 900);
 Future<void> _pumpAt(
   WidgetTester tester,
   Size size, {
+
   /// The form is read-only until Edit is tapped, so anything asserting on the
   /// inputs or the save action has to unlock it first.
   bool editing = false,

@@ -10,6 +10,7 @@ import 'package:hamro_footsall/features/futsal_details/data/model/recurring_avai
 import 'package:hamro_footsall/features/futsal_details/data/model/time_slot_model.dart';
 import 'package:hamro_footsall/features/futsal_details/data/model/venue_amenities_facilities_model.dart';
 import 'package:hamro_footsall/features/futsal_details/data/model/venue_description_model.dart';
+import 'package:hamro_footsall/features/futsal_details/data/model/venue_review_model.dart';
 
 abstract class FutsalDetailsRepository {
   Future<Either<AppException, HostedByModel>> getHostedBy({
@@ -17,6 +18,13 @@ abstract class FutsalDetailsRepository {
   });
   Future<Either<AppException, VenueDescriptionModel>> getVenueDescription({
     required int venueId,
+  });
+
+  /// One page of `/venues/{venue_id}/reviews`.
+  Future<Either<AppException, VenueReviewPageModel>> getVenueReviews({
+    required int venueId,
+    int page,
+    int perPage,
   });
   Future<Either<AppException, VenueAmenitiesFacilitiesModel>>
   getVenueAmenitiesFacilities({required int venueId});

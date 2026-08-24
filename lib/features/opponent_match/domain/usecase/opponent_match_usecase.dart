@@ -1,9 +1,11 @@
 import 'package:dartz/dartz.dart';
 import 'package:hamro_footsall/core/helper/exception_helper.dart';
 import 'package:hamro_footsall/features/opponent_match/data/model/accept_opponent_request_request.dart';
+import 'package:hamro_footsall/features/opponent_match/data/model/opponent_match_details_model.dart';
 import 'package:hamro_footsall/features/opponent_match/data/model/opponent_match_model.dart';
 import 'package:hamro_footsall/features/opponent_match/data/model/opponent_match_step_request.dart';
 import 'package:hamro_footsall/features/opponent_match/domain/entities/opponent_match_entities.dart';
+import 'package:hamro_footsall/features/opponent_match/data/model/opponent_request_page_model.dart';
 import 'package:hamro_footsall/features/opponent_match/data/model/opponent_request_tab.dart';
 import 'package:hamro_footsall/features/opponent_match/domain/repository/opponent_match_repository.dart';
 
@@ -26,9 +28,6 @@ final class OpponentMatchUseCase {
 
   Future<Either<AppException, List<String>>> getVenues() async =>
       await repository.getVenues();
-
-  Future<Either<AppException, List<OpponentRequestModel>>>
-  getRequests() async => await repository.getRequests();
 
   Future<Either<AppException, List<TeamModel>>> createTeam(String name) async =>
       await repository.createTeam(name);
@@ -62,9 +61,15 @@ final class OpponentMatchUseCase {
     String? requestId,
   }) async => await repository.saveMatchStep(data, requestId: requestId);
 
-  Future<Either<AppException, List<OpponentRequestModel>>> getRequestsByTab(
-    OpponentRequestTab tab,
-  ) => repository.getRequestsByTab(tab);
+  Future<Either<AppException, OpponentMatchDetailsModel>> getMatchDetails(
+    String id,
+  ) async => await repository.getMatchDetails(id);
+
+  Future<Either<AppException, OpponentRequestPageModel>> getRequestsByTab(
+    OpponentRequestTab tab, {
+    int page = 1,
+    int perPage = 15,
+  }) => repository.getRequestsByTab(tab, page: page, perPage: perPage);
 
   Future<Either<AppException, List<OpponentRequestModel>>> getMyRequests() =>
       repository.getMyRequests();
@@ -100,12 +105,17 @@ final class OpponentMatchUseCase {
 
   Future<Either<AppException, List<OpponentRequestModel>>> selectOpponent(
     String id,
-  ) async => await repository.selectOpponent(id);
+    String invitationId,
+  ) async => await repository.selectOpponent(id, invitationId);
 
   Future<Either<AppException, List<OpponentRequestModel>>> rejectInvitation(
     String id,
     String reason,
   ) async => await repository.rejectInvitation(id, reason);
+
+  Future<Either<AppException, List<OpponentInvitationModel>>> getInvitations(
+    String requestId,
+  ) async => await repository.getInvitations(requestId);
 
   Future<Either<AppException, OpponentRequestModel>> acceptRequest(
     AcceptOpponentRequestRequest request,

@@ -323,6 +323,31 @@ final class MessageRepositoryImpl extends MessageRepository {
       _action(_remoteDataSource.setMuted(conversationId, muted));
 
   @override
+  Future<Either<AppException, ConversationModel?>> updateConversationTitle(
+    int conversationId,
+    String title,
+  ) async {
+    final response = await _remoteDataSource.updateConversationTitle(
+      conversationId,
+      title,
+    );
+    if (response.isError()) return left(ResponseHelper.error(response));
+    // The rename has already happened by here, so a body this method cannot
+    // read is not a failure: the caller patches the title it just sent.
+    final Map<String, dynamic>? row = _findObject(response.getValue());
+    if (row == null) return right(null);
+    try {
+      return right(ConversationModel.fromJson(row));
+    } catch (_) {
+      return right(null);
+    }
+  }
+
+  @override
+  Future<Either<AppException, bool>> leaveConversation(int conversationId) =>
+      _action(_remoteDataSource.leaveConversation(conversationId));
+
+  @override
   Future<Either<AppException, bool>> setParticipantBlocked(
     int conversationId,
     int userId,

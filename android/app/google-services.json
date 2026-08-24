@@ -22,6 +22,14 @@
           }
         },
         {
+          "client_id": "900384285987-pskfkcp3busb3is8jugk2bpigkppsbkt.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.np.hamrofutsal",
+            "certificate_hash": "63698138c1e46ac3ec4d8deed65a035b8cde33c1"
+          }
+        },
+        {
           "client_id": "900384285987-0cobn46p7c22ha5c37tle6i3vs4u4orr.apps.googleusercontent.com",
           "client_type": 3
         }

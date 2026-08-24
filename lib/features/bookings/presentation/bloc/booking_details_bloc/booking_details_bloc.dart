@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:hamro_footsall/features/bookings/data/model/booking_model.dart';
+import 'package:hamro_footsall/features/bookings/data/model/booking_review_model.dart';
 import 'package:hamro_footsall/features/bookings/domain/usecase/get_bookings_use_case.dart';
 
 part 'booking_details_event.dart';
@@ -21,6 +22,8 @@ class BookingDetailsBloc
     on<RejectPaymentEvent>(_onRejectPayment);
     on<AcceptBookingEvent>(_onAcceptBooking);
     on<RejectBookingEvent>(_onRejectBooking);
+    on<CheckBookingReviewEvent>(_onCheckReview);
+    on<SubmitBookingReviewEvent>(_onSubmitReview);
   }
 
   final GetBookingsUseCase _useCase;
@@ -69,6 +72,12 @@ class BookingDetailsBloc
     // automatic API call) entirely in the futsal owner view.
     if (result.isRight() && !isFutsalView) {
       await _resolveCancelBoundary(event.bookingId, emit);
+      // Reviews only exist for a played booking, and only the customer who
+      // booked it can leave one — so this is asked in the same two conditions
+      // as the cancel boundary, plus a completed status.
+      if (state.booking.status == BookingStatus.completed) {
+        await _resolveReview(event.bookingId, emit);
+      }
     }
   }
 
@@ -83,6 +92,89 @@ class BookingDetailsBloc
     result.fold(
       (_) => emit(state.copyWith(canCancel: false)),
       (canCancel) => emit(state.copyWith(canCancel: canCancel)),
+    );
+  }
+
+  FutureOr<void> _onCheckReview(
+    CheckBookingReviewEvent event,
+    Emitter<BookingDetailsState> emit,
+  ) async => await _resolveReview(event.bookingId, emit);
+
+  /// Resolves whether a review exists. A failure leaves the status at
+  /// [BookingReviewStatus.failure] rather than [BookingReviewStatus.none]:
+  /// offering the form on a failed check invites a duplicate submission the
+  /// server would then reject.
+  Future<void> _resolveReview(
+    int bookingId,
+    Emitter<BookingDetailsState> emit,
+  ) async {
+    emit(
+      state.copyWith(
+        reviewStatus: BookingReviewStatus.checking,
+        clearReviewError: true,
+      ),
+    );
+    final result = await _useCase.getBookingReview(bookingId);
+    result.fold(
+      (error) => emit(
+        state.copyWith(
+          reviewStatus: BookingReviewStatus.failure,
+          reviewError: error.errorMessage,
+        ),
+      ),
+      (review) => emit(
+        state.copyWith(
+          reviewStatus: review == null
+              ? BookingReviewStatus.none
+              : BookingReviewStatus.reviewed,
+          review: review,
+          clearReviewError: true,
+        ),
+      ),
+    );
+  }
+
+  FutureOr<void> _onSubmitReview(
+    SubmitBookingReviewEvent event,
+    Emitter<BookingDetailsState> emit,
+  ) async {
+    if (state.isSubmittingReview) return;
+    emit(
+      state.copyWith(
+        reviewStatus: BookingReviewStatus.submitting,
+        clearReviewError: true,
+      ),
+    );
+
+    final result = await _useCase.submitBookingReview(
+      bookingId: event.bookingId,
+      rating: event.rating,
+      review: event.review,
+    );
+    result.fold(
+      (error) {
+        // A duplicate-review rejection means the server already holds one, so
+        // the form closes rather than inviting a retry that cannot succeed.
+        final String message = error.errorMessage.toLowerCase();
+        final bool alreadyReviewed =
+            error.statusCode == 409 ||
+            (error.statusCode == 422 && message.contains('already'));
+        emit(
+          state.copyWith(
+            reviewStatus: alreadyReviewed
+                ? BookingReviewStatus.reviewed
+                : BookingReviewStatus.none,
+            reviewError: error.errorMessage,
+          ),
+        );
+      },
+      (review) => emit(
+        state.copyWith(
+          reviewStatus: BookingReviewStatus.reviewed,
+          review: review,
+          clearReviewError: true,
+        ),
+      ),
     );
   }
 

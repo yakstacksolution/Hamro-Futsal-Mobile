@@ -14,6 +14,8 @@ jobs:
   build:
     name: Build AAB and release to Google Play
     runs-on: ubuntu-latest
+    env:
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
     permissions:
       actions: write
       contents: read
@@ -59,11 +61,27 @@ jobs:
 
       - name: 🔐 Decode keystore
         run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > "$GITHUB_WORKSPACE/android/hamro-futsal-release-key.keystore"
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > "$GITHUB_WORKSPACE/android/upload-keystore.jks"
 
       - name: 🔐 Decode keystore properties
         run: |
           echo "${{ secrets.KEYSTORE_PROPERTIES_BASE64 }}" | base64 --decode > "$GITHUB_WORKSPACE/android/keystore.properties"
+
+      - name: ✅ Validate Android signing files
+        run: |
+          set -euo pipefail
+          test -s "$GITHUB_WORKSPACE/android/upload-keystore.jks" || {
+            echo "::error::KEYSTORE_BASE64 did not produce android/upload-keystore.jks."
+            exit 1
+          }
+          test -s "$GITHUB_WORKSPACE/android/keystore.properties" || {
+            echo "::error::KEYSTORE_PROPERTIES_BASE64 did not produce android/keystore.properties."
+            exit 1
+          }
+          grep -q '^storeFile=upload-keystore.jks$' "$GITHUB_WORKSPACE/android/keystore.properties" || {
+            echo "::error::android/keystore.properties must contain storeFile=upload-keystore.jks to match the decoded keystore."
+            exit 1
+          }
 
       - name: 🧪 Run tests
         run: flutter test
@@ -78,7 +96,7 @@ jobs:
       - name: 🧹 Delete old AAB artifacts
         uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.CICD_TOKEN }}
+          github-token: ${{ github.token }}
           script: |
             const artifacts = await github.rest.actions.listArtifactsForRepo({
               owner: context.repo.owner,
@@ -102,19 +120,17 @@ jobs:
           retention-days: 30
 
       - name: 🚀 Deploy to Google Play
-        uses: r0adkll/upload-google-play@v1.1.3
+        uses: r0adkll/upload-google-play@v1.1.5
         with:
           serviceAccountJson: /tmp/google_play_key.json
           packageName: com.np.hamrofutsal
           releaseFiles: build/app/outputs/bundle/release/app-release.aab
-          track: production
+          tracks: production
           status: completed
           changesNotSentForReview: false
 
       - name: 💬 Notify Slack — success
         if: success() && env.SLACK_WEBHOOK_URL != ''
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
           curl -X POST -H 'Content-type: application/json' --data '{
             "text": "🎉 Hamro Futsal Android production release succeeded — AAB uploaded to Google Play.",
@@ -131,8 +147,6 @@ jobs:
 
       - name: 💬 Notify Slack — failure
         if: failure() && env.SLACK_WEBHOOK_URL != ''
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
           curl -X POST -H 'Content-type: application/json' --data '{
             "text": "⚠️ Hamro Futsal Android production release FAILED.",

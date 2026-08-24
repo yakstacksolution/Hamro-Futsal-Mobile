@@ -339,6 +339,7 @@ class _FeaturesGridState extends State<_FeaturesGrid> {
             if (iconUrl != null)
               CustomImageView(
                 url: iconUrl,
+                color: LightColor.monoIconColor,
                 width: AppDimens.sizeX24,
                 height: AppDimens.sizeX24,
                 cacheWidth: AppDimens.sizeX48,

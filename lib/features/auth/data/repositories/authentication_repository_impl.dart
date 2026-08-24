@@ -1,4 +1,5 @@
 import 'package:dartz/dartz.dart';
+import 'package:hamro_footsall/core/api/client.dart';
 import 'package:hamro_footsall/core/helper/exception_helper.dart';
 import 'package:hamro_footsall/core/helper/response_helper.dart';
 import 'package:hamro_footsall/core/helper/share_preferences.dart';
@@ -180,6 +181,11 @@ final class AuthenticationRepositoryImpl extends AuthRepository {
 
   @override
   Future<Either<AppException, bool>>? logout() async {
+    // Report offline while the token is still valid — screens that own the
+    // presence lifecycle are disposed after the session is cleared, so their
+    // trailing offline call would otherwise 401.
+    await _markOffline();
+
     // With biometric login enabled, logout locks the local account instead of
     // revoking the encrypted session needed for the next biometric sign-in.
     // Disabling biometric login first performs a full server logout.
@@ -202,5 +208,14 @@ final class AuthenticationRepositoryImpl extends AuthRepository {
     AppSettings().logout();
     await ReverbConnection.instance.reset();
     return right(true);
+  }
+
+  /// Best-effort presence teardown; a failure here must not block logout.
+  Future<void> _markOffline() async {
+    try {
+      await Client.instance().getAuthManager().setPresence(false);
+    } catch (_) {
+      // Ignored: logout proceeds regardless of the presence result.
+    }
   }
 }

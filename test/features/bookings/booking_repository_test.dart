@@ -16,10 +16,16 @@ void main() {
       remoteDataSource: source,
     );
 
-    final result = await repository.getMyBookings(page: 1, perPage: 10);
+    final result = await repository.getMyBookings(
+      page: 1,
+      perPage: 10,
+      status: 'pending',
+    );
 
     expect(source.requestedMyPage, 1);
     expect(source.requestedMyPerPage, 10);
+    // The status filter belongs on the request, not on the rows that come back.
+    expect(source.requestedMyStatus, 'pending');
     result.fold((error) => fail(error.errorMessage), (page) {
       expect(page.items.single.id, 46);
       expect(page.perPage, 10);
@@ -59,10 +65,15 @@ void main() {
       remoteDataSource: source,
     );
 
-    final result = await repository.getFutsalBookings(page: 1, perPage: 10);
+    final result = await repository.getFutsalBookings(
+      page: 1,
+      perPage: 10,
+      status: 'completed',
+    );
 
     expect(source.requestedPage, 1);
     expect(source.requestedPerPage, 10);
+    expect(source.requestedStatus, 'completed');
     result.fold((error) => fail(error.errorMessage), (page) {
       expect(page.items.single.id, 46);
       expect(page.currentPage, 1);
@@ -186,6 +197,16 @@ Map<String, dynamic> _paginatedBookingResponse({
 };
 
 final class _FakeBookingRemoteDataSource implements BookingRemoteDataSource {
+  @override
+  Future<Result> getBookingReview(int bookingId) async =>
+      Result.success(<String, dynamic>{'data': null});
+
+  @override
+  Future<Result> submitBookingReview(
+    int bookingId,
+    Map<String, dynamic> data,
+  ) async => Result.success(<String, dynamic>{'data': data});
+
   _FakeBookingRemoteDataSource(this.detailResponse);
 
   final Result detailResponse;
@@ -203,6 +224,9 @@ final class _FakeBookingRemoteDataSource implements BookingRemoteDataSource {
   int? requestedMyPage;
   int? requestedMyPerPage;
 
+  String? requestedMyStatus;
+  String? requestedStatus;
+
   @override
   Future<Result> getBookingDetails(int bookingId) async {
     requestedBookingId = bookingId;
@@ -213,9 +237,11 @@ final class _FakeBookingRemoteDataSource implements BookingRemoteDataSource {
   Future<Result> getMyBookings({
     required int page,
     required int perPage,
+    String? status,
   }) async {
     requestedMyPage = page;
     requestedMyPerPage = perPage;
+    requestedMyStatus = status;
     return myBookingsResponse;
   }
 
@@ -223,9 +249,11 @@ final class _FakeBookingRemoteDataSource implements BookingRemoteDataSource {
   Future<Result> getFutsalBookings({
     required int page,
     required int perPage,
+    String? status,
   }) async {
     requestedPage = page;
     requestedPerPage = perPage;
+    requestedStatus = status;
     return futsalResponse;
   }
 
