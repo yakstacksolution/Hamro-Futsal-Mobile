@@ -232,12 +232,21 @@ final class StringConstants {
   static const String couldNotCancelBooking =
       'Could not cancel the booking. Please try again.';
   static const String cancelled = 'Cancelled';
+  static const String decline = 'Decline';
+  static const String groupInvitation = 'Group invitation';
+  static const String groupInvitationPrompt =
+      'You have been invited to join this group.';
+
   static const String categories = 'Categories';
   static const String cats = 'cats';
   static const String change = 'Change';
   static const String changeImage = 'Change image';
   static const String changePassword = 'Change Password';
   static const String changePhoto = 'Change photo';
+  static const String changeServicePlan = 'Change service plan?';
+  static const String changeServicePlanConfirmation =
+      'Do you want to change your service plan? Your commission rate will be '
+      'updated to the new plan.';
   static const String charge = 'Charge';
   static const String chargePerUnitPerHour = 'Charge per unit per hour';
   static const String chat = 'Chat';
@@ -1225,6 +1234,7 @@ final class StringConstants {
   static const String weekendOffer = 'Weekend offer';
   static const String weekendOfferNotification =
       'Book any morning slot this weekend and save 15%.';
+  static const String yesChange = 'Yes, change';
   static const String yesterday = 'Yesterday';
   static const String youHaveReadEveryNotification =
       'You have read every notification. Nice work!';

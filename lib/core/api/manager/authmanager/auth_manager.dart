@@ -362,6 +362,16 @@ class AuthManager extends ServiceManager {
     );
   }
 
+  Future<Result> respondToConversationInvitation(
+    int conversationId,
+    bool accept,
+  ) async {
+    return await _apiClient.respondToConversationInvitation(
+      conversationId: conversationId,
+      accept: accept,
+    );
+  }
+
   Future<Result> getConversationDetails(int conversationId) async {
     return await _apiClient.getConversationDetails(
       conversationId: conversationId,
@@ -466,7 +476,7 @@ class AuthManager extends ServiceManager {
   Future<Result> getVenueReviews(
     int venueId, {
     int page = 1,
-    int perPage = 10,
+    int perPage = 5,
   }) async {
     return await _apiClient.getVenueReviews(
       venueId: venueId,

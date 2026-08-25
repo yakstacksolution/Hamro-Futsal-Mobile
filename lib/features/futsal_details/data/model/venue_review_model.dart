@@ -11,6 +11,13 @@ double _asDouble(dynamic v) {
   return double.tryParse('${v ?? ''}'.trim()) ?? 0;
 }
 
+bool _asBool(dynamic v) {
+  if (v is bool) return v;
+  if (v is num) return v != 0;
+  final String value = '${v ?? ''}'.trim().toLowerCase();
+  return value == 'true' || value == '1' || value == 'yes';
+}
+
 String _asString(dynamic v) => (v ?? '').toString().trim();
 
 /// One review on `/venues/{venue_id}/reviews`.
@@ -20,19 +27,23 @@ String _asString(dynamic v) => (v ?? '').toString().trim();
 class VenueReviewModel extends Equatable {
   const VenueReviewModel({
     this.id = 0,
+    this.bookingId = 0,
     this.name = '',
     this.avatar = '',
     this.rating = 0,
     this.comment = '',
+    this.status = '',
     this.createdAt,
     this.rawDate = '',
   });
 
   final int id;
+  final int bookingId;
   final String name;
   final String avatar;
   final double rating;
   final String comment;
+  final String status;
 
   /// Parsed timestamp, when the server sent one this side could understand.
   final DateTime? createdAt;
@@ -74,6 +85,7 @@ class VenueReviewModel extends Equatable {
     );
     return VenueReviewModel(
       id: _asInt(json['id'] ?? json['review_id']),
+      bookingId: _asInt(json['booking_id']),
       name: _asString(
         user['name'] ??
             user['full_name'] ??
@@ -91,13 +103,22 @@ class VenueReviewModel extends Equatable {
       comment: _asString(
         json['comment'] ?? json['review'] ?? json['message'] ?? json['body'],
       ),
-      createdAt: DateTime.tryParse(rawDate)?.toLocal(),
+      status: _asString(json['status']),
+      createdAt: DateTime.tryParse(rawDate.replaceFirst(' ', 'T'))?.toLocal(),
       rawDate: rawDate,
     );
   }
 
   @override
-  List<Object?> get props => <Object?>[id, name, rating, comment, rawDate];
+  List<Object?> get props => <Object?>[
+    id,
+    bookingId,
+    name,
+    rating,
+    comment,
+    status,
+    rawDate,
+  ];
 }
 
 /// How the venue's ratings are distributed, 5 stars down to 1.
@@ -155,7 +176,7 @@ class VenueReviewPageModel extends Equatable {
     this.breakdown = const VenueRatingBreakdown(),
     this.currentPage = 1,
     this.lastPage = 1,
-    this.perPage = 10,
+    this.perPage = 5,
     this.total = 0,
     this.hasMorePages = false,
   });
@@ -230,7 +251,11 @@ class VenueReviewPageModel extends Equatable {
       data['pagination'] ?? data['meta'] ?? root['pagination'] ?? root['meta'],
     );
     final Map<String, dynamic> summary = _mapOf(
-      data['summary'] ?? data['rating_summary'] ?? root['summary'],
+      data['review_summary'] ??
+          data['summary'] ??
+          data['rating_summary'] ??
+          root['review_summary'] ??
+          root['summary'],
     );
 
     final int currentPage = pagination['current_page'] == null
@@ -248,7 +273,17 @@ class VenueReviewPageModel extends Equatable {
       summary['breakdown'] ??
           summary['distribution'] ??
           summary['rating_breakdown'] ??
+          summary['review_count'] ??
+          summary['review_counts'] ??
+          summary['rating_count'] ??
+          summary['rating_counts'] ??
+          summary['counts'] ??
+          data['review_count'] ??
+          data['review_counts'] ??
           data['breakdown'] ??
+          data['rating_breakdown'] ??
+          data['rating_count'] ??
+          data['rating_counts'] ??
           data['rating_distribution'],
     );
 
@@ -273,7 +308,7 @@ class VenueReviewPageModel extends Equatable {
           : _asInt(pagination['total']),
       hasMorePages: pagination['has_more_pages'] == null
           ? currentPage < lastPage
-          : pagination['has_more_pages'] == true,
+          : _asBool(pagination['has_more_pages']),
     );
   }
 

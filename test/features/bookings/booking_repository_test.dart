@@ -83,6 +83,52 @@ void main() {
     });
   });
 
+  test(
+    'parses an empty futsal bookings page as a completed empty result',
+    () async {
+      final _FakeBookingRemoteDataSource source =
+          _FakeBookingRemoteDataSource(
+              Result<dynamic, dynamic>.success(<String, dynamic>{}),
+            )
+            ..futsalResponse = Result<dynamic, dynamic>.success(
+              <String, dynamic>{
+                'status': 'success',
+                'message': 'Futsal bookings fetched successfully.',
+                'data': <String, dynamic>{
+                  'items': <Map<String, dynamic>>[],
+                  'pagination': <String, dynamic>{
+                    'current_page': 1,
+                    'last_page': 1,
+                    'per_page': 10,
+                    'total': 0,
+                    'from': null,
+                    'to': null,
+                    'has_more_pages': false,
+                  },
+                },
+              },
+            );
+      final BookingRepositoryImpl repository = BookingRepositoryImpl(
+        remoteDataSource: source,
+      );
+
+      final result = await repository.getFutsalBookings(
+        page: 1,
+        perPage: 10,
+        status: 'completed',
+      );
+
+      result.fold((error) => fail(error.errorMessage), (page) {
+        expect(page.items, isEmpty);
+        expect(page.currentPage, 1);
+        expect(page.lastPage, 1);
+        expect(page.perPage, 10);
+        expect(page.total, 0);
+        expect(page.hasMorePages, isFalse);
+      });
+    },
+  );
+
   test('parses a booking detail response from data.booking', () async {
     final _FakeBookingRemoteDataSource source = _FakeBookingRemoteDataSource(
       Result<dynamic, dynamic>.success(<String, dynamic>{

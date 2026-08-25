@@ -44,7 +44,7 @@ final class FutsalDetailsRemoteDataSourceImpl
   Future<Result> getVenueReviews({
     required int venueId,
     int page = 1,
-    int perPage = 10,
+    int perPage = 5,
   }) async => await Client.instance().getAuthManager().getVenueReviews(
     venueId,
     page: page,

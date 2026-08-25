@@ -375,6 +375,19 @@ class ApiClient {
     return _post(url: '$_baseUrl/conversations/$conversationId/leave');
   }
 
+  /// Answering a group invitation. `accept` joins the conversation; the
+  /// decline endpoint drops the user from it.
+  Future<Result> respondToConversationInvitation({
+    required int conversationId,
+    required bool accept,
+  }) {
+    return _post(
+      url:
+          '$_baseUrl/conversations/$conversationId/'
+          '${accept ? 'accept' : 'decline'}',
+    );
+  }
+
   Future<Result> getConversationDetails({required int conversationId}) {
     return _get(url: '$_baseUrl/conversations/$conversationId');
   }
@@ -490,7 +503,7 @@ class ApiClient {
   Future<Result> getVenueReviews({
     required int venueId,
     int page = 1,
-    int perPage = 10,
+    int perPage = 5,
   }) {
     return _get(
       url: '$_baseUrl/venues/$venueId/reviews',
@@ -883,7 +896,7 @@ class ApiClient {
     required String requestId,
     required Map<String, dynamic> data,
   }) {
-    return _patch(
+    return _put(
       url: '$_baseUrl/auth/opponent-requests/$requestId/match',
       data: data,
     );

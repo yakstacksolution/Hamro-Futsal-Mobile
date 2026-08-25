@@ -14,7 +14,7 @@ part 'venue_reviews_state.dart';
 ///
 /// The same bloc serves both surfaces: the details page asks for a short
 /// preview ([kVenueReviewsPreviewSize]) and the full-list page asks for
-/// [kVenueReviewsPageSize] at a time, appending as the vendor scrolls.
+/// [kVenueReviewsPageSize] at a time, appending as the user scrolls.
 class VenueReviewsBloc extends Bloc<VenueReviewsEvent, VenueReviewsState> {
   VenueReviewsBloc(this._getVenueReviewsUseCase)
     : super(const VenueReviewsState()) {

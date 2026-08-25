@@ -12,9 +12,9 @@ import 'package:hamro_footsall/features/futsal_details/data/repositories/futsal_
 import 'package:hamro_footsall/features/futsal_details/domain/usecase/get_venue_reviews_use_case.dart';
 import 'package:hamro_footsall/features/futsal_details/presentation/bloc/venue_reviews/venue_reviews_bloc.dart';
 
-/// Every review for a venue, [kVenueReviewsPageSize] at a time.
+/// Every review for a venue, five from the API at a time.
 ///
-/// Reached from "See all" on the details page, which only ever shows the first
+/// Reached from "View all" on the details page, which only ever shows the first
 /// [kVenueReviewsPreviewSize]. This page owns its own bloc: the preview's
 /// instance holds a different page size, and sharing it would make the two
 /// surfaces fight over the same list.

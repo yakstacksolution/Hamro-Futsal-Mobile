@@ -348,6 +348,14 @@ final class MessageRepositoryImpl extends MessageRepository {
       _action(_remoteDataSource.leaveConversation(conversationId));
 
   @override
+  Future<Either<AppException, bool>> respondToConversationInvitation(
+    int conversationId,
+    bool accept,
+  ) => _action(
+    _remoteDataSource.respondToConversationInvitation(conversationId, accept),
+  );
+
+  @override
   Future<Either<AppException, bool>> setParticipantBlocked(
     int conversationId,
     int userId,

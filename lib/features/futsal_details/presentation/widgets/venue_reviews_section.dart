@@ -53,7 +53,7 @@ class VenueReviewsSection extends StatelessWidget {
         final List<VenueReviewModel> preview = state.reviews
             .take(kVenueReviewsPreviewSize)
             .toList();
-        final bool hasMore = count > preview.length;
+        final bool hasReviews = count > 0 || preview.isNotEmpty;
 
         return Padding(
           padding: const EdgeInsets.only(
@@ -76,7 +76,7 @@ class VenueReviewsSection extends StatelessWidget {
                           ),
                     ),
                   ),
-                  if (hasMore)
+                  if (hasReviews)
                     _SeeAllButton(count: count, onTap: () => _openAll(context)),
                 ],
               ),
@@ -126,7 +126,7 @@ class _SeeAllButton extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
               Text(
-                'See All ($count)',
+                count > 0 ? 'View all ($count)' : 'View all',
                 style: FutsalTheme.getTextTheme(context).bodySubTitle?.copyWith(
                   color: LightColor.onBrandSurface,
                   fontWeight: FontWeight.w700,

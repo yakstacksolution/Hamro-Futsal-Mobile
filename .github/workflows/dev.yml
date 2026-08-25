@@ -100,6 +100,12 @@ jobs:
           echo "Service account: $(jq -r '.client_email' "$CRED_FILE")"
           echo "Project:         $(jq -r '.project_id' "$CRED_FILE")"
 
+          # A mismatched app ID is the most common cause of an opaque 403/404 from
+          # the distribute call, so fail here where the message can say why.
+          if ! printf '%s' "$FIREBASE_ANDROID_APP_ID" | grep -Eq '^1:[0-9]+:android:[0-9a-f]+$'; then
+            echo "::error::FIREBASE_ANDROID_APP_ID ('$FIREBASE_ANDROID_APP_ID') is not an Android app ID. Expected 1:PROJECT_NUMBER:android:HASH — copy it from Firebase console → Project settings → Your apps."
+            exit 1
+          fi
           APP_PROJECT_NUMBER="$(printf '%s' "$FIREBASE_ANDROID_APP_ID" | cut -d: -f2)"
           echo "App ID project number: $APP_PROJECT_NUMBER"
 
@@ -204,17 +210,52 @@ jobs:
           path: build/app/outputs/flutter-apk/app-release.apk
           retention-days: 7
 
+      # Uses the Firebase CLI directly instead of a wrapper action: the wrapper
+      # collapses every credential, API-enablement and IAM failure into a bare
+      # "have you run firebase login?", which is unactionable in CI.
       - name: 🚀 Deploy to Firebase App Distribution
-        uses: wzieba/Firebase-Distribution-Github-Action@v1
-        with:
-          appId: ${{ secrets.FIREBASE_ANDROID_APP_ID }}
-          serviceCredentialsFile: firebase_credentials.json
-          groups: testers
-          releaseNotes: |
-            Branch: ${{ github.ref_name }}
-            Commit: ${{ github.sha }}
-            ${{ github.event.head_commit.message }}
-          file: build/app/outputs/flutter-apk/app-release.apk
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ github.workspace }}/firebase_credentials.json
+          FIREBASE_ANDROID_APP_ID: ${{ secrets.FIREBASE_ANDROID_APP_ID }}
+          FIREBASE_TESTER_GROUPS: ${{ vars.FIREBASE_TESTER_GROUPS || 'testers' }}
+          HEAD_COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          set -euo pipefail
+
+          APK="build/app/outputs/flutter-apk/app-release.apk"
+          test -s "$APK" || { echo "::error::$APK is missing or empty."; exit 1; }
+          echo "APK: $APK ($(du -h "$APK" | cut -f1))"
+
+          npm install --global firebase-tools@latest
+          firebase --version
+
+          NOTES_FILE="$RUNNER_TEMP/release-notes.txt"
+          {
+            echo "Branch: ${{ github.ref_name }}"
+            echo "Commit: ${{ github.sha }}"
+            printf '%s\n' "$HEAD_COMMIT_MESSAGE"
+          } > "$NOTES_FILE"
+
+          PROJECT_ID="$(jq -r '.project_id' "$GOOGLE_APPLICATION_CREDENTIALS")"
+
+          set +e
+          firebase appdistribution:distribute "$APK" \
+            --app "$FIREBASE_ANDROID_APP_ID" \
+            --project "$PROJECT_ID" \
+            --groups "$FIREBASE_TESTER_GROUPS" \
+            --release-notes-file "$NOTES_FILE" \
+            --debug
+          STATUS=$?
+          set -e
+
+          if [ "$STATUS" -ne 0 ]; then
+            echo "::error::Firebase App Distribution upload failed (exit $STATUS). Checklist:"
+            echo "::error::1. Enable the Firebase App Distribution API (firebaseappdistribution.googleapis.com) on project $PROJECT_ID."
+            echo "::error::2. Grant the service account $(jq -r '.client_email' "$GOOGLE_APPLICATION_CREDENTIALS") the 'Firebase App Distribution Admin' role."
+            echo "::error::3. Confirm FIREBASE_ANDROID_APP_ID belongs to project $PROJECT_ID (format 1:NUMBER:android:HASH)."
+            echo "::error::4. Confirm the tester group alias '$FIREBASE_TESTER_GROUPS' exists in the Firebase console (aliases are case-sensitive)."
+            exit "$STATUS"
+          fi
 
       - name: 💬 Notify Slack — success
         if: success() && env.SLACK_WEBHOOK_URL != ''

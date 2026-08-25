@@ -66,7 +66,7 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
 
     _court = widget.court ?? _fromPublicVenue(widget.publicVenue!);
 
-    final int? venueId = widget.publicVenue?.id;
+    final int? venueId = _court.venueId ?? widget.publicVenue?.id;
     if (venueId != null) {
       final FutsalDetailsRepositoryImpl repository =
           FutsalDetailsRepositoryImpl();
@@ -78,8 +78,8 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
       _venueAmenitiesFacilitiesBloc = VenueAmenitiesFacilitiesBloc(
         GetVenueAmenitiesFacilitiesUseCase(repository),
       )..add(FetchVenueAmenitiesFacilitiesEvent(venueId: venueId));
-      // Only the preview is fetched here. "See all" opens its own page with
-      // its own bloc and a larger page size.
+      // Only the first page is fetched here. "View all" opens its own page and
+      // keeps requesting the same five-row API page size as the user scrolls.
       _venueReviewsBloc = VenueReviewsBloc(GetVenueReviewsUseCase(repository))
         ..add(
           FetchVenueReviewsEvent(
@@ -230,12 +230,15 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
     final HostedByBloc? bloc = _hostedByBloc;
 
     if (bloc == null) {
-      return CourtHostedBySection(
-        hostName: _court.hostedByName,
-        hostSince: _court.hostedSince,
-        hostedCourts: _court.hostedCourts,
-        responseRate: _court.responseRate,
-        rating: _court.rating,
+      return _withReviewSummary(
+        builder: (double rating, int reviewCount) => CourtHostedBySection(
+          hostName: _court.hostedByName,
+          hostSince: _court.hostedSince,
+          hostedCourts: _court.hostedCourts,
+          responseRate: _court.responseRate,
+          rating: rating,
+          reviewCount: reviewCount,
+        ),
       );
     }
 
@@ -254,22 +257,49 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
               return const SizedBox.shrink();
             }
             final int? hostUserId = hostedBy.id;
-            return CourtHostedBySection(
-              hostName: hostedBy.name ?? '',
-              hostSince: hostedBy.hostingSince ?? '-',
-              avatarUrl: hostedBy.image,
-              hostedCourts: hostedBy.courtCount ?? 0,
-              hostedVenues: hostedBy.venueCount ?? 0,
-              rating: hostedBy.rating ?? 0,
-              onMessage: hostUserId == null
-                  ? null
-                  : () => ChatLauncher.startDirect(
-                      context,
-                      vendorId: hostUserId,
-                      venueId: widget.publicVenue?.id,
-                    ),
+            return _withReviewSummary(
+              builder: (double rating, int reviewCount) => CourtHostedBySection(
+                hostName: hostedBy.name ?? '',
+                hostSince: hostedBy.hostingSince ?? '-',
+                avatarUrl: hostedBy.image,
+                hostedCourts: hostedBy.courtCount ?? 0,
+                hostedVenues: hostedBy.venueCount ?? 0,
+                rating: rating,
+                reviewCount: reviewCount,
+                onMessage: hostUserId == null
+                    ? null
+                    : () => ChatLauncher.startDirect(
+                        context,
+                        vendorId: hostUserId,
+                        venueId: widget.publicVenue?.id,
+                      ),
+              ),
             );
         }
+      },
+    );
+  }
+
+  Widget _withReviewSummary({
+    required Widget Function(double rating, int reviewCount) builder,
+  }) {
+    final VenueReviewsBloc? bloc = _venueReviewsBloc;
+    if (bloc == null) return builder(_court.rating, _court.reviewCount);
+
+    return BlocBuilder<VenueReviewsBloc, VenueReviewsState>(
+      bloc: bloc,
+      buildWhen: (VenueReviewsState previous, VenueReviewsState current) =>
+          previous.page.averageRating != current.page.averageRating ||
+          previous.page.total != current.page.total ||
+          previous.reviews.length != current.reviews.length,
+      builder: (BuildContext context, VenueReviewsState state) {
+        final double rating = state.page.averageRating > 0
+            ? state.page.averageRating
+            : _court.rating;
+        final int reviewCount = state.totalCount > 0
+            ? state.totalCount
+            : _court.reviewCount;
+        return builder(rating, reviewCount);
       },
     );
   }
@@ -296,7 +326,7 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
 
   Widget _buildReviewsSection() {
     final VenueReviewsBloc? bloc = _venueReviewsBloc;
-    final int? venueId = widget.publicVenue?.id;
+    final int? venueId = _court.venueId ?? widget.publicVenue?.id;
     if (bloc == null || venueId == null) return const SizedBox.shrink();
     return BlocProvider<VenueReviewsBloc>.value(
       value: bloc,

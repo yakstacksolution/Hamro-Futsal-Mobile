@@ -11,7 +11,7 @@ final class GetVenueReviewsUseCase {
   Future<Either<AppException, VenueReviewPageModel>> call({
     required int venueId,
     int page = 1,
-    int perPage = 10,
+    int perPage = 5,
   }) async => await repository.getVenueReviews(
     venueId: venueId,
     page: page,

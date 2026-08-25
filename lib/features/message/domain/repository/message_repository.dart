@@ -69,6 +69,12 @@ abstract class MessageRepository {
 
   /// Leaves a group; true once the server has dropped the caller from it.
   Future<Either<AppException, bool>> leaveConversation(int conversationId);
+
+  /// Answers a group invitation: `accept: true` joins, `false` declines.
+  Future<Either<AppException, bool>> respondToConversationInvitation(
+    int conversationId,
+    bool accept,
+  );
   Future<Either<AppException, bool>> setParticipantBlocked(
     int conversationId,
     int userId,

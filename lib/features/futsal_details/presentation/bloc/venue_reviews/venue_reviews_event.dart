@@ -1,10 +1,11 @@
 part of 'venue_reviews_bloc.dart';
 
-/// Reviews shown inline on the venue details page before "See all".
+/// Reviews shown inline on the venue details page before "View all".
 const int kVenueReviewsPreviewSize = 5;
 
-/// Page size for the full reviews page.
-const int kVenueReviewsPageSize = 10;
+/// The venue reviews endpoint is consumed five rows at a time everywhere:
+/// `/venues/{id}/reviews?page=1&per_page=5`.
+const int kVenueReviewsPageSize = 5;
 
 sealed class VenueReviewsEvent extends Equatable {
   const VenueReviewsEvent();

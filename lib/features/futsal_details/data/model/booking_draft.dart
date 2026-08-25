@@ -27,6 +27,7 @@ class BookingDraft {
     this.bookingTotal,
     this.bookingId,
     this.manualBooking,
+    this.droppedSessionDates = const <DateTime>[],
   });
 
   final int? venueId;
@@ -96,6 +97,10 @@ class BookingDraft {
   /// Present only when a vendor is creating a walk-in booking.
   final ManualBookingDetails? manualBooking;
 
+  /// Dates the user chose to skip because the server reported them taken.
+  /// Kept for display; they are never sent in the create payload.
+  final List<DateTime> droppedSessionDates;
+
   /// Every session date as `yyyy-MM-dd`, for payloads that take the dates
   /// explicitly (`booking_dates`). Empty for a single-session booking.
   List<String> get apiSessionDates => isRecurring
@@ -111,6 +116,9 @@ class BookingDraft {
   int? get repeatWeeksPayload {
     if (!isRecurring) return null;
     if (recurringWeekdays.length > 1) return null;
+    // With dates skipped, the session count no longer equals the week span, so
+    // only the explicit `booking_dates` list describes the schedule.
+    if (droppedSessionDates.isNotEmpty) return null;
     return sessions;
   }
 
@@ -119,6 +127,39 @@ class BookingDraft {
     final String day = date.day.toString().padLeft(2, '0');
     return '${date.year.toString().padLeft(4, '0')}-$month-$day';
   }
+
+  /// A copy keeping only [dates] as sessions, remembering the rest in
+  /// [droppedSessionDates]. Used when the user continues a recurring booking
+  /// after dropping the dates the server reported as taken.
+  BookingDraft withSessionDates({
+    required List<DateTime> dates,
+    required List<DateTime> dropped,
+    required double subtotal,
+  }) => BookingDraft(
+    venueId: venueId,
+    courtId: courtId,
+    courtName: courtName,
+    courtImage: courtImage,
+    matchType: matchType,
+    courtType: courtType,
+    maxPlayers: maxPlayers,
+    selectedDate: dates.isEmpty ? selectedDate : dates.first,
+    selectedTime: selectedTime,
+    apiTime: apiTime,
+    apiEndTime: apiEndTime,
+    endTime: endTime,
+    isRecurring: isRecurring,
+    recurrenceLabel: recurrenceLabel,
+    recurringWeekdays: recurringWeekdays,
+    sessions: dates.length,
+    sessionDates: dates,
+    pricePerSession: pricePerSession,
+    subtotal: subtotal,
+    bookingTotal: bookingTotal,
+    bookingId: bookingId,
+    manualBooking: manualBooking,
+    droppedSessionDates: dropped,
+  );
 
   BookingDraft withManualBooking(ManualBookingDetails? details) => BookingDraft(
     venueId: venueId,
@@ -143,6 +184,7 @@ class BookingDraft {
     bookingTotal: bookingTotal,
     bookingId: bookingId,
     manualBooking: details,
+    droppedSessionDates: droppedSessionDates,
   );
 
   BookingDraft withCompletedBooking({required double total, int? id}) =>
@@ -169,5 +211,6 @@ class BookingDraft {
         bookingTotal: total,
         bookingId: id,
         manualBooking: manualBooking,
+        droppedSessionDates: droppedSessionDates,
       );
 }

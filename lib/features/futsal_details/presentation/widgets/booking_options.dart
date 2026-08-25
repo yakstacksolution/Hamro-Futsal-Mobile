@@ -6,6 +6,7 @@ import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/widgets/custom_bottom_sheet.dart';
 import 'package:hamro_footsall/features/futsal_details/data/model/booking_recurrence.dart';
+import 'package:hamro_footsall/features/futsal_details/data/model/recurring_availability_model.dart';
 import 'package:hamro_footsall/features/futsal_details/data/model/venue_court_item_model.dart';
 import 'package:hamro_footsall/core/utils/string_constants.dart';
 
@@ -68,6 +69,7 @@ class BookingTypeCard extends StatelessWidget {
     required this.selectedCourt,
     this.selectedTime,
     this.isCheckingAvailability = false,
+    this.availability,
   });
 
   final BookingMode mode;
@@ -89,6 +91,10 @@ class BookingTypeCard extends StatelessWidget {
   /// While the `/bookings/recurring-availability` call is in flight we show a
   /// spinner on the duration boxes (instead of a separate section below).
   final bool isCheckingAvailability;
+
+  /// Latest `/bookings/recurring-availability` result for this selection, when
+  /// one has been fetched. Drives the available / unavailable breakdown.
+  final RecurringAvailabilityModel? availability;
 
   @override
   Widget build(BuildContext context) {
@@ -258,13 +264,35 @@ class BookingTypeCard extends StatelessWidget {
                           ),
                           const SizedBox(width: AppDimens.sizeX6),
                           Expanded(
-                            child: Text(
-                              '${dates.length} sessions · ${_shortDate(dates.first)} → ${_shortDate(dates.last)}',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: textTheme.bodySubTitle?.copyWith(
-                                color: LightColor.secondaryColor,
-                              ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: <Widget>[
+                                Text(
+                                  '${dates.length} sessions · ${_shortDate(dates.first)} → ${_shortDate(dates.last)}',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: textTheme.bodySubTitle?.copyWith(
+                                    color: LightColor.secondaryColor,
+                                  ),
+                                ),
+                                if (availability != null &&
+                                    availability!.hasSessions) ...<Widget>[
+                                  const SizedBox(height: AppDimens.sizeX2),
+                                  Text(
+                                    availability!.hasUnavailableDates
+                                        ? '${availability!.availableCount} available · ${availability!.unavailableCount} unavailable'
+                                        : 'All ${availability!.totalCount} dates available',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: textTheme.bodyMiniSubTitle?.copyWith(
+                                      color: availability!.hasUnavailableDates
+                                          ? LightColor.redColor
+                                          : LightColor.hintTextColor,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ],
                             ),
                           ),
                           const SizedBox(width: AppDimens.sizeX8),
@@ -288,6 +316,7 @@ class BookingTypeCard extends StatelessWidget {
                                   court: selectedCourt,
                                   dates: dates,
                                   selectedTime: selectedTime!,
+                                  availability: availability,
                                 ),
                               );
                             },
@@ -462,16 +491,34 @@ class _RecurringPriceSheet extends StatelessWidget {
     required this.court,
     required this.dates,
     required this.selectedTime,
+    this.availability,
   });
 
   final VenueCourtItemModel court;
   final List<DateTime> dates;
   final String selectedTime;
+  final RecurringAvailabilityModel? availability;
+
+  bool _isAvailable(DateTime date) {
+    final RecurringAvailabilityModel? model = availability;
+    if (model == null || !model.hasSessions) return true;
+    return !model.unavailableDateKeys.contains(_apiDate(date));
+  }
 
   @override
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
-    final double total = dates.fold<double>(
+    final bool knowsAvailability =
+        availability != null && availability!.hasSessions;
+    final List<DateTime> availableDates = dates
+        .where(_isAvailable)
+        .toList(growable: false);
+    final List<DateTime> unavailableDates = dates
+        .where((DateTime date) => !_isAvailable(date))
+        .toList(growable: false);
+
+    // Only the dates that can actually be booked are charged.
+    final double total = availableDates.fold<double>(
       0,
       (double sum, DateTime date) => sum + court.priceFor(date, selectedTime),
     );
@@ -527,6 +574,13 @@ class _RecurringPriceSheet extends StatelessWidget {
               ),
             ],
           ),
+          if (knowsAvailability) ...<Widget>[
+            const SizedBox(height: AppDimens.sizeX12),
+            _AvailabilityBanner(
+              availableCount: availableDates.length,
+              unavailableCount: unavailableDates.length,
+            ),
+          ],
           const SizedBox(height: AppDimens.sizeX14),
           Flexible(
             child: ListView.separated(
@@ -538,6 +592,7 @@ class _RecurringPriceSheet extends StatelessWidget {
               itemBuilder: (BuildContext context, int index) {
                 final DateTime date = dates[index];
                 final double price = court.priceFor(date, selectedTime);
+                final bool ok = _isAvailable(date);
 
                 return Container(
                   width: double.infinity,
@@ -546,8 +601,15 @@ class _RecurringPriceSheet extends StatelessWidget {
                     vertical: AppDimens.paddingX10,
                   ),
                   decoration: BoxDecoration(
-                    color: LightColor.inputFillColor,
+                    color: ok
+                        ? LightColor.inputFillColor
+                        : LightColor.redColor.withValues(alpha: 0.06),
                     borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+                    border: ok
+                        ? null
+                        : Border.all(
+                            color: LightColor.redColor.withValues(alpha: 0.35),
+                          ),
                   ),
                   // Date on the left, price pushed to the right edge, so the
                   // prices form a readable column down the sheet instead of
@@ -565,17 +627,48 @@ class _RecurringPriceSheet extends StatelessWidget {
                               style: textTheme.bodySubTitle?.copyWith(
                                 color: LightColor.primaryTextColor,
                                 fontWeight: FontWeight.w700,
+                                decoration: ok
+                                    ? null
+                                    : TextDecoration.lineThrough,
                               ),
                             ),
                             const SizedBox(height: AppDimens.sizeX2),
-                            Text(
-                              selectedTime,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: textTheme.bodyMiniSubTitle?.copyWith(
-                                color: LightColor.hintTextColor,
-                                fontWeight: FontWeight.w600,
-                              ),
+                            Row(
+                              children: <Widget>[
+                                Flexible(
+                                  child: Text(
+                                    selectedTime,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: textTheme.bodyMiniSubTitle?.copyWith(
+                                      color: LightColor.hintTextColor,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                                if (knowsAvailability) ...<Widget>[
+                                  const SizedBox(width: AppDimens.sizeX6),
+                                  Icon(
+                                    ok
+                                        ? Icons.check_circle_rounded
+                                        : Icons.cancel_rounded,
+                                    size: AppDimens.sizeX12,
+                                    color: ok
+                                        ? LightColor.secondaryColor
+                                        : LightColor.redColor,
+                                  ),
+                                  const SizedBox(width: AppDimens.sizeX4),
+                                  Text(
+                                    ok ? 'Available' : 'Unavailable',
+                                    style: textTheme.bodyMiniSubTitle?.copyWith(
+                                      color: ok
+                                          ? LightColor.secondaryColor
+                                          : LightColor.redColor,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ],
                             ),
                           ],
                         ),
@@ -584,8 +677,11 @@ class _RecurringPriceSheet extends StatelessWidget {
                       Text(
                         'Rs ${price.toStringAsFixed(0)}',
                         style: textTheme.bodySubTitle?.copyWith(
-                          color: LightColor.primaryTextColor,
+                          color: ok
+                              ? LightColor.primaryTextColor
+                              : LightColor.hintTextColor,
                           fontWeight: FontWeight.w800,
+                          decoration: ok ? null : TextDecoration.lineThrough,
                         ),
                       ),
                     ],
@@ -601,7 +697,7 @@ class _RecurringPriceSheet extends StatelessWidget {
             children: <Widget>[
               Expanded(
                 child: Text(
-                  'Total · ${dates.length} sessions',
+                  'Total · ${availableDates.length} sessions',
                   style: textTheme.bodyTextMedium?.copyWith(
                     color: LightColor.primaryTextColor,
                     fontWeight: FontWeight.w800,
@@ -621,6 +717,12 @@ class _RecurringPriceSheet extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  static String _apiDate(DateTime date) {
+    final String month = date.month.toString().padLeft(2, '0');
+    final String day = date.day.toString().padLeft(2, '0');
+    return '${date.year.toString().padLeft(4, '0')}-$month-$day';
   }
 
   static const List<String> _months = <String>[
@@ -643,4 +745,71 @@ class _RecurringPriceSheet extends StatelessWidget {
   String _detailDate(DateTime date) =>
       '${RecurringWeekdays.fullLabel(date.weekday)}, '
       '${date.day} ${_months[date.month - 1]} ${date.year}';
+}
+
+/// Available / unavailable split for a recurring schedule, shown above the
+/// per-date price list so the counts are visible before scrolling.
+class _AvailabilityBanner extends StatelessWidget {
+  const _AvailabilityBanner({
+    required this.availableCount,
+    required this.unavailableCount,
+  });
+
+  final int availableCount;
+  final int unavailableCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    final bool allOk = unavailableCount == 0;
+
+    return Container(
+      width: double.infinity,
+      padding: AppUtils().getPadding(
+        horizontal: AppDimens.paddingX12,
+        vertical: AppDimens.paddingX10,
+      ),
+      decoration: BoxDecoration(
+        color: (allOk ? LightColor.secondaryColor : LightColor.redColor)
+            .withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+      ),
+      child: Row(
+        children: <Widget>[
+          Icon(
+            allOk ? Icons.check_circle_rounded : Icons.warning_amber_rounded,
+            size: AppDimens.sizeX18,
+            color: allOk ? LightColor.secondaryColor : LightColor.redColor,
+          ),
+          const SizedBox(width: AppDimens.sizeX8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  allOk
+                      ? 'All $availableCount dates available'
+                      : '$availableCount available · $unavailableCount unavailable',
+                  style: textTheme.bodySubTitle?.copyWith(
+                    color: LightColor.primaryTextColor,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                if (!allOk) ...<Widget>[
+                  const SizedBox(height: AppDimens.sizeX2),
+                  Text(
+                    'Unavailable dates are not charged and will be skipped.',
+                    style: textTheme.bodyMiniSubTitle?.copyWith(
+                      color: LightColor.hintTextColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

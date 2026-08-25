@@ -233,19 +233,36 @@ String settlementBlockedReason(AccountState state) {
   return 'Commission payment is not available right now.';
 }
 
+/// True while [openSettlementSheet] is between the first tap and the pay page
+/// closing again. The flow awaits two network calls before it pushes, and the
+/// button stays live across them, so without this a second tap fires the
+/// preview again and stacks a duplicate page on the first.
+bool _openingSettlementFlow = false;
+
 Future<void> openSettlementSheet(
   BuildContext context, {
   VenueAccountModel? venue,
 }) async {
-  final bloc = context.read<AccountBloc>();
-  if (bloc.state.settlementsPage == 0) {
-    final counts = await bloc.useCase.getSettlements(page: 1, perPage: 20);
-    if (!context.mounted) return;
-    final bool pending = counts.fold(
-      (_) => true,
-      (page) => page.summary.inProgress > 0,
-    );
-    if (pending) {
+  if (_openingSettlementFlow) return;
+  _openingSettlementFlow = true;
+  try {
+    final bloc = context.read<AccountBloc>();
+    if (bloc.state.settlementsPage == 0) {
+      final counts = await bloc.useCase.getSettlements(page: 1, perPage: 20);
+      if (!context.mounted) return;
+      final bool pending = counts.fold(
+        (_) => true,
+        (page) => page.summary.inProgress > 0,
+      );
+      if (pending) {
+        AppUtils().showSnackBar(
+          context,
+          MsgType.info,
+          StringConstants.settlementAwaitingApproval,
+        );
+        return;
+      }
+    } else if (bloc.state.hasPendingSettlement) {
       AppUtils().showSnackBar(
         context,
         MsgType.info,
@@ -253,61 +270,56 @@ Future<void> openSettlementSheet(
       );
       return;
     }
-  } else if (bloc.state.hasPendingSettlement) {
-    AppUtils().showSnackBar(
-      context,
-      MsgType.info,
-      StringConstants.settlementAwaitingApproval,
+    final previewFuture = bloc.useCase.getSettlementPreview(venueId: venue?.id);
+    final qrFuture = bloc.useCase.getQrCodes();
+    final result = await previewFuture;
+    final qrCodes = (await qrFuture).fold(
+      (_) => const <SettlementQrCodeModel>[],
+      (codes) => codes,
     );
-    return;
-  }
-  final previewFuture = bloc.useCase.getSettlementPreview(venueId: venue?.id);
-  final qrFuture = bloc.useCase.getQrCodes();
-  final result = await previewFuture;
-  final qrCodes = (await qrFuture).fold(
-    (_) => const <SettlementQrCodeModel>[],
-    (codes) => codes,
-  );
-  if (!context.mounted) return;
-  final preview = result.fold((failure) {
-    AppUtils().showSnackBar(context, MsgType.error, failure.errorMessage);
-    return null;
-  }, (p) => p);
-  if (preview == null) return;
-  final double commissionPayable =
-      venue?.totalCommission ?? bloc.state.summary.totalCommission;
-  final double totalEarned =
-      venue?.totalEarned ?? bloc.state.summary.totalEarned;
-  final bool blocked =
-      preview.blockingReason.isNotEmpty ||
-      (!preview.eligible && commissionPayable <= 0);
-  if (blocked) {
-    AppUtils().showSnackBar(
-      context,
-      MsgType.info,
-      preview.blockingReason.isNotEmpty
-          ? preview.blockingReason
-          : StringConstants.noCommissionDue,
-    );
-    return;
-  }
-  // The page files the request itself and stays open until the outcome is
-  // known, so there is nothing to dispatch here.
-  await Navigator.of(context).push<bool>(
-    MaterialPageRoute(
-      builder: (_) => BlocProvider<AccountBloc>.value(
-        value: bloc,
-        child: RequestSettlementPage(
-          preview: preview,
-          venueName: venue?.name ?? '',
-          commissionPayable: commissionPayable,
-          totalEarned: totalEarned,
-          qrCodes: qrCodes,
-          venueId: venue?.id ?? preview.venue?.id,
+    if (!context.mounted) return;
+    final preview = result.fold((failure) {
+      AppUtils().showSnackBar(context, MsgType.error, failure.errorMessage);
+      return null;
+    }, (p) => p);
+    if (preview == null) return;
+    final double commissionPayable =
+        venue?.totalCommission ?? bloc.state.summary.totalCommission;
+    final double totalEarned =
+        venue?.totalEarned ?? bloc.state.summary.totalEarned;
+    final bool blocked =
+        preview.blockingReason.isNotEmpty ||
+        (!preview.eligible && commissionPayable <= 0);
+    if (blocked) {
+      AppUtils().showSnackBar(
+        context,
+        MsgType.info,
+        preview.blockingReason.isNotEmpty
+            ? preview.blockingReason
+            : StringConstants.noCommissionDue,
+      );
+      return;
+    }
+    // The page files the request itself and stays open until the outcome is
+    // known, so there is nothing to dispatch here.
+    await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => BlocProvider<AccountBloc>.value(
+          value: bloc,
+          child: RequestSettlementPage(
+            preview: preview,
+            venueName: venue?.name ?? '',
+            commissionPayable: commissionPayable,
+            totalEarned: totalEarned,
+            qrCodes: qrCodes,
+            venueId: venue?.id ?? preview.venue?.id,
+          ),
         ),
       ),
-    ),
-  );
+    );
+  } finally {
+    _openingSettlementFlow = false;
+  }
 }
 
 class _ShortcutsCard extends StatelessWidget {

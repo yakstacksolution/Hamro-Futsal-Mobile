@@ -87,6 +87,21 @@ final class RenameGroupConversationEvent extends MessageEvent {
   List<Object?> get props => [conversationId, title];
 }
 
+/// Answers a group invitation from the inbox. Accepting joins the thread and
+/// leaves it in the list; declining removes it.
+final class RespondToConversationInvitationEvent extends MessageEvent {
+  const RespondToConversationInvitationEvent(
+    this.conversationId, {
+    required this.accept,
+  });
+
+  final int conversationId;
+  final bool accept;
+
+  @override
+  List<Object?> get props => [conversationId, accept];
+}
+
 /// Leaves a group. The conversation stays for its other members; it drops off
 /// this user's inbox.
 final class LeaveGroupConversationEvent extends MessageEvent {

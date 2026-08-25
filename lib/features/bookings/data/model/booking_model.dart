@@ -403,7 +403,7 @@ class BookingModel extends Equatable {
           ) ??
           '',
       status: BookingStatus.fromString(
-        _asString(json['status'] ?? json['booking_status']),
+        _asString(json['booking_status'] ?? json['status']),
       ),
       amount:
           _asDouble(

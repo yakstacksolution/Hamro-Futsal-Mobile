@@ -3,11 +3,14 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hamro_footsall/core/routers/app_router_params.dart';
 import 'package:hamro_footsall/core/theme/app_colors.dart';
+import 'package:hamro_footsall/core/theme/futsal_theme.dart';
+import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/widgets/loading_widget.dart';
 import 'package:hamro_footsall/features/bookings/data/model/booking_model.dart';
 import 'package:hamro_footsall/features/bookings/presentation/bloc/booking_bloc/booking_bloc.dart';
 import 'package:hamro_footsall/features/bookings/presentation/utils/booking_search.dart';
+import 'package:hamro_footsall/features/bookings/presentation/widgets/booking_products_sheet.dart';
 import 'package:hamro_footsall/features/bookings/presentation/widgets/booking_shared_widgets.dart';
 
 /// Which endpoint a page draws from.
@@ -35,6 +38,7 @@ class BookingStatusPage extends StatelessWidget {
     this.dateOrder = BookingDateOrder.descending,
     this.fromDate,
     this.toDate,
+    this.onFloatingActionExtentAfterChanged,
   });
 
   final BookingListKind kind;
@@ -46,6 +50,7 @@ class BookingStatusPage extends StatelessWidget {
   final BookingDateOrder dateOrder;
   final DateTime? fromDate;
   final DateTime? toDate;
+  final ValueChanged<double>? onFloatingActionExtentAfterChanged;
 
   bool get _isMine => kind == BookingListKind.mine;
 
@@ -145,16 +150,21 @@ class BookingStatusPage extends StatelessWidget {
               ]
             : sorted;
 
-        if (items.isEmpty) return _refreshBar(slice, _empty(context));
+        if (items.isEmpty) {
+          onFloatingActionExtentAfterChanged?.call(double.infinity);
+          return _refreshBar(slice, _empty(context));
+        }
 
         return _refreshBar(
           slice,
           NotificationListener<ScrollNotification>(
             onNotification: (ScrollNotification notification) {
-              if (notification.metrics.extentAfter < 300 &&
-                  slice.hasMorePages &&
-                  !slice.isLoadingMore) {
-                _load(context, silent: true, loadMore: true);
+              _reportFloatingActionObstruction(notification);
+              if (_shouldLoadMore(notification, slice)) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (!context.mounted) return;
+                  _load(context, silent: true, loadMore: true);
+                });
               }
               return false;
             },
@@ -176,15 +186,29 @@ class BookingStatusPage extends StatelessWidget {
                     const SizedBox(height: AppDimens.paddingX10),
                 itemBuilder: (BuildContext context, int i) {
                   if (i == items.length) return _footer(context, slice);
+                  final BookingModel booking = items[i];
                   return BookingCard(
-                    booking: items[i],
+                    booking: booking,
+                    // The vendor's own list is where add-ons are sold and a
+                    // booking is closed out, so the quick actions live on the
+                    // card there; the customer's list has nothing to act on.
+                    footer:
+                        !_isMine &&
+                            (bookingSupportsProducts(booking) ||
+                                bookingCanComplete(booking))
+                        ? _BookingCardActions(
+                            booking: booking,
+                            onChanged: () =>
+                                _load(context, silent: true, force: true),
+                          )
+                        : null,
                     onTap: () async {
                       await context.pushNamed(
                         AppRouterParams.bookingDetails.name,
                         queryParameters: <String, String>{
                           'futsal': _isMine ? 'false' : 'true',
                         },
-                        extra: items[i],
+                        extra: booking,
                       );
                       // Refresh with the latest data on returning from details.
                       if (context.mounted) {
@@ -199,6 +223,30 @@ class BookingStatusPage extends StatelessWidget {
         );
       },
     );
+  }
+
+  bool _shouldLoadMore(
+    ScrollNotification notification,
+    BookingListSlice slice,
+  ) {
+    if (notification.depth != 0 ||
+        notification.metrics.axis != Axis.vertical ||
+        notification.metrics.extentAfter >= 300 ||
+        !slice.hasMorePages ||
+        slice.isLoadingMore) {
+      return false;
+    }
+    return notification is ScrollUpdateNotification ||
+        notification is OverscrollNotification;
+  }
+
+  void _reportFloatingActionObstruction(ScrollNotification notification) {
+    final ValueChanged<double>? callback = onFloatingActionExtentAfterChanged;
+    if (callback == null || _isMine || notification.depth != 0) return;
+
+    final ScrollMetrics metrics = notification.metrics;
+    if (!metrics.hasContentDimensions) return;
+    callback(metrics.extentAfter);
   }
 
   /// A slim line above the list while this status is being refetched — the
@@ -296,6 +344,171 @@ class BookingStatusPage extends StatelessWidget {
         onPressed: () => _load(context, silent: true, loadMore: true),
         icon: const Icon(Icons.refresh_rounded),
         label: const Text('Could not load more. Retry'),
+      ),
+    );
+  }
+}
+
+/// Quick actions on a futsal booking card: "Add products" and "Complete".
+///
+/// Both open the same sheets the details page uses, so the vendor can sell an
+/// add-on or close a booking out without leaving the list. [onChanged] refetches
+/// the status page whenever one of them actually changed something.
+class _BookingCardActions extends StatelessWidget {
+  const _BookingCardActions({required this.booking, required this.onChanged});
+
+  final BookingModel booking;
+  final VoidCallback onChanged;
+
+  Future<void> _addProducts(BuildContext context) async {
+    final bool? added = await openBookingProductsSheet(context, booking);
+    if (added == true && context.mounted) onChanged();
+  }
+
+  Future<void> _complete(BuildContext context) async {
+    final BookingCompleteResult? result = await showBookingCompleteSheet(
+      context,
+      booking,
+    );
+    if (result == null || !context.mounted) return;
+    final bool ok = await completeBooking(booking.id, result: result);
+    if (!context.mounted) return;
+    AppUtils().showSnackBar(
+      context,
+      ok ? MsgType.success : MsgType.error,
+      ok ? 'Booking marked as completed.' : 'Could not complete the booking.',
+    );
+    if (ok) onChanged();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bool canAdd = bookingSupportsProducts(booking);
+    final bool canComplete = bookingCanComplete(booking);
+    final int count = booking.extraItemsCount;
+
+    return Row(
+      children: <Widget>[
+        if (canAdd)
+          Expanded(
+            child: _CardAction(
+              icon: count > 0
+                  ? Icons.shopping_bag_rounded
+                  : Icons.add_shopping_cart_rounded,
+              label: count > 0 ? 'Products' : 'Add products',
+              // The count is what the vendor scans for on a busy list, so it
+              // reads as a badge rather than as part of the label.
+              badge: count > 0 ? '$count' : null,
+              color: LightColor.secondaryColor,
+              onTap: () => _addProducts(context),
+            ),
+          ),
+        if (canAdd && canComplete) const SizedBox(width: AppDimens.paddingX8),
+        if (canComplete)
+          Expanded(
+            child: _CardAction(
+              icon: Icons.check_rounded,
+              label: 'Complete',
+              color: LightColor.secondaryColor,
+              // Closing the booking out is the end of the flow, so it carries
+              // the only filled surface on the card.
+              filled: true,
+              onTap: () => _complete(context),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// One footer action. [filled] paints the brand surface for the primary move;
+/// the rest sit on a soft tint of [color] so the card stays quiet until read.
+class _CardAction extends StatelessWidget {
+  const _CardAction({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+    this.badge,
+    this.filled = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+  final String? badge;
+  final bool filled;
+
+  @override
+  Widget build(BuildContext context) {
+    final Color foreground = filled ? LightColor.onBrandSurface : color;
+    return Material(
+      color: filled ? color : color.withValues(alpha: 0.08),
+      borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        splashColor: foreground.withValues(alpha: 0.12),
+        highlightColor: foreground.withValues(alpha: 0.06),
+        child: Container(
+          height: AppDimens.sizeX36,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+            border: filled
+                ? null
+                : Border.all(color: color.withValues(alpha: 0.22)),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: AppDimens.paddingX10),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Icon(icon, size: AppDimens.sizeX16, color: foreground),
+              const SizedBox(width: AppDimens.paddingX6),
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: FutsalTheme.getTextTheme(context).bodyTextSmall
+                      ?.copyWith(
+                        color: foreground,
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+              ),
+              if (badge != null) ...[
+                const SizedBox(width: AppDimens.paddingX6),
+                Container(
+                  constraints: const BoxConstraints(
+                    minWidth: AppDimens.sizeX18,
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppDimens.paddingX4,
+                    vertical: 1,
+                  ),
+                  decoration: BoxDecoration(
+                    color: filled
+                        ? foreground.withValues(alpha: 0.22)
+                        : color.withValues(alpha: 0.16),
+                    borderRadius: BorderRadius.circular(AppDimens.radiusX20),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    badge!,
+                    style: FutsalTheme.getTextTheme(context).bodyTextSmall
+                        ?.copyWith(
+                          color: foreground,
+                          fontWeight: FontWeight.w800,
+                          fontSize: AppDimens.fontBodySubTitle,
+                        ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }

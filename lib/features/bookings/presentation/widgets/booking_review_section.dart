@@ -223,21 +223,40 @@ class _SubmittedReviewCard extends StatelessWidget {
         children: <Widget>[
           Row(
             children: <Widget>[
-              Icon(
-                Icons.check_circle_rounded,
-                size: AppDimens.sizeX18,
-                color: LightColor.brandTextColor,
-              ),
+              Icon(_statusIcon, size: AppDimens.sizeX18, color: _statusColor),
               const SizedBox(width: AppDimens.sizeX6),
               Expanded(
                 child: Text(
-                  'You reviewed this booking',
+                  review.statusLabel.isEmpty
+                      ? 'You reviewed this booking'
+                      : 'Review ${review.statusLabel.toLowerCase()}',
                   style: textTheme.bodyTextSmall?.copyWith(
                     color: LightColor.primaryTextColor,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
               ),
+              if (review.statusLabel.isNotEmpty)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppDimens.paddingX8,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _statusColor.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(AppDimens.radiusX20),
+                    border: Border.all(
+                      color: _statusColor.withValues(alpha: 0.28),
+                    ),
+                  ),
+                  child: Text(
+                    review.statusLabel,
+                    style: textTheme.bodyMiniSubTitle?.copyWith(
+                      color: _statusColor,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
             ],
           ),
           const SizedBox(height: AppDimens.sizeX10),
@@ -271,9 +290,37 @@ class _SubmittedReviewCard extends StatelessWidget {
               ),
             ),
           ],
+          if (review.displayDate.isNotEmpty) ...<Widget>[
+            const SizedBox(height: AppDimens.sizeX8),
+            Text(
+              review.displayDate,
+              style: textTheme.bodyMiniSubTitle?.copyWith(
+                color: LightColor.hintTextColor,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
         ],
       ),
     );
+  }
+
+  Color get _statusColor {
+    return switch (review.status.trim().toLowerCase()) {
+      'pending' => LightColor.warningColor,
+      'approved' => LightColor.brandTextColor,
+      'rejected' => LightColor.redColor,
+      _ => LightColor.brandTextColor,
+    };
+  }
+
+  IconData get _statusIcon {
+    return switch (review.status.trim().toLowerCase()) {
+      'pending' => Icons.hourglass_top_rounded,
+      'approved' => Icons.check_circle_rounded,
+      'rejected' => Icons.cancel_rounded,
+      _ => Icons.check_circle_rounded,
+    };
   }
 }
 

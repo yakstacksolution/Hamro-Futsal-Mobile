@@ -109,6 +109,16 @@ class _BookingsViewState extends State<_BookingsView>
   bool _futsalDateActive = false;
   final TextEditingController _futsalSearchController = TextEditingController();
   final TextEditingController _mySearchController = TextEditingController();
+  final ValueNotifier<bool> _manualFabObscuredVN = ValueNotifier<bool>(false);
+
+  static const List<BookingStatusFilter> _visibleFilters =
+      <BookingStatusFilter>[
+        BookingStatusFilter.all,
+        BookingStatusFilter.pending,
+        BookingStatusFilter.confirmed,
+        BookingStatusFilter.completed,
+        BookingStatusFilter.cancelled,
+      ];
 
   /// Both lists offer the same statuses — the endpoints take the same `status`
   /// values — so one label map serves the chips of either tab.
@@ -126,14 +136,28 @@ class _BookingsViewState extends State<_BookingsView>
 
   BookingStatusFilter get _activeFilter => _activeFilterVN.value;
 
-  PageController get _activePageCtrl =>
-      _showsMyBookings ? _myPageCtrl : _futsalPageCtrl;
-
   TextEditingController get _activeSearchController =>
       _showsMyBookings ? _mySearchController : _futsalSearchController;
 
+  BookingListKind get _activeKind =>
+      _showsMyBookings ? BookingListKind.mine : BookingListKind.futsal;
+
   bool get _showsMyBookings =>
       widget.isCandidate || _activeTab == _BookingTab.mine;
+
+  ValueNotifier<BookingStatusFilter> _filterVNFor(BookingListKind kind) =>
+      kind == BookingListKind.mine ? _myFilterVN : _futsalFilterVN;
+
+  int _visibleFilterIndex(BookingStatusFilter filter) {
+    final int index = _visibleFilters.indexOf(filter);
+    return index < 0 ? 0 : index;
+  }
+
+  PageController _pageCtrlFor(BookingListKind kind) =>
+      kind == BookingListKind.mine ? _myPageCtrl : _futsalPageCtrl;
+
+  bool _kindIsVisible(BookingListKind kind) =>
+      widget.isCandidate ? kind == BookingListKind.mine : kind == _activeKind;
 
   @override
   void initState() {
@@ -167,12 +191,31 @@ class _BookingsViewState extends State<_BookingsView>
     _futsalPageCtrl.dispose();
     _myPageCtrl.dispose();
     _chipCtrl.dispose();
+    _manualFabObscuredVN.dispose();
     super.dispose();
+  }
+
+  void _setManualFabExtentAfter(double extentAfter) {
+    if (widget.isCandidate || _activeTab != _BookingTab.futsal) return;
+    const double hideAt = 96;
+    const double showAfter = 156;
+    final bool isHidden = _manualFabObscuredVN.value;
+    final bool shouldHide = isHidden
+        ? extentAfter < showAfter
+        : extentAfter < hideAt;
+    if (isHidden == shouldHide) return;
+    _manualFabObscuredVN.value = shouldHide;
   }
 
   void _refreshOnTabVisible() {
     if (!mounted || DashboardScreen.selectedNavIndex.value != 1) return;
-    _refreshCurrentTab();
+    // The notifier fires while the dashboard's IndexedStack is still showing
+    // the previous branch, so the fetch waits for the frame to settle and
+    // lands on a list that is actually on screen.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || DashboardScreen.selectedNavIndex.value != 1) return;
+      _refreshCurrentTab();
+    });
   }
 
   /// Pulls the latest data for the active tab from the API. Shows the skeleton
@@ -213,6 +256,9 @@ class _BookingsViewState extends State<_BookingsView>
     if (tab == _activeTab) return;
 
     setState(() => _activeTab = tab);
+    if (tab != _BookingTab.futsal && _manualFabObscuredVN.value) {
+      _manualFabObscuredVN.value = false;
+    }
 
     final BookingBloc bloc = context.read<BookingBloc>();
     // `.select` is a no-op for a status already fetched, so switching tabs
@@ -222,22 +268,24 @@ class _BookingsViewState extends State<_BookingsView>
     } else {
       bloc.add(FetchFutsalBookingsEvent.select(_futsalFilterVN.value));
     }
-    _revealChip(_activeFilter.index);
+    _revealChip(_visibleFilterIndex(_activeFilter));
   }
 
   /// A chip tap: animate the pager onto that status, which is the same act as
   /// swiping to it — [_onStatusPageChanged] then selects and loads it.
   void _onFilterSelected(BookingStatusFilter filter) {
-    final int target = filter.index;
-    if (_activeFilter == filter) {
+    final BookingListKind kind = _activeKind;
+    final ValueNotifier<BookingStatusFilter> filterVN = _filterVNFor(kind);
+    final int target = _visibleFilterIndex(filter);
+    if (filterVN.value == filter) {
       // Same chip again on All also clears the other filters, which is what it
       // read as before the pager existed.
       if (filter == BookingStatusFilter.all) _clearNarrowingFilters();
       return;
     }
-    final PageController controller = _activePageCtrl;
+    final PageController controller = _pageCtrlFor(kind);
     if (!controller.hasClients) {
-      _onStatusPageChanged(target);
+      _onStatusPageChanged(kind, target);
       return;
     }
     // Animating across several pages scrolls *through* the ones in between,
@@ -258,13 +306,14 @@ class _BookingsViewState extends State<_BookingsView>
 
   /// Swiping the pager is the same act as tapping a chip: it selects the
   /// status, which is what triggers that status's lazy fetch.
-  void _onStatusPageChanged(int index) {
-    final BookingStatusFilter filter = BookingStatusFilter.values[index];
-    if (filter == _activeFilter) return;
+  void _onStatusPageChanged(BookingListKind kind, int index) {
+    final BookingStatusFilter filter = _visibleFilters[index];
+    final ValueNotifier<BookingStatusFilter> filterVN = _filterVNFor(kind);
+    if (filter == filterVN.value) return;
 
     // Notifier, not setState: this repaints the chips and nothing else.
-    _activeFilterVN.value = filter;
-    _revealChip(index);
+    filterVN.value = filter;
+    if (_kindIsVisible(kind)) _revealChip(index);
 
     // Landing on a status asks the endpoint for it again (`?status=…`), so the
     // page is current rather than however it looked when it was last visited.
@@ -278,13 +327,15 @@ class _BookingsViewState extends State<_BookingsView>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       final BookingBloc bloc = context.read<BookingBloc>();
-      if (_showsMyBookings) {
+      if (kind == BookingListKind.mine) {
         bloc.add(FetchMyBookingsEvent.refresh(filter));
       } else {
         bloc.add(FetchFutsalBookingsEvent.refresh(filter));
       }
     });
-    if (filter == BookingStatusFilter.all) _clearNarrowingFilters();
+    if (filter == BookingStatusFilter.all && _kindIsVisible(kind)) {
+      _clearNarrowingFilters();
+    }
   }
 
   /// The All page shows everything, so the search box and the date filters are
@@ -453,25 +504,40 @@ class _BookingsViewState extends State<_BookingsView>
             bottom:
                 AppDimens.sizeX70 + MediaQuery.viewPaddingOf(context).bottom,
             // Same compact pill as the expenses screen's "New Expense" action.
-            child: SizedBox(
-              height: 44,
-              child: FloatingActionButton.extended(
-                key: const Key('manual-booking-fab'),
-                heroTag: 'manual-booking-fab',
-                onPressed: _openManualBooking,
-                backgroundColor: LightColor.secondaryColor,
-                foregroundColor: LightColor.inverseTextColor,
-                elevation: 0,
-                extendedPadding: const EdgeInsets.symmetric(horizontal: 16),
-                shape: const StadiumBorder(),
-                icon: const Icon(Icons.add_rounded, size: 18),
-                label: Text(
-                  StringConstants.manualBooking,
-                  style: FutsalTheme.getTextTheme(context).bodyTextSmall
-                      ?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: LightColor.inverseTextColor,
-                      ),
+            child: ValueListenableBuilder<bool>(
+              valueListenable: _manualFabObscuredVN,
+              builder: (BuildContext context, bool obscured, Widget? child) {
+                return AnimatedSlide(
+                  duration: const Duration(milliseconds: 180),
+                  curve: Curves.easeOutCubic,
+                  offset: obscured ? const Offset(0, 1.8) : Offset.zero,
+                  child: AnimatedOpacity(
+                    duration: const Duration(milliseconds: 140),
+                    opacity: obscured ? 0 : 1,
+                    child: IgnorePointer(ignoring: obscured, child: child),
+                  ),
+                );
+              },
+              child: SizedBox(
+                height: 44,
+                child: FloatingActionButton.extended(
+                  key: const Key('manual-booking-fab'),
+                  heroTag: 'manual-booking-fab',
+                  onPressed: _openManualBooking,
+                  backgroundColor: LightColor.secondaryColor,
+                  foregroundColor: LightColor.inverseTextColor,
+                  elevation: 0,
+                  extendedPadding: const EdgeInsets.symmetric(horizontal: 16),
+                  shape: const StadiumBorder(),
+                  icon: const Icon(Icons.add_rounded, size: 18),
+                  label: Text(
+                    StringConstants.manualBooking,
+                    style: FutsalTheme.getTextTheme(context).bodyTextSmall
+                        ?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: LightColor.inverseTextColor,
+                        ),
+                  ),
                 ),
               ),
             ),
@@ -666,27 +732,50 @@ class _BookingsViewState extends State<_BookingsView>
   /// shows its own skeleton while [_onStatusPageChanged] triggers its call.
   Widget _statusPager(BookingListKind kind) {
     final bool isMine = kind == BookingListKind.mine;
+    final ValueNotifier<BookingStatusFilter> filterVN = _filterVNFor(kind);
     return PageView.builder(
       controller: isMine ? _myPageCtrl : _futsalPageCtrl,
       physics: const BouncingScrollPhysics(),
-      itemCount: BookingStatusFilter.values.length,
-      onPageChanged: _onStatusPageChanged,
+      itemCount: _visibleFilters.length,
+      onPageChanged: (int index) => _onStatusPageChanged(kind, index),
       // Each page paints into its own layer, so the one sliding in does not
       // force the one sliding out to repaint with it.
-      itemBuilder: (BuildContext context, int index) => RepaintBoundary(
-        child: BookingStatusPage(
-          kind: kind,
-          filter: BookingStatusFilter.values[index],
-          searchQuery: isMine
-              ? _mySearchController.text
-              : _futsalSearchController.text,
-          dateOrder: _dateOrder,
-          fromDate: isMine
-              ? _fromDate
-              : (_futsalDateActive ? _futsalDate : null),
-          toDate: isMine ? _toDate : (_futsalDateActive ? _futsalDate : null),
-        ),
-      ),
+      itemBuilder: (BuildContext context, int index) {
+        final BookingStatusFilter filter = _visibleFilters[index];
+        return ValueListenableBuilder<BookingStatusFilter>(
+          valueListenable: filterVN,
+          builder: (_, BookingStatusFilter selected, _) {
+            final bool active = selected == filter && _kindIsVisible(kind);
+            // Semantics is left to the pager's own viewport, which already
+            // skips the pages that are off screen. An ExcludeSemantics that
+            // flips with the page made each page detach and reattach to the
+            // semantics tree mid-swipe — the parent-data assertion's cause.
+            return TickerMode(
+              enabled: active,
+              child: RepaintBoundary(
+                child: BookingStatusPage(
+                  kind: kind,
+                  filter: filter,
+                  searchQuery: isMine
+                      ? _mySearchController.text
+                      : _futsalSearchController.text,
+                  dateOrder: _dateOrder,
+                  fromDate: isMine
+                      ? _fromDate
+                      : (_futsalDateActive ? _futsalDate : null),
+                  toDate: isMine
+                      ? _toDate
+                      : (_futsalDateActive ? _futsalDate : null),
+                  onFloatingActionExtentAfterChanged:
+                      kind == BookingListKind.futsal
+                      ? _setManualFabExtentAfter
+                      : null,
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -700,12 +789,12 @@ class _BookingsViewState extends State<_BookingsView>
           symmetricHorizontal: AppDimens.paddingX20,
         ),
         controller: _chipCtrl,
-        itemCount: BookingStatusFilter.values.length,
+        itemCount: _visibleFilters.length,
         separatorBuilder: (_, __) {
           return const SizedBox(width: AppDimens.paddingX8);
         },
         itemBuilder: (context, index) {
-          final BookingStatusFilter filter = BookingStatusFilter.values[index];
+          final BookingStatusFilter filter = _visibleFilters[index];
 
           return ValueListenableBuilder<BookingStatusFilter>(
             valueListenable: _activeFilterVN,

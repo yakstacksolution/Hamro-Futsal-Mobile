@@ -111,6 +111,14 @@ final class MessageUseCase {
     String title,
   ) async => await repository.updateConversationTitle(conversationId, title);
 
+  Future<Either<AppException, bool>> respondToConversationInvitation(
+    int conversationId, {
+    required bool accept,
+  }) async => await repository.respondToConversationInvitation(
+    conversationId,
+    accept,
+  );
+
   Future<Either<AppException, bool>> leaveConversation(
     int conversationId,
   ) async => await repository.leaveConversation(conversationId);

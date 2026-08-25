@@ -9,6 +9,7 @@ import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/utils/responsive.dart';
 import 'package:hamro_footsall/core/utils/scroll_behavior.dart';
+import 'package:hamro_footsall/core/widgets/custom_bottom_sheet.dart';
 import 'package:hamro_footsall/core/widgets/custom_button.dart';
 import 'package:hamro_footsall/features/bookings/data/model/manual_booking_details.dart';
 import 'package:hamro_footsall/features/courts_details/presentation/page/court_details.dart';
@@ -159,6 +160,10 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
             selectedCourt: selectedCourt,
             isCheckingAvailability:
                 state.recurringCheckStatus == RecurringCheckStatus.loading,
+            availability:
+                state.recurringCheckStatus == RecurringCheckStatus.success
+                ? state.recurringAvailability
+                : null,
             onModeChanged: (BookingMode value) {
               context.read<SlotsSelectionBloc>().add(
                 ChangeSlotsBookingModeEvent(value),
@@ -211,9 +216,9 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
           case RecurringCheckStatus.success:
             final RecurringAvailabilityModel? model =
                 state.recurringAvailability;
-            // Only surface the availability card when something is actually
-            // unavailable (all_available == false) and we have sessions to show.
-            if (model != null && model.hasSessions && !model.allAvailable) {
+            // The card lists both the available and the unavailable dates, so
+            // it stays useful even when everything is free.
+            if (model != null && model.hasSessions) {
               child = _RecurringAvailabilityResult(model: model);
             } else {
               child = const SizedBox.shrink();
@@ -416,6 +421,66 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
     return slack > base ? slack : AppDimens.paddingX32;
   }
 
+  /// When the server reported taken dates for a recurring booking, asks the
+  /// user whether to book the remaining ones or go back and pick another
+  /// date/slot. Returns the draft to book with, or null to stay on this page.
+  Future<BookingDraft?> _resolveUnavailableDates(
+    BuildContext context,
+    SlotsSelectionState state,
+    BookingDraft draft,
+  ) async {
+    final RecurringAvailabilityModel? model = state.recurringAvailability;
+    if (!state.isRecurring ||
+        model == null ||
+        !model.hasUnavailableDates ||
+        state.recurringCheckStatus != RecurringCheckStatus.success) {
+      return draft;
+    }
+
+    final Set<String> unavailableKeys = model.unavailableDateKeys;
+    final List<DateTime> keep = draft.sessionDates
+        .where((DateTime d) => !unavailableKeys.contains(_apiDate(d)))
+        .toList(growable: false);
+    final List<DateTime> dropped = draft.sessionDates
+        .where((DateTime d) => unavailableKeys.contains(_apiDate(d)))
+        .toList(growable: false);
+
+    if (keep.isEmpty) {
+      AppUtils().showSnackBar(
+        context,
+        MsgType.error,
+        'None of these dates are available. Please choose another date or time slot.',
+        key: 'recurring_no_dates_available',
+      );
+      return null;
+    }
+
+    final bool? continueWithout = await showAppBottomSheet<bool>(
+      context: context,
+      child: _UnavailableDatesSheet(
+        unavailableDates: dropped,
+        availableCount: keep.length,
+        selectedTime: state.selectedTime ?? '',
+      ),
+    );
+    if (continueWithout != true) return null;
+
+    final VenueCourtItemModel? court = state.selectedCourt;
+    final double subtotal = court == null
+        ? draft.subtotal
+        : keep.fold<double>(
+            0,
+            (double sum, DateTime date) =>
+                sum + court.priceFor(date, state.selectedTime),
+          );
+
+    return draft.withSessionDates(
+      dates: keep,
+      dropped: dropped,
+      subtotal: subtotal,
+    );
+  }
+
   Widget _buildBottomBar() {
     return SlideTransition(
       position: _bottomBarSlide,
@@ -491,9 +556,20 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
                                   }
 
                                   HapticFeedback.mediumImpact();
-                                  final draft = state.bookingDraft
+                                  BookingDraft? draft = state.bookingDraft
                                       ?.withManualBooking(widget.manualBooking);
                                   if (draft == null) return;
+
+                                  final BookingDraft? resolved =
+                                      await _resolveUnavailableDates(
+                                        context,
+                                        state,
+                                        draft,
+                                      );
+                                  if (resolved == null || !context.mounted) {
+                                    return;
+                                  }
+                                  draft = resolved;
                                   if (widget.manualBooking != null) {
                                     await _confirmManualBooking(draft);
                                     return;
@@ -965,20 +1041,41 @@ class _RecurringAvailabilityResult extends StatelessWidget {
             ],
           ),
           if (model.totalCount > 1) ...<Widget>[
-            const SizedBox(height: AppDimens.sizeX10),
-            ...model.sessions.map(
-              (AvailabilitySession s) => Padding(
-                padding: const EdgeInsets.only(bottom: AppDimens.paddingX8),
-                child: _RecurringAvailabilityRow(session: s),
+            if (model.unavailableSessions.isNotEmpty) ...<Widget>[
+              const SizedBox(height: AppDimens.sizeX10),
+              _AvailabilityGroupLabel(
+                label: 'Unavailable · ${model.unavailableCount}',
+                color: LightColor.redColor,
               ),
-            ),
+              const SizedBox(height: AppDimens.sizeX8),
+              ...model.unavailableSessions.map(
+                (AvailabilitySession s) => Padding(
+                  padding: const EdgeInsets.only(bottom: AppDimens.paddingX8),
+                  child: _RecurringAvailabilityRow(session: s),
+                ),
+              ),
+            ],
+            if (model.availableSessions.isNotEmpty) ...<Widget>[
+              const SizedBox(height: AppDimens.sizeX4),
+              _AvailabilityGroupLabel(
+                label: 'Available · ${model.availableCount}',
+                color: LightColor.secondaryColor,
+              ),
+              const SizedBox(height: AppDimens.sizeX8),
+              ...model.availableSessions.map(
+                (AvailabilitySession s) => Padding(
+                  padding: const EdgeInsets.only(bottom: AppDimens.paddingX8),
+                  child: _RecurringAvailabilityRow(session: s),
+                ),
+              ),
+            ],
           ],
           if (!allOk) ...<Widget>[
             const SizedBox(height: AppDimens.sizeX2),
             Text(
               single
                   ? 'Please pick another date or time.'
-                  : 'Some dates are taken. Adjust your selection to continue.',
+                  : 'Some dates are taken. You can book the rest or pick another date and slot.',
               style: textTheme.bodyMiniSubTitle?.copyWith(
                 color: LightColor.hintTextColor,
                 fontWeight: FontWeight.w500,
@@ -1060,4 +1157,180 @@ String _dateLabel(DateTime date) {
     'Sun',
   ];
   return '${days[date.weekday - 1]}, ${date.day} ${months[date.month - 1]}';
+}
+
+/// Small caption separating the available and unavailable date groups.
+class _AvailabilityGroupLabel extends StatelessWidget {
+  const _AvailabilityGroupLabel({required this.label, required this.color});
+
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      label.toUpperCase(),
+      style: FutsalTheme.getTextTheme(context).bodyMiniSubTitle?.copyWith(
+        color: color,
+        fontWeight: FontWeight.w800,
+        letterSpacing: 0.6,
+      ),
+    );
+  }
+}
+
+/// Asks whether to book the remaining dates of a recurring schedule after the
+/// server reported some of them taken. Pops `true` to continue without them.
+class _UnavailableDatesSheet extends StatelessWidget {
+  const _UnavailableDatesSheet({
+    required this.unavailableDates,
+    required this.availableCount,
+    required this.selectedTime,
+  });
+
+  final List<DateTime> unavailableDates;
+  final int availableCount;
+  final String selectedTime;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.sizeOf(context).height * 0.72,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Container(
+                width: AppDimens.sizeX36,
+                height: AppDimens.sizeX36,
+                decoration: BoxDecoration(
+                  color: LightColor.redColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+                ),
+                child: Icon(
+                  Icons.event_busy_rounded,
+                  size: AppDimens.sizeX18,
+                  color: LightColor.redColor,
+                ),
+              ),
+              const SizedBox(width: AppDimens.sizeX10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      unavailableDates.length == 1
+                          ? '1 date is unavailable'
+                          : '${unavailableDates.length} dates are unavailable',
+                      style: textTheme.bodyTextLarge?.copyWith(
+                        color: LightColor.primaryTextColor,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: AppDimens.sizeX2),
+                    Text(
+                      'Continue without these dates, or choose another date and slot.',
+                      style: textTheme.bodySubTitle?.copyWith(
+                        color: LightColor.hintTextColor,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppDimens.sizeX14),
+          Flexible(
+            child: ListView.separated(
+              shrinkWrap: true,
+              physics: const BouncingScrollPhysics(),
+              itemCount: unavailableDates.length,
+              separatorBuilder: (BuildContext context, int index) =>
+                  const SizedBox(height: AppDimens.sizeX8),
+              itemBuilder: (BuildContext context, int index) {
+                final DateTime date = unavailableDates[index];
+                return Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppDimens.paddingX12,
+                    vertical: AppDimens.paddingX10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: LightColor.redColor.withValues(alpha: 0.06),
+                    borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+                    border: Border.all(
+                      color: LightColor.redColor.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Row(
+                    children: <Widget>[
+                      Icon(
+                        Icons.cancel_rounded,
+                        size: AppDimens.sizeX16,
+                        color: LightColor.redColor,
+                      ),
+                      const SizedBox(width: AppDimens.sizeX8),
+                      Expanded(
+                        child: Text(
+                          selectedTime.isEmpty
+                              ? _dateLabel(date)
+                              : '${_dateLabel(date)} · $selectedTime',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: textTheme.bodySubTitle?.copyWith(
+                            color: LightColor.primaryTextColor,
+                            fontWeight: FontWeight.w700,
+                            decoration: TextDecoration.lineThrough,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        'Unavailable',
+                        style: textTheme.bodyMiniSubTitle?.copyWith(
+                          color: LightColor.redColor,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: AppDimens.sizeX14),
+          SizedBox(
+            width: double.infinity,
+            child: CustomButton(
+              text: availableCount == 1
+                  ? 'Continue with 1 date'
+                  : 'Continue with $availableCount dates',
+              onPressed: () => Navigator.of(context).pop(true),
+              backgroundColor: LightColor.secondaryColor,
+              foregroundColor: LightColor.inverseTextColor,
+              minHeight: AppDimens.sizeX52,
+            ),
+          ),
+          const SizedBox(height: AppDimens.sizeX10),
+          SizedBox(
+            width: double.infinity,
+            child: CustomButton(
+              text: 'Choose another date & slot',
+              onPressed: () => Navigator.of(context).pop(false),
+              backgroundColor: LightColor.cardColor,
+              foregroundColor: LightColor.primaryTextColor,
+              minHeight: AppDimens.sizeX52,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

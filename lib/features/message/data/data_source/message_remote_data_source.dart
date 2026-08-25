@@ -31,6 +31,10 @@ abstract class MessageRemoteDataSource {
   );
   Future<Result> updateConversationTitle(int conversationId, String title);
   Future<Result> leaveConversation(int conversationId);
+  Future<Result> respondToConversationInvitation(
+    int conversationId,
+    bool accept,
+  );
   Future<Result> getConversationDetails(int conversationId);
   Future<Result> getUserPresence(int userId);
   Future<Result> getMessageProfile(int userId);
@@ -108,6 +112,14 @@ final class MessageRemoteDataSourceImpl extends MessageRemoteDataSource {
       await Client.instance().getAuthManager().leaveConversation(
         conversationId,
       );
+
+  @override
+  Future<Result> respondToConversationInvitation(
+    int conversationId,
+    bool accept,
+  ) async => await Client.instance()
+      .getAuthManager()
+      .respondToConversationInvitation(conversationId, accept);
 
   @override
   Future<Result> addConversationParticipants(

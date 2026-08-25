@@ -4,6 +4,7 @@ import 'package:hamro_footsall/core/theme/app_colors.dart';
 import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_footsall/core/widgets/custom_confirm_dialog.dart';
 import 'package:hamro_footsall/core/widgets/custom_html_viewer.dart';
 import 'package:hamro_footsall/core/widgets/loading_widget.dart';
 import 'package:hamro_footsall/features/public/data/model/public_package_model.dart';
@@ -154,11 +155,12 @@ class _FutsalPlanSelectionContentState
                     color: LightColor.secondaryColor,
                     isRecommended: option.isPopular,
                     descriptionHtml: option.descriptionHtml,
-                    onTap: () => _vendorOnboardingCubit.updateFutsal(
-                      futsalDraft.copyWith(
-                        packageId: option.id,
-                        commissionPercent: option.percentage,
-                      ),
+                    onTap: () => _selectPackage(
+                      option: option,
+                      futsalDraft: futsalDraft,
+                      isSelected: isSelected,
+                      hasExistingSelection:
+                          selectedPackageId != null || selectedPercent != null,
                     ),
                   ),
                 );
@@ -166,6 +168,37 @@ class _FutsalPlanSelectionContentState
               .toList(growable: false),
         );
       },
+    );
+  }
+
+  /// Applies [option] to the draft. Swapping an already-chosen plan changes
+  /// the commission the vendor is billed at, so it is confirmed first; the
+  /// very first pick has nothing to lose and goes straight through.
+  Future<void> _selectPackage({
+    required _PackageOption option,
+    required FutsalDraft futsalDraft,
+    required bool isSelected,
+    required bool hasExistingSelection,
+  }) async {
+    if (isSelected) return;
+
+    if (hasExistingSelection) {
+      final bool confirmed = await showConfirmDialog(
+        context: context,
+        title: StringConstants.changeServicePlan,
+        message: StringConstants.changeServicePlanConfirmation,
+        confirmText: StringConstants.yesChange,
+        cancelText: StringConstants.cancel,
+        icon: Icons.swap_horiz_rounded,
+      );
+      if (!confirmed || !mounted) return;
+    }
+
+    _vendorOnboardingCubit.updateFutsal(
+      futsalDraft.copyWith(
+        packageId: option.id,
+        commissionPercent: option.percentage,
+      ),
     );
   }
 

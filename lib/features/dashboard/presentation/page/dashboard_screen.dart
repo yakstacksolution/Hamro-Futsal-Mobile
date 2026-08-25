@@ -385,16 +385,49 @@ class _DashboardScreenState extends State<DashboardScreen> {
             index: selectedNavIndex,
             sizing: StackFit.expand,
             children: <Widget>[
-              FootsallHomePage(filter: _venueFilterNotifier.value),
-              const BookingsPage(),
-              MessagesPage(),
-              const WishlistPage(),
-              ProfilePage(),
+              _stackChild(
+                index: 0,
+                selectedIndex: selectedNavIndex,
+                child: FootsallHomePage(filter: _venueFilterNotifier.value),
+              ),
+              _stackChild(
+                index: 1,
+                selectedIndex: selectedNavIndex,
+                child: const BookingsPage(),
+              ),
+              _stackChild(
+                index: 2,
+                selectedIndex: selectedNavIndex,
+                child: MessagesPage(),
+              ),
+              _stackChild(
+                index: 3,
+                selectedIndex: selectedNavIndex,
+                child: const WishlistPage(),
+              ),
+              _stackChild(
+                index: 4,
+                selectedIndex: selectedNavIndex,
+                child: ProfilePage(),
+              ),
             ],
           ),
         ),
       ],
     );
+  }
+
+  Widget _stackChild({
+    required int index,
+    required int selectedIndex,
+    required Widget child,
+  }) {
+    final bool active = index == selectedIndex;
+    // No ExcludeSemantics here: RenderIndexedStack already visits only the
+    // displayed child for semantics. Toggling an exclusion boundary on top of
+    // that made the branch leave and rejoin the semantics tree on every tab
+    // switch, which is what tripped the framework's parent-data assertion.
+    return TickerMode(enabled: active, child: child);
   }
 
   Widget _homeHeader() {

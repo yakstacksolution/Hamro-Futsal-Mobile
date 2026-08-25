@@ -8,6 +8,7 @@ import 'package:hamro_footsall/core/theme/futsal_theme.dart';
 import 'package:hamro_footsall/core/utils/app_utils.dart';
 import 'package:hamro_footsall/core/utils/dimens.dart';
 import 'package:hamro_footsall/core/widgets/custom_button.dart';
+import 'package:hamro_footsall/core/widgets/custom_confirm_dialog.dart';
 import 'package:hamro_footsall/core/widgets/loading_widget.dart';
 import 'package:hamro_footsall/features/dashboard/presentation/page/dashboard_screen.dart';
 import 'package:hamro_footsall/features/message/data/model/conversation_model.dart';
@@ -255,6 +256,32 @@ class _MessagesViewState extends State<_MessagesView>
     );
   }
 
+  /// Answers a group invitation from the inbox. Declining is confirmed first —
+  /// it drops the conversation off this user's list and cannot be undone from
+  /// here.
+  Future<void> _respondToInvitation(
+    ConversationModel conversation, {
+    required bool accept,
+  }) async {
+    if (!accept) {
+      final bool confirmed = await showConfirmDialog(
+        context: context,
+        title: StringConstants.groupInvitation,
+        message:
+            'Decline the invitation to '
+            '"${conversation.displayTitle(_bloc.state.currentUserId)}"?',
+        confirmText: StringConstants.decline,
+        cancelText: StringConstants.cancel,
+        confirmColor: LightColor.redColor,
+        icon: Icons.close_rounded,
+      );
+      if (!confirmed || !mounted) return;
+    }
+    _bloc.add(
+      RespondToConversationInvitationEvent(conversation.id, accept: accept),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<MessageBloc, MessageState>(
@@ -263,7 +290,10 @@ class _MessagesViewState extends State<_MessagesView>
       // nothing the second time.
       listenWhen: (previous, current) =>
           previous.createdGroup != current.createdGroup ||
-          (previous.groupCreating && !current.groupCreating),
+          (previous.groupCreating && !current.groupCreating) ||
+          // Invitation answers (and the other inbox actions) report through
+          // actionBusy, so their outcome is announced when one settles.
+          (previous.actionBusy && !current.actionBusy),
       listener: (context, state) {
         final bloc = context.read<MessageBloc>();
         final created = state.createdGroup;
@@ -281,6 +311,15 @@ class _MessagesViewState extends State<_MessagesView>
         }
         if (state.errorMessage != null) {
           AppUtils().showSnackBar(context, MsgType.error, state.errorMessage!);
+          bloc.add(const ClearMessageActionEvent());
+          return;
+        }
+        if (state.actionMessage != null) {
+          AppUtils().showSnackBar(
+            context,
+            MsgType.success,
+            state.actionMessage!,
+          );
           bloc.add(const ClearMessageActionEvent());
         }
       },
@@ -414,10 +453,16 @@ class _MessagesViewState extends State<_MessagesView>
                 ),
               );
             }
+            final ConversationModel conversation = items[i];
             return MessageCard(
-              conversation: items[i],
-              currentUserId: context.read<MessageBloc>().state.currentUserId,
-              onTap: () => _openChat(items[i]),
+              conversation: conversation,
+              currentUserId: state.currentUserId,
+              onTap: () => _openChat(conversation),
+              onAcceptInvitation: () =>
+                  _respondToInvitation(conversation, accept: true),
+              onDeclineInvitation: () =>
+                  _respondToInvitation(conversation, accept: false),
+              invitationBusy: state.actionBusy,
             );
           },
         ),

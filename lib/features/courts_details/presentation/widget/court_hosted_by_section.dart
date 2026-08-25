@@ -14,6 +14,7 @@ class CourtHostedBySection extends StatelessWidget {
     required this.hostSince,
     required this.hostedCourts,
     required this.rating,
+    this.reviewCount = 0,
     this.avatarUrl,
     this.hostedVenues,
     this.responseRate,
@@ -24,6 +25,7 @@ class CourtHostedBySection extends StatelessWidget {
   final String hostSince;
   final int hostedCourts;
   final double rating;
+  final int reviewCount;
   final String? avatarUrl;
   final int? hostedVenues;
   final double? responseRate;
@@ -179,6 +181,9 @@ class CourtHostedBySection extends StatelessWidget {
                   icon: Icons.star_rounded,
                   label: StringConstants.rating,
                   value: rating.toStringAsFixed(1),
+                  detail: reviewCount == 1
+                      ? '1 review'
+                      : '$reviewCount reviews',
                 ),
               ],
             ),
@@ -231,11 +236,13 @@ class _HostMetricTile extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.value,
+    this.detail,
   });
 
   final IconData icon;
   final String label;
   final String value;
+  final String? detail;
 
   @override
   Widget build(BuildContext context) {
@@ -267,11 +274,26 @@ class _HostMetricTile extends StatelessWidget {
             const SizedBox(height: AppDimens.sizeX1),
             Text(
               label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: FutsalTheme.getTextTheme(context).bodySubTitle?.copyWith(
                 color: LightColor.secondaryTextColor,
                 fontWeight: FontWeight.w600,
               ),
             ),
+            if (detail case final String detailText) ...<Widget>[
+              const SizedBox(height: AppDimens.sizeX1),
+              Text(
+                detailText,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: FutsalTheme.getTextTheme(context).bodyMiniSubTitle
+                    ?.copyWith(
+                      color: LightColor.hintTextColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
+            ],
           ],
         ),
       ),

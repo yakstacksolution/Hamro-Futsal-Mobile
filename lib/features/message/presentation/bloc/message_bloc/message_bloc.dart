@@ -26,6 +26,7 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
     on<AddGroupMembersEvent>(_onAddGroupMembers);
     on<RenameGroupConversationEvent>(_onRenameGroup);
     on<LeaveGroupConversationEvent>(_onLeaveGroup);
+    on<RespondToConversationInvitationEvent>(_onRespondToInvitation);
     on<ClearLeftConversationEvent>(_onClearLeftConversation);
     on<ClearCreatedGroupEvent>(_onClearCreatedGroup);
     on<LoadMessageProfileEvent>(_onLoadMessageProfile);
@@ -419,6 +420,75 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
 
   /// Leaving drops the conversation from this user's inbox, so the row goes
   /// as well as the membership — a refresh would not bring it back.
+  /// Accept or decline a group invitation straight from the inbox.
+  ///
+  /// Accepting keeps the row and clears its pending flags, so the card turns
+  /// into an ordinary conversation without waiting for a refetch. Declining
+  /// drops the row — the user is no longer part of that conversation — and
+  /// closes it if it happened to be open.
+  Future<void> _onRespondToInvitation(
+    RespondToConversationInvitationEvent event,
+    Emitter<MessageState> emit,
+  ) async {
+    if (state.actionBusy) return;
+    emit(
+      state.copyWith(
+        actionBusy: true,
+        clearActionMessage: true,
+        clearErrorMessage: true,
+      ),
+    );
+
+    final result = await useCase.respondToConversationInvitation(
+      event.conversationId,
+      accept: event.accept,
+    );
+
+    result.fold(
+      (failure) => emit(
+        state.copyWith(actionBusy: false, errorMessage: failure.errorMessage),
+      ),
+      (_) {
+        if (event.accept) {
+          final ConversationModel? current = _conversationById(
+            event.conversationId,
+          );
+          emit(
+            state.copyWith(
+              actionBusy: false,
+              actionMessage: 'You joined the group.',
+              conversations: current == null
+                  ? state.conversations
+                  : _upsertConversation(
+                      current.copyWith(
+                        invitationStatus: 'accepted',
+                        canAcceptInvitation: false,
+                        canDeclineInvitation: false,
+                      ),
+                    ),
+              clearErrorMessage: true,
+            ),
+          );
+          return;
+        }
+
+        final bool wasActive =
+            state.activeConversationId == event.conversationId;
+        emit(
+          state.copyWith(
+            actionBusy: false,
+            actionMessage: 'Invitation declined.',
+            conversations: state.conversations
+                .where((c) => c.id != event.conversationId)
+                .toList(growable: false),
+            clearActiveConversation: wasActive,
+            clearErrorMessage: true,
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> _onLeaveGroup(
     LeaveGroupConversationEvent event,
     Emitter<MessageState> emit,

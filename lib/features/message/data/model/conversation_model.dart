@@ -21,6 +21,9 @@ class ParticipantModel {
     required this.name,
     String? email,
     this.role = '',
+    this.invitationStatus = '',
+    this.invitedAt,
+    this.respondedAt,
     this.avatarId,
     this.avatarUrl = '',
     this.isBlocked = false,
@@ -40,6 +43,15 @@ class ParticipantModel {
   final String? _email;
   String get email => _email ?? '';
   final String role;
+
+  /// Where this member stands on their invitation: `accepted`, `pending`, or
+  /// `declined`. Empty when the server does not report one.
+  final String invitationStatus;
+  final DateTime? invitedAt;
+  final DateTime? respondedAt;
+
+  /// Still waiting on this member to answer their group invitation.
+  bool get isInvitePending => invitationStatus.toLowerCase() == 'pending';
 
   /// Media library id behind [avatarUrl] (`avatar.id`), null when unset.
   final int? avatarId;
@@ -62,6 +74,9 @@ class ParticipantModel {
       name: (json['name'] ?? '').toString(),
       email: (json['email'] ?? json['user']?['email'] ?? '').toString(),
       role: (json['role'] ?? '').toString(),
+      invitationStatus: (json['invitation_status'] ?? '').toString(),
+      invitedAt: DateTime.tryParse(json['invited_at']?.toString() ?? ''),
+      respondedAt: DateTime.tryParse(json['responded_at']?.toString() ?? ''),
       avatarId: avatar is Map
           ? int.tryParse(avatar['id']?.toString() ?? '')
           : null,
@@ -91,6 +106,9 @@ class ParticipantModel {
     name: name,
     email: email,
     role: role,
+    invitationStatus: invitationStatus,
+    invitedAt: invitedAt,
+    respondedAt: respondedAt,
     avatarId: avatarId,
     avatarUrl: avatarUrl,
     isBlocked: isBlocked ?? this.isBlocked,
@@ -124,6 +142,9 @@ class ConversationModel {
     required this.type,
     this.title,
     this.status = '',
+    this.invitationStatus = '',
+    this.canAcceptInvitation = false,
+    this.canDeclineInvitation = false,
     this.venueId,
     this.venue,
     this.conversationableType,
@@ -144,6 +165,13 @@ class ConversationModel {
   final String type;
   final String? title;
   final String status;
+
+  /// The signed-in user's own standing in this conversation: `accepted`,
+  /// `pending` or `declined`. A group someone added them to arrives `pending`
+  /// and must be answered before the thread opens.
+  final String invitationStatus;
+  final bool canAcceptInvitation;
+  final bool canDeclineInvitation;
   final int? venueId;
   final ConversationVenueModel? venue;
   final String? conversationableType;
@@ -162,6 +190,13 @@ class ConversationModel {
 
   bool get isGroup => type == 'group';
   bool get isUnread => unreadCount > 0;
+
+  /// An invitation this user has not answered yet. The server's two `can_*`
+  /// flags are the authority — the status alone can read `pending` on a row
+  /// the user is not the one being asked about.
+  bool get isInvitePending =>
+      invitationStatus.toLowerCase() == 'pending' &&
+      (canAcceptInvitation || canDeclineInvitation);
 
   /// The participant who isn't the signed-in user (direct chats).
   ParticipantModel? otherParticipant(int currentUserId) {
@@ -222,6 +257,9 @@ class ConversationModel {
       type: (json['type'] ?? 'direct').toString(),
       title: json['title']?.toString(),
       status: (json['status'] ?? '').toString(),
+      invitationStatus: (json['invitation_status'] ?? '').toString(),
+      canAcceptInvitation: _asBool(json['can_accept_invitation']),
+      canDeclineInvitation: _asBool(json['can_decline_invitation']),
       venueId: int.tryParse(json['venue_id']?.toString() ?? ''),
       venue: json['venue'] is Map
           ? ConversationVenueModel.fromJson(
@@ -256,6 +294,9 @@ class ConversationModel {
 
   ConversationModel copyWith({
     String? title,
+    String? invitationStatus,
+    bool? canAcceptInvitation,
+    bool? canDeclineInvitation,
     int? unreadCount,
     bool? isMuted,
     bool? isPinned,
@@ -266,6 +307,9 @@ class ConversationModel {
     type: type,
     title: title ?? this.title,
     status: status,
+    invitationStatus: invitationStatus ?? this.invitationStatus,
+    canAcceptInvitation: canAcceptInvitation ?? this.canAcceptInvitation,
+    canDeclineInvitation: canDeclineInvitation ?? this.canDeclineInvitation,
     venueId: venueId,
     venue: venue,
     conversationableType: conversationableType,
@@ -302,6 +346,9 @@ class ConversationModel {
       type: type,
       title: title,
       status: status,
+      invitationStatus: invitationStatus,
+      canAcceptInvitation: canAcceptInvitation,
+      canDeclineInvitation: canDeclineInvitation,
       venueId: venueId,
       venue: venue,
       conversationableType: conversationableType,

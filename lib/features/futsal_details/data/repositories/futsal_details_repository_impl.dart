@@ -75,7 +75,7 @@ final class FutsalDetailsRepositoryImpl extends FutsalDetailsRepository {
   Future<Either<AppException, VenueReviewPageModel>> getVenueReviews({
     required int venueId,
     int page = 1,
-    int perPage = 10,
+    int perPage = 5,
   }) async {
     final response = await _remoteDataSource.getVenueReviews(
       venueId: venueId,

@@ -49,6 +49,46 @@ void main() {
     expect(recurring.remainingBookingBalance, 1200);
   });
 
+  test('prefers booking_status over generic status for booking state', () {
+    final List<BookingModel> bookings = BookingModel.listFromResponse(
+      <String, dynamic>{
+        'status': 'success',
+        'message': 'Futsal bookings fetched successfully.',
+        'data': <String, dynamic>{
+          'items': <Map<String, dynamic>>[
+            <String, dynamic>{
+              'id': 237,
+              'booking_code': 'BK-JLURIQQJ',
+              'booking_date': '2026-08-24',
+              'start_time': '14:00:00',
+              'end_time': '15:00:00',
+              'total_amount': 1200,
+              'payment_status': 'pending',
+              'booking_status': 'cancelled',
+              'status': 'unconfirmed',
+              'payments': <Map<String, dynamic>>[
+                <String, dynamic>{
+                  'id': 257,
+                  'payment_method': 'cash',
+                  'amount': 1200,
+                  'status': 'failed',
+                  'verification_status': 'rejected',
+                },
+              ],
+              'venue': <String, dynamic>{'id': 47, 'name': 'Rising 4 Futsal'},
+              'court': <String, dynamic>{'id': 47, 'name': 'Court A'},
+            },
+          ],
+        },
+      },
+    );
+
+    final BookingModel booking = bookings.single;
+    expect(booking.status, BookingStatus.cancelled);
+    expect(booking.paymentStatus, 'pending');
+    expect(booking.payment?.status, 'failed');
+  });
+
   test('tolerates a payload where every optional field is null', () {
     final BookingModel booking = BookingModel.fromJson(<String, dynamic>{
       'id': 99,
