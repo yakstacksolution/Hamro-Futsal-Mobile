@@ -124,3 +124,28 @@ dependencies {
     // Firebase Remote Config
     implementation("com.google.firebase:firebase-config")
 }
+
+tasks.matching { it.name.matches(Regex("process.+Manifest")) }.configureEach {
+    doLast {
+        val adIdPermissions = listOf(
+            """<uses-permission android:name="com.google.android.gms.permission.AD_ID" />""",
+            """<uses-permission android:name="android.permission.ACCESS_ADSERVICES_AD_ID" />""",
+            """<uses-permission android:name="android.permission.ACCESS_ADSERVICES_ATTRIBUTION" />""",
+        )
+
+        layout.buildDirectory
+            .asFile
+            .get()
+            .walkTopDown()
+            .filter { it.isFile && it.name == "AndroidManifest.xml" }
+            .forEach { manifest ->
+                val original = manifest.readText()
+                val cleaned = adIdPermissions.fold(original) { text, permission ->
+                    text.replace(Regex("""\s*${Regex.escape(permission)}"""), "")
+                }
+                if (cleaned != original) {
+                    manifest.writeText(cleaned)
+                }
+            }
+    }
+}

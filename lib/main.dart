@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:firebase_analytics/firebase_analytics.dart';
@@ -27,23 +28,42 @@ import 'package:hamro_footsall/core/utils/string_constants.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
 
-  FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
-  PlatformDispatcher.instance.onError = (error, stack) {
-    FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
-    return true;
-  };
+  // Guarded: an unhandled throw here kills the app before runApp() with no UI
+  // and no Crashlytics report, which is what a launch crash looks like from
+  // TestFlight. Analytics/Crashlytics/FCM are all optional to rendering, so a
+  // failure degrades the launch instead of ending it.
+  bool firebaseReady = false;
+  try {
+    await Firebase.initializeApp();
+    firebaseReady = true;
+  } catch (error, stack) {
+    debugPrint('Firebase initialization failed: $error\n$stack');
+  }
+
+  if (firebaseReady) {
+    FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+    PlatformDispatcher.instance.onError = (error, stack) {
+      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+      return true;
+    };
+  }
 
   final SharedPreferences preferences = await SharedPreferences.getInstance();
   await AppSettings().init(SharedPreferencesWrapper(preferences));
   final bool hasLoggedIn =
       AppSettings().tokenModel.accessToken?.trim().isNotEmpty ?? false;
-  await dotenv.load(fileName: ".env");
-
-  await FcmHelper().init();
-  if (hasLoggedIn) {
-    await FcmHelper().syncTokenAfterLogin();
+  // A missing or unbundled .env used to throw here, before runApp() — which
+  // rendered a black screen on release builds instead of the app.
+  try {
+    await dotenv.load(fileName: ".env");
+  } catch (error, stack) {
+    // Initialise empty so every later dotenv.env read falls back instead of
+    // throwing NotInitializedError.
+    dotenv.loadFromString(envString: '');
+    if (firebaseReady) {
+      FirebaseCrashlytics.instance.recordError(error, stack, fatal: false);
+    }
   }
 
   // Biometric login is only a quick sign-in on the login screen after a
@@ -53,6 +73,19 @@ void main() async {
       : AppRouterParams.login.path;
 
   runApp(MyApp(initialLocation: initialLocation));
+
+  // Deliberately after runApp and unawaited. FirebaseMessaging.requestPermission
+  // blocks on the iOS system permission sheet and an APNs round trip, so
+  // awaiting it here held back the first frame and left the native splash on
+  // screen far longer than Android's. FcmHelper.init is idempotent and every
+  // step inside it already handles its own failures.
+  unawaited(
+    FcmHelper().init().then((_) async {
+      if (hasLoggedIn) {
+        await FcmHelper().syncTokenAfterLogin();
+      }
+    }),
+  );
 }
 
 class MyApp extends StatefulWidget {

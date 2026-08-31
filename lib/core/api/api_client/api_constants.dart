@@ -8,9 +8,15 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 const int kVenueListPerPage = 5;
 
 class APIEndpoint {
-  static final String _appUrl = dotenv.env['API_URL']!;
-  static final String _chatUrl = dotenv.env['CHAT_URL']!;
-  static final String _chatXORKey = dotenv.env['CHAT_X_ORIGIN']!;
+  // Read through [dotenv.maybeGet] with an empty fallback: a `!` here threw on
+  // first access whenever .env was missing from the bundle, which surfaced as a
+  // black screen rather than a failed request.
+  static String _read(String key) =>
+      dotenv.isInitialized ? (dotenv.maybeGet(key) ?? '') : '';
+
+  static final String _appUrl = _read('API_URL');
+  static final String _chatUrl = _read('CHAT_URL');
+  static final String _chatXORKey = _read('CHAT_X_ORIGIN');
 
   static String get baseUrl => _appUrl;
 

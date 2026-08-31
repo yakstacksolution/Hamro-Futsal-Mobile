@@ -91,6 +91,16 @@ jobs:
           /usr/libexec/PlistBuddy -c "Set :teamID $APPLE_TEAM_ID" ios/Runner/ExportOptions.plist
           /usr/libexec/PlistBuddy -c "Set :provisioningProfiles:com.np.hamrofutsal $IOS_PROVISIONING_PROFILE_NAME" ios/Runner/ExportOptions.plist
 
+          # The runner has no Xcode account, so automatic signing cannot resolve
+          # a profile. Pin the archive to the distribution cert + profile
+          # imported above, overriding the local-dev default in Signing.xcconfig.
+          {
+            echo "CODE_SIGN_STYLE = Manual"
+            echo "DEVELOPMENT_TEAM = $APPLE_TEAM_ID"
+            echo "CODE_SIGN_IDENTITY[sdk=iphoneos*] = Apple Distribution"
+            echo "PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*] = $IOS_PROVISIONING_PROFILE_NAME"
+          } > ios/Flutter/Signing.xcconfig
+
       # Icons are resolved indirectly through shared widgets, so the release
       # tree-shaker stays off — see the Android workflows for the same note.
       - name: 🛠 Build iOS app

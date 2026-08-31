@@ -1,0 +1,11 @@
+// Release signing for the Runner target.
+//
+// Default (local): automatic signing. Xcode then picks the *development*
+// profile when you build/run on a device (so `flutter run --release` installs)
+// and the *distribution* profile when archiving.
+//
+// CI overwrites this file with manual App Store signing before `flutter build
+// ipa`, because the runner has no Xcode account to drive automatic signing —
+// see .github/workflows/ios.yml.
+CODE_SIGN_STYLE = Automatic
+DEVELOPMENT_TEAM = 324A85657J

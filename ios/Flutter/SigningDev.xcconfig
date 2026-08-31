@@ -1,0 +1,7 @@
+// Signing for the Debug and Profile configurations of the Runner target.
+//
+// Always automatic/development: these configs only ever run on a local device
+// or simulator, never on the App Store. Production signing lives in
+// Signing.xcconfig, which only Release includes.
+CODE_SIGN_STYLE = Automatic
+DEVELOPMENT_TEAM = 324A85657J

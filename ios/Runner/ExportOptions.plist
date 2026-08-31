@@ -5,7 +5,7 @@
 	<key>method</key>
 	<string>app-store-connect</string>
 	<key>teamID</key>
-	<string>REPLACE_WITH_APPLE_TEAM_ID</string>
+	<string>324A85657J</string>
 	<key>uploadSymbols</key>
 	<true/>
 	<key>signingStyle</key>
@@ -13,7 +13,7 @@
 	<key>provisioningProfiles</key>
 	<dict>
 		<key>com.np.hamrofutsal</key>
-		<string>REPLACE_WITH_PROVISIONING_PROFILE_NAME</string>
+		<string>Hamro Futsal</string>
 	</dict>
 	<key>destination</key>
 	<string>export</string>

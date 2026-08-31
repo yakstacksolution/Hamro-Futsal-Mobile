@@ -229,31 +229,31 @@ PODS:
     - GoogleToolboxForMac/Defines (= 4.2.1)
   - "GoogleToolboxForMac/NSData+zlib (4.2.1)":
     - GoogleToolboxForMac/Defines (= 4.2.1)
-  - GoogleUtilities/AppDelegateSwizzler (8.1.2):
+  - GoogleUtilities/AppDelegateSwizzler (8.1.3):
     - GoogleUtilities/Environment
     - GoogleUtilities/Logger
     - GoogleUtilities/Network
     - GoogleUtilities/Privacy
-  - GoogleUtilities/Environment (8.1.2):
+  - GoogleUtilities/Environment (8.1.3):
     - GoogleUtilities/Privacy
-  - GoogleUtilities/Logger (8.1.2):
+  - GoogleUtilities/Logger (8.1.3):
     - GoogleUtilities/Environment
     - GoogleUtilities/Privacy
-  - GoogleUtilities/MethodSwizzler (8.1.2):
+  - GoogleUtilities/MethodSwizzler (8.1.3):
     - GoogleUtilities/Logger
     - GoogleUtilities/Privacy
-  - GoogleUtilities/Network (8.1.2):
+  - GoogleUtilities/Network (8.1.3):
     - GoogleUtilities/Logger
     - "GoogleUtilities/NSData+zlib"
     - GoogleUtilities/Privacy
     - GoogleUtilities/Reachability
-  - "GoogleUtilities/NSData+zlib (8.1.2)":
+  - "GoogleUtilities/NSData+zlib (8.1.3)":
     - GoogleUtilities/Privacy
-  - GoogleUtilities/Privacy (8.1.2)
-  - GoogleUtilities/Reachability (8.1.2):
+  - GoogleUtilities/Privacy (8.1.3)
+  - GoogleUtilities/Reachability (8.1.3):
     - GoogleUtilities/Logger
     - GoogleUtilities/Privacy
-  - GoogleUtilities/UserDefaults (8.1.2):
+  - GoogleUtilities/UserDefaults (8.1.3):
     - GoogleUtilities/Logger
     - GoogleUtilities/Privacy
   - GTMAppAuth (4.1.1):
@@ -526,7 +526,7 @@ SPEC CHECKSUMS:
   GoogleMLKit: b1eee21a41c57704fe72483b15c85cb2c0cd7444
   GoogleSignIn: ce8c89bb9b37fb624b92e7514cc67335d1e277e4
   GoogleToolboxForMac: d1a2cbf009c453f4d6ded37c105e2f67a32206d8
-  GoogleUtilities: 766ace00c6b10d8148408f329d10c4f051931850
+  GoogleUtilities: 4e0c2ad9fa0d0d18b5c4df8bf57b461cba35b0bb
   GTMAppAuth: f69bd07d68cd3b766125f7e072c45d7340dea0de
   GTMSessionFetcher: 5aea5ba6bd522a239e236100971f10cb71b96ab6
   image_picker_ios: 4f2f91b01abdb52842a8e277617df877e40f905b
