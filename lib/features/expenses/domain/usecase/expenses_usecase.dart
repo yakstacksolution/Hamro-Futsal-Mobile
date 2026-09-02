@@ -1,9 +1,9 @@
 import 'package:dartz/dartz.dart';
-import 'package:hamro_footsall/core/helper/exception_helper.dart';
-import 'package:hamro_footsall/features/expenses/data/model/expense_model.dart';
-import 'package:hamro_footsall/features/expenses/data/model/expense_report_model.dart';
-import 'package:hamro_footsall/features/expenses/domain/entities/expense_entities.dart';
-import 'package:hamro_footsall/features/expenses/domain/repository/expenses_repository.dart';
+import 'package:hamro_futsal/core/helper/exception_helper.dart';
+import 'package:hamro_futsal/features/expenses/data/model/expense_model.dart';
+import 'package:hamro_futsal/features/expenses/data/model/expense_report_model.dart';
+import 'package:hamro_futsal/features/expenses/domain/entities/expense_entities.dart';
+import 'package:hamro_futsal/features/expenses/domain/repository/expenses_repository.dart';
 
 final class ExpensesUseCase {
   const ExpensesUseCase(this.repository);

@@ -28,7 +28,7 @@ class SignInEntity extends Equatable {
 /// vendor as a candidate.
 abstract final class AccountTypeLabels {
   static const String player = 'Player';
-  static const String vendor = 'Footsall Vendor';
+  static const String vendor = 'Futsal Vendor';
 
   static const List<String> all = <String>[player, vendor];
 }
@@ -149,5 +149,31 @@ class GoogleSignInEntity extends Equatable {
 
   Map<String, dynamic> toMap() {
     return <String, dynamic>{"id_token": idToken};
+  }
+}
+
+/// Credentials from the Apple sign-in flow, exchanged with the backend for the
+/// app's own session token.
+///
+/// Apple only returns [email] and [fullName] on the very first authorization
+/// for an Apple ID; every later sign-in omits them, so [toMap] leaves those
+/// keys out rather than sending blanks and letting the backend overwrite a
+/// stored name with an empty string.
+class AppleSignInEntity extends Equatable {
+  final String? idToken;
+  final String? email;
+  final String? fullName;
+
+  const AppleSignInEntity({this.idToken, this.email, this.fullName});
+
+  @override
+  List<Object?> get props => [idToken, email, fullName];
+
+  Map<String, dynamic> toMap() {
+    return <String, dynamic>{
+      "id_token": idToken,
+      if (email != null && email!.isNotEmpty) "email": email,
+      if (fullName != null && fullName!.isNotEmpty) "full_name": fullName,
+    };
   }
 }

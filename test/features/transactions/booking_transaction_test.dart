@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hamro_footsall/features/bookings/data/model/booking_model.dart';
-import 'package:hamro_footsall/features/transactions/domain/model/booking_transaction.dart';
+import 'package:hamro_futsal/features/bookings/data/model/booking_model.dart';
+import 'package:hamro_futsal/features/transactions/domain/model/booking_transaction.dart';
 
 void main() {
   group('BookingTransaction', () {

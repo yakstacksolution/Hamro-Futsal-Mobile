@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hamro_footsall/features/opponent_match/data/model/opponent_match_model.dart';
+import 'package:hamro_futsal/features/opponent_match/data/model/opponent_match_model.dart';
 
 /// `GET /auth/opponent-requests/{id}/invitations`, verbatim: two pending
 /// invitations, each naming its team and the captain who sent it, with no

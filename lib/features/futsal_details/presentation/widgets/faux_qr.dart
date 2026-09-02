@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:hamro_footsall/core/theme/app_colors.dart';
+import 'package:hamro_futsal/core/theme/app_colors.dart';
 
 /// A decorative, QR-looking code rendered from [data]. It is NOT a scannable
 /// QR — it stands in for the company's payment QR image until a real QR asset

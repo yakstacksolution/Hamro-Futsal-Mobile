@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hamro_footsall/features/opponent_match/presentation/utils/opponent_ui_utils.dart';
+import 'package:hamro_futsal/features/opponent_match/presentation/utils/opponent_ui_utils.dart';
 
 /// The "Accept within" pill: the label has to say how much time is really
 /// left, not the minutes part of it.

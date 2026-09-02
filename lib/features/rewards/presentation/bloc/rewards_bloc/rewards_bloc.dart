@@ -3,9 +3,9 @@ import 'dart:async';
 import 'package:bloc/bloc.dart';
 import 'package:dartz/dartz.dart';
 import 'package:equatable/equatable.dart';
-import 'package:hamro_footsall/core/helper/exception_helper.dart';
-import 'package:hamro_footsall/features/rewards/data/model/rewards_model.dart';
-import 'package:hamro_footsall/features/rewards/domain/usecase/rewards_usecase.dart';
+import 'package:hamro_futsal/core/helper/exception_helper.dart';
+import 'package:hamro_futsal/features/rewards/data/model/rewards_model.dart';
+import 'package:hamro_futsal/features/rewards/domain/usecase/rewards_usecase.dart';
 
 part 'rewards_event.dart';
 part 'rewards_state.dart';

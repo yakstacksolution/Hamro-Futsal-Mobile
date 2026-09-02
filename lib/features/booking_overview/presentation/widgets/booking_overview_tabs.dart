@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:hamro_footsall/core/utils/dimens.dart';
-import 'package:hamro_footsall/core/utils/responsive.dart';
-import 'package:hamro_footsall/features/booking_overview/presentation/models/booking_analytics.dart';
-import 'package:hamro_footsall/features/booking_overview/presentation/widgets/booking_overview_chart_widgets.dart';
-import 'package:hamro_footsall/features/booking_overview/presentation/widgets/booking_overview_common.dart';
-import 'package:hamro_footsall/features/booking_overview/presentation/widgets/booking_overview_leaderboard_widgets.dart';
-import 'package:hamro_footsall/features/booking_overview/presentation/widgets/booking_overview_summary_widgets.dart';
+import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/utils/responsive.dart';
+import 'package:hamro_futsal/features/booking_overview/presentation/models/booking_analytics.dart';
+import 'package:hamro_futsal/features/booking_overview/presentation/widgets/booking_overview_chart_widgets.dart';
+import 'package:hamro_futsal/features/booking_overview/presentation/widgets/booking_overview_common.dart';
+import 'package:hamro_futsal/features/booking_overview/presentation/widgets/booking_overview_leaderboard_widgets.dart';
+import 'package:hamro_futsal/features/booking_overview/presentation/widgets/booking_overview_summary_widgets.dart';
 
 /// "How is the business doing?" — net revenue hero, KPI snapshot, profit.
 class BookingOverviewTab extends StatelessWidget {

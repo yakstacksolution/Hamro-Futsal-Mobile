@@ -3,11 +3,11 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 
-import 'package:hamro_footsall/core/routers/app_router_params.dart';
-import 'package:hamro_footsall/core/theme/app_colors.dart';
-import 'package:hamro_footsall/core/theme/futsal_theme.dart';
-import 'package:hamro_footsall/core/utils/dimens.dart';
-import 'package:hamro_footsall/core/utils/string_constants.dart';
+import 'package:hamro_futsal/core/routers/app_router_params.dart';
+import 'package:hamro_futsal/core/theme/app_colors.dart';
+import 'package:hamro_futsal/core/theme/futsal_theme.dart';
+import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 class CourtLocationMapSection extends StatelessWidget {
   const CourtLocationMapSection({
@@ -166,7 +166,7 @@ class CourtLocationMapSection extends StatelessWidget {
                             TileLayer(
                               urlTemplate:
                                   'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                              userAgentPackageName: 'hamro_footsall',
+                              userAgentPackageName: 'hamro_futsal',
                               panBuffer: 0,
                               keepBuffer: 0,
                             ),

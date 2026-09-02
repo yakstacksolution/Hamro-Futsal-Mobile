@@ -1,5 +1,5 @@
-import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_drafts.dart';
-import 'package:hamro_footsall/features/vendor/presentation/models/weekday_option.dart';
+import 'package:hamro_futsal/features/vendor/presentation/models/vendor_onboarding_drafts.dart';
+import 'package:hamro_futsal/features/vendor/presentation/models/weekday_option.dart';
 
 final class CourtOnboardingResponseModel {
   const CourtOnboardingResponseModel({

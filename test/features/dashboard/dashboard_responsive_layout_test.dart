@@ -2,15 +2,15 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hamro_footsall/core/utils/dimens.dart';
-import 'package:hamro_footsall/core/utils/string_constants.dart';
-import 'package:hamro_footsall/features/dashboard/presentation/page/footsall_home_page.dart';
-import 'package:hamro_footsall/features/dashboard/presentation/widgets/dashboard_nav_destinations.dart';
-import 'package:hamro_footsall/features/dashboard/presentation/widgets/dashboard_layout.dart';
-import 'package:hamro_footsall/features/dashboard/presentation/widgets/dashboard_side_nav.dart';
-import 'package:hamro_footsall/features/dashboard/presentation/widgets/loading/home_body_loading.dart';
-import 'package:hamro_footsall/features/dashboard/presentation/widgets/venue_status_widget.dart';
-import 'package:hamro_footsall/features/public/data/model/public_venue_model.dart';
+import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
+import 'package:hamro_futsal/features/dashboard/presentation/page/futsal_home_page.dart';
+import 'package:hamro_futsal/features/dashboard/presentation/widgets/dashboard_nav_destinations.dart';
+import 'package:hamro_futsal/features/dashboard/presentation/widgets/dashboard_layout.dart';
+import 'package:hamro_futsal/features/dashboard/presentation/widgets/dashboard_side_nav.dart';
+import 'package:hamro_futsal/features/dashboard/presentation/widgets/loading/home_body_loading.dart';
+import 'package:hamro_futsal/features/dashboard/presentation/widgets/venue_status_widget.dart';
+import 'package:hamro_futsal/features/public/data/model/public_venue_model.dart';
 
 /// Sizes representing each breakpoint.
 const Size _phone = Size(411, 891);

@@ -1,8 +1,8 @@
 import 'package:dartz/dartz.dart';
-import 'package:hamro_footsall/core/helper/exception_helper.dart';
-import 'package:hamro_footsall/core/helper/response_helper.dart';
-import 'package:hamro_footsall/features/change_password/data/data_source/change_password_data_source.dart';
-import 'package:hamro_footsall/features/change_password/domain/repository/change_password_repository.dart';
+import 'package:hamro_futsal/core/helper/exception_helper.dart';
+import 'package:hamro_futsal/core/helper/response_helper.dart';
+import 'package:hamro_futsal/features/change_password/data/data_source/change_password_data_source.dart';
+import 'package:hamro_futsal/features/change_password/domain/repository/change_password_repository.dart';
 
 final class ChangePasswordRepositoryImpl extends ChangePasswordRepository {
   ChangePasswordRepositoryImpl({

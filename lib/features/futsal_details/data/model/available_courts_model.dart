@@ -1,6 +1,6 @@
-import 'package:hamro_footsall/core/utils/string_constants.dart';
-import 'package:hamro_footsall/features/futsal_details/data/model/time_slot_model.dart';
-import 'package:hamro_footsall/features/futsal_details/data/model/venue_court_item_model.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
+import 'package:hamro_futsal/features/futsal_details/data/model/time_slot_model.dart';
+import 'package:hamro_futsal/features/futsal_details/data/model/venue_court_item_model.dart';
 
 final class AvailableCourtsModel {
   const AvailableCourtsModel({

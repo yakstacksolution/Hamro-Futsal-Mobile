@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:hamro_footsall/core/theme/app_colors.dart';
-import 'package:hamro_footsall/core/theme/futsal_theme.dart';
-import 'package:hamro_footsall/core/utils/dimens.dart';
-import 'package:hamro_footsall/features/expenses/data/model/expense_model.dart';
-import 'package:hamro_footsall/features/expenses/data/model/expense_report_model.dart';
-import 'package:hamro_footsall/features/expenses/presentation/utils/expense_ui_utils.dart';
-import 'package:hamro_footsall/features/expenses/presentation/widgets/expense_common.dart';
+import 'package:hamro_futsal/core/theme/app_colors.dart';
+import 'package:hamro_futsal/core/theme/futsal_theme.dart';
+import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/features/expenses/data/model/expense_model.dart';
+import 'package:hamro_futsal/features/expenses/data/model/expense_report_model.dart';
+import 'package:hamro_futsal/features/expenses/presentation/utils/expense_ui_utils.dart';
+import 'package:hamro_futsal/features/expenses/presentation/widgets/expense_common.dart';
 import 'package:syncfusion_flutter_charts/sparkcharts.dart';
-import 'package:hamro_footsall/core/utils/string_constants.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 /// Total-spend hero card: animated count-up total, per-day/entries subtitle
 /// and a sparkline of the server-computed trend series.

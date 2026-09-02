@@ -1,25 +1,32 @@
+import 'dart:io' show Platform;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
-import 'package:hamro_footsall/core/helper/share_preferences.dart';
-import 'package:hamro_footsall/core/helper/fcm_helper.dart';
-import 'package:hamro_footsall/core/routers/app_router_params.dart';
-import 'package:hamro_footsall/core/security/biometric_auth_service.dart';
-import 'package:hamro_footsall/core/security/biometric_session_store.dart';
-import 'package:hamro_footsall/core/theme/app_colors.dart';
-import 'package:hamro_footsall/core/theme/futsal_theme.dart';
-import 'package:hamro_footsall/core/utils/app_utils.dart';
-import 'package:hamro_footsall/core/utils/dimens.dart';
-import 'package:hamro_footsall/core/utils/responsive.dart';
-import 'package:hamro_footsall/core/validation/app_validators.dart';
-import 'package:hamro_footsall/features/auth/presentation/authentication_bloc/authentication_bloc.dart';
-import 'package:hamro_footsall/features/auth/presentation/widgets/auth_screen_frame.dart';
-import 'package:hamro_footsall/features/auth/presentation/widgets/login_form.dart';
-import 'package:hamro_footsall/features/auth/presentation/widgets/register_form.dart';
-import 'package:hamro_footsall/features/dashboard/presentation/page/dashboard_screen.dart';
-import 'package:hamro_footsall/core/utils/string_constants.dart';
-import 'package:hamro_footsall/features/auth/domain/entities/auth_entities.dart';
+import 'package:hamro_futsal/core/helper/share_preferences.dart';
+import 'package:hamro_futsal/core/helper/fcm_helper.dart';
+import 'package:hamro_futsal/core/routers/app_router_params.dart';
+import 'package:hamro_futsal/core/security/biometric_auth_service.dart';
+import 'package:hamro_futsal/core/security/biometric_session_store.dart';
+import 'package:hamro_futsal/core/theme/app_colors.dart';
+import 'package:hamro_futsal/core/theme/futsal_theme.dart';
+import 'package:hamro_futsal/core/utils/app_utils.dart';
+import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/utils/responsive.dart';
+import 'package:hamro_futsal/core/validation/app_validators.dart';
+import 'package:hamro_futsal/features/auth/presentation/authentication_bloc/authentication_bloc.dart';
+import 'package:hamro_futsal/features/auth/presentation/widgets/auth_screen_frame.dart';
+import 'package:hamro_futsal/features/auth/presentation/widgets/login_form.dart';
+import 'package:hamro_futsal/features/auth/presentation/widgets/register_form.dart';
+import 'package:hamro_futsal/features/dashboard/presentation/page/dashboard_screen.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
+import 'package:hamro_futsal/features/auth/domain/entities/auth_entities.dart';
+
+/// Apple's Sign in with Apple guidelines fix the button's colours, so these
+/// are deliberately not theme tokens.
+const Color _appleButtonBackground = Color(0xFF000000);
+const Color _appleButtonForeground = Color(0xFFFFFFFF);
 
 enum AuthMode { login, register }
 
@@ -73,6 +80,10 @@ class _AuthScreenState extends State<AuthScreen> {
   final TextEditingController _loginPasswordController =
       TextEditingController();
   bool _canUseBiometricLogin = false;
+
+  /// Apple requires the Sign in with Apple button on its own platforms only;
+  /// it is a compile-time constant so the button never appears on Android.
+  static final bool _canUseAppleLogin = Platform.isIOS || Platform.isMacOS;
 
   void _goToHomeAfterLogin() {
     DashboardScreen.selectedNavIndex.value = 0;
@@ -266,6 +277,7 @@ class _AuthScreenState extends State<AuthScreen> {
       listenWhen: (AuthenticationState previous, AuthenticationState current) =>
           previous.loginStatus != current.loginStatus ||
           previous.googleLoginStatus != current.googleLoginStatus ||
+          previous.appleLoginStatus != current.appleLoginStatus ||
           previous.registrationStatus != current.registrationStatus,
       listener: (BuildContext context, AuthenticationState state) {
         final Map<String, dynamic>? errorData =
@@ -273,6 +285,8 @@ class _AuthScreenState extends State<AuthScreen> {
             ? state.loginErrorData as Map<String, dynamic>
             : state.googleLoginErrorData is Map<String, dynamic>
             ? state.googleLoginErrorData as Map<String, dynamic>
+            : state.appleLoginErrorData is Map<String, dynamic>
+            ? state.appleLoginErrorData as Map<String, dynamic>
             : state.registrationErrorData is Map<String, dynamic>
             ? state.registrationErrorData as Map<String, dynamic>
             : null;
@@ -283,6 +297,7 @@ class _AuthScreenState extends State<AuthScreen> {
         // return;
         if ((state.loginStatus == AuthStatus.failure ||
                 state.googleLoginStatus == AuthStatus.failure ||
+                state.appleLoginStatus == AuthStatus.failure ||
                 state.registrationStatus == AuthStatus.failure) &&
             (state.errorMessage != null || errorData != null)) {
           AppUtils().showSnackBar(
@@ -299,7 +314,8 @@ class _AuthScreenState extends State<AuthScreen> {
           }
         }
 
-        if (state.googleLoginStatus == AuthStatus.success &&
+        if ((state.googleLoginStatus == AuthStatus.success ||
+                state.appleLoginStatus == AuthStatus.success) &&
             state.successMessage.isNotEmpty) {
           AppUtils().showSnackBar(
             context,
@@ -338,6 +354,8 @@ class _AuthScreenState extends State<AuthScreen> {
       builder: (BuildContext context, AuthenticationState state) {
         final bool isGoogleSubmitting =
             state.googleLoginStatus == AuthStatus.loading;
+        final bool isAppleSubmitting =
+            state.appleLoginStatus == AuthStatus.loading;
         final bool isSubmitting =
             state.loginStatus == AuthStatus.loading ||
             state.registrationStatus == AuthStatus.loading;
@@ -369,8 +387,8 @@ class _AuthScreenState extends State<AuthScreen> {
               isRotate: isLogin,
               title: isLogin ? 'Welcome Back' : 'Create Your Account',
               subtitle: isLogin
-                  ? 'Sign in to book matches or manage your footsall.'
-                  : 'Join as a player or a footsall vendor.',
+                  ? 'Sign in to book matches or manage your futsal.'
+                  : 'Join as a player or a futsal vendor.',
               primaryButtonLabel: isLogin ? 'Sign In' : 'Create Account',
               primaryButtonIcon: isLogin
                   ? Icons.login_rounded
@@ -379,23 +397,32 @@ class _AuthScreenState extends State<AuthScreen> {
                   ? Icons.sports_soccer_rounded
                   : Icons.person_add_alt_1_rounded,
               primaryButtonEnabled:
-                  !isAnimating && !isSubmitting && !isGoogleSubmitting,
+                  !isAnimating &&
+                  !isSubmitting &&
+                  !isGoogleSubmitting &&
+                  !isAppleSubmitting,
               onPrimaryTap: _submit,
               secondaryPrefixText: isLogin
-                  ? 'New to Footsall App?'
+                  ? 'New to Futsal App?'
                   : 'Already have an account?',
               secondaryActionText: isLogin ? 'Create account' : 'Sign in',
               onSecondaryTap: _toggleMode,
               footer: isLogin
-                  ? _GoogleLoginSection(
+                  ? _SocialLoginSection(
                       enabled:
                           !isAnimating &&
                           !isSubmitting &&
                           !isGoogleSubmitting &&
+                          !isAppleSubmitting &&
                           !_isBiometricSubmitting,
                       isLoading: isGoogleSubmitting,
                       onTap: () => context.read<AuthenticationBloc>().add(
                         const GoogleLoginEvent(),
+                      ),
+                      showApple: _canUseAppleLogin,
+                      isAppleLoading: isAppleSubmitting,
+                      onAppleTap: () => context.read<AuthenticationBloc>().add(
+                        const AppleLoginEvent(),
                       ),
                       showBiometric: _canUseBiometricLogin,
                       isBiometricLoading: _isBiometricSubmitting,
@@ -549,20 +576,29 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 }
 
-/// "or" divider + "Continue with Google" button shown under the login form.
-class _GoogleLoginSection extends StatelessWidget {
-  const _GoogleLoginSection({
+/// "or" divider + the social sign-in buttons shown under the login form.
+///
+/// The Apple button only renders on Apple platforms, where the App Store
+/// review guidelines require it alongside other third-party sign-in options.
+class _SocialLoginSection extends StatelessWidget {
+  const _SocialLoginSection({
     required this.enabled,
     required this.onTap,
+    required this.showApple,
+    required this.onAppleTap,
     required this.showBiometric,
     required this.onBiometricTap,
     this.isLoading = false,
+    this.isAppleLoading = false,
     this.isBiometricLoading = false,
   });
 
   final bool enabled;
   final bool isLoading;
   final VoidCallback onTap;
+  final bool showApple;
+  final bool isAppleLoading;
+  final VoidCallback onAppleTap;
   final bool showBiometric;
   final bool isBiometricLoading;
   final VoidCallback onBiometricTap;
@@ -634,6 +670,55 @@ class _GoogleLoginSection extends StatelessWidget {
             ),
           ),
         ),
+        if (showApple) ...<Widget>[
+          const SizedBox(height: AppDimens.paddingX12),
+          Material(
+            color: _appleButtonBackground,
+            borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+            child: InkWell(
+              key: const Key('apple-login-button'),
+              onTap: enabled ? onAppleTap : null,
+              borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+              child: Container(
+                height: context.isTabletOrWider
+                    ? AppDimens.sizeX52
+                    : AppDimens.sizeX44,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+                  border: Border.all(color: _appleButtonBackground),
+                ),
+                child: isAppleLoading
+                    ? const SizedBox(
+                        width: AppDimens.sizeX18,
+                        height: AppDimens.sizeX18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: _appleButtonForeground,
+                        ),
+                      )
+                    : Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: <Widget>[
+                          const Icon(
+                            Icons.apple,
+                            color: _appleButtonForeground,
+                            size: AppDimens.sizeX22,
+                          ),
+                          const SizedBox(width: AppDimens.paddingX10),
+                          Text(
+                            StringConstants.continueWithApple,
+                            style: textTheme.bodyTextSmall?.copyWith(
+                              color: _appleButtonForeground,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+              ),
+            ),
+          ),
+        ],
         if (showBiometric) ...<Widget>[
           const SizedBox(height: AppDimens.paddingX12),
           Material(

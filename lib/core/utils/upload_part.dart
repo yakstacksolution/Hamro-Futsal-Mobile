@@ -1,5 +1,5 @@
 import 'package:dio/dio.dart';
-import 'package:hamro_footsall/core/utils/upload_attachment.dart';
+import 'package:hamro_futsal/core/utils/upload_attachment.dart';
 
 /// Builds the multipart part for one attachment.
 ///

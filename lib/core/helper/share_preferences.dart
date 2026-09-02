@@ -1,7 +1,7 @@
 import 'dart:convert';
 
-import 'package:hamro_footsall/core/api/api_client/session_gate.dart';
-import 'package:hamro_footsall/features/auth/data/model/token_model.dart';
+import 'package:hamro_futsal/core/api/api_client/session_gate.dart';
+import 'package:hamro_futsal/features/auth/data/model/token_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class _AuthPreferenceKeys {
@@ -55,6 +55,7 @@ class AppSettings {
       jsonEncode(token.toJson()),
     );
   }
+
   TokenModel get tokenModel {
     final tokenString = _preferences.getString(_AuthPreferenceKeys.tokenModel);
     if (tokenString == null || tokenString.isEmpty) {

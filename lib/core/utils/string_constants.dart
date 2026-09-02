@@ -93,7 +93,7 @@ final class StringConstants {
   static const String addDate = 'Add Date';
   static const String addEquipment = 'Add equipment';
   static const String addFirstCourt = 'Add First Court';
-  static const String addFootsallCourt = 'Add Footsall Court';
+  static const String addFutsalCourt = 'Add Futsal Court';
   static const String addImagesOrFilesToYourLibrary =
       'Add images or files to your library.';
   static const String addMedia = 'Add Media';
@@ -300,6 +300,7 @@ final class StringConstants {
   static const String connectThisGroupToAVenue =
       'Connect this group to a venue';
   static const String connected = 'Connected';
+  static const String continueWithApple = 'Continue with Apple';
   static const String continueWithGoogle = 'Continue with Google';
   static const String conversationSettings = 'Conversation settings';
   static const String coordinates = 'Coordinates';
@@ -309,6 +310,8 @@ final class StringConstants {
       'Could not apply the coupon. Please try again.';
   static const String couldNotCheckAvailabilityPleaseTryAgain =
       'Could not check availability. Please try again.';
+  static const String couldNotGetAppleCredentialsPleaseTryAgain =
+      'Could not get Apple credentials. Please try again.';
   static const String couldNotGetGoogleCredentialsPleaseTryAgain =
       'Could not get Google credentials. Please try again.';
   static const String couldNotHoldThisSlotPleaseTryAgain =
@@ -550,16 +553,19 @@ final class StringConstants {
   static const String gallery = 'Gallery';
   static const String general = 'General';
   static const String goBack = 'Go back';
+  static const String appleSignInFailedPleaseTryAgain =
+      'Apple sign-in failed. Please try again.';
+  static const String appleSignInIsNotAvailableOnThisDevice =
+      'Apple sign-in is not available on this device.';
   static const String googleSignInFailedPleaseTryAgain =
       'Google sign-in failed. Please try again.';
   static const String googleSignInIsNotConfiguredMissingGoogleServerClientId =
       'Google sign-in is not configured. Missing GOOGLE_SERVER_CLIENT_ID.';
   static const String group = 'Group';
   static const String growth = 'Growth';
-  static const String hamroFootsall = 'Hamro Footsall';
-  static const String hamroFootsallIsBuiltToMakeLocalFutsalEasierForPl2dfd0648 =
-      'Hamro Footsall is built to make local futsal easier for players, teams, and venue owners. Discover available courts, compare facilities, and book with confidence.';
   static const String hamroFutsal = 'Hamro Futsal';
+  static const String hamroFutsalIsBuiltToMakeLocalFutsalEasierForPl2dfd0648 =
+      'Hamro Futsal is built to make local futsal easier for players, teams, and venue owners. Discover available courts, compare facilities, and book with confidence.';
   static const String hamroFutsalArena = 'Hamro Futsal Arena';
   static const String hamroFutsalArenaSlugExample = 'hamro-futsal-arena';
   static const String hamroFutsalV100 = 'Hamro Futsal · v1.0.0';
@@ -691,7 +697,7 @@ final class StringConstants {
   static const String nameBasePriceAndCourtType =
       'Name, base price, and court type.';
   static const String nameExampleCom = 'name@example.com';
-  static const String nameFootsallCom = 'name@footsall.com';
+  static const String nameFutsalCom = 'name@futsal.com';
   static const String nepal = 'Nepal';
   static const String netProfit = 'Net profit';
   static const String netRevenue = 'Net revenue';
@@ -1309,7 +1315,7 @@ final class StringConstants {
   static const String authPlayerHighlightCompete =
       'Challenge other teams and keep track of every match';
 
-  // Shown while registering once "Footsall Vendor" is chosen.
+  // Shown while registering once "Futsal Vendor" is chosen.
   static const String authVendorHeadline = 'Fill your courts, effortlessly';
   static const String authVendorTagline =
       'List your futsal, take bookings around the clock and run the whole '

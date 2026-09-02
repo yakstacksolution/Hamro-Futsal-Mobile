@@ -4,12 +4,12 @@ import 'package:bloc/bloc.dart';
 import 'package:dartz/dartz.dart';
 import 'package:equatable/equatable.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:hamro_footsall/core/helper/device_location_helper.dart';
-import 'package:hamro_footsall/core/helper/exception_helper.dart';
-import 'package:hamro_footsall/features/public/data/model/public_venue_model.dart';
-import 'package:hamro_footsall/features/public/domain/usecase/get_public_venues_use_case.dart';
-import 'package:hamro_footsall/features/public/presentation/models/venue_filter.dart';
-import 'package:hamro_footsall/core/api/api_client/api_constants.dart';
+import 'package:hamro_futsal/core/helper/device_location_helper.dart';
+import 'package:hamro_futsal/core/helper/exception_helper.dart';
+import 'package:hamro_futsal/features/public/data/model/public_venue_model.dart';
+import 'package:hamro_futsal/features/public/domain/usecase/get_public_venues_use_case.dart';
+import 'package:hamro_futsal/features/public/presentation/models/venue_filter.dart';
+import 'package:hamro_futsal/core/api/api_client/api_constants.dart';
 
 part 'public_venue_event.dart';
 part 'public_venue_state.dart';

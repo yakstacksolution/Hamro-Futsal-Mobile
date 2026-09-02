@@ -1,8 +1,8 @@
 import 'package:dartz/dartz.dart';
-import 'package:hamro_footsall/core/helper/exception_helper.dart';
-import 'package:hamro_footsall/core/utils/upload_attachment.dart';
-import 'package:hamro_footsall/features/account/data/model/account_models.dart';
-import 'package:hamro_footsall/features/account/domain/repository/account_repository.dart';
+import 'package:hamro_futsal/core/helper/exception_helper.dart';
+import 'package:hamro_futsal/core/utils/upload_attachment.dart';
+import 'package:hamro_futsal/features/account/data/model/account_models.dart';
+import 'package:hamro_futsal/features/account/domain/repository/account_repository.dart';
 
 final class AccountUseCase {
   const AccountUseCase(this.repository);

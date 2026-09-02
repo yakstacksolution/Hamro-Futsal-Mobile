@@ -1,7 +1,7 @@
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
-import 'package:hamro_footsall/features/products/data/model/product_models.dart';
-import 'package:hamro_footsall/features/products/domain/usecase/products_usecase.dart';
+import 'package:hamro_futsal/features/products/data/model/product_models.dart';
+import 'package:hamro_futsal/features/products/domain/usecase/products_usecase.dart';
 
 part 'products_event.dart';
 part 'products_state.dart';

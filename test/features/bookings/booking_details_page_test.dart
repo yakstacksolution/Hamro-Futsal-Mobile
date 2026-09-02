@@ -1,12 +1,12 @@
 import 'package:dartz/dartz.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hamro_footsall/core/helper/exception_helper.dart';
-import 'package:hamro_footsall/features/bookings/data/model/booking_model.dart';
-import 'package:hamro_footsall/features/bookings/data/model/booking_review_model.dart';
-import 'package:hamro_footsall/features/bookings/domain/repository/booking_repository.dart';
-import 'package:hamro_footsall/features/bookings/domain/model/paginated_bookings.dart';
-import 'package:hamro_footsall/features/bookings/presentation/pages/booking_details_page.dart';
+import 'package:hamro_futsal/core/helper/exception_helper.dart';
+import 'package:hamro_futsal/features/bookings/data/model/booking_model.dart';
+import 'package:hamro_futsal/features/bookings/data/model/booking_review_model.dart';
+import 'package:hamro_futsal/features/bookings/domain/repository/booking_repository.dart';
+import 'package:hamro_futsal/features/bookings/domain/model/paginated_bookings.dart';
+import 'package:hamro_futsal/features/bookings/presentation/pages/booking_details_page.dart';
 
 void main() {
   testWidgets('renders booking and payment values from the API model', (

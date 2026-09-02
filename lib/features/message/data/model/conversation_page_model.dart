@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:hamro_footsall/features/message/data/model/conversation_model.dart';
+import 'package:hamro_futsal/features/message/data/model/conversation_model.dart';
 
 final class ConversationPageModel extends Equatable {
   const ConversationPageModel({

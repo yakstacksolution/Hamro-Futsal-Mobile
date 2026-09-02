@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
-import 'package:hamro_footsall/core/utils/dimens.dart';
-import 'package:hamro_footsall/core/utils/responsive.dart';
+import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/utils/responsive.dart';
 
 /// Smallest venue-card width that still fits the price and the status pill on
 /// one line with space between them.

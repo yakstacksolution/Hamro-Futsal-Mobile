@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:hamro_footsall/features/auth/data/model/token_model.dart';
+import 'package:hamro_futsal/features/auth/data/model/token_model.dart';
 
 /// Encrypted account session retained only when biometric login is enabled.
 final class BiometricSessionStore {

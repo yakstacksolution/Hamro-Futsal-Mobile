@@ -144,7 +144,7 @@ final class SaveOpponentMatchStepEvent extends OpponentMatchEvent {
   List<Object?> get props => <Object?>[
     request.teamId,
     request.matchFormatId,
-    request.opponentLevelId, 
+    request.opponentLevelId,
   ];
 }
 

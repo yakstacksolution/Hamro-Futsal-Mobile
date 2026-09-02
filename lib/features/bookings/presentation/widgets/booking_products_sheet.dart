@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:hamro_footsall/core/api/client.dart';
-import 'package:hamro_footsall/core/theme/app_colors.dart';
-import 'package:hamro_footsall/core/theme/futsal_text.dart';
-import 'package:hamro_footsall/core/theme/futsal_theme.dart';
-import 'package:hamro_footsall/core/utils/app_utils.dart';
-import 'package:hamro_footsall/core/utils/dimens.dart';
-import 'package:hamro_footsall/core/widgets/custom_bottom_sheet.dart';
-import 'package:hamro_footsall/core/widgets/custom_button.dart';
-import 'package:hamro_footsall/core/widgets/custom_text_field.dart';
-import 'package:hamro_footsall/features/bookings/data/model/booking_model.dart';
-import 'package:hamro_footsall/features/bookings/presentation/widgets/booking_details_widgets.dart';
-import 'package:hamro_footsall/features/products/data/model/product_models.dart';
+import 'package:hamro_futsal/core/api/client.dart';
+import 'package:hamro_futsal/core/theme/app_colors.dart';
+import 'package:hamro_futsal/core/theme/futsal_text.dart';
+import 'package:hamro_futsal/core/theme/futsal_theme.dart';
+import 'package:hamro_futsal/core/utils/app_utils.dart';
+import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/widgets/custom_bottom_sheet.dart';
+import 'package:hamro_futsal/core/widgets/custom_button.dart';
+import 'package:hamro_futsal/core/widgets/custom_text_field.dart';
+import 'package:hamro_futsal/features/bookings/data/model/booking_model.dart';
+import 'package:hamro_futsal/features/bookings/presentation/widgets/booking_details_widgets.dart';
+import 'package:hamro_futsal/features/products/data/model/product_models.dart';
 
 /// Products can only be added before the booking is completed.
 bool bookingSupportsProducts(BookingModel booking) {

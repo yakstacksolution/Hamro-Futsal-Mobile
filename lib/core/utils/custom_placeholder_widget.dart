@@ -1,8 +1,8 @@
-import 'package:hamro_footsall/core/utils/custom_image_view.dart';
-import 'package:hamro_footsall/core/utils/image_constants.dart';
+import 'package:hamro_futsal/core/utils/custom_image_view.dart';
+import 'package:hamro_futsal/core/utils/image_constants.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:flutter/material.dart';
-import 'package:hamro_footsall/core/theme/app_colors.dart';
+import 'package:hamro_futsal/core/theme/app_colors.dart';
 
 class CustomPlaceHolder extends StatelessWidget {
   final double? height;

@@ -1,5 +1,5 @@
-import 'package:hamro_footsall/features/expenses/data/model/expense_model.dart';
-import 'package:hamro_footsall/features/expenses/presentation/utils/expense_ui_utils.dart';
+import 'package:hamro_futsal/features/expenses/data/model/expense_model.dart';
+import 'package:hamro_futsal/features/expenses/presentation/utils/expense_ui_utils.dart';
 
 enum ExpensePeriod { today, week, month, year, custom }
 

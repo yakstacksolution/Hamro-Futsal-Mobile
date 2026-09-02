@@ -1,10 +1,10 @@
 import 'package:dartz/dartz.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:hamro_footsall/core/helper/exception_helper.dart';
-import 'package:hamro_footsall/features/app_update/data/service/in_app_update_service.dart';
-import 'package:hamro_footsall/features/app_update/domain/entities/app_update_check.dart';
-import 'package:hamro_footsall/features/app_update/domain/entities/install_progress.dart';
-import 'package:hamro_footsall/features/app_update/domain/repository/app_update_repository.dart';
+import 'package:hamro_futsal/core/helper/exception_helper.dart';
+import 'package:hamro_futsal/features/app_update/data/service/in_app_update_service.dart';
+import 'package:hamro_futsal/features/app_update/domain/entities/app_update_check.dart';
+import 'package:hamro_futsal/features/app_update/domain/entities/install_progress.dart';
+import 'package:hamro_futsal/features/app_update/domain/repository/app_update_repository.dart';
 
 /// The single entry point the presentation layer uses for updates: check,
 /// decide whether to prompt, snooze, and drive the platform update flow.
@@ -45,7 +45,6 @@ final class CheckAppUpdateUseCase {
     return opened ? PlayFlowOutcome.started : PlayFlowOutcome.failed;
   }
 
-  /// Installs a flexible update that has finished downloading. Restarts the app.
   Future<bool> completeFlexibleUpdate() =>
       _updateService.completeFlexibleUpdate();
 
@@ -55,9 +54,6 @@ final class CheckAppUpdateUseCase {
   Future<bool> openStore(AppUpdateCheck check) => _updateService.openStore(
     storeUrl: check.storeUrl,
     packageName: check.packageName,
-    // Optional: the backend manifest and the iTunes lookup both supply a full
-    // store URL, which is preferred over building one from the id. Guarded
-    // because `maybeGet` throws outright when `.env` was never loaded.
     appStoreId: dotenv.isInitialized
         ? dotenv.maybeGet('IOS_APP_STORE_ID')
         : null,

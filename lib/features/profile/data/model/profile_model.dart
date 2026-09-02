@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_drafts.dart';
+import 'package:hamro_futsal/features/vendor/presentation/models/vendor_onboarding_drafts.dart';
 
 class ProfileModel extends Equatable {
   final String status;

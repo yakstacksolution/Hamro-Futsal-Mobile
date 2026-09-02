@@ -1,4 +1,4 @@
-import 'package:hamro_footsall/features/futsal_details/data/model/time_slot_model.dart';
+import 'package:hamro_futsal/features/futsal_details/data/model/time_slot_model.dart';
 
 /// A single pricing window of a court (e.g. Morning 6 AM – 12 PM → Rs 1000).
 class CourtPriceRule {

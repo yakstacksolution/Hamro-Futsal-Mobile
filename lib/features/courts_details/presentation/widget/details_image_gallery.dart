@@ -2,14 +2,14 @@ import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:hamro_footsall/core/helper/wishlist_store.dart';
-import 'package:hamro_footsall/core/theme/app_colors.dart';
-import 'package:hamro_footsall/core/utils/app_utils.dart';
-import 'package:hamro_footsall/core/utils/custom_image_view.dart';
-import 'package:hamro_footsall/core/utils/dimens.dart';
-import 'package:hamro_footsall/core/utils/responsive.dart';
-import 'package:hamro_footsall/features/public/data/repositories/public_repository_impl.dart';
-import 'package:hamro_footsall/features/wishlist/domain/usecase/toggle_wishlist_use_case.dart';
+import 'package:hamro_futsal/core/helper/wishlist_store.dart';
+import 'package:hamro_futsal/core/theme/app_colors.dart';
+import 'package:hamro_futsal/core/utils/app_utils.dart';
+import 'package:hamro_futsal/core/utils/custom_image_view.dart';
+import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/utils/responsive.dart';
+import 'package:hamro_futsal/features/public/data/repositories/public_repository_impl.dart';
+import 'package:hamro_futsal/features/wishlist/domain/usecase/toggle_wishlist_use_case.dart';
 
 class DetailsImageGallery extends StatefulWidget {
   const DetailsImageGallery({

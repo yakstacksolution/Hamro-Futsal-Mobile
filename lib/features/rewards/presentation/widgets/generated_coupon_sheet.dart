@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:hamro_footsall/core/theme/app_colors.dart';
-import 'package:hamro_footsall/core/theme/futsal_text.dart';
-import 'package:hamro_footsall/core/theme/futsal_theme.dart';
-import 'package:hamro_footsall/core/utils/app_utils.dart';
-import 'package:hamro_footsall/core/utils/dimens.dart';
-import 'package:hamro_footsall/core/utils/string_constants.dart';
-import 'package:hamro_footsall/core/widgets/custom_button.dart';
-import 'package:hamro_footsall/features/rewards/data/model/rewards_model.dart';
-import 'package:hamro_footsall/features/rewards/presentation/utils/rewards_ui.dart';
+import 'package:hamro_futsal/core/theme/app_colors.dart';
+import 'package:hamro_futsal/core/theme/futsal_text.dart';
+import 'package:hamro_futsal/core/theme/futsal_theme.dart';
+import 'package:hamro_futsal/core/utils/app_utils.dart';
+import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
+import 'package:hamro_futsal/core/widgets/custom_button.dart';
+import 'package:hamro_futsal/features/rewards/data/model/rewards_model.dart';
+import 'package:hamro_futsal/features/rewards/presentation/utils/rewards_ui.dart';
 
 /// Success sheet for a freshly generated reward coupon: the code, its value and
 /// a copy action.

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:hamro_footsall/core/theme/app_colors.dart';
-import 'package:hamro_footsall/core/theme/futsal_theme.dart';
-import 'package:hamro_footsall/core/utils/dimens.dart';
-import 'package:hamro_footsall/features/courts_details/presentation/page/court_details.dart';
-import 'package:hamro_footsall/features/dashboard/presentation/widgets/venue_status_widget.dart';
+import 'package:hamro_futsal/core/theme/app_colors.dart';
+import 'package:hamro_futsal/core/theme/futsal_theme.dart';
+import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/features/courts_details/presentation/page/court_details.dart';
+import 'package:hamro_futsal/features/dashboard/presentation/widgets/venue_status_widget.dart';
 
 class CourtIntroWidget extends StatelessWidget {
   final CourtDetailModel court;

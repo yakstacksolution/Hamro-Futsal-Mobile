@@ -5,20 +5,20 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:hamro_footsall/core/api/api_client/api_constants.dart';
-import 'package:hamro_footsall/core/theme/app_colors.dart';
-import 'package:hamro_footsall/core/theme/futsal_theme.dart';
-import 'package:hamro_footsall/core/utils/app_utils.dart';
-import 'package:hamro_footsall/core/utils/custom_image_view.dart';
-import 'package:hamro_footsall/core/utils/dimens.dart';
-import 'package:hamro_footsall/core/widgets/custom_delete_dialog.dart';
-import 'package:hamro_footsall/core/widgets/custom_checkbox.dart';
-import 'package:hamro_footsall/core/widgets/custom_dropdown_field.dart';
-import 'package:hamro_footsall/core/widgets/custom_text_field.dart';
-import 'package:hamro_footsall/core/widgets/loading_widget.dart';
-import 'package:hamro_footsall/features/courts/data/model/picked_location.dart';
-import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_models.dart';
-import 'package:hamro_footsall/core/utils/string_constants.dart';
+import 'package:hamro_futsal/core/api/api_client/api_constants.dart';
+import 'package:hamro_futsal/core/theme/app_colors.dart';
+import 'package:hamro_futsal/core/theme/futsal_theme.dart';
+import 'package:hamro_futsal/core/utils/app_utils.dart';
+import 'package:hamro_futsal/core/utils/custom_image_view.dart';
+import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/widgets/custom_delete_dialog.dart';
+import 'package:hamro_futsal/core/widgets/custom_checkbox.dart';
+import 'package:hamro_futsal/core/widgets/custom_dropdown_field.dart';
+import 'package:hamro_futsal/core/widgets/custom_text_field.dart';
+import 'package:hamro_futsal/core/widgets/loading_widget.dart';
+import 'package:hamro_futsal/features/courts/data/model/picked_location.dart';
+import 'package:hamro_futsal/features/vendor/presentation/models/vendor_onboarding_models.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:http/http.dart' as http;
 
 class VendorPanel extends StatelessWidget {
@@ -2027,7 +2027,7 @@ class _VendorLocationSearchFieldState extends State<VendorLocationSearchField> {
       final http.Response response = await http.get(
         uri,
         headers: <String, String>{
-          'User-Agent': 'hamro_footsall/1.0 (location-search)',
+          'User-Agent': 'hamro_futsal/1.0 (location-search)',
           'Accept-Language': 'en',
         },
       );

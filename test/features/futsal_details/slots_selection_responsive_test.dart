@@ -2,16 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hamro_footsall/core/utils/dimens.dart';
-import 'package:hamro_footsall/core/utils/string_constants.dart';
-import 'package:hamro_footsall/features/courts_details/presentation/page/court_details.dart';
-import 'package:hamro_footsall/features/futsal_details/data/repositories/futsal_details_repository_impl.dart';
-import 'package:hamro_footsall/features/futsal_details/domain/usecase/check_recurring_availability_use_case.dart';
-import 'package:hamro_footsall/features/futsal_details/domain/usecase/get_available_courts_use_case.dart';
-import 'package:hamro_footsall/features/futsal_details/domain/usecase/get_venue_slots_use_case.dart';
-import 'package:hamro_footsall/features/futsal_details/presentation/bloc/slots_selection/slots_selection_bloc.dart';
-import 'package:hamro_footsall/features/futsal_details/presentation/view/slots_selection_page.dart';
-import 'package:hamro_footsall/features/futsal_details/presentation/widgets/compact_date_time_selector.dart';
+import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
+import 'package:hamro_futsal/features/courts_details/presentation/page/court_details.dart';
+import 'package:hamro_futsal/features/futsal_details/data/repositories/futsal_details_repository_impl.dart';
+import 'package:hamro_futsal/features/futsal_details/domain/usecase/check_recurring_availability_use_case.dart';
+import 'package:hamro_futsal/features/futsal_details/domain/usecase/get_available_courts_use_case.dart';
+import 'package:hamro_futsal/features/futsal_details/domain/usecase/get_venue_slots_use_case.dart';
+import 'package:hamro_futsal/features/futsal_details/presentation/bloc/slots_selection/slots_selection_bloc.dart';
+import 'package:hamro_futsal/features/futsal_details/presentation/view/slots_selection_page.dart';
+import 'package:hamro_futsal/features/futsal_details/presentation/widgets/compact_date_time_selector.dart';
 
 /// Sizes representing each breakpoint.
 const Size _phone = Size(411, 891);

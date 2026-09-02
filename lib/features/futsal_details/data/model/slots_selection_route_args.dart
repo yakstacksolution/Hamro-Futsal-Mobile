@@ -1,5 +1,5 @@
-import 'package:hamro_footsall/features/courts_details/presentation/page/court_details.dart';
-import 'package:hamro_footsall/features/bookings/data/model/manual_booking_details.dart';
+import 'package:hamro_futsal/features/courts_details/presentation/page/court_details.dart';
+import 'package:hamro_futsal/features/bookings/data/model/manual_booking_details.dart';
 
 /// Navigation input for the slot-selection flow.
 ///

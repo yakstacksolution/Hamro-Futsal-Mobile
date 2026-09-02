@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hamro_footsall/core/utils/dimens.dart';
-import 'package:hamro_footsall/features/account/data/repositories/account_repository_impl.dart';
-import 'package:hamro_footsall/features/account/domain/usecase/account_usecase.dart';
-import 'package:hamro_footsall/features/account/presentation/bloc/account_bloc/account_bloc.dart';
-import 'package:hamro_footsall/features/account/presentation/pages/account_screen.dart';
-import 'package:hamro_footsall/features/account/presentation/widgets/account_widgets.dart';
+import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/features/account/data/repositories/account_repository_impl.dart';
+import 'package:hamro_futsal/features/account/domain/usecase/account_usecase.dart';
+import 'package:hamro_futsal/features/account/presentation/bloc/account_bloc/account_bloc.dart';
+import 'package:hamro_futsal/features/account/presentation/pages/account_screen.dart';
+import 'package:hamro_futsal/features/account/presentation/widgets/account_widgets.dart';
 
 /// Sizes representing each breakpoint.
 const Size _phone = Size(411, 891);

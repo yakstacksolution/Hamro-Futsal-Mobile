@@ -1,7 +1,7 @@
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
-import 'package:hamro_footsall/core/utils/top_snack_bar.dart';
+import 'package:hamro_futsal/core/utils/top_snack_bar.dart';
 
 enum MsgType { error, success, info }
 

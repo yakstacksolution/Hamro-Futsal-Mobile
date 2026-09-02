@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hamro_footsall/core/theme/app_colors.dart';
-import 'package:hamro_footsall/core/theme/app_theme_controller.dart';
-import 'package:hamro_footsall/core/theme/futsal_theme.dart';
+import 'package:hamro_futsal/core/theme/app_colors.dart';
+import 'package:hamro_futsal/core/theme/app_theme_controller.dart';
+import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 
 /// Reads the global palette (the shape ~3700 call sites use).
 class _GlobalColour extends StatelessWidget {

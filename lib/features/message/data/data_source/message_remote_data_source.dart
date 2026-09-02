@@ -1,13 +1,13 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:hamro_footsall/core/utils/upload_attachment.dart';
-import 'package:hamro_footsall/core/utils/upload_part.dart';
+import 'package:hamro_futsal/core/utils/upload_attachment.dart';
+import 'package:hamro_futsal/core/utils/upload_part.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:hamro_footsall/core/api/api_client/api_constants.dart';
-import 'package:hamro_footsall/core/api/api_client/result.dart';
-import 'package:hamro_footsall/core/api/client.dart';
-import 'package:hamro_footsall/core/helper/share_preferences.dart';
-import 'package:hamro_footsall/features/message/data/model/chat_send_request.dart';
+import 'package:hamro_futsal/core/api/api_client/api_constants.dart';
+import 'package:hamro_futsal/core/api/api_client/result.dart';
+import 'package:hamro_futsal/core/api/client.dart';
+import 'package:hamro_futsal/core/helper/share_preferences.dart';
+import 'package:hamro_futsal/features/message/data/model/chat_send_request.dart';
 
 abstract class MessageRemoteDataSource {
   Future<Result> getConversations({

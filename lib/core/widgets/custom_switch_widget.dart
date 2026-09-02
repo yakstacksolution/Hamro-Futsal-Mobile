@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:hamro_footsall/core/theme/app_colors.dart';
+import 'package:hamro_futsal/core/theme/app_colors.dart';
 
 class CustomSwitchWidget extends StatelessWidget {
   const CustomSwitchWidget({

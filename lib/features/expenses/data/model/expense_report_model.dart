@@ -1,4 +1,4 @@
-import 'package:hamro_footsall/features/expenses/data/model/expense_model.dart';
+import 'package:hamro_futsal/features/expenses/data/model/expense_model.dart';
 
 int _toInt(dynamic v) {
   if (v is int) return v;

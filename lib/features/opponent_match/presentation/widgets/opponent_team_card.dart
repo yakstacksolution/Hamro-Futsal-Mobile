@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:hamro_footsall/core/theme/app_colors.dart';
-import 'package:hamro_footsall/core/theme/futsal_theme.dart';
-import 'package:hamro_footsall/core/utils/app_utils.dart';
-import 'package:hamro_footsall/core/utils/dimens.dart';
-import 'package:hamro_footsall/features/opponent_match/data/model/opponent_match_model.dart';
-import 'package:hamro_footsall/features/opponent_match/presentation/widgets/opponent_common.dart';
-import 'package:hamro_footsall/core/utils/string_constants.dart';
+import 'package:hamro_futsal/core/theme/app_colors.dart';
+import 'package:hamro_futsal/core/theme/futsal_theme.dart';
+import 'package:hamro_futsal/core/utils/app_utils.dart';
+import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/features/opponent_match/data/model/opponent_match_model.dart';
+import 'package:hamro_futsal/features/opponent_match/presentation/widgets/opponent_common.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 enum _TeamAction { edit, delete }
 

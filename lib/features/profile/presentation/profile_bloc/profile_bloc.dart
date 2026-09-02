@@ -3,12 +3,12 @@ import 'dart:async';
 import 'package:bloc/bloc.dart';
 import 'package:dartz/dartz.dart';
 import 'package:equatable/equatable.dart';
-import 'package:hamro_footsall/core/helper/exception_helper.dart';
-import 'package:hamro_footsall/core/helper/wishlist_store.dart';
-import 'package:hamro_footsall/features/profile/data/model/profile_model.dart';
-import 'package:hamro_footsall/features/profile/domain/usecase/profile_usecase.dart';
-import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_drafts.dart';
-import 'package:hamro_footsall/core/utils/string_constants.dart';
+import 'package:hamro_futsal/core/helper/exception_helper.dart';
+import 'package:hamro_futsal/core/helper/wishlist_store.dart';
+import 'package:hamro_futsal/features/profile/data/model/profile_model.dart';
+import 'package:hamro_futsal/features/profile/domain/usecase/profile_usecase.dart';
+import 'package:hamro_futsal/features/vendor/presentation/models/vendor_onboarding_drafts.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 part 'profile_event.dart';
 part 'profile_state.dart';

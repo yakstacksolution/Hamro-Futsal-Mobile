@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
-import 'package:hamro_footsall/features/public/data/model/public_venue_model.dart';
-import 'package:hamro_footsall/core/api/api_client/api_constants.dart';
+import 'package:hamro_futsal/features/public/data/model/public_venue_model.dart';
+import 'package:hamro_futsal/core/api/api_client/api_constants.dart';
 
 /// User-selected filters for the public venue list.
 ///

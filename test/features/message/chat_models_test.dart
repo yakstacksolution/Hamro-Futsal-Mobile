@@ -1,11 +1,11 @@
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hamro_footsall/core/utils/upload_attachment.dart';
-import 'package:hamro_footsall/features/message/data/model/chat_message_model.dart';
-import 'package:hamro_footsall/features/message/data/model/chat_send_request.dart';
-import 'package:hamro_footsall/features/message/data/model/conversation_model.dart';
-import 'package:hamro_footsall/features/message/data/model/conversation_page_model.dart';
+import 'package:hamro_futsal/core/utils/upload_attachment.dart';
+import 'package:hamro_futsal/features/message/data/model/chat_message_model.dart';
+import 'package:hamro_futsal/features/message/data/model/chat_send_request.dart';
+import 'package:hamro_futsal/features/message/data/model/conversation_model.dart';
+import 'package:hamro_futsal/features/message/data/model/conversation_page_model.dart';
 
 void main() {
   test('parses conversation items and dynamic pagination metadata', () {

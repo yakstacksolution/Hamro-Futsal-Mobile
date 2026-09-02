@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hamro_footsall/features/bookings/data/model/booking_model.dart';
-import 'package:hamro_footsall/features/bookings/presentation/widgets/booking_shared_widgets.dart';
+import 'package:hamro_futsal/features/bookings/data/model/booking_model.dart';
+import 'package:hamro_futsal/features/bookings/presentation/widgets/booking_shared_widgets.dart';
 
 BookingModel _booking({String? createdAt, String date = '2026-08-12'}) {
   return BookingModel.fromJson(<String, dynamic>{

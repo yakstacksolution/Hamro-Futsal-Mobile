@@ -1,8 +1,8 @@
 import 'package:dartz/dartz.dart';
-import 'package:hamro_footsall/core/helper/exception_helper.dart';
-import 'package:hamro_footsall/features/expenses/data/model/expense_model.dart';
-import 'package:hamro_footsall/features/expenses/data/model/expense_report_model.dart';
-import 'package:hamro_footsall/features/expenses/domain/entities/expense_entities.dart';
+import 'package:hamro_futsal/core/helper/exception_helper.dart';
+import 'package:hamro_futsal/features/expenses/data/model/expense_model.dart';
+import 'package:hamro_futsal/features/expenses/data/model/expense_report_model.dart';
+import 'package:hamro_futsal/features/expenses/domain/entities/expense_entities.dart';
 
 abstract class ExpensesRepository {
   Future<Either<AppException, VenueCourtsModel>> getVenueCourts();

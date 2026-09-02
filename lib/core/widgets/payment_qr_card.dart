@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:hamro_footsall/core/theme/app_colors.dart';
-import 'package:hamro_footsall/core/theme/futsal_theme.dart';
-import 'package:hamro_footsall/core/utils/app_utils.dart';
-import 'package:hamro_footsall/core/utils/dimens.dart';
-import 'package:hamro_footsall/core/utils/custom_image_view.dart';
-import 'package:hamro_footsall/core/utils/string_constants.dart';
-import 'package:hamro_footsall/features/futsal_details/data/model/payment_qr_model.dart';
+import 'package:hamro_futsal/core/theme/app_colors.dart';
+import 'package:hamro_futsal/core/theme/futsal_theme.dart';
+import 'package:hamro_futsal/core/utils/app_utils.dart';
+import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/utils/custom_image_view.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
+import 'package:hamro_futsal/features/futsal_details/data/model/payment_qr_model.dart';
 
 /// Manual-payment QR card — the QR image (tap to zoom), payee details, note,
 /// and an emphasized amount row. Shared by booking checkout and the

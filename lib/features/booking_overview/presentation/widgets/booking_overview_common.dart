@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:hamro_footsall/core/theme/app_colors.dart';
-import 'package:hamro_footsall/core/theme/futsal_theme.dart';
-import 'package:hamro_footsall/core/utils/dimens.dart';
-import 'package:hamro_footsall/features/booking_overview/presentation/models/booking_analytics.dart';
-import 'package:hamro_footsall/features/booking_overview/presentation/utils/booking_ui_utils.dart';
+import 'package:hamro_futsal/core/theme/app_colors.dart';
+import 'package:hamro_futsal/core/theme/futsal_theme.dart';
+import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/features/booking_overview/presentation/models/booking_analytics.dart';
+import 'package:hamro_futsal/features/booking_overview/presentation/utils/booking_ui_utils.dart';
 
 /// Standard card surface used across the booking overview feature.
 class BookingSurface extends StatelessWidget {

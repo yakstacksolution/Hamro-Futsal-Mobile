@@ -1,4 +1,4 @@
-import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_models.dart';
+import 'package:hamro_futsal/features/vendor/presentation/models/vendor_onboarding_models.dart';
 
 class VendorOnboardingState {
   const VendorOnboardingState({

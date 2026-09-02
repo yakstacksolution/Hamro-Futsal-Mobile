@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hamro_footsall/core/utils/dimens.dart';
-import 'package:hamro_footsall/features/courts_details/presentation/widget/court_amenities.dart';
-import 'package:hamro_footsall/features/courts_details/presentation/widget/details_image_gallery.dart';
+import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/features/courts_details/presentation/widget/court_amenities.dart';
+import 'package:hamro_futsal/features/courts_details/presentation/widget/details_image_gallery.dart';
 
 /// Sizes representing each breakpoint.
 const Size _phone = Size(411, 891);

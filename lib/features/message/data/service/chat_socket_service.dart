@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:hamro_footsall/features/message/data/model/chat_message_model.dart';
+import 'package:hamro_futsal/features/message/data/model/chat_message_model.dart';
 
 final class ChatReadReceipt {
   const ChatReadReceipt({

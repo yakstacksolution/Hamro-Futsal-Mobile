@@ -1,8 +1,8 @@
 import 'package:dartz/dartz.dart';
-import 'package:hamro_footsall/core/helper/exception_helper.dart';
-import 'package:hamro_footsall/features/auth/data/model/token_model.dart';
-import 'package:hamro_footsall/features/auth/domain/entities/auth_entities.dart';
-import 'package:hamro_footsall/features/auth/domain/repository/authentication_repository.dart';
+import 'package:hamro_futsal/core/helper/exception_helper.dart';
+import 'package:hamro_futsal/features/auth/data/model/token_model.dart';
+import 'package:hamro_futsal/features/auth/domain/entities/auth_entities.dart';
+import 'package:hamro_futsal/features/auth/domain/repository/authentication_repository.dart';
 
 final class AuthUseCase {
   final AuthRepository repository;
@@ -13,6 +13,10 @@ final class AuthUseCase {
   Future<Either<AppException, TokenModel>> signInWithGoogle(
     GoogleSignInEntity params,
   ) async => await repository.signInWithGoogle(params.toMap());
+
+  Future<Either<AppException, TokenModel>> signInWithApple(
+    AppleSignInEntity params,
+  ) async => await repository.signInWithApple(params.toMap());
 
   Future<Either<AppException, TokenModel>> signUp(
     SignUpEntity signUpData,

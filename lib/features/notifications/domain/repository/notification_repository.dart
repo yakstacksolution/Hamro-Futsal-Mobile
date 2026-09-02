@@ -1,6 +1,6 @@
 import 'package:dartz/dartz.dart';
-import 'package:hamro_footsall/core/helper/exception_helper.dart';
-import 'package:hamro_footsall/features/notifications/data/model/notification_model.dart';
+import 'package:hamro_futsal/core/helper/exception_helper.dart';
+import 'package:hamro_futsal/features/notifications/data/model/notification_model.dart';
 
 /// Which set of notifications to fetch.
 enum NotificationFilter {

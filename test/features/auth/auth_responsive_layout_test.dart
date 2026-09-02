@@ -2,16 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hamro_footsall/core/theme/app_colors.dart';
-import 'package:hamro_footsall/core/utils/dimens.dart';
-import 'package:hamro_footsall/core/utils/string_constants.dart';
-import 'package:hamro_footsall/features/auth/data/repositories/authentication_repository_impl.dart';
-import 'package:hamro_footsall/features/auth/domain/usecase/authentication_usecase.dart';
-import 'package:hamro_footsall/features/auth/presentation/authentication_bloc/authentication_bloc.dart';
-import 'package:hamro_footsall/features/auth/presentation/forgot_password_screen.dart';
-import 'package:hamro_footsall/features/auth/presentation/otp_verification_screen.dart';
-import 'package:hamro_footsall/features/auth/presentation/widgets/auth_screen_frame.dart';
-import 'package:hamro_footsall/features/auth/presentation/widgets/register_form.dart';
+import 'package:hamro_futsal/core/theme/app_colors.dart';
+import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
+import 'package:hamro_futsal/features/auth/data/repositories/authentication_repository_impl.dart';
+import 'package:hamro_futsal/features/auth/domain/usecase/authentication_usecase.dart';
+import 'package:hamro_futsal/features/auth/presentation/authentication_bloc/authentication_bloc.dart';
+import 'package:hamro_futsal/features/auth/presentation/forgot_password_screen.dart';
+import 'package:hamro_futsal/features/auth/presentation/otp_verification_screen.dart';
+import 'package:hamro_futsal/features/auth/presentation/widgets/auth_screen_frame.dart';
+import 'package:hamro_futsal/features/auth/presentation/widgets/register_form.dart';
 
 /// Sizes representing each breakpoint we support.
 const Size _phone = Size(411, 891);

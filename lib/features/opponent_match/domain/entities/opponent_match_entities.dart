@@ -1,4 +1,4 @@
-import 'package:hamro_footsall/features/opponent_match/data/model/opponent_match_model.dart';
+import 'package:hamro_futsal/features/opponent_match/data/model/opponent_match_model.dart';
 
 /// Everything needed to create (send) an opponent request.
 class CreateOpponentRequestEntity {

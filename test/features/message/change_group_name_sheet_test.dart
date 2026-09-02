@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hamro_footsall/features/message/presentation/pages/group_profile_page.dart';
+import 'package:hamro_futsal/features/message/presentation/pages/group_profile_page.dart';
 
 void main() {
   // Semantics on: the sheet replaced an AlertDialog whose actions tripped the

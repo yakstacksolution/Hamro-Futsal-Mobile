@@ -1,11 +1,11 @@
 import 'package:flutter/foundation.dart';
-import 'package:hamro_footsall/core/helper/share_preferences.dart';
-import 'package:hamro_footsall/core/security/biometric_auth_service.dart';
-import 'package:hamro_footsall/core/theme/app_theme_controller.dart';
-import 'package:hamro_footsall/core/security/biometric_session_store.dart';
-import 'package:hamro_footsall/features/profile/data/model/profile_model.dart';
-import 'package:hamro_footsall/features/profile/data/repositories/profile_repository_impl.dart';
-import 'package:hamro_footsall/features/profile/domain/usecase/profile_usecase.dart';
+import 'package:hamro_futsal/core/helper/share_preferences.dart';
+import 'package:hamro_futsal/core/security/biometric_auth_service.dart';
+import 'package:hamro_futsal/core/theme/app_theme_controller.dart';
+import 'package:hamro_futsal/core/security/biometric_session_store.dart';
+import 'package:hamro_futsal/features/profile/data/model/profile_model.dart';
+import 'package:hamro_futsal/features/profile/data/repositories/profile_repository_impl.dart';
+import 'package:hamro_futsal/features/profile/domain/usecase/profile_usecase.dart';
 
 /// Holds the user's app preferences and keeps them in sync with persistent
 /// storage. Every mutation writes through to [AppSettings] immediately and

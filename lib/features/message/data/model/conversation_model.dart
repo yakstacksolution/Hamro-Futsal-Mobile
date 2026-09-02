@@ -1,4 +1,4 @@
-import 'package:hamro_footsall/features/message/data/model/chat_message_model.dart';
+import 'package:hamro_futsal/features/message/data/model/chat_message_model.dart';
 
 /// Client-side filter chips on the conversations list.
 enum ConversationFilter { all, unread, direct, group, archived }

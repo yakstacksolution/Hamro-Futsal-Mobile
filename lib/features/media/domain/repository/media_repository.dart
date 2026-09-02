@@ -1,7 +1,7 @@
 import 'package:dartz/dartz.dart';
-import 'package:hamro_footsall/core/helper/exception_helper.dart';
-import 'package:hamro_footsall/features/media/data/model/media_model.dart';
-import 'package:hamro_footsall/core/utils/upload_attachment.dart';
+import 'package:hamro_futsal/core/helper/exception_helper.dart';
+import 'package:hamro_futsal/features/media/data/model/media_model.dart';
+import 'package:hamro_futsal/core/utils/upload_attachment.dart';
 
 abstract class MediaRepository {
   Future<Either<AppException, List<MediaModel>>> getMedia();

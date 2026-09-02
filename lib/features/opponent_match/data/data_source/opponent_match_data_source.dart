@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
-import 'package:hamro_footsall/core/api/api_client/result.dart';
-import 'package:hamro_footsall/core/api/client.dart';
-import 'package:hamro_footsall/features/opponent_match/data/model/accept_opponent_request_request.dart';
-import 'package:hamro_footsall/features/opponent_match/data/model/opponent_request_tab.dart';
+import 'package:hamro_futsal/core/api/api_client/result.dart';
+import 'package:hamro_futsal/core/api/client.dart';
+import 'package:hamro_futsal/features/opponent_match/data/model/accept_opponent_request_request.dart';
+import 'package:hamro_futsal/features/opponent_match/data/model/opponent_request_tab.dart';
 
 /// Compile-time switch that serves opponent requests from contract-shaped
 /// canned JSON only (network never attempted) — run with
@@ -657,13 +657,9 @@ final class OpponentRequestMockDataSourceImpl
         // chips read the same way against the fake store.
         'summary': {
           'all': _store.length,
-          'my_requests': _store
-              .where((row) => row['is_mine'] == true)
-              .length,
+          'my_requests': _store.where((row) => row['is_mine'] == true).length,
           'need_opponent': _store
-              .where(
-                (row) => row['is_mine'] != true && row['status'] == 'open',
-              )
+              .where((row) => row['is_mine'] != true && row['status'] == 'open')
               .length,
           'invitation': _store
               .where(

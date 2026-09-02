@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hamro_footsall/core/widgets/custom_button.dart';
+import 'package:hamro_futsal/core/widgets/custom_button.dart';
 
 /// A button narrower than its label must shrink the label, not overflow — the
 /// two-button confirm dialog gives each side about half the dialog width.

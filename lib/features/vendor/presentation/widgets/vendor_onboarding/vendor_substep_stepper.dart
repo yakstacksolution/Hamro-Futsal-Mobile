@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:hamro_footsall/core/theme/app_colors.dart';
-import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_models.dart';
-import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/vendor_form_components.dart';
-import 'package:hamro_footsall/core/utils/string_constants.dart';
+import 'package:hamro_futsal/core/theme/app_colors.dart';
+import 'package:hamro_futsal/features/vendor/presentation/models/vendor_onboarding_models.dart';
+import 'package:hamro_futsal/features/vendor/presentation/widgets/vendor_onboarding/vendor_form_components.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 /// Fill for the selected sub-step chip. Deliberately theme-constant: it is a
 /// saturated surface carrying white content, so it reads the same on a light or

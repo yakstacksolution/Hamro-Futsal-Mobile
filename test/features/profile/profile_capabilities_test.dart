@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hamro_footsall/features/profile/data/model/profile_model.dart';
+import 'package:hamro_futsal/features/profile/data/model/profile_model.dart';
 
 void main() {
   test('parses vendor lifecycle and finance capability from auth me', () {

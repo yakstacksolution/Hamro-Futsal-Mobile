@@ -14,27 +14,11 @@
       },
       "oauth_client": [
         {
-          "client_id": "900384285987-254bbt8fi1da7r0elg5o4tsco7a55a0r.apps.googleusercontent.com",
+          "client_id": "900384285987-j1c321cunbibimn297ngl6m04097sdkt.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.np.hamrofutsal",
-            "certificate_hash": "36b82586eeb253fc0a242f395a37408c2dc01710"
-          }
-        },
-        {
-          "client_id": "900384285987-ktm7c10sgjipcjql8rhkpkqrsjacmg61.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.np.hamrofutsal",
-            "certificate_hash": "63791f22d2b83a65ab40f887d2dcd086bc607d87"
-          }
-        },
-        {
-          "client_id": "900384285987-pskfkcp3busb3is8jugk2bpigkppsbkt.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.np.hamrofutsal",
-            "certificate_hash": "63698138c1e46ac3ec4d8deed65a035b8cde33c1"
+            "certificate_hash": "c813421709ae65b6ddd17969eb62430aaac2f5d9"
           }
         },
         {

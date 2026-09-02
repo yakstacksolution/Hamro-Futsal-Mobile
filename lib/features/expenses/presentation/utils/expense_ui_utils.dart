@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:hamro_footsall/core/utils/custom_image_view.dart';
-import 'package:hamro_footsall/features/expenses/data/model/expense_model.dart';
-import 'package:hamro_footsall/features/expenses/presentation/bloc/expenses_bloc/expenses_bloc.dart';
-import 'package:hamro_footsall/core/theme/app_colors.dart';
+import 'package:hamro_futsal/core/utils/custom_image_view.dart';
+import 'package:hamro_futsal/features/expenses/data/model/expense_model.dart';
+import 'package:hamro_futsal/features/expenses/presentation/bloc/expenses_bloc/expenses_bloc.dart';
+import 'package:hamro_futsal/core/theme/app_colors.dart';
 
 /// Visual identity (icon + accent color) for each expense category.
 extension ExpenseCategoryUi on ExpenseCategory {

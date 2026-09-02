@@ -6,12 +6,13 @@ import 'package:dartz/dartz.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:hamro_footsall/core/helper/exception_helper.dart';
-import 'package:hamro_footsall/core/helper/fcm_helper.dart';
-import 'package:hamro_footsall/features/auth/data/model/token_model.dart';
-import 'package:hamro_footsall/features/auth/domain/entities/auth_entities.dart';
-import 'package:hamro_footsall/features/auth/domain/usecase/authentication_usecase.dart';
-import 'package:hamro_footsall/core/utils/string_constants.dart';
+import 'package:hamro_futsal/core/helper/exception_helper.dart';
+import 'package:hamro_futsal/core/helper/fcm_helper.dart';
+import 'package:hamro_futsal/features/auth/data/model/token_model.dart';
+import 'package:hamro_futsal/features/auth/domain/entities/auth_entities.dart';
+import 'package:hamro_futsal/features/auth/domain/usecase/authentication_usecase.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 part 'authentication_event.dart';
 part 'authentication_state.dart';
 
@@ -21,6 +22,7 @@ class AuthenticationBloc
   AuthenticationBloc(this.authUseCase) : super(const AuthenticationState()) {
     on<LoginEvent>(_onLogin);
     on<GoogleLoginEvent>(_onGoogleLogin);
+    on<AppleLoginEvent>(_onAppleLogin);
     on<RegisterEvent>(_onRegister);
     on<OtpVerificationEvent>(_onOtpVerification);
     on<ResendOtpEvent>(_onResendOtp);
@@ -166,6 +168,130 @@ class AuthenticationBloc
         state.copyWith(
           googleLoginStatus: AuthStatus.failure,
           errorMessage: StringConstants.googleSignInFailedPleaseTryAgain,
+          clearErrorData: true,
+        ),
+      );
+    }
+  }
+
+  Future<void> _onAppleLogin(
+    AppleLoginEvent event,
+    Emitter<AuthenticationState> emit,
+  ) async {
+    try {
+      emit(
+        state.copyWith(
+          appleLoginStatus: AuthStatus.loading,
+          clearErrorMessage: true,
+          clearErrorData: true,
+          clearSuccessMessage: true,
+        ),
+      );
+
+      if (!Platform.isIOS && !Platform.isMacOS) {
+        emit(
+          state.copyWith(
+            appleLoginStatus: AuthStatus.failure,
+            errorMessage: StringConstants.appleSignInIsNotAvailableOnThisDevice,
+          ),
+        );
+        return;
+      }
+
+      if (!await SignInWithApple.isAvailable()) {
+        emit(
+          state.copyWith(
+            appleLoginStatus: AuthStatus.failure,
+            errorMessage: StringConstants.appleSignInIsNotAvailableOnThisDevice,
+          ),
+        );
+        return;
+      }
+
+      final AuthorizationCredentialAppleID credential =
+          await SignInWithApple.getAppleIDCredential(
+            scopes: const <AppleIDAuthorizationScopes>[
+              AppleIDAuthorizationScopes.email,
+              AppleIDAuthorizationScopes.fullName,
+            ],
+          );
+
+      final String idToken = credential.identityToken ?? '';
+      if (idToken.isEmpty) {
+        emit(
+          state.copyWith(
+            appleLoginStatus: AuthStatus.failure,
+            errorMessage:
+                StringConstants.couldNotGetAppleCredentialsPleaseTryAgain,
+          ),
+        );
+        return;
+      }
+
+      final String fullName = <String?>[
+        credential.givenName,
+        credential.familyName,
+      ].whereType<String>().where((String part) => part.isNotEmpty).join(' ');
+
+      final Either<AppException, TokenModel> response = await authUseCase
+          .signInWithApple(
+            AppleSignInEntity(
+              idToken: idToken,
+              email: credential.email,
+              fullName: fullName.isEmpty ? null : fullName,
+            ),
+          );
+      response.fold(
+        (AppException failure) {
+          emit(
+            state.copyWith(
+              appleLoginStatus: AuthStatus.failure,
+              errorMessage: failure.errorMessage,
+              appleLoginErrorData: failure.data,
+            ),
+          );
+        },
+        (TokenModel token) {
+          unawaited(FcmHelper().syncTokenAfterLogin());
+          emit(
+            state.copyWith(
+              appleLoginStatus: AuthStatus.success,
+              successMessage: 'Login successful',
+              clearErrorMessage: true,
+              clearErrorData: true,
+            ),
+          );
+        },
+      );
+    } on SignInWithAppleAuthorizationException catch (error) {
+      // Dismissing the Apple sheet is not a failure — reset so the button
+      // becomes tappable again without showing an error snackbar.
+      if (error.code == AuthorizationErrorCode.canceled) {
+        emit(state.copyWith(appleLoginStatus: AuthStatus.initial));
+        return;
+      }
+      emit(
+        state.copyWith(
+          appleLoginStatus: AuthStatus.failure,
+          errorMessage: error.message.isNotEmpty
+              ? error.message
+              : StringConstants.appleSignInFailedPleaseTryAgain,
+          clearErrorData: true,
+        ),
+      );
+    } on SignInWithAppleNotSupportedException {
+      emit(
+        state.copyWith(
+          appleLoginStatus: AuthStatus.failure,
+          errorMessage: StringConstants.appleSignInIsNotAvailableOnThisDevice,
+          clearErrorData: true,
+        ),
+      );
+    } catch (error) {
+      emit(
+        state.copyWith(
+          appleLoginStatus: AuthStatus.failure,
+          errorMessage: StringConstants.appleSignInFailedPleaseTryAgain,
           clearErrorData: true,
         ),
       );

@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:hamro_footsall/core/theme/app_colors.dart';
-import 'package:hamro_footsall/core/theme/futsal_theme.dart';
-import 'package:hamro_footsall/core/utils/dimens.dart';
-import 'package:hamro_footsall/core/utils/string_constants.dart';
-import 'package:hamro_footsall/features/futsal_details/data/model/venue_review_model.dart';
-import 'package:hamro_footsall/features/futsal_details/presentation/bloc/venue_reviews/venue_reviews_bloc.dart';
-import 'package:hamro_footsall/features/futsal_details/presentation/view/venue_reviews_page.dart';
-import 'package:hamro_footsall/features/futsal_details/presentation/widgets/venue_review_widgets.dart';
+import 'package:hamro_futsal/core/theme/app_colors.dart';
+import 'package:hamro_futsal/core/theme/futsal_theme.dart';
+import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
+import 'package:hamro_futsal/features/futsal_details/data/model/venue_review_model.dart';
+import 'package:hamro_futsal/features/futsal_details/presentation/bloc/venue_reviews/venue_reviews_bloc.dart';
+import 'package:hamro_futsal/features/futsal_details/presentation/view/venue_reviews_page.dart';
+import 'package:hamro_futsal/features/futsal_details/presentation/widgets/venue_review_widgets.dart';
 
 class VenueReviewsSection extends StatelessWidget {
   const VenueReviewsSection({

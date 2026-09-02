@@ -3,22 +3,22 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:hamro_footsall/core/theme/app_colors.dart';
-import 'package:hamro_footsall/core/theme/futsal_theme.dart';
-import 'package:hamro_footsall/core/utils/app_utils.dart';
-import 'package:hamro_footsall/core/utils/dimens.dart';
-import 'package:hamro_footsall/core/utils/string_constants.dart';
-import 'package:hamro_footsall/core/widgets/custom_app_bar.dart';
-import 'package:hamro_footsall/core/widgets/custom_button.dart';
-import 'package:hamro_footsall/core/widgets/custom_text_field.dart';
-import 'package:hamro_footsall/features/message/presentation/pages/chat_launcher.dart';
-import 'package:hamro_footsall/features/opponent_match/data/model/accept_opponent_request_request.dart';
-import 'package:hamro_footsall/features/opponent_match/data/model/opponent_match_model.dart';
-import 'package:hamro_footsall/features/opponent_match/presentation/bloc/accept_request_bloc/accept_request_bloc.dart';
-import 'package:hamro_footsall/features/opponent_match/presentation/bloc/opponent_match_bloc/opponent_match_bloc.dart';
-import 'package:hamro_footsall/features/opponent_match/presentation/models/opponent_cost_split.dart';
-import 'package:hamro_footsall/features/opponent_match/presentation/utils/opponent_ui_utils.dart';
-import 'package:hamro_footsall/features/opponent_match/presentation/widgets/opponent_common.dart';
+import 'package:hamro_futsal/core/theme/app_colors.dart';
+import 'package:hamro_futsal/core/theme/futsal_theme.dart';
+import 'package:hamro_futsal/core/utils/app_utils.dart';
+import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
+import 'package:hamro_futsal/core/widgets/custom_app_bar.dart';
+import 'package:hamro_futsal/core/widgets/custom_button.dart';
+import 'package:hamro_futsal/core/widgets/custom_text_field.dart';
+import 'package:hamro_futsal/features/message/presentation/pages/chat_launcher.dart';
+import 'package:hamro_futsal/features/opponent_match/data/model/accept_opponent_request_request.dart';
+import 'package:hamro_futsal/features/opponent_match/data/model/opponent_match_model.dart';
+import 'package:hamro_futsal/features/opponent_match/presentation/bloc/accept_request_bloc/accept_request_bloc.dart';
+import 'package:hamro_futsal/features/opponent_match/presentation/bloc/opponent_match_bloc/opponent_match_bloc.dart';
+import 'package:hamro_futsal/features/opponent_match/presentation/models/opponent_cost_split.dart';
+import 'package:hamro_futsal/features/opponent_match/presentation/utils/opponent_ui_utils.dart';
+import 'package:hamro_futsal/features/opponent_match/presentation/widgets/opponent_common.dart';
 
 /// The opponent team's side of the flow: view the request, select your own
 /// team, and send the acceptance. No money changes hands here — the requester
@@ -81,8 +81,7 @@ class _AcceptOpponentRequestPageState extends State<AcceptOpponentRequestPage> {
   bool _closedLive = false;
 
   /// The window is shut: the server said so, or it ran out on screen.
-  bool get _acceptClosed =>
-      widget.request.hasAcceptWindowClosed || _closedLive;
+  bool get _acceptClosed => widget.request.hasAcceptWindowClosed || _closedLive;
 
   void _tick() {
     if (widget.request.hasAcceptWindowClosed) {
@@ -697,10 +696,7 @@ class _RequestSummaryCard extends StatelessWidget {
           const SizedBox(height: AppDimens.paddingX6),
           _Line(icon: Icons.location_on_outlined, text: request.venue),
           const SizedBox(height: AppDimens.paddingX6),
-          _Line(
-            icon: Icons.payments_outlined,
-            text: _feeLine(request),
-          ),
+          _Line(icon: Icons.payments_outlined, text: _feeLine(request)),
         ],
       ),
     );

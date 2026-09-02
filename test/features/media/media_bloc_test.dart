@@ -2,12 +2,12 @@ import 'dart:typed_data';
 
 import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hamro_footsall/core/helper/exception_helper.dart';
-import 'package:hamro_footsall/core/utils/upload_attachment.dart';
-import 'package:hamro_footsall/features/media/data/model/media_model.dart';
-import 'package:hamro_footsall/features/media/domain/repository/media_repository.dart';
-import 'package:hamro_footsall/features/media/domain/usecase/media_use_case.dart';
-import 'package:hamro_footsall/features/media/presentation/bloc/media_bloc.dart';
+import 'package:hamro_futsal/core/helper/exception_helper.dart';
+import 'package:hamro_futsal/core/utils/upload_attachment.dart';
+import 'package:hamro_futsal/features/media/data/model/media_model.dart';
+import 'package:hamro_futsal/features/media/domain/repository/media_repository.dart';
+import 'package:hamro_futsal/features/media/domain/usecase/media_use_case.dart';
+import 'package:hamro_futsal/features/media/presentation/bloc/media_bloc.dart';
 
 void main() {
   test('successful media upload becomes a remote media reference', () async {

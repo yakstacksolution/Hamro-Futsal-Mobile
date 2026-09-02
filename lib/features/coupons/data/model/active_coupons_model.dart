@@ -1,4 +1,4 @@
-import 'package:hamro_footsall/features/coupons/data/model/coupon_model.dart';
+import 'package:hamro_futsal/features/coupons/data/model/coupon_model.dart';
 
 /// The result of `GET /coupons/active`.
 ///

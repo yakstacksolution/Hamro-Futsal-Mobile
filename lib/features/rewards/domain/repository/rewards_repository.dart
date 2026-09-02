@@ -1,6 +1,6 @@
 import 'package:dartz/dartz.dart';
-import 'package:hamro_footsall/core/helper/exception_helper.dart';
-import 'package:hamro_footsall/features/rewards/data/model/rewards_model.dart';
+import 'package:hamro_futsal/core/helper/exception_helper.dart';
+import 'package:hamro_futsal/features/rewards/data/model/rewards_model.dart';
 
 abstract class RewardsRepository {
   /// `GET /customer/rewards` — the reward wallet.

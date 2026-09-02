@@ -2,27 +2,27 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:hamro_footsall/core/socket/reverb_connection.dart';
-import 'package:hamro_footsall/features/bookings/presentation/pages/bookings_page.dart';
-import 'package:hamro_footsall/features/dashboard/presentation/page/footsall_home_page.dart';
-import 'package:hamro_footsall/features/message/presentation/pages/messages_page.dart';
-import 'package:hamro_footsall/features/notifications/data/repositories/notification_repository_impl.dart';
-import 'package:hamro_footsall/features/notifications/domain/repository/notification_repository.dart';
-import 'package:hamro_footsall/features/wishlist/presentation/pages/wishlist_page.dart';
-import 'package:hamro_footsall/core/routers/app_router_params.dart';
-import 'package:hamro_footsall/core/theme/app_colors.dart';
-import 'package:hamro_footsall/core/theme/futsal_theme.dart';
-import 'package:hamro_footsall/core/utils/app_utils.dart';
-import 'package:hamro_footsall/core/utils/dimens.dart';
-import 'package:hamro_footsall/core/utils/responsive.dart';
-import 'package:hamro_footsall/features/dashboard/presentation/widgets/bottom_navigation_bar.dart';
-import 'package:hamro_footsall/features/dashboard/presentation/widgets/dashboard_side_nav.dart';
-import 'package:hamro_footsall/features/dashboard/presentation/widgets/category_filter_widget.dart';
-import 'package:hamro_footsall/features/dashboard/presentation/widgets/search_bar_widget.dart';
-import 'package:hamro_footsall/features/public/presentation/models/venue_filter.dart';
-import 'package:hamro_footsall/features/profile/presentation/profile_bloc/profile_bloc.dart';
-import 'package:hamro_footsall/features/profile/presentation/pages/profile_page.dart';
-import 'package:hamro_footsall/core/helper/device_location_helper.dart';
+import 'package:hamro_futsal/core/socket/reverb_connection.dart';
+import 'package:hamro_futsal/features/bookings/presentation/pages/bookings_page.dart';
+import 'package:hamro_futsal/features/dashboard/presentation/page/futsal_home_page.dart';
+import 'package:hamro_futsal/features/message/presentation/pages/messages_page.dart';
+import 'package:hamro_futsal/features/notifications/data/repositories/notification_repository_impl.dart';
+import 'package:hamro_futsal/features/notifications/domain/repository/notification_repository.dart';
+import 'package:hamro_futsal/features/wishlist/presentation/pages/wishlist_page.dart';
+import 'package:hamro_futsal/core/routers/app_router_params.dart';
+import 'package:hamro_futsal/core/theme/app_colors.dart';
+import 'package:hamro_futsal/core/theme/futsal_theme.dart';
+import 'package:hamro_futsal/core/utils/app_utils.dart';
+import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/utils/responsive.dart';
+import 'package:hamro_futsal/features/dashboard/presentation/widgets/bottom_navigation_bar.dart';
+import 'package:hamro_futsal/features/dashboard/presentation/widgets/dashboard_side_nav.dart';
+import 'package:hamro_futsal/features/dashboard/presentation/widgets/category_filter_widget.dart';
+import 'package:hamro_futsal/features/dashboard/presentation/widgets/search_bar_widget.dart';
+import 'package:hamro_futsal/features/public/presentation/models/venue_filter.dart';
+import 'package:hamro_futsal/features/profile/presentation/profile_bloc/profile_bloc.dart';
+import 'package:hamro_futsal/features/profile/presentation/pages/profile_page.dart';
+import 'package:hamro_futsal/core/helper/device_location_helper.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -388,7 +388,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               _stackChild(
                 index: 0,
                 selectedIndex: selectedNavIndex,
-                child: FootsallHomePage(filter: _venueFilterNotifier.value),
+                child: FutsalHomePage(filter: _venueFilterNotifier.value),
               ),
               _stackChild(
                 index: 1,

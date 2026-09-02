@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hamro_footsall/core/utils/dimens.dart';
-import 'package:hamro_footsall/core/utils/responsive.dart';
-import 'package:hamro_footsall/features/booking_overview/data/model/booking_overview_model.dart';
-import 'package:hamro_footsall/features/booking_overview/presentation/models/booking_analytics.dart';
-import 'package:hamro_footsall/features/booking_overview/presentation/widgets/booking_overview_summary_widgets.dart';
-import 'package:hamro_footsall/features/booking_overview/presentation/widgets/booking_overview_tabs.dart';
+import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/utils/responsive.dart';
+import 'package:hamro_futsal/features/booking_overview/data/model/booking_overview_model.dart';
+import 'package:hamro_futsal/features/booking_overview/presentation/models/booking_analytics.dart';
+import 'package:hamro_futsal/features/booking_overview/presentation/widgets/booking_overview_summary_widgets.dart';
+import 'package:hamro_futsal/features/booking_overview/presentation/widgets/booking_overview_tabs.dart';
 
 /// Sizes representing each breakpoint.
 const Size _phone = Size(411, 891);

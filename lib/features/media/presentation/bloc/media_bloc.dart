@@ -3,10 +3,10 @@ import 'dart:async';
 import 'package:bloc/bloc.dart';
 import 'package:dartz/dartz.dart';
 import 'package:equatable/equatable.dart';
-import 'package:hamro_footsall/core/helper/exception_helper.dart';
-import 'package:hamro_footsall/features/media/data/model/media_model.dart';
-import 'package:hamro_footsall/features/media/domain/usecase/media_use_case.dart';
-import 'package:hamro_footsall/core/utils/upload_attachment.dart';
+import 'package:hamro_futsal/core/helper/exception_helper.dart';
+import 'package:hamro_futsal/features/media/data/model/media_model.dart';
+import 'package:hamro_futsal/features/media/domain/usecase/media_use_case.dart';
+import 'package:hamro_futsal/core/utils/upload_attachment.dart';
 
 part 'media_event.dart';
 part 'media_state.dart';

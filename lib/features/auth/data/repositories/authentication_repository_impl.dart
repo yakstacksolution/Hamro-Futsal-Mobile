@@ -1,14 +1,14 @@
 import 'package:dartz/dartz.dart';
-import 'package:hamro_footsall/core/api/client.dart';
-import 'package:hamro_footsall/core/helper/exception_helper.dart';
-import 'package:hamro_footsall/core/helper/response_helper.dart';
-import 'package:hamro_footsall/core/helper/share_preferences.dart';
-import 'package:hamro_footsall/core/socket/reverb_connection.dart';
-import 'package:hamro_footsall/core/security/biometric_session_store.dart';
-import 'package:hamro_footsall/features/auth/data/data_source/authentication_data_source.dart';
-import 'package:hamro_footsall/features/auth/data/model/token_model.dart';
-import 'package:hamro_footsall/features/auth/domain/repository/authentication_repository.dart';
-import 'package:hamro_footsall/core/utils/string_constants.dart';
+import 'package:hamro_futsal/core/api/client.dart';
+import 'package:hamro_futsal/core/helper/exception_helper.dart';
+import 'package:hamro_futsal/core/helper/response_helper.dart';
+import 'package:hamro_futsal/core/helper/share_preferences.dart';
+import 'package:hamro_futsal/core/socket/reverb_connection.dart';
+import 'package:hamro_futsal/core/security/biometric_session_store.dart';
+import 'package:hamro_futsal/features/auth/data/data_source/authentication_data_source.dart';
+import 'package:hamro_futsal/features/auth/data/model/token_model.dart';
+import 'package:hamro_futsal/features/auth/domain/repository/authentication_repository.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 final class AuthenticationRepositoryImpl extends AuthRepository {
   AuthenticationRepositoryImpl({AuthRemoteDataSource? remoteDataSource})
@@ -73,6 +73,21 @@ final class AuthenticationRepositoryImpl extends AuthRepository {
   @override
   Future<Either<AppException, TokenModel>> signInWithGoogle(data) async {
     final response = await _remoteDataSource.signInWithGoogle(data);
+    if (response.isError()) {
+      return left(ResponseHelper.error(response));
+    }
+
+    final TokenModel tokenModel = _parseTokenModel(response.getValue());
+    AppSettings().token = tokenModel;
+    if (AppSettings().biometricLogin) {
+      await BiometricSessionStore().save(tokenModel);
+    }
+    return right(tokenModel);
+  }
+
+  @override
+  Future<Either<AppException, TokenModel>> signInWithApple(data) async {
+    final response = await _remoteDataSource.signInWithApple(data);
     if (response.isError()) {
       return left(ResponseHelper.error(response));
     }

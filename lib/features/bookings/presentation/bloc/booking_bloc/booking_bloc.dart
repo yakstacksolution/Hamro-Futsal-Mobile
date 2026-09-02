@@ -3,11 +3,11 @@ import 'dart:io';
 
 import 'package:bloc/bloc.dart';
 import 'package:dartz/dartz.dart';
-import 'package:hamro_footsall/core/helper/exception_helper.dart';
+import 'package:hamro_futsal/core/helper/exception_helper.dart';
 import 'package:equatable/equatable.dart';
-import 'package:hamro_footsall/features/bookings/data/model/booking_model.dart';
-import 'package:hamro_footsall/features/bookings/domain/usecase/get_bookings_use_case.dart';
-import 'package:hamro_footsall/features/bookings/domain/model/paginated_bookings.dart';
+import 'package:hamro_futsal/features/bookings/data/model/booking_model.dart';
+import 'package:hamro_futsal/features/bookings/domain/usecase/get_bookings_use_case.dart';
+import 'package:hamro_futsal/features/bookings/domain/model/paginated_bookings.dart';
 
 part 'booking_event.dart';
 part 'booking_state.dart';

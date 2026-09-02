@@ -1,9 +1,9 @@
-import 'package:hamro_footsall/core/api/api_client/api_call_wrapper.dart';
-import 'package:hamro_footsall/core/api/api_client/api_client.dart';
-import 'package:hamro_footsall/core/api/api_client/api_constants.dart';
-import 'package:hamro_footsall/core/api/api_client/booking_type_payload.dart';
-import 'package:hamro_footsall/core/api/api_client/result.dart';
-import 'package:hamro_footsall/core/api/manager/service_manager.dart';
+import 'package:hamro_futsal/core/api/api_client/api_call_wrapper.dart';
+import 'package:hamro_futsal/core/api/api_client/api_client.dart';
+import 'package:hamro_futsal/core/api/api_client/api_constants.dart';
+import 'package:hamro_futsal/core/api/api_client/booking_type_payload.dart';
+import 'package:hamro_futsal/core/api/api_client/result.dart';
+import 'package:hamro_futsal/core/api/manager/service_manager.dart';
 
 class AuthManager extends ServiceManager {
   String? refreshToken;
@@ -36,6 +36,10 @@ class AuthManager extends ServiceManager {
 
   Future<Result> googleLogin(Map<String, dynamic> data) async {
     return await _apiClient.googleLogin(data: data);
+  }
+
+  Future<Result> appleLogin(Map<String, dynamic> data) async {
+    return await _apiClient.appleLogin(data: data);
   }
 
   Future<Result> register(data) async {

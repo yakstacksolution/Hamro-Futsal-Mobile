@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
-import 'package:hamro_footsall/features/expenses/data/model/expense_model.dart';
-import 'package:hamro_footsall/features/expenses/presentation/models/expense_analytics.dart';
+import 'package:hamro_futsal/features/expenses/data/model/expense_model.dart';
+import 'package:hamro_futsal/features/expenses/presentation/models/expense_analytics.dart';
 
 /// The server-side query the Expenses screen sends to `GET /auth/expenses`.
 ///

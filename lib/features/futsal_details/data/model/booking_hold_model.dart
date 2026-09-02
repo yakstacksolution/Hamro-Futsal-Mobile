@@ -1,4 +1,4 @@
-import 'package:hamro_footsall/features/futsal_details/data/model/booking_quote_model.dart';
+import 'package:hamro_futsal/features/futsal_details/data/model/booking_quote_model.dart';
 
 /// Result of `POST /booking-holds`. Mirrors the `data.hold` object the server
 /// returns and carries the `hold_token` used to release the hold later with

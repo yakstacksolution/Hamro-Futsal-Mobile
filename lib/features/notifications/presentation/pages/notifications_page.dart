@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:hamro_footsall/core/theme/app_colors.dart';
-import 'package:hamro_footsall/core/utils/app_utils.dart';
-import 'package:hamro_footsall/core/utils/dimens.dart';
-import 'package:hamro_footsall/core/utils/string_constants.dart';
-import 'package:hamro_footsall/core/widgets/custom_app_bar.dart';
-import 'package:hamro_footsall/features/notifications/data/model/notification_model.dart';
-import 'package:hamro_footsall/features/notifications/data/repositories/notification_repository_impl.dart';
-import 'package:hamro_footsall/features/notifications/domain/repository/notification_repository.dart';
-import 'package:hamro_footsall/features/notifications/domain/usecase/notification_use_case.dart';
-import 'package:hamro_footsall/features/notifications/presentation/bloc/notification_bloc.dart';
-import 'package:hamro_footsall/features/notifications/presentation/widgets/notification_widgets.dart';
+import 'package:hamro_futsal/core/theme/app_colors.dart';
+import 'package:hamro_futsal/core/utils/app_utils.dart';
+import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
+import 'package:hamro_futsal/core/widgets/custom_app_bar.dart';
+import 'package:hamro_futsal/features/notifications/data/model/notification_model.dart';
+import 'package:hamro_futsal/features/notifications/data/repositories/notification_repository_impl.dart';
+import 'package:hamro_futsal/features/notifications/domain/repository/notification_repository.dart';
+import 'package:hamro_futsal/features/notifications/domain/usecase/notification_use_case.dart';
+import 'package:hamro_futsal/features/notifications/presentation/bloc/notification_bloc.dart';
+import 'package:hamro_futsal/features/notifications/presentation/widgets/notification_widgets.dart';
 
 class NotificationsPage extends StatelessWidget {
   const NotificationsPage({super.key, this.repository});

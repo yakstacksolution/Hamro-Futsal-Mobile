@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hamro_footsall/core/api/api_client/result.dart';
-import 'package:hamro_footsall/core/helper/response_helper.dart';
+import 'package:hamro_futsal/core/api/api_client/result.dart';
+import 'package:hamro_futsal/core/helper/response_helper.dart';
 
 void main() {
   test('HTTP 413 explains that the selected file is too large', () {

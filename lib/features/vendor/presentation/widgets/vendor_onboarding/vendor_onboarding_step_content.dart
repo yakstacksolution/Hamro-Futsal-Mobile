@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:hamro_footsall/core/utils/dimens.dart';
-import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_cubit.dart';
-import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_state.dart';
-import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_models.dart';
-import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/sections/court_amenities_section.dart';
-import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/sections/court_booking_payment_section.dart';
-import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/sections/court_information_section.dart';
-import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/sections/court_slots_section.dart';
-import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/sections/futsal_business_section.dart';
-import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/sections/futsal_information_section.dart';
-import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/sections/futsal_policy_section.dart';
-import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/vendor_form_components.dart';
-import 'package:hamro_footsall/features/vendor/presentation/widgets/vendor_onboarding/vendor_unified_stepper.dart';
+import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_cubit.dart';
+import 'package:hamro_futsal/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_state.dart';
+import 'package:hamro_futsal/features/vendor/presentation/models/vendor_onboarding_models.dart';
+import 'package:hamro_futsal/features/vendor/presentation/widgets/vendor_onboarding/sections/court_amenities_section.dart';
+import 'package:hamro_futsal/features/vendor/presentation/widgets/vendor_onboarding/sections/court_booking_payment_section.dart';
+import 'package:hamro_futsal/features/vendor/presentation/widgets/vendor_onboarding/sections/court_information_section.dart';
+import 'package:hamro_futsal/features/vendor/presentation/widgets/vendor_onboarding/sections/court_slots_section.dart';
+import 'package:hamro_futsal/features/vendor/presentation/widgets/vendor_onboarding/sections/futsal_business_section.dart';
+import 'package:hamro_futsal/features/vendor/presentation/widgets/vendor_onboarding/sections/futsal_information_section.dart';
+import 'package:hamro_futsal/features/vendor/presentation/widgets/vendor_onboarding/sections/futsal_policy_section.dart';
+import 'package:hamro_futsal/features/vendor/presentation/widgets/vendor_onboarding/vendor_form_components.dart';
+import 'package:hamro_futsal/features/vendor/presentation/widgets/vendor_onboarding/vendor_unified_stepper.dart';
 
 class VendorOnboardingStepContent extends StatelessWidget {
   const VendorOnboardingStepContent({

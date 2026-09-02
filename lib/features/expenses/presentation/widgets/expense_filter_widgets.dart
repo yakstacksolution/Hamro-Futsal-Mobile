@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:hamro_footsall/core/theme/app_colors.dart';
-import 'package:hamro_footsall/core/theme/futsal_theme.dart';
-import 'package:hamro_footsall/core/utils/dimens.dart';
-import 'package:hamro_footsall/features/expenses/data/model/expense_model.dart';
-import 'package:hamro_footsall/features/expenses/presentation/models/expense_analytics.dart';
-import 'package:hamro_footsall/features/expenses/presentation/utils/expense_ui_utils.dart';
-import 'package:hamro_footsall/core/utils/string_constants.dart';
+import 'package:hamro_futsal/core/theme/app_colors.dart';
+import 'package:hamro_futsal/core/theme/futsal_theme.dart';
+import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/features/expenses/data/model/expense_model.dart';
+import 'package:hamro_futsal/features/expenses/presentation/models/expense_analytics.dart';
+import 'package:hamro_futsal/features/expenses/presentation/utils/expense_ui_utils.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 /// Compact selectable chip with haptic feedback, shared by all filter rows.
 class ExpenseChip extends StatelessWidget {

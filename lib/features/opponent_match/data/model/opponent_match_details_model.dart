@@ -99,10 +99,8 @@ class MatchSummary {
   );
 
   /// The two halves joined the way the screen shows them.
-  String get statusLine => <String>[
-    headline,
-    subheadline,
-  ].where((s) => s.isNotEmpty).join(' · ');
+  String get statusLine =>
+      <String>[headline, subheadline].where((s) => s.isNotEmpty).join(' · ');
 }
 
 /// `kickoff` — when the match is played, pre-formatted.
@@ -151,10 +149,8 @@ class MatchKickoff {
   }
 
   /// "Sun, Aug 23" — falls back to whichever half the server sent.
-  String get whenLabel => <String>[
-    dayLabel,
-    dateLabel,
-  ].where((s) => s.isNotEmpty).join(', ');
+  String get whenLabel =>
+      <String>[dayLabel, dateLabel].where((s) => s.isNotEmpty).join(', ');
 
   /// The window if there is one, otherwise the start time alone.
   String get slotLabel => timeRange.isNotEmpty ? timeRange : time;
@@ -204,10 +200,8 @@ class MatchVenue {
   }
 
   /// "Green Turf Arena · Court 2", or just the venue when it has no court.
-  String get displayName => <String>[
-    venueName,
-    courtName,
-  ].where((s) => s.isNotEmpty).join(' · ');
+  String get displayName =>
+      <String>[venueName, courtName].where((s) => s.isNotEmpty).join(' · ');
 
   bool get isEmpty => venueName.isEmpty && courtName.isEmpty;
 }

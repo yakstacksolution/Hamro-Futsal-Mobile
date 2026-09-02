@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:hamro_footsall/core/utils/string_constants.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 enum VendorCategory { futsal, court }
 

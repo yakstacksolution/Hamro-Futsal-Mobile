@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hamro_footsall/core/widgets/acknowledge_sheet.dart';
+import 'package:hamro_futsal/core/widgets/acknowledge_sheet.dart';
 
 /// The caller acts once this sheet returns, so a dismissal must not be able to
 /// stand in for the user actually acknowledging it.

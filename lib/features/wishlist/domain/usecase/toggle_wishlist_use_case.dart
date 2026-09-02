@@ -1,5 +1,5 @@
-import 'package:hamro_footsall/core/helper/wishlist_store.dart';
-import 'package:hamro_footsall/features/public/domain/repository/public_repository.dart';
+import 'package:hamro_futsal/core/helper/wishlist_store.dart';
+import 'package:hamro_futsal/features/public/domain/repository/public_repository.dart';
 
 /// Optimistically flips the venue in [WishlistStore], persists via
 /// `POST /venues/{venue}/wishlist`, and reverts the store on failure.

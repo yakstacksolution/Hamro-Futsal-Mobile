@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hamro_footsall/features/bookings/data/model/booking_model.dart';
-import 'package:hamro_footsall/features/bookings/presentation/utils/booking_search.dart';
+import 'package:hamro_futsal/features/bookings/data/model/booking_model.dart';
+import 'package:hamro_futsal/features/bookings/presentation/utils/booking_search.dart';
 
 void main() {
   final BookingModel booking = BookingModel.fromJson(<String, dynamic>{

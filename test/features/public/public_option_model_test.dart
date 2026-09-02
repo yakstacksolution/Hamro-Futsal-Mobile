@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hamro_footsall/features/public/data/model/public_option_model.dart';
+import 'package:hamro_futsal/features/public/data/model/public_option_model.dart';
 
 /// A trimmed copy of `GET /amenities`, keeping the shapes that matter: the
 /// nested media object under `icon`, and the doubled slash in its URL.

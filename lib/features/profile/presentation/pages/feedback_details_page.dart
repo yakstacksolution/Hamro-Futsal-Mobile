@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:hamro_footsall/core/theme/app_colors.dart';
-import 'package:hamro_footsall/core/theme/futsal_theme.dart';
-import 'package:hamro_footsall/core/utils/dimens.dart';
-import 'package:hamro_footsall/core/widgets/custom_app_bar.dart';
-import 'package:hamro_footsall/features/profile/data/model/feedback_history_model.dart';
-import 'package:hamro_footsall/features/profile/data/repositories/feedback_repository_impl.dart';
+import 'package:hamro_futsal/core/theme/app_colors.dart';
+import 'package:hamro_futsal/core/theme/futsal_theme.dart';
+import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/widgets/custom_app_bar.dart';
+import 'package:hamro_futsal/features/profile/data/model/feedback_history_model.dart';
+import 'package:hamro_futsal/features/profile/data/repositories/feedback_repository_impl.dart';
 
 class FeedbackDetailsPage extends StatefulWidget {
   const FeedbackDetailsPage({super.key, required this.feedbackId});

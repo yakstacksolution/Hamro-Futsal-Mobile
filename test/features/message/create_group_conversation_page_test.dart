@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hamro_footsall/features/message/data/model/conversation_model.dart';
-import 'package:hamro_footsall/features/message/presentation/pages/create_group_conversation_page.dart';
-import 'package:hamro_footsall/features/message/presentation/widgets/group_member_widgets.dart';
+import 'package:hamro_futsal/features/message/data/model/conversation_model.dart';
+import 'package:hamro_futsal/features/message/presentation/pages/create_group_conversation_page.dart';
+import 'package:hamro_futsal/features/message/presentation/widgets/group_member_widgets.dart';
 
 void main() {
   testWidgets('creates a group from the create-group page', (tester) async {

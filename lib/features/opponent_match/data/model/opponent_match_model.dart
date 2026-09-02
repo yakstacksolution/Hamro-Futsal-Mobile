@@ -1198,9 +1198,7 @@ class OpponentRequestModel {
         // A row that carries an `accepted_team` has had its opponent chosen,
         // whichever vocabulary said so.
         status:
-            status == 'accepted' ||
-                status == 'matched' ||
-                status == 'settled'
+            status == 'accepted' || status == 'matched' || status == 'settled'
             ? InvitationStatus.selected
             : InvitationStatus.pending,
         captainName: (acceptedBy['captain_name'] ?? '').toString().trim(),

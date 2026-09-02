@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hamro_footsall/features/bookings/data/model/booking_model.dart';
+import 'package:hamro_futsal/features/bookings/data/model/booking_model.dart';
 
 void main() {
   test('parses the live /api/futsal-bookings payload', () {

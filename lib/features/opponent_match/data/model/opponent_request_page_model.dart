@@ -1,5 +1,5 @@
-import 'package:hamro_footsall/features/opponent_match/data/model/opponent_match_model.dart';
-import 'package:hamro_footsall/features/opponent_match/data/model/opponent_request_summary_model.dart';
+import 'package:hamro_futsal/features/opponent_match/data/model/opponent_match_model.dart';
+import 'package:hamro_futsal/features/opponent_match/data/model/opponent_request_summary_model.dart';
 
 /// One page of `/auth/opponent-requests?tab=…&page=N&per_page=M`, with the
 /// `pagination` block the endpoint sends beside the rows.

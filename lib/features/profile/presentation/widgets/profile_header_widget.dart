@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:hamro_footsall/core/theme/app_colors.dart';
-import 'package:hamro_footsall/features/profile/presentation/widgets/header_componet_widget.dart';
-import 'package:hamro_footsall/features/profile/presentation/widgets/profile_header_background.dart';
+import 'package:hamro_futsal/core/theme/app_colors.dart';
+import 'package:hamro_futsal/features/profile/presentation/widgets/header_componet_widget.dart';
+import 'package:hamro_futsal/features/profile/presentation/widgets/profile_header_background.dart';
 
 class ProfileHeader extends StatelessWidget {
   final String name;

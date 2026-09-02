@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:hamro_footsall/features/app_update/presentation/bloc/app_update_bloc.dart';
-import 'package:hamro_footsall/core/routers/app_router_params.dart';
-import 'package:hamro_footsall/core/theme/app_colors.dart';
-import 'package:hamro_footsall/core/theme/futsal_theme.dart';
-import 'package:hamro_footsall/core/utils/app_utils.dart';
-import 'package:hamro_footsall/core/utils/dimens.dart';
-import 'package:hamro_footsall/core/widgets/custom_app_bar.dart';
-import 'package:hamro_footsall/core/widgets/confirm_word_sheet.dart';
-import 'package:hamro_footsall/core/widgets/custom_switch_widget.dart';
-import 'package:hamro_footsall/features/profile/presentation/controller/settings_controller.dart';
-import 'package:hamro_footsall/core/utils/string_constants.dart';
+import 'package:hamro_futsal/features/app_update/presentation/bloc/app_update_bloc.dart';
+import 'package:hamro_futsal/core/routers/app_router_params.dart';
+import 'package:hamro_futsal/core/theme/app_colors.dart';
+import 'package:hamro_futsal/core/theme/futsal_theme.dart';
+import 'package:hamro_futsal/core/utils/app_utils.dart';
+import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/widgets/custom_app_bar.dart';
+import 'package:hamro_futsal/core/widgets/confirm_word_sheet.dart';
+import 'package:hamro_futsal/core/widgets/custom_switch_widget.dart';
+import 'package:hamro_futsal/features/profile/presentation/controller/settings_controller.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});

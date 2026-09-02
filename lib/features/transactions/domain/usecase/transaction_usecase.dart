@@ -1,7 +1,7 @@
 import 'package:dartz/dartz.dart';
-import 'package:hamro_footsall/core/helper/exception_helper.dart';
-import 'package:hamro_footsall/features/transactions/data/model/transaction_history_model.dart';
-import 'package:hamro_footsall/features/transactions/domain/repository/transaction_repository.dart';
+import 'package:hamro_futsal/core/helper/exception_helper.dart';
+import 'package:hamro_futsal/features/transactions/data/model/transaction_history_model.dart';
+import 'package:hamro_futsal/features/transactions/domain/repository/transaction_repository.dart';
 
 final class TransactionUseCase {
   const TransactionUseCase(this.repository);

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:hamro_footsall/core/theme/app_colors.dart';
-import 'package:hamro_footsall/core/theme/futsal_theme.dart';
-import 'package:hamro_footsall/core/utils/custom_image_view.dart';
-import 'package:hamro_footsall/core/utils/dimens.dart';
-import 'package:hamro_footsall/core/utils/string_constants.dart';
-import 'package:hamro_footsall/core/widgets/custom_checkbox.dart';
-import 'package:hamro_footsall/features/message/data/model/conversation_model.dart';
+import 'package:hamro_futsal/core/theme/app_colors.dart';
+import 'package:hamro_futsal/core/theme/futsal_theme.dart';
+import 'package:hamro_futsal/core/utils/custom_image_view.dart';
+import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
+import 'package:hamro_futsal/core/widgets/custom_checkbox.dart';
+import 'package:hamro_futsal/features/message/data/model/conversation_model.dart';
 
 /// Pieces shared by the two member-picking surfaces: the create-group page and
 /// the add-members sheet. They render the same rows, the same empty states and
@@ -242,76 +242,76 @@ class GroupMemberTile extends StatelessWidget {
     return Opacity(
       opacity: disabled ? 0.45 : 1,
       child: Material(
-      color: selected
-          ? LightColor.secondaryColor.withValues(alpha: 0.06)
-          : LightColor.background,
-      child: InkWell(
-        onTap: disabled ? null : onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppDimens.paddingX12,
-            vertical: AppDimens.paddingX10,
-          ),
-          child: Row(
-            children: [
-              GroupMemberAvatar(participant: participant),
-              const SizedBox(width: AppDimens.paddingX12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            name.isEmpty ? StringConstants.unknownUser : name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: textTheme.bodyTextMedium?.copyWith(
-                              color: LightColor.primaryTextColor,
-                              fontWeight: FontWeight.w700,
+        color: selected
+            ? LightColor.secondaryColor.withValues(alpha: 0.06)
+            : LightColor.background,
+        child: InkWell(
+          onTap: disabled ? null : onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppDimens.paddingX12,
+              vertical: AppDimens.paddingX10,
+            ),
+            child: Row(
+              children: [
+                GroupMemberAvatar(participant: participant),
+                const SizedBox(width: AppDimens.paddingX12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              name.isEmpty ? StringConstants.unknownUser : name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: textTheme.bodyTextMedium?.copyWith(
+                                color: LightColor.primaryTextColor,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                           ),
-                        ),
-                        if (participant.isOnline) ...[
-                          const SizedBox(width: AppDimens.paddingX6),
-                          Text(
-                            StringConstants.online,
-                            style: textTheme.bodyTextSmall?.copyWith(
-                              color: LightColor.successColor,
-                              fontWeight: FontWeight.w600,
+                          if (participant.isOnline) ...[
+                            const SizedBox(width: AppDimens.paddingX6),
+                            Text(
+                              StringConstants.online,
+                              style: textTheme.bodyTextSmall?.copyWith(
+                                color: LightColor.successColor,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
-                          ),
+                          ],
                         ],
-                      ],
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      email.isNotEmpty
-                          ? email
-                          : role.isNotEmpty
-                          ? role
-                          : 'User #${participant.userId}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: textTheme.bodyTextSmall?.copyWith(
-                        color: LightColor.secondaryTextColor,
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 2),
+                      Text(
+                        email.isNotEmpty
+                            ? email
+                            : role.isNotEmpty
+                            ? role
+                            : 'User #${participant.userId}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: textTheme.bodyTextSmall?.copyWith(
+                          color: LightColor.secondaryTextColor,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(width: AppDimens.paddingX8),
-              CustomCheckbox(
-                value: selected,
-                onChanged: disabled ? null : (_) => onTap(),
-                labelWidget: const SizedBox.shrink(),
-                spacing: 0,
-              ),
-            ],
+                const SizedBox(width: AppDimens.paddingX8),
+                CustomCheckbox(
+                  value: selected,
+                  onChanged: disabled ? null : (_) => onTap(),
+                  labelWidget: const SizedBox.shrink(),
+                  spacing: 0,
+                ),
+              ],
+            ),
           ),
         ),
-      ),
       ),
     );
   }

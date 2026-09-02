@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:hamro_footsall/core/theme/app_theme_colors.dart';
-import 'package:hamro_footsall/core/theme/app_theme_controller.dart';
+import 'package:hamro_futsal/core/theme/app_theme_colors.dart';
+import 'package:hamro_futsal/core/theme/app_theme_controller.dart';
 
-export 'package:hamro_footsall/core/theme/app_theme_colors.dart';
+export 'package:hamro_futsal/core/theme/app_theme_colors.dart';
 
 /// Brand palette + brightness-aware semantic aliases.
 ///

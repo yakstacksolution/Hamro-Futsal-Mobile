@@ -1,12 +1,12 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:hamro_footsall/core/theme/app_colors.dart';
-import 'package:hamro_footsall/core/theme/futsal_theme.dart';
-import 'package:hamro_footsall/core/utils/dimens.dart';
-import 'package:hamro_footsall/features/message/data/model/chat_message_model.dart';
-import 'package:hamro_footsall/features/message/presentation/utils/message_fmt.dart';
-import 'package:hamro_footsall/core/utils/string_constants.dart';
+import 'package:hamro_futsal/core/theme/app_colors.dart';
+import 'package:hamro_futsal/core/theme/futsal_theme.dart';
+import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/features/message/data/model/chat_message_model.dart';
+import 'package:hamro_futsal/features/message/presentation/utils/message_fmt.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 /// One chat bubble — mine: filled accent, right-aligned with delivery ticks;
 /// theirs: white card, left-aligned (sender name shown in groups).

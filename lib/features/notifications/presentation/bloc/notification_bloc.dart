@@ -2,9 +2,9 @@ import 'dart:async';
 
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
-import 'package:hamro_footsall/features/notifications/data/model/notification_model.dart';
-import 'package:hamro_footsall/features/notifications/domain/repository/notification_repository.dart';
-import 'package:hamro_footsall/features/notifications/domain/usecase/notification_use_case.dart';
+import 'package:hamro_futsal/features/notifications/data/model/notification_model.dart';
+import 'package:hamro_futsal/features/notifications/domain/repository/notification_repository.dart';
+import 'package:hamro_futsal/features/notifications/domain/usecase/notification_use_case.dart';
 
 part 'notification_event.dart';
 part 'notification_state.dart';

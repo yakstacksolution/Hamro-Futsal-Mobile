@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hamro_footsall/features/rewards/data/model/rewards_model.dart';
+import 'package:hamro_futsal/features/rewards/data/model/rewards_model.dart';
 
 void main() {
   group('RewardsSummaryModel', () {

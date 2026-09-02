@@ -3,9 +3,9 @@
 // import 'package:flutter/material.dart';
 // import 'package:flutter_native_splash/flutter_native_splash.dart';
 // import 'package:go_router/go_router.dart';
-// import 'package:hamro_footsall/core/helper/share_preferences.dart';
-// import 'package:hamro_footsall/core/routers/app_router_params.dart';
-// import 'package:hamro_footsall/core/theme/light_color.dart';
+// import 'package:hamro_futsal/core/helper/share_preferences.dart';
+// import 'package:hamro_futsal/core/routers/app_router_params.dart';
+// import 'package:hamro_futsal/core/theme/light_color.dart';
 
 // class SplashScreen extends StatefulWidget {
 //   const SplashScreen({super.key});

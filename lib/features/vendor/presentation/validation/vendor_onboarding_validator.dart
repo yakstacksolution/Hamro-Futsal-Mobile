@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart' show TimeOfDay;
-import 'package:hamro_footsall/core/widgets/custom_time_field.dart';
-import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_models.dart';
+import 'package:hamro_futsal/core/widgets/custom_time_field.dart';
+import 'package:hamro_futsal/features/vendor/presentation/models/vendor_onboarding_models.dart';
 
 class VendorValidationResult {
   const VendorValidationResult.valid(this.key) : isValid = true, message = null;

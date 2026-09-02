@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:hamro_footsall/core/utils/dimens.dart';
-import 'package:hamro_footsall/core/utils/responsive.dart';
-import 'package:hamro_footsall/features/dashboard/presentation/widgets/dashboard_layout.dart';
+import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/utils/responsive.dart';
+import 'package:hamro_futsal/features/dashboard/presentation/widgets/dashboard_layout.dart';
 import 'package:shimmer/shimmer.dart';
-import 'package:hamro_footsall/core/theme/app_colors.dart';
+import 'package:hamro_futsal/core/theme/app_colors.dart';
 
 class HomeBodyLoading extends StatelessWidget {
   const HomeBodyLoading({super.key, this.itemCount = 4});

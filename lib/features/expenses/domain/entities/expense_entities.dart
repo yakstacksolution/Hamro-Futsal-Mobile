@@ -1,5 +1,5 @@
-import 'package:hamro_footsall/core/utils/upload_attachment.dart';
-import 'package:hamro_footsall/features/expenses/data/model/expense_model.dart';
+import 'package:hamro_futsal/core/utils/upload_attachment.dart';
+import 'package:hamro_futsal/features/expenses/data/model/expense_model.dart';
 
 /// Payload for creating a new expense from the UI.
 class CreateExpenseEntity {

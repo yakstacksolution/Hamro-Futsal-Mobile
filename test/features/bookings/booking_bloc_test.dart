@@ -1,14 +1,14 @@
 import 'dart:async';
 import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hamro_footsall/core/helper/exception_helper.dart';
-import 'package:hamro_footsall/features/bookings/data/model/booking_model.dart';
-import 'package:hamro_footsall/features/bookings/data/model/booking_review_model.dart';
-import 'package:hamro_footsall/features/bookings/domain/repository/booking_repository.dart';
-import 'package:hamro_footsall/features/bookings/domain/model/paginated_bookings.dart';
-import 'package:hamro_footsall/features/bookings/domain/usecase/get_bookings_use_case.dart';
-import 'package:hamro_footsall/features/bookings/presentation/bloc/booking_bloc/booking_bloc.dart';
-import 'package:hamro_footsall/features/bookings/presentation/bloc/booking_details_bloc/booking_details_bloc.dart';
+import 'package:hamro_futsal/core/helper/exception_helper.dart';
+import 'package:hamro_futsal/features/bookings/data/model/booking_model.dart';
+import 'package:hamro_futsal/features/bookings/data/model/booking_review_model.dart';
+import 'package:hamro_futsal/features/bookings/domain/repository/booking_repository.dart';
+import 'package:hamro_futsal/features/bookings/domain/model/paginated_bookings.dart';
+import 'package:hamro_futsal/features/bookings/domain/usecase/get_bookings_use_case.dart';
+import 'package:hamro_futsal/features/bookings/presentation/bloc/booking_bloc/booking_bloc.dart';
+import 'package:hamro_futsal/features/bookings/presentation/bloc/booking_details_bloc/booking_details_bloc.dart';
 
 void main() {
   group('BookingBloc', () {
@@ -58,67 +58,70 @@ void main() {
       expect(state.futsalBookingsError, 'Futsal access is unavailable.');
     });
 
-    test('sends the endpoint\'s status filter, `all` when none is picked', () async {
-      final _FakeBookingRepository repository = _FakeBookingRepository();
-      final BookingBloc bloc = BookingBloc(GetBookingsUseCase(repository));
-      addTearDown(bloc.close);
+    test(
+      'sends the endpoint\'s status filter, `all` when none is picked',
+      () async {
+        final _FakeBookingRepository repository = _FakeBookingRepository();
+        final BookingBloc bloc = BookingBloc(GetBookingsUseCase(repository));
+        addTearDown(bloc.close);
 
-      // refreshTick is bumped once per *finished* fetch, so this skips the
-      // intermediate emit that clears the old filter's rows.
-      int tick = bloc.state.refreshTick;
-      Future<BookingState> settled() async {
-        final BookingState state = await bloc.stream.firstWhere(
-          (BookingState state) => state.refreshTick != tick,
+        // refreshTick is bumped once per *finished* fetch, so this skips the
+        // intermediate emit that clears the old filter's rows.
+        int tick = bloc.state.refreshTick;
+        Future<BookingState> settled() async {
+          final BookingState state = await bloc.stream.firstWhere(
+            (BookingState state) => state.refreshTick != tick,
+          );
+          tick = state.refreshTick;
+          return state;
+        }
+
+        Future<BookingState> done = settled();
+        bloc.add(const FetchMyBookingsEvent());
+        await done;
+        expect(repository.myStatuses, <String?>['all']);
+
+        // Selecting a status fetches it, from page 1, and makes it the visible
+        // one — the `all` rows stay in their own slice.
+        done = settled();
+        bloc.add(
+          const FetchMyBookingsEvent.select(BookingStatusFilter.pending),
         );
-        tick = state.refreshTick;
-        return state;
-      }
+        BookingState state = await done;
+        expect(repository.myStatuses.last, 'pending');
+        expect(state.mySelectedFilter, BookingStatusFilter.pending);
+        expect(state.myStatusFilter, BookingStatus.pending);
+        expect(state.myCurrentPage, 1);
+        expect(state.mySlice(BookingStatusFilter.all).bookings, isNotEmpty);
 
-      Future<BookingState> done = settled();
-      bloc.add(const FetchMyBookingsEvent());
-      await done;
-      expect(repository.myStatuses, <String?>['all']);
+        // A plain refresh keeps the selected status rather than reverting to all.
+        done = settled();
+        bloc.add(const FetchMyBookingsEvent(silent: true));
+        state = await done;
+        expect(repository.myStatuses.last, 'pending');
+        expect(state.myStatusFilter, BookingStatus.pending);
 
-      // Selecting a status fetches it, from page 1, and makes it the visible
-      // one — the `all` rows stay in their own slice.
-      done = settled();
-      bloc.add(
-        const FetchMyBookingsEvent.select(BookingStatusFilter.pending),
-      );
-      BookingState state = await done;
-      expect(repository.myStatuses.last, 'pending');
-      expect(state.mySelectedFilter, BookingStatusFilter.pending);
-      expect(state.myStatusFilter, BookingStatus.pending);
-      expect(state.myCurrentPage, 1);
-      expect(state.mySlice(BookingStatusFilter.all).bookings, isNotEmpty);
+        // Selecting a status already loaded is served from state: no request.
+        final int calls = repository.myBookingsCalls;
+        bloc.add(const FetchMyBookingsEvent.select(BookingStatusFilter.all));
+        await Future<void>.delayed(Duration.zero);
+        expect(repository.myBookingsCalls, calls);
+        expect(bloc.state.mySelectedFilter, BookingStatusFilter.all);
+        expect(bloc.state.myBookings, isNotEmpty);
 
-      // A plain refresh keeps the selected status rather than reverting to all.
-      done = settled();
-      bloc.add(const FetchMyBookingsEvent(silent: true));
-      state = await done;
-      expect(repository.myStatuses.last, 'pending');
-      expect(state.myStatusFilter, BookingStatus.pending);
-
-      // Selecting a status already loaded is served from state: no request.
-      final int calls = repository.myBookingsCalls;
-      bloc.add(const FetchMyBookingsEvent.select(BookingStatusFilter.all));
-      await Future<void>.delayed(Duration.zero);
-      expect(repository.myBookingsCalls, calls);
-      expect(bloc.state.mySelectedFilter, BookingStatusFilter.all);
-      expect(bloc.state.myBookings, isNotEmpty);
-
-      // …unless it is forced, which is what pull-to-refresh does.
-      done = settled();
-      bloc.add(
-        const FetchMyBookingsEvent.select(
-          BookingStatusFilter.all,
-          force: true,
-        ),
-      );
-      state = await done;
-      expect(repository.myStatuses.last, 'all');
-      expect(state.myStatusFilter, isNull);
-    });
+        // …unless it is forced, which is what pull-to-refresh does.
+        done = settled();
+        bloc.add(
+          const FetchMyBookingsEvent.select(
+            BookingStatusFilter.all,
+            force: true,
+          ),
+        );
+        state = await done;
+        expect(repository.myStatuses.last, 'all');
+        expect(state.myStatusFilter, isNull);
+      },
+    );
 
     test('every status page maps to its query value and back', () {
       expect(

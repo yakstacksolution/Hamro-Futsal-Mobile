@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:hamro_footsall/core/theme/app_colors.dart';
-import 'package:hamro_footsall/features/booking_overview/data/model/booking_overview_model.dart';
+import 'package:hamro_futsal/core/theme/app_colors.dart';
+import 'package:hamro_futsal/features/booking_overview/data/model/booking_overview_model.dart';
 
 /// Accent color for each booking status.
 extension BookingStatusUi on BookingStatus {

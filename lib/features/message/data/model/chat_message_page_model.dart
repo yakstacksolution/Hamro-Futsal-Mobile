@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:hamro_footsall/features/message/data/model/chat_message_model.dart';
+import 'package:hamro_futsal/features/message/data/model/chat_message_model.dart';
 
 /// One page of `/conversations/{id}/messages`.
 ///

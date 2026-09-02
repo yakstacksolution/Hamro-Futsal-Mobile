@@ -1,10 +1,10 @@
 import 'package:dio/dio.dart';
-import 'package:hamro_footsall/core/utils/upload_attachment.dart';
-import 'package:hamro_footsall/core/utils/upload_part.dart';
-import 'package:hamro_footsall/core/api/api_client/booking_type_payload.dart';
-import 'package:hamro_footsall/core/api/api_client/result.dart';
-import 'package:hamro_footsall/core/api/client.dart';
-import 'package:hamro_footsall/features/futsal_details/data/model/create_booking_request.dart';
+import 'package:hamro_futsal/core/utils/upload_attachment.dart';
+import 'package:hamro_futsal/core/utils/upload_part.dart';
+import 'package:hamro_futsal/core/api/api_client/booking_type_payload.dart';
+import 'package:hamro_futsal/core/api/api_client/result.dart';
+import 'package:hamro_futsal/core/api/client.dart';
+import 'package:hamro_futsal/features/futsal_details/data/model/create_booking_request.dart';
 
 abstract class FutsalDetailsRemoteDataSource {
   Future<Result> getHostedBy({required int venueId});

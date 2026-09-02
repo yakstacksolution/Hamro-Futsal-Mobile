@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hamro_footsall/features/message/data/model/conversation_model.dart';
-import 'package:hamro_footsall/features/message/domain/repository/message_repository.dart';
-import 'package:hamro_footsall/features/message/domain/usecase/message_usecase.dart';
-import 'package:hamro_footsall/features/message/presentation/bloc/message_bloc/message_bloc.dart';
-import 'package:hamro_footsall/features/message/presentation/pages/group_profile_page.dart';
+import 'package:hamro_futsal/features/message/data/model/conversation_model.dart';
+import 'package:hamro_futsal/features/message/domain/repository/message_repository.dart';
+import 'package:hamro_futsal/features/message/domain/usecase/message_usecase.dart';
+import 'package:hamro_futsal/features/message/presentation/bloc/message_bloc/message_bloc.dart';
+import 'package:hamro_futsal/features/message/presentation/pages/group_profile_page.dart';
 
 void main() {
   const ConversationModel group = ConversationModel(

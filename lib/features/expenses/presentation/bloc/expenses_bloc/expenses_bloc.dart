@@ -2,11 +2,11 @@ import 'dart:async';
 
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
-import 'package:hamro_footsall/features/expenses/data/model/expense_model.dart';
-import 'package:hamro_footsall/features/expenses/data/model/expense_report_model.dart';
-import 'package:hamro_footsall/features/expenses/domain/entities/expense_entities.dart';
-import 'package:hamro_footsall/features/expenses/domain/usecase/expenses_usecase.dart';
-import 'package:hamro_footsall/features/expenses/presentation/models/expense_filter.dart';
+import 'package:hamro_futsal/features/expenses/data/model/expense_model.dart';
+import 'package:hamro_futsal/features/expenses/data/model/expense_report_model.dart';
+import 'package:hamro_futsal/features/expenses/domain/entities/expense_entities.dart';
+import 'package:hamro_futsal/features/expenses/domain/usecase/expenses_usecase.dart';
+import 'package:hamro_futsal/features/expenses/presentation/models/expense_filter.dart';
 
 part 'expenses_event.dart';
 part 'expenses_state.dart';

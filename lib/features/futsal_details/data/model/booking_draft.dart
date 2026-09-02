@@ -1,4 +1,4 @@
-import 'package:hamro_footsall/features/bookings/data/model/manual_booking_details.dart';
+import 'package:hamro_futsal/features/bookings/data/model/manual_booking_details.dart';
 
 /// All the data needed by the booking checkout page, captured from the slot
 /// selection screen when the user taps its booking action. Kept independent of

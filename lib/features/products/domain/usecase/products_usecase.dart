@@ -1,7 +1,7 @@
 import 'package:dartz/dartz.dart';
-import 'package:hamro_footsall/core/helper/exception_helper.dart';
-import 'package:hamro_footsall/features/products/data/model/product_models.dart';
-import 'package:hamro_footsall/features/products/domain/repository/products_repository.dart';
+import 'package:hamro_futsal/core/helper/exception_helper.dart';
+import 'package:hamro_futsal/features/products/data/model/product_models.dart';
+import 'package:hamro_futsal/features/products/domain/repository/products_repository.dart';
 
 final class ProductsUseCase {
   const ProductsUseCase(this._repository);

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
-import 'package:hamro_footsall/core/helper/share_preferences.dart';
+import 'package:hamro_futsal/core/helper/share_preferences.dart';
 
 final class AppThemeController extends ValueNotifier<ThemeMode> {
   AppThemeController._() : super(_initialMode());

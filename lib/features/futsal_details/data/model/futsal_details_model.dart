@@ -1,4 +1,4 @@
-import 'package:hamro_footsall/features/courts_details/presentation/page/court_details.dart';
+import 'package:hamro_futsal/features/courts_details/presentation/page/court_details.dart';
 
 class FutsalDetailsModel {
   final String name;

@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hamro_footsall/core/utils/compress_upload_image.dart';
+import 'package:hamro_futsal/core/utils/compress_upload_image.dart';
 
 void main() {
   test('leaves an already-small image alone', () async {
@@ -47,7 +47,10 @@ void main() {
     });
 
     test('handles a missing name', () {
-      expect(compressedUploadName(null, wasCompressed: false), 'attachment.jpg');
+      expect(
+        compressedUploadName(null, wasCompressed: false),
+        'attachment.jpg',
+      );
     });
   });
 }

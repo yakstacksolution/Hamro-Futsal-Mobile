@@ -2,12 +2,12 @@ import 'dart:async';
 
 import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hamro_footsall/core/helper/exception_helper.dart';
-import 'package:hamro_footsall/features/profile/data/model/profile_model.dart';
-import 'package:hamro_footsall/features/profile/domain/repository/profile_repository.dart';
-import 'package:hamro_footsall/features/profile/domain/usecase/profile_usecase.dart';
-import 'package:hamro_footsall/features/profile/presentation/profile_bloc/profile_bloc.dart';
-import 'package:hamro_footsall/features/vendor/presentation/models/vendor_onboarding_drafts.dart';
+import 'package:hamro_futsal/core/helper/exception_helper.dart';
+import 'package:hamro_futsal/features/profile/data/model/profile_model.dart';
+import 'package:hamro_futsal/features/profile/domain/repository/profile_repository.dart';
+import 'package:hamro_futsal/features/profile/domain/usecase/profile_usecase.dart';
+import 'package:hamro_futsal/features/profile/presentation/profile_bloc/profile_bloc.dart';
+import 'package:hamro_futsal/features/vendor/presentation/models/vendor_onboarding_drafts.dart';
 
 void main() {
   test(

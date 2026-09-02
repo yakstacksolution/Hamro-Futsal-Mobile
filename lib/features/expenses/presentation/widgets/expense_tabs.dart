@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:hamro_footsall/core/utils/app_utils.dart';
-import 'package:hamro_footsall/core/utils/dimens.dart';
-import 'package:hamro_footsall/features/expenses/data/model/expense_model.dart';
-import 'package:hamro_footsall/features/expenses/data/model/expense_report_model.dart';
-import 'package:hamro_footsall/features/expenses/presentation/widgets/expense_chart_widgets.dart';
-import 'package:hamro_footsall/features/expenses/presentation/widgets/expense_common.dart';
-import 'package:hamro_footsall/features/expenses/presentation/widgets/expense_record_widgets.dart';
-import 'package:hamro_footsall/features/expenses/presentation/widgets/expense_summary_widgets.dart';
+import 'package:hamro_futsal/core/utils/app_utils.dart';
+import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/features/expenses/data/model/expense_model.dart';
+import 'package:hamro_futsal/features/expenses/data/model/expense_report_model.dart';
+import 'package:hamro_futsal/features/expenses/presentation/widgets/expense_chart_widgets.dart';
+import 'package:hamro_futsal/features/expenses/presentation/widgets/expense_common.dart';
+import 'package:hamro_futsal/features/expenses/presentation/widgets/expense_record_widgets.dart';
+import 'package:hamro_futsal/features/expenses/presentation/widgets/expense_summary_widgets.dart';
 
 /// "How am I doing?" — hero total + KPI snapshot, straight from the
 /// server-computed [ExpenseReport.summary].

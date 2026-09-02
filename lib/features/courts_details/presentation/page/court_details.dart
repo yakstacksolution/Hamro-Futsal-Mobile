@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:hamro_footsall/core/theme/app_colors.dart';
-import 'package:hamro_footsall/core/theme/futsal_theme.dart';
-import 'package:hamro_footsall/core/utils/app_utils.dart';
-import 'package:hamro_footsall/core/utils/dimens.dart';
-import 'package:hamro_footsall/features/courts_details/presentation/widget/court_amenities.dart';
-import 'package:hamro_footsall/features/courts_details/presentation/widget/court_booking_policies_section.dart';
-import 'package:hamro_footsall/features/courts_details/presentation/widget/court_hosted_by_section.dart';
-import 'package:hamro_footsall/features/courts_details/presentation/widget/court_intro_widget.dart';
-import 'package:hamro_footsall/features/courts_details/presentation/widget/court_reviews_section.dart';
-import 'package:hamro_footsall/features/courts_details/presentation/widget/court_rules_section.dart';
-import 'package:hamro_footsall/features/courts_details/presentation/widget/court_time_slot.dart';
-import 'package:hamro_footsall/features/courts_details/presentation/widget/details_image_gallery.dart';
-import 'package:hamro_footsall/features/futsal_details/data/model/time_slot_model.dart';
-import 'package:hamro_footsall/core/utils/string_constants.dart';
+import 'package:hamro_futsal/core/theme/app_colors.dart';
+import 'package:hamro_futsal/core/theme/futsal_theme.dart';
+import 'package:hamro_futsal/core/utils/app_utils.dart';
+import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/features/courts_details/presentation/widget/court_amenities.dart';
+import 'package:hamro_futsal/features/courts_details/presentation/widget/court_booking_policies_section.dart';
+import 'package:hamro_futsal/features/courts_details/presentation/widget/court_hosted_by_section.dart';
+import 'package:hamro_futsal/features/courts_details/presentation/widget/court_intro_widget.dart';
+import 'package:hamro_futsal/features/courts_details/presentation/widget/court_reviews_section.dart';
+import 'package:hamro_futsal/features/courts_details/presentation/widget/court_rules_section.dart';
+import 'package:hamro_futsal/features/courts_details/presentation/widget/court_time_slot.dart';
+import 'package:hamro_futsal/features/courts_details/presentation/widget/details_image_gallery.dart';
+import 'package:hamro_futsal/features/futsal_details/data/model/time_slot_model.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 class CourtDetailModel {
   final int? venueId;

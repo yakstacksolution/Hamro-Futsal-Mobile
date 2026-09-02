@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hamro_footsall/features/app_update/domain/entities/app_version.dart';
+import 'package:hamro_futsal/features/app_update/domain/entities/app_version.dart';
 
 void main() {
   group('AppVersion.tryParse', () {

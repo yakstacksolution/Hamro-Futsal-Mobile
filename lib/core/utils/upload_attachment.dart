@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:hamro_footsall/core/utils/compress_upload_image.dart';
+import 'package:hamro_futsal/core/utils/compress_upload_image.dart';
 
 /// Application-wide limits for multipart uploads.
 const int kUploadMaxFileBytes = 10 * 1024 * 1024;

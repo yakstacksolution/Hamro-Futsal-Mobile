@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:hamro_footsall/features/courts/data/model/venue_court_model.dart';
+import 'package:hamro_futsal/features/courts/data/model/venue_court_model.dart';
 
 final class VenueCourtPageModel extends Equatable {
   const VenueCourtPageModel({

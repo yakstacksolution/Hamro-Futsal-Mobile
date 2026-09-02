@@ -1,9 +1,9 @@
-import 'package:hamro_footsall/core/api/api_client/api_constants.dart';
-import 'package:hamro_footsall/core/api/api_client/booking_type_payload.dart';
-import 'package:hamro_footsall/core/api/api_client/result.dart';
-import 'package:hamro_footsall/core/helper/share_preferences.dart';
-import 'package:hamro_footsall/core/api/api_client/api_call_wrapper.dart';
-import 'package:hamro_footsall/core/utils/app_utils.dart';
+import 'package:hamro_futsal/core/api/api_client/api_constants.dart';
+import 'package:hamro_futsal/core/api/api_client/booking_type_payload.dart';
+import 'package:hamro_futsal/core/api/api_client/result.dart';
+import 'package:hamro_futsal/core/helper/share_preferences.dart';
+import 'package:hamro_futsal/core/api/api_client/api_call_wrapper.dart';
+import 'package:hamro_futsal/core/utils/app_utils.dart';
 
 class ApiClient {
   final ApiCallWrapper _apiCallWrapper;
@@ -83,6 +83,10 @@ class ApiClient {
 
   Future<Result> googleLogin({required Map<String, dynamic> data}) {
     return _post(url: '$_baseUrl/auth/google-login', data: data);
+  }
+
+  Future<Result> appleLogin({required Map<String, dynamic> data}) {
+    return _post(url: '$_baseUrl/auth/apple-login', data: data);
   }
 
   Future<Result> updatePassword({required Map<String, dynamic> data}) {

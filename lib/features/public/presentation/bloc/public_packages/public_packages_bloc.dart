@@ -3,9 +3,9 @@ import 'dart:async';
 import 'package:bloc/bloc.dart';
 import 'package:dartz/dartz.dart';
 import 'package:equatable/equatable.dart';
-import 'package:hamro_footsall/core/helper/exception_helper.dart';
-import 'package:hamro_footsall/features/public/data/model/public_package_model.dart';
-import 'package:hamro_footsall/features/public/domain/usecase/get_public_packages_use_case.dart';
+import 'package:hamro_futsal/core/helper/exception_helper.dart';
+import 'package:hamro_futsal/features/public/data/model/public_package_model.dart';
+import 'package:hamro_futsal/features/public/domain/usecase/get_public_packages_use_case.dart';
 
 part 'public_packages_event.dart';
 part 'public_packages_state.dart';

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:hamro_footsall/features/auth/presentation/auth_screen.dart';
+import 'package:hamro_futsal/features/auth/presentation/auth_screen.dart';
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});

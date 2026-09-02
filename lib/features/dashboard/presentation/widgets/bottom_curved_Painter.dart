@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:hamro_footsall/features/dashboard/presentation/widgets/centered_elasticIn_curve.dart';
+import 'package:hamro_futsal/features/dashboard/presentation/widgets/centered_elasticIn_curve.dart';
 
 class BackgroundCurvePainter extends CustomPainter {
   static const _radiusTop = 50.0;

@@ -1,4 +1,4 @@
-import 'package:hamro_footsall/core/utils/upload_attachment.dart';
+import 'package:hamro_futsal/core/utils/upload_attachment.dart';
 
 class CreateBookingRequest {
   const CreateBookingRequest({

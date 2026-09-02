@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:hamro_footsall/core/theme/app_colors.dart';
-import 'package:hamro_footsall/core/theme/futsal_theme.dart';
-import 'package:hamro_footsall/core/utils/dimens.dart';
-import 'package:hamro_footsall/core/widgets/custom_checkbox.dart';
-import 'package:hamro_footsall/core/widgets/custom_dropdown_field.dart';
-import 'package:hamro_footsall/core/widgets/custom_text_field.dart';
-import 'package:hamro_footsall/core/utils/string_constants.dart';
+import 'package:hamro_futsal/core/theme/app_colors.dart';
+import 'package:hamro_futsal/core/theme/futsal_theme.dart';
+import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/widgets/custom_checkbox.dart';
+import 'package:hamro_futsal/core/widgets/custom_dropdown_field.dart';
+import 'package:hamro_futsal/core/widgets/custom_text_field.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 class RegisterForm extends StatelessWidget {
   const RegisterForm({
@@ -127,7 +127,7 @@ class RegisterForm extends StatelessWidget {
             focusNode: emailFocus,
             keyboardType: TextInputType.emailAddress,
             labelText: StringConstants.emailAddress,
-            hintText: StringConstants.nameFootsallCom,
+            hintText: StringConstants.nameFutsalCom,
             icon: Icons.alternate_email_rounded,
             textInputAction: TextInputAction.next,
             validator: emailValidator,

@@ -3,8 +3,8 @@
 /// retains, ledger entries, and settlement (payout) requests.
 library;
 
-import 'package:hamro_footsall/core/api/api_client/api_constants.dart';
-import 'package:hamro_footsall/features/futsal_details/data/model/payment_qr_model.dart';
+import 'package:hamro_futsal/core/api/api_client/api_constants.dart';
+import 'package:hamro_futsal/features/futsal_details/data/model/payment_qr_model.dart';
 
 int _asInt(dynamic v) {
   if (v is int) return v;

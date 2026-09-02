@@ -1,6 +1,6 @@
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
-import 'package:hamro_footsall/features/change_password/domain/usecase/change_password_usecase.dart';
+import 'package:hamro_futsal/features/change_password/domain/usecase/change_password_usecase.dart';
 
 part 'change_password_event.dart';
 part 'change_password_state.dart';

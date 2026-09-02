@@ -2,12 +2,12 @@ import 'dart:async';
 
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
-import 'package:hamro_footsall/features/message/data/model/chat_message_model.dart';
-import 'package:hamro_footsall/features/message/data/model/chat_send_request.dart';
-import 'package:hamro_footsall/features/message/data/model/conversation_model.dart';
-import 'package:hamro_footsall/features/message/data/model/message_profile_model.dart';
-import 'package:hamro_footsall/features/message/data/service/chat_socket_service.dart';
-import 'package:hamro_footsall/features/message/domain/usecase/message_usecase.dart';
+import 'package:hamro_futsal/features/message/data/model/chat_message_model.dart';
+import 'package:hamro_futsal/features/message/data/model/chat_send_request.dart';
+import 'package:hamro_futsal/features/message/data/model/conversation_model.dart';
+import 'package:hamro_futsal/features/message/data/model/message_profile_model.dart';
+import 'package:hamro_futsal/features/message/data/service/chat_socket_service.dart';
+import 'package:hamro_futsal/features/message/domain/usecase/message_usecase.dart';
 
 part 'message_event.dart';
 part 'message_state.dart';
@@ -508,7 +508,8 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
         state.copyWith(actionBusy: false, errorMessage: failure.errorMessage),
       ),
       (_) {
-        final bool wasActive = state.activeConversationId == event.conversationId;
+        final bool wasActive =
+            state.activeConversationId == event.conversationId;
         emit(
           state.copyWith(
             actionBusy: false,

@@ -4,8 +4,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
-import 'package:hamro_footsall/core/utils/custom_placeholder_widget.dart';
-import 'package:hamro_footsall/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/utils/custom_placeholder_widget.dart';
+import 'package:hamro_futsal/core/utils/dimens.dart';
 
 // Custom Cache Manager Configuration
 final customCacheManager = CacheManager(

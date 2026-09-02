@@ -1,5 +1,5 @@
-import 'package:hamro_footsall/features/opponent_match/data/model/opponent_match_model.dart';
-import 'package:hamro_footsall/features/opponent_match/presentation/utils/opponent_ui_utils.dart';
+import 'package:hamro_futsal/features/opponent_match/data/model/opponent_match_model.dart';
+import 'package:hamro_futsal/features/opponent_match/presentation/utils/opponent_ui_utils.dart';
 
 /// Pure calculator for the court-fee split — derives every figure the
 /// cost-split card and the outgoing request need from the form selections.

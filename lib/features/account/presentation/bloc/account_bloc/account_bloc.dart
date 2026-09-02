@@ -2,9 +2,9 @@ import 'dart:async';
 
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
-import 'package:hamro_footsall/features/account/data/model/account_models.dart';
-import 'package:hamro_footsall/features/account/domain/usecase/account_usecase.dart';
-import 'package:hamro_footsall/core/utils/upload_attachment.dart';
+import 'package:hamro_futsal/features/account/data/model/account_models.dart';
+import 'package:hamro_futsal/features/account/domain/usecase/account_usecase.dart';
+import 'package:hamro_futsal/core/utils/upload_attachment.dart';
 
 part 'account_event.dart';
 part 'account_state.dart';

@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:hamro_footsall/core/theme/app_colors.dart';
+import 'package:hamro_futsal/core/theme/app_colors.dart';
 
 const String kProfileHeaderSurfaceHeroTag = 'profile-header-surface';
 

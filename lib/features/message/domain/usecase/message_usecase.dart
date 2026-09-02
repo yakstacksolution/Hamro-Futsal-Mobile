@@ -1,14 +1,14 @@
 import 'dart:typed_data';
 
 import 'package:dartz/dartz.dart';
-import 'package:hamro_footsall/core/helper/exception_helper.dart';
-import 'package:hamro_footsall/features/message/data/model/chat_message_model.dart';
-import 'package:hamro_footsall/features/message/data/model/chat_message_page_model.dart';
-import 'package:hamro_footsall/features/message/data/model/chat_send_request.dart';
-import 'package:hamro_footsall/features/message/data/model/conversation_model.dart';
-import 'package:hamro_footsall/features/message/data/model/conversation_page_model.dart';
-import 'package:hamro_footsall/features/message/data/model/message_profile_model.dart';
-import 'package:hamro_footsall/features/message/domain/repository/message_repository.dart';
+import 'package:hamro_futsal/core/helper/exception_helper.dart';
+import 'package:hamro_futsal/features/message/data/model/chat_message_model.dart';
+import 'package:hamro_futsal/features/message/data/model/chat_message_page_model.dart';
+import 'package:hamro_futsal/features/message/data/model/chat_send_request.dart';
+import 'package:hamro_futsal/features/message/data/model/conversation_model.dart';
+import 'package:hamro_futsal/features/message/data/model/conversation_page_model.dart';
+import 'package:hamro_futsal/features/message/data/model/message_profile_model.dart';
+import 'package:hamro_futsal/features/message/domain/repository/message_repository.dart';
 
 final class MessageUseCase {
   const MessageUseCase(this.repository);
@@ -114,10 +114,8 @@ final class MessageUseCase {
   Future<Either<AppException, bool>> respondToConversationInvitation(
     int conversationId, {
     required bool accept,
-  }) async => await repository.respondToConversationInvitation(
-    conversationId,
-    accept,
-  );
+  }) async =>
+      await repository.respondToConversationInvitation(conversationId, accept);
 
   Future<Either<AppException, bool>> leaveConversation(
     int conversationId,

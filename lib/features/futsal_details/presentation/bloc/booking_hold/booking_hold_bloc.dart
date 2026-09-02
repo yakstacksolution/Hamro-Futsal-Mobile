@@ -3,9 +3,9 @@ import 'dart:async';
 import 'package:bloc/bloc.dart';
 import 'package:dartz/dartz.dart';
 import 'package:equatable/equatable.dart';
-import 'package:hamro_footsall/core/helper/exception_helper.dart';
-import 'package:hamro_footsall/features/futsal_details/data/model/booking_hold_model.dart';
-import 'package:hamro_footsall/features/futsal_details/domain/usecase/booking_hold_use_case.dart';
+import 'package:hamro_futsal/core/helper/exception_helper.dart';
+import 'package:hamro_futsal/features/futsal_details/data/model/booking_hold_model.dart';
+import 'package:hamro_futsal/features/futsal_details/domain/usecase/booking_hold_use_case.dart';
 
 part 'booking_hold_event.dart';
 part 'booking_hold_state.dart';

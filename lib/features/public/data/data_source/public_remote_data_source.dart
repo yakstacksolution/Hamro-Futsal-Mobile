@@ -1,7 +1,7 @@
-import 'package:hamro_footsall/core/api/api_client/result.dart';
-import 'package:hamro_footsall/core/api/client.dart';
-import 'package:hamro_footsall/features/public/presentation/models/venue_filter.dart';
-import 'package:hamro_footsall/core/api/api_client/api_constants.dart';
+import 'package:hamro_futsal/core/api/api_client/result.dart';
+import 'package:hamro_futsal/core/api/client.dart';
+import 'package:hamro_futsal/features/public/presentation/models/venue_filter.dart';
+import 'package:hamro_futsal/core/api/api_client/api_constants.dart';
 
 abstract class PublicRemoteDataSource {
   Future<Result> getServices();

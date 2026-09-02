@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hamro_footsall/features/account/data/model/account_models.dart';
+import 'package:hamro_futsal/features/account/data/model/account_models.dart';
 
 void main() {
   const Map<String, dynamic> response = <String, dynamic>{

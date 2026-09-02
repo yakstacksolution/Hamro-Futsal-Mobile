@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import 'package:hamro_footsall/features/app_update/domain/entities/install_progress.dart';
+import 'package:hamro_futsal/features/app_update/domain/entities/install_progress.dart';
 import 'package:in_app_update/in_app_update.dart' as play;
 import 'package:url_launcher/url_launcher.dart';
 

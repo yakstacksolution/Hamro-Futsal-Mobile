@@ -1,4 +1,4 @@
-import 'package:hamro_footsall/features/bookings/data/model/booking_model.dart';
+import 'package:hamro_futsal/features/bookings/data/model/booking_model.dart';
 
 enum BookingDateOrder { ascending, descending }
 

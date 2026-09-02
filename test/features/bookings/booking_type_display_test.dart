@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hamro_footsall/features/bookings/data/model/booking_model.dart';
-import 'package:hamro_footsall/features/bookings/presentation/widgets/booking_details_widgets.dart';
-import 'package:hamro_footsall/features/bookings/presentation/widgets/booking_shared_widgets.dart';
+import 'package:hamro_futsal/features/bookings/data/model/booking_model.dart';
+import 'package:hamro_futsal/features/bookings/presentation/widgets/booking_details_widgets.dart';
+import 'package:hamro_futsal/features/bookings/presentation/widgets/booking_shared_widgets.dart';
 
 BookingModel _booking({String? bookingType, bool isRecurring = false}) {
   return BookingModel.fromJson(<String, dynamic>{

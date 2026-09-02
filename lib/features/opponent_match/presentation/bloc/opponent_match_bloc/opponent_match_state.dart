@@ -102,8 +102,7 @@ final class OpponentMatchState extends Equatable {
   OpponentMatchStatus matchDetailStatusFor(String requestId) =>
       matchDetailStatuses[requestId] ?? OpponentMatchStatus.initial;
 
-  String? matchDetailErrorFor(String requestId) =>
-      matchDetailErrors[requestId];
+  String? matchDetailErrorFor(String requestId) => matchDetailErrors[requestId];
 
   bool isLoadingMatchDetails(String requestId) =>
       matchDetailStatusFor(requestId) == OpponentMatchStatus.loading;

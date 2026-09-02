@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
-import 'package:hamro_footsall/features/app_update/data/model/app_update_manifest_model.dart';
-import 'package:hamro_footsall/features/app_update/domain/entities/app_version.dart';
+import 'package:hamro_futsal/features/app_update/data/model/app_update_manifest_model.dart';
+import 'package:hamro_futsal/features/app_update/domain/entities/app_version.dart';
 
 /// How hard the user should be pushed to update.
 enum UpdateRequirement {

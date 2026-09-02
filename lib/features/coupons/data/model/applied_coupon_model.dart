@@ -1,4 +1,4 @@
-import 'package:hamro_footsall/features/futsal_details/data/model/booking_quote_model.dart';
+import 'package:hamro_futsal/features/futsal_details/data/model/booking_quote_model.dart';
 
 /// The result of `POST /bookings/apply-coupon` — the server's authoritative
 /// pricing for a coupon against a given booking.

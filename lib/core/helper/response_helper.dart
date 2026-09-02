@@ -1,5 +1,5 @@
-import 'package:hamro_footsall/core/api/api_client/result.dart';
-import 'package:hamro_footsall/core/helper/exception_helper.dart';
+import 'package:hamro_futsal/core/api/api_client/result.dart';
+import 'package:hamro_futsal/core/helper/exception_helper.dart';
 
 class ResponseHelper {
   static AppException error(dynamic source) {

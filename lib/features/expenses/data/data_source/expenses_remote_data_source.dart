@@ -1,9 +1,9 @@
 import 'package:dio/dio.dart';
-import 'package:hamro_footsall/core/utils/upload_attachment.dart';
-import 'package:hamro_footsall/core/utils/upload_part.dart';
-import 'package:hamro_footsall/core/api/api_client/result.dart';
-import 'package:hamro_footsall/core/api/client.dart';
-import 'package:hamro_footsall/features/expenses/domain/entities/expense_entities.dart';
+import 'package:hamro_futsal/core/utils/upload_attachment.dart';
+import 'package:hamro_futsal/core/utils/upload_part.dart';
+import 'package:hamro_futsal/core/api/api_client/result.dart';
+import 'package:hamro_futsal/core/api/client.dart';
+import 'package:hamro_futsal/features/expenses/domain/entities/expense_entities.dart';
 
 abstract class ExpensesRemoteDataSource {
   Future<Result> getExpenseCategories();

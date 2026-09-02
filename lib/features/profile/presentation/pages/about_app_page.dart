@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:hamro_footsall/core/theme/app_colors.dart';
-import 'package:hamro_footsall/core/theme/futsal_theme.dart';
-import 'package:hamro_footsall/core/utils/app_utils.dart';
-import 'package:hamro_footsall/core/utils/custom_image_view.dart';
-import 'package:hamro_footsall/core/utils/dimens.dart';
-import 'package:hamro_footsall/core/utils/image_constants.dart';
-import 'package:hamro_footsall/core/widgets/custom_app_bar.dart';
+import 'package:hamro_futsal/core/theme/app_colors.dart';
+import 'package:hamro_futsal/core/theme/futsal_theme.dart';
+import 'package:hamro_futsal/core/utils/app_utils.dart';
+import 'package:hamro_futsal/core/utils/custom_image_view.dart';
+import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/utils/image_constants.dart';
+import 'package:hamro_futsal/core/widgets/custom_app_bar.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:hamro_footsall/core/utils/string_constants.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 class AboutAppPage extends StatefulWidget {
   const AboutAppPage({super.key});
@@ -94,7 +94,7 @@ class _Subtitle extends StatelessWidget {
     return Padding(
       padding: AppUtils().getPadding(symmetricHorizontal: AppDimens.paddingX20),
       child: Text(
-        'Hamro Footsall · v$version',
+        'Hamro Futsal · v$version',
         style: textTheme.bodyTextSmall?.copyWith(
           color: LightColor.secondaryTextColor,
         ),
@@ -141,7 +141,7 @@ class _HeroCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Text(
-                      StringConstants.hamroFootsall,
+                      StringConstants.hamroFutsal,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: textTheme.bodyTextLarge?.copyWith(
@@ -273,8 +273,7 @@ class _MissionCard extends StatelessWidget {
     final textTheme = FutsalTheme.getTextTheme(context);
     return _SurfaceCard(
       child: Text(
-        StringConstants
-            .hamroFootsallIsBuiltToMakeLocalFutsalEasierForPl2dfd0648,
+        StringConstants.hamroFutsalIsBuiltToMakeLocalFutsalEasierForPl2dfd0648,
         style: textTheme.bodyTextSmall?.copyWith(
           color: LightColor.secondaryTextColor,
           height: 1.6,

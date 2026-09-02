@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:equatable/equatable.dart';
-import 'package:hamro_footsall/features/app_update/domain/entities/app_version.dart';
+import 'package:hamro_futsal/features/app_update/domain/entities/app_version.dart';
 
 /// Where a manifest came from. Surfaced so the UI can adapt (only a Play
 /// Store-sourced or backend-sourced Android manifest can drive the native Play

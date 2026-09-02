@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hamro_footsall/features/transactions/data/model/transaction_history_model.dart';
+import 'package:hamro_futsal/features/transactions/data/model/transaction_history_model.dart';
 
 void main() {
   group('TransactionHistoryPageModel.fromResponse', () {

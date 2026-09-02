@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:hamro_footsall/core/helper/share_preferences.dart';
+import 'package:hamro_futsal/core/helper/share_preferences.dart';
 
 /// The user's most recent venue searches, capped at [maxEntries] and persisted
 /// locally via [AppSettings]. The home search bar listens to [searches] so the

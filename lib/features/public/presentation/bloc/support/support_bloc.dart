@@ -3,11 +3,11 @@ import 'dart:async';
 import 'package:bloc/bloc.dart';
 import 'package:dartz/dartz.dart';
 import 'package:equatable/equatable.dart';
-import 'package:hamro_footsall/core/helper/exception_helper.dart';
-import 'package:hamro_footsall/features/public/data/model/public_faq_model.dart';
-import 'package:hamro_footsall/features/public/data/model/public_help_model.dart';
-import 'package:hamro_footsall/features/public/domain/usecase/get_faqs_use_case.dart';
-import 'package:hamro_footsall/features/public/domain/usecase/get_helps_use_case.dart';
+import 'package:hamro_futsal/core/helper/exception_helper.dart';
+import 'package:hamro_futsal/features/public/data/model/public_faq_model.dart';
+import 'package:hamro_futsal/features/public/data/model/public_help_model.dart';
+import 'package:hamro_futsal/features/public/domain/usecase/get_faqs_use_case.dart';
+import 'package:hamro_futsal/features/public/domain/usecase/get_helps_use_case.dart';
 
 part 'support_event.dart';
 part 'support_state.dart';

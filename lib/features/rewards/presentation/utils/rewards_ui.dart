@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:hamro_footsall/core/theme/app_colors.dart';
-import 'package:hamro_footsall/features/rewards/data/model/rewards_model.dart';
+import 'package:hamro_futsal/core/theme/app_colors.dart';
+import 'package:hamro_futsal/features/rewards/data/model/rewards_model.dart';
 
 /// Formatting for reward figures. Kept local to the feature so the number and
 /// date shapes stay consistent between the profile card, the rewards page and

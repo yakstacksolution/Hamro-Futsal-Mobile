@@ -2,7 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hamro_footsall/core/utils/custom_image_view.dart';
+import 'package:hamro_futsal/core/utils/custom_image_view.dart';
 
 Uint8List _oneByOnePngBytes() {
   return Uint8List.fromList(<int>[

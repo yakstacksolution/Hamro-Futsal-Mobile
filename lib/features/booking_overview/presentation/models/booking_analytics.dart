@@ -1,4 +1,4 @@
-import 'package:hamro_footsall/features/booking_overview/data/model/booking_overview_model.dart';
+import 'package:hamro_futsal/features/booking_overview/data/model/booking_overview_model.dart';
 
 enum BookingPeriod { today, week, month, year, custom }
 

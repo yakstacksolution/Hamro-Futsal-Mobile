@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:hamro_footsall/features/bookings/data/model/booking_model.dart';
+import 'package:hamro_futsal/features/bookings/data/model/booking_model.dart';
 
 final class PaginatedBookings extends Equatable {
   const PaginatedBookings({

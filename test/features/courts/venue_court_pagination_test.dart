@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hamro_footsall/features/courts/data/model/venue_court_page_model.dart';
+import 'package:hamro_futsal/features/courts/data/model/venue_court_page_model.dart';
 
 void main() {
   test('parses venue-court items and dynamic pagination metadata', () {

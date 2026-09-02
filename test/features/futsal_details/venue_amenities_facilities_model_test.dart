@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hamro_footsall/features/futsal_details/data/model/venue_amenities_facilities_model.dart';
+import 'package:hamro_futsal/features/futsal_details/data/model/venue_amenities_facilities_model.dart';
 
 void main() {
   test('parses rich amenities and facilities response data', () {

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:hamro_footsall/core/theme/app_colors.dart';
-import 'package:hamro_footsall/core/widgets/custom_text_field.dart';
-import 'package:hamro_footsall/core/widgets/custom_time_picker_bottom_sheet.dart';
+import 'package:hamro_futsal/core/theme/app_colors.dart';
+import 'package:hamro_futsal/core/widgets/custom_text_field.dart';
+import 'package:hamro_futsal/core/widgets/custom_time_picker_bottom_sheet.dart';
 
 class CustomTimeField extends StatefulWidget {
   const CustomTimeField({

@@ -1,4 +1,4 @@
-import 'package:hamro_footsall/features/public/data/model/public_template_model.dart';
+import 'package:hamro_futsal/features/public/data/model/public_template_model.dart';
 
 enum VendorTemplateField {
   futsalDescription,

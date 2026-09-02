@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:hamro_footsall/core/theme/app_colors.dart';
-import 'package:hamro_footsall/core/theme/futsal_theme.dart';
-import 'package:hamro_footsall/core/utils/app_utils.dart';
-import 'package:hamro_footsall/core/utils/dimens.dart';
-import 'package:hamro_footsall/core/utils/string_constants.dart';
-import 'package:hamro_footsall/core/widgets/custom_app_bar.dart';
-import 'package:hamro_footsall/core/widgets/custom_button.dart';
-import 'package:hamro_footsall/core/widgets/custom_bottom_sheet.dart';
-import 'package:hamro_footsall/core/widgets/custom_text_field.dart';
-import 'package:hamro_footsall/features/message/data/model/conversation_model.dart';
-import 'package:hamro_footsall/features/message/presentation/bloc/message_bloc/message_bloc.dart';
-import 'package:hamro_footsall/features/message/presentation/pages/user_profile_page.dart';
-import 'package:hamro_footsall/features/message/presentation/widgets/group_conversation_sheet.dart';
-import 'package:hamro_footsall/features/message/presentation/widgets/group_member_widgets.dart';
+import 'package:hamro_futsal/core/theme/app_colors.dart';
+import 'package:hamro_futsal/core/theme/futsal_theme.dart';
+import 'package:hamro_futsal/core/utils/app_utils.dart';
+import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
+import 'package:hamro_futsal/core/widgets/custom_app_bar.dart';
+import 'package:hamro_futsal/core/widgets/custom_button.dart';
+import 'package:hamro_futsal/core/widgets/custom_bottom_sheet.dart';
+import 'package:hamro_futsal/core/widgets/custom_text_field.dart';
+import 'package:hamro_futsal/features/message/data/model/conversation_model.dart';
+import 'package:hamro_futsal/features/message/presentation/bloc/message_bloc/message_bloc.dart';
+import 'package:hamro_futsal/features/message/presentation/pages/user_profile_page.dart';
+import 'package:hamro_futsal/features/message/presentation/widgets/group_conversation_sheet.dart';
+import 'package:hamro_futsal/features/message/presentation/widgets/group_member_widgets.dart';
 
 /// The group behind a chat: its picture, its name and everyone in it.
 ///

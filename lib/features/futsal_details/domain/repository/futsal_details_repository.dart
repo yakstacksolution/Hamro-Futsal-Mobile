@@ -1,16 +1,16 @@
 import 'package:dartz/dartz.dart';
-import 'package:hamro_footsall/core/helper/exception_helper.dart';
-import 'package:hamro_footsall/features/futsal_details/data/model/available_courts_model.dart';
-import 'package:hamro_footsall/features/futsal_details/data/model/booking_hold_model.dart';
-import 'package:hamro_footsall/features/futsal_details/data/model/booking_result_model.dart';
-import 'package:hamro_footsall/features/futsal_details/data/model/create_booking_request.dart';
-import 'package:hamro_footsall/features/futsal_details/data/model/hosted_by_model.dart';
-import 'package:hamro_footsall/features/futsal_details/data/model/payment_qr_model.dart';
-import 'package:hamro_footsall/features/futsal_details/data/model/recurring_availability_model.dart';
-import 'package:hamro_footsall/features/futsal_details/data/model/time_slot_model.dart';
-import 'package:hamro_footsall/features/futsal_details/data/model/venue_amenities_facilities_model.dart';
-import 'package:hamro_footsall/features/futsal_details/data/model/venue_description_model.dart';
-import 'package:hamro_footsall/features/futsal_details/data/model/venue_review_model.dart';
+import 'package:hamro_futsal/core/helper/exception_helper.dart';
+import 'package:hamro_futsal/features/futsal_details/data/model/available_courts_model.dart';
+import 'package:hamro_futsal/features/futsal_details/data/model/booking_hold_model.dart';
+import 'package:hamro_futsal/features/futsal_details/data/model/booking_result_model.dart';
+import 'package:hamro_futsal/features/futsal_details/data/model/create_booking_request.dart';
+import 'package:hamro_futsal/features/futsal_details/data/model/hosted_by_model.dart';
+import 'package:hamro_futsal/features/futsal_details/data/model/payment_qr_model.dart';
+import 'package:hamro_futsal/features/futsal_details/data/model/recurring_availability_model.dart';
+import 'package:hamro_futsal/features/futsal_details/data/model/time_slot_model.dart';
+import 'package:hamro_futsal/features/futsal_details/data/model/venue_amenities_facilities_model.dart';
+import 'package:hamro_futsal/features/futsal_details/data/model/venue_description_model.dart';
+import 'package:hamro_futsal/features/futsal_details/data/model/venue_review_model.dart';
 
 abstract class FutsalDetailsRepository {
   Future<Either<AppException, HostedByModel>> getHostedBy({

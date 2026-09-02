@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hamro_footsall/core/api/api_client/api_call_wrapper.dart';
-import 'package:hamro_footsall/core/api/api_client/api_client.dart';
-import 'package:hamro_footsall/core/api/api_client/booking_type_payload.dart';
-import 'package:hamro_footsall/core/api/api_client/ihttp.dart';
-import 'package:hamro_footsall/core/helper/share_preferences.dart';
+import 'package:hamro_futsal/core/api/api_client/api_call_wrapper.dart';
+import 'package:hamro_futsal/core/api/api_client/api_client.dart';
+import 'package:hamro_futsal/core/api/api_client/booking_type_payload.dart';
+import 'package:hamro_futsal/core/api/api_client/ihttp.dart';
+import 'package:hamro_futsal/core/helper/share_preferences.dart';
 
 /// Captures what the transport is handed, so the GET body is verified end to
 /// end through ApiClient → ApiCallWrapper → IHttp.

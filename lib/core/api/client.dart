@@ -1,4 +1,4 @@
-import 'package:hamro_footsall/core/api/manager/authmanager/auth_manager.dart';
+import 'package:hamro_futsal/core/api/manager/authmanager/auth_manager.dart';
 
 abstract class InitializeClient {
   Client getInstance();

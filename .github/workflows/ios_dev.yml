@@ -104,7 +104,7 @@ jobs:
       # Icons are resolved indirectly through shared widgets, so the release
       # tree-shaker stays off — see the Android workflows for the same note.
       - name: 🛠 Build iOS app
-        run: flutter build ipa --release --no-tree-shake-icons --build-number=${{ github.run_number }} --export-options-plist=ios/Runner/ExportOptions.plist
+        run: flutter build ipa --release --no-tree-shake-icons --dart-define=ENV=staging --build-number=${{ github.run_number }} --export-options-plist=ios/Runner/ExportOptions.plist
 
       - name: 🧹 Delete old IPA artifacts
         uses: actions/github-script@v7

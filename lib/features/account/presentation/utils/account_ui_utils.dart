@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:hamro_footsall/core/theme/app_colors.dart';
-import 'package:hamro_footsall/features/account/data/model/account_models.dart';
+import 'package:hamro_futsal/core/theme/app_colors.dart';
+import 'package:hamro_futsal/features/account/data/model/account_models.dart';
 
 class AccountFmt {
   static const _months = [

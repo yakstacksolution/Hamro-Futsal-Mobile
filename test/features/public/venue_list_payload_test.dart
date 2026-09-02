@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hamro_footsall/core/api/api_client/api_constants.dart';
-import 'package:hamro_footsall/features/public/presentation/models/venue_filter.dart';
+import 'package:hamro_futsal/core/api/api_client/api_constants.dart';
+import 'package:hamro_futsal/features/public/presentation/models/venue_filter.dart';
 
 void main() {
   group('VenueFilter.toVenueListPayload', () {

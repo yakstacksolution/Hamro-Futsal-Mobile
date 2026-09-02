@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hamro_footsall/features/auth/domain/entities/auth_entities.dart';
+import 'package:hamro_futsal/features/auth/domain/entities/auth_entities.dart';
 
 SignUpEntity _entityFor(String accountType) => SignUpEntity(
   fullName: 'Vendor Owner',

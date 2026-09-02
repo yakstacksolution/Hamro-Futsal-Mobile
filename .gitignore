@@ -48,6 +48,8 @@ app.*.map.json
 .env
 .env.*
 !.env.example
+!.env.staging
+!.env.production
 
 # Android signing
 *.jks

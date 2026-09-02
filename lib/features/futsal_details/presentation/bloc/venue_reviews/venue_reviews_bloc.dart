@@ -3,9 +3,9 @@ import 'dart:async';
 import 'package:bloc/bloc.dart';
 import 'package:dartz/dartz.dart';
 import 'package:equatable/equatable.dart';
-import 'package:hamro_footsall/core/helper/exception_helper.dart';
-import 'package:hamro_footsall/features/futsal_details/data/model/venue_review_model.dart';
-import 'package:hamro_footsall/features/futsal_details/domain/usecase/get_venue_reviews_use_case.dart';
+import 'package:hamro_futsal/core/helper/exception_helper.dart';
+import 'package:hamro_futsal/features/futsal_details/data/model/venue_review_model.dart';
+import 'package:hamro_futsal/features/futsal_details/domain/usecase/get_venue_reviews_use_case.dart';
 
 part 'venue_reviews_event.dart';
 part 'venue_reviews_state.dart';

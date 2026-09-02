@@ -1,8 +1,8 @@
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
-import 'package:hamro_footsall/features/opponent_match/data/model/accept_opponent_request_request.dart';
-import 'package:hamro_footsall/features/opponent_match/data/model/opponent_match_model.dart';
-import 'package:hamro_footsall/features/opponent_match/domain/usecase/opponent_match_usecase.dart';
+import 'package:hamro_futsal/features/opponent_match/data/model/accept_opponent_request_request.dart';
+import 'package:hamro_futsal/features/opponent_match/data/model/opponent_match_model.dart';
+import 'package:hamro_futsal/features/opponent_match/domain/usecase/opponent_match_usecase.dart';
 
 part 'accept_request_event.dart';
 part 'accept_request_state.dart';

@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
-import 'package:hamro_footsall/features/booking_overview/data/model/booking_overview_model.dart';
-import 'package:hamro_footsall/features/booking_overview/domain/usecase/booking_overview_usecase.dart';
+import 'package:hamro_futsal/features/booking_overview/data/model/booking_overview_model.dart';
+import 'package:hamro_futsal/features/booking_overview/domain/usecase/booking_overview_usecase.dart';
 
 part 'booking_overview_event.dart';
 part 'booking_overview_state.dart';

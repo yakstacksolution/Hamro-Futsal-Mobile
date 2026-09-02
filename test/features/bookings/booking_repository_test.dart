@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hamro_footsall/core/api/api_client/result.dart';
-import 'package:hamro_footsall/features/bookings/data/data_source/booking_data_source.dart';
-import 'package:hamro_footsall/features/bookings/data/repositories/booking_repository_impl.dart';
+import 'package:hamro_futsal/core/api/api_client/result.dart';
+import 'package:hamro_futsal/features/bookings/data/data_source/booking_data_source.dart';
+import 'package:hamro_futsal/features/bookings/data/repositories/booking_repository_impl.dart';
 
 void main() {
   test('parses my-booking pagination and forwards page size', () async {

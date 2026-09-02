@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hamro_footsall/features/futsal_details/data/model/booking_draft.dart';
+import 'package:hamro_futsal/features/futsal_details/data/model/booking_draft.dart';
 
 void main() {
   BookingDraft draft({required String selectedTime, String? endTime}) {

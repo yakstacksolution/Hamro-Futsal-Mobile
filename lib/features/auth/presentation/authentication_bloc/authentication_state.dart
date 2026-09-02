@@ -5,11 +5,13 @@ enum AuthStatus { initial, loading, success, failure }
 class AuthenticationState extends Equatable {
   final AuthStatus loginStatus;
   final AuthStatus googleLoginStatus;
+  final AuthStatus appleLoginStatus;
   final AuthStatus registrationStatus;
   final String successMessage;
   final String? errorMessage;
   final dynamic loginErrorData;
   final dynamic googleLoginErrorData;
+  final dynamic appleLoginErrorData;
   final dynamic registrationErrorData;
   final dynamic otpVerificationData;
   final bool obscurePassword;
@@ -20,9 +22,11 @@ class AuthenticationState extends Equatable {
   const AuthenticationState({
     this.loginStatus = AuthStatus.initial,
     this.googleLoginStatus = AuthStatus.initial,
+    this.appleLoginStatus = AuthStatus.initial,
     this.errorMessage,
     this.loginErrorData,
     this.googleLoginErrorData,
+    this.appleLoginErrorData,
     this.registrationErrorData,
     this.otpVerificationData,
     this.obscurePassword = true,
@@ -36,9 +40,11 @@ class AuthenticationState extends Equatable {
   AuthenticationState copyWith({
     AuthStatus? loginStatus,
     AuthStatus? googleLoginStatus,
+    AuthStatus? appleLoginStatus,
     String? errorMessage,
     dynamic loginErrorData,
     dynamic googleLoginErrorData,
+    dynamic appleLoginErrorData,
     dynamic registrationErrorData,
     dynamic otpVerificationData,
     bool? obscurePassword,
@@ -54,6 +60,7 @@ class AuthenticationState extends Equatable {
     return AuthenticationState(
       loginStatus: loginStatus ?? this.loginStatus,
       googleLoginStatus: googleLoginStatus ?? this.googleLoginStatus,
+      appleLoginStatus: appleLoginStatus ?? this.appleLoginStatus,
       errorMessage: clearErrorMessage
           ? null
           : errorMessage ?? this.errorMessage,
@@ -63,6 +70,9 @@ class AuthenticationState extends Equatable {
       googleLoginErrorData: clearErrorData
           ? null
           : googleLoginErrorData ?? this.googleLoginErrorData,
+      appleLoginErrorData: clearErrorData
+          ? null
+          : appleLoginErrorData ?? this.appleLoginErrorData,
       registrationErrorData: clearErrorData
           ? null
           : registrationErrorData ?? this.registrationErrorData,
@@ -85,9 +95,11 @@ class AuthenticationState extends Equatable {
   List<Object?> get props => [
     loginStatus,
     googleLoginStatus,
+    appleLoginStatus,
     errorMessage,
     loginErrorData,
     googleLoginErrorData,
+    appleLoginErrorData,
     obscurePassword,
     registrationStatus,
     registrationErrorData,

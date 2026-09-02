@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hamro_footsall/core/utils/top_snack_bar.dart';
+import 'package:hamro_futsal/core/utils/top_snack_bar.dart';
 
 void main() {
   testWidgets('long snackbar messages fit in two lines without overflowing', (

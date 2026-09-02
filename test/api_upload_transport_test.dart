@@ -4,15 +4,15 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:hamro_footsall/core/api/api_client/api_call_wrapper.dart';
-import 'package:hamro_footsall/core/api/api_client/dio_http.dart';
-import 'package:hamro_footsall/core/api/api_client/ihttp.dart';
-import 'package:hamro_footsall/core/api/api_client/logging_interceptor.dart';
-import 'package:hamro_footsall/core/api/api_client/result.dart';
-import 'package:hamro_footsall/core/helper/share_preferences.dart';
-import 'package:hamro_footsall/core/utils/upload_attachment.dart';
-import 'package:hamro_footsall/core/utils/upload_part.dart';
-import 'package:hamro_footsall/features/auth/data/model/token_model.dart';
+import 'package:hamro_futsal/core/api/api_client/api_call_wrapper.dart';
+import 'package:hamro_futsal/core/api/api_client/dio_http.dart';
+import 'package:hamro_futsal/core/api/api_client/ihttp.dart';
+import 'package:hamro_futsal/core/api/api_client/logging_interceptor.dart';
+import 'package:hamro_futsal/core/api/api_client/result.dart';
+import 'package:hamro_futsal/core/helper/share_preferences.dart';
+import 'package:hamro_futsal/core/utils/upload_attachment.dart';
+import 'package:hamro_futsal/core/utils/upload_part.dart';
+import 'package:hamro_futsal/features/auth/data/model/token_model.dart';
 
 void main() {
   test(

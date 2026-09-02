@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hamro_footsall/core/widgets/confirm_word_sheet.dart';
+import 'package:hamro_futsal/core/widgets/confirm_word_sheet.dart';
 
 /// The confirm button is the only way to say yes, and it must stay shut until
 /// the exact word is typed — that gate is the whole point of the sheet.

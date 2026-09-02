@@ -1,4 +1,4 @@
-import 'package:hamro_footsall/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_state.dart';
+import 'package:hamro_futsal/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_state.dart';
 
 abstract class VendorDraftRepository {
   Future<VendorOnboardingState?> load();

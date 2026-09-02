@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hamro_footsall/features/bookings/data/model/booking_review_model.dart';
+import 'package:hamro_futsal/features/bookings/data/model/booking_review_model.dart';
 
 void main() {
   test('parses a submitted review', () {

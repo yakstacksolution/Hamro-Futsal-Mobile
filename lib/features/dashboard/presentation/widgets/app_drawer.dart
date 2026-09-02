@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:hamro_footsall/core/routers/app_router_params.dart';
-import 'package:hamro_footsall/core/theme/app_colors.dart';
-import 'package:hamro_footsall/features/profile/presentation/widgets/profile_header_background.dart';
-import 'package:hamro_footsall/core/utils/string_constants.dart';
+import 'package:hamro_futsal/core/routers/app_router_params.dart';
+import 'package:hamro_futsal/core/theme/app_colors.dart';
+import 'package:hamro_futsal/features/profile/presentation/widgets/profile_header_background.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 class DashboardUser {
   const DashboardUser({
@@ -35,7 +35,7 @@ class AppDrawer extends StatelessWidget {
     _DrawerNavConfig(
       index: 0,
       icon: Icons.add_business_rounded,
-      label: StringConstants.addFootsallCourt,
+      label: StringConstants.addFutsalCourt,
     ),
   ];
 
@@ -111,7 +111,7 @@ class AppDrawer extends StatelessWidget {
                 child: ListView(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   children: <Widget>[
-                    const _DrawerSectionLabel('Footsall Vendor'),
+                    const _DrawerSectionLabel('Futsal Vendor'),
                     const SizedBox(height: 6),
                     ..._mainItems.map((item) {
                       return _DrawerNavItem(

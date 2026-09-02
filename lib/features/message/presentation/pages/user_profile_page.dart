@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:hamro_footsall/core/theme/app_colors.dart';
-import 'package:hamro_footsall/core/theme/futsal_theme.dart';
-import 'package:hamro_footsall/core/utils/custom_image_view.dart';
-import 'package:hamro_footsall/core/utils/dimens.dart';
-import 'package:hamro_footsall/core/utils/string_constants.dart';
-import 'package:hamro_footsall/core/widgets/custom_button.dart';
-import 'package:hamro_footsall/features/message/data/model/conversation_model.dart';
-import 'package:hamro_footsall/features/message/data/model/message_profile_model.dart';
-import 'package:hamro_footsall/features/message/presentation/bloc/message_bloc/message_bloc.dart';
-import 'package:hamro_footsall/features/message/presentation/pages/chat_launcher.dart';
+import 'package:hamro_futsal/core/theme/app_colors.dart';
+import 'package:hamro_futsal/core/theme/futsal_theme.dart';
+import 'package:hamro_futsal/core/utils/custom_image_view.dart';
+import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
+import 'package:hamro_futsal/core/widgets/custom_button.dart';
+import 'package:hamro_futsal/features/message/data/model/conversation_model.dart';
+import 'package:hamro_futsal/features/message/data/model/message_profile_model.dart';
+import 'package:hamro_futsal/features/message/presentation/bloc/message_bloc/message_bloc.dart';
+import 'package:hamro_futsal/features/message/presentation/pages/chat_launcher.dart';
 
 /// Pushes the view-only profile of another chat participant.
 ///
@@ -95,10 +95,7 @@ class UserProfilePage extends StatelessWidget {
   Future<void> _message(BuildContext context, MessageState state) async {
     final ConversationModel? existing = _existingDirect(state);
     if (existing != null) {
-      await ChatLauncher.openConversation(
-        context,
-        conversationId: existing.id,
-      );
+      await ChatLauncher.openConversation(context, conversationId: existing.id);
       return;
     }
     await ChatLauncher.startDirectUser(context, userId: userId);
@@ -129,11 +126,7 @@ class UserProfilePage extends StatelessWidget {
 
           return CustomScrollView(
             slivers: [
-              _ProfileHero(
-                name: name,
-                imageUrl: imageUrl,
-                isOnline: isOnline,
-              ),
+              _ProfileHero(name: name, imageUrl: imageUrl, isOnline: isOnline),
               SliverToBoxAdapter(
                 child: Center(
                   child: ConstrainedBox(
@@ -341,7 +334,9 @@ class _MonogramBackdrop extends StatelessWidget {
       ),
       child: Center(
         child: Text(
-          name.trim().isEmpty ? '?' : name.trim().characters.first.toUpperCase(),
+          name.trim().isEmpty
+              ? '?'
+              : name.trim().characters.first.toUpperCase(),
           style: textTheme.headingLarge?.copyWith(
             fontSize: 72,
             color: LightColor.secondaryColor,
@@ -445,9 +440,7 @@ class _AboutCard extends StatelessWidget {
             loading: loading,
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(
-              vertical: AppDimens.paddingX14,
-            ),
+            padding: const EdgeInsets.symmetric(vertical: AppDimens.paddingX14),
             child: Divider(height: 1, color: LightColor.dividerColor),
           ),
           _ProfileRow(

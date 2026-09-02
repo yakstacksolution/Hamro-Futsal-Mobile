@@ -1,6 +1,6 @@
 import 'package:dartz/dartz.dart';
-import 'package:hamro_footsall/core/helper/exception_helper.dart';
-import 'package:hamro_footsall/features/app_update/domain/entities/app_update_check.dart';
+import 'package:hamro_futsal/core/helper/exception_helper.dart';
+import 'package:hamro_futsal/features/app_update/domain/entities/app_update_check.dart';
 
 abstract class AppUpdateRepository {
   /// Resolves the installed build against the published one.

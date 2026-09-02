@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:hamro_footsall/features/opponent_match/data/model/opponent_request_tab.dart';
+import 'package:hamro_futsal/features/opponent_match/data/model/opponent_request_tab.dart';
 
 /// The `summary` block of `/auth/opponent-requests?tab=…`: how many rows every
 /// tab holds, not just the one that was asked for.
@@ -47,5 +47,11 @@ class OpponentRequestSummaryModel extends Equatable {
   };
 
   @override
-  List<Object?> get props => [all, myRequests, needOpponent, invitations, settled];
+  List<Object?> get props => [
+    all,
+    myRequests,
+    needOpponent,
+    invitations,
+    settled,
+  ];
 }

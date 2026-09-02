@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hamro_footsall/features/account/data/model/account_models.dart';
-import 'package:hamro_footsall/features/account/presentation/utils/account_ui_utils.dart';
+import 'package:hamro_futsal/features/account/data/model/account_models.dart';
+import 'package:hamro_futsal/features/account/presentation/utils/account_ui_utils.dart';
 
 /// Parsing is pinned against the real server payloads: money arrives with
 /// paisa, and `exact_amount_required` means a rounded figure is a rejected

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hamro_footsall/core/theme/app_colors.dart';
-import 'package:hamro_footsall/core/theme/app_theme_controller.dart';
-import 'package:hamro_footsall/core/theme/futsal_theme.dart';
+import 'package:hamro_futsal/core/theme/app_colors.dart';
+import 'package:hamro_futsal/core/theme/app_theme_controller.dart';
+import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 
 /// Reads its colour from `LightColor`, i.e. from the global brightness rather
 /// than from `Theme.of(context)`. This is how the overwhelming majority of the

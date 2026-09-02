@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hamro_footsall/features/opponent_match/data/data_source/opponent_match_data_source.dart';
-import 'package:hamro_footsall/features/opponent_match/data/model/opponent_request_tab.dart';
+import 'package:hamro_futsal/features/opponent_match/data/data_source/opponent_match_data_source.dart';
+import 'package:hamro_futsal/features/opponent_match/data/model/opponent_request_tab.dart';
 
 void main() {
   group('Opponent request tab data source', () {

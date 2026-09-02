@@ -3,11 +3,11 @@ import 'dart:convert';
 
 import 'package:dart_pusher_channels/dart_pusher_channels.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:hamro_footsall/core/api/api_client/api_constants.dart';
-import 'package:hamro_footsall/core/helper/share_preferences.dart';
-import 'package:hamro_footsall/core/socket/reverb_connection.dart';
-import 'package:hamro_footsall/features/message/data/model/chat_message_model.dart';
-import 'package:hamro_footsall/features/message/data/service/chat_socket_service.dart';
+import 'package:hamro_futsal/core/api/api_client/api_constants.dart';
+import 'package:hamro_futsal/core/helper/share_preferences.dart';
+import 'package:hamro_futsal/core/socket/reverb_connection.dart';
+import 'package:hamro_futsal/features/message/data/model/chat_message_model.dart';
+import 'package:hamro_futsal/features/message/data/service/chat_socket_service.dart';
 
 /// Realtime chat backed by **Laravel Reverb** (Pusher protocol) via
 /// `dart_pusher_channels` — a pure-Dart client that, unlike the native Pusher

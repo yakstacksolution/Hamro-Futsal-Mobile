@@ -28,6 +28,12 @@ final class GoogleLoginEvent extends AuthenticationEvent {
   const GoogleLoginEvent();
 }
 
+/// Runs the native Apple ID sheet and exchanges the Apple identity token for
+/// the app session via `POST /auth/apple-login`.
+final class AppleLoginEvent extends AuthenticationEvent {
+  const AppleLoginEvent();
+}
+
 final class RegisterEvent extends AuthenticationEvent {
   final String fullName;
   final String email;

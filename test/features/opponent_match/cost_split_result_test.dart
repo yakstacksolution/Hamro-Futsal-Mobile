@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hamro_footsall/features/opponent_match/data/model/opponent_match_model.dart';
-import 'package:hamro_footsall/features/opponent_match/presentation/models/opponent_cost_split.dart';
+import 'package:hamro_futsal/features/opponent_match/data/model/opponent_match_model.dart';
+import 'package:hamro_futsal/features/opponent_match/presentation/models/opponent_cost_split.dart';
 
 OpponentCostSplit resultSplit(int loserPercent) => OpponentCostSplit(
   format: MatchFormat.fiveASide,

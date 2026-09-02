@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hamro_footsall/features/futsal_details/data/model/venue_review_model.dart';
+import 'package:hamro_futsal/features/futsal_details/data/model/venue_review_model.dart';
 
 void main() {
   Map<String, dynamic> response({

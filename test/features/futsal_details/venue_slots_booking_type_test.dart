@@ -1,10 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hamro_footsall/core/api/api_client/booking_type_payload.dart';
-import 'package:hamro_footsall/core/api/api_client/result.dart';
-import 'package:hamro_footsall/features/futsal_details/data/data_source/futsal_details_remote_data_source.dart';
-import 'package:hamro_footsall/features/futsal_details/data/model/create_booking_request.dart';
-import 'package:hamro_footsall/features/futsal_details/data/repositories/futsal_details_repository_impl.dart';
-import 'package:hamro_footsall/features/futsal_details/domain/usecase/get_venue_slots_use_case.dart';
+import 'package:hamro_futsal/core/api/api_client/booking_type_payload.dart';
+import 'package:hamro_futsal/core/api/api_client/result.dart';
+import 'package:hamro_futsal/features/futsal_details/data/data_source/futsal_details_remote_data_source.dart';
+import 'package:hamro_futsal/features/futsal_details/data/model/create_booking_request.dart';
+import 'package:hamro_futsal/features/futsal_details/data/repositories/futsal_details_repository_impl.dart';
+import 'package:hamro_futsal/features/futsal_details/domain/usecase/get_venue_slots_use_case.dart';
 
 void main() {
   late _FakeDataSource dataSource;

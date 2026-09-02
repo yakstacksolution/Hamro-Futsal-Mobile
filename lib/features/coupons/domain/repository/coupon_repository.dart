@@ -1,7 +1,7 @@
 import 'package:dartz/dartz.dart';
-import 'package:hamro_footsall/core/helper/exception_helper.dart';
-import 'package:hamro_footsall/features/coupons/data/model/active_coupons_model.dart';
-import 'package:hamro_footsall/features/coupons/data/model/applied_coupon_model.dart';
+import 'package:hamro_futsal/core/helper/exception_helper.dart';
+import 'package:hamro_futsal/features/coupons/data/model/active_coupons_model.dart';
+import 'package:hamro_futsal/features/coupons/data/model/applied_coupon_model.dart';
 
 abstract class CouponRepository {
   Future<Either<AppException, ActiveCouponsModel>> getActiveCoupons();

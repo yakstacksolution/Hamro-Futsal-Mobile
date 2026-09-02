@@ -1,10 +1,10 @@
 import 'package:dartz/dartz.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hamro_footsall/core/helper/exception_helper.dart';
-import 'package:hamro_footsall/features/notifications/data/model/notification_model.dart';
-import 'package:hamro_footsall/features/notifications/domain/repository/notification_repository.dart';
-import 'package:hamro_footsall/features/notifications/presentation/pages/notifications_page.dart';
+import 'package:hamro_futsal/core/helper/exception_helper.dart';
+import 'package:hamro_futsal/features/notifications/data/model/notification_model.dart';
+import 'package:hamro_futsal/features/notifications/domain/repository/notification_repository.dart';
+import 'package:hamro_futsal/features/notifications/presentation/pages/notifications_page.dart';
 
 void main() {
   testWidgets('renders notifications and marks all as read', (

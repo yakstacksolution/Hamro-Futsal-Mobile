@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hamro_footsall/features/opponent_match/data/model/opponent_match_model.dart';
+import 'package:hamro_futsal/features/opponent_match/data/model/opponent_match_model.dart';
 
 /// One row of `GET /auth/opponent-requests?tab=need_opponent`, verbatim: a
 /// published request whose venue is a platform booking paid half in cash, with
@@ -244,9 +244,12 @@ void main() {
       // Clamped at zero, which is what the fixture's deadline gives once the
       // wall clock has passed it — this assertion used to go negative and fail
       // on any run after 2026-08-22.
-      final int left = DateTime(2026, 8, 22, 16)
-          .difference(DateTime.now())
-          .inSeconds;
+      final int left = DateTime(
+        2026,
+        8,
+        22,
+        16,
+      ).difference(DateTime.now()).inSeconds;
       expect(
         request.remainingToAccept.inSeconds,
         closeTo(left.isNegative ? 0 : left, 2),

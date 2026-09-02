@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hamro_footsall/core/validation/app_validators.dart';
+import 'package:hamro_futsal/core/validation/app_validators.dart';
 
 void main() {
   group('fullName', () {

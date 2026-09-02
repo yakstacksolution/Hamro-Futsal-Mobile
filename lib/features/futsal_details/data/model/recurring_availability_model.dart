@@ -1,4 +1,4 @@
-import 'package:hamro_footsall/features/futsal_details/data/model/time_slot_model.dart';
+import 'package:hamro_futsal/features/futsal_details/data/model/time_slot_model.dart';
 
 /// Availability of a single session (one date) for the chosen court & slot.
 class AvailabilitySession {

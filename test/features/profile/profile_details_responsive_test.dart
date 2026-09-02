@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hamro_footsall/core/utils/dimens.dart';
-import 'package:hamro_footsall/core/utils/string_constants.dart';
-import 'package:hamro_footsall/core/widgets/custom_button.dart';
-import 'package:hamro_footsall/core/widgets/custom_text_field.dart';
-import 'package:hamro_footsall/features/profile/data/repositories/profile_repository_impl.dart';
-import 'package:hamro_footsall/features/profile/domain/usecase/profile_usecase.dart';
-import 'package:hamro_footsall/features/profile/presentation/profile_bloc/profile_bloc.dart';
-import 'package:hamro_footsall/features/profile/presentation/widgets/profile_details_page.dart';
+import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
+import 'package:hamro_futsal/core/widgets/custom_button.dart';
+import 'package:hamro_futsal/core/widgets/custom_text_field.dart';
+import 'package:hamro_futsal/features/profile/data/repositories/profile_repository_impl.dart';
+import 'package:hamro_futsal/features/profile/domain/usecase/profile_usecase.dart';
+import 'package:hamro_futsal/features/profile/presentation/profile_bloc/profile_bloc.dart';
+import 'package:hamro_futsal/features/profile/presentation/widgets/profile_details_page.dart';
 
 /// Sizes representing each breakpoint.
 const Size _phone = Size(411, 891);
