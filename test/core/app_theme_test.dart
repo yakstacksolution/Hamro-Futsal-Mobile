@@ -14,22 +14,28 @@ void main() {
   });
 
   tearDown(() {
-    AppThemeController.instance.setDarkMode(false);
+    AppThemeController.instance.setThemeMode(ThemeMode.system);
   });
 
-  test('theme controller persists and publishes light/dark changes', () {
+  test('theme controller persists and publishes app theme mode changes', () {
     final AppThemeController controller = AppThemeController.instance;
 
-    controller.setDarkMode(true);
+    controller.setThemeMode(ThemeMode.dark);
     expect(controller.value, ThemeMode.dark);
+    expect(preferences.getString('settings_app_theme_mode'), 'dark');
     expect(preferences.getBool('settings_dark_mode'), isTrue);
     expect(LightColor.background, const Color(0xFF000000));
     expect(LightColor.cardColor, const Color(0xFF101311));
     expect(LightColor.primaryTextColor, const Color(0xFFF5F7F5));
 
-    controller.setDarkMode(false);
+    controller.setThemeMode(ThemeMode.light);
     expect(controller.value, ThemeMode.light);
+    expect(preferences.getString('settings_app_theme_mode'), 'light');
     expect(preferences.getBool('settings_dark_mode'), isFalse);
+
+    controller.setThemeMode(ThemeMode.system);
+    expect(controller.value, ThemeMode.system);
+    expect(preferences.getString('settings_app_theme_mode'), 'system');
   });
 
   testWidgets('MaterialApp switches to the OLED theme immediately', (
@@ -53,7 +59,7 @@ void main() {
       ),
     );
 
-    controller.setDarkMode(true);
+    controller.setThemeMode(ThemeMode.dark);
     await tester.pumpAndSettle();
 
     final ColoredBox surface = tester.widget(

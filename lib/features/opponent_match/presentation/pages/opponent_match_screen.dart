@@ -277,25 +277,36 @@ class _OpponentMatchViewState extends State<_OpponentMatchView>
     return Scaffold(
       backgroundColor: LightColor.background,
       appBar: const CustomAppBar(title: StringConstants.opponentMatch),
-      floatingActionButton: SizedBox(
-        height: 44,
-        child: FloatingActionButton.extended(
-          onPressed: _openCreateRequest,
-          backgroundColor: LightColor.secondaryColor,
-          foregroundColor: LightColor.inverseTextColor,
-          elevation: 0,
-          extendedPadding: const EdgeInsets.symmetric(horizontal: 16),
-          shape: const StadiumBorder(),
-          icon: const Icon(Icons.add_rounded, size: 18),
-          label: Text(
-            'Find an Opponent',
-            style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
-              fontWeight: FontWeight.w700,
-              color: LightColor.inverseTextColor,
+      // Requests tab only: "Find an Opponent" starts a request, which is not
+      // what the Teams tab is for — there the bottom bar below adds a team.
+      floatingActionButton: _tabCtrl.index != 0
+          ? null
+          : SizedBox(
+              height: 44,
+              child: FloatingActionButton.extended(
+                onPressed: _openCreateRequest,
+                backgroundColor: LightColor.secondaryColor,
+                foregroundColor: LightColor.inverseTextColor,
+                elevation: 0,
+                extendedPadding: const EdgeInsets.symmetric(horizontal: 16),
+                shape: const StadiumBorder(),
+                icon: const Icon(Icons.add_rounded, size: 18),
+                label: Text(
+                  'Find an Opponent',
+                  style: FutsalTheme.getTextTheme(context).bodyTextSmall
+                      ?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: LightColor.inverseTextColor,
+                      ),
+                ),
+              ),
             ),
-          ),
-        ),
-      ),
+      bottomNavigationBar: _tabCtrl.index != 1
+          ? null
+          : _NewTeamBottomBar(
+              onTap: () =>
+                  _openCreateTeamSheet(context.read<OpponentMatchBloc>()),
+            ),
       body: SafeArea(
         top: false,
         child: BlocConsumer<OpponentMatchBloc, OpponentMatchState>(
@@ -369,6 +380,52 @@ class _OpponentMatchViewState extends State<_OpponentMatchView>
           },
         ),
       ),
+    );
+  }
+}
+
+/// The Teams tab's own bottom action: one full-width button that opens the
+/// create-team sheet.
+///
+/// It replaces the "Find an Opponent" FAB while that tab is selected, so the
+/// bottom of the screen always offers the action the visible tab is about.
+/// Nothing is shown while there are no teams — the empty state carries its own
+/// "Create Team" button, and two of them side by side would just compete.
+class _NewTeamBottomBar extends StatelessWidget {
+  const _NewTeamBottomBar({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<OpponentMatchBloc, OpponentMatchState>(
+      buildWhen: (OpponentMatchState previous, OpponentMatchState current) =>
+          previous.teams.isEmpty != current.teams.isEmpty,
+      builder: (BuildContext context, OpponentMatchState state) {
+        if (state.teams.isEmpty) return const SizedBox.shrink();
+        return Container(
+          decoration: BoxDecoration(
+            color: LightColor.cardColor,
+            border: Border(top: BorderSide(color: LightColor.dividerColor)),
+          ),
+          child: SafeArea(
+            top: false,
+            child: Padding(
+              padding: AppUtils().getPadding(
+                symmetricHorizontal: AppDimens.paddingX20,
+                symmetricVertical: AppDimens.paddingX12,
+              ),
+              child: CustomButton(
+                text: StringConstants.newTeam,
+                icon: Icons.add_rounded,
+                minHeight: AppDimens.sizeX46,
+                borderRadius: AppDimens.radiusX12,
+                onPressed: onTap,
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

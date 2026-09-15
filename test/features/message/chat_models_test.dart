@@ -6,6 +6,7 @@ import 'package:hamro_futsal/features/message/data/model/chat_message_model.dart
 import 'package:hamro_futsal/features/message/data/model/chat_send_request.dart';
 import 'package:hamro_futsal/features/message/data/model/conversation_model.dart';
 import 'package:hamro_futsal/features/message/data/model/conversation_page_model.dart';
+import 'package:hamro_futsal/features/message/data/model/registered_user_page_model.dart';
 
 void main() {
   test('parses conversation items and dynamic pagination metadata', () {
@@ -30,6 +31,44 @@ void main() {
     expect(page.lastPage, 4);
     expect(page.perPage, 15);
     expect(page.total, 52);
+    expect(page.hasMorePages, isTrue);
+  });
+
+  test('parses registered users and pagination metadata', () {
+    final page = RegisteredUserPageModel.fromResponse(
+      <String, dynamic>{
+        'success': true,
+        'data': <String, dynamic>{
+          'data': <Map<String, dynamic>>[
+            <String, dynamic>{
+              'id': 4,
+              'name': 'Current User',
+              'email': 'me@example.com',
+            },
+            <String, dynamic>{
+              'id': 9,
+              'full_name': 'Ram Thapa',
+              'email': 'ram@example.com',
+              'image': <String, dynamic>{'id': 5, 'url': 'https://i.test/ram'},
+              'is_online': true,
+            },
+          ],
+          'current_page': 2,
+          'last_page': 4,
+          'per_page': 20,
+          'total': 61,
+        },
+      },
+      requestedPage: 2,
+      requestedPerPage: 20,
+      currentUserId: 4,
+    );
+
+    expect(page.items.single.userId, 9);
+    expect(page.items.single.name, 'Ram Thapa');
+    expect(page.items.single.avatarId, 5);
+    expect(page.items.single.isOnline, isTrue);
+    expect(page.currentPage, 2);
     expect(page.hasMorePages, isTrue);
   });
 

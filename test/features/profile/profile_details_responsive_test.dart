@@ -78,15 +78,30 @@ void main() {
         // Read-only until Edit is tapped: no save action on arrival.
         expect(find.text(StringConstants.saveChanges), findsNothing);
 
+        // No input chrome before Edit: the values are plain rows.
+        expect(find.byType(CustomTextField), findsNothing);
+        expect(find.text(StringConstants.fullNameSentenceCase), findsOneWidget);
+        expect(find.text(StringConstants.gender), findsOneWidget);
+        expect(find.text(StringConstants.address), findsOneWidget);
+
         await tester.tap(find.text(StringConstants.edit));
         await tester.pump();
         expect(find.text(StringConstants.saveChanges), findsOneWidget);
+        expect(find.byType(CustomTextField), findsWidgets);
+
+        // Cancel puts the read-only rows back.
+        await tester.tap(find.text(StringConstants.cancel));
+        await tester.pump();
+        expect(find.byType(CustomTextField), findsNothing);
+        expect(find.text(StringConstants.saveChanges), findsNothing);
       });
 
       testWidgets('$label keeps one form field per row', (
         WidgetTester tester,
       ) async {
-        await _pumpAt(tester, size);
+        // Fields only exist in edit mode — the read-only view shows plain
+        // label/value rows instead.
+        await _pumpAt(tester, size, editing: true);
 
         // Fields must never be paired side by side, at any width.
         final List<Rect> rects = _fieldRects(tester);
@@ -132,7 +147,7 @@ void main() {
     testWidgets('tablet caps and centres the single form column', (
       WidgetTester tester,
     ) async {
-      await _pumpAt(tester, _tabletPortrait);
+      await _pumpAt(tester, _tabletPortrait, editing: true);
 
       final List<Rect> rects = _fieldRects(tester);
       // Capped, not spanning the 800px window.
@@ -149,7 +164,7 @@ void main() {
     testWidgets('desktop puts the summary beside the form, not above it', (
       WidgetTester tester,
     ) async {
-      await _pumpAt(tester, _desktopWindow);
+      await _pumpAt(tester, _desktopWindow, editing: true);
 
       final Rect firstField = _fieldRects(tester).first;
       final Rect avatar = tester.getRect(find.byType(ClipOval).first);

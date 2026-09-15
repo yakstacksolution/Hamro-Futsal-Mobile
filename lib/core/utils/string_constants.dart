@@ -14,6 +14,7 @@ final class StringConstants {
       'Add a reason for rejecting this payment (optional).';
   static const String actualAmount = 'Actual amount';
   static const String verifiedAmount = 'Verified amount';
+  static const String verifiedVenue = 'Verified venue';
   static const String paymentNote = 'Payment note';
   static const String rejectionReason = 'Reason';
   static const String enterValidAmount = 'Enter a valid amount';
@@ -60,6 +61,30 @@ final class StringConstants {
   static const String financeAndPayouts = 'Finance & Payouts';
   static const String accountStatement = 'Statement';
   static const String recentActivity = 'Recent activity';
+  /// Direction of a ledger entry, shown as a chip and announced by a screen
+  /// reader — the sign and the colour must not be the only cue.
+  static const String credit = 'Credit';
+  static const String debit = 'Debit';
+
+  /// Labels on a ledger card. The two dates are different facts and are
+  /// usually days apart: the slot the money is for, and when the row was
+  /// written.
+  static const String bookingDate = 'Booking date';
+  static const String recorded = 'Recorded';
+
+  /// Labels and fallbacks on a booking card.
+  static const String reference = 'Reference';
+  static const String bookedOn = 'Booked on';
+
+  /// Suffix on a product's unit price in the cart: `NPR 25 each`.
+  static const String each = 'each';
+  static const String unknownPlayer = 'Unknown player';
+  static const String futsalCourt = 'Futsal court';
+
+  /// Titles on the booking details summary when the payload names neither the
+  /// customer nor the venue.
+  static const String customerBooking = 'Customer booking';
+  static const String futsalBooking = 'Futsal booking';
   static const String availableBalance = 'Available balance';
   static const String commissionPaid = 'Commission paid';
   static const String couldNotParseAccountFromServer =
@@ -132,6 +157,7 @@ final class StringConstants {
   static const String amenitiesAndFeatures = 'Amenities & Features';
   static const String analytics = 'Analytics';
   static const String appDisplayLanguage = 'App display language';
+  static const String appTheme = 'App Theme';
   static const String apply = 'Apply';
   static const String applyFilter = 'Apply filter';
   static const String applyFilters = 'Apply Filters';
@@ -388,6 +414,15 @@ final class StringConstants {
   static const String couldNotParseYourWishlistFromServer =
       'Could not parse your wishlist from server.';
   static const String couldNotSaveTheExpense = 'Could not save the expense.';
+  static const String couldNotSendOtpPleaseTryAgain =
+      'Could not send the OTP. Please try again.';
+
+  /// Fallback only — the forgot-password endpoint returns its own message.
+  static const String otpSentSuccessfully =
+      'OTP sent successfully. Check your email.';
+  static const String createNewPassword = 'Create New Password';
+  static const String codeVerifiedChooseANewPassword =
+      'Code verified. Choose a new password.';
   static const String court = 'Court';
   static const String couldNotParsePrefix = 'Could not parse ';
   static const String courtActions = 'Court actions';
@@ -423,7 +458,6 @@ final class StringConstants {
   static const String customDatePrice = 'Custom date price';
   static const String customDatePrices = 'Custom date prices';
   static const String customRange = 'Custom range';
-  static const String darkMode = 'Dark Mode';
   static const String date = 'Date';
   static const String dateOfBirth = 'Date of birth';
   static const String dateOrder = 'Date order';
@@ -640,7 +674,9 @@ final class StringConstants {
   static const String latitude = 'Latitude';
   static const String legalAndSupportingCompanyDocuments =
       'Legal and supporting company documents.';
+  static const String didntReceiveCode = "Didn't receive code";
   static const String link = 'Link';
+  static const String linkCopiedToClipboard = 'Link copied to clipboard.';
   static const String listYourFutsalHouseRulesForPlayers =
       'List your futsal house rules for players...';
   static const String loadingAvailableCoupons = 'Loading available coupons…';
@@ -655,6 +691,8 @@ final class StringConstants {
   static const String logoutFailedPleaseTryAgain =
       'Logout failed. Please try again.';
   static const String logoutSuccessful = 'Logout successful';
+  static const String passwordUpdatedPleaseLogIn =
+      'Password updated. Please log in again.';
   static const String longitude = 'Longitude';
   static const String lookingForAFriendlyCompetitiveFutsalMatch =
       'Looking for a friendly competitive futsal match.';
@@ -714,6 +752,8 @@ final class StringConstants {
   /// Remove and has half the width of the wizard's app-bar title.
   static const String completeSetup = 'Complete';
   static const String newTeam = 'New Team';
+  static const String showPlayers = 'Show players';
+  static const String hidePlayers = 'Hide players';
   static const String newToday = 'New Today';
   static const String noAmenitiesInThisCategory =
       'No amenities in this category.';
@@ -725,6 +765,19 @@ final class StringConstants {
   static const String noCourtTypesAvailable = 'No court types available.';
   static const String noCourtsAddedYet = 'No courts added yet';
   static const String noCourtsAvailable = 'No courts available';
+  static const String openingVenue = 'Opening venue…';
+  static const String couldNotOpenThisLink = 'Could not open this link';
+  static const String venueNotAvailable = 'Venue not available';
+  static const String thisVenueIsNoLongerListed =
+      'This venue is no longer listed, or the link has changed.';
+  static const String browseVenues = 'Browse venues';
+  static const String pageNotFound = 'Page not found';
+  static const String thatLinkDoesNotOpenAnythingInTheApp =
+      'That link does not open anything in the app.';
+  static const String allCourtsBookedOrUnavailable =
+      'All courts booked or unavailable';
+  static const String selectedDatesCourtsAreAlreadyBookedOrUnavai0f4a71b2 =
+      "Selected date's courts are already booked or unavailable, please choose another date.";
   static const String noCourtsYet = 'No courts yet';
   static const String noCustomerActivity = 'No customer activity.';
   static const String noDescriptionAvailableForThisCourtYet =
@@ -924,6 +977,8 @@ final class StringConstants {
       'Requirement and collection percentage.';
   static const String resendOtpFailedPleaseTryAgain =
       'Resend OTP failed. Please try again.';
+  static const String resendOtp = 'Resend OTP';
+  static const String resetPassword = 'Reset Password';
   static const String reset = 'Reset';
   static const String resetOnboarding = 'Reset onboarding';
   static const String resetToDefaultTemplate = 'Reset to default template';
@@ -977,6 +1032,8 @@ final class StringConstants {
       'Set default, weekend, holiday, and discount prices.';
   static const String settings = 'Settings';
   static const String shareCurrentLocation = 'Share current location';
+  static const String shareIsNotAvailableForThisVenue =
+      'Share is not available for this venue.';
   static const String signOut = 'Sign Out';
   static const String slotLabel = 'Slot label';
   static const String slotPricing = 'Slot Pricing';
@@ -985,6 +1042,8 @@ final class StringConstants {
   static const String slotsUnavailable = 'Slots unavailable';
   static const String slug = 'Slug';
   static const String somethingWentWrong = 'Something went wrong';
+  static const String venueSlugMissing =
+      'This venue cannot be edited yet. Please reopen it from the venue list.';
   static const String specialDaysForPricingAndBookingAvailability =
       'Special days for pricing and booking availability';
   static const String standard = 'Standard';
@@ -1004,8 +1063,7 @@ final class StringConstants {
   static const String subtotal = 'Subtotal';
   static const String support = 'Support';
   static const String supportRefunds = 'Support refunds';
-  static const String switchToADarkerAppearance =
-      'Switch to a darker appearance';
+  static const String chooseHowTheAppLooks = 'Choose how the app looks';
   static const String tapTheHeartOnAVenueToSaveItHereForQuickBooking =
       'Tap the heart on a venue to save it here for quick booking.';
   static const String tapToPickLocationOnMap = 'Tap to pick location on map';
@@ -1079,6 +1137,21 @@ final class StringConstants {
   static const String update = 'Update';
   static const String updatePassword = 'Update Password';
   static const String updatePricingForThisSlot = 'Update pricing for this slot';
+
+  /// Slot discount: the switch, and the optional window it applies over.
+  static const String offerADiscountOnThisSlot =
+      'Offer a discount on this slot';
+  static const String discountStarts = 'Discount starts';
+  static const String discountEnds = 'Discount ends';
+  static const String anyTime = 'Any time';
+  static const String discountEndMustFollowStart =
+      'The discount must end after it starts.';
+  static const String discountNeedsTypeAndValue =
+      'Choose a discount type and enter an amount, or switch the discount off.';
+  static const String discountValueMustBePositive =
+      'Enter a discount amount greater than zero.';
+  static const String discountPercentTooHigh =
+      'A percentage discount cannot be more than 100%.';
   static const String upgradeToVendor = 'Upgrade to Vendor';
   static const String upload = 'Upload';
   static const String uploadDocument = 'Upload document';
@@ -1122,6 +1195,20 @@ final class StringConstants {
   static const String view = 'View';
   static const String viewAll = 'View all';
   static const String viewFullScreen = 'View full screen';
+  static const String download = 'Download';
+  static const String saveQrCode = 'Save QR code';
+  static const String downloadingAttachment = 'Downloading…';
+  static const String attachmentSaved = 'Saved to your device.';
+  static const String attachmentSavedToGallery = 'Saved to your gallery.';
+  static const String attachmentSavedToFiles = 'Saved to your Downloads.';
+  static const String attachmentSavePermissionDenied =
+      'Allow photo access to save this file to your device.';
+  static const String attachmentDownloadFailed =
+      'Could not download the file. Check your connection and try again.';
+  static const String attachmentUnavailable = 'There is no file to download.';
+  static const String openAttachment = 'Open file';
+  static const String proofIsAFile =
+      'This proof was submitted as a file rather than an image.';
   static const String weKeepRefiningTheAppForSmootherPlayPlanning =
       'We keep refining the app for smoother play planning.';
   static const String weWillSendAVerificationCodeToThisEmail =
@@ -1186,7 +1273,20 @@ final class StringConstants {
   static const String item = 'Item';
   static const String name = 'Name';
   static const String newPassword = 'New Password';
+  static const String aNewCodeIsOnItsWay = 'A new code is on its way.';
+  static const String enterTheDigitCodeToContinue =
+      'Enter the code sent to your email to continue.';
+  static const String reEnterYourNewPassword = 'Re-enter your new password';
+  static const String wait = 'Wait';
   static const String password = 'Password';
+  static const String passwordIsRequired = 'Password is required';
+  static const String passwordMustBeAtLeast8Characters =
+      'Password must be at least 8 characters';
+  static const String passwordResetSuccessfully =
+      'Password reset successfully.';
+  static const String passwordsDoNotMatch = 'Passwords do not match';
+  static const String pleaseConfirmYourNewPassword =
+      'Please confirm your new password';
   static const String phone = 'Phone';
   static const String phoneNumberSentenceCase = 'Phone number';
   static const String quantity = 'Quantity';
@@ -1309,16 +1409,16 @@ final class StringConstants {
       'Find a court, rally your squad and get on the pitch — without a single '
       'phone call.';
   static const String authPlayerHighlightDiscover =
-      'Browse nearby futsals with live prices and open slots';
+      'Browse nearby venues with live prices and open slots';
   static const String authPlayerHighlightBook =
       'Book and pay in a few taps, then manage it all in one place';
   static const String authPlayerHighlightCompete =
       'Challenge other teams and keep track of every match';
 
-  // Shown while registering once "Futsal Vendor" is chosen.
+  // Shown while registering once "Venue Vendor" is chosen.
   static const String authVendorHeadline = 'Fill your courts, effortlessly';
   static const String authVendorTagline =
-      'List your futsal, take bookings around the clock and run the whole '
+      'List your venue, take bookings around the clock and run the whole '
       'operation from one dashboard.';
   static const String authVendorHighlightList =
       'List your courts with photos, pricing and opening hours';
@@ -1414,9 +1514,15 @@ final class StringConstants {
       'Press back again to leave this request.';
 
   // Booking checkout
-  static const String paymentDescription = 'Payment description';
-  static const String paymentDescriptionHint =
-      'Please provide your transaction ID';
+  /// Label for the checkout's payment-reference field. The field is still
+  /// `payment_description` on the wire — only what the user reads changed,
+  /// because a transaction ID is all it was ever asking for.
+  static const String transactionId = 'Transaction ID';
+
+  /// Shows the shape of the expected value rather than repeating the ask — the
+  /// label already says what the field is, and the helper line under it says
+  /// why it matters.
+  static const String paymentDescriptionHint = 'e.g. 9KX2M7QF1042';
   static const String paymentDescriptionHelp =
       'The venue matches your payment against this, so enter the transaction '
       'ID exactly as it appears on your receipt.';
@@ -1433,6 +1539,7 @@ final class StringConstants {
       'Group name must be 255 characters or fewer.';
   static const String offline = 'Offline';
   static const String about = 'About';
+  static const String groupPhoto = 'Group photo';
   static const String groupInfo = 'Group Info';
   static const String blocked = 'Blocked';
   static const String moreOptions = 'More options';

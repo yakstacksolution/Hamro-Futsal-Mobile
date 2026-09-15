@@ -1,3 +1,4 @@
+import 'package:hamro_futsal/core/utils/bloc_safe_add.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -184,7 +185,7 @@ class _OpponentRequestsViewState extends State<OpponentRequestsView> {
             ),
           ),
         );
-    if (updated != null) bloc.add(RequestAcceptedEvent(updated));
+    if (updated != null) bloc.addIfOpen(RequestAcceptedEvent(updated));
   }
 
   /// My request → review the invitations that came in and pick one opponent.

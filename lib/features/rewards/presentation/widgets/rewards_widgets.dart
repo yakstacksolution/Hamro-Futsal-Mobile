@@ -50,11 +50,13 @@ class RewardBalanceCard extends StatelessWidget {
             LightColor.primaryDark,
           ],
         ),
-        boxShadow: const <BoxShadow>[
+        boxShadow: <BoxShadow>[
+          // Theme-aware: the old fixed 0x332C7969 was a light-mode green glow,
+          // which reads as a halo around the card on the dark ground.
           BoxShadow(
-            color: Color(0x332C7969),
+            color: LightColor.shadowOf(0.2),
             blurRadius: 18,
-            offset: Offset(0, 8),
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -190,9 +192,9 @@ class _CardIcon extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppDimens.radiusX8),
       ),
       alignment: Alignment.center,
-      child: Icon(
+      child: const Icon(
         Icons.workspace_premium_rounded,
-        color: LightColor.inverseTextColor,
+        color: LightColor.onBrandSurface,
         size: AppDimens.sizeX18,
       ),
     );
@@ -301,7 +303,7 @@ class _RedeemButton extends StatelessWidget {
       height: AppDimens.sizeX46,
       child: Material(
         color: enabled
-            ? LightColor.whiteColor
+            ? LightColor.onBrandSurface
             : LightColor.onBrandSurface.withValues(alpha: 0.35),
         borderRadius: BorderRadius.circular(AppDimens.radiusX10),
         child: InkWell(
@@ -364,7 +366,7 @@ class RewardStatsRow extends StatelessWidget {
     final List<Widget> tiles = <Widget>[
       _RewardStatTile(
         icon: Icons.trending_up_rounded,
-        color: LightColor.secondaryColor,
+        color: LightColor.brandTextColor,
         label: StringConstants.pointsEarned,
         value: RewardFmt.points(summary.totalEarnedPoints),
       ),
@@ -410,10 +412,16 @@ class _RewardStatTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final FutsalTextTheme textTheme = FutsalTheme.getTextTheme(context);
+    // The hue is authored for light mode; these adapt it to the active
+    // brightness. A raw accent at 12% alpha was all but invisible on the dark
+    // card, and the icon itself only managed ~3:1 against it.
+    final Color accent = LightColor.categoryAccent(color);
     return Container(
       padding: const EdgeInsets.all(AppDimens.paddingX12),
       decoration: BoxDecoration(
-        color: LightColor.cardColor,
+        // Elevated, not the base card: the dark theme's ground is true black,
+        // so a base surface tile separated from the page by its border alone.
+        color: LightColor.elevatedCardColor,
         borderRadius: BorderRadius.circular(AppDimens.radiusX12),
         border: Border.all(color: LightColor.dividerColor),
       ),
@@ -424,11 +432,11 @@ class _RewardStatTile extends StatelessWidget {
             width: AppDimens.sizeX28,
             height: AppDimens.sizeX28,
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.12),
+              color: LightColor.categoryContainer(color),
               borderRadius: BorderRadius.circular(AppDimens.radiusX8),
             ),
             alignment: Alignment.center,
-            child: Icon(icon, color: color, size: AppDimens.sizeX16),
+            child: Icon(icon, color: accent, size: AppDimens.sizeX16),
           ),
           const SizedBox(height: AppDimens.paddingX10),
           Text(
@@ -473,10 +481,10 @@ class RewardExpiryNotice extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppDimens.paddingX12),
       decoration: BoxDecoration(
-        color: LightColor.warningColor.withValues(alpha: 0.08),
+        color: LightColor.warningLightColor,
         borderRadius: BorderRadius.circular(AppDimens.radiusX12),
         border: Border.all(
-          color: LightColor.warningColor.withValues(alpha: 0.25),
+          color: LightColor.warningColor.withValues(alpha: 0.35),
         ),
       ),
       child: Row(
@@ -539,7 +547,7 @@ class RewardHistoryTile extends StatelessWidget {
             width: AppDimens.sizeX36,
             height: AppDimens.sizeX36,
             decoration: BoxDecoration(
-              color: accent.withValues(alpha: 0.1),
+              color: LightColor.categoryContainer(accent),
               borderRadius: BorderRadius.circular(AppDimens.radiusX10),
             ),
             alignment: Alignment.center,
@@ -589,7 +597,7 @@ class RewardHistoryTile extends StatelessWidget {
               Text(
                 entry.signedPoints,
                 style: textTheme.bodyTextMedium?.copyWith(
-                  color: entry.isCredit ? LightColor.secondaryColor : accent,
+                  color: entry.isCredit ? LightColor.brandTextColor : accent,
                   fontWeight: FontWeight.w800,
                 ),
               ),
@@ -680,13 +688,13 @@ class RewardSectionHeader extends StatelessWidget {
                   Text(
                     actionLabel!,
                     style: textTheme.bodyTextSmall?.copyWith(
-                      color: LightColor.secondaryColor,
+                      color: LightColor.brandTextColor,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                  const Icon(
+                  Icon(
                     Icons.chevron_right_rounded,
-                    color: LightColor.secondaryColor,
+                    color: LightColor.brandTextColor,
                     size: AppDimens.sizeX18,
                   ),
                 ],
@@ -754,7 +762,7 @@ class RewardHowItWorksCard extends StatelessWidget {
                 Icon(
                   rows[i].$1,
                   size: AppDimens.sizeX16,
-                  color: LightColor.secondaryColor,
+                  color: LightColor.brandTextColor,
                 ),
                 const SizedBox(width: AppDimens.paddingX10),
                 Expanded(

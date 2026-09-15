@@ -78,11 +78,6 @@ class VendorOnboardingValidator {
     return null;
   }
 
-  static bool canUnlockCourts(FutsalDraft draft) {
-    return validateFutsalSubstep(draft, 0, 0).isValid &&
-        validateFutsalSubstep(draft, 0, 2).isValid;
-  }
-
   static VendorValidationResult validateFutsalSubstep(
     FutsalDraft draft,
     int sectionIndex,

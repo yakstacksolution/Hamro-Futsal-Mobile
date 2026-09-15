@@ -91,4 +91,75 @@ void main() {
 
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('an AlertDialog action row measures its intrinsic width', (
+    tester,
+  ) async {
+    // AlertDialog lays its actions out in an OverflowBar, which asks each
+    // child for its intrinsic width. A LayoutBuilder inside the button threw
+    // "LayoutBuilder does not support returning intrinsic dimensions" — the
+    // delete-court confirmation could not be opened at all.
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Builder(
+            builder: (BuildContext context) => TextButton(
+              onPressed: () => showDialog<void>(
+                context: context,
+                builder: (_) => AlertDialog(
+                  title: const Text('Delete Court'),
+                  content: const Text('This action cannot be undone.'),
+                  actions: <Widget>[
+                    Row(
+                      children: const <Widget>[
+                        Expanded(
+                          child: CustomButton(
+                            text: 'Cancel',
+                            isOutlined: true,
+                            onPressed: null,
+                          ),
+                        ),
+                        SizedBox(width: 10),
+                        Expanded(
+                          child: CustomButton(
+                            text: 'Delete',
+                            icon: Icons.delete_outline_rounded,
+                            onPressed: null,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              child: const Text('open'),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Delete Court'), findsOneWidget);
+    expect(find.text('Delete'), findsOneWidget);
+  });
+
+  testWidgets('an IntrinsicWidth parent can size the button', (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: IntrinsicWidth(
+              child: CustomButton(text: 'Save changes', onPressed: null),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(tester.takeException(), isNull);
+  });
 }

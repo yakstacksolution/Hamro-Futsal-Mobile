@@ -10,6 +10,7 @@ abstract class AuthRemoteDataSource {
   Future<Result> resendOtp(Map<String, dynamic> resendOtpData);
   Future<Result> logout();
   Future<Result> forgotPassword(Map<String, dynamic> forgotPasswordData);
+  Future<Result> resetPassword(Map<String, dynamic> resetPasswordData);
   Future<Result> changePassword(Map<String, dynamic> changePasswordData);
 }
 
@@ -27,6 +28,10 @@ final class AuthenticationDataSourceImpl extends AuthRemoteDataSource {
   ) async => await Client.instance().getAuthManager().forgotPassword(
     forgotPasswordData,
   );
+
+  @override
+  Future<Result> resetPassword(Map<String, dynamic> resetPasswordData) async =>
+      await Client.instance().getAuthManager().resetPassword(resetPasswordData);
 
   @override
   Future<Result> signIn(Map<String, dynamic> signInData) async =>

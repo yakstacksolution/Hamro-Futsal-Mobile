@@ -4,30 +4,23 @@ import 'package:hamro_futsal/features/bookings/data/model/booking_model.dart';
 import 'package:hamro_futsal/features/bookings/data/model/booking_review_model.dart';
 import 'package:hamro_futsal/features/bookings/domain/repository/booking_repository.dart';
 import 'package:hamro_futsal/features/bookings/domain/model/paginated_bookings.dart';
+import 'package:hamro_futsal/features/bookings/domain/model/booking_list_query.dart';
 
 final class GetBookingsUseCase {
   const GetBookingsUseCase(this._repository);
 
   final BookingRepository _repository;
 
-  Future<Either<AppException, PaginatedBookings>> getMyBookings({
-    required int page,
-    int perPage = 10,
-    String? status,
-  }) => _repository.getMyBookings(page: page, perPage: perPage, status: status);
+  Future<Either<AppException, PaginatedBookings>> getMyBookings(
+    BookingListQuery query,
+  ) => _repository.getMyBookings(query);
 
   Future<Either<AppException, BookingModel>> getBookingDetails(int bookingId) =>
       _repository.getBookingDetails(bookingId);
 
-  Future<Either<AppException, PaginatedBookings>> getFutsalBookings({
-    required int page,
-    int perPage = 10,
-    String? status,
-  }) => _repository.getFutsalBookings(
-    page: page,
-    perPage: perPage,
-    status: status,
-  );
+  Future<Either<AppException, PaginatedBookings>> getFutsalBookings(
+    BookingListQuery query,
+  ) => _repository.getFutsalBookings(query);
 
   Future<Either<AppException, BookingModel?>> cancelBooking(int bookingId) =>
       _repository.cancelBooking(bookingId);

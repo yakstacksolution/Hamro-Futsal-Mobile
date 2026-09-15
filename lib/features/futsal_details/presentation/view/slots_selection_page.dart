@@ -72,7 +72,7 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
         bookingType: 'manual',
         customerName: manual.customerName,
         customerPhone: manual.customerPhone,
-        customerEmail: manual.customerEmail,
+        totalAmount: manual.totalAmount,
         paymentType: manual.paymentType,
         paymentStatus: manual.paymentStatus,
         bookingStatus: manual.bookingStatus,
@@ -331,8 +331,17 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
                     ? (state.slotLabel ?? 'For the selected time')
                     : 'All courts for this date',
                 availableCount: state.availableCourtCount,
-                totalCount: state.courts.length,
+                totalCount: state.totalCourtCount,
               ),
+              // The server sometimes answers with a nearby window instead of
+              // the one asked for; saying so beats showing prices for a time
+              // the user did not pick.
+              if (state.isFallbackAvailability) ...<Widget>[
+                const SizedBox(height: AppDimens.sizeX10),
+                _FallbackAvailabilityNotice(
+                  fallbackType: state.availabilityFallbackType ?? '',
+                ),
+              ],
               const SizedBox(height: AppDimens.sizeX12),
               if (state.isLoading && state.courts.isEmpty)
                 const AvailableCourtsLoading()
@@ -413,14 +422,6 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
 
   /// Keeps the bottom bar's summary and CTA together in the middle of a wide
   /// window instead of pinned to opposite edges.
-  double _bottomBarInset(BuildContext context) {
-    const double base = AppDimens.paddingX12;
-    if (!context.isTabletOrWider) return base;
-    final double slack =
-        (context.screenWidth - AppDimens.slotsSelectionColumnMaxWidth) / 2;
-    return slack > base ? slack : AppDimens.paddingX32;
-  }
-
   /// When the server reported taken dates for a recurring booking, asks the
   /// user whether to book the remaining ones or go back and pick another
   /// date/slot. Returns the draft to book with, or null to stay on this page.
@@ -482,125 +483,159 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
   }
 
   Widget _buildBottomBar() {
-    return SlideTransition(
-      position: _bottomBarSlide,
-      child: BlocBuilder<SlotsSelectionBloc, SlotsSelectionState>(
-        builder: (BuildContext context, SlotsSelectionState state) {
-          final bool canBook =
-              state.hasSlotSelection &&
-              (state.selectedCourt?.isAvailable ?? false);
-          final bool canPressAction =
-              !_isConfirmingManualBooking &&
-              (!state.hasSlotSelection || canBook);
-
-          return Container(
-            decoration: BoxDecoration(
-              color: LightColor.cardColor,
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(AppDimens.radiusX20),
-                topRight: Radius.circular(AppDimens.radiusX20),
-              ),
-              border: Border.all(
-                color: LightColor.dividerColor.withValues(alpha: 0.7),
-              ),
-              boxShadow: <BoxShadow>[
-                BoxShadow(
-                  color: LightColor.shadowOf(0.12),
-                  blurRadius: AppDimens.radiusX28,
-                  offset: const Offset(0, AppDimens.sizeX10),
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxHeight: AppDimens.sizeX126),
+      child: SlideTransition(
+        position: _bottomBarSlide,
+        child: BlocBuilder<SlotsSelectionBloc, SlotsSelectionState>(
+          builder: (BuildContext context, SlotsSelectionState state) {
+            if (state.isDateFullyUnavailable) return const SizedBox.shrink();
+            final bool canBook =
+                state.hasSlotSelection &&
+                (state.selectedCourt?.isAvailable ?? false);
+            final bool canPressAction = (!state.hasSlotSelection || canBook);
+            return Container(
+              decoration: BoxDecoration(
+                color: LightColor.cardColor,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(AppDimens.radiusX20),
+                  topRight: Radius.circular(AppDimens.radiusX20),
                 ),
-              ],
-            ),
-            child: SafeArea(
-              top: false,
-              minimum: EdgeInsets.symmetric(
-                horizontal: _bottomBarInset(context),
-                vertical: AppDimens.paddingX12,
+                border: Border.all(
+                  color: LightColor.dividerColor.withValues(alpha: 0.7),
+                ),
+                boxShadow: <BoxShadow>[
+                  BoxShadow(
+                    color: LightColor.shadowOf(0.12),
+                    blurRadius: AppDimens.radiusX28,
+                    offset: const Offset(0, AppDimens.sizeX10),
+                  ),
+                ],
               ),
-              child: LayoutBuilder(
-                builder: (BuildContext context, BoxConstraints constraints) {
-                  final double buttonWidth = (constraints.maxWidth * 0.42)
-                      .clamp(AppDimens.sizeX148, AppDimens.sizeX210);
-                  return Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: <Widget>[
-                      Expanded(
-                        child: _BookingBarSummary(
-                          priceText: state.priceText,
-                          priceUnit: state.priceUnit,
-                          selectedLabel: state.selectedLabel,
-                          canBook: canBook,
-                        ),
-                      ),
-                      const SizedBox(width: AppDimens.sizeX12),
-                      SizedBox(
-                        width: buttonWidth,
-                        height: AppDimens.sizeX52,
-                        child: CustomButton(
-                          text: canBook && widget.manualBooking != null
-                              ? (_isConfirmingManualBooking
-                                    ? 'Confirming…'
-                                    : 'Confirm Booking')
-                              : state.buttonText,
-                          isLoading: _isConfirmingManualBooking,
-                          onPressed: canPressAction
-                              ? () async {
-                                  if (!state.hasSlotSelection) {
-                                    AppUtils().showSnackBar(
-                                      context,
-                                      MsgType.error,
-                                      StringConstants.pleaseSelectTimeSlot,
-                                      key: 'slot_selection_required',
+              child: SafeArea(
+                top: false,
+                child: Center(
+                  child: ConstrainedBox(
+                    // On a wide bar an unconstrained split would stretch the
+                    // button across the screen.
+                    constraints: const BoxConstraints(
+                      maxWidth: AppDimens.venueContentMaxWidth,
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppDimens.paddingX12),
+                      child: LayoutBuilder(
+                        builder:
+                            (BuildContext context, BoxConstraints constraints) {
+                              final double buttonWidth = context.isTabletOrWider
+                                  ? AppDimens.sizeX240
+                                  : (constraints.maxWidth * 0.42).clamp(
+                                      AppDimens.sizeX148,
+                                      AppDimens.sizeX210,
                                     );
-                                    return;
-                                  }
+                              return Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: <Widget>[
+                                  Expanded(
+                                    child: _BookingBarSummary(
+                                      priceText: state.priceText,
+                                      priceUnit: state.priceUnit,
+                                      originalPriceText:
+                                          state.originalPriceText,
+                                      savingsText: state.savingsText,
+                                      selectedLabel: state.selectedLabel,
+                                      canBook: canBook,
+                                    ),
+                                  ),
+                                  const SizedBox(width: AppDimens.sizeX12),
+                                  SizedBox(
+                                    width: buttonWidth,
+                                    height: AppDimens.sizeX52,
+                                    child: CustomButton(
+                                      text:
+                                          canBook &&
+                                              widget.manualBooking != null
+                                          ? (_isConfirmingManualBooking
+                                                ? 'Confirming…'
+                                                : 'Confirm Booking')
+                                          : state.buttonText,
+                                      isLoading: _isConfirmingManualBooking,
+                                      onPressed: canPressAction
+                                          ? () async {
+                                              if (!state.hasSlotSelection) {
+                                                AppUtils().showSnackBar(
+                                                  context,
+                                                  MsgType.error,
+                                                  StringConstants
+                                                      .pleaseSelectTimeSlot,
+                                                  key:
+                                                      'slot_selection_required',
+                                                );
+                                                return;
+                                              }
 
-                                  HapticFeedback.mediumImpact();
-                                  BookingDraft? draft = state.bookingDraft
-                                      ?.withManualBooking(widget.manualBooking);
-                                  if (draft == null) return;
+                                              HapticFeedback.mediumImpact();
+                                              BookingDraft? draft = state
+                                                  .bookingDraft
+                                                  ?.withManualBooking(
+                                                    widget.manualBooking,
+                                                  );
+                                              if (draft == null) return;
 
-                                  final BookingDraft? resolved =
-                                      await _resolveUnavailableDates(
-                                        context,
-                                        state,
-                                        draft,
-                                      );
-                                  if (resolved == null || !context.mounted) {
-                                    return;
-                                  }
-                                  draft = resolved;
-                                  if (widget.manualBooking != null) {
-                                    await _confirmManualBooking(draft);
-                                    return;
-                                  }
-                                  final BookingDraft? booked = await context
-                                      .pushNamed<BookingDraft>(
-                                        AppRouterParams.bookingCheckout.name,
-                                        extra: draft,
-                                      );
-                                  if (booked != null && context.mounted) {
-                                    Navigator.of(context).pop(booked);
-                                  }
-                                }
-                              : null,
-                          backgroundColor: canPressAction
-                              ? LightColor.secondaryColor
-                              : LightColor.dividerColor,
-                          foregroundColor: canPressAction
-                              ? LightColor.inverseTextColor
-                              : LightColor.hintTextColor,
-                          minHeight: AppDimens.sizeX52,
-                          minWidth: AppDimens.sizeX148,
-                        ),
+                                              final BookingDraft? resolved =
+                                                  await _resolveUnavailableDates(
+                                                    context,
+                                                    state,
+                                                    draft,
+                                                  );
+                                              if (resolved == null ||
+                                                  !context.mounted) {
+                                                return;
+                                              }
+                                              draft = resolved;
+                                              if (widget.manualBooking !=
+                                                  null) {
+                                                await _confirmManualBooking(
+                                                  draft,
+                                                );
+                                                return;
+                                              }
+                                              final BookingDraft? booked =
+                                                  await context
+                                                      .pushNamed<BookingDraft>(
+                                                        AppRouterParams
+                                                            .bookingCheckout
+                                                            .name,
+                                                        extra: draft,
+                                                      );
+                                              if (booked != null &&
+                                                  context.mounted) {
+                                                Navigator.of(
+                                                  context,
+                                                ).pop(booked);
+                                              }
+                                            }
+                                          : null,
+                                      backgroundColor: canPressAction
+                                          ? LightColor.secondaryColor
+                                          : LightColor.dividerColor,
+                                      foregroundColor: canPressAction
+                                          ? LightColor.inverseTextColor
+                                          : LightColor.hintTextColor,
+                                      minHeight: AppDimens.sizeX52,
+                                      minWidth: AppDimens.sizeX148,
+                                    ),
+                                  ),
+                                ],
+                              );
+                            },
                       ),
-                    ],
-                  );
-                },
+                    ),
+                  ),
+                ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }
@@ -631,64 +666,139 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
             ),
           ),
         ),
-        body: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          child: context.isDesktop
-              ? Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(
-                      maxWidth: AppDimens.slotsSelectionMaxWidth,
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        Expanded(
-                          flex: 4,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: <Widget>[
-                              _buildDateTimeSection(),
+        body: BlocBuilder<SlotsSelectionBloc, SlotsSelectionState>(
+          buildWhen:
+              (SlotsSelectionState previous, SlotsSelectionState current) =>
+                  previous.isDateFullyUnavailable !=
+                  current.isDateFullyUnavailable,
+          builder: (BuildContext context, SlotsSelectionState state) {
+            final bool fullyUnavailable = state.isDateFullyUnavailable;
+            return SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              child: context.isDesktop
+                  ? Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(
+                          maxWidth: AppDimens.slotsSelectionMaxWidth,
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            Expanded(
+                              flex: 4,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: <Widget>[
+                                  _buildDateTimeSection(),
+                                  if (!fullyUnavailable) ...<Widget>[
+                                    _buildBookingTypeSection(),
+                                    _buildRecurringAvailabilitySection(),
+                                  ],
+                                  const SizedBox(height: AppDimens.sizeX20),
+                                ],
+                              ),
+                            ),
+                            Expanded(
+                              flex: 5,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: <Widget>[
+                                  if (fullyUnavailable)
+                                    const _DateFullyUnavailableNotice()
+                                  else
+                                    _buildCourtsSection(),
+                                  const SizedBox(height: AppDimens.sizeX20),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  : Center(
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxWidth: context.isTablet
+                              ? AppDimens.slotsSelectionColumnMaxWidth
+                              : double.infinity,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            _buildDateTimeSection(),
+                            if (fullyUnavailable)
+                              const _DateFullyUnavailableNotice()
+                            else ...<Widget>[
                               _buildBookingTypeSection(),
                               _buildRecurringAvailabilitySection(),
-                              const SizedBox(height: AppDimens.sizeX20),
-                            ],
-                          ),
-                        ),
-                        Expanded(
-                          flex: 5,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: <Widget>[
                               _buildCourtsSection(),
-                              const SizedBox(height: AppDimens.sizeX20),
                             ],
-                          ),
+                            const SizedBox(height: AppDimens.sizeX20),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
-                  ),
-                )
-              : Center(
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      maxWidth: context.isTablet
-                          ? AppDimens.slotsSelectionColumnMaxWidth
-                          : double.infinity,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        _buildDateTimeSection(),
-                        _buildBookingTypeSection(),
-                        _buildRecurringAvailabilitySection(),
-                        _buildCourtsSection(),
-                        const SizedBox(height: AppDimens.sizeX20),
-                      ],
-                    ),
-                  ),
-                ),
+            );
+          },
         ),
         bottomNavigationBar: _buildBottomBar(),
+      ),
+    );
+  }
+}
+
+class _DateFullyUnavailableNotice extends StatelessWidget {
+  const _DateFullyUnavailableNotice();
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+
+    return SizedBox(
+      width: double.infinity,
+      // The body scrolls, so the notice needs a height of its own to sit in
+      // the middle of the space the hidden sections used to fill.
+      height: MediaQuery.sizeOf(context).height * 0.4,
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppDimens.paddingX32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              Container(
+                padding: const EdgeInsets.all(AppDimens.paddingX16),
+                decoration: BoxDecoration(
+                  color: LightColor.greyBorderColor.withValues(alpha: 1.2),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.event_busy_rounded,
+                  size: AppDimens.sizeX28,
+                  color: LightColor.primaryTextColor,
+                ),
+              ),
+              const SizedBox(height: AppDimens.sizeX16),
+              Text(
+                StringConstants.allCourtsBookedOrUnavailable,
+                textAlign: TextAlign.center,
+                style: textTheme.bodyTextMedium?.copyWith(
+                  color: LightColor.primaryTextColor,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: AppDimens.sizeX8),
+              Text(
+                StringConstants
+                    .selectedDatesCourtsAreAlreadyBookedOrUnavai0f4a71b2,
+                textAlign: TextAlign.center,
+                style: textTheme.bodyTextSmall?.copyWith(
+                  color: LightColor.hintTextColor,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -700,10 +810,20 @@ class _BookingBarSummary extends StatelessWidget {
     required this.priceUnit,
     required this.selectedLabel,
     required this.canBook,
+    this.originalPriceText,
+    this.savingsText,
   });
 
   final String priceText;
   final String priceUnit;
+
+  /// The pre-discount figure, struck through beside the price. Null when the
+  /// slot carries no discount.
+  final String? originalPriceText;
+
+  /// `save Rs 400` — what the discount is worth on the whole selection. Null
+  /// when there is no discount.
+  final String? savingsText;
   final String selectedLabel;
   final bool canBook;
 
@@ -715,77 +835,126 @@ class _BookingBarSummary extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Padding(
-          padding: const EdgeInsets.only(left: AppDimens.paddingX6),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: <Widget>[
-              Flexible(
-                child: Text(
+        // Both rows are flexible so that if the bar is ever squeezed — an
+        // unusually tall system inset, a font scale beyond what the minimum
+        // height allows for — they shrink instead of overflowing.
+        Flexible(
+          child: Padding(
+            padding: const EdgeInsets.only(left: AppDimens.paddingX6),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: <Widget>[
+                // The payable price is never the thing that shrinks: it used
+                // to be the only flexible child here, so a long unit line
+                // ("total · 4 sessions") squeezed it away entirely and the bar
+                // showed only the struck-through figure.
+                Text(
                   priceText,
                   maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
                   style: textTheme.bodyTextLarge?.copyWith(
-                    color: LightColor.primaryTextColor,
+                    color: originalPriceText == null
+                        ? LightColor.primaryTextColor
+                        : LightColor.secondaryColor,
                   ),
                 ),
-              ),
-              SizedBox(width: AppDimens.sizeX4),
-              Padding(
-                padding: const EdgeInsets.only(bottom: AppDimens.paddingX2),
-                child: Text(
-                  priceUnit,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: textTheme.bodyTextSmall?.copyWith(
-                    color: LightColor.hintTextColor,
-                    fontWeight: FontWeight.w500,
+                if (originalPriceText != null) ...<Widget>[
+                  SizedBox(width: AppDimens.sizeX6),
+                  Flexible(
+                    child: Padding(
+                      padding: const EdgeInsets.only(
+                        bottom: AppDimens.paddingX2,
+                      ),
+                      child: Text(
+                        originalPriceText!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: textTheme.bodyTextSmall?.copyWith(
+                          color: LightColor.hintTextColor,
+                          fontWeight: FontWeight.w500,
+                          decoration: TextDecoration.lineThrough,
+                          decorationColor: LightColor.hintTextColor,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        SizedBox(height: AppDimens.sizeX6),
-        ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: AppDimens.sizeX250),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 220),
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppDimens.paddingX10,
-              vertical: AppDimens.paddingX4,
-            ),
-            decoration: BoxDecoration(
-              color: canBook
-                  ? LightColor.secondarySoft
-                  : LightColor.inputFillColor,
-              borderRadius: BorderRadius.circular(AppDimens.radiusX50),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                Icon(
-                  canBook ? Icons.check_circle_rounded : Icons.schedule_rounded,
-                  size: AppDimens.sizeX12,
-                  color: canBook
-                      ? LightColor.secondaryColor
-                      : LightColor.hintTextColor,
-                ),
-                SizedBox(width: AppDimens.sizeX4 + 1),
+                ],
+                SizedBox(width: AppDimens.sizeX4),
                 Flexible(
-                  child: Text(
-                    selectedLabel,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: textTheme.bodyMiniSubTitle?.copyWith(
-                      color: canBook
-                          ? LightColor.secondaryColor
-                          : LightColor.hintTextColor,
-                      fontWeight: FontWeight.w600,
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: AppDimens.paddingX2),
+                    child: Text.rich(
+                      TextSpan(
+                        children: <InlineSpan>[
+                          TextSpan(
+                            text: priceUnit,
+                            style: textTheme.bodyTextSmall?.copyWith(
+                              color: LightColor.hintTextColor,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          if (savingsText != null)
+                            TextSpan(
+                              text: ' · $savingsText',
+                              style: textTheme.bodyTextSmall?.copyWith(
+                                color: LightColor.secondaryColor,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                        ],
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ),
               ],
+            ),
+          ),
+        ),
+        SizedBox(height: AppDimens.sizeX6),
+        Flexible(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: AppDimens.sizeX250),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 220),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppDimens.paddingX10,
+                vertical: AppDimens.paddingX4,
+              ),
+              decoration: BoxDecoration(
+                color: canBook
+                    ? LightColor.secondarySoft
+                    : LightColor.inputFillColor,
+                borderRadius: BorderRadius.circular(AppDimens.radiusX50),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Icon(
+                    canBook
+                        ? Icons.check_circle_rounded
+                        : Icons.schedule_rounded,
+                    size: AppDimens.sizeX12,
+                    color: canBook
+                        ? LightColor.secondaryColor
+                        : LightColor.hintTextColor,
+                  ),
+                  SizedBox(width: AppDimens.sizeX4 + 1),
+                  Flexible(
+                    child: Text(
+                      selectedLabel,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: textTheme.bodyMiniSubTitle?.copyWith(
+                        color: canBook
+                            ? LightColor.secondaryColor
+                            : LightColor.hintTextColor,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -797,6 +966,53 @@ class _BookingBarSummary extends StatelessWidget {
 /// Section title for the courts list: accent bar + title, the current filter
 /// context underneath, and an availability count pill that turns muted when
 /// nothing is bookable.
+/// Tells the user the shown availability is for a different window than the
+/// one they asked for.
+class _FallbackAvailabilityNotice extends StatelessWidget {
+  const _FallbackAvailabilityNotice({required this.fallbackType});
+
+  final String fallbackType;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppDimens.paddingX10,
+        vertical: AppDimens.paddingX8,
+      ),
+      decoration: BoxDecoration(
+        color: LightColor.warningColor.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+        border: Border.all(
+          color: LightColor.warningColor.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Row(
+        children: <Widget>[
+          Icon(
+            Icons.info_outline_rounded,
+            size: AppDimens.sizeX16,
+            color: LightColor.warningColor,
+          ),
+          const SizedBox(width: AppDimens.sizeX6),
+          Expanded(
+            child: Text(
+              'Showing the nearest availability we could find'
+              '${fallbackType.isEmpty ? '' : ' ($fallbackType)'}.',
+              style: textTheme.bodyMiniSubTitle?.copyWith(
+                color: LightColor.primaryTextColor,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _CourtsSectionHeader extends StatelessWidget {
   const _CourtsSectionHeader({
     required this.subtitle,

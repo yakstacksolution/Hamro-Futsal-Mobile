@@ -28,7 +28,7 @@ class VenueDescriptionBloc
     );
 
     final Either<AppException, VenueDescriptionModel> response =
-        await _getVenueDescriptionUseCase(venueId: event.venueId);
+        await _getVenueDescriptionUseCase(venueSlug: event.venueSlug);
 
     response.fold(
       (AppException failure) => emit(

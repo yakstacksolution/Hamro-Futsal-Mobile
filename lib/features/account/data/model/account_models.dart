@@ -667,6 +667,7 @@ class AccountEntryModel {
     this.reference = '',
     this.venueName = '',
     this.date,
+    this.createdAt,
   });
 
   final String id;
@@ -684,7 +685,48 @@ class AccountEntryModel {
   /// Booking / settlement code the entry belongs to, when the server sends
   /// one (e.g. "BK-1042").
   final String reference;
+
+  /// When the movement happened, as the business reckons it — the booked slot
+  /// for a booking payment, not when the row was written.
   final DateTime? date;
+
+  /// When the server recorded the row (`created_at`).
+  ///
+  /// Kept apart from [date] because the two differ: a commission row carries
+  /// the booking's slot time as its `date` while being written at settlement
+  /// time. Null when the endpoint does not send it.
+  final DateTime? createdAt;
+
+  /// The moment to show and sort by: the business date when there is one, the
+  /// record's own timestamp otherwise.
+  DateTime? get occurredAt => date ?? createdAt;
+
+  /// True when the row was written at a different moment than the business
+  /// date it carries — the usual case here, since a booking's slot is in the
+  /// future while its payment row is written now.
+  bool get recordedApartFromDate =>
+      date != null && createdAt != null && date != createdAt;
+
+  /// A stable identity for a row, used to key the list and to drop duplicates
+  /// when a page is appended.
+  ///
+  /// `/auth/settlement-recent-activity` sends no `id`: a booking payment and
+  /// its platform commission are two rows sharing one reference, one date and
+  /// one `created_at`, so the identity has to include the type, the direction
+  /// and the amount to tell them apart. Ordered newest-first by `created_at`,
+  /// a row written while the reader pages can shift the page boundary and
+  /// resend a row — without this they stack up in the list.
+  String get identity => id.isNotEmpty
+      ? id
+      : <String>[
+          type.name,
+          reference,
+          venueName,
+          isCredit ? 'cr' : 'dr',
+          amount.toStringAsFixed(2),
+          createdAt?.toIso8601String() ?? '',
+          date?.toIso8601String() ?? '',
+        ].join('|');
 
   factory AccountEntryModel.fromJson(Map<String, dynamic> json) {
     final type = AccountEntryType.parse(
@@ -706,7 +748,8 @@ class AccountEntryModel {
       note: _asString(json['note'] ?? json['remarks']),
       reference: _asString(json['reference'] ?? json['ref'] ?? json['code']),
       venueName: _asString(json['venue_name'] ?? json['futsal_name']),
-      date: _asDate(json['date'] ?? json['created_at'] ?? json['createdAt']),
+      date: _asDate(json['date']),
+      createdAt: _asDate(json['created_at'] ?? json['createdAt']),
     );
   }
 }

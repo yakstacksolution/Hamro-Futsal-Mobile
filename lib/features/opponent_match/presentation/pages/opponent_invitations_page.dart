@@ -1,3 +1,4 @@
+import 'package:hamro_futsal/core/utils/bloc_safe_add.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -74,7 +75,7 @@ class _OpponentInvitationsPageState extends State<OpponentInvitationsPage> {
     // the server call that locks the match in for the chosen team and closes
     // the request for everyone else.
     final OpponentMatchBloc bloc = context.read<OpponentMatchBloc>();
-    bloc.add(SelectOpponentEvent(request, invitation));
+    bloc.addIfOpen(SelectOpponentEvent(request, invitation));
 
     // The match only exists once the server says so, so the confirmation waits
     // for the call rather than announcing a match that may have been refused —

@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
+import 'package:hamro_futsal/core/widgets/attachment_viewer.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/app_utils.dart';
 import 'package:hamro_futsal/core/utils/custom_image_view.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
+import 'package:hamro_futsal/core/widgets/data_card.dart';
 import 'package:hamro_futsal/features/account/data/model/account_models.dart';
 import 'package:hamro_futsal/features/futsal_details/data/model/payment_qr_model.dart';
 import 'package:hamro_futsal/features/account/presentation/utils/account_ui_utils.dart';
@@ -50,7 +52,7 @@ class AccountBalanceCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppDimens.radiusX14),
         boxShadow: [
           BoxShadow(
-            color: LightColor.secondaryColor.withValues(alpha: 0.35),
+            color: LightColor.shadowOf(0.2),
             blurRadius: 14,
             offset: const Offset(0, 6),
           ),
@@ -234,7 +236,7 @@ class _StatTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppDimens.paddingX12),
       decoration: BoxDecoration(
-        color: LightColor.cardColor,
+        color: LightColor.elevatedCardColor,
         borderRadius: BorderRadius.circular(AppDimens.radiusX12),
         border: Border.all(color: LightColor.dividerColor),
       ),
@@ -284,18 +286,25 @@ class AccountNavTile extends StatelessWidget {
     required this.title,
     required this.onTap,
     this.subtitle = '',
-    this.iconColor = LightColor.secondaryColor,
+    this.iconColor,
   });
 
   final IconData icon;
   final String title;
   final String subtitle;
-  final Color iconColor;
+
+  /// Defaults to the brand foreground for the active brightness. Held nullable
+  /// because a `const` default cannot read a theme getter, and the fixed brand
+  /// green it used to hold only managed ~3:1 on the dark ground.
+  final Color? iconColor;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
+    final Color accent = iconColor == null
+        ? LightColor.brandTextColor
+        : LightColor.categoryAccent(iconColor!);
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -312,14 +321,10 @@ class AccountNavTile extends StatelessWidget {
                 height: 36,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: LightColor.categoryContainer(iconColor),
+                  color: LightColor.categoryContainer(accent),
                   borderRadius: BorderRadius.circular(AppDimens.radiusX10),
                 ),
-                child: Icon(
-                  icon,
-                  size: 18,
-                  color: LightColor.categoryAccent(iconColor),
-                ),
+                child: Icon(icon, size: 18, color: accent),
               ),
               const SizedBox(width: AppDimens.paddingX12),
               Expanded(
@@ -364,7 +369,22 @@ class AccountNavTile extends StatelessWidget {
   }
 }
 
-/// One ledger row: typed icon, title/date, signed amount.
+/// One ledger entry, as a card carrying every field the endpoint sends.
+///
+/// Built from the shared card language in `core/widgets/data_card.dart`, so
+/// this and the booking lists stay visually identical as either changes.
+///
+/// The ledger arrives in credit/debit pairs — a booking payment and the
+/// commission taken out of it repeat the same reference, venue, slot date and
+/// `created_at` — so the card leads with what distinguishes them: the
+/// description and the signed amount, with a `CREDIT`/`DEBIT` chip so the
+/// direction never rests on colour alone. What the pair has in common is
+/// listed beneath the hairline as labelled rows.
+///
+/// Both timestamps are shown and named, because they are different facts and
+/// are usually days apart: `Booking date` is the slot the money is for
+/// (`date`), `Recorded` is when the ledger wrote the row (`created_at`). A
+/// field the payload omits takes its row away rather than showing a blank.
 class AccountEntryTile extends StatelessWidget {
   const AccountEntryTile({super.key, required this.entry});
 
@@ -372,68 +392,128 @@ class AccountEntryTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = FutsalTheme.getTextTheme(context);
-    final title = entry.title.isNotEmpty
+    final String title = entry.title.isNotEmpty
         ? entry.title
         : entry.type.fallbackTitle;
-    final subtitleParts = [
-      if (entry.date != null) AccountFmt.date(entry.date!),
-      if (entry.reference.isNotEmpty) entry.reference,
-      if (entry.venueName.isNotEmpty) entry.venueName,
+    final String direction = entry.isCredit
+        ? StringConstants.credit
+        : StringConstants.debit;
+    // A debit is a normal movement on a statement, not an error, so it is set
+    // in plain text: the sign and the chip carry the direction.
+    final Color amountColor = entry.isCredit
+        ? LightColor.brandTextColor
+        : LightColor.primaryTextColor;
+
+    final List<Widget> fields = <Widget>[
+      if (entry.venueName.isNotEmpty)
+        DataCardField(label: StringConstants.venue, value: entry.venueName),
+      if (entry.date != null)
+        DataCardField(
+          label: StringConstants.bookingDate,
+          value: AccountFmt.dateTime(entry.date!),
+        ),
+      if (entry.createdAt != null)
+        DataCardField(
+          label: StringConstants.recorded,
+          value: AccountFmt.dateTime(entry.createdAt!),
+        ),
+      if (entry.note.isNotEmpty)
+        DataCardField(
+          label: StringConstants.note,
+          value: entry.note,
+          maxLines: 3,
+        ),
     ];
-    return Row(
-      children: [
-        Container(
-          width: 40,
-          height: 40,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: entry.type.color.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(AppDimens.radiusX10),
-          ),
-          child: Icon(entry.type.icon, size: 18, color: entry.type.color),
-        ),
-        const SizedBox(width: AppDimens.paddingX12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: textTheme.bodyTextSmall?.copyWith(
-                  color: LightColor.primaryTextColor,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              if (subtitleParts.isNotEmpty) ...[
-                const SizedBox(height: 2),
-                Text(
-                  subtitleParts.join(' · '),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: textTheme.bodyTextSmall?.copyWith(
-                    color: LightColor.hintTextColor,
-                    fontSize: AppDimens.fontBodySubTitle,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
+
+    return Semantics(
+      container: true,
+      label: <String>[
+        title,
+        '$direction ${AccountFmt.npr(entry.amount)}',
+        if (entry.reference.isNotEmpty) entry.reference,
+        if (entry.venueName.isNotEmpty) entry.venueName,
+        if (entry.date != null)
+          '${StringConstants.bookingDate} ${AccountFmt.dateTime(entry.date!)}',
+        if (entry.createdAt != null)
+          '${StringConstants.recorded} ${AccountFmt.dateTime(entry.createdAt!)}',
+      ].join(', '),
+      child: DataCard(
+        child: Column(
+          // Shrink-wraps: a card is as tall as its content, wherever it is
+          // put. Without this it fills whatever height it is offered — fine
+          // inside a ListView, wrong in a Column or an Align.
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            DataCardHeader(
+              icon: entry.type.icon,
+              iconColor: entry.type.color,
+              title: title,
+              subtitle: entry.reference,
+              amount:
+                  '${entry.isCredit ? '+' : '−'} ${AccountFmt.npr(entry.amount)}',
+              amountColor: amountColor,
+              chipLabel: direction,
+              chipColor: amountColor,
+            ),
+            if (fields.isNotEmpty) ...<Widget>[
+              const DataCardDivider(),
+              DataCardFields(children: fields),
             ],
-          ),
+          ],
         ),
-        const SizedBox(width: AppDimens.paddingX8),
-        Text(
-          '${entry.isCredit ? '+' : '-'} ${AccountFmt.npr(entry.amount)}',
-          style: textTheme.bodyTextSmall?.copyWith(
-            color: entry.isCredit
-                ? LightColor.brandTextColor
-                : LightColor.redColor,
-            fontWeight: FontWeight.w700,
+      ),
+    );
+  }
+}
+
+/// The day heading a run of entry cards sits under — `TODAY · 12 SEP 2026`.
+///
+/// Set in small, wide-tracked capitals so it reads as a heading rather than
+/// another card, while staying quieter than the cards it labels. Grouping is
+/// on the recorded day; each card still names its own exact timestamps, since
+/// the slot it is for often falls on a different day than the heading.
+class AccountActivityDateHeader extends StatelessWidget {
+  const AccountActivityDateHeader({
+    super.key,
+    required this.day,
+    this.dense = false,
+  });
+
+  final DateTime day;
+
+  /// Tightens the space above — used for the first heading in a list, where
+  /// there is nothing above it to separate from.
+  final bool dense;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        top: dense ? 0 : AppDimens.paddingX20,
+        bottom: AppDimens.paddingX10,
+      ),
+      child: Row(
+        children: <Widget>[
+          Text(
+            AccountFmt.sectionDay(day),
+            style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
+              color: LightColor.hintTextColor,
+              fontSize: AppDimens.fontBodySubTitle,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.7,
+            ),
           ),
-        ),
-      ],
+          const SizedBox(width: AppDimens.paddingX10),
+          Expanded(
+            child: Divider(
+              height: 1,
+              thickness: 1,
+              color: LightColor.dividerColor,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -506,6 +586,10 @@ class SettlementCard extends StatelessWidget {
         border: Border.all(color: LightColor.dividerColor),
       ),
       child: Column(
+        // Shrink-wraps: a card is as tall as its content wherever it is put.
+        // Without this it fills whatever height it is offered — fine inside a
+        // ListView, wrong in a Column or an Align.
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
@@ -513,6 +597,7 @@ class SettlementCard extends StatelessWidget {
             children: [
               Expanded(
                 child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     FittedBox(
@@ -614,7 +699,7 @@ class SettlementCard extends StatelessWidget {
                 ),
                 if (proofUrl != null) ...[
                   const SizedBox(width: AppDimens.paddingX8),
-                  _SettlementProofAction(imageUrl: proofUrl),
+                  _SettlementProofRow(imageUrl: proofUrl),
                 ],
               ],
             ),
@@ -653,9 +738,9 @@ class _StatusPill extends StatelessWidget {
         vertical: 3,
       ),
       decoration: BoxDecoration(
-        color: status.color.withValues(alpha: 0.10),
+        color: LightColor.categoryContainer(status.color),
         borderRadius: BorderRadius.circular(AppDimens.radiusX20),
-        border: Border.all(color: status.color.withValues(alpha: 0.28)),
+        border: Border.all(color: status.color.withValues(alpha: 0.35)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -698,7 +783,7 @@ class _RejectionBanner extends StatelessWidget {
         vertical: AppDimens.paddingX6,
       ),
       decoration: BoxDecoration(
-        color: LightColor.redColor.withValues(alpha: 0.08),
+        color: LightColor.redLightColor,
         borderRadius: BorderRadius.circular(AppDimens.radiusX8),
       ),
       child: Row(
@@ -758,13 +843,13 @@ class _SettlementProofAction extends StatelessWidget {
             Icon(
               Icons.receipt_outlined,
               size: 13,
-              color: LightColor.secondaryColor,
+              color: LightColor.brandTextColor,
             ),
             const SizedBox(width: AppDimens.paddingX4),
             Text(
               StringConstants.viewProof,
               style: textTheme.bodyTextSmall?.copyWith(
-                color: LightColor.secondaryColor,
+                color: LightColor.brandTextColor,
                 fontSize: AppDimens.fontBodySubTitle,
                 fontWeight: FontWeight.w700,
               ),
@@ -781,46 +866,38 @@ class _SettlementProofAction extends StatelessWidget {
   }
 }
 
-/// Full-screen, zoomable view of a settlement's payment proof.
+/// "View proof" with the download beside it, so a vendor reconciling a payout
+/// can keep the receipt without opening it first.
+class _SettlementProofRow extends StatelessWidget {
+  const _SettlementProofRow({required this.imageUrl});
+
+  final String imageUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        _SettlementProofAction(imageUrl: imageUrl),
+        AttachmentDownloadAction(
+          key: const Key('settlement-proof-download'),
+          url: imageUrl,
+        ),
+      ],
+    );
+  }
+}
+
+/// Full-screen, zoomable view of a settlement's payment proof, with the
+/// download action every proof surface offers.
 class SettlementProofViewer extends StatelessWidget {
   const SettlementProofViewer({super.key, required this.imageUrl});
 
   final String imageUrl;
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: const Text(
-          StringConstants.paymentProof,
-          style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
-        ),
-      ),
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (BuildContext context, BoxConstraints constraints) {
-            return InteractiveViewer(
-              minScale: 0.8,
-              maxScale: 5,
-              child: Center(
-                child: CustomImageView(
-                  url: imageUrl,
-                  width: constraints.maxWidth,
-                  height: constraints.maxHeight,
-                  fit: BoxFit.contain,
-                  isHidePlaceholderImage: true,
-                ),
-              ),
-            );
-          },
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) =>
+      AttachmentViewer(url: imageUrl, title: StringConstants.paymentProof);
 }
 
 /// Shared empty placeholder for the statement / settlements lists.
@@ -937,8 +1014,40 @@ class _SettlementQrCarouselCardState extends State<SettlementQrCarouselCard> {
           ),
         ];
 
+  /// Save action for [code], or nothing when that slide has no QR.
+  ///
+  /// The vendor pays the commission from their banking app, not this one, so
+  /// keeping the QR matters here for the same reason it does at checkout.
+  Widget? _downloadAction(SettlementQrCodeModel code, {Color? color}) {
+    if (!code.hasQr) return null;
+    return AttachmentDownloadAction(
+      key: ValueKey<String>('settlement-qr-download-${code.id}'),
+      bytes: code.qr.qrImageBytes,
+      url: code.qr.qrImageUrl,
+      fileName: _fileName(code),
+      color: color,
+      tooltip: StringConstants.saveQrCode,
+    );
+  }
+
+  /// Names the saved file after the QR's own label, so a vendor saving two of
+  /// them does not overwrite the first.
+  String _fileName(SettlementQrCodeModel code) {
+    final String label =
+        (code.title.isEmpty ? widget.fallbackPayeeName : code.title)
+            .trim()
+            .toLowerCase()
+            .replaceAll(RegExp(r'[^a-z0-9]+'), '-')
+            .replaceAll(RegExp(r'^-+|-+$'), '');
+    return label.isEmpty ? 'commission-qr' : 'commission-qr-$label';
+  }
+
   void _zoom(SettlementQrCodeModel code) {
     if (!code.hasQr) return;
+    final Widget? saveAction = _downloadAction(
+      code,
+      color: LightColor.onQrSurface,
+    );
     showDialog<void>(
       context: context,
       builder: (BuildContext context) => Dialog(
@@ -965,6 +1074,7 @@ class _SettlementQrCarouselCardState extends State<SettlementQrCarouselCard> {
                       ),
                 ),
               ],
+              if (saveAction != null) saveAction,
             ],
           ),
         ),
@@ -1014,6 +1124,8 @@ class _SettlementQrCarouselCardState extends State<SettlementQrCarouselCard> {
                     fontWeight: FontWeight.w700,
                   ),
                 ),
+              // Downloads the slide the vendor is looking at, not the first.
+              ?_downloadAction(slides[active]),
             ],
           ),
           const SizedBox(height: AppDimens.paddingX12),
@@ -1093,7 +1205,7 @@ class _SettlementQrCarouselCardState extends State<SettlementQrCarouselCard> {
                       width: isActive ? AppDimens.sizeX18 : AppDimens.sizeX6,
                       decoration: BoxDecoration(
                         color: isActive
-                            ? LightColor.secondaryColor
+                            ? LightColor.brandTextColor
                             : LightColor.dividerColor,
                         borderRadius: BorderRadius.circular(
                           AppDimens.radiusX50,
@@ -1380,10 +1492,12 @@ class SettlementSummaryRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Paid is deliberately not a tile: the row is for requests still moving
+    // or refused — what the vendor might act on. Paid settlements are done
+    // with, and their cards are still in the list below.
     final entries = <(String, int, Color)>[
       ('Pending', counts.pending, SettlementStatus.pending.color),
       ('Approved', counts.approved, SettlementStatus.approved.color),
-      ('Paid', counts.paid, SettlementStatus.paid.color),
       ('Rejected', counts.rejected, SettlementStatus.rejected.color),
     ];
     final textTheme = FutsalTheme.getTextTheme(context);
@@ -1398,7 +1512,7 @@ class SettlementSummaryRow extends StatelessWidget {
                 horizontal: AppDimens.paddingX6,
               ),
               decoration: BoxDecoration(
-                color: entries[i].$3.withValues(alpha: 0.08),
+                color: LightColor.categoryContainer(entries[i].$3),
                 borderRadius: BorderRadius.circular(AppDimens.radiusX10),
               ),
               child: Column(

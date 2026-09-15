@@ -1,9 +1,11 @@
+import 'package:hamro_futsal/core/utils/currency.dart';
 import 'package:flutter/material.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_text.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
+import 'package:hamro_futsal/core/widgets/data_card.dart';
 
 /// Presentational building blocks for the booking details screen.
 ///
@@ -27,11 +29,16 @@ class BookingDetailsSpacing {
 }
 
 /// Neutral surface every section renders on.
+///
+/// The same panel as [DataCard] — the booking lists and the account ledger use
+/// it too — so a card keeps its surface, radius and hairline when the reader
+/// taps through from a list into this page. [padding] is kept for the
+/// list-style sections that run their own rows to the card's edge.
 class BookingDetailCard extends StatelessWidget {
   const BookingDetailCard({
     super.key,
     required this.child,
-    this.padding = const EdgeInsets.all(AppDimens.paddingX16),
+    this.padding = const EdgeInsets.all(AppDimens.paddingX14),
   });
 
   final Widget child;
@@ -43,8 +50,8 @@ class BookingDetailCard extends StatelessWidget {
       width: double.infinity,
       padding: padding,
       decoration: BoxDecoration(
-        color: LightColor.cardColor,
-        borderRadius: BorderRadius.circular(AppDimens.radiusX12),
+        color: LightColor.whiteColor,
+        borderRadius: BorderRadius.circular(AppDimens.radiusX14),
         border: Border.all(color: LightColor.dividerColor),
       ),
       child: child,
@@ -65,23 +72,40 @@ class BookingSectionHeader extends StatelessWidget {
     final FutsalTextTheme textTheme = FutsalTheme.getTextTheme(context);
     return Row(
       children: <Widget>[
-        Expanded(
-          child: Text(
-            title,
-            style: textTheme.bodyTextSmall?.copyWith(
-              color: LightColor.secondaryTextColor,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.2,
-            ),
+        Text(
+          title,
+          style: textTheme.bodyTextSmall?.copyWith(
+            color: LightColor.hintTextColor,
+            fontSize: DataCardDensity.detail.labelSize,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.7,
           ),
         ),
-        if (trailing != null) trailing!,
+        const SizedBox(width: AppDimens.paddingX10),
+        // A rule running to the edge, as the statement's day headings have:
+        // it separates the sections without another boxed band of colour.
+        Expanded(
+          child: Divider(
+            height: 1,
+            thickness: 1,
+            color: LightColor.dividerColor,
+          ),
+        ),
+        if (trailing != null) ...<Widget>[
+          const SizedBox(width: AppDimens.paddingX10),
+          trailing!,
+        ],
       ],
     );
   }
 }
 
 /// Label/value row used inside list-style cards.
+///
+/// The label sits in the same fixed column the cards use, so every value in a
+/// section starts at the same x and the column reads straight down. Values are
+/// left-aligned against that column rather than pushed to the right edge,
+/// which is what made a short value and a long one look unrelated.
 class BookingDetailRow extends StatelessWidget {
   const BookingDetailRow({
     super.key,
@@ -99,41 +123,45 @@ class BookingDetailRow extends StatelessWidget {
     final FutsalTextTheme textTheme = FutsalTheme.getTextTheme(context);
     return Padding(
       padding: const EdgeInsets.symmetric(
-        horizontal: AppDimens.paddingX16,
+        horizontal: AppDimens.paddingX14,
         vertical: AppDimens.paddingX12,
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Expanded(
+          SizedBox(
+            width: kDataCardLabelWidth,
             child: Text(
               label,
               style: textTheme.bodyTextSmall?.copyWith(
-                color: LightColor.secondaryTextColor,
+                color: LightColor.hintTextColor,
+                fontSize: DataCardDensity.detail.labelSize,
+                fontWeight: FontWeight.w500,
+                height: 1.3,
               ),
             ),
           ),
-          const SizedBox(width: AppDimens.paddingX12),
-          Flexible(
-            flex: 2,
+          Expanded(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Text(
                   value,
-                  textAlign: TextAlign.right,
-                  style: textTheme.bodyTextMedium?.copyWith(
+                  style: textTheme.bodyTextSmall?.copyWith(
                     color: LightColor.primaryTextColor,
+                    fontSize: DataCardDensity.detail.valueSize,
                     fontWeight: FontWeight.w600,
+                    height: 1.3,
                   ),
                 ),
                 if (subtitle?.trim().isNotEmpty == true) ...<Widget>[
-                  const SizedBox(height: AppDimens.paddingX2),
+                  const SizedBox(height: 2),
                   Text(
                     subtitle!,
-                    textAlign: TextAlign.right,
                     style: textTheme.bodyTextSmall?.copyWith(
-                      color: LightColor.secondaryTextColor,
+                      color: LightColor.hintTextColor,
+                      fontSize: DataCardDensity.detail.labelSize,
+                      height: 1.3,
                     ),
                   ),
                 ],
@@ -147,6 +175,12 @@ class BookingDetailRow extends StatelessWidget {
 }
 
 /// Compact money/label line used in the payment breakdown.
+///
+/// Set at the page's reading size, with the figure right-aligned in tabular
+/// digits so a column of amounts lines up on its decimal. Emphasis is carried
+/// by weight and colour, never by a bigger face — a breakdown where one row
+/// is several points larger than its neighbours reads as a different section
+/// rather than as the same list.
 class BookingAmountRow extends StatelessWidget {
   const BookingAmountRow({
     super.key,
@@ -155,7 +189,7 @@ class BookingAmountRow extends StatelessWidget {
     this.labelWeight,
     this.valueWeight = FontWeight.w600,
     this.valueColor,
-    this.valueSize,
+    this.emphasised = false,
   });
 
   final String label;
@@ -163,19 +197,30 @@ class BookingAmountRow extends StatelessWidget {
   final FontWeight? labelWeight;
   final FontWeight valueWeight;
   final Color? valueColor;
-  final double? valueSize;
+
+  /// A summing row (a total). Takes one step up — no more — so it reads as the
+  /// end of the list it closes.
+  final bool emphasised;
 
   @override
   Widget build(BuildContext context) {
     final FutsalTextTheme textTheme = FutsalTheme.getTextTheme(context);
+    final double size = emphasised
+        ? DataCardDensity.detail.titleSize
+        : DataCardDensity.detail.valueSize;
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         Expanded(
           child: Text(
             label,
             style: textTheme.bodyTextSmall?.copyWith(
-              color: LightColor.secondaryTextColor,
-              fontWeight: labelWeight,
+              color: emphasised
+                  ? LightColor.primaryTextColor
+                  : LightColor.hintTextColor,
+              fontSize: size,
+              fontWeight: labelWeight ?? FontWeight.w500,
+              height: 1.3,
             ),
           ),
         ),
@@ -183,10 +228,12 @@ class BookingAmountRow extends StatelessWidget {
         Text(
           value,
           textAlign: TextAlign.right,
-          style: textTheme.bodyTextMedium?.copyWith(
+          style: textTheme.bodyTextSmall?.copyWith(
             color: valueColor ?? LightColor.primaryTextColor,
+            fontSize: size,
             fontWeight: valueWeight,
-            fontSize: valueSize,
+            height: 1.3,
+            fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
           ),
         ),
       ],
@@ -194,8 +241,11 @@ class BookingAmountRow extends StatelessWidget {
   }
 }
 
-/// Emphasised amount (grand total, outstanding balance). Weight and size carry
-/// the emphasis — no tinted box — so the card stays calm.
+/// The figure a breakdown settles on — a grand total, or what is still owed.
+///
+/// Same size as the total rows around it; the weight, the colour and the rule
+/// above it carry the emphasis. It used to run four points larger than its
+/// neighbours, which made the card look like two cards.
 class BookingTotalHighlight extends StatelessWidget {
   const BookingTotalHighlight({
     super.key,
@@ -224,9 +274,11 @@ class BookingTotalHighlight extends StatelessWidget {
             children: <Widget>[
               Text(
                 label,
-                style: textTheme.bodyTextMedium?.copyWith(
+                style: textTheme.bodyTextSmall?.copyWith(
                   color: LightColor.primaryTextColor,
+                  fontSize: DataCardDensity.detail.titleSize,
                   fontWeight: FontWeight.w700,
+                  height: 1.3,
                 ),
               ),
               if (caption?.trim().isNotEmpty == true) ...<Widget>[
@@ -235,6 +287,8 @@ class BookingTotalHighlight extends StatelessWidget {
                   caption!,
                   style: textTheme.bodyTextSmall?.copyWith(
                     color: LightColor.hintTextColor,
+                    fontSize: DataCardDensity.detail.labelSize,
+                    height: 1.3,
                   ),
                 ),
               ],
@@ -244,10 +298,13 @@ class BookingTotalHighlight extends StatelessWidget {
         const SizedBox(width: AppDimens.paddingX12),
         Text(
           value,
-          style: textTheme.bodyTextMedium?.copyWith(
+          textAlign: TextAlign.right,
+          style: textTheme.bodyTextSmall?.copyWith(
             color: color ?? LightColor.primaryTextColor,
+            fontSize: DataCardDensity.detail.titleSize,
             fontWeight: FontWeight.w700,
-            fontSize: AppDimens.fontBodyTextLarge,
+            height: 1.3,
+            fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
           ),
         ),
       ],
@@ -388,7 +445,7 @@ List<Widget> bookingRowsWithDividers(List<Widget> rows) {
     if (index < rows.length - 1) {
       children.add(
         Padding(
-          padding: EdgeInsets.symmetric(horizontal: AppDimens.paddingX16),
+          padding: EdgeInsets.symmetric(horizontal: AppDimens.paddingX14),
           child: Divider(height: 1, color: LightColor.dividerColor),
         ),
       );
@@ -415,10 +472,8 @@ String? bookingTypeLabel(String? type) {
   };
 }
 
-String bookingCurrency(double value) {
-  final bool hasDecimals = value % 1 != 0;
-  return 'NPR ${value.toStringAsFixed(hasDecimals ? 2 : 0)}';
-}
+/// `NPR 1,200` — see [Money], which every screen shares.
+String bookingCurrency(double value) => Money.npr(value);
 
 String bookingTitleCase(String value) {
   return value

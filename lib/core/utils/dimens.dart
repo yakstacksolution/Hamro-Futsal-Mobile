@@ -152,6 +152,8 @@ class AppDimens {
   static const double sizeX116 = 116;
   static const double sizeX120 = 120;
   static const double sizeX126 = 126;
+  static const double sizeX128 = 128;
+
   static const double sizeX124 = 124;
   static const double sizeX130 = 130;
   static const double sizeX132 = 132;

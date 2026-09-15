@@ -17,6 +17,12 @@ import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 class CourtDetailModel {
   final int? venueId;
+
+  /// The venue's public identifier. `/venue-description/{slug}` is addressed
+  /// by this rather than by [venueId], so it has to travel with the model —
+  /// the details page is reached from several places and only some of them
+  /// have the venue payload to hand.
+  final String? venueSlug;
   final String name;
   final String location;
   final String address;
@@ -44,6 +50,7 @@ class CourtDetailModel {
 
   const CourtDetailModel({
     this.venueId,
+    this.venueSlug,
     required this.name,
     required this.location,
     required this.address,
@@ -278,186 +285,191 @@ class _CourtDetailPageState extends State<CourtDetailPage>
 
     return SlideTransition(
       position: _bottomBarSlide,
-      child: Container(
-        padding: AppUtils().getPadding(all: AppDimens.paddingX12),
-        decoration: BoxDecoration(
-          color: LightColor.cardColor,
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(AppDimens.radiusX20),
-            topRight: Radius.circular(AppDimens.radiusX20),
-          ),
-          border: Border.all(
-            color: LightColor.dividerColor.withValues(alpha: 0.7),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: LightColor.shadowOf(0.12),
-              blurRadius: AppDimens.sizeX28,
-              offset: const Offset(0, AppDimens.sizeX10),
+      // The bar owns the bottom inset now that it sits outside the body's
+      // SafeArea, so it clears the gesture bar on its own.
+      child: SafeArea(
+        top: false,
+        child: Container(
+          padding: AppUtils().getPadding(all: AppDimens.paddingX12),
+          decoration: BoxDecoration(
+            color: LightColor.cardColor,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(AppDimens.radiusX20),
+              topRight: Radius.circular(AppDimens.radiusX20),
             ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Padding(
-                        padding: AppUtils().getPadding(
-                          left: AppDimens.paddingX6,
+            border: Border.all(
+              color: LightColor.dividerColor.withValues(alpha: 0.7),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: LightColor.shadowOf(0.12),
+                blurRadius: AppDimens.sizeX28,
+                offset: const Offset(0, AppDimens.sizeX10),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: AppUtils().getPadding(
+                            left: AppDimens.paddingX6,
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  _court.price,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: FutsalTheme.getTextTheme(context)
+                                      .headingSmall
+                                      ?.copyWith(
+                                        color: LightColor.primaryTextColor,
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                ),
+                              ),
+                              const SizedBox(width: AppDimens.sizeX4),
+                              Padding(
+                                padding: AppUtils().getPadding(
+                                  bottom: AppDimens.paddingX2,
+                                ),
+                                child: Text(
+                                  StringConstants.perHourSuffix,
+                                  style: FutsalTheme.getTextTheme(context)
+                                      .bodyTextSmall
+                                      ?.copyWith(
+                                        color: LightColor.hintTextColor,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: AppDimens.sizeX4),
+
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 220),
+                          padding: AppUtils().getPadding(
+                            horizontal: AppDimens.paddingX10,
+                            vertical: AppDimens.paddingX4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: hasSelection
+                                ? LightColor.secondarySoft
+                                : LightColor.inputFillColor,
+                            borderRadius: BorderRadius.circular(
+                              AppDimens.radiusX50,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                hasSelection
+                                    ? Icons.check_circle_rounded
+                                    : Icons.schedule_rounded,
+                                size: AppDimens.sizeX12,
+                                color: hasSelection
+                                    ? LightColor.secondaryColor
+                                    : LightColor.hintTextColor,
+                              ),
+                              const SizedBox(width: AppDimens.sizeX4),
+                              Flexible(
+                                child: Text(
+                                  selectedLabel,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: FutsalTheme.getTextTheme(context)
+                                      .bodySubTitle
+                                      ?.copyWith(
+                                        color: hasSelection
+                                            ? LightColor.secondaryColor
+                                            : LightColor.hintTextColor,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: AppDimens.sizeX2),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: AppDimens.sizeX10),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: hasSelection
+                          ? () {
+                              HapticFeedback.mediumImpact();
+                            }
+                          : null,
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 260),
+                        height: AppDimens.sizeX46,
+                        decoration: BoxDecoration(
+                          gradient: hasSelection
+                              ? LinearGradient(
+                                  colors: [
+                                    LightColor.secondaryColor,
+                                    LightColor.secondaryDark,
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                )
+                              : null,
+                          color: hasSelection ? null : LightColor.dividerColor,
+                          borderRadius: BorderRadius.circular(
+                            AppDimens.radiusX10,
+                          ),
+                          boxShadow: hasSelection
+                              ? [
+                                  BoxShadow(
+                                    color: LightColor.secondaryColor.withValues(
+                                      alpha: 0.35,
+                                    ),
+                                    blurRadius: AppDimens.sizeX20,
+                                    offset: const Offset(0, AppDimens.sizeX8),
+                                  ),
+                                ]
+                              : null,
                         ),
                         child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.end,
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Flexible(
                               child: Text(
-                                _court.price,
+                                hasSelection ? 'Book Now' : 'Select Slot',
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: FutsalTheme.getTextTheme(context)
-                                    .headingSmall
-                                    ?.copyWith(
-                                      color: LightColor.primaryTextColor,
-                                      fontWeight: FontWeight.w900,
-                                    ),
-                              ),
-                            ),
-                            const SizedBox(width: AppDimens.sizeX4),
-                            Padding(
-                              padding: AppUtils().getPadding(
-                                bottom: AppDimens.paddingX2,
-                              ),
-                              child: Text(
-                                StringConstants.perHourSuffix,
-                                style: FutsalTheme.getTextTheme(context)
-                                    .bodyTextSmall
-                                    ?.copyWith(
-                                      color: LightColor.hintTextColor,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: AppDimens.sizeX4),
-
-                      AnimatedContainer(
-                        duration: const Duration(milliseconds: 220),
-                        padding: AppUtils().getPadding(
-                          horizontal: AppDimens.paddingX10,
-                          vertical: AppDimens.paddingX4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: hasSelection
-                              ? LightColor.secondarySoft
-                              : LightColor.inputFillColor,
-                          borderRadius: BorderRadius.circular(
-                            AppDimens.radiusX50,
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              hasSelection
-                                  ? Icons.check_circle_rounded
-                                  : Icons.schedule_rounded,
-                              size: AppDimens.sizeX12,
-                              color: hasSelection
-                                  ? LightColor.secondaryColor
-                                  : LightColor.hintTextColor,
-                            ),
-                            const SizedBox(width: AppDimens.sizeX4),
-                            Flexible(
-                              child: Text(
-                                selectedLabel,
-                                overflow: TextOverflow.ellipsis,
-                                style: FutsalTheme.getTextTheme(context)
-                                    .bodySubTitle
+                                    .bodyTextMedium
                                     ?.copyWith(
                                       color: hasSelection
-                                          ? LightColor.secondaryColor
+                                          ? LightColor.inverseTextColor
                                           : LightColor.hintTextColor,
-                                      fontWeight: FontWeight.w600,
+                                      fontWeight: FontWeight.w800,
                                     ),
                               ),
                             ),
                           ],
                         ),
-                      ),
-                      const SizedBox(height: AppDimens.sizeX2),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: AppDimens.sizeX10),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: hasSelection
-                        ? () {
-                            HapticFeedback.mediumImpact();
-                          }
-                        : null,
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 260),
-                      height: AppDimens.sizeX46,
-                      decoration: BoxDecoration(
-                        gradient: hasSelection
-                            ? LinearGradient(
-                                colors: [
-                                  LightColor.secondaryColor,
-                                  LightColor.secondaryDark,
-                                ],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              )
-                            : null,
-                        color: hasSelection ? null : LightColor.dividerColor,
-                        borderRadius: BorderRadius.circular(
-                          AppDimens.radiusX10,
-                        ),
-                        boxShadow: hasSelection
-                            ? [
-                                BoxShadow(
-                                  color: LightColor.secondaryColor.withValues(
-                                    alpha: 0.35,
-                                  ),
-                                  blurRadius: AppDimens.sizeX20,
-                                  offset: const Offset(0, AppDimens.sizeX8),
-                                ),
-                              ]
-                            : null,
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Flexible(
-                            child: Text(
-                              hasSelection ? 'Book Now' : 'Select Slot',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: FutsalTheme.getTextTheme(context)
-                                  .bodyTextMedium
-                                  ?.copyWith(
-                                    color: hasSelection
-                                        ? LightColor.inverseTextColor
-                                        : LightColor.hintTextColor,
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                            ),
-                          ),
-                        ],
                       ),
                     ),
                   ),
-                ),
-              ],
-            ),
-          ],
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -471,102 +483,92 @@ class _CourtDetailPageState extends State<CourtDetailPage>
       ),
       child: Scaffold(
         backgroundColor: LightColor.background,
+        // The booking bar is the Scaffold's bottom slot, not an overlay on the
+        // body: as a Positioned child of the body's Stack it floated over the
+        // content and did not take part in the page's layout.
+        bottomNavigationBar: _buildBottomBar(),
         body: SafeArea(
           top: false,
-          bottom: true,
-          child: Stack(
-            children: [
-              CustomScrollView(
-                physics: const BouncingScrollPhysics(),
-                slivers: [
-                  SliverToBoxAdapter(
-                    child: DetailsImageGallery(images: [_court.images.first]),
-                  ),
-                  SliverToBoxAdapter(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: LightColor.background,
-                        borderRadius: BorderRadius.vertical(
-                          top: Radius.circular(AppDimens.radiusX28),
-                        ),
-                      ),
-                      transform: Matrix4.translationValues(
-                        0,
-                        -AppDimens.sizeX24,
-                        0,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Center(
-                            child: Container(
-                              margin: AppUtils().getMargin(
-                                top: AppDimens.marginX12,
-                                bottom: AppDimens.marginX4,
-                              ),
-                              width: AppDimens.sizeX40,
-                              height: AppDimens.sizeX4,
-                              decoration: BoxDecoration(
-                                color: LightColor.dividerColor,
-                                borderRadius: BorderRadius.circular(100),
-                              ),
-                            ),
-                          ),
-                          CourtIntroWidget(court: _court),
-                          CourtAmenitiesSection(features: _court.features),
-                          CourtTimeSlotSection(
-                            dates: _dates,
-                            timeSlotsByDate: _timeSlotsByDate,
-                            openTime: _court.openTime,
-                            closeTime: _court.closeTime,
-                            initialDateIndex: _selectedDateIndex,
-                            initialSlotIndex: _selectedSlotIndex,
-                            onSelectionChanged: (dateIndex, slotIndex) {
-                              setState(() {
-                                _selectedDateIndex = dateIndex;
-                                _selectedSlotIndex = slotIndex;
-                              });
-                            },
-                          ),
-                          CourtHostedBySection(
-                            hostName: _court.hostedByName,
-                            hostSince: _court.hostedSince,
-                            hostedCourts: _court.hostedCourts,
-                            responseRate: _court.responseRate,
-                            rating: _court.rating,
-                          ),
-                          CourtBookingPoliciesSection(
-                            policies: _court.policies,
-                          ),
-                          CourtRulesSection(rules: _court.rules),
-                          CourtReviewsSection(
-                            rating: _court.rating,
-                            reviewCount: _court.reviewCount,
-                            reviews: _court.reviews
-                                .map(
-                                  (r) => CourtReviewItem(
-                                    name: r.name,
-                                    date: r.date,
-                                    comment: r.comment,
-                                    rating: r.rating,
-                                  ),
-                                )
-                                .toList(),
-                          ),
-                          SizedBox(
-                            height: MediaQuery.of(context).padding.bottom + 100,
-                          ),
-                        ],
-                      ),
+          bottom: false,
+          child: CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              SliverToBoxAdapter(
+                child: DetailsImageGallery(images: [_court.images.first]),
+              ),
+              SliverToBoxAdapter(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: LightColor.background,
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(AppDimens.radiusX28),
                     ),
                   ),
-                ],
-              ),
-              Positioned(
-                bottom: 0,
-                left: 0,
-                right: 0,
-                child: _buildBottomBar(),
+                  transform: Matrix4.translationValues(
+                    0,
+                    -AppDimens.sizeX24,
+                    0,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(
+                        child: Container(
+                          margin: AppUtils().getMargin(
+                            top: AppDimens.marginX12,
+                            bottom: AppDimens.marginX4,
+                          ),
+                          width: AppDimens.sizeX40,
+                          height: AppDimens.sizeX4,
+                          decoration: BoxDecoration(
+                            color: LightColor.dividerColor,
+                            borderRadius: BorderRadius.circular(100),
+                          ),
+                        ),
+                      ),
+                      CourtIntroWidget(court: _court),
+                      CourtAmenitiesSection(features: _court.features),
+                      CourtTimeSlotSection(
+                        dates: _dates,
+                        timeSlotsByDate: _timeSlotsByDate,
+                        openTime: _court.openTime,
+                        closeTime: _court.closeTime,
+                        initialDateIndex: _selectedDateIndex,
+                        initialSlotIndex: _selectedSlotIndex,
+                        onSelectionChanged: (dateIndex, slotIndex) {
+                          setState(() {
+                            _selectedDateIndex = dateIndex;
+                            _selectedSlotIndex = slotIndex;
+                          });
+                        },
+                      ),
+                      CourtHostedBySection(
+                        hostName: _court.hostedByName,
+                        hostSince: _court.hostedSince,
+                        hostedCourts: _court.hostedCourts,
+                        responseRate: _court.responseRate,
+                        rating: _court.rating,
+                      ),
+                      CourtBookingPoliciesSection(policies: _court.policies),
+                      CourtRulesSection(rules: _court.rules),
+                      CourtReviewsSection(
+                        rating: _court.rating,
+                        reviewCount: _court.reviewCount,
+                        reviews: _court.reviews
+                            .map(
+                              (r) => CourtReviewItem(
+                                name: r.name,
+                                date: r.date,
+                                comment: r.comment,
+                                rating: r.rating,
+                              ),
+                            )
+                            .toList(),
+                      ),
+                      const SizedBox(height: AppDimens.sizeX24),
+                    ],
+                  ),
+                ),
               ),
             ],
           ),

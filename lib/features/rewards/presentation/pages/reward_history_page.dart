@@ -120,7 +120,7 @@ class _RewardHistoryPageState extends State<RewardHistoryPage> {
             }
 
             return RefreshIndicator(
-              color: LightColor.secondaryColor,
+              color: LightColor.brandTextColor,
               onRefresh: () async {
                 final RewardsBloc bloc = context.read<RewardsBloc>();
                 bloc.add(const LoadRewardHistoryEvent());
@@ -203,15 +203,15 @@ class _ListFooter extends StatelessWidget {
             onPressed: () => context.read<RewardsBloc>().add(
               const LoadMoreRewardHistoryEvent(),
             ),
-            icon: const Icon(
+            icon: Icon(
               Icons.refresh_rounded,
               size: AppDimens.sizeX16,
-              color: LightColor.secondaryColor,
+              color: LightColor.brandTextColor,
             ),
             label: Text(
               StringConstants.retry,
               style: textTheme.bodyTextSmall?.copyWith(
-                color: LightColor.secondaryColor,
+                color: LightColor.brandTextColor,
                 fontWeight: FontWeight.w700,
               ),
             ),

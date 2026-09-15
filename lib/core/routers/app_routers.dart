@@ -3,10 +3,14 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hamro_futsal/core/api/api_client/booking_type_payload.dart';
 import 'package:hamro_futsal/core/routers/app_router_params.dart';
+import 'package:hamro_futsal/core/routers/deep_link_target.dart';
 import 'package:hamro_futsal/core/routers/root_navigator_key.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
+import 'package:hamro_futsal/core/theme/futsal_theme.dart';
+import 'package:hamro_futsal/core/utils/dimens.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:hamro_futsal/core/widgets/custom_app_bar.dart';
+import 'package:hamro_futsal/core/widgets/custom_button.dart';
 import 'package:hamro_futsal/features/auth/data/repositories/authentication_repository_impl.dart';
 import 'package:hamro_futsal/features/booking_overview/presentation/pages/booking_overview_screen.dart';
 import 'package:hamro_futsal/features/bookings/data/model/booking_model.dart';
@@ -53,6 +57,7 @@ import 'package:hamro_futsal/features/public/presentation/models/venue_filter.da
 import 'package:hamro_futsal/features/public/presentation/pages/venue_filter_page.dart';
 import 'package:hamro_futsal/features/auth/presentation/forgot_password_screen.dart';
 import 'package:hamro_futsal/features/auth/presentation/authentication_bloc/authentication_bloc.dart';
+import 'package:hamro_futsal/features/auth/presentation/create_new_password_screen.dart';
 import 'package:hamro_futsal/features/auth/presentation/login_screen.dart';
 import 'package:hamro_futsal/features/auth/presentation/otp_verification_screen.dart';
 import 'package:hamro_futsal/features/auth/presentation/register_screen.dart';
@@ -65,6 +70,7 @@ import 'package:hamro_futsal/features/public/data/repositories/public_repository
 import 'package:hamro_futsal/features/public/domain/usecase/get_public_templates_use_case.dart';
 import 'package:hamro_futsal/features/public/presentation/bloc/public_templates/public_templates_bloc.dart';
 import 'package:hamro_futsal/features/public/presentation/pages/help_faq_page.dart';
+import 'package:hamro_futsal/features/public/presentation/pages/venue_link_page.dart';
 import 'package:hamro_futsal/features/transactions/domain/model/booking_transaction.dart';
 import 'package:hamro_futsal/features/transactions/presentation/pages/transaction_history_page.dart';
 import 'package:hamro_futsal/features/profile/data/repositories/profile_repository_impl.dart';
@@ -86,15 +92,75 @@ class AppRouters {
   /// widget tree (e.g. FCM notification taps) can push named routes.
   static GoRouter? instance;
 
+  /// Where "home" is for this session — the dashboard once signed in, the
+  /// login screen otherwise. Deep-link recovery goes here rather than to a
+  /// hard-coded route, so a shared link never drops a signed-out user into a
+  /// screen they cannot use.
+  static String startLocation = AppRouterParams.dashboard.path;
+
+  /// The link the app was launched with, once it has been turned into the
+  /// router's initial location. [DeepLinkService] compares against it so a
+  /// cold-start link is not opened twice — once by the router and once by
+  /// `AppLinks.getInitialLink`.
+  static DeepLinkTarget? consumedLaunchTarget;
+
   static GoRouter router(
     String initialLocation, {
     List<NavigatorObserver> observers = const <NavigatorObserver>[],
   }) {
+    startLocation = initialLocation;
+
+    // A cold start from a shared link arrives as the platform's initial route,
+    // which go_router would otherwise try to match before any of this app's
+    // paths — the "no routes for location" screen people were seeing. It is
+    // recognised here and opened as the venue-link route instead.
+    final String platformRoute =
+        WidgetsBinding.instance.platformDispatcher.defaultRouteName;
+    final DeepLinkTarget? launchTarget = DeepLinkTarget.parseLocation(
+      platformRoute,
+    );
+    consumedLaunchTarget = launchTarget;
+
+    final String effectiveInitialLocation = switch (launchTarget) {
+      VenueDeepLink(location: final String location) => location,
+      _ => initialLocation,
+    };
+
     final GoRouter router = GoRouter(
       navigatorKey: RootNavigatorKey.key,
-      initialLocation: initialLocation,
+      initialLocation: effectiveInitialLocation,
       observers: observers,
+      // Nothing the app owns should end on go_router's default error screen:
+      // an unknown location that still parses as one of our links opens it,
+      // and anything else offers a way home.
+      errorBuilder: (BuildContext context, GoRouterState state) {
+        final DeepLinkTarget? target = DeepLinkTarget.parseLocation(
+          state.location,
+        );
+        return switch (target) {
+          VenueDeepLink(slug: final String? slug, id: final int? id) =>
+            VenueLinkPage(slug: slug, venueId: id),
+          _ => const _UnknownLocationPage(),
+        };
+      },
       routes: <RouteBase>[
+        // Shared links. `/` is here too: a bare-domain link used to fall
+        // through to the error screen.
+        GoRoute(
+          path: '/',
+          redirect: (BuildContext context, GoRouterState state) =>
+              startLocation,
+        ),
+        GoRoute(
+          name: AppRouterParams.venueLink.name,
+          path: AppRouterParams.venueLink.path,
+          builder: _buildVenueLinkPage,
+        ),
+        GoRoute(
+          name: AppRouterParams.venueLinkAlias.name,
+          path: AppRouterParams.venueLinkAlias.path,
+          builder: _buildVenueLinkPage,
+        ),
         GoRoute(
           name: AppRouterParams.login.name,
           path: AppRouterParams.login.path,
@@ -116,7 +182,48 @@ class AppRouters {
         GoRoute(
           name: AppRouterParams.forgotPassword.name,
           path: AppRouterParams.forgotPassword.path,
-          builder: (context, state) => const ForgotPasswordScreen(),
+          builder: (context, state) => BlocProvider<AuthenticationBloc>(
+            create: (_) =>
+                AuthenticationBloc(AuthUseCase(AuthenticationRepositoryImpl())),
+            child: const ForgotPasswordScreen(),
+          ),
+        ),
+        GoRoute(
+          name: AppRouterParams.createNewPassword.name,
+          path: AppRouterParams.createNewPassword.path,
+          builder: (context, state) {
+            // `extra` is an {email, otp} map from the OTP screen; the bare
+            // string and the query parameter are the direct-entry paths.
+            final Object? extra = state.extra;
+            final String email =
+                (extra is Map
+                    ? extra['email'] as String?
+                    : extra is String
+                    ? extra
+                    : null) ??
+                state.queryParameters['email'] ??
+                '';
+            final String? otp = extra is Map ? extra['otp'] as String? : null;
+
+            // A reset cannot be submitted without the address the OTP went to,
+            // so an entry with no email restarts the flow instead of showing a
+            // form that can only fail.
+            if (email.trim().isEmpty) {
+              return BlocProvider<AuthenticationBloc>(
+                create: (_) => AuthenticationBloc(
+                  AuthUseCase(AuthenticationRepositoryImpl()),
+                ),
+                child: const ForgotPasswordScreen(),
+              );
+            }
+
+            return BlocProvider<AuthenticationBloc>(
+              create: (_) => AuthenticationBloc(
+                AuthUseCase(AuthenticationRepositoryImpl()),
+              ),
+              child: CreateNewPasswordScreen(email: email.trim(), otp: otp),
+            );
+          },
         ),
         GoRoute(
           name: AppRouterParams.otpVerification.name,
@@ -125,7 +232,11 @@ class AppRouters {
             create: (_) =>
                 AuthenticationBloc(AuthUseCase(AuthenticationRepositoryImpl())),
             child: OtpVerificationScreen(
-              email: (state.extra as String?) ?? state.queryParameters['email'],
+              // `extra` is a bare email string from the registration flow and
+              // an {email, purpose} map from the forgot-password flow.
+              email:
+                  _otpExtra(state, 'email') ?? state.queryParameters['email'],
+              purpose: _otpExtra(state, 'purpose') ?? OtpPurpose.registration,
             ),
           ),
         ),
@@ -451,6 +562,8 @@ class AppRouters {
             final int? futsalId = state.queryParameters['futsalId'] != null
                 ? int.tryParse(state.queryParameters['futsalId']!)
                 : null;
+            final String? futsalSlug = state.queryParameters['futsalSlug']
+                ?.trim();
             final int? mainStep = state.queryParameters['mainStep'] != null
                 ? int.tryParse(state.queryParameters['mainStep']!)
                 : null;
@@ -479,6 +592,9 @@ class AppRouters {
               ],
               child: StepperLogicScreen(
                 futsalId: futsalId,
+                futsalSlug: futsalSlug == null || futsalSlug.isEmpty
+                    ? null
+                    : futsalSlug,
                 mainStep: mainStep,
                 subStep: subStep,
               ),
@@ -490,4 +606,90 @@ class AppRouters {
     instance = router;
     return router;
   }
+}
+
+/// The venue-link route's page: the slug comes from the path, the id from
+/// `?venue=` (`venue_id` is accepted too, since older links use it).
+Widget _buildVenueLinkPage(BuildContext context, GoRouterState state) {
+  final String? slug = state.pathParameters['slug']?.trim();
+  final int? id = int.tryParse(
+    (state.queryParameters['venue'] ?? state.queryParameters['venue_id'] ?? '')
+        .trim(),
+  );
+  return VenueLinkPage(
+    slug: slug == null || slug.isEmpty ? null : slug,
+    venueId: id,
+  );
+}
+
+/// Shown for a location the app does not own. Unlike go_router's own error
+/// screen it says nothing about match phases and always offers a way out.
+class _UnknownLocationPage extends StatelessWidget {
+  const _UnknownLocationPage();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: LightColor.background,
+      body: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(AppDimens.paddingX32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Icon(
+                  Icons.explore_off_rounded,
+                  size: AppDimens.sizeX36,
+                  color: LightColor.hintTextColor,
+                ),
+                const SizedBox(height: AppDimens.sizeX12),
+                Text(
+                  StringConstants.pageNotFound,
+                  textAlign: TextAlign.center,
+                  style: FutsalTheme.getTextTheme(context).bodyTextMedium
+                      ?.copyWith(
+                        color: LightColor.primaryTextColor,
+                        fontWeight: FontWeight.w800,
+                      ),
+                ),
+                const SizedBox(height: AppDimens.sizeX8),
+                Text(
+                  StringConstants.thatLinkDoesNotOpenAnythingInTheApp,
+                  textAlign: TextAlign.center,
+                  style: FutsalTheme.getTextTheme(
+                    context,
+                  ).bodyTextSmall?.copyWith(color: LightColor.hintTextColor),
+                ),
+                const SizedBox(height: AppDimens.sizeX20),
+                CustomButton(
+                  text: StringConstants.browseVenues,
+                  onPressed: () =>
+                      GoRouter.of(context).go(AppRouters.startLocation),
+                  minHeight: AppDimens.sizeX46,
+                  minWidth: AppDimens.sizeX180,
+                  borderRadius: AppDimens.radiusX10,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Reads [key] off the OTP route's `extra`, which is a bare email string from
+/// the registration flow and an `{email, purpose}` map from the
+/// forgot-password flow.
+String? _otpExtra(GoRouterState state, String key) {
+  final Object? extra = state.extra;
+  if (extra is Map) {
+    final Object? value = extra[key];
+    return value is String && value.isNotEmpty ? value : null;
+  }
+  if (key == 'email' && extra is String && extra.isNotEmpty) {
+    return extra;
+  }
+  return null;
 }

@@ -21,6 +21,7 @@ class CreateBookingRequest {
     this.paymentType,
     this.paymentStatus,
     this.bookingStatus,
+    this.totalAmount,
   });
 
   final int? venueId;
@@ -58,6 +59,11 @@ class CreateBookingRequest {
   final String? paymentStatus;
   final String? bookingStatus;
 
+  /// Manual bookings may carry a price agreed at the counter. Omitted from the
+  /// request entirely when null, so the server prices the slots itself rather
+  /// than reading a blank as zero.
+  final double? totalAmount;
+
   Map<String, dynamic> toFields() => <String, dynamic>{
     'venue_id': venueId,
     'court_id': courtId,
@@ -79,5 +85,6 @@ class CreateBookingRequest {
     'payment_type': paymentType,
     'payment_status': paymentStatus,
     'booking_status': bookingStatus,
+    if (totalAmount != null) 'total_amount': totalAmount,
   };
 }

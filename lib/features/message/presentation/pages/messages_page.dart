@@ -1,3 +1,4 @@
+import 'package:hamro_futsal/core/utils/bloc_safe_add.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -48,7 +49,14 @@ class _MessagesView extends StatefulWidget {
 
 class _MessagesViewState extends State<_MessagesView>
     with WidgetsBindingObserver {
+  /// The inbox is socket-driven, so this poll only keeps the online dots and
+  /// any missed previews fresh. It used to run every 15s, which — together
+  /// with lifecycle and tab-change refreshes — hammered `/conversations`.
+  static const Duration _presenceRefreshInterval = Duration(seconds: 45);
+  static const Duration _searchDebounceDelay = Duration(milliseconds: 350);
+
   final _searchCtrl = TextEditingController();
+  Timer? _searchDebounce;
   late final MessageBloc _bloc;
   ConversationFilter _selectedFilter = ConversationFilter.all;
   String _query = '';
@@ -75,15 +83,25 @@ class _MessagesViewState extends State<_MessagesView>
     _stopHeartbeat();
     _stopPresenceRefresh();
     unawaited(_setOwnPresence(false));
+    _searchDebounce?.cancel();
     _searchCtrl.dispose();
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    final bool wasActive = _appActive;
     _appActive = state == AppLifecycleState.resumed;
     _syncOwnPresence();
-    if (!_appActive || !mounted) return;
+    // iOS emits inactive/resumed pairs while merely showing a system overlay;
+    // only a real background -> foreground return should refetch, and only
+    // while this tab is the visible one.
+    if (!_appActive ||
+        wasActive ||
+        !mounted ||
+        DashboardScreen.selectedNavIndex.value != 2) {
+      return;
+    }
     _bloc.add(
       LoadConversationsEvent(
         silent: _bloc.state.conversations.isNotEmpty,
@@ -128,7 +146,7 @@ class _MessagesViewState extends State<_MessagesView>
 
   void _startPresenceRefresh() {
     if (_presenceRefreshTimer?.isActive ?? false) return;
-    _presenceRefreshTimer = Timer.periodic(const Duration(seconds: 15), (_) {
+    _presenceRefreshTimer = Timer.periodic(_presenceRefreshInterval, (_) {
       if (!mounted ||
           !_appActive ||
           DashboardScreen.selectedNavIndex.value != 2) {
@@ -173,7 +191,12 @@ class _MessagesViewState extends State<_MessagesView>
   void _retryFailedFetchOnTabVisible() {
     if (!mounted || DashboardScreen.selectedNavIndex.value != 2) return;
     if (_bloc.state.conversationsStatus == MessageStatus.failure) {
-      _bloc.add(LoadConversationsEvent(archived: _bloc.state.showingArchived));
+      _bloc.add(
+        LoadConversationsEvent(
+          archived: _bloc.state.showingArchived,
+          force: true,
+        ),
+      );
     }
   }
 
@@ -223,7 +246,7 @@ class _MessagesViewState extends State<_MessagesView>
       ),
     );
     if (draft == null || !mounted) return;
-    bloc.add(
+    bloc.addIfOpen(
       CreateGroupConversationEvent(
         title: draft.title,
         participantIds: draft.participantIds,
@@ -239,7 +262,7 @@ class _MessagesViewState extends State<_MessagesView>
     setState(() => _selectedFilter = filter);
     if (wasArchived != showArchived) {
       context.read<MessageBloc>().add(
-        LoadConversationsEvent(archived: showArchived),
+        LoadConversationsEvent(archived: showArchived, force: true),
       );
     }
   }
@@ -298,7 +321,7 @@ class _MessagesViewState extends State<_MessagesView>
         final bloc = context.read<MessageBloc>();
         final created = state.createdGroup;
         if (created != null) {
-          bloc.add(const ClearCreatedGroupEvent());
+          bloc.addIfOpen(const ClearCreatedGroupEvent());
           Navigator.of(context).push(
             MaterialPageRoute<void>(
               builder: (_) => BlocProvider.value(
@@ -343,12 +366,8 @@ class _MessagesViewState extends State<_MessagesView>
               ),
               child: MessageSearchField(
                 controller: _searchCtrl,
-                query: _query,
-                onChanged: (value) => setState(() => _query = value),
-                onClear: () {
-                  _searchCtrl.clear();
-                  setState(() => _query = '');
-                },
+                onChanged: _onSearchChanged,
+                onClear: _clearSearch,
               ),
             ),
             const SizedBox(height: AppDimens.paddingX14),
@@ -361,6 +380,24 @@ class _MessagesViewState extends State<_MessagesView>
     );
   }
 
+  /// Filtering runs on the debounced term so a fast typist rebuilds the list
+  /// once, not once per keystroke.
+  void _onSearchChanged(String value) {
+    _searchDebounce?.cancel();
+    if (value.trim() == _query.trim()) return;
+    _searchDebounce = Timer(_searchDebounceDelay, () {
+      if (!mounted) return;
+      setState(() => _query = value);
+    });
+  }
+
+  void _clearSearch() {
+    _searchDebounce?.cancel();
+    _searchCtrl.clear();
+    if (_query.isEmpty) return;
+    setState(() => _query = '');
+  }
+
   Widget _body(MessageState state, List<ConversationModel> items) {
     if (state.conversationsStatus == MessageStatus.initial ||
         state.conversationsStatus == MessageStatus.loading) {
@@ -371,7 +408,7 @@ class _MessagesViewState extends State<_MessagesView>
       return _LoadError(
         message: state.errorMessage ?? 'Could not load conversations.',
         onRetry: () => context.read<MessageBloc>().add(
-          LoadConversationsEvent(archived: state.showingArchived),
+          LoadConversationsEvent(archived: state.showingArchived, force: true),
         ),
       );
     }
@@ -449,6 +486,7 @@ class _MessagesViewState extends State<_MessagesView>
                     silent: true,
                     archived: state.showingArchived,
                     loadMore: true,
+                    force: true,
                   ),
                 ),
               );
@@ -483,7 +521,11 @@ class _MessagesViewState extends State<_MessagesView>
     final MessageBloc bloc = context.read<MessageBloc>();
     final int startTick = bloc.state.conversationsRefreshTick;
     bloc.add(
-      LoadConversationsEvent(silent: true, archived: state.showingArchived),
+      LoadConversationsEvent(
+        silent: true,
+        archived: state.showingArchived,
+        force: true,
+      ),
     );
     await bloc.stream
         .firstWhere(

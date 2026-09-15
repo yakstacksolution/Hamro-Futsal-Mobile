@@ -8,10 +8,10 @@ sealed class VenueDescriptionEvent extends Equatable {
 }
 
 final class FetchVenueDescriptionEvent extends VenueDescriptionEvent {
-  const FetchVenueDescriptionEvent({required this.venueId});
+  const FetchVenueDescriptionEvent({required this.venueSlug});
 
-  final int venueId;
+  final String venueSlug;
 
   @override
-  List<Object?> get props => <Object?>[venueId];
+  List<Object?> get props => <Object?>[venueSlug];
 }

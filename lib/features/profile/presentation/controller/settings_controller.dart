@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:hamro_futsal/core/helper/share_preferences.dart';
 import 'package:hamro_futsal/core/security/biometric_auth_service.dart';
 import 'package:hamro_futsal/core/theme/app_theme_controller.dart';
@@ -36,7 +36,7 @@ class SettingsController extends ChangeNotifier {
   late bool _opponentRequests;
   late bool _promotionalEmails;
   late bool _biometricLogin;
-  late bool _darkMode;
+  late ThemeMode _themeMode;
   late String _language;
   late NotificationPreferences _syncedNotificationPrefs;
   bool _notificationPrefsEdited = false;
@@ -57,7 +57,8 @@ class SettingsController extends ChangeNotifier {
   bool get opponentRequests => _opponentRequests;
   bool get promotionalEmails => _promotionalEmails;
   bool get biometricLogin => _biometricLogin;
-  bool get darkMode => _darkMode;
+  ThemeMode get themeMode => _themeMode;
+  String get themeModeLabel => themeModeOptions[_themeMode] ?? 'System';
   String get language => _language;
   int? get userId => _userId;
   bool get deletingAccount => _deletingAccount;
@@ -68,6 +69,11 @@ class SettingsController extends ChangeNotifier {
 
   /// Languages the app advertises in the picker.
   static const List<String> languages = <String>['English', 'नेपाली', 'हिन्दी'];
+  static const Map<ThemeMode, String> themeModeOptions = <ThemeMode, String>{
+    ThemeMode.light: 'Light',
+    ThemeMode.dark: 'Dark',
+    ThemeMode.system: 'System',
+  };
 
   void _load() {
     _pushNotifications = _settings.pushNotifications;
@@ -75,7 +81,7 @@ class SettingsController extends ChangeNotifier {
     _opponentRequests = _settings.opponentRequests;
     _promotionalEmails = _settings.promotionalEmails;
     _biometricLogin = _settings.biometricLogin;
-    _darkMode = _settings.darkMode;
+    _themeMode = AppThemeController.instance.value;
     _language = _settings.appLanguage;
     _syncedNotificationPrefs = _currentNotificationPrefs;
   }
@@ -210,10 +216,10 @@ class SettingsController extends ChangeNotifier {
     _notifyIfActive();
   }
 
-  void setDarkMode(bool value) {
-    if (_darkMode == value) return;
-    _darkMode = value;
-    AppThemeController.instance.setDarkMode(value);
+  void setThemeMode(ThemeMode value) {
+    if (_themeMode == value) return;
+    _themeMode = value;
+    AppThemeController.instance.setThemeMode(value);
     _notifyIfActive();
   }
 

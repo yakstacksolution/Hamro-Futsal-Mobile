@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/app_utils.dart';
@@ -24,6 +26,7 @@ class CustomButton extends StatelessWidget {
     this.fontSize = AppDimens.fontBodyTextSmall,
     this.fontWeight = FontWeight.w600,
     this.margin,
+    this.enableHapticFeedback = true,
   });
 
   final String text;
@@ -42,6 +45,27 @@ class CustomButton extends StatelessWidget {
   final double fontSize;
   final FontWeight fontWeight;
   final EdgeInsetsGeometry? margin;
+
+  /// Whether a tap answers with the standard light haptic tick.
+  ///
+  /// Almost every button in the app is a [CustomButton], so the feedback is
+  /// defined once here instead of at each call site. Turn it off for a button
+  /// that fires repeatedly (a stepper's +/-) or whose action already buzzes.
+  final bool enableHapticFeedback;
+
+  /// The tap handler with the haptic tick attached.
+  ///
+  /// Null while loading or when no handler was given, which is also what
+  /// disables the underlying [TextButton].
+  VoidCallback? get _onTap {
+    final VoidCallback? callback = onPressed;
+    if (isLoading || callback == null) return null;
+    if (!enableHapticFeedback) return callback;
+    return () {
+      HapticFeedback.lightImpact();
+      callback();
+    };
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -107,7 +131,7 @@ class CustomButton extends StatelessWidget {
 
     return SizedBox(
       child: TextButton(
-        onPressed: isLoading ? null : onPressed,
+        onPressed: _onTap,
 
         style: ButtonStyle(
           padding: WidgetStateProperty.all<EdgeInsets>(EdgeInsets.zero),
@@ -154,25 +178,99 @@ class CustomButton extends StatelessWidget {
                 : resolvedForeground,
           ),
         ),
-        // `double.infinity` fills the parent when the width is bounded, but is
-        // an invalid constraint when it is not — a button placed straight into
-        // a Row or a scrollable's cross axis got infinite width and brought the
-        // whole subtree down. Sizing to the content there instead.
-        child: LayoutBuilder(
-          builder: (BuildContext context, BoxConstraints constraints) =>
-              Container(
-                alignment: Alignment.center,
-                width: widthFactor != null
-                    ? MediaQuery.sizeOf(context).width * widthFactor!
-                    : (constraints.hasBoundedWidth ? double.infinity : null),
-                padding: appUtils.getPadding(
-                  symmetricVertical: verticalPadding,
-                  symmetricHorizontal: AppDimens.paddingX12,
-                ),
-                child: content,
-              ),
+        // Fills the parent when the width is bounded and hugs the label when
+        // it is not — a `Row` decides that itself (`RenderFlex` falls back to
+        // its children's width under unbounded constraints), where an explicit
+        // `double.infinity` brought the whole subtree down.
+        //
+        // Deliberately not a LayoutBuilder: it cannot answer an intrinsic
+        // measurement, and anything that asks for one — `AlertDialog`'s
+        // actions go through an `OverflowBar`, an `IntrinsicWidth`, a
+        // `DataTable` — threw "LayoutBuilder does not support returning
+        // intrinsic dimensions". Every widget below reports intrinsics.
+        child: Padding(
+          padding: appUtils.getPadding(
+            symmetricVertical: verticalPadding,
+            symmetricHorizontal: AppDimens.paddingX12,
+          ),
+          child: widthFactor != null
+              ? SizedBox(
+                  width: MediaQuery.sizeOf(context).width * widthFactor!,
+                  child: Center(child: content),
+                )
+              : _FillWidthIfBounded(child: content),
         ),
       ),
+    );
+  }
+}
+
+/// Fills the width it is offered when that width is bounded, and shrink-wraps
+/// its child when it is not — a button in a `Row` without an `Expanded`, or in
+/// a horizontal scrollable, is measured with unbounded width.
+///
+/// A `LayoutBuilder` used to make that decision here. It cannot answer an
+/// intrinsic measurement, so every ancestor that asks for one — `AlertDialog`
+/// lays its actions out in an `OverflowBar`, and `IntrinsicWidth` and
+/// `DataTable` do the same — threw "LayoutBuilder does not support returning
+/// intrinsic dimensions" instead of laying out. This reports intrinsics
+/// straight from the child.
+class _FillWidthIfBounded extends SingleChildRenderObjectWidget {
+  const _FillWidthIfBounded({required Widget super.child});
+
+  @override
+  _RenderFillWidthIfBounded createRenderObject(BuildContext context) =>
+      _RenderFillWidthIfBounded();
+}
+
+class _RenderFillWidthIfBounded extends RenderShiftedBox {
+  _RenderFillWidthIfBounded() : super(null);
+
+  @override
+  double computeMinIntrinsicWidth(double height) =>
+      child?.getMinIntrinsicWidth(height) ?? 0;
+
+  @override
+  double computeMaxIntrinsicWidth(double height) =>
+      child?.getMaxIntrinsicWidth(height) ?? 0;
+
+  @override
+  double computeMinIntrinsicHeight(double width) =>
+      child?.getMinIntrinsicHeight(width) ?? 0;
+
+  @override
+  double computeMaxIntrinsicHeight(double width) =>
+      child?.getMaxIntrinsicHeight(width) ?? 0;
+
+  Size _sizeFor(BoxConstraints constraints, Size childSize) =>
+      constraints.constrain(
+        Size(
+          constraints.hasBoundedWidth ? constraints.maxWidth : childSize.width,
+          childSize.height,
+        ),
+      );
+
+  @override
+  Size computeDryLayout(BoxConstraints constraints) {
+    final RenderBox? child = this.child;
+    if (child == null) return constraints.smallest;
+    return _sizeFor(constraints, child.getDryLayout(constraints.loosen()));
+  }
+
+  @override
+  void performLayout() {
+    final RenderBox? child = this.child;
+    if (child == null) {
+      size = constraints.smallest;
+      return;
+    }
+    // Loosened, never tight: the label's FittedBox needs a real maximum to
+    // scale down against, and the loading spinner must keep its own size.
+    child.layout(constraints.loosen(), parentUsesSize: true);
+    size = _sizeFor(constraints, child.size);
+    (child.parentData! as BoxParentData).offset = Offset(
+      (size.width - child.size.width) / 2,
+      (size.height - child.size.height) / 2,
     );
   }
 }

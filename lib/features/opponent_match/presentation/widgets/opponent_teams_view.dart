@@ -1,3 +1,4 @@
+import 'package:hamro_futsal/core/utils/bloc_safe_add.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
@@ -112,7 +113,7 @@ class OpponentTeamsView extends StatelessWidget {
       message:
           'This removes "${team.name}" and its players. This can\'t be undone.',
     );
-    if (confirmed) bloc.add(DeleteTeamEvent(team.id));
+    if (confirmed) bloc.addIfOpen(DeleteTeamEvent(team.id));
   }
 
   Future<void> _confirmRemoveMember(
@@ -136,7 +137,7 @@ class OpponentTeamsView extends StatelessWidget {
       confirmText: StringConstants.remove,
       icon: Icons.person_remove_outlined,
     );
-    if (confirmed) bloc.add(RemoveMemberEvent(team.id, memberId));
+    if (confirmed) bloc.addIfOpen(RemoveMemberEvent(team.id, memberId));
   }
 
   @override
@@ -146,25 +147,26 @@ class OpponentTeamsView extends StatelessWidget {
         if (state.teams.isEmpty) {
           return _EmptyTeams(onCreateTeam: () => _openCreateTeam(context));
         }
+        // With more than one team every roster starts closed, so the list
+        // opens as one line per team and the captain picks which to work on.
+        // A lone team has nothing to scroll past, so it stays open.
+        final bool single = state.teams.length == 1;
         return ListView.separated(
           physics: const BouncingScrollPhysics(),
           padding: AppUtils().getPadding(
             symmetricHorizontal: AppDimens.paddingX20,
             top: AppDimens.paddingX6,
-            bottom: AppDimens.paddingX50,
+            bottom: AppDimens.paddingX20,
           ),
-          // Last item is the "create another team" action.
-          itemCount: state.teams.length + 1,
+          itemCount: state.teams.length,
           separatorBuilder: (_, __) =>
               const SizedBox(height: AppDimens.paddingX12),
           itemBuilder: (context, i) {
-            if (i == state.teams.length) {
-              return _NewTeamButton(onTap: () => _openCreateTeam(context));
-            }
             final team = state.teams[i];
             return OpponentTeamCard(
               key: ValueKey(team.id),
               team: team,
+              initiallyExpanded: single,
               onAddPlayer: () => _openAddPlayer(context, team),
               onDelPlayer: (memberId) =>
                   _confirmRemoveMember(context, team, memberId),
@@ -175,55 +177,6 @@ class OpponentTeamsView extends StatelessWidget {
           },
         );
       },
-    );
-  }
-}
-
-class _NewTeamButton extends StatelessWidget {
-  const _NewTeamButton({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = FutsalTheme.getTextTheme(context);
-    return Material(
-      color: Colors.transparent,
-      borderRadius: BorderRadius.circular(AppDimens.radiusX10),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppDimens.radiusX10),
-        child: Container(
-          width: double.infinity,
-          padding: AppUtils().getPadding(
-            symmetricVertical: AppDimens.paddingX14,
-          ),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppDimens.radiusX10),
-            border: Border.all(
-              color: LightColor.secondaryColor.withValues(alpha: 0.45),
-            ),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(
-                Icons.add_rounded,
-                color: LightColor.secondaryColor,
-                size: AppDimens.sizeX18,
-              ),
-              const SizedBox(width: AppDimens.paddingX6),
-              Text(
-                StringConstants.newTeam,
-                style: textTheme.bodyTextSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: LightColor.secondaryColor,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }

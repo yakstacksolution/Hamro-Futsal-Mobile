@@ -76,13 +76,34 @@ final class LogoutEvent extends AuthenticationEvent {
   const LogoutEvent();
 }
 
-final class ForgotPassword extends AuthenticationEvent {
+/// Asks the backend to email a password-reset OTP to [email]
+/// (`POST /auth/forgot-password`).
+final class ForgotPasswordEvent extends AuthenticationEvent {
   final String email;
 
-  const ForgotPassword({required this.email});
+  const ForgotPasswordEvent({required this.email});
 
   @override
   List<Object> get props => [email];
+}
+
+/// Completes the reset with the emailed OTP and the new password
+/// (`POST /auth/reset-password`).
+final class ResetPasswordEvent extends AuthenticationEvent {
+  final String email;
+  final String otp;
+  final String password;
+  final String passwordConfirmation;
+
+  const ResetPasswordEvent({
+    required this.email,
+    required this.otp,
+    required this.password,
+    required this.passwordConfirmation,
+  });
+
+  @override
+  List<Object> get props => [email, otp, password, passwordConfirmation];
 }
 
 final class ResendOtpEvent extends AuthenticationEvent {

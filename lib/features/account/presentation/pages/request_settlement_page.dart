@@ -27,7 +27,7 @@ typedef SettlementRequestDraft = ({
 class RequestSettlementPage extends StatefulWidget {
   const RequestSettlementPage({
     super.key,
-    required this.preview,
+    this.preview,
     this.venueName = '',
     this.commissionPayable = 0,
     this.totalEarned = 0,
@@ -35,7 +35,13 @@ class RequestSettlementPage extends StatefulWidget {
     this.venueId,
   });
 
-  final SettlementPreviewModel preview;
+  /// Pre-fetched preview, when a caller already has one.
+  ///
+  /// Normally null: the vendor taps Pay Commission and gets this page straight
+  /// away, and it fetches the preview and the QR codes itself. Waiting on two
+  /// network calls before pushing left the button looking dead for as long as
+  /// they took.
+  final SettlementPreviewModel? preview;
 
   /// Commission the venue owes Hamro Futsal, as the account summary reports it.
   /// A settlement pays this and nothing else, so it stands in when the preview
@@ -59,6 +65,22 @@ class RequestSettlementPage extends StatefulWidget {
   State<RequestSettlementPage> createState() => _RequestSettlementPageState();
 }
 
+/// Where the page's own fetch has got to.
+enum _LoadPhase {
+  /// Fetching the preview and the QR codes.
+  loading,
+
+  /// Loaded — the form is showing.
+  ready,
+
+  /// The server will not take a settlement right now (already being verified,
+  /// nothing owed, or its own blocking reason). Nothing to fill in.
+  blocked,
+
+  /// The fetch failed and can be retried.
+  failed,
+}
+
 class _RequestSettlementPageState extends State<RequestSettlementPage> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _amountCtrl;
@@ -68,9 +90,20 @@ class _RequestSettlementPageState extends State<RequestSettlementPage> {
   bool _proofMissing = false;
   String? _proofError;
 
-  SettlementPreviewModel get _preview => widget.preview;
+  SettlementPreviewModel? _loaded;
+  List<SettlementQrCodeModel> _loadedQrCodes = const <SettlementQrCodeModel>[];
+  _LoadPhase _phase = _LoadPhase.loading;
+  String _phaseMessage = '';
 
-  List<SettlementQrCodeModel> get _qrCodes => widget.qrCodes;
+  /// Only read once [_phase] is [_LoadPhase.ready] — everything that touches
+  /// it renders or runs behind the form.
+  SettlementPreviewModel get _preview => _loaded!;
+
+  List<SettlementQrCodeModel> get _qrCodes => _loadedQrCodes;
+
+  /// The futsal this settles. The caller names it for a per-futsal payment;
+  /// otherwise the preview reports its own scope.
+  int? get _venueId => widget.venueId ?? _preview.venue?.id;
 
   /// What this request pays: the commission owed to Hamro Futsal.
   ///
@@ -101,9 +134,82 @@ class _RequestSettlementPageState extends State<RequestSettlementPage> {
   @override
   void initState() {
     super.initState();
-    _amountCtrl = TextEditingController(
-      text: AccountFmt.amountInput(_defaultAmount),
+    _amountCtrl = TextEditingController();
+    final SettlementPreviewModel? given = widget.preview;
+    if (given != null) {
+      _loaded = given;
+      _loadedQrCodes = widget.qrCodes;
+      _phase = _LoadPhase.ready;
+      _amountCtrl.text = AccountFmt.amountInput(_defaultAmount);
+      return;
+    }
+    // Deferred to after the first frame so the page is on screen — and its
+    // spinner visible — before the requests go out.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _load());
+  }
+
+  /// Fetches everything the form needs: the preview's rules and the QR codes
+  /// to pay against.
+  ///
+  /// Whether another settlement may be requested is the server's call, made in
+  /// `can_request_settlement` on the account and enforced again by the create
+  /// endpoint. This page used to re-decide it locally by counting settlements
+  /// in review, which disagreed with the server — it opened only to refuse a
+  /// vendor the account had just told us was eligible.
+  Future<void> _load() async {
+    if (!mounted) return;
+    final AccountBloc bloc = context.read<AccountBloc>();
+    setState(() {
+      _phase = _LoadPhase.loading;
+      _phaseMessage = '';
+    });
+
+    final previewFuture = bloc.useCase.getSettlementPreview(
+      venueId: widget.venueId,
     );
+    final qrFuture = bloc.useCase.getQrCodes();
+    final result = await previewFuture;
+    final List<SettlementQrCodeModel> qrCodes = (await qrFuture).fold(
+      (_) => const <SettlementQrCodeModel>[],
+      (codes) => codes,
+    );
+    if (!mounted) return;
+
+    final SettlementPreviewModel? preview = result.fold((failure) {
+      _stop(_LoadPhase.failed, failure.errorMessage);
+      return null;
+    }, (p) => p);
+    if (preview == null) return;
+
+    // Commission owed is the condition, not the cleared balance — see
+    // [_payable].
+    final bool blocked =
+        preview.blockingReason.isNotEmpty ||
+        (!preview.eligible && widget.commissionPayable <= 0);
+    if (blocked) {
+      _stop(
+        _LoadPhase.blocked,
+        preview.blockingReason.isNotEmpty
+            ? preview.blockingReason
+            : StringConstants.noCommissionDue,
+      );
+      return;
+    }
+
+    setState(() {
+      _loaded = preview;
+      _loadedQrCodes = qrCodes;
+      _phase = _LoadPhase.ready;
+      _amountCtrl.text = AccountFmt.amountInput(_defaultAmount);
+    });
+  }
+
+  void _stop(_LoadPhase phase, String message) {
+    if (!mounted) return;
+    setState(() {
+      _phase = phase;
+      _phaseMessage = message;
+    });
   }
 
   @override
@@ -206,7 +312,7 @@ class _RequestSettlementPageState extends State<RequestSettlementPage> {
         transactionReference: _refCtrl.text.trim(),
         note: note.isEmpty ? null : note,
         paymentProof: _proof!,
-        venueId: widget.venueId,
+        venueId: _venueId,
       ),
     );
   }
@@ -262,166 +368,231 @@ class _RequestSettlementPageState extends State<RequestSettlementPage> {
   }
 
   Widget _buildScaffold(BuildContext context) {
-    final textTheme = FutsalTheme.getTextTheme(context);
     return Scaffold(
       backgroundColor: LightColor.background,
       appBar: CustomAppBar(title: StringConstants.payCommission),
       body: SafeArea(
         top: false,
-        child: Form(
-          key: _formKey,
-          child: Center(
-            child: ConstrainedBox(
-              // Forms stay one readable column; fields are never paired.
-              constraints: BoxConstraints(
-                maxWidth: context.isTabletOrWider
-                    ? AppDimens.formContentMaxWidth
-                    : double.infinity,
+        child: switch (_phase) {
+          _LoadPhase.loading => const Center(
+            child: CircularProgressIndicator(color: LightColor.secondaryColor),
+          ),
+          _LoadPhase.blocked => _PhaseMessage(
+            icon: Icons.info_outline_rounded,
+            message: _phaseMessage,
+            actionLabel: StringConstants.goBack,
+            onAction: () => Navigator.of(context).pop(),
+          ),
+          _LoadPhase.failed => _PhaseMessage(
+            icon: Icons.wifi_off_rounded,
+            message: _phaseMessage,
+            actionLabel: StringConstants.retry,
+            onAction: _load,
+          ),
+          _LoadPhase.ready => _buildForm(context),
+        },
+      ),
+    );
+  }
+
+  Widget _buildForm(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    return Form(
+      key: _formKey,
+      child: Center(
+        child: ConstrainedBox(
+          // Forms stay one readable column; fields are never paired.
+          constraints: BoxConstraints(
+            maxWidth: context.isTabletOrWider
+                ? AppDimens.formContentMaxWidth
+                : double.infinity,
+          ),
+          child: ListView(
+            physics: const BouncingScrollPhysics(),
+            padding: EdgeInsets.fromLTRB(
+              context.responsive<double>(
+                mobile: AppDimens.paddingX20,
+                tablet: AppDimens.paddingX32,
               ),
-              child: ListView(
-                physics: const BouncingScrollPhysics(),
-                padding: EdgeInsets.fromLTRB(
-                  context.responsive<double>(
-                    mobile: AppDimens.paddingX20,
-                    tablet: AppDimens.paddingX32,
-                  ),
-                  AppDimens.paddingX16,
-                  context.responsive<double>(
-                    mobile: AppDimens.paddingX20,
-                    tablet: AppDimens.paddingX32,
-                  ),
-                  AppDimens.paddingX32,
+              AppDimens.paddingX16,
+              context.responsive<double>(
+                mobile: AppDimens.paddingX20,
+                tablet: AppDimens.paddingX32,
+              ),
+              AppDimens.paddingX32,
+            ),
+            children: [
+              Text(
+                _scopeLabel,
+                style: textTheme.bodyTextSmall?.copyWith(
+                  color: LightColor.secondaryTextColor,
+                  fontWeight: FontWeight.w600,
                 ),
-                children: [
-                  Text(
-                    _scopeLabel,
-                    style: textTheme.bodyTextSmall?.copyWith(
-                      color: LightColor.secondaryTextColor,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: AppDimens.paddingX12),
-                  SettlementRecipientCard(
-                    recipient: _preview.recipient,
-                    maximumPayable: _payable,
-                    pendingClearance: _preview.pendingClearance,
-                    totalEarned: widget.totalEarned,
-                  ),
-                  const SizedBox(height: AppDimens.paddingX20),
-                  const _StepHeader(
-                    step: 1,
-                    title: 'Scan and pay',
-                    subtitle:
-                        'Send the commission to Hamro Futsal using this QR.',
-                  ),
-                  const SizedBox(height: AppDimens.paddingX12),
-                  SettlementQrCarouselCard(
-                    codes: _qrCodes,
-                    fallbackQr: _preview.paymentQr,
-                    fallbackPayeeName: _preview.recipient.name,
-                    payeePhone: _preview.recipient.phone,
-                    amountLabel: 'Commission to pay',
-                    amountValue: AccountFmt.npr(_payable),
-                  ),
-                  const SizedBox(height: AppDimens.paddingX20),
-                  const _StepHeader(
-                    step: 2,
-                    title: 'Confirm the payment',
-                    subtitle:
-                        'Enter what you sent and attach the receipt as proof.',
-                  ),
-                  const SizedBox(height: AppDimens.paddingX12),
-                  CustomTextField(
-                    labelText: 'Commission amount (NPR)',
-                    controller: _amountCtrl,
-                    readOnly: _amountLocked,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    inputFormatters: [
-                      // Paisa matter: the server rejects a rounded amount.
-                      FilteringTextInputFormatter.allow(
-                        RegExp(r'^\d*\.?\d{0,2}'),
-                      ),
-                    ],
-                    icon: Icons.payments_outlined,
-                    validator: _validateAmount,
-                    autovalidateMode: AutovalidateMode.onUserInteraction,
-                    ensureVisibleOnFocus: true,
-                  ),
-                  if (_amountLocked) ...[
-                    const SizedBox(height: AppDimens.paddingX6),
-                    Text(
-                      'The full commission must be paid in one request.',
-                      style: textTheme.bodyTextSmall?.copyWith(
-                        color: LightColor.hintTextColor,
-                        fontSize: AppDimens.fontBodySubTitle,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: AppDimens.paddingX16),
-                  CustomTextField(
-                    labelText: 'Transaction reference',
-                    hintText: 'Bank / eSewa / Khalti transaction ID',
-                    controller: _refCtrl,
-                    icon: Icons.tag_rounded,
-                    validator: (value) => (value?.trim().isEmpty ?? true)
-                        ? 'Enter the payment transaction reference.'
-                        : null,
-                    autovalidateMode: AutovalidateMode.onUserInteraction,
-                    ensureVisibleOnFocus: true,
-                  ),
-                  const SizedBox(height: AppDimens.paddingX16),
-                  _ProofPicker(
-                    proof: _proof,
-                    uploadBytes: _proof?.size,
-                    showError: _proofMissing,
-                    hint: _proofHint,
-                    errorText: _proofError,
-                    onTap: _pickProof,
-                  ),
-                  const SizedBox(height: AppDimens.paddingX16),
-                  CustomTextField(
-                    labelText: 'Note (optional)',
-                    hintText: 'Payment remark',
-                    controller: _noteCtrl,
-                    maxLines: 2,
-                    isRequired: false,
-                    textCapitalization: TextCapitalization.sentences,
-                    ensureVisibleOnFocus: true,
-                  ),
-                  const SizedBox(height: AppDimens.paddingX24),
-                  BlocBuilder<AccountBloc, AccountState>(
-                    buildWhen: (AccountState p, AccountState c) =>
-                        p.submitStatus != c.submitStatus,
-                    builder: (BuildContext context, AccountState state) {
-                      final bool submitting =
-                          state.submitStatus == AccountStatus.loading;
-                      // The button carries the whole wait: the upload, and the
-                      // account refresh that follows it.
-                      final Widget button = CustomButton(
-                        text: submitting
-                            ? 'Submitting…'
-                            : 'Submit Commission Payment',
-                        icon: Icons.lock_outline_rounded,
-                        isLoading: submitting,
-                        onPressed: submitting ? () {} : _submit,
-                      );
-                      if (!context.isTabletOrWider) return button;
-                      return Align(
-                        alignment: Alignment.centerRight,
-                        child: SizedBox(
-                          width: AppDimens.formActionMaxWidth,
-                          child: button,
-                        ),
-                      );
-                    },
-                  ),
+              ),
+              const SizedBox(height: AppDimens.paddingX12),
+              SettlementRecipientCard(
+                recipient: _preview.recipient,
+                maximumPayable: _payable,
+                pendingClearance: _preview.pendingClearance,
+                totalEarned: widget.totalEarned,
+              ),
+              const SizedBox(height: AppDimens.paddingX20),
+              const _StepHeader(
+                step: 1,
+                title: 'Scan and pay',
+                subtitle: 'Send the commission to Hamro Futsal using this QR.',
+              ),
+              const SizedBox(height: AppDimens.paddingX12),
+              SettlementQrCarouselCard(
+                codes: _qrCodes,
+                fallbackQr: _preview.paymentQr,
+                fallbackPayeeName: _preview.recipient.name,
+                payeePhone: _preview.recipient.phone,
+                amountLabel: 'Commission to pay',
+                amountValue: AccountFmt.npr(_payable),
+              ),
+              const SizedBox(height: AppDimens.paddingX20),
+              const _StepHeader(
+                step: 2,
+                title: 'Confirm the payment',
+                subtitle:
+                    'Enter what you sent and attach the receipt as proof.',
+              ),
+              const SizedBox(height: AppDimens.paddingX12),
+              CustomTextField(
+                labelText: 'Commission amount (NPR)',
+                controller: _amountCtrl,
+                readOnly: _amountLocked,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                inputFormatters: [
+                  // Paisa matter: the server rejects a rounded amount.
+                  FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
                 ],
+                icon: Icons.payments_outlined,
+                validator: _validateAmount,
+                autovalidateMode: AutovalidateMode.onUserInteraction,
+                ensureVisibleOnFocus: true,
+              ),
+              if (_amountLocked) ...[
+                const SizedBox(height: AppDimens.paddingX6),
+                Text(
+                  'The full commission must be paid in one request.',
+                  style: textTheme.bodyTextSmall?.copyWith(
+                    color: LightColor.hintTextColor,
+                    fontSize: AppDimens.fontBodySubTitle,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+              const SizedBox(height: AppDimens.paddingX16),
+              CustomTextField(
+                labelText: 'Transaction reference',
+                hintText: 'Bank / eSewa / Khalti transaction ID',
+                controller: _refCtrl,
+                icon: Icons.tag_rounded,
+                validator: (value) => (value?.trim().isEmpty ?? true)
+                    ? 'Enter the payment transaction reference.'
+                    : null,
+                autovalidateMode: AutovalidateMode.onUserInteraction,
+                ensureVisibleOnFocus: true,
+              ),
+              const SizedBox(height: AppDimens.paddingX16),
+              _ProofPicker(
+                proof: _proof,
+                uploadBytes: _proof?.size,
+                showError: _proofMissing,
+                hint: _proofHint,
+                errorText: _proofError,
+                onTap: _pickProof,
+              ),
+              const SizedBox(height: AppDimens.paddingX16),
+              CustomTextField(
+                labelText: 'Note (optional)',
+                hintText: 'Payment remark',
+                controller: _noteCtrl,
+                maxLines: 2,
+                isRequired: false,
+                textCapitalization: TextCapitalization.sentences,
+                ensureVisibleOnFocus: true,
+              ),
+              const SizedBox(height: AppDimens.paddingX24),
+              BlocBuilder<AccountBloc, AccountState>(
+                buildWhen: (AccountState p, AccountState c) =>
+                    p.submitStatus != c.submitStatus,
+                builder: (BuildContext context, AccountState state) {
+                  final bool submitting =
+                      state.submitStatus == AccountStatus.loading;
+                  // The button carries the whole wait: the upload, and the
+                  // account refresh that follows it.
+                  final Widget button = CustomButton(
+                    text: submitting
+                        ? 'Submitting…'
+                        : 'Submit Commission Payment',
+                    icon: Icons.lock_outline_rounded,
+                    isLoading: submitting,
+                    onPressed: submitting ? () {} : _submit,
+                  );
+                  if (!context.isTabletOrWider) return button;
+                  return Align(
+                    alignment: Alignment.centerRight,
+                    child: SizedBox(
+                      width: AppDimens.formActionMaxWidth,
+                      child: button,
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// What the page shows instead of the form: the server will not take a
+/// settlement right now, or the fetch failed and can be retried.
+class _PhaseMessage extends StatelessWidget {
+  const _PhaseMessage({
+    required this.icon,
+    required this.message,
+    required this.actionLabel,
+    required this.onAction,
+  });
+
+  final IconData icon;
+  final String message;
+  final String actionLabel;
+  final VoidCallback onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(AppDimens.paddingX32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Icon(icon, size: AppDimens.sizeX40, color: LightColor.iconGrey),
+            const SizedBox(height: AppDimens.paddingX12),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: textTheme.bodyTextMedium?.copyWith(
+                color: LightColor.secondaryTextColor,
+                fontWeight: FontWeight.w500,
+                height: 1.4,
               ),
             ),
-          ),
+            const SizedBox(height: AppDimens.paddingX20),
+            SizedBox(
+              width: AppDimens.formActionMaxWidth,
+              child: CustomButton(text: actionLabel, onPressed: onAction),
+            ),
+          ],
         ),
       ),
     );

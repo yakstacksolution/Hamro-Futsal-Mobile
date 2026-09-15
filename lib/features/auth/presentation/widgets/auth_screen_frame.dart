@@ -257,25 +257,29 @@ class AuthScreenFrame extends StatelessWidget {
       fontSize: context.isTabletOrWider ? AppDimens.fontBodyTextLarge : null,
     );
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Wrap(
+      alignment: WrapAlignment.center,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: AppDimens.sizeX6,
+      runSpacing: AppDimens.sizeX4,
       children: <Widget>[
-        Flexible(
-          child: Text(
-            secondaryPrefixText,
-            overflow: TextOverflow.ellipsis,
-            style: prefixStyle,
-          ),
+        Text(
+          secondaryPrefixText,
+          textAlign: TextAlign.center,
+          style: prefixStyle,
         ),
-        const SizedBox(width: AppDimens.sizeX8),
-        Flexible(
-          child: InkWell(
-            onTap: onSecondaryTap,
+        InkWell(
+          onTap: onSecondaryTap,
+          borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppDimens.paddingX4,
+              vertical: AppDimens.paddingX2,
+            ),
             child: Text(
-              '$secondaryActionText ?',
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.end,
-              style: actionStyle,
+              secondaryActionText,
+              textAlign: TextAlign.center,
+              style: actionStyle?.copyWith(fontWeight: FontWeight.w700),
             ),
           ),
         ),

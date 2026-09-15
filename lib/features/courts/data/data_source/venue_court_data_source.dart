@@ -1,8 +1,13 @@
 import 'package:hamro_futsal/core/api/api_client/result.dart';
 import 'package:hamro_futsal/core/api/client.dart';
+import 'package:hamro_futsal/features/courts/domain/model/venue_court_purpose.dart';
 
 abstract class VenueCourtRemoteDataSource {
-  Future<Result> getVenueCourt({required int page, required int perPage});
+  Future<Result> getVenueCourt({
+    required int page,
+    required int perPage,
+    required VenueCourtPurpose purpose,
+  });
   Future<Result> getCourtDetails(int courtId);
   Future<Result> getCourtSlots(int courtId);
   Future<Result> createCourtSlot(Map<String, dynamic> data);
@@ -18,9 +23,11 @@ final class VenueCourtRemoteDataSourceImpl
   Future<Result> getVenueCourt({
     required int page,
     required int perPage,
+    required VenueCourtPurpose purpose,
   }) async => await Client.instance().getAuthManager().getVenueCourt(
     page: page,
     perPage: perPage,
+    purpose: purpose.query,
   );
 
   @override

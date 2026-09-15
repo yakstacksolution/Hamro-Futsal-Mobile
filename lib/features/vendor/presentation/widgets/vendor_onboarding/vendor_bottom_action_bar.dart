@@ -69,13 +69,18 @@ class VendorBottomActionBar extends StatelessWidget {
                   ),
                 ],
               ),
+              // Back and Next split the bar evenly. Back used to be sized to
+              // its own label while Next took every remaining pixel, which
+              // read as a lopsided pair on the court setup steps.
               child: Row(
                 children: <Widget>[
                   if (hasPrevious) ...<Widget>[
-                    _SecondaryActionButton(
-                      icon: Icons.arrow_back_ios,
-                      label: StringConstants.back,
-                      onTap: canInteract ? onPrevious : null,
+                    Expanded(
+                      child: _SecondaryActionButton(
+                        icon: Icons.arrow_back_ios,
+                        label: StringConstants.back,
+                        onTap: canInteract ? onPrevious : null,
+                      ),
                     ),
                     const SizedBox(width: AppDimens.sizeX12),
                   ],
@@ -133,14 +138,16 @@ class _SecondaryActionButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppDimens.radiusX8),
         child: Ink(
           height: AppDimens.sizeX46,
-          padding: AppUtils().getPadding(horizontal: AppDimens.paddingX20),
+          padding: AppUtils().getPadding(horizontal: AppDimens.paddingX12),
           decoration: BoxDecoration(
             color: LightColor.whiteColor,
             borderRadius: BorderRadius.circular(AppDimens.radiusX8),
             border: Border.all(color: LightColor.greyBorderColor),
           ),
+          // Centred, and the label is Flexible: the button is now as wide as
+          // its half of the bar rather than as wide as its content.
           child: Row(
-            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
               Icon(
                 icon,
@@ -150,15 +157,19 @@ class _SecondaryActionButton extends StatelessWidget {
                     : LightColor.primaryTextColor,
               ),
               const SizedBox(width: AppDimens.sizeX8),
-              Text(
-                label,
-                style: FutsalTheme.getTextTheme(context).bodyTextSmall
-                    ?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: isDisabled
-                          ? LightColor.greyBorderColor
-                          : LightColor.primaryTextColor,
-                    ),
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: FutsalTheme.getTextTheme(context).bodyTextSmall
+                      ?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: isDisabled
+                            ? LightColor.greyBorderColor
+                            : LightColor.primaryTextColor,
+                      ),
+                ),
               ),
             ],
           ),

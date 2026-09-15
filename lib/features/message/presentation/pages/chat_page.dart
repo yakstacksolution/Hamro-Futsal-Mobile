@@ -23,6 +23,7 @@ import 'package:hamro_futsal/features/message/data/model/conversation_model.dart
 import 'package:hamro_futsal/features/dashboard/presentation/page/dashboard_screen.dart';
 import 'package:hamro_futsal/features/message/presentation/bloc/message_bloc/message_bloc.dart';
 import 'package:hamro_futsal/features/message/presentation/widgets/chat_bubble.dart';
+import 'package:hamro_futsal/features/message/domain/model/message_mentions.dart';
 import 'package:hamro_futsal/features/message/presentation/widgets/chat_input_bar.dart';
 import 'package:hamro_futsal/features/message/presentation/pages/group_profile_page.dart';
 import 'package:hamro_futsal/features/message/presentation/widgets/group_conversation_sheet.dart';
@@ -119,15 +120,38 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
     });
   }
 
-  void _send(String text) {
+  void _send(String text, ResolvedMentions mentions) {
     final request = ChatSendRequest(
       body: text,
       attachments: List<UploadAttachment>.unmodifiable(_attachments),
       replyToMessageId: _replyingTo?.id,
+      mentions: mentions.userIds,
+      mentionAll: mentions.mentionAll,
     );
     if (!request.isValid) return;
     _composerSendInFlight = true;
     _bloc.add(SendMessageEvent(widget.conversation.id, request));
+  }
+
+  /// Who can be mentioned here: the group's participants. A direct chat gets
+  /// none, so `@` stays an ordinary character there. The signed-in user is
+  /// included so a mention of them highlights in the thread; the composer
+  /// filters themselves out of the picker.
+  List<MentionCandidate> _mentionCandidates(MessageState state) {
+    final ConversationModel conversation =
+        state.activeConversation ?? widget.conversation;
+    if (!conversation.isGroup) return const <MentionCandidate>[];
+
+    final Map<int, MentionCandidate> byUserId = <int, MentionCandidate>{};
+    for (final ParticipantModel participant in conversation.participants) {
+      final String name = participant.name.trim();
+      if (participant.userId <= 0 || name.isEmpty) continue;
+      byUserId[participant.userId] = MentionCandidate(
+        userId: participant.userId,
+        name: name,
+      );
+    }
+    return byUserId.values.toList(growable: false);
   }
 
   Future<void> _pickAttachments() async {
@@ -529,6 +553,8 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
                   ),
                 ChatInputBar(
                   onSend: _send,
+                  mentionCandidates: _mentionCandidates(state),
+                  currentUserId: state.currentUserId,
                   sending: state.sending,
                   onTypingChanged: (typing) => _bloc.add(
                     SendTypingEvent(widget.conversation.id, typing),
@@ -620,13 +646,16 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
         }
 
         final ChatMessageModel message = entry as ChatMessageModel;
+        final bool isMine = message.isMine(state.currentUserId);
         return ChatBubble(
           message: message,
-          isMe: message.isMine(state.currentUserId),
+          isMe: isMine,
           showSender: widget.conversation.isGroup,
           onLongPress: () => _showMessageActions(message),
           onMediaTap: _openMedia,
           mediaBytesLoader: _loadMediaBytes,
+          mentionCandidates: _mentionCandidates(state),
+          mentionsMe: !isMine && message.mentionsUser(state.currentUserId),
         );
       },
     );
@@ -895,7 +924,7 @@ class _ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
 
           final header = Row(
             children: [
-              if (active.isGroup || avatar.isEmpty)
+              if (avatar.isEmpty)
                 Container(
                   width: 38,
                   height: 38,

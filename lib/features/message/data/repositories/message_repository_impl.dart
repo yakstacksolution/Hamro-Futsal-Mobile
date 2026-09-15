@@ -13,6 +13,7 @@ import 'package:hamro_futsal/features/message/data/model/chat_send_request.dart'
 import 'package:hamro_futsal/features/message/data/model/conversation_model.dart';
 import 'package:hamro_futsal/features/message/data/model/conversation_page_model.dart';
 import 'package:hamro_futsal/features/message/data/model/message_profile_model.dart';
+import 'package:hamro_futsal/features/message/data/model/registered_user_page_model.dart';
 import 'package:hamro_futsal/features/message/domain/repository/message_repository.dart';
 import 'package:jwt_decode/jwt_decode.dart';
 
@@ -89,6 +90,47 @@ final class MessageRepositoryImpl extends MessageRepository {
       );
     } catch (_) {
       return left(_parseError('conversations'));
+    }
+  }
+
+  @override
+  Future<Either<AppException, RegisteredUserPageModel>> getRegisteredUsers({
+    required int page,
+    required int perPage,
+    String search = '',
+  }) async {
+    final response = await _remoteDataSource.getRegisteredUsers(
+      page: page,
+      perPage: perPage,
+      search: search,
+    );
+    if (response.isError()) {
+      return left(ResponseHelper.error(response));
+    }
+    try {
+      final parsed = RegisteredUserPageModel.fromResponse(
+        response.getValue(),
+        requestedPage: page,
+        requestedPerPage: perPage,
+        currentUserId: currentUserId,
+      );
+      final users = List<ParticipantModel>.of(parsed.items);
+      users.sort((a, b) {
+        if (a.isOnline != b.isOnline) return a.isOnline ? -1 : 1;
+        return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+      });
+      return right(
+        RegisteredUserPageModel(
+          items: List.unmodifiable(users),
+          currentPage: parsed.currentPage,
+          lastPage: parsed.lastPage,
+          perPage: parsed.perPage,
+          total: parsed.total,
+          hasMorePages: parsed.hasMorePages,
+        ),
+      );
+    } catch (_) {
+      return left(_parseError('registered users'));
     }
   }
 
@@ -323,17 +365,19 @@ final class MessageRepositoryImpl extends MessageRepository {
       _action(_remoteDataSource.setMuted(conversationId, muted));
 
   @override
-  Future<Either<AppException, ConversationModel?>> updateConversationTitle(
-    int conversationId,
-    String title,
-  ) async {
-    final response = await _remoteDataSource.updateConversationTitle(
+  Future<Either<AppException, ConversationModel?>> updateConversation(
+    int conversationId, {
+    String? title,
+    int? mediaId,
+  }) async {
+    final response = await _remoteDataSource.updateConversation(
       conversationId,
-      title,
+      title: title,
+      mediaId: mediaId,
     );
     if (response.isError()) return left(ResponseHelper.error(response));
-    // The rename has already happened by here, so a body this method cannot
-    // read is not a failure: the caller patches the title it just sent.
+    // The edit has already happened by here, so a body this method cannot
+    // read is not a failure: the caller patches what it just sent.
     final Map<String, dynamic>? row = _findObject(response.getValue());
     if (row == null) return right(null);
     try {

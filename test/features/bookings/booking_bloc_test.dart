@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hamro_futsal/features/bookings/domain/model/booking_list_query.dart';
 import 'package:hamro_futsal/core/helper/exception_helper.dart';
 import 'package:hamro_futsal/features/bookings/data/model/booking_model.dart';
 import 'package:hamro_futsal/features/bookings/data/model/booking_review_model.dart';
@@ -412,22 +413,20 @@ final class _FakeBookingRepository implements BookingRepository {
   final BookingModel booking;
 
   @override
-  Future<Either<AppException, PaginatedBookings>> getMyBookings({
-    required int page,
-    required int perPage,
-    String? status,
-  }) async {
+  Future<Either<AppException, PaginatedBookings>> getMyBookings(
+    BookingListQuery query,
+  ) async {
     myBookingsCalls++;
-    myStatuses.add(status);
+    myStatuses.add(query.status);
     // Lets a test hold a request open, so a second one can be attempted while
     // the first is still out.
     if (myGate != null) await myGate!.future;
     return right(
       PaginatedBookings(
         items: <BookingModel>[booking],
-        currentPage: page,
-        lastPage: page,
-        perPage: perPage,
+        currentPage: query.page,
+        lastPage: query.page,
+        perPage: query.perPage,
         total: 1,
         hasMorePages: false,
       ),
@@ -442,21 +441,19 @@ final class _FakeBookingRepository implements BookingRepository {
   }
 
   @override
-  Future<Either<AppException, PaginatedBookings>> getFutsalBookings({
-    required int page,
-    required int perPage,
-    String? status,
-  }) async {
+  Future<Either<AppException, PaginatedBookings>> getFutsalBookings(
+    BookingListQuery query,
+  ) async {
     futsalBookingsCalls++;
-    futsalStatuses.add(status);
+    futsalStatuses.add(query.status);
     final AppException? error = futsalError;
     return error == null
         ? right(
             PaginatedBookings(
               items: <BookingModel>[booking],
-              currentPage: page,
-              lastPage: page,
-              perPage: perPage,
+              currentPage: query.page,
+              lastPage: query.page,
+              perPage: query.perPage,
               total: 1,
               hasMorePages: false,
             ),

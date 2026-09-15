@@ -2,7 +2,7 @@ import 'package:hamro_futsal/core/api/api_client/result.dart';
 import 'package:hamro_futsal/core/api/client.dart';
 
 abstract class VendorOnboardingRemoteDataSource {
-  Future<Result> fetchVendorOnboardingFutsal(int futsalId);
+  Future<Result> fetchVendorOnboardingFutsal(String venueSlug);
   Future<Result> fetchCourtsByVenueId(int venueId);
 
   Future<Result> submitFutsal(Map<String, dynamic> body);
@@ -15,9 +15,9 @@ abstract class VendorOnboardingRemoteDataSource {
 final class VendorOnboardingRemoteDataSourceImpl
     extends VendorOnboardingRemoteDataSource {
   @override
-  Future<Result> fetchVendorOnboardingFutsal(int venueId) async =>
+  Future<Result> fetchVendorOnboardingFutsal(String venueSlug) async =>
       await Client.instance().getAuthManager().fetchVendorOnboardingFutsal(
-        venueId,
+        venueSlug,
       );
 
   @override

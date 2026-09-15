@@ -15,6 +15,11 @@ abstract class MessageRemoteDataSource {
     required int page,
     required int perPage,
   });
+  Future<Result> getRegisteredUsers({
+    required int page,
+    required int perPage,
+    String search,
+  });
   Future<Result> startDirectConversation({
     int? vendorId,
     int? venueId,
@@ -29,7 +34,16 @@ abstract class MessageRemoteDataSource {
     int conversationId,
     List<int> participantIds,
   );
-  Future<Result> updateConversationTitle(int conversationId, String title);
+
+  /// Edits a group's name, picture, or both.
+  ///
+  /// The picture is sent as `image_id`: the media library owns uploading, and
+  /// this endpoint only points at an image it already holds.
+  Future<Result> updateConversation(
+    int conversationId, {
+    String? title,
+    int? mediaId,
+  });
   Future<Result> leaveConversation(int conversationId);
   Future<Result> respondToConversationInvitation(
     int conversationId,
@@ -76,6 +90,17 @@ final class MessageRemoteDataSourceImpl extends MessageRemoteDataSource {
   );
 
   @override
+  Future<Result> getRegisteredUsers({
+    required int page,
+    required int perPage,
+    String search = '',
+  }) async => await Client.instance().getAuthManager().getRegisteredUsers(
+    page: page,
+    perPage: perPage,
+    search: search,
+  );
+
+  @override
   Future<Result> startDirectConversation({
     int? vendorId,
     int? venueId,
@@ -99,12 +124,16 @@ final class MessageRemoteDataSourceImpl extends MessageRemoteDataSource {
   });
 
   @override
-  Future<Result> updateConversationTitle(
-    int conversationId,
-    String title,
-  ) async => await Client.instance().getAuthManager().updateConversationTitle(
+  Future<Result> updateConversation(
+    int conversationId, {
+    String? title,
+    int? mediaId,
+  }) async => await Client.instance().getAuthManager().updateConversation(
     conversationId,
-    title.trim(),
+    <String, dynamic>{
+      if (title != null) 'title': title.trim(),
+      if (mediaId != null) 'image_id': mediaId,
+    },
   );
 
   @override
@@ -176,6 +205,14 @@ final class MessageRemoteDataSourceImpl extends MessageRemoteDataSource {
       form.fields.add(
         MapEntry('reply_to_message_id', request.replyToMessageId.toString()),
       );
+    }
+    // `mention_all` and `mentions[]` are independent: a body can name people
+    // and still say @all, and the server takes both.
+    if (request.mentionAll) {
+      form.fields.add(const MapEntry('mention_all', '1'));
+    }
+    for (final int userId in request.mentions) {
+      form.fields.add(MapEntry('mentions[]', userId.toString()));
     }
     final metadata = request.metadata;
     if (metadata is Map) {

@@ -20,9 +20,9 @@ final class VendorOnboardingRepositoryImpl
 
   @override
   Future<Either<AppException, VendorOnboardingResponseModel>>
-  fetchVendorOnboardingFutsal(int venueId) async {
+  fetchVendorOnboardingFutsal(String venueSlug) async {
     final response = await _remoteDataSource.fetchVendorOnboardingFutsal(
-      venueId,
+      venueSlug,
     );
     if (response.isError()) {
       return left(ResponseHelper.error(response));

@@ -1,12 +1,14 @@
 import 'package:dartz/dartz.dart';
 import 'package:hamro_futsal/core/helper/exception_helper.dart';
 import 'package:hamro_futsal/features/courts/data/model/venue_court_page_model.dart';
+import 'package:hamro_futsal/features/courts/domain/model/venue_court_purpose.dart';
 import 'package:hamro_futsal/features/vendor/presentation/models/vendor_onboarding_drafts.dart';
 
 abstract class VenueCourtRepository {
   Future<Either<AppException, VenueCourtPageModel>> getVenueCourt({
     required int page,
     required int perPage,
+    required VenueCourtPurpose purpose,
   });
   Future<Either<AppException, CourtDraft>> getCourtDetails(int courtId);
   Future<Either<AppException, List<SlotPricingDraft>>> getCourtSlots(

@@ -76,7 +76,7 @@ void main() {
                   'court_name': 'Court A',
                   'base_price': '900.00',
                   'is_payment_required': true,
-                  'advance_payment_required': false,
+                  'advance_payment_required': true,
                   'court_photos': <String, dynamic>{
                     'id': 406,
                     'name': 'court-photo',
@@ -108,7 +108,7 @@ void main() {
     expect(court.courtType, 'Indoor');
     expect(court.matchFormat, '5v5');
     expect(court.photos.single.remoteUrl, 'https://example.com/court.jpg');
-    expect(court.advancePaymentRequired, isFalse);
+    expect(court.advancePaymentRequired, isTrue);
     expect(page.hasMorePages, isFalse);
   });
 }

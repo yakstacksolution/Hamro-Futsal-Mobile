@@ -194,4 +194,55 @@ void main() {
       });
     }
   });
+
+  group('Gallery share button', () {
+    testWidgets('is offered when the venue has share text', (
+      WidgetTester tester,
+    ) async {
+      await _pumpAt(
+        tester,
+        _phone,
+        const DetailsImageGallery(
+          images: _images,
+          venueId: 7,
+          shareText: 'Check out Galaxy Futsal.',
+          shareLink: 'https://example.com/v/7',
+          shareSubject: 'Galaxy Futsal',
+        ),
+      );
+
+      expect(tester.takeException(), isNull);
+      expect(find.byIcon(Icons.share_outlined), findsOneWidget);
+    });
+
+    testWidgets('is offered for a link with no message', (
+      WidgetTester tester,
+    ) async {
+      await _pumpAt(
+        tester,
+        _phone,
+        const DetailsImageGallery(
+          images: _images,
+          venueId: 7,
+          shareLink: 'https://example.com/v/7',
+        ),
+      );
+
+      expect(tester.takeException(), isNull);
+      expect(find.byIcon(Icons.share_outlined), findsOneWidget);
+    });
+
+    testWidgets('is hidden when there is nothing to share', (
+      WidgetTester tester,
+    ) async {
+      await _pumpAt(
+        tester,
+        _phone,
+        const DetailsImageGallery(images: _images, venueId: 7),
+      );
+
+      expect(tester.takeException(), isNull);
+      expect(find.byIcon(Icons.share_outlined), findsNothing);
+    });
+  });
 }

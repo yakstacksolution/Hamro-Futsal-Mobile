@@ -28,7 +28,7 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   debugPrint('FCM background message: ${message.messageId}');
 
   if (message.notification != null ||
-      !isSupportedNotificationType(message.data['type']?.toString())) {
+      !isSupportedNotificationPayload(message.data)) {
     return;
   }
 
@@ -116,6 +116,12 @@ class FcmHelper {
   String? _lastPushedToken;
 
   bool _initialized = false;
+  // The launch notification is read from three places (Firebase's initial
+  // message, the local-notifications launch details, the Android intent), and
+  // each keeps returning the same value for the life of the process. Opening
+  // the app again would otherwise navigate as if the user had tapped, so the
+  // launch is handled once and later reads are dropped.
+  bool _launchNotificationHandled = false;
 
   Future<void> init() async {
     if (_initialized) return;
@@ -166,18 +172,29 @@ class FcmHelper {
     _initialized = true;
     try {
       final initialMessage = await _messaging.getInitialMessage();
-      if (initialMessage != null) {
+      if (initialMessage != null && _takeLaunchSlot()) {
         _handleNotificationTap(initialMessage);
       }
       if (Platform.isAndroid) {
         final nativeData = await _nativeNavigationChannel.invokeMethod<Object?>(
           'getLaunchNotification',
         );
-        _handleNativeNotificationData(nativeData);
+        if (nativeData != null && _takeLaunchSlot()) {
+          _handleNativeNotificationData(nativeData);
+        }
       }
     } catch (error) {
       debugPrint('FCM initial message failed: $error');
     }
+  }
+
+  /// True the first time a launch notification is claimed; false afterwards,
+  /// so the same launch is not replayed by another source or a later init.
+  /// Taps that arrive while the app runs do not go through this.
+  bool _takeLaunchSlot() {
+    if (_launchNotificationHandled) return false;
+    _launchNotificationHandled = true;
+    return true;
   }
 
   Future<void> _initializeLocalNotifications() async {
@@ -204,7 +221,8 @@ class FcmHelper {
 
     final launchDetails = await _localNotifications
         .getNotificationAppLaunchDetails();
-    if (launchDetails?.didNotificationLaunchApp ?? false) {
+    if ((launchDetails?.didNotificationLaunchApp ?? false) &&
+        _takeLaunchSlot()) {
       _handleLocalNotificationPayload(
         launchDetails?.notificationResponse?.payload,
       );
@@ -226,7 +244,7 @@ class FcmHelper {
   Future<void> _handleForegroundMessage(RemoteMessage message) async {
     if (!Platform.isAndroid) return;
 
-    if (!isSupportedNotificationType(message.data['type']?.toString()) &&
+    if (!isSupportedNotificationPayload(message.data) &&
         message.notification == null) {
       debugPrint('Ignoring unsupported FCM data message: ${message.data}');
       return;

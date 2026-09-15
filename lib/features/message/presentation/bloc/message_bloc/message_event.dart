@@ -13,13 +13,20 @@ final class LoadConversationsEvent extends MessageEvent {
     this.silent = false,
     this.archived = false,
     this.loadMore = false,
+    this.force = false,
   });
   final bool silent;
   final bool archived;
   final bool loadMore;
 
+  /// Bypasses the short refresh throttle. Set it for loads the user asked for
+  /// directly — pull-to-refresh, a retry tap, a filter switch — so they are
+  /// never swallowed; leave it off for background polling and lifecycle
+  /// refreshes, which is what kept hitting `/conversations` repeatedly.
+  final bool force;
+
   @override
-  List<Object?> get props => [silent, archived, loadMore];
+  List<Object?> get props => [silent, archived, loadMore, force];
 }
 
 /// Opens a conversation: loads its messages and subscribes to its
@@ -77,14 +84,29 @@ final class ClearCreatedGroupEvent extends MessageEvent {
 }
 
 /// Renames a group.
-final class RenameGroupConversationEvent extends MessageEvent {
-  const RenameGroupConversationEvent(this.conversationId, this.title);
+/// Edits a group: its name, its picture, or both. At least one must be given.
+final class UpdateGroupConversationEvent extends MessageEvent {
+  const UpdateGroupConversationEvent(
+    this.conversationId, {
+    this.title,
+    this.mediaId,
+    this.imageUrl,
+  });
 
   final int conversationId;
-  final String title;
+
+  /// The new name, or null to leave it as it is.
+  final String? title;
+
+  /// The new picture, as a media library id. Null leaves it as it is.
+  final int? mediaId;
+
+  /// The picked image's URL, used to show the new picture immediately rather
+  /// than waiting for the server to echo it back.
+  final String? imageUrl;
 
   @override
-  List<Object?> get props => [conversationId, title];
+  List<Object?> get props => [conversationId, title, mediaId, imageUrl];
 }
 
 /// Answers a group invitation from the inbox. Accepting joins the thread and

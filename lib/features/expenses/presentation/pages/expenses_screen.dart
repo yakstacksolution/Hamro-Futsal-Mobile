@@ -1,3 +1,4 @@
+import 'package:hamro_futsal/core/utils/bloc_safe_add.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
@@ -52,8 +53,9 @@ class _ExpensesViewState extends State<_ExpensesView>
   /// Cash / Online (null = all). Server-side `payment_method` filter.
   PaymentMethod? _paymentMethod;
 
-  /// Selected server category id (from `/expense-categories`). Applied
-  /// client-side to the Records list — the API has no category filter.
+  /// Selected server category id (from `/expense-categories`). Sent as
+  /// `expense_category_id` like every other chip, so the summary, analytics
+  /// and records all move together.
   String? _categoryFilter;
   DateTimeRange? _customRange;
 
@@ -66,6 +68,7 @@ class _ExpensesViewState extends State<_ExpensesView>
           ? (start: _customRange!.start, end: _customRange!.end)
           : null,
       venueId: _venueId,
+      categoryId: _categoryFilter,
       paymentMethod: _paymentMethod,
     );
     // Silent: keep the chips and current data on screen while the server
@@ -202,8 +205,10 @@ class _ExpensesViewState extends State<_ExpensesView>
     final range = _resolvedRange();
     final report = state.report;
 
-    // Category is the only client-side filter (the API has no category
-    // param): it narrows the Records list and highlights the breakdown.
+    // The category is part of the server query now, so these records are
+    // already scoped. The local pass stays as a safety net — it is a no-op
+    // against a server that honoured the param, and keeps the list correct
+    // against one that ignored it.
     final records = _categoryFilter == null
         ? state.expenses
         : state.expenses.where((e) => e.categoryId == _categoryFilter).toList();
@@ -259,7 +264,10 @@ class _ExpensesViewState extends State<_ExpensesView>
               ExpenseCategoryFilterRow(
                 categories: state.categories,
                 selected: _categoryFilter,
-                onChange: (c) => setState(() => _categoryFilter = c),
+                onChange: (c) {
+                  setState(() => _categoryFilter = c);
+                  _applyFilter();
+                },
               ),
             ],
           ),
@@ -314,7 +322,10 @@ class _ExpensesViewState extends State<_ExpensesView>
                 child: ExpenseAnalyticsTab(
                   report: report,
                   selectedCategory: _categoryFilter,
-                  onSelectCategory: (c) => setState(() => _categoryFilter = c),
+                  onSelectCategory: (c) {
+                    setState(() => _categoryFilter = c);
+                    _applyFilter();
+                  },
                 ),
               ),
               _fadeOnRefresh(
@@ -393,7 +404,7 @@ class _ExpensesViewState extends State<_ExpensesView>
       ),
     );
     if (created == null || !mounted) return;
-    bloc.add(AddExpenseEvent(created));
+    bloc.addIfOpen(AddExpenseEvent(created));
     AppUtils().showSnackBar(
       context,
       MsgType.success,
@@ -471,7 +482,7 @@ class _ExpensesViewState extends State<_ExpensesView>
       ),
     );
     if (updated == null || !mounted) return;
-    bloc.add(UpdateExpenseEvent(expense.id, updated));
+    bloc.addIfOpen(UpdateExpenseEvent(expense.id, updated));
     AppUtils().showSnackBar(
       context,
       MsgType.success,

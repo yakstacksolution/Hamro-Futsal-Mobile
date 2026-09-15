@@ -8,6 +8,7 @@ import 'package:hamro_futsal/features/message/data/model/chat_send_request.dart'
 import 'package:hamro_futsal/features/message/data/model/conversation_model.dart';
 import 'package:hamro_futsal/features/message/data/model/conversation_page_model.dart';
 import 'package:hamro_futsal/features/message/data/model/message_profile_model.dart';
+import 'package:hamro_futsal/features/message/data/model/registered_user_page_model.dart';
 
 abstract class MessageRepository {
   int get currentUserId;
@@ -16,6 +17,11 @@ abstract class MessageRepository {
     bool archived = false,
     required int page,
     required int perPage,
+  });
+  Future<Either<AppException, RegisteredUserPageModel>> getRegisteredUsers({
+    required int page,
+    required int perPage,
+    String search,
   });
   Future<Either<AppException, ConversationModel>> startDirectConversation({
     int? vendorId,
@@ -60,12 +66,13 @@ abstract class MessageRepository {
   );
   Future<Either<AppException, bool>> setMuted(int conversationId, bool muted);
 
-  /// Renames a group. The updated conversation when the server echoes it back,
-  /// null when it only acknowledges the change.
-  Future<Either<AppException, ConversationModel?>> updateConversationTitle(
-    int conversationId,
-    String title,
-  );
+  /// Edits a group's name, its picture, or both. The updated conversation when
+  /// the server echoes it back, null when it only acknowledges the change.
+  Future<Either<AppException, ConversationModel?>> updateConversation(
+    int conversationId, {
+    String? title,
+    int? mediaId,
+  });
 
   /// Leaves a group; true once the server has dropped the caller from it.
   Future<Either<AppException, bool>> leaveConversation(int conversationId);

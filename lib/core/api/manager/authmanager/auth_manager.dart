@@ -118,6 +118,10 @@ class AuthManager extends ServiceManager {
     return await _apiClient.forgotPassword(data: data);
   }
 
+  Future<Result> resetPassword(data) async {
+    return await _apiClient.resetPassword(data: data);
+  }
+
   Future<Result> changePassword(data) async {
     return await _apiClient.changePassword(data: data);
   }
@@ -334,6 +338,18 @@ class AuthManager extends ServiceManager {
     );
   }
 
+  Future<Result> getRegisteredUsers({
+    required int page,
+    required int perPage,
+    String search = '',
+  }) async {
+    return await _apiClient.getRegisteredUsers(
+      page: page,
+      perPage: perPage,
+      search: search,
+    );
+  }
+
   Future<Result> startDirectConversation(Map<String, dynamic> data) async {
     return await _apiClient.startDirectConversation(data: data);
   }
@@ -342,13 +358,10 @@ class AuthManager extends ServiceManager {
     return await _apiClient.createGroupConversation(data: data);
   }
 
-  Future<Result> updateConversationTitle(
-    int conversationId,
-    String title,
-  ) async {
-    return await _apiClient.updateConversationTitle(
+  Future<Result> updateConversation(int conversationId, dynamic data) async {
+    return await _apiClient.updateConversation(
       conversationId: conversationId,
-      title: title,
+      data: data,
     );
   }
 
@@ -489,8 +502,8 @@ class AuthManager extends ServiceManager {
     );
   }
 
-  Future<Result> getVenueDescription(int venueId) async {
-    return await _apiClient.getVenueDescription(venueId: venueId);
+  Future<Result> getVenueDescription(String venueSlug) async {
+    return await _apiClient.getVenueDescription(venueSlug: venueSlug);
   }
 
   Future<Result> getVenueAmenitiesFacilities(int venueId) async {
@@ -568,8 +581,13 @@ class AuthManager extends ServiceManager {
   Future<Result> getVenueCourt({
     required int page,
     required int perPage,
+    required String purpose,
   }) async {
-    return await _apiClient.getVenueCourt(page: page, perPage: perPage);
+    return await _apiClient.getVenueCourt(
+      page: page,
+      perPage: perPage,
+      purpose: purpose,
+    );
   }
 
   Future<Result> getVenueCourtByVenueId(int venueId) async {
@@ -606,8 +624,8 @@ class AuthManager extends ServiceManager {
     return await _apiClient.getPublicTemplates();
   }
 
-  Future<Result> fetchVendorOnboardingFutsal(int venueId) async {
-    return await _apiClient.fetchVendorOnboardingFutsal(venueId: venueId);
+  Future<Result> fetchVendorOnboardingFutsal(String venueSlug) async {
+    return await _apiClient.fetchVendorOnboardingFutsal(venueSlug: venueSlug);
   }
 
   Future<Result> submitVendorOnboardingFutsal(data) async {
@@ -644,16 +662,8 @@ class AuthManager extends ServiceManager {
     );
   }
 
-  Future<Result> getMyBookings({
-    required int page,
-    required int perPage,
-    String? status,
-  }) async {
-    return await _apiClient.getMyBookings(
-      page: page,
-      perPage: perPage,
-      status: status,
-    );
+  Future<Result> getMyBookings({required Map<String, dynamic> query}) async {
+    return await _apiClient.getMyBookings(query: query);
   }
 
   Future<Result> getBookingDetails(int bookingId) async {
@@ -661,15 +671,9 @@ class AuthManager extends ServiceManager {
   }
 
   Future<Result> getFutsalBookings({
-    required int page,
-    required int perPage,
-    String? status,
+    required Map<String, dynamic> query,
   }) async {
-    return await _apiClient.getFutsalBookings(
-      page: page,
-      perPage: perPage,
-      status: status,
-    );
+    return await _apiClient.getFutsalBookings(query: query);
   }
 
   Future<Result> getBookingOverview({Map<String, dynamic>? query}) async {

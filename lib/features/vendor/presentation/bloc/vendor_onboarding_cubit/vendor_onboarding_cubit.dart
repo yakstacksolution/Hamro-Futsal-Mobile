@@ -72,8 +72,40 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
 
   int get currentSubstepIndex => state.cursor.subsectionIndex;
 
-  bool get canAccessCourtCategory =>
-      VendorOnboardingValidator.canUnlockCourts(state.futsal);
+  /// Whether the Court tab may be opened yet.
+  ///
+  /// A court is created against a saved futsal (`futsal_id`), so the venue has
+  /// to exist on the server and have every futsal substep filled in before the
+  /// court side of the wizard means anything. A venue that already carries
+  /// courts is past this point by definition.
+  bool get canAccessCourtCategory {
+    if (state.courts.isNotEmpty) return true;
+    if (state.remoteFutsalId == null) return false;
+    for (
+      int sectionIndex = 0;
+      sectionIndex < futsalSectionDefinitions.length;
+      sectionIndex++
+    ) {
+      final int substepCount =
+          futsalSectionDefinitions[sectionIndex].substeps.length;
+      for (
+        int subsectionIndex = 0;
+        subsectionIndex < substepCount;
+        subsectionIndex++
+      ) {
+        if (futsalSubstepStatus(sectionIndex, subsectionIndex) !=
+            StepStatus.complete) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  /// Why the Court tab is locked, for the message shown when it is tapped.
+  String get courtCategoryLockReason => state.remoteFutsalId == null
+      ? 'Create your futsal venue first — courts are added to a saved venue.'
+      : 'Finish every futsal step before setting up courts.';
 
   bool get isCourtEditorVisible =>
       !state.isInCourtCategory || state.activeCourt != null;
@@ -265,7 +297,7 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     emit(state.copyWith(isRestoringDraft: false));
   }
 
-  Future<void> fetchVendorOnboarding(int futsalId) async {
+  Future<void> fetchVendorOnboarding(String venueSlug, {int? futsalId}) async {
     emit(
       state.copyWith(
         isRestoringDraft: true,
@@ -275,7 +307,7 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     );
 
     final Either<AppException, VendorOnboardingResponseModel> response =
-        await _onboardingUseCase.fetchVendorOnboardingFutsal(futsalId);
+        await _onboardingUseCase.fetchVendorOnboardingFutsal(venueSlug);
 
     response.fold(
       (AppException failure) {
@@ -319,7 +351,17 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     );
   }
 
-  void selectCategory(VendorCategory category) {
+  void selectCategory(VendorCategory category, {bool force = false}) {
+    if (category == VendorCategory.court && !force && !canAccessCourtCategory) {
+      emit(
+        state.copyWith(
+          errorMessage: courtCategoryLockReason,
+          errorOrigin: VendorErrorOrigin.validation,
+        ),
+      );
+      return;
+    }
+
     if (category == VendorCategory.futsal) {
       final SectionPointer pointer = state.futsalPointer;
       emit(
@@ -455,7 +497,7 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     }
 
     if (!state.isInCourtCategory) {
-      selectCategory(VendorCategory.court);
+      selectCategory(VendorCategory.court, force: true);
       await _saveDraft(showSavingState: false);
       return null;
     }
@@ -715,12 +757,10 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
   void toggleCourtOnlineBooking(bool value) {
     final CourtDraft? court = state.activeCourt;
     if (court == null) return;
-    updateActiveCourt(
-      court.copyWith(
-        enableOnlineBooking: value,
-        advancePaymentRequired: value ? court.advancePaymentRequired : false,
-      ),
-    );
+    // The advance flag is not cleared with online booking: it always submits
+    // as true, and clearing it here let the QR requirement in
+    // [VendorOnboardingValidator] fall away for a court that still takes one.
+    updateActiveCourt(court.copyWith(enableOnlineBooking: value));
   }
 
   void toggleCourtAdvancePayment(bool value) {

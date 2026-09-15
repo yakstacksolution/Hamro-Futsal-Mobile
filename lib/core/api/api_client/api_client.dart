@@ -97,6 +97,12 @@ class ApiClient {
     return _post(url: '$_baseUrl/auth/forgot-password', data: data);
   }
 
+  /// Completes the forgot-password flow: the emailed OTP plus the new
+  /// password. Unauthenticated, and whitelisted in [SessionGate].
+  Future<Result> resetPassword({required Map<String, dynamic> data}) {
+    return _post(url: '$_baseUrl/auth/reset-password', data: data);
+  }
+
   Future<Result> changePassword({required Map<String, dynamic> data}) {
     return _post(url: '$_baseUrl/auth/change-password', data: data);
   }
@@ -344,6 +350,21 @@ class ApiClient {
     );
   }
 
+  Future<Result> getRegisteredUsers({
+    required int page,
+    required int perPage,
+    String search = '',
+  }) {
+    return _get(
+      url: '$_baseUrl/auth/register-user',
+      query: <String, dynamic>{
+        'page': page,
+        'per_page': perPage,
+        if (search.trim().isNotEmpty) 'search': search.trim(),
+      },
+    );
+  }
+
   Future<Result> startDirectConversation({required Map<String, dynamic> data}) {
     return _post(url: '$_baseUrl/conversations/direct', data: data);
   }
@@ -362,14 +383,15 @@ class ApiClient {
     );
   }
 
-  /// Renaming a group. The server returns the updated conversation.
-  Future<Result> updateConversationTitle({
+  /// Editing a group: its name (`title`), its picture (`image_id`), or both.
+  /// The server returns the updated conversation.
+  Future<Result> updateConversation({
     required int conversationId,
-    required String title,
+    required dynamic data,
   }) {
-    return _patch(
-      url: '$_baseUrl/conversations/$conversationId/title',
-      data: <String, dynamic>{'title': title},
+    return _post(
+      url: '$_baseUrl/conversations/$conversationId/update',
+      data: data,
     );
   }
 
@@ -515,8 +537,12 @@ class ApiClient {
     );
   }
 
-  Future<Result> getVenueDescription({required int venueId}) {
-    return _get(url: '$_baseUrl/venue-description/$venueId');
+  /// Addressed by the venue's slug, not its id — the slug is the venue's
+  /// public identifier, and it is what a shared link carries.
+  Future<Result> getVenueDescription({required String venueSlug}) {
+    return _get(
+      url: '$_baseUrl/venue-description/${Uri.encodeComponent(venueSlug)}',
+    );
   }
 
   Future<Result> getVenueAmenitiesFacilities({required int venueId}) {
@@ -610,10 +636,21 @@ class ApiClient {
     );
   }
 
-  Future<Result> getVenueCourt({required int page, required int perPage}) {
+  /// [purpose] tells the server which shape of the venue list is wanted —
+  /// `booking` for a form that has to take a booking, `my_venues` for the
+  /// vendor's own portfolio. See `VenueCourtPurpose`.
+  Future<Result> getVenueCourt({
+    required int page,
+    required int perPage,
+    required String purpose,
+  }) {
     return _get(
       url: '$_baseUrl/auth/get-venue-courts',
-      query: <String, dynamic>{'page': page, 'per_page': perPage},
+      query: <String, dynamic>{
+        'page': page,
+        'per_page': perPage,
+        'purpose': purpose,
+      },
     );
   }
 
@@ -656,8 +693,10 @@ class ApiClient {
     return _get(url: '$_baseUrl/auth/templates');
   }
 
-  Future<Result> fetchVendorOnboardingFutsal({required int venueId}) {
-    return _get(url: '$_baseUrl/auth/get-venue/$venueId');
+  Future<Result> fetchVendorOnboardingFutsal({required String venueSlug}) {
+    return _get(
+      url: '$_baseUrl/auth/get-venue/${Uri.encodeComponent(venueSlug)}',
+    );
   }
 
   Future<Result> submitVendorOnboardingFutsal({
@@ -713,19 +752,12 @@ class ApiClient {
   /// `completed`, `cancelled` or `rejected`. Filtering on the server rather
   /// than over the page in hand: a status filtered on-device only ever sees
   /// the rows already fetched, so it hid matches sitting on later pages.
-  Future<Result> getMyBookings({
-    required int page,
-    required int perPage,
-    String? status,
-  }) {
-    return _get(
-      url: '$_baseUrl/bookings',
-      query: <String, dynamic>{
-        'page': page,
-        'per_page': perPage,
-        if (status != null && status.trim().isNotEmpty) 'status': status.trim(),
-      },
-    );
+  /// [query] is the whole payload, built by `BookingListQuery` — page,
+  /// per_page, status, the date window and the sort order. Passed through
+  /// rather than reassembled here so the two booking endpoints cannot drift
+  /// apart, and so the contract is testable without a socket.
+  Future<Result> getMyBookings({required Map<String, dynamic> query}) {
+    return _get(url: '$_baseUrl/bookings', query: query);
   }
 
   Future<Result> getBookingDetails({required int bookingId}) {
@@ -733,19 +765,9 @@ class ApiClient {
   }
 
   /// Same `status` filter as [getMyBookings].
-  Future<Result> getFutsalBookings({
-    required int page,
-    required int perPage,
-    String? status,
-  }) {
-    return _get(
-      url: '$_baseUrl/futsal-bookings',
-      query: <String, dynamic>{
-        'page': page,
-        'per_page': perPage,
-        if (status != null && status.trim().isNotEmpty) 'status': status.trim(),
-      },
-    );
+  /// Same payload as [getMyBookings].
+  Future<Result> getFutsalBookings({required Map<String, dynamic> query}) {
+    return _get(url: '$_baseUrl/futsal-bookings', query: query);
   }
 
   /// Aggregated booking analytics. All filter params are optional — omit the

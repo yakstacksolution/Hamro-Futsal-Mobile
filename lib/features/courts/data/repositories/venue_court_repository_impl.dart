@@ -5,6 +5,7 @@ import 'package:hamro_futsal/core/helper/response_helper.dart';
 import 'package:hamro_futsal/features/courts/data/data_source/venue_court_data_source.dart';
 import 'package:hamro_futsal/features/courts/data/model/venue_court_model.dart';
 import 'package:hamro_futsal/features/courts/data/model/venue_court_page_model.dart';
+import 'package:hamro_futsal/features/courts/domain/model/venue_court_purpose.dart';
 import 'package:hamro_futsal/features/courts/domain/repository/venue_court_repository.dart';
 import 'package:hamro_futsal/features/vendor/presentation/models/vendor_onboarding_drafts.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
@@ -19,10 +20,12 @@ final class VenueCourtRepositoryImpl implements VenueCourtRepository {
   Future<Either<AppException, VenueCourtPageModel>> getVenueCourt({
     required int page,
     required int perPage,
+    required VenueCourtPurpose purpose,
   }) async {
     final response = await _remoteDataSource.getVenueCourt(
       page: page,
       perPage: perPage,
+      purpose: purpose,
     );
     if (response.isError()) {
       return left(ResponseHelper.error(response));

@@ -21,6 +21,7 @@ import 'package:hamro_futsal/features/dashboard/presentation/widgets/venue_statu
 import 'package:hamro_futsal/features/public/data/model/public_venue_model.dart';
 import 'package:hamro_futsal/features/public/data/repositories/public_repository_impl.dart';
 import 'package:hamro_futsal/features/public/domain/usecase/get_public_venues_use_case.dart';
+import 'package:hamro_futsal/features/public/presentation/bloc/category_filter/category_filter_bloc.dart';
 import 'package:hamro_futsal/features/public/presentation/bloc/public_venue/public_venue_bloc.dart';
 import 'package:hamro_futsal/features/profile/presentation/profile_bloc/profile_bloc.dart';
 import 'package:hamro_futsal/features/public/presentation/models/venue_filter.dart';
@@ -68,21 +69,51 @@ class _CourtsListScreenState extends State<CourtsListScreen>
 
     _publicVenueBloc = PublicVenueBloc(
       GetPublicVenuesUseCase(PublicRepositoryImpl()),
-    )..add(FetchPublicVenuesEvent(filter: widget.filter));
+    );
     _scrollController.addListener(_onScroll);
 
     DashboardScreen.selectedNavIndex.addListener(_retryFailedFetchOnTabVisible);
 
-    // Resolve the device position early: `GET /venues` carries it as
-    // latitude/longitude, and the server computes `distance_km` from it.
-    DeviceLocationHelper.instance.ensurePosition();
     DeviceLocationHelper.instance.position.addListener(_onPositionChanged);
+    _fetchFirstPage();
   }
+
+  /// How long the first request waits for a location fix before going out
+  /// without one.
+  ///
+  /// Firing immediately means the listing comes back with no `distance_km`,
+  /// and the fix that lands a moment later re-queries it — the user sees the
+  /// home page load twice. A cached fix resolves in milliseconds, so a short
+  /// wait usually collapses those two requests into one; a cold GPS start
+  /// falls through to the original behaviour rather than holding the screen.
+  static const Duration _originWait = Duration(milliseconds: 1200);
+
+  /// Loads the first page, giving the device position a brief head start.
+  Future<void> _fetchFirstPage() async {
+    // `GET /venues` carries the position as latitude/longitude, and the server
+    // computes `distance_km` from it.
+    await DeviceLocationHelper.instance.ensurePosition().timeout(
+      _originWait,
+      onTimeout: () {},
+    );
+    if (!mounted) return;
+    _firstPageRequested = true;
+    _publicVenueBloc.add(FetchPublicVenuesEvent(filter: widget.filter));
+  }
+
+  /// Whether the initial fetch has been dispatched. A fix arriving while the
+  /// wait above is still running must not queue a fetch of its own — the
+  /// pending initial one already picks that fix up.
+  bool _firstPageRequested = false;
 
   void _retryFailedFetchOnTabVisible() {
     if (!mounted || DashboardScreen.selectedNavIndex.value != 0) return;
     if (_publicVenueBloc.state.status == PublicVenueStatus.failure) {
-      _publicVenueBloc.add(FetchPublicVenuesEvent(filter: widget.filter));
+      _reloadHomeData();
+    } else if (context.read<CategoryFilterBloc>().state.status ==
+        CategoryFilterStatus.failure) {
+      // The list can succeed while the strip did not — retry it on its own.
+      context.read<CategoryFilterBloc>().add(const FetchCategoryFilterEvent());
     }
   }
 
@@ -141,15 +172,26 @@ class _CourtsListScreenState extends State<CourtsListScreen>
   /// `distance_km` on the cards. Only the first fix triggers this — later
   /// updates would silently reset the user's scroll position.
   void _onPositionChanged() {
-    if (!mounted) return;
+    if (!mounted || !_firstPageRequested) return;
     if (DeviceLocationHelper.instance.position.value == null) return;
     if (_publicVenueBloc.state.hasOrigin) return;
     _publicVenueBloc.add(FetchPublicVenuesEvent(filter: widget.filter));
   }
 
+  /// Refetches the venue list and the header's category filters.
+  ///
+  /// The strip is its own request, and it fails with the list when there is no
+  /// connection — so anything that retries the list has to retry the strip
+  /// too, or the filters stay missing on a screen that otherwise recovered.
+  void _reloadHomeData() {
+    _publicVenueBloc.add(FetchPublicVenuesEvent(filter: widget.filter));
+    if (!mounted) return;
+    context.read<CategoryFilterBloc>().add(const FetchCategoryFilterEvent());
+  }
+
   Future<void> _refresh() async {
     context.read<ProfileBloc>().add(const FetchProfileEvent());
-    _publicVenueBloc.add(FetchPublicVenuesEvent(filter: widget.filter));
+    _reloadHomeData();
     await _publicVenueBloc.stream.firstWhere(
       (PublicVenueState state) => state.status != PublicVenueStatus.loading,
     );
@@ -233,9 +275,7 @@ class _CourtsListScreenState extends State<CourtsListScreen>
                     state.errorMessage ??
                     'Please check your connection and try again.',
                 actionLabel: 'Retry',
-                onAction: () => _publicVenueBloc.add(
-                  FetchPublicVenuesEvent(filter: widget.filter),
-                ),
+                onAction: _reloadHomeData,
               ),
             ),
           ),
@@ -614,15 +654,32 @@ class _CourtCardState extends State<CourtCard> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    widget.publicListingVenueModel.name ?? '',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: textTheme.bodyTextLarge?.copyWith(
-                      color: LightColor.primaryTextColor,
-                      fontWeight: FontWeight.w700,
-                      fontSize: wide ? AppDimens.fontHeadingSubTitle : null,
-                    ),
+                  // The badge sits beside the name, not in the title Text:
+                  // Flexible + ellipsis on the name means a long one truncates
+                  // and the badge stays visible, instead of the row overflowing.
+                  Row(
+                    children: <Widget>[
+                      Flexible(
+                        child: Text(
+                          widget.publicListingVenueModel.name ?? '',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: textTheme.bodyTextLarge?.copyWith(
+                            color: LightColor.primaryTextColor,
+                            fontWeight: FontWeight.w700,
+                            fontSize: wide
+                                ? AppDimens.fontHeadingSubTitle
+                                : null,
+                          ),
+                        ),
+                      ),
+                      if (widget
+                          .publicListingVenueModel
+                          .isVerified) ...<Widget>[
+                        const SizedBox(width: AppDimens.sizeX4),
+                        _VerifiedBadge(wide: wide),
+                      ],
+                    ],
                   ),
                   SizedBox(height: wide ? AppDimens.sizeX8 : AppDimens.sizeX6),
 
@@ -739,6 +796,30 @@ class _CourtCardState extends State<CourtCard> {
 ///
 /// Split out of [CourtCard] so a wishlist change repaints this 36px chip
 /// instead of rebuilding the whole card subtree.
+/// The "verified by Hamro Futsal" mark shown after a venue's name.
+///
+/// Icon only: the cards are dense, and a labelled chip would push the name into
+/// an ellipsis on a phone. The meaning is carried for screen readers by the
+/// semantics label and for sighted users by the tooltip.
+class _VerifiedBadge extends StatelessWidget {
+  const _VerifiedBadge({required this.wide});
+
+  final bool wide;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: StringConstants.verifiedVenue,
+      child: Icon(
+        Icons.verified_rounded,
+        size: wide ? AppDimens.sizeX18 : AppDimens.sizeX16,
+        color: LightColor.secondaryColor,
+        semanticLabel: StringConstants.verifiedVenue,
+      ),
+    );
+  }
+}
+
 class _WishlistButton extends StatelessWidget {
   const _WishlistButton({required this.venueId, required this.onTap});
 

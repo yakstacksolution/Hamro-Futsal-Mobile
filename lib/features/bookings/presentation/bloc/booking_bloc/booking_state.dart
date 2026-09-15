@@ -137,6 +137,10 @@ final class BookingState extends Equatable {
     this.mySelectedFilter = BookingStatusFilter.all,
     this.futsalLists = const <BookingStatusFilter, BookingListSlice>{},
     this.futsalSelectedFilter = BookingStatusFilter.all,
+    this.myDateFilter = const BookingDateFilter.all(),
+    this.futsalDateFilter = const BookingDateFilter.all(),
+    this.myOrder = BookingDateOrder.descending,
+    this.futsalOrder = BookingDateOrder.descending,
     this.refreshTick = 0,
   });
 
@@ -147,6 +151,16 @@ final class BookingState extends Equatable {
   final BookingStatusFilter mySelectedFilter;
   final Map<BookingStatusFilter, BookingListSlice> futsalLists;
   final BookingStatusFilter futsalSelectedFilter;
+
+  /// The date window and order each list is currently asking the server for.
+  ///
+  /// These are part of the request, not a view over the rows, so they belong
+  /// in state: a load-more has to repeat the window its first page used, or
+  /// page 2 would come from a different query than page 1.
+  final BookingDateFilter myDateFilter;
+  final BookingDateFilter futsalDateFilter;
+  final BookingDateOrder myOrder;
+  final BookingDateOrder futsalOrder;
 
   /// Bumped on every completed fetch so a (silent) refresh that returns
   /// identical data still emits a distinct state — otherwise Equatable would
@@ -209,6 +223,10 @@ final class BookingState extends Equatable {
     BookingStatusFilter? mySelectedFilter,
     Map<BookingStatusFilter, BookingListSlice>? futsalLists,
     BookingStatusFilter? futsalSelectedFilter,
+    BookingDateFilter? myDateFilter,
+    BookingDateFilter? futsalDateFilter,
+    BookingDateOrder? myOrder,
+    BookingDateOrder? futsalOrder,
     int? refreshTick,
   }) {
     return BookingState(
@@ -216,6 +234,10 @@ final class BookingState extends Equatable {
       mySelectedFilter: mySelectedFilter ?? this.mySelectedFilter,
       futsalLists: futsalLists ?? this.futsalLists,
       futsalSelectedFilter: futsalSelectedFilter ?? this.futsalSelectedFilter,
+      myDateFilter: myDateFilter ?? this.myDateFilter,
+      futsalDateFilter: futsalDateFilter ?? this.futsalDateFilter,
+      myOrder: myOrder ?? this.myOrder,
+      futsalOrder: futsalOrder ?? this.futsalOrder,
       refreshTick: refreshTick ?? this.refreshTick,
     );
   }
@@ -226,6 +248,10 @@ final class BookingState extends Equatable {
     mySelectedFilter,
     futsalLists,
     futsalSelectedFilter,
+    myDateFilter,
+    futsalDateFilter,
+    myOrder,
+    futsalOrder,
     refreshTick,
   ];
 }

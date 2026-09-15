@@ -9,11 +9,16 @@ import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 enum _TeamAction { edit, delete }
 
-/// One team with its roster.
+/// One team with its roster, collapsible.
 ///
-/// Header (initials avatar, name, roster mix, options menu) · flat
-/// divider-separated player rows · full-width "Add Player" footer action.
-class OpponentTeamCard extends StatelessWidget {
+/// Header (initials avatar, name, roster mix, expand chevron, options menu) ·
+/// flat divider-separated player rows · full-width "Add Player" footer action.
+///
+/// The roster collapses because a captain with several teams of a dozen
+/// players each otherwise scrolls past hundreds of rows to reach the next
+/// team. Collapsed, every team is one header line, and the summary under the
+/// name ("11 players · 1 GK · 4 DEF") still says what is inside.
+class OpponentTeamCard extends StatefulWidget {
   const OpponentTeamCard({
     super.key,
     required this.team,
@@ -22,6 +27,7 @@ class OpponentTeamCard extends StatelessWidget {
     required this.onEditPlayer,
     required this.onEditTeam,
     required this.onDeleteTeam,
+    this.initiallyExpanded = true,
   });
 
   final TeamModel team;
@@ -35,11 +41,29 @@ class OpponentTeamCard extends StatelessWidget {
   final VoidCallback onEditTeam;
   final VoidCallback onDeleteTeam;
 
+  /// Whether the roster starts open. The list opens a lone team and keeps the
+  /// rest closed, so one team behaves exactly as it did before.
+  final bool initiallyExpanded;
+
+  @override
+  State<OpponentTeamCard> createState() => _OpponentTeamCardState();
+}
+
+class _OpponentTeamCardState extends State<OpponentTeamCard> {
+  late bool _expanded = widget.initiallyExpanded;
+
+  void _toggle() => setState(() => _expanded = !_expanded);
+
   @override
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
+    final TeamModel team = widget.team;
     final count = team.players.length;
     final mix = team.positionSummary;
+    // Nothing to hide behind a chevron until there is a roster; an empty team
+    // shows its hint instead.
+    final bool canCollapse = count > 0;
+    final bool showRoster = !canCollapse || _expanded;
 
     return OpponentCard(
       padding: EdgeInsets.zero,
@@ -47,99 +71,124 @@ class OpponentTeamCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // ── Header ──
-          Padding(
-            padding: const EdgeInsets.all(AppDimens.paddingX14),
-            child: Row(
-              children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        LightColor.secondaryColor.withValues(alpha: 0.18),
-                        LightColor.secondaryColor.withValues(alpha: 0.06),
+          InkWell(
+            onTap: canCollapse ? _toggle : null,
+            borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(AppDimens.radiusX14),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(AppDimens.paddingX14),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          LightColor.secondaryColor.withValues(alpha: 0.18),
+                          LightColor.secondaryColor.withValues(alpha: 0.06),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(AppDimens.radiusX12),
+                      border: Border.all(
+                        color: LightColor.secondaryColor.withValues(
+                          alpha: 0.12,
+                        ),
+                      ),
+                    ),
+                    child: Text(
+                      team.initials,
+                      style: textTheme.bodyTextMedium?.copyWith(
+                        color: LightColor.secondaryColor,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: AppDimens.paddingX12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          team.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: textTheme.bodyTextMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: LightColor.primaryTextColor,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          count == 0
+                              ? 'No players yet'
+                              : '$count ${count == 1 ? 'player' : 'players'}'
+                                    '${mix.isEmpty ? '' : ' · $mix'}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: textTheme.bodyTextSmall?.copyWith(
+                            color: LightColor.hintTextColor,
+                            fontSize: AppDimens.fontBodySubTitle,
+                          ),
+                        ),
                       ],
                     ),
-                    borderRadius: BorderRadius.circular(AppDimens.radiusX12),
-                    border: Border.all(
-                      color: LightColor.secondaryColor.withValues(alpha: 0.12),
-                    ),
                   ),
-                  child: Text(
-                    team.initials,
-                    style: textTheme.bodyTextMedium?.copyWith(
-                      color: LightColor.secondaryColor,
-                      fontWeight: FontWeight.w800,
-                    ),
+                  if (canCollapse)
+                    _RosterChevron(expanded: _expanded, onTap: _toggle),
+                  _CardOptionsMenu(
+                    tooltip: StringConstants.teamOptions,
+                    onUpdate: widget.onEditTeam,
+                    onDelete: widget.onDeleteTeam,
                   ),
-                ),
-                const SizedBox(width: AppDimens.paddingX12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        team.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: textTheme.bodyTextMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: LightColor.primaryTextColor,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        count == 0
-                            ? 'No players yet'
-                            : '$count ${count == 1 ? 'player' : 'players'}'
-                                  '${mix.isEmpty ? '' : ' · $mix'}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: textTheme.bodyTextSmall?.copyWith(
-                          color: LightColor.hintTextColor,
-                          fontSize: AppDimens.fontBodySubTitle,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                _CardOptionsMenu(
-                  tooltip: StringConstants.teamOptions,
-                  onUpdate: onEditTeam,
-                  onDelete: onDeleteTeam,
-                ),
-              ],
+                ],
+              ),
             ),
           ),
 
           // ── Roster ──
           if (team.players.isEmpty)
             const _EmptyRosterHint()
-          else ...[
-            const _InsetDivider(),
-            ...List.generate(team.players.length, (i) {
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  if (i > 0) const _InsetDivider(indent: 58),
-                  _PlayerRow(
-                    player: team.players[i],
-                    onEdit: () => onEditPlayer(team.players[i]),
-                    onDelete: () => onDelPlayer(team.players[i].id),
-                  ),
-                ],
-              );
-            }),
-          ],
+          else
+            // Animates the open/close rather than snapping the card to its new
+            // height, which reads as a different card appearing.
+            AnimatedSize(
+              duration: const Duration(milliseconds: 180),
+              curve: Curves.easeOut,
+              alignment: Alignment.topCenter,
+              child: showRoster
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: <Widget>[
+                        const _InsetDivider(),
+                        ...List.generate(team.players.length, (i) {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              if (i > 0) const _InsetDivider(indent: 58),
+                              _PlayerRow(
+                                player: team.players[i],
+                                onEdit: () =>
+                                    widget.onEditPlayer(team.players[i]),
+                                onDelete: () =>
+                                    widget.onDelPlayer(team.players[i].id),
+                              ),
+                            ],
+                          );
+                        }),
+                      ],
+                    )
+                  : const SizedBox(width: double.infinity),
+            ),
 
           // ── Footer action ──
           const _InsetDivider(),
           InkWell(
-            onTap: onAddPlayer,
+            onTap: widget.onAddPlayer,
             borderRadius: const BorderRadius.vertical(
               bottom: Radius.circular(AppDimens.radiusX14),
             ),
@@ -176,6 +225,41 @@ class OpponentTeamCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// The affordance that says the roster can be opened, and how many players
+/// are waiting behind it when it is shut.
+class _RosterChevron extends StatelessWidget {
+  const _RosterChevron({required this.expanded, required this.onTap});
+
+  final bool expanded;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      onPressed: onTap,
+      tooltip: expanded
+          ? StringConstants.hidePlayers
+          : StringConstants.showPlayers,
+      padding: EdgeInsets.zero,
+      visualDensity: VisualDensity.compact,
+      constraints: const BoxConstraints.tightFor(
+        width: AppDimens.sizeX32,
+        height: AppDimens.sizeX32,
+      ),
+      icon: AnimatedRotation(
+        turns: expanded ? 0.5 : 0,
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
+        child: Icon(
+          Icons.keyboard_arrow_down_rounded,
+          color: LightColor.iconGrey,
+          size: AppDimens.sizeX20,
+        ),
       ),
     );
   }

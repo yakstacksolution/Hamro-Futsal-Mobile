@@ -81,8 +81,12 @@ extension RewardEntryTypeUi on RewardEntryType {
     RewardEntryType.adjusted => Icons.tune_rounded,
   };
 
+  /// Brand-adapted per brightness: [LightColor.secondaryColor] is a fixed
+  /// light-mode green that only manages ~3:1 on the dark ground, so the earned
+  /// rows used the page-foreground brand token instead. The other three hues
+  /// are already semantic tokens and adapt on their own.
   Color get color => switch (this) {
-    RewardEntryType.earned => LightColor.secondaryColor,
+    RewardEntryType.earned => LightColor.brandTextColor,
     RewardEntryType.redeemed => LightColor.purpleColor,
     RewardEntryType.expired => LightColor.redColor,
     RewardEntryType.adjusted => LightColor.blueColor,

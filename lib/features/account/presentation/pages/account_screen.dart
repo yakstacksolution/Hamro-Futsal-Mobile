@@ -92,11 +92,16 @@ class AccountView extends StatelessWidget {
         // `actions.can_request_settlement` plus a non-zero requestable
         // amount is what the server will accept. The commission shown on
         // the hero is checked too — offering to pay NPR 0 makes no sense.
+        // `actions.can_request_settlement` decides, and nothing else.
+        //
+        // The app used to add its own conditions on top — commission owed, a
+        // requestable amount, no settlement in review — and they disagreed
+        // with the server: an account the API said was eligible had the button
+        // greyed out, or worse, live until it opened a page that refused.
+        // The server knows what is settleable; the create endpoint enforces it
+        // again.
         final canSettle =
             summary.settlementEligible &&
-            (summary.requestableAmount > 0 || summary.availableBalance > 0) &&
-            summary.totalCommission > 0 &&
-            !state.hasPendingSettlement &&
             state.submitStatus != AccountStatus.loading;
         final recent = state.entries.toList();
         final Widget balance = AccountBalanceCard(
@@ -115,30 +120,28 @@ class AccountView extends StatelessWidget {
               _pushDetail(context, const _VenueBreakdownPage()),
           onSettlements: () => _pushDetail(context, const _SettlementsPage()),
         );
-        final Widget activity = _ListCard(
-          child: state.statementStatus == AccountStatus.loading
-              ? const AccountListLoading(itemCount: 4)
-              : recent.isEmpty
-              ? const AccountEmptyState(
-                  icon: Icons.receipt_long_outlined,
-                  title: 'No account activity yet',
-                  body:
-                      'Booking income, platform commission and payouts will appear here.',
-                )
-              : Column(
-                  children: [
-                    for (int i = 0; i < recent.length; i++) ...[
-                      if (i > 0)
-                        Divider(
-                          height: AppDimens.paddingX20,
-                          thickness: 1,
-                          color: LightColor.dividerColor,
-                        ),
-                      AccountEntryTile(entry: recent[i]),
-                    ],
+        // No surrounding card: every entry is already a bordered card, and
+        // boxing them inside another one doubled the frame and the padding.
+        final Widget activity = state.statementStatus == AccountStatus.loading
+            ? const AccountListLoading(itemCount: 4)
+            : recent.isEmpty
+            ? const AccountEmptyState(
+                icon: Icons.receipt_long_outlined,
+                title: 'No account activity yet',
+                body:
+                    'Booking income, platform commission and payouts will appear here.',
+              )
+            : Column(
+                children: [
+                  for (int i = 0; i < recent.length; i++) ...[
+                    if (i > 0) const SizedBox(height: AppDimens.paddingX12),
+                    AccountEntryTile(
+                      key: ValueKey<String>(recent[i].identity),
+                      entry: recent[i],
+                    ),
                   ],
-                ),
-        );
+                ],
+              );
         final Widget activityHeader = _RecentActivityHeader(
           onViewAll: () => _pushDetail(context, const _StatementPage()),
         );
@@ -165,9 +168,6 @@ class AccountView extends StatelessWidget {
               AppDimens.paddingX50,
             ),
             children: desktop
-                // Balance, stats and the statement carry the page; the
-                // shortcuts become a side column instead of a band the
-                // reader has to scroll past.
                 ? <Widget>[
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -224,21 +224,23 @@ String settlementBlockedReason(AccountState state) {
   if (state.summary.settlementBlockingReason.isNotEmpty) {
     return state.summary.settlementBlockingReason;
   }
-  if (state.hasPendingSettlement) {
-    return 'A commission payment is already being verified.';
-  }
   if (state.summary.totalCommission <= 0) {
     return StringConstants.noCommissionDue;
   }
   return 'Commission payment is not available right now.';
 }
 
-/// True while [openSettlementSheet] is between the first tap and the pay page
-/// closing again. The flow awaits two network calls before it pushes, and the
-/// button stays live across them, so without this a second tap fires the
-/// preview again and stacks a duplicate page on the first.
+/// True while the pay page is open, so a second tap on the CTA behind it does
+/// not stack a duplicate.
 bool _openingSettlementFlow = false;
 
+/// Opens the Pay Commission page.
+///
+/// The page goes up immediately and fetches the preview and the QR codes
+/// itself. It used to await both here first, which left the tapped button
+/// looking dead for the length of two requests before anything happened; the
+/// caller only ever offers this when commission is actually owed, so there is
+/// nothing to check before showing the screen.
 Future<void> openSettlementSheet(
   BuildContext context, {
   VenueAccountModel? venue,
@@ -247,59 +249,6 @@ Future<void> openSettlementSheet(
   _openingSettlementFlow = true;
   try {
     final bloc = context.read<AccountBloc>();
-    if (bloc.state.settlementsPage == 0) {
-      final counts = await bloc.useCase.getSettlements(page: 1, perPage: 20);
-      if (!context.mounted) return;
-      final bool pending = counts.fold(
-        (_) => true,
-        (page) => page.summary.inProgress > 0,
-      );
-      if (pending) {
-        AppUtils().showSnackBar(
-          context,
-          MsgType.info,
-          StringConstants.settlementAwaitingApproval,
-        );
-        return;
-      }
-    } else if (bloc.state.hasPendingSettlement) {
-      AppUtils().showSnackBar(
-        context,
-        MsgType.info,
-        StringConstants.settlementAwaitingApproval,
-      );
-      return;
-    }
-    final previewFuture = bloc.useCase.getSettlementPreview(venueId: venue?.id);
-    final qrFuture = bloc.useCase.getQrCodes();
-    final result = await previewFuture;
-    final qrCodes = (await qrFuture).fold(
-      (_) => const <SettlementQrCodeModel>[],
-      (codes) => codes,
-    );
-    if (!context.mounted) return;
-    final preview = result.fold((failure) {
-      AppUtils().showSnackBar(context, MsgType.error, failure.errorMessage);
-      return null;
-    }, (p) => p);
-    if (preview == null) return;
-    final double commissionPayable =
-        venue?.totalCommission ?? bloc.state.summary.totalCommission;
-    final double totalEarned =
-        venue?.totalEarned ?? bloc.state.summary.totalEarned;
-    final bool blocked =
-        preview.blockingReason.isNotEmpty ||
-        (!preview.eligible && commissionPayable <= 0);
-    if (blocked) {
-      AppUtils().showSnackBar(
-        context,
-        MsgType.info,
-        preview.blockingReason.isNotEmpty
-            ? preview.blockingReason
-            : StringConstants.noCommissionDue,
-      );
-      return;
-    }
     // The page files the request itself and stays open until the outcome is
     // known, so there is nothing to dispatch here.
     await Navigator.of(context).push<bool>(
@@ -307,12 +256,11 @@ Future<void> openSettlementSheet(
         builder: (_) => BlocProvider<AccountBloc>.value(
           value: bloc,
           child: RequestSettlementPage(
-            preview: preview,
             venueName: venue?.name ?? '',
-            commissionPayable: commissionPayable,
-            totalEarned: totalEarned,
-            qrCodes: qrCodes,
-            venueId: venue?.id ?? preview.venue?.id,
+            commissionPayable:
+                venue?.totalCommission ?? bloc.state.summary.totalCommission,
+            totalEarned: venue?.totalEarned ?? bloc.state.summary.totalEarned,
+            venueId: venue?.id,
           ),
         ),
       ),
@@ -457,7 +405,16 @@ class _VenueBreakdownPageState extends State<_VenueBreakdownPage> {
             // rows visible underneath.
             if (state.breakdownStatus == AccountStatus.loading &&
                 venues.isEmpty) {
-              return const AccountListLoading(itemCount: 4);
+              // Same inset as the loaded list, so the cards do not shift
+              // sideways the moment real futsals replace the skeleton.
+              return SingleChildScrollView(
+                physics: const NeverScrollableScrollPhysics(),
+                padding: EdgeInsets.symmetric(
+                  horizontal: _detailListInset(context),
+                  vertical: AppDimens.paddingX20,
+                ),
+                child: const AccountVenueListLoading(),
+              );
             }
             if (state.breakdownStatus == AccountStatus.failure &&
                 venues.isEmpty) {
@@ -499,10 +456,10 @@ class _VenueBreakdownPageState extends State<_VenueBreakdownPage> {
                   // A settlement pays commission, so commission owed is the
                   // condition — not the balance. A futsal can sit on a healthy
                   // balance with nothing owed, and paying NPR 0 makes no sense.
+                  // Same rule as the main CTA: the server's per-futsal
+                  // eligibility decides.
                   final canSettle =
                       venue.settlementEligible &&
-                      venue.totalCommission > 0 &&
-                      !state.hasPendingSettlement &&
                       state.submitStatus != AccountStatus.loading;
                   return _VenueCard(
                     venue: venue,
@@ -512,8 +469,6 @@ class _VenueBreakdownPageState extends State<_VenueBreakdownPage> {
                     // Explain a missing CTA rather than leaving a dead card.
                     disabledReason: canSettle
                         ? null
-                        : state.hasPendingSettlement
-                        ? 'A settlement request is already being processed.'
                         : venue.totalCommission <= 0
                         ? 'No commission due for this futsal yet.'
                         : 'Settlement is not available for this futsal yet.',
@@ -820,15 +775,18 @@ class _StatementPageState extends State<_StatementPage> {
             if ((state.activityStatus == AccountStatus.loading ||
                     state.activityStatus == AccountStatus.initial) &&
                 entries.isEmpty) {
-              return Align(
-                alignment: Alignment.topCenter,
-                child: Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: _detailListInset(context),
-                    vertical: AppDimens.paddingX20,
-                  ),
-                  child: const AccountListLoading(),
+              // Scrolling, not aligned: the skeleton cards are as tall as the
+              // real ones, so a full page of them is taller than the viewport
+              // on a short screen. A scroll view lets the run extend past the
+              // bottom instead of overflowing; it does not scroll, because
+              // there is nothing under it to reach yet.
+              return SingleChildScrollView(
+                physics: const NeverScrollableScrollPhysics(),
+                padding: EdgeInsets.symmetric(
+                  horizontal: _detailListInset(context),
+                  vertical: AppDimens.paddingX20,
                 ),
+                child: const AccountListLoading(showDayHeader: true),
               );
             }
             if (state.activityStatus == AccountStatus.failure &&
@@ -852,11 +810,15 @@ class _StatementPageState extends State<_StatementPage> {
                 state.activityHasMore ||
                 state.activityLoadingMore ||
                 state.activityLoadMoreError != null;
+            // Flattened once per build: the list is a statement, so rows are
+            // grouped under the day they were recorded and the pager walks
+            // headings and rows as one sequence.
+            final List<_ActivityRow> rows = _ActivityRow.group(entries);
             return RefreshIndicator(
               color: LightColor.brandTextColor,
               onRefresh: () async =>
                   _bloc.add(const LoadRecentActivityEvent(refresh: true)),
-              child: ListView.separated(
+              child: ListView.builder(
                 controller: _scrollCtrl,
                 physics: const AlwaysScrollableScrollPhysics(
                   parent: BouncingScrollPhysics(),
@@ -868,25 +830,44 @@ class _StatementPageState extends State<_StatementPage> {
                   horizontal: _detailListInset(context),
                   vertical: AppDimens.paddingX20,
                 ),
-                itemCount: entries.length + (showFooter ? 1 : 0),
-                separatorBuilder: (_, int index) => index == entries.length - 1
-                    ? const SizedBox.shrink()
-                    : Divider(
-                        height: AppDimens.paddingX24,
-                        thickness: 1,
-                        color: LightColor.dividerColor,
-                      ),
+                itemCount: rows.length + (showFooter ? 1 : 0),
                 itemBuilder: (context, index) {
-                  if (index >= entries.length) {
-                    return _SettlementsFooter(
-                      loading: state.activityLoadingMore,
-                      error: state.activityLoadMoreError,
-                      onRetry: () => _bloc.add(
-                        const LoadRecentActivityEvent(loadMore: true),
+                  if (index >= rows.length) {
+                    return Padding(
+                      padding: const EdgeInsets.only(top: AppDimens.paddingX20),
+                      child: _SettlementsFooter(
+                        loading: state.activityLoadingMore,
+                        error: state.activityLoadMoreError,
+                        onRetry: () => _bloc.add(
+                          const LoadRecentActivityEvent(loadMore: true),
+                        ),
                       ),
                     );
                   }
-                  return AccountEntryTile(entry: entries[index]);
+                  final _ActivityRow row = rows[index];
+                  final DateTime? day = row.day;
+                  if (day != null) {
+                    return AccountActivityDateHeader(
+                      key: ValueKey<String>('day-${day.toIso8601String()}'),
+                      day: day,
+                      dense: index == 0,
+                    );
+                  }
+                  final AccountEntryModel entry = row.entry!;
+                  return Padding(
+                    // Rows breathe instead of being ruled off from each other:
+                    // the day headings already divide the list, and a line
+                    // between every row is what made it feel busy.
+                    padding: const EdgeInsets.only(
+                      bottom: AppDimens.paddingX16,
+                    ),
+                    child: AccountEntryTile(
+                      // Keyed so appending a page re-uses the rows already
+                      // built instead of rebuilding the list against index.
+                      key: ValueKey<String>(entry.identity),
+                      entry: entry,
+                    ),
+                  );
                 },
               ),
             );
@@ -894,6 +875,38 @@ class _StatementPageState extends State<_StatementPage> {
         ),
       ),
     );
+  }
+}
+
+/// One line of the statement list: either a day heading or an entry.
+///
+/// Grouping is done on the recorded time (`created_at`), falling back to the
+/// business date, because that is the order the endpoint returns rows in — a
+/// heading has to match the run of rows beneath it.
+class _ActivityRow {
+  const _ActivityRow.header(DateTime this.day) : entry = null;
+  const _ActivityRow.item(AccountEntryModel this.entry) : day = null;
+
+  final DateTime? day;
+  final AccountEntryModel? entry;
+
+  static List<_ActivityRow> group(List<AccountEntryModel> entries) {
+    final List<_ActivityRow> rows = <_ActivityRow>[];
+    DateTime? currentDay;
+    for (final AccountEntryModel entry in entries) {
+      final DateTime? stamp = entry.createdAt ?? entry.date;
+      // A row with no timestamp at all cannot start a section; it stays with
+      // the run above it rather than being dropped or given a false date.
+      if (stamp != null) {
+        final DateTime day = AccountFmt.dayOf(stamp);
+        if (currentDay == null || day != currentDay) {
+          currentDay = day;
+          rows.add(_ActivityRow.header(day));
+        }
+      }
+      rows.add(_ActivityRow.item(entry));
+    }
+    return rows;
   }
 }
 
@@ -948,17 +961,21 @@ class _SettlementsPageState extends State<_SettlementsPage> {
             if ((state.settlementsStatus == AccountStatus.loading ||
                     state.settlementsStatus == AccountStatus.initial) &&
                 state.settlements.isEmpty) {
-              return Align(
-                alignment: Alignment.topCenter,
-                child: Padding(
-                  // Same inset as the loaded list, so the rows do not shift
-                  // sideways the moment real data replaces the skeleton.
-                  padding: EdgeInsets.symmetric(
-                    horizontal: _detailListInset(context),
-                    vertical: AppDimens.paddingX20,
-                  ),
-                  child: const AccountSettlementListLoading(),
+              // Scrolling, not aligned: the skeleton cards are as tall as the
+              // real ones, so a full page of them is taller than the viewport
+              // on a short screen — the same way the activity list overflowed.
+              // It does not scroll; there is nothing under it to reach yet.
+              return SingleChildScrollView(
+                physics: const NeverScrollableScrollPhysics(),
+                // Same inset as the loaded list, so the rows do not shift
+                // sideways the moment real data replaces the skeleton.
+                padding: EdgeInsets.symmetric(
+                  horizontal: _detailListInset(context),
+                  vertical: AppDimens.paddingX20,
                 ),
+                // The loaded list leads with the status tiles whenever there
+                // are settlements, which is the common case on this screen.
+                child: const AccountSettlementListLoading(showSummary: true),
               );
             }
             final double inset = _detailListInset(context);
@@ -1092,25 +1109,6 @@ class _SettlementsFooter extends StatelessWidget {
                 ),
               ),
       ),
-    );
-  }
-}
-
-class _ListCard extends StatelessWidget {
-  const _ListCard({required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppDimens.paddingX14),
-      decoration: BoxDecoration(
-        color: LightColor.cardColor,
-        borderRadius: BorderRadius.circular(AppDimens.radiusX14),
-        border: Border.all(color: LightColor.dividerColor),
-      ),
-      child: child,
     );
   }
 }

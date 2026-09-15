@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
@@ -35,6 +36,8 @@ class RegisterForm extends StatelessWidget {
     required this.emailValidator,
     required this.passwordValidator,
     required this.confirmPasswordValidator,
+    required this.onTermsTap,
+    required this.onPrivacyPolicyTap,
   });
 
   final GlobalKey<FormState> formKey;
@@ -61,6 +64,8 @@ class RegisterForm extends StatelessWidget {
   final FormFieldValidator<String> emailValidator;
   final FormFieldValidator<String> passwordValidator;
   final FormFieldValidator<String> confirmPasswordValidator;
+  final VoidCallback onTermsTap;
+  final VoidCallback onPrivacyPolicyTap;
 
   @override
   Widget build(BuildContext context) {
@@ -127,7 +132,7 @@ class RegisterForm extends StatelessWidget {
             focusNode: emailFocus,
             keyboardType: TextInputType.emailAddress,
             labelText: StringConstants.emailAddress,
-            hintText: StringConstants.nameFutsalCom,
+            hintText: StringConstants.nameExampleCom,
             icon: Icons.alternate_email_rounded,
             textInputAction: TextInputAction.next,
             validator: emailValidator,
@@ -212,8 +217,10 @@ class RegisterForm extends StatelessWidget {
                             activeColor: LightColor.secondaryColor,
                             borderColor: LightColor.secondaryLightMedium,
                             isExpanded: true,
-                            label: StringConstants
-                                .iAgreeToTheTermsAndPrivacyPolicy,
+                            labelWidget: _TermsLabel(
+                              onTermsTap: onTermsTap,
+                              onPrivacyPolicyTap: onPrivacyPolicyTap,
+                            ),
                             textStyle: FutsalTheme.getTextTheme(context)
                                 .bodyTextSmall
                                 ?.copyWith(
@@ -245,6 +252,81 @@ class RegisterForm extends StatelessWidget {
               );
             },
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TermsLabel extends StatefulWidget {
+  const _TermsLabel({
+    required this.onTermsTap,
+    required this.onPrivacyPolicyTap,
+  });
+
+  final VoidCallback onTermsTap;
+  final VoidCallback onPrivacyPolicyTap;
+
+  @override
+  State<_TermsLabel> createState() => _TermsLabelState();
+}
+
+class _TermsLabelState extends State<_TermsLabel> {
+  late final TapGestureRecognizer _termsRecognizer;
+  late final TapGestureRecognizer _privacyRecognizer;
+
+  @override
+  void initState() {
+    super.initState();
+    _termsRecognizer = TapGestureRecognizer()..onTap = widget.onTermsTap;
+    _privacyRecognizer = TapGestureRecognizer()
+      ..onTap = widget.onPrivacyPolicyTap;
+  }
+
+  @override
+  void didUpdateWidget(covariant _TermsLabel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _termsRecognizer.onTap = widget.onTermsTap;
+    _privacyRecognizer.onTap = widget.onPrivacyPolicyTap;
+  }
+
+  @override
+  void dispose() {
+    _termsRecognizer.dispose();
+    _privacyRecognizer.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    final TextStyle baseStyle = textTheme.bodyTextSmall!.copyWith(
+      color: LightColor.secondaryTextColor,
+      fontWeight: FontWeight.w400,
+      height: 1.35,
+    );
+    final TextStyle linkStyle = baseStyle.copyWith(
+      color: LightColor.secondaryColor,
+      fontWeight: FontWeight.w700,
+    );
+
+    return RichText(
+      text: TextSpan(
+        style: baseStyle,
+        children: <InlineSpan>[
+          const TextSpan(text: 'I agree to the '),
+          TextSpan(
+            text: 'Terms',
+            style: linkStyle,
+            recognizer: _termsRecognizer,
+          ),
+          const TextSpan(text: ' and '),
+          TextSpan(
+            text: 'Privacy Policy',
+            style: linkStyle,
+            recognizer: _privacyRecognizer,
+          ),
+          const TextSpan(text: '.'),
         ],
       ),
     );

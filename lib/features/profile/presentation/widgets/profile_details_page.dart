@@ -276,9 +276,13 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
 
   /// Summary banner (phone/tablet) or side column (desktop), plus the form.
   Widget _buildBody(BuildContext context, {required bool isUpdating}) {
+    // The synced profile, not `widget.user`: this page is usually opened
+    // without one and fetches its own, and the read-only view is now the
+    // default — a stale summary above live rows was the visible mismatch.
+    final UserData? user = _syncedUser ?? widget.user;
     final Widget summary = _ProfileSummaryCard(
-      name: _resolvedFullName(widget.user),
-      address: _resolvedAddress(widget.user),
+      name: _resolvedFullName(user),
+      address: _resolvedAddress(user),
       avatarUrl: _avatarUrl ?? '',
       onChangeImageTap: _isEditing ? _changeProfilePhoto : null,
     );
@@ -366,116 +370,53 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
       _sectionLabel(context, 'Personal information'),
       const SizedBox(height: AppDimens.paddingX10),
       _SectionCard(
-        children: [
-          CustomTextField(
-            controller: _fullnameController,
-            focusNode: _fullnameFocus,
-            keyboardType: TextInputType.text,
-            textCapitalization: TextCapitalization.words,
-            textInputAction: TextInputAction.next,
-            onSubmitted: (_) => _pickDateOfBirth(),
-            labelText: StringConstants.fullNameSentenceCase,
-            hintText: StringConstants.enterYourFullName,
-            icon: Icons.person_outline_rounded,
-            readOnly: !_isEditing,
-          ),
-          const SizedBox(height: AppDimens.paddingX16),
-          CustomTextField(
-            controller: _dobController,
-            focusNode: _dobFocus,
-            keyboardType: TextInputType.datetime,
-            labelText: StringConstants.dateOfBirth,
-            hintText: StringConstants.selectDateOfBirth,
-            icon: Icons.cake_outlined,
-            readOnly: true,
-            onTap: _isEditing ? _pickDateOfBirth : null,
-            suffixIcon: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: _isEditing ? _pickDateOfBirth : null,
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 12),
-                child: Icon(
-                  Icons.calendar_month_outlined,
-                  color: LightColor.secondaryTextColor,
-                  size: AppDimens.sizeX18,
+        children: _isEditing
+            ? _personalFields(context)
+            : _readOnlyRows(<Widget>[
+                _DetailRow(
+                  icon: Icons.person_outline_rounded,
+                  label: StringConstants.fullNameSentenceCase,
+                  value: _fullnameController.text,
                 ),
-              ),
-            ),
-          ),
-          const SizedBox(height: AppDimens.paddingX16),
-          CustomDropdownField<String>(
-            key: const Key('personal-details-gender-field'),
-            labelText: StringConstants.gender,
-            icon: Icons.wc_rounded,
-            hintText: StringConstants.selectGender,
-            initialValue: _selectedGender,
-            focusNode: _genderFocus,
-            items: _genderOptions
-                .map(
-                  (option) => DropdownMenuItem<String>(
-                    value: option,
-                    child: Text(option),
-                  ),
-                )
-                .toList(),
-            enabled: _isEditing,
-            onChanged: (value) {
-              if (value == null) return;
-              setState(() => _selectedGender = value);
-            },
-          ),
-        ],
+                _DetailRow(
+                  icon: Icons.cake_outlined,
+                  label: StringConstants.dateOfBirth,
+                  value: _dobController.text,
+                ),
+                _DetailRow(
+                  icon: Icons.wc_rounded,
+                  label: StringConstants.gender,
+                  value: _selectedGender,
+                ),
+              ]),
       ),
       const SizedBox(height: AppDimens.paddingX20),
       _sectionLabel(context, 'Contact information'),
       const SizedBox(height: AppDimens.paddingX10),
       _SectionCard(
-        children: [
-          CustomTextField(
-            controller: _emailController,
-            focusNode: _emailFocus,
-            keyboardType: TextInputType.emailAddress,
-            textInputAction: TextInputAction.next,
-            onSubmitted: (_) =>
-                FocusScope.of(context).requestFocus(_phoneFocus),
-            labelText: StringConstants.emailAddressSentenceCase,
-            hintText: StringConstants.nameExampleCom,
-            icon: Icons.email_outlined,
-            readOnly: true,
-          ),
-          const SizedBox(height: AppDimens.paddingX16),
-          CustomTextField(
-            controller: _phoneController,
-            focusNode: _phoneFocus,
-            keyboardType: TextInputType.phone,
-            textInputAction: TextInputAction.next,
-            onSubmitted: (_) =>
-                FocusScope.of(context).requestFocus(_addressFocus),
-            labelText: StringConstants.phoneNumberSentenceCase,
-            hintText: '+977 #########',
-            icon: Icons.phone_outlined,
-            readOnly: !_isEditing,
-          ),
-          const SizedBox(height: AppDimens.paddingX16),
-          CustomTextField(
-            controller: _addressController,
-            focusNode: _addressFocus,
-            keyboardType: TextInputType.streetAddress,
-            textCapitalization: TextCapitalization.words,
-            textInputAction: TextInputAction.done,
-            onSubmitted: (_) => FocusScope.of(context).unfocus(),
-            labelText: StringConstants.address,
-            hintText: StringConstants.enterYourAddress,
-            icon: Icons.location_on_outlined,
-            readOnly: !_isEditing,
-          ),
-        ],
+        children: _isEditing
+            ? _contactFields(context)
+            : _readOnlyRows(<Widget>[
+                _DetailRow(
+                  icon: Icons.email_outlined,
+                  label: StringConstants.emailAddressSentenceCase,
+                  value: _emailController.text,
+                ),
+                _DetailRow(
+                  icon: Icons.phone_outlined,
+                  label: StringConstants.phoneNumberSentenceCase,
+                  value: _phoneController.text,
+                ),
+                _DetailRow(
+                  icon: Icons.location_on_outlined,
+                  label: StringConstants.address,
+                  value: _addressController.text,
+                ),
+              ]),
       ),
       // The save action only exists in edit mode — the read-only view has
       // nothing to commit.
-      if (!_isEditing)
-        const SizedBox.shrink()
-      else ...<Widget>[
+      if (_isEditing) ...<Widget>[
         const SizedBox(height: AppDimens.paddingX28),
         // Full width on a phone; capped and trailing-aligned once the column is
         // wide, where an edge-to-edge button looks like a banner.
@@ -503,6 +444,126 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
             onPressed: _onSavePressed,
           ),
       ],
+    ];
+  }
+
+  /// Read-only rows separated by hairlines. Same card, same rhythm as the
+  /// fields they replace — only the input chrome is gone.
+  List<Widget> _readOnlyRows(List<Widget> rows) {
+    return <Widget>[
+      for (int i = 0; i < rows.length; i++) ...<Widget>[
+        if (i > 0)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: AppDimens.paddingX14),
+            child: Divider(
+              height: 1,
+              thickness: 1,
+              color: LightColor.dividerColor,
+            ),
+          ),
+        rows[i],
+      ],
+    ];
+  }
+
+  List<Widget> _personalFields(BuildContext context) {
+    return <Widget>[
+      CustomTextField(
+        controller: _fullnameController,
+        focusNode: _fullnameFocus,
+        keyboardType: TextInputType.text,
+        textCapitalization: TextCapitalization.words,
+        textInputAction: TextInputAction.next,
+        onSubmitted: (_) => _pickDateOfBirth(),
+        labelText: StringConstants.fullNameSentenceCase,
+        hintText: StringConstants.enterYourFullName,
+        icon: Icons.person_outline_rounded,
+        readOnly: !_isEditing,
+      ),
+      const SizedBox(height: AppDimens.paddingX16),
+      CustomTextField(
+        controller: _dobController,
+        focusNode: _dobFocus,
+        keyboardType: TextInputType.datetime,
+        labelText: StringConstants.dateOfBirth,
+        hintText: StringConstants.selectDateOfBirth,
+        icon: Icons.cake_outlined,
+        readOnly: true,
+        onTap: _isEditing ? _pickDateOfBirth : null,
+        suffixIcon: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: _isEditing ? _pickDateOfBirth : null,
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 12),
+            child: Icon(
+              Icons.calendar_month_outlined,
+              color: LightColor.secondaryTextColor,
+              size: AppDimens.sizeX18,
+            ),
+          ),
+        ),
+      ),
+      const SizedBox(height: AppDimens.paddingX16),
+      CustomDropdownField<String>(
+        key: const Key('personal-details-gender-field'),
+        labelText: StringConstants.gender,
+        icon: Icons.wc_rounded,
+        hintText: StringConstants.selectGender,
+        initialValue: _selectedGender,
+        focusNode: _genderFocus,
+        items: _genderOptions
+            .map(
+              (option) =>
+                  DropdownMenuItem<String>(value: option, child: Text(option)),
+            )
+            .toList(),
+        enabled: _isEditing,
+        onChanged: (value) {
+          if (value == null) return;
+          setState(() => _selectedGender = value);
+        },
+      ),
+    ];
+  }
+
+  List<Widget> _contactFields(BuildContext context) {
+    return <Widget>[
+      CustomTextField(
+        controller: _emailController,
+        focusNode: _emailFocus,
+        keyboardType: TextInputType.emailAddress,
+        textInputAction: TextInputAction.next,
+        onSubmitted: (_) => FocusScope.of(context).requestFocus(_phoneFocus),
+        labelText: StringConstants.emailAddressSentenceCase,
+        hintText: StringConstants.nameExampleCom,
+        icon: Icons.email_outlined,
+        readOnly: true,
+      ),
+      const SizedBox(height: AppDimens.paddingX16),
+      CustomTextField(
+        controller: _phoneController,
+        focusNode: _phoneFocus,
+        keyboardType: TextInputType.phone,
+        textInputAction: TextInputAction.next,
+        onSubmitted: (_) => FocusScope.of(context).requestFocus(_addressFocus),
+        labelText: StringConstants.phoneNumberSentenceCase,
+        hintText: '+977 #########',
+        icon: Icons.phone_outlined,
+        readOnly: !_isEditing,
+      ),
+      const SizedBox(height: AppDimens.paddingX16),
+      CustomTextField(
+        controller: _addressController,
+        focusNode: _addressFocus,
+        keyboardType: TextInputType.streetAddress,
+        textCapitalization: TextCapitalization.words,
+        textInputAction: TextInputAction.done,
+        onSubmitted: (_) => FocusScope.of(context).unfocus(),
+        labelText: StringConstants.address,
+        hintText: StringConstants.enterYourAddress,
+        icon: Icons.location_on_outlined,
+        readOnly: !_isEditing,
+      ),
     ];
   }
 
@@ -798,6 +859,78 @@ class _SectionCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: children,
       ),
+    );
+  }
+}
+
+/// One profile value in the read-only view: icon, label, value.
+///
+/// The form's fields are only built while editing — a disabled `TextField`
+/// still paints a filled box, a border and a hint, which reads as an input the
+/// user cannot use. These rows carry the same information without that chrome.
+class _DetailRow extends StatelessWidget {
+  const _DetailRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    final String trimmed = value.trim();
+    final bool hasValue = trimmed.isNotEmpty;
+
+    return Row(
+      children: <Widget>[
+        Container(
+          width: AppDimens.sizeX36,
+          height: AppDimens.sizeX36,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: LightColor.secondaryColor.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+          ),
+          child: Icon(
+            icon,
+            size: AppDimens.sizeX18,
+            color: LightColor.secondaryColor,
+          ),
+        ),
+        const SizedBox(width: AppDimens.paddingX12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Text(
+                label,
+                style: textTheme.bodyTextSmall?.copyWith(
+                  color: LightColor.secondaryTextColor,
+                  fontSize: AppDimens.fontBodySubTitle,
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: 0.2,
+                ),
+              ),
+              const SizedBox(height: AppDimens.paddingX2),
+              Text(
+                hasValue ? trimmed : StringConstants.notProvided,
+                style: textTheme.bodyTextSmall?.copyWith(
+                  color: hasValue
+                      ? LightColor.primaryTextColor
+                      : LightColor.hintTextColor,
+                  fontWeight: hasValue ? FontWeight.w600 : FontWeight.w500,
+                  fontStyle: hasValue ? FontStyle.normal : FontStyle.italic,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

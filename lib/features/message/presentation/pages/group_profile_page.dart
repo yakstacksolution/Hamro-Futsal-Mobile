@@ -1,11 +1,19 @@
+import 'package:hamro_futsal/core/utils/bloc_safe_add.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/app_utils.dart';
+import 'package:hamro_futsal/core/utils/custom_image_view.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:hamro_futsal/core/widgets/custom_app_bar.dart';
+import 'package:hamro_futsal/features/vendor/data/repositories/vendor_onboarding_repository_impl.dart';
+import 'package:hamro_futsal/features/vendor/data/vendor_draft_repository.dart';
+import 'package:hamro_futsal/features/vendor/domain/usecase/vendor_onboarding_usecase.dart';
+import 'package:hamro_futsal/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_cubit.dart';
+import 'package:hamro_futsal/features/vendor/presentation/models/vendor_onboarding_drafts.dart';
+import 'package:hamro_futsal/features/media/presentation/widgets/media_library_sheet.dart';
 import 'package:hamro_futsal/core/widgets/custom_button.dart';
 import 'package:hamro_futsal/core/widgets/custom_bottom_sheet.dart';
 import 'package:hamro_futsal/core/widgets/custom_text_field.dart';
@@ -39,12 +47,41 @@ Future<bool> openGroupProfilePage({
   return left ?? false;
 }
 
-class GroupProfilePage extends StatelessWidget {
+class GroupProfilePage extends StatefulWidget {
   const GroupProfilePage({super.key, required this.conversation});
 
   /// The conversation as the chat page knows it — the fallback while the bloc
   /// holds no fresher copy of it.
   final ConversationModel conversation;
+
+  @override
+  State<GroupProfilePage> createState() => _GroupProfilePageState();
+}
+
+class _GroupProfilePageState extends State<GroupProfilePage> {
+  /// Owns the media library sheet's working state — the same throwaway cubit
+  /// the profile screen uses to pick an avatar. It holds no onboarding draft;
+  /// the library is simply where the app keeps its images.
+  late final VendorOnboardingCubit _mediaCubit;
+
+  @override
+  void initState() {
+    super.initState();
+    _mediaCubit = VendorOnboardingCubit(
+      const EphemeralVendorDraftRepository(),
+      onboardingUseCase: VendorOnboardingUseCase(
+        VendorOnboardingRepositoryImpl(),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _mediaCubit.close();
+    super.dispose();
+  }
+
+  ConversationModel get conversation => widget.conversation;
 
   @override
   Widget build(BuildContext context) {
@@ -59,13 +96,13 @@ class GroupProfilePage extends StatelessWidget {
         listener: (context, state) {
           final bloc = context.read<MessageBloc>();
           if (state.leftConversationId == conversation.id) {
-            bloc.add(const ClearLeftConversationEvent());
+            bloc.addIfOpen(const ClearLeftConversationEvent());
             Navigator.of(context).pop(true);
             return;
           }
           if (state.errorMessage case final message?) {
             AppUtils().showSnackBar(context, MsgType.error, message);
-            bloc.add(const ClearMessageActionEvent());
+            bloc.addIfOpen(const ClearMessageActionEvent());
             return;
           }
           // Renames and added members both report back through here.
@@ -89,6 +126,7 @@ class GroupProfilePage extends StatelessWidget {
                 group: group,
                 currentUserId: state.currentUserId,
                 busy: state.actionBusy,
+                mediaCubit: _mediaCubit,
               ),
               const SizedBox(height: AppDimens.paddingX16),
               _Actions(group: group, busy: state.actionBusy),
@@ -109,11 +147,13 @@ class _Header extends StatelessWidget {
     required this.group,
     required this.currentUserId,
     required this.busy,
+    required this.mediaCubit,
   });
 
   final ConversationModel group;
   final int currentUserId;
   final bool busy;
+  final VendorOnboardingCubit mediaCubit;
 
   Future<void> _rename(BuildContext context) async {
     final MessageBloc bloc = context.read<MessageBloc>();
@@ -122,7 +162,42 @@ class _Header extends StatelessWidget {
       currentTitle: group.displayTitle(currentUserId),
     );
     if (title == null || bloc.isClosed) return;
-    bloc.add(RenameGroupConversationEvent(group.id, title));
+    bloc.add(UpdateGroupConversationEvent(group.id, title: title));
+  }
+
+  /// Picks a new group photo from the app's media library and sends it on its
+  /// own — the name is edited separately, and pairing them would make changing
+  /// one look like changing both.
+  ///
+  /// The library returns saved images by id, and new uploads land there first,
+  /// so what goes to the API is always a media id rather than a file.
+  Future<void> _changePhoto(BuildContext context) async {
+    final MessageBloc bloc = context.read<MessageBloc>();
+    final List<UploadRef>? picked = await showVendorMediaLibrarySheet(
+      context: context,
+      cubit: mediaCubit,
+      allowedExtensions: const <String>['png', 'jpg', 'jpeg', 'webp'],
+      allowMultiple: false,
+      title: StringConstants.groupPhoto,
+      subtitle: StringConstants.chooseASavedImageOrUploadANewOne,
+    );
+    if (picked == null || picked.isEmpty || bloc.isClosed) return;
+
+    final UploadRef selected = picked.first;
+    final int? mediaId = selected.id;
+    // An image still uploading has no id yet; there is nothing to send until
+    // the library has it.
+    if (mediaId == null) return;
+
+    bloc.add(
+      UpdateGroupConversationEvent(
+        group.id,
+        mediaId: mediaId,
+        // Shown straight away, so the picture changes on selection instead of
+        // waiting for the server to echo it back.
+        imageUrl: selected.remoteUrl,
+      ),
+    );
   }
 
   @override
@@ -143,7 +218,13 @@ class _Header extends StatelessWidget {
         ),
         child: Column(
           children: [
-            _GroupImage(members: members),
+            // The picture is editable now, so it carries its own camera badge
+            // rather than relying on the pencil beside the name below.
+            _GroupImage(
+              members: members,
+              imageUrl: group.imageUrl,
+              onEdit: busy ? null : () => _changePhoto(context),
+            ),
             const SizedBox(height: AppDimens.paddingX12),
             // The name is the one thing here that can be edited, so it carries
             // the pencil rather than hiding a rename in the overflow.
@@ -217,14 +298,87 @@ class _Header extends StatelessWidget {
 /// two-by-two of faces once the group is bigger, with the group glyph as the
 /// fallback for members who have no picture.
 class _GroupImage extends StatelessWidget {
-  const _GroupImage({required this.members});
+  const _GroupImage({required this.members, this.imageUrl = '', this.onEdit});
 
   final List<ParticipantModel> members;
+
+  /// The group's own picture. When it has one, it replaces the collage of
+  /// member faces that stands in until then.
+  final String imageUrl;
+
+  /// Opens the picker. Null while an edit is already in flight.
+  final VoidCallback? onEdit;
 
   static const double _size = 108;
 
   @override
   Widget build(BuildContext context) {
+    final Widget picture = _picture();
+    if (onEdit == null) return picture;
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: <Widget>[
+        // Tapping anywhere on the picture opens the picker; the badge says so.
+        Material(
+          color: Colors.transparent,
+          shape: const CircleBorder(),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(onTap: onEdit, child: picture),
+        ),
+        // The badge carries its own tap.
+        //
+        // It sits past the circle's edge, where the picture's InkWell does not
+        // reach, so as decoration it looked like the button and did nothing.
+        // The transparent padding around it makes the target 44 without
+        // changing how big the badge looks, and keeps it inside the stack's
+        // bounds — a child positioned outside them paints but cannot be hit.
+        Positioned(
+          right: 0,
+          bottom: 0,
+          child: Material(
+            color: Colors.transparent,
+            shape: const CircleBorder(),
+            child: InkWell(
+              onTap: onEdit,
+              customBorder: const CircleBorder(),
+              child: Padding(
+                padding: const EdgeInsets.all(5),
+                child: Container(
+                  width: 34,
+                  height: 34,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: LightColor.secondaryColor,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: LightColor.background, width: 2),
+                  ),
+                  child: Icon(
+                    Icons.photo_camera_rounded,
+                    size: 17,
+                    color: LightColor.inverseTextColor,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _picture() {
+    if (imageUrl.trim().isNotEmpty) {
+      return ClipOval(
+        child: CustomImageView(
+          imagePath: imageUrl,
+          width: _size,
+          height: _size,
+          fit: BoxFit.cover,
+        ),
+      );
+    }
+
     final List<ParticipantModel> withPhotos = members
         .where((m) => m.avatarUrl.trim().isNotEmpty)
         .toList(growable: false);

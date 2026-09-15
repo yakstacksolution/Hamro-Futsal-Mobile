@@ -76,19 +76,19 @@ class _ProfileRewardsBadgeBody extends StatelessWidget {
                 vertical: AppDimens.paddingX6,
               ),
               decoration: BoxDecoration(
-                color: LightColor.secondaryColor.withValues(alpha: 0.08),
+                color: LightColor.greenLightColor,
                 borderRadius: BorderRadius.circular(AppDimens.radiusX20),
                 border: Border.all(
-                  color: LightColor.secondaryColor.withValues(alpha: 0.2),
+                  color: LightColor.brandTextColor.withValues(alpha: 0.3),
                 ),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
-                  const Icon(
+                  Icon(
                     Icons.stars_rounded,
                     size: AppDimens.sizeX16,
-                    color: LightColor.secondaryColor,
+                    color: LightColor.brandTextColor,
                   ),
                   const SizedBox(width: AppDimens.paddingX6),
                   Text(

@@ -195,18 +195,20 @@ class AccountBloc extends Bloc<AccountEvent, AccountState> {
   }
 
   /// Appends only rows this list does not already hold.
+  ///
+  /// Keyed on [AccountEntryModel.identity] rather than `id`: the ledger
+  /// endpoint sends no ids, and skipping the check for those rows let a row
+  /// that shifted across the page boundary appear twice.
   static List<AccountEntryModel> _mergeEntries(
     List<AccountEntryModel> existing,
     List<AccountEntryModel> incoming,
   ) {
     final Set<String> seen = existing
-        .map((AccountEntryModel e) => e.id)
+        .map((AccountEntryModel e) => e.identity)
         .toSet();
     return <AccountEntryModel>[
       ...existing,
-      ...incoming.where(
-        (AccountEntryModel e) => e.id.isEmpty || seen.add(e.id),
-      ),
+      ...incoming.where((AccountEntryModel e) => seen.add(e.identity)),
     ];
   }
 

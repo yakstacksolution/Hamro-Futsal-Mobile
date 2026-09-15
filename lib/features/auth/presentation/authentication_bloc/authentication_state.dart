@@ -17,6 +17,8 @@ class AuthenticationState extends Equatable {
   final bool obscurePassword;
   final AuthStatus otpVerificationStatus;
   final AuthStatus resendOtpStatus;
+  final AuthStatus forgotPasswordStatus;
+  final AuthStatus resetPasswordStatus;
   final AuthStatus logoutStatus;
 
   const AuthenticationState({
@@ -34,6 +36,8 @@ class AuthenticationState extends Equatable {
     this.successMessage = '',
     this.otpVerificationStatus = AuthStatus.initial,
     this.resendOtpStatus = AuthStatus.initial,
+    this.forgotPasswordStatus = AuthStatus.initial,
+    this.resetPasswordStatus = AuthStatus.initial,
     this.logoutStatus = AuthStatus.initial,
   });
 
@@ -55,6 +59,8 @@ class AuthenticationState extends Equatable {
     bool clearSuccessMessage = false,
     AuthStatus? otpVerificationStatus,
     AuthStatus? resendOtpStatus,
+    AuthStatus? forgotPasswordStatus,
+    AuthStatus? resetPasswordStatus,
     AuthStatus? logoutStatus,
   }) {
     return AuthenticationState(
@@ -87,6 +93,8 @@ class AuthenticationState extends Equatable {
       otpVerificationStatus:
           otpVerificationStatus ?? this.otpVerificationStatus,
       resendOtpStatus: resendOtpStatus ?? this.resendOtpStatus,
+      forgotPasswordStatus: forgotPasswordStatus ?? this.forgotPasswordStatus,
+      resetPasswordStatus: resetPasswordStatus ?? this.resetPasswordStatus,
       logoutStatus: logoutStatus ?? this.logoutStatus,
     );
   }
@@ -107,6 +115,8 @@ class AuthenticationState extends Equatable {
     successMessage,
     otpVerificationStatus,
     resendOtpStatus,
+    forgotPasswordStatus,
+    resetPasswordStatus,
     logoutStatus,
   ];
 }

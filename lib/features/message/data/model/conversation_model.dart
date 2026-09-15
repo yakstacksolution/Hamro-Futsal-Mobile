@@ -158,6 +158,8 @@ class ConversationModel {
     this.isArchived = false,
     this.participants = const [],
     this.createdAt,
+    this.imageUrl = '',
+    this.imageId,
   });
 
   final int id;
@@ -188,6 +190,14 @@ class ConversationModel {
   final List<ParticipantModel> participants;
   final DateTime? createdAt;
 
+  /// The group's own picture, set from the group info screen. Empty when it
+  /// has none, which is when the members' faces stand in for it.
+  final String imageUrl;
+
+  /// The media id behind [imageUrl] — what `conversations/{id}/update` takes
+  /// back as `image_id`.
+  final int? imageId;
+
   bool get isGroup => type == 'group';
   bool get isUnread => unreadCount > 0;
 
@@ -213,8 +223,10 @@ class ConversationModel {
     return otherParticipant(currentUserId)?.name ?? 'Conversation';
   }
 
+  /// The picture for the inbox row: a group's own photo when it has one,
+  /// otherwise the other person's avatar. Empty means "draw the placeholder".
   String displayAvatar(int currentUserId) =>
-      isGroup ? '' : (otherParticipant(currentUserId)?.avatarUrl ?? '');
+      isGroup ? imageUrl : (otherParticipant(currentUserId)?.avatarUrl ?? '');
 
   bool isPeerOnline(int currentUserId) =>
       !isGroup && (otherParticipant(currentUserId)?.isOnline ?? false);
@@ -289,7 +301,46 @@ class ConversationModel {
                 .toList(growable: false)
           : const [],
       createdAt: DateTime.tryParse(json['created_at']?.toString() ?? ''),
+      imageUrl: _imageUrlFromJson(json),
+      imageId: _imageIdFromJson(json),
     );
+  }
+
+  /// The group picture, however the server spells it.
+  ///
+  /// It is sent to `conversations/{id}/update` as `media`, and comes back as
+  /// a media object (`{id, url}`), a bare URL, or under one of the other names
+  /// this API uses for the same thing.
+  static int? _imageIdFromJson(Map<String, dynamic> json) {
+    final dynamic direct = json['image_id'] ?? json['media_id'];
+    final int? fromKey = int.tryParse(direct?.toString() ?? '');
+    if (fromKey != null) return fromKey;
+    final dynamic raw = json['image'] ?? json['media'];
+    if (raw is Map) return int.tryParse(raw['id']?.toString() ?? '');
+    return null;
+  }
+
+  static String _imageUrlFromJson(Map<String, dynamic> json) {
+    final dynamic raw =
+        json['media'] ??
+        json['image'] ??
+        json['avatar'] ??
+        json['image_url'] ??
+        json['media_url'];
+    if (raw == null) return '';
+    if (raw is Map) {
+      return (raw['url'] ?? raw['path'] ?? raw['original_url'] ?? '')
+          .toString()
+          .trim();
+    }
+    // A list of media: the first is the picture.
+    if (raw is List) {
+      final Iterable<Map> objects = raw.whereType<Map>();
+      if (objects.isEmpty) return '';
+      final Map first = objects.first;
+      return (first['url'] ?? first['path'] ?? '').toString().trim();
+    }
+    return raw.toString().trim();
   }
 
   ConversationModel copyWith({
@@ -302,6 +353,8 @@ class ConversationModel {
     bool? isPinned,
     bool? isArchived,
     List<ParticipantModel>? participants,
+    String? imageUrl,
+    int? imageId,
   }) => ConversationModel(
     id: id,
     type: type,
@@ -323,6 +376,8 @@ class ConversationModel {
     isArchived: isArchived ?? this.isArchived,
     participants: participants ?? this.participants,
     createdAt: createdAt,
+    imageUrl: imageUrl ?? this.imageUrl,
+    imageId: imageId ?? this.imageId,
   );
 
   /// Returns a copy with [message] as the conversation's latest message —
@@ -362,6 +417,8 @@ class ConversationModel {
       isArchived: isArchived,
       participants: participants,
       createdAt: createdAt,
+      imageUrl: imageUrl,
+      imageId: imageId,
     );
   }
 }

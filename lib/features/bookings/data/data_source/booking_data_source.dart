@@ -1,18 +1,11 @@
 import 'package:hamro_futsal/core/api/api_client/result.dart';
 import 'package:hamro_futsal/core/api/client.dart';
+import 'package:hamro_futsal/features/bookings/domain/model/booking_list_query.dart';
 
 abstract class BookingRemoteDataSource {
-  Future<Result> getMyBookings({
-    required int page,
-    required int perPage,
-    String? status,
-  });
+  Future<Result> getMyBookings(BookingListQuery query);
   Future<Result> getBookingDetails(int bookingId);
-  Future<Result> getFutsalBookings({
-    required int page,
-    required int perPage,
-    String? status,
-  });
+  Future<Result> getFutsalBookings(BookingListQuery query);
   Future<Result> cancelBooking(int bookingId);
   Future<Result> getBookingCancelBoundary(int bookingId);
   Future<Result> getBookingReview(int bookingId);
@@ -33,30 +26,20 @@ abstract class BookingRemoteDataSource {
 
 final class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
   @override
-  Future<Result> getMyBookings({
-    required int page,
-    required int perPage,
-    String? status,
-  }) async => await Client.instance().getAuthManager().getMyBookings(
-    page: page,
-    perPage: perPage,
-    status: status,
-  );
+  Future<Result> getMyBookings(BookingListQuery query) async =>
+      await Client.instance().getAuthManager().getMyBookings(
+        query: query.toQueryParameters(),
+      );
 
   @override
   Future<Result> getBookingDetails(int bookingId) async =>
       await Client.instance().getAuthManager().getBookingDetails(bookingId);
 
   @override
-  Future<Result> getFutsalBookings({
-    required int page,
-    required int perPage,
-    String? status,
-  }) async => await Client.instance().getAuthManager().getFutsalBookings(
-    page: page,
-    perPage: perPage,
-    status: status,
-  );
+  Future<Result> getFutsalBookings(BookingListQuery query) async =>
+      await Client.instance().getAuthManager().getFutsalBookings(
+        query: query.toQueryParameters(),
+      );
 
   @override
   Future<Result> cancelBooking(int bookingId) async =>

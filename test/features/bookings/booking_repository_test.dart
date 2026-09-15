@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hamro_futsal/features/bookings/domain/model/booking_list_query.dart';
 import 'package:hamro_futsal/core/api/api_client/result.dart';
 import 'package:hamro_futsal/features/bookings/data/data_source/booking_data_source.dart';
 import 'package:hamro_futsal/features/bookings/data/repositories/booking_repository_impl.dart';
@@ -17,9 +18,7 @@ void main() {
     );
 
     final result = await repository.getMyBookings(
-      page: 1,
-      perPage: 10,
-      status: 'pending',
+      const BookingListQuery(page: 1, perPage: 10, status: 'pending'),
     );
 
     expect(source.requestedMyPage, 1);
@@ -66,9 +65,7 @@ void main() {
     );
 
     final result = await repository.getFutsalBookings(
-      page: 1,
-      perPage: 10,
-      status: 'completed',
+      const BookingListQuery(page: 1, perPage: 10, status: 'completed'),
     );
 
     expect(source.requestedPage, 1);
@@ -113,9 +110,7 @@ void main() {
       );
 
       final result = await repository.getFutsalBookings(
-        page: 1,
-        perPage: 10,
-        status: 'completed',
+        const BookingListQuery(page: 1, perPage: 10, status: 'completed'),
       );
 
       result.fold((error) => fail(error.errorMessage), (page) {
@@ -271,7 +266,9 @@ final class _FakeBookingRemoteDataSource implements BookingRemoteDataSource {
   int? requestedMyPerPage;
 
   String? requestedMyStatus;
+  Map<String, dynamic>? requestedMyPayload;
   String? requestedStatus;
+  Map<String, dynamic>? requestedFutsalPayload;
 
   @override
   Future<Result> getBookingDetails(int bookingId) async {
@@ -280,26 +277,20 @@ final class _FakeBookingRemoteDataSource implements BookingRemoteDataSource {
   }
 
   @override
-  Future<Result> getMyBookings({
-    required int page,
-    required int perPage,
-    String? status,
-  }) async {
-    requestedMyPage = page;
-    requestedMyPerPage = perPage;
-    requestedMyStatus = status;
+  Future<Result> getMyBookings(BookingListQuery query) async {
+    requestedMyPage = query.page;
+    requestedMyPerPage = query.perPage;
+    requestedMyStatus = query.status;
+    requestedMyPayload = query.toQueryParameters();
     return myBookingsResponse;
   }
 
   @override
-  Future<Result> getFutsalBookings({
-    required int page,
-    required int perPage,
-    String? status,
-  }) async {
-    requestedPage = page;
-    requestedPerPage = perPage;
-    requestedStatus = status;
+  Future<Result> getFutsalBookings(BookingListQuery query) async {
+    requestedPage = query.page;
+    requestedPerPage = query.perPage;
+    requestedStatus = query.status;
+    requestedFutsalPayload = query.toQueryParameters();
     return futsalResponse;
   }
 

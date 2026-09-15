@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -6,6 +8,7 @@ import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/app_utils.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/widgets/data_card.dart';
 import 'package:hamro_futsal/core/widgets/loading_widget.dart';
 import 'package:hamro_futsal/features/bookings/data/model/booking_model.dart';
 import 'package:hamro_futsal/features/bookings/presentation/bloc/booking_bloc/booking_bloc.dart';
@@ -38,7 +41,6 @@ class BookingStatusPage extends StatelessWidget {
     this.dateOrder = BookingDateOrder.descending,
     this.fromDate,
     this.toDate,
-    this.onFloatingActionExtentAfterChanged,
   });
 
   final BookingListKind kind;
@@ -50,7 +52,6 @@ class BookingStatusPage extends StatelessWidget {
   final BookingDateOrder dateOrder;
   final DateTime? fromDate;
   final DateTime? toDate;
-  final ValueChanged<double>? onFloatingActionExtentAfterChanged;
 
   bool get _isMine => kind == BookingListKind.mine;
 
@@ -86,17 +87,40 @@ class BookingStatusPage extends StatelessWidget {
     final int startTick = bloc.state.refreshTick;
     _load(context, silent: true, force: true);
     // Wait until the fetch actually completes (refreshTick is bumped on every
-    // finished fetch). Timeout guarantees the indicator always dismisses.
-    await bloc.stream
-        .firstWhere((BookingState state) => state.refreshTick != startTick)
-        .timeout(const Duration(seconds: 15), onTimeout: () => bloc.state);
+    // finished fetch) so the indicator stays up until the new rows are in.
+    // Done with an explicit subscription rather than `firstWhere().timeout()`:
+    // a Future timeout does not cancel the listener behind it, so a slow fetch
+    // left a live stream subscription per pull for the bloc to notify forever.
+    final Completer<void> done = Completer<void>();
+    final StreamSubscription<BookingState> sub = bloc.stream.listen((
+      BookingState state,
+    ) {
+      if (state.refreshTick != startTick && !done.isCompleted) {
+        done.complete();
+      }
+    });
+    // Guarantees the indicator always dismisses.
+    final Timer timer = Timer(const Duration(seconds: 15), () {
+      if (!done.isCompleted) done.complete();
+    });
+    try {
+      await done.future;
+    } finally {
+      timer.cancel();
+      await sub.cancel();
+    }
   }
 
   EdgeInsets _listPadding(BuildContext context) => EdgeInsets.fromLTRB(
     AppDimens.paddingX16,
     AppDimens.paddingX8,
     AppDimens.paddingX16,
-    AppDimens.sizeX100 + MediaQuery.viewPaddingOf(context).bottom,
+    // The vendor's futsal list carries the manual-booking pill, so its last
+    // row has to be able to scroll out from under it. Measured rather than
+    // fixed: the bar the pill sits above is content-sized.
+    _isMine
+        ? AppDimens.sizeX100 + MediaQuery.viewPaddingOf(context).bottom
+        : manualBookingFabListInset(context),
   );
 
   @override
@@ -151,15 +175,21 @@ class BookingStatusPage extends StatelessWidget {
             : sorted;
 
         if (items.isEmpty) {
-          onFloatingActionExtentAfterChanged?.call(double.infinity);
           return _refreshBar(slice, _empty(context));
         }
+
+        // Search and the date range narrow the rows on device, so a page can
+        // come back with plenty of rows and show very few. Such a list is
+        // often too short to scroll, and auto-pagination is deliberately tied
+        // to real downward scrolling — so the remaining pages are offered as
+        // an action instead of being fetched behind the user's back.
+        final bool offerLoadMore =
+            slice.hasMorePages && items.length < slice.bookings.length;
 
         return _refreshBar(
           slice,
           NotificationListener<ScrollNotification>(
             onNotification: (ScrollNotification notification) {
-              _reportFloatingActionObstruction(notification);
               if (_shouldLoadMore(notification, slice)) {
                 WidgetsBinding.instance.addPostFrameCallback((_) {
                   if (!context.mounted) return;
@@ -175,13 +205,24 @@ class BookingStatusPage extends StatelessWidget {
                 // Each status page keeps its own scroll offset while the others
                 // stay built beside it.
                 key: PageStorageKey<String>('${kind.name}-${filter.name}'),
+                // Clamping, not bouncing. A bouncing list can sit at a
+                // negative offset — content pushed down off the bottom of the
+                // screen — and only a running spring brings it back. Lose that
+                // spring (a rebuild, a muted ticker) and the list is stranded
+                // there for good, which is what "the page is stuck and blank"
+                // was. Clamping physics cannot represent that offset at all,
+                // and it is the physics a Material RefreshIndicator expects.
                 physics: const AlwaysScrollableScrollPhysics(
-                  parent: BouncingScrollPhysics(),
+                  parent: ClampingScrollPhysics(),
                 ),
                 padding: _listPadding(context),
                 itemCount:
                     items.length +
-                    (slice.isLoadingMore || slice.loadMoreFailed ? 1 : 0),
+                    (slice.isLoadingMore ||
+                            slice.loadMoreFailed ||
+                            offerLoadMore
+                        ? 1
+                        : 0),
                 separatorBuilder: (_, __) =>
                     const SizedBox(height: AppDimens.paddingX10),
                 itemBuilder: (BuildContext context, int i) {
@@ -232,37 +273,51 @@ class BookingStatusPage extends StatelessWidget {
     if (notification.depth != 0 ||
         notification.metrics.axis != Axis.vertical ||
         notification.metrics.extentAfter >= 300 ||
+        // The user has to have actually scrolled down. Without this, the
+        // pull-to-refresh drag itself qualified: on a short list `extentAfter`
+        // is already 0 at the top, so every overscroll notification of the
+        // pull — dozens in one gesture — fired another next-page request.
+        notification.metrics.extentBefore <= 0 ||
         !slice.hasMorePages ||
-        slice.isLoadingMore) {
+        // Anything already in flight for this status, and — crucially — a
+        // *failed* next page. `loadMoreFailed` leaves `hasMorePages` set so
+        // the footer can offer a retry; without this guard the room left
+        // below the short list matched again on the very next frame and the
+        // same failing request went out every frame, which is what locked
+        // the screen up. The retry is the user's to press.
+        slice.isLoadingMore ||
+        slice.isRefreshing ||
+        slice.loadMoreFailed) {
       return false;
     }
     return notification is ScrollUpdateNotification ||
         notification is OverscrollNotification;
   }
 
-  void _reportFloatingActionObstruction(ScrollNotification notification) {
-    final ValueChanged<double>? callback = onFloatingActionExtentAfterChanged;
-    if (callback == null || _isMine || notification.depth != 0) return;
-
-    final ScrollMetrics metrics = notification.metrics;
-    if (!metrics.hasContentDimensions) return;
-    callback(metrics.extentAfter);
-  }
-
   /// A slim line above the list while this status is being refetched — the
   /// swipe onto the page starts one, and the rows underneath stay readable
   /// instead of being replaced by a skeleton.
   Widget _refreshBar(BookingListSlice slice, Widget child) {
-    if (!slice.isRefreshing) return child;
+    // The shape is the same whether or not a refresh is running. Adding the
+    // Column only while `isRefreshing` re-parented [child], so the
+    // RefreshIndicator and the ListView's ScrollPosition were torn down and
+    // rebuilt in the middle of the pull that started the refresh: the gesture
+    // died with them, the offset jumped and the spinner never resolved.
+    // The line itself gets a boundary so its animation repaints 2px, not the
+    // whole page.
     return Column(
       children: <Widget>[
-        const SizedBox(
+        SizedBox(
           height: 2,
-          child: LinearProgressIndicator(
-            minHeight: 2,
-            backgroundColor: Colors.transparent,
-            color: LightColor.secondaryColor,
-          ),
+          child: slice.isRefreshing
+              ? const RepaintBoundary(
+                  child: LinearProgressIndicator(
+                    minHeight: 2,
+                    backgroundColor: Colors.transparent,
+                    color: LightColor.secondaryColor,
+                  ),
+                )
+              : null,
         ),
         Expanded(child: child),
       ],
@@ -284,7 +339,7 @@ class BookingStatusPage extends StatelessWidget {
       child: LayoutBuilder(
         builder: (BuildContext context, BoxConstraints constraints) => ListView(
           physics: const AlwaysScrollableScrollPhysics(
-            parent: BouncingScrollPhysics(),
+            parent: ClampingScrollPhysics(),
           ),
           padding: _listPadding(context),
           children: <Widget>[
@@ -342,8 +397,16 @@ class BookingStatusPage extends StatelessWidget {
     return Center(
       child: TextButton.icon(
         onPressed: () => _load(context, silent: true, loadMore: true),
-        icon: const Icon(Icons.refresh_rounded),
-        label: const Text('Could not load more. Retry'),
+        icon: Icon(
+          slice.loadMoreFailed
+              ? Icons.refresh_rounded
+              : Icons.expand_more_rounded,
+        ),
+        label: Text(
+          slice.loadMoreFailed
+              ? 'Could not load more. Retry'
+              : 'Load more bookings',
+        ),
       ),
     );
   }
@@ -480,30 +543,12 @@ class _CardAction extends StatelessWidget {
               ),
               if (badge != null) ...[
                 const SizedBox(width: AppDimens.paddingX6),
-                Container(
-                  constraints: const BoxConstraints(
-                    minWidth: AppDimens.sizeX18,
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppDimens.paddingX4,
-                    vertical: 1,
-                  ),
-                  decoration: BoxDecoration(
-                    color: filled
-                        ? foreground.withValues(alpha: 0.22)
-                        : color.withValues(alpha: 0.16),
-                    borderRadius: BorderRadius.circular(AppDimens.radiusX20),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    badge!,
-                    style: FutsalTheme.getTextTheme(context).bodyTextSmall
-                        ?.copyWith(
-                          color: foreground,
-                          fontWeight: FontWeight.w800,
-                          fontSize: AppDimens.fontBodySubTitle,
-                        ),
-                  ),
+                CountBadge(
+                  count: badge!,
+                  background: filled
+                      ? foreground.withValues(alpha: 0.22)
+                      : color.withValues(alpha: 0.16),
+                  foreground: foreground,
                 ),
               ],
             ],

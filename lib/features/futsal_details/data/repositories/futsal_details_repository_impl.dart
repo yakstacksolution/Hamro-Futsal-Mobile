@@ -48,10 +48,10 @@ final class FutsalDetailsRepositoryImpl extends FutsalDetailsRepository {
 
   @override
   Future<Either<AppException, VenueDescriptionModel>> getVenueDescription({
-    required int venueId,
+    required String venueSlug,
   }) async {
     final response = await _remoteDataSource.getVenueDescription(
-      venueId: venueId,
+      venueSlug: venueSlug,
     );
     if (response.isError()) {
       return left(ResponseHelper.error(response));

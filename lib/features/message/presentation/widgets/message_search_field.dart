@@ -8,13 +8,11 @@ class MessageSearchField extends StatelessWidget {
   const MessageSearchField({
     super.key,
     required this.controller,
-    required this.query,
     required this.onChanged,
     required this.onClear,
   });
 
   final TextEditingController controller;
-  final String query;
   final ValueChanged<String> onChanged;
   final VoidCallback onClear;
 
@@ -60,17 +58,22 @@ class MessageSearchField extends StatelessWidget {
             minWidth: 40,
             minHeight: 40,
           ),
-          suffixIcon: query.isEmpty
-              ? null
-              : GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: onClear,
-                  child: Icon(
-                    Icons.close_rounded,
-                    color: LightColor.iconGrey,
-                    size: AppDimens.sizeX16,
+          // Driven by the controller, not the (debounced) query, so the clear
+          // affordance shows the moment the field has text.
+          suffixIcon: ValueListenableBuilder<TextEditingValue>(
+            valueListenable: controller,
+            builder: (_, value, __) => value.text.isEmpty
+                ? const SizedBox.shrink()
+                : GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: onClear,
+                    child: Icon(
+                      Icons.close_rounded,
+                      color: LightColor.iconGrey,
+                      size: AppDimens.sizeX16,
+                    ),
                   ),
-                ),
+          ),
           suffixIconConstraints: const BoxConstraints(
             minWidth: 36,
             minHeight: 40,

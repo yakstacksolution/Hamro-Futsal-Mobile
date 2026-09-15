@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hamro_futsal/core/routers/app_router_params.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
+import 'package:hamro_futsal/core/utils/app_utils.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
 import 'package:hamro_futsal/core/widgets/custom_text_field.dart';
+import 'package:hamro_futsal/features/auth/presentation/authentication_bloc/authentication_bloc.dart';
+import 'package:hamro_futsal/features/auth/presentation/otp_verification_screen.dart';
 import 'package:hamro_futsal/features/auth/presentation/widgets/auth_screen_frame.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 
@@ -26,20 +30,60 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   void _submit() {
     if (!_isEmailValid) return;
-    context.pushNamed(
-      AppRouterParams.otpVerification.name,
-      extra: _email.trim(),
+    context.read<AuthenticationBloc>().add(
+      ForgotPasswordEvent(email: _email.trim()),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final AuthenticationState state = context.watch<AuthenticationBloc>().state;
+    final bool isSending = state.forgotPasswordStatus == AuthStatus.loading;
+
+    return BlocListener<AuthenticationBloc, AuthenticationState>(
+      listenWhen: (AuthenticationState previous, AuthenticationState current) =>
+          previous.forgotPasswordStatus != current.forgotPasswordStatus,
+      listener: (BuildContext context, AuthenticationState state) {
+        if (state.forgotPasswordStatus == AuthStatus.failure) {
+          AppUtils().showSnackBar(
+            context,
+            MsgType.error,
+            state.errorMessage ?? StringConstants.couldNotSendOtpPleaseTryAgain,
+          );
+          return;
+        }
+
+        if (state.forgotPasswordStatus == AuthStatus.success) {
+          AppUtils().showSnackBar(
+            context,
+            MsgType.success,
+            state.successMessage.isNotEmpty
+                ? state.successMessage
+                : StringConstants.otpSentSuccessfully,
+          );
+          // The code is verified on its own screen first; that screen then
+          // hands the proven code to the create-password step.
+          context.pushNamed(
+            AppRouterParams.otpVerification.name,
+            extra: <String, dynamic>{
+              'email': _email.trim(),
+              'purpose': OtpPurpose.passwordReset,
+            },
+          );
+        }
+      },
+      child: _buildForm(isSending: isSending),
+    );
+  }
+
+  Widget _buildForm({required bool isSending}) {
     return AuthScreenFrame(
+      isLoading: isSending,
       title: StringConstants.forgotPassword,
       subtitle: StringConstants.enterYourEmailAndWeWillSendYouAnOtpCode,
       headerIcon: Icons.lock_reset_rounded,
       primaryButtonLabel: 'Send OTP',
-      primaryButtonEnabled: _isEmailValid,
+      primaryButtonEnabled: _isEmailValid && !isSending,
       onPrimaryTap: _submit,
       secondaryPrefixText: StringConstants.rememberPassword,
       secondaryActionText: StringConstants.backToSignIn,

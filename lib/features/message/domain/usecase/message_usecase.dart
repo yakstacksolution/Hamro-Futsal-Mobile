@@ -8,6 +8,7 @@ import 'package:hamro_futsal/features/message/data/model/chat_send_request.dart'
 import 'package:hamro_futsal/features/message/data/model/conversation_model.dart';
 import 'package:hamro_futsal/features/message/data/model/conversation_page_model.dart';
 import 'package:hamro_futsal/features/message/data/model/message_profile_model.dart';
+import 'package:hamro_futsal/features/message/data/model/registered_user_page_model.dart';
 import 'package:hamro_futsal/features/message/domain/repository/message_repository.dart';
 
 final class MessageUseCase {
@@ -25,6 +26,16 @@ final class MessageUseCase {
     archived: archived,
     page: page,
     perPage: perPage,
+  );
+
+  Future<Either<AppException, RegisteredUserPageModel>> getRegisteredUsers({
+    required int page,
+    int perPage = 15,
+    String search = '',
+  }) async => await repository.getRegisteredUsers(
+    page: page,
+    perPage: perPage,
+    search: search,
   );
 
   Future<Either<AppException, ConversationModel>> startDirectConversation({
@@ -106,10 +117,15 @@ final class MessageUseCase {
     bool muted,
   ) async => await repository.setMuted(conversationId, muted);
 
-  Future<Either<AppException, ConversationModel?>> updateConversationTitle(
-    int conversationId,
-    String title,
-  ) async => await repository.updateConversationTitle(conversationId, title);
+  Future<Either<AppException, ConversationModel?>> updateConversation(
+    int conversationId, {
+    String? title,
+    int? mediaId,
+  }) async => await repository.updateConversation(
+    conversationId,
+    title: title,
+    mediaId: mediaId,
+  );
 
   Future<Either<AppException, bool>> respondToConversationInvitation(
     int conversationId, {

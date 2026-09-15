@@ -38,15 +38,13 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
     with WidgetsBindingObserver {
   final TextEditingController _couponCtrl = TextEditingController();
 
-  /// Free text the payer adds about their payment — a transaction id, who sent
-  /// it — carried to the venue as `payment_note`. Optional: a booking is never
-  /// blocked on it.
+  final FocusNode _couponFocus = FocusNode();
+  final FocusNode _paymentDescFocus = FocusNode();
+
   final TextEditingController _paymentDescCtrl = TextEditingController();
 
   static const String _payeeName = 'Hamro Futsal Pvt. Ltd.';
-  static const String _payeeId = '9800000000';
 
-  // Payment method is fixed to cash for now (sent as `payment_method`).
   static const String _paymentMethod = 'cash';
 
   PickedMediaFile? _paymentDoc;
@@ -62,7 +60,6 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    // Place a temporary hold on the slot as soon as the page opens.
     final BookingDraft draft = widget.draft;
     final String startTime = draft.apiTime ?? '';
     if (startTime.isNotEmpty) {
@@ -84,8 +81,6 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
-    // Release the hold if the app is being closed/terminated while the
-    // checkout page is still open. (Back navigation is handled on bloc close.)
     if (state == AppLifecycleState.detached) {
       context.read<BookingHoldBloc>().add(const ReleaseBookingHoldEvent());
     }
@@ -96,16 +91,22 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
     WidgetsBinding.instance.removeObserver(this);
     _couponCtrl.dispose();
     _paymentDescCtrl.dispose();
+    _couponFocus.dispose();
+    _paymentDescFocus.dispose();
     super.dispose();
   }
 
   double get _subtotal => widget.draft.subtotal;
 
-  /// The typed payment description, or null when it was left empty — the field
-  /// is optional and an empty string would be sent as one.
   String? get _paymentDescription {
     final String text = _paymentDescCtrl.text.trim();
     return text.isEmpty ? null : text;
+  }
+
+  String? get _paymentNote {
+    final String? typed = _paymentDescription;
+    if (typed == null) return null;
+    return 'Hamro-Futsal :- ${widget.draft.courtName} :- $typed';
   }
 
   bool get _canConfirm =>
@@ -117,21 +118,11 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
           _paymentDescription != null &&
           _agreedToTerms);
 
-  /// Effective server quote: from the coupon-apply response once a coupon is
-  /// applied, otherwise from the initial booking-hold quote. [holdQuote] is the
-  /// hold's quote passed by the caller.
   BookingQuoteModel? _effectiveQuote(
     CouponState coupon,
     BookingQuoteModel? holdQuote,
   ) => coupon.applied?.quote ?? holdQuote;
 
-  /// Builds the display figures straight from the server quote — no client-side
-  /// computation. Until the quote arrives, [_Pricing.ready] is false and the UI
-  /// shows a loading state instead of computed numbers.
-  ///
-  /// Scalar amounts (advance/total/etc.) are taken from `calculation_list`
-  /// first so the bottom bar and sheets always match the breakdown card, then
-  /// fall back to `price_details`.
   _Pricing _pricingFor(CouponState coupon, {BookingQuoteModel? quote}) {
     final BookingQuoteModel? effective = _effectiveQuote(coupon, quote);
     final BookingPriceDetailsModel? price = effective?.priceDetails;
@@ -158,7 +149,6 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
     );
   }
 
-  /// Returns the amount of the `calculation_list` row with [key], or null.
   double? _lineAmount(List<BookingCalculationLineModel> lines, String key) {
     for (final BookingCalculationLineModel line in lines) {
       if (line.key == key) return line.amount;
@@ -166,8 +156,6 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
     return null;
   }
 
-  /// Opens the full price breakdown: per-session (day-by-day) amounts plus the
-  /// overall totals — all from the server quote (booking-hold / apply-coupon).
   void _showPriceDetailsSheet(_Pricing pricing) {
     HapticFeedback.selectionClick();
     showModalBottomSheet<void>(
@@ -185,8 +173,10 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
     return '${date.year.toString().padLeft(4, '0')}-$month-$day';
   }
 
+  void _dismissKeyboard() => FocusScope.of(context).unfocus();
+
   void _applyCoupon() {
-    FocusScope.of(context).unfocus();
+    _dismissKeyboard();
     final BookingDraft draft = widget.draft;
     context.read<CouponBloc>().add(
       ApplyCouponEvent(
@@ -215,6 +205,9 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
   }
 
   Future<void> _pickPaymentDoc({bool applyValidate = true}) async {
+    // The picker slides over the form; leaving the keyboard up means it
+    // reappears behind the sheet when the picker closes.
+    _dismissKeyboard();
     final PickedMediaFile? file = await pickMediaFile(
       context,
       title: StringConstants.uploadPaymentReceipt,
@@ -296,6 +289,7 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
   }
 
   Future<void> _confirmBooking() async {
+    _dismissKeyboard();
     setState(() => _submitted = true);
     if (!_isManual && _paymentDoc == null) {
       AppUtils().showSnackBar(
@@ -313,6 +307,9 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
         StringConstants.paymentDescriptionRequired,
         key: 'payment_description_required',
       );
+      // Focusing it also scrolls it into view (`ensureVisibleOnFocus`), so the
+      // red message the snackbar refers to is actually on screen.
+      _paymentDescFocus.requestFocus();
       return;
     }
     if (!_isManual && !_agreedToTerms) {
@@ -345,7 +342,7 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
             ? 'Paid at counter'
             : 'Online (QR) · proof attached',
         paymentProofName: _paymentDoc?.name,
-        paymentDescription: _paymentDescription,
+        paymentDescription: _paymentNote,
       ),
     );
 
@@ -374,11 +371,11 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
           paymentProof: _paymentDoc,
           // The vendor's manual flow supplies its own note; a customer booking
           // carries whatever the payer typed.
-          paymentNote: manual?.paymentNote ?? _paymentDescription,
+          paymentNote: manual?.paymentNote ?? _paymentNote,
           bookingType: manual == null ? null : 'manual',
           customerName: manual?.customerName,
           customerPhone: manual?.customerPhone,
-          customerEmail: manual?.customerEmail,
+          totalAmount: manual?.totalAmount,
           paymentType: manual?.paymentType,
           paymentStatus: manual?.paymentStatus,
           bookingStatus: manual?.bookingStatus,
@@ -449,6 +446,9 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
             top: false,
             child: ListView(
               physics: const BouncingScrollPhysics(),
+              // Scrolling the form away closes the keyboard with it, so the
+              // confirm bar is never left hidden behind it.
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
               padding: AppUtils().getPadding(
                 left: AppDimens.paddingX20,
                 right: AppDimens.paddingX20,
@@ -465,6 +465,7 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
                   const SizedBox(height: AppDimens.sizeX6),
                   _CouponField(
                     controller: _couponCtrl,
+                    focusNode: _couponFocus,
                     coupon: coupon,
                     subtotal: _subtotal,
                     onApply: _applyCoupon,
@@ -510,7 +511,6 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
                         qr: qrState.qr,
                         isLoading: qrState.isLoading,
                         fallbackPayeeName: _payeeName,
-                        fallbackPayeeId: _payeeId,
                         amountLabel: StringConstants.advanceToPay,
                         amountValue: 'Rs ${pricing.advance.toStringAsFixed(0)}',
                       );
@@ -539,6 +539,8 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
                   const SizedBox(height: AppDimens.sizeX16),
                   _PaymentDescriptionField(
                     controller: _paymentDescCtrl,
+                    focusNode: _paymentDescFocus,
+                    onSubmitted: _dismissKeyboard,
                     highlightMissing: _submitted && _paymentDescription == null,
                     // The confirm button turns on this field's contents, so
                     // every keystroke has to reach the bottom bar.
@@ -832,6 +834,7 @@ class _SummaryCard extends StatelessWidget {
 class _CouponField extends StatelessWidget {
   const _CouponField({
     required this.controller,
+    required this.focusNode,
     required this.coupon,
     required this.subtotal,
     required this.onApply,
@@ -840,6 +843,7 @@ class _CouponField extends StatelessWidget {
   });
 
   final TextEditingController controller;
+  final FocusNode focusNode;
   final CouponState coupon;
   final double subtotal;
   final VoidCallback onApply;
@@ -908,12 +912,17 @@ class _CouponField extends StatelessWidget {
             Expanded(
               child: CustomTextField(
                 controller: controller,
+                focusNode: focusNode,
                 labelText: StringConstants.couponCode,
                 hintText: StringConstants.enterCouponCode,
                 icon: Icons.local_offer_outlined,
                 isRequired: false,
                 textCapitalization: TextCapitalization.characters,
+                // The code is applied over the network, so the keyboard's
+                // action mirrors the Apply button rather than walking to the
+                // next field.
                 textInputAction: TextInputAction.done,
+                ensureVisibleOnFocus: true,
                 onSubmitted: (_) => onApply(),
               ),
             ),
@@ -1539,9 +1548,11 @@ class _UploadCard extends StatelessWidget {
 class _PaymentNoteCard extends StatelessWidget {
   const _PaymentNoteCard();
 
+  /// The payment goes to the venue's own QR, not to a Hamro Futsal account, so
+  /// there is no remark for the player to type — the screenshot is what ties
+  /// the payment to the booking.
   static const List<String> _notes = <String>[
     'Please pay the exact amount shown for your booking.',
-    'In the payment remarks, type: "Hamro Futsal Booking".',
     'After completing the payment, upload a clear screenshot of the payment confirmation receipt.',
     'Bookings with an incorrect payment amount or unclear/invalid screenshot may be cancelled.',
   ];
@@ -2083,7 +2094,7 @@ class _ReviewPaymentCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
                   Text(
-                    StringConstants.paymentDescription,
+                    StringConstants.transactionId,
                     style: textTheme.bodyMiniSubTitle?.copyWith(
                       color: LightColor.hintTextColor,
                       fontWeight: FontWeight.w700,
@@ -2158,16 +2169,23 @@ class _DueNowBadge extends StatelessWidget {
 class _PaymentDescriptionField extends StatelessWidget {
   const _PaymentDescriptionField({
     required this.controller,
+    required this.focusNode,
     required this.highlightMissing,
     required this.onChanged,
+    required this.onSubmitted,
   });
 
   final TextEditingController controller;
+  final FocusNode focusNode;
 
   /// Set once the user has tried to confirm without filling this in — the same
   /// treatment the proof upload and the terms checkbox get.
   final bool highlightMissing;
   final ValueChanged<String> onChanged;
+
+  /// Called when the keyboard's done action fires; the page uses it to close
+  /// the keyboard instead of leaving it over the confirm bar.
+  final VoidCallback onSubmitted;
 
   @override
   Widget build(BuildContext context) {
@@ -2177,8 +2195,10 @@ class _PaymentDescriptionField extends StatelessWidget {
       children: <Widget>[
         CustomTextField(
           controller: controller,
+          focusNode: focusNode,
           onChanged: onChanged,
-          labelText: StringConstants.paymentDescription,
+          onSubmitted: (_) => onSubmitted(),
+          labelText: StringConstants.transactionId,
           hintText: StringConstants.paymentDescriptionHint,
           textCapitalization: TextCapitalization.characters,
           textInputAction: TextInputAction.done,

@@ -83,6 +83,9 @@ class ChatMessageModel {
     this.editedAt,
     this.deletedAt,
     required this.createdAt,
+    this.mentions = const <int>[],
+    this.mentionAll = false,
+    this.isMentioned = false,
   });
 
   final int id;
@@ -106,7 +109,22 @@ class ChatMessageModel {
   final DateTime? deletedAt;
   final DateTime createdAt;
 
+  /// Participants this message names.
+  final List<int> mentions;
+
+  /// The message was addressed to everyone (`@all`).
+  final bool mentionAll;
+
+  /// The server's own verdict on whether the signed-in user was mentioned —
+  /// true for a direct mention and for `@all`.
+  final bool isMentioned;
+
   bool isMine(int currentUserId) => senderId == currentUserId;
+
+  /// Whether this message calls out [currentUserId], falling back to the id
+  /// lists when the server did not compute the flag.
+  bool mentionsUser(int currentUserId) =>
+      isMentioned || mentionAll || mentions.contains(currentUserId);
 
   bool get isRead => status.toLowerCase() == 'read';
   bool get isDeleted => deletedAt != null;
@@ -128,6 +146,9 @@ class ChatMessageModel {
     editedAt: editedAt,
     deletedAt: deletedAt,
     createdAt: createdAt,
+    mentions: mentions,
+    mentionAll: mentionAll,
+    isMentioned: isMentioned,
   );
 
   factory ChatMessageModel.fromJson(Map<String, dynamic> json) {
@@ -169,6 +190,20 @@ class ChatMessageModel {
       createdAt:
           DateTime.tryParse(json['created_at']?.toString() ?? '') ??
           DateTime.now(),
+      mentions: json['mentions'] is List
+          ? (json['mentions'] as List)
+                .map(
+                  (dynamic item) => item is Map
+                      ? int.tryParse(
+                          (item['user_id'] ?? item['id'])?.toString() ?? '',
+                        )
+                      : int.tryParse(item?.toString() ?? ''),
+                )
+                .whereType<int>()
+                .toList(growable: false)
+          : const <int>[],
+      mentionAll: json['mention_all'] == true || json['mention_all'] == 1,
+      isMentioned: json['is_mentioned'] == true || json['is_mentioned'] == 1,
     );
   }
 }

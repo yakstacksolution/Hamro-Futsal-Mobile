@@ -9,6 +9,6 @@ final class GetVenueDescriptionUseCase {
   final FutsalDetailsRepository repository;
 
   Future<Either<AppException, VenueDescriptionModel>> call({
-    required int venueId,
-  }) async => await repository.getVenueDescription(venueId: venueId);
+    required String venueSlug,
+  }) async => await repository.getVenueDescription(venueSlug: venueSlug);
 }

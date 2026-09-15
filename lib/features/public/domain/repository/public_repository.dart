@@ -30,6 +30,16 @@ abstract class PublicRepository {
     double? latitude,
     double? longitude,
   });
+
+  /// Resolves a shared link to the venue behind it, or null when no venue on
+  /// the listing matches the link's slug/id.
+  Future<Either<AppException, PublicListingVenueModel?>> getVenueByLink({
+    String? slug,
+    int? id,
+    double? latitude,
+    double? longitude,
+  });
+
   Future<Either<AppException, List<CategoryFilterModel>>> getCategoryFilter();
 
   /// `GET /auth/wishlist` — same response shape as the venue listing.

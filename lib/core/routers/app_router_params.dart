@@ -15,6 +15,11 @@ class AppRouterParams {
     path: '/forgot-password',
   );
 
+  static const RouteConfig createNewPassword = RouteConfig(
+    name: 'createNewPassword',
+    path: '/create-new-password',
+  );
+
   static const RouteConfig otpVerification = RouteConfig(
     name: 'otpVerification',
     path: '/otp-verification',
@@ -47,6 +52,18 @@ class AppRouterParams {
   static const RouteConfig profileDetails = RouteConfig(
     name: 'profileDetails',
     path: '/dashboard/profile/details',
+  );
+
+  /// Shared venue links: `/venues/<slug>?venue=<id>`. Both the plural and the
+  /// singular spelling are handed out, so both resolve.
+  static const RouteConfig venueLink = RouteConfig(
+    name: 'venueLink',
+    path: '/venues/:slug',
+  );
+
+  static const RouteConfig venueLinkAlias = RouteConfig(
+    name: 'venueLinkAlias',
+    path: '/venue/:slug',
   );
 
   static const RouteConfig courtDetails = RouteConfig(

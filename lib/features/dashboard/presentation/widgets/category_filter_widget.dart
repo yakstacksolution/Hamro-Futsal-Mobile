@@ -5,10 +5,14 @@ import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
 import 'package:hamro_futsal/features/dashboard/presentation/widgets/loading/tab_selection_loading.dart';
 import 'package:hamro_futsal/features/public/data/model/category_filter_model.dart';
-import 'package:hamro_futsal/features/public/data/repositories/public_repository_impl.dart';
-import 'package:hamro_futsal/features/public/domain/usecase/get_category_filter_use_case.dart';
 import 'package:hamro_futsal/features/public/presentation/bloc/category_filter/category_filter_bloc.dart';
 
+/// The home tab's category strip.
+///
+/// Reads [CategoryFilterBloc] from above rather than owning it: the venue
+/// list's own "Retry" has to be able to refetch this strip too, and a bloc
+/// created down here was out of reach — so a failed fetch left the strip
+/// permanently missing until the app was restarted.
 class CategoryFilterWidget extends StatelessWidget {
   const CategoryFilterWidget({
     super.key,
@@ -21,28 +25,23 @@ class CategoryFilterWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider<CategoryFilterBloc>(
-      create: (_) =>
-          CategoryFilterBloc(GetCategoryFilterUseCase(PublicRepositoryImpl()))
-            ..add(const FetchCategoryFilterEvent()),
-      child: BlocBuilder<CategoryFilterBloc, CategoryFilterState>(
-        builder: (BuildContext context, CategoryFilterState state) {
-          if (state.status == CategoryFilterStatus.loading ||
-              state.status == CategoryFilterStatus.idle) {
-            return const TabSelectionLoading();
-          }
+    return BlocBuilder<CategoryFilterBloc, CategoryFilterState>(
+      builder: (BuildContext context, CategoryFilterState state) {
+        if (state.status == CategoryFilterStatus.loading ||
+            state.status == CategoryFilterStatus.idle) {
+          return const TabSelectionLoading();
+        }
 
-          if (state.status == CategoryFilterStatus.success) {
-            return _CategoryFilterRow(
-              filters: state.filters,
-              selectedFilterIds: selectedFilterIds,
-              onSelectionChanged: onSelectionChanged,
-            );
-          }
+        if (state.status == CategoryFilterStatus.success) {
+          return _CategoryFilterRow(
+            filters: state.filters,
+            selectedFilterIds: selectedFilterIds,
+            onSelectionChanged: onSelectionChanged,
+          );
+        }
 
-          return const SizedBox.shrink();
-        },
-      ),
+        return const SizedBox.shrink();
+      },
     );
   }
 }

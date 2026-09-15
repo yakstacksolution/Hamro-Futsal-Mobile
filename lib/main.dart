@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'dart:ui';
-
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -17,8 +17,10 @@ import 'package:hamro_futsal/core/helper/fcm_helper.dart';
 import 'package:hamro_futsal/core/helper/share_preferences.dart';
 import 'package:hamro_futsal/core/routers/app_router_params.dart';
 import 'package:hamro_futsal/core/routers/app_routers.dart';
+import 'package:hamro_futsal/core/routers/deep_link_service.dart';
 import 'package:hamro_futsal/core/routers/notification_redirection.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
+import 'package:hamro_futsal/core/utils/text_scaling.dart';
 import 'package:hamro_futsal/core/theme/app_theme_controller.dart';
 import 'package:hamro_futsal/features/app_update/data/repositories/app_update_repository_impl.dart';
 import 'package:hamro_futsal/features/app_update/domain/usecase/check_app_update_use_case.dart';
@@ -27,9 +29,11 @@ import 'package:hamro_futsal/features/app_update/presentation/widgets/app_update
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 
+const AppFlavor kAppFlavor = AppFlavor.staging;
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
+  AppEnvironment.selected = kAppFlavor;
   bool firebaseReady = false;
   try {
     await Firebase.initializeApp();
@@ -48,10 +52,17 @@ void main() async {
 
   final SharedPreferences preferences = await SharedPreferences.getInstance();
   await AppSettings().init(SharedPreferencesWrapper(preferences));
+  AppThemeController.restore();
   final bool hasLoggedIn =
       AppSettings().tokenModel.accessToken?.trim().isNotEmpty ?? false;
   try {
     await dotenv.load(fileName: AppEnvironment.envFileName);
+    if (kDebugMode) {
+      debugPrint(
+        '[env] ${AppEnvironment.name} (${AppEnvironment.source})'
+        ' → ${dotenv.maybeGet('API_URL') ?? 'no API_URL'}',
+      );
+    }
   } catch (error, stack) {
     if (firebaseReady) {
       FirebaseCrashlytics.instance.recordError(error, stack, fatal: false);
@@ -69,13 +80,15 @@ void main() async {
 
   runApp(MyApp(initialLocation: initialLocation));
 
-  unawaited(
-    FcmHelper().init().then((_) async {
-      if (hasLoggedIn) {
-        await FcmHelper().syncTokenAfterLogin();
-      }
-    }),
-  );
+  if (firebaseReady) {
+    unawaited(
+      FcmHelper().init().then((_) async {
+        if (hasLoggedIn) {
+          await FcmHelper().syncTokenAfterLogin();
+        }
+      }),
+    );
+  }
 }
 
 class MyApp extends StatefulWidget {
@@ -101,9 +114,11 @@ class _MyAppState extends State<MyApp> {
               FirebaseAnalyticsObserver(analytics: FirebaseAnalytics.instance),
             ],
     );
-    WidgetsBinding.instance.addPostFrameCallback(
-      (_) => flushPendingNotificationNavigation(),
-    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      flushPendingNotificationNavigation();
+      DeepLinkService.instance.flush();
+    });
+    unawaited(DeepLinkService.instance.start());
   }
 
   @override
@@ -118,7 +133,7 @@ class _MyAppState extends State<MyApp> {
       minTextAdapt: true,
       splitScreenMode: true,
       builder: (BuildContext context, Widget? child) {
-        return BlocProvider<AppUpdateBloc>( 
+        return BlocProvider<AppUpdateBloc>(
           create: (_) =>
               AppUpdateBloc(CheckAppUpdateUseCase(AppUpdateRepositoryImpl())),
           child: ValueListenableBuilder<ThemeMode>(
@@ -129,7 +144,7 @@ class _MyAppState extends State<MyApp> {
                 debugShowCheckedModeBanner: false,
                 theme: FutsalTheme.lightTheme,
                 darkTheme: FutsalTheme.darkTheme,
-                themeMode: mode, 
+                themeMode: mode,
                 themeAnimationDuration: Duration.zero,
                 localizationsDelegates: const [
                   GlobalMaterialLocalizations.delegate,
@@ -140,8 +155,7 @@ class _MyAppState extends State<MyApp> {
                 supportedLocales: const [Locale('en')],
                 routerConfig: _router,
                 builder: (BuildContext context, Widget? child) {
-                  return MediaQuery.withClampedTextScaling(
-                    maxScaleFactor: 1.3,
+                  return AppTextScaling(
                     child: AppUpdateGate(
                       child: child ?? const SizedBox.shrink(),
                     ),

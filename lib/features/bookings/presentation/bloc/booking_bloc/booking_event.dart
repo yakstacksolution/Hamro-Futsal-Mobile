@@ -79,3 +79,37 @@ class FetchFutsalBookingsEvent extends BookingEvent {
   @override
   List<Object?> get props => <Object?>[silent, loadMore, filter, select, force];
 }
+
+/// Applies a new date window and/or order to one of the lists.
+///
+/// Both are server-side filters, so every status this list has already cached
+/// was fetched under the *old* query and is now stale — the handler drops those
+/// slices and refetches the visible status from page 1. Nothing else can be
+/// done with them: page 2 of the old window has no relation to page 2 of the
+/// new one.
+class ApplyMyBookingsFiltersEvent extends BookingEvent {
+  const ApplyMyBookingsFiltersEvent({
+    required this.dateFilter,
+    required this.order,
+  });
+
+  final BookingDateFilter dateFilter;
+  final BookingDateOrder order;
+
+  @override
+  List<Object?> get props => <Object?>[dateFilter, order];
+}
+
+/// See [ApplyMyBookingsFiltersEvent], for `/futsal-bookings`.
+class ApplyFutsalBookingsFiltersEvent extends BookingEvent {
+  const ApplyFutsalBookingsFiltersEvent({
+    required this.dateFilter,
+    required this.order,
+  });
+
+  final BookingDateFilter dateFilter;
+  final BookingDateOrder order;
+
+  @override
+  List<Object?> get props => <Object?>[dateFilter, order];
+}

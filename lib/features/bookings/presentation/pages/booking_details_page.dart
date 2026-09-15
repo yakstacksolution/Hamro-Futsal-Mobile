@@ -1,15 +1,20 @@
+import 'package:hamro_futsal/core/utils/bloc_safe_add.dart';
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hamro_futsal/core/api/api_client/api_constants.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
+import 'package:hamro_futsal/core/widgets/attachment_viewer.dart';
 import 'package:hamro_futsal/core/theme/futsal_text.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/app_utils.dart';
 import 'package:hamro_futsal/core/utils/custom_image_view.dart';
+import 'package:hamro_futsal/core/utils/currency.dart';
+import 'package:hamro_futsal/core/utils/date_format.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
 import 'package:hamro_futsal/core/widgets/custom_app_bar.dart';
+import 'package:hamro_futsal/core/widgets/data_card.dart';
 import 'package:hamro_futsal/core/widgets/custom_bottom_sheet.dart';
 import 'package:hamro_futsal/core/widgets/custom_button.dart';
 import 'package:hamro_futsal/core/widgets/custom_cancel_button.dart';
@@ -101,7 +106,7 @@ class _BookingDetailsView extends StatelessWidget {
       child: const _CancelBookingSheet(),
     );
     if (confirmed == true) {
-      bloc.add(CancelBookingEvent(bloc.state.booking.id));
+      bloc.addIfOpen(CancelBookingEvent(bloc.state.booking.id));
     }
   }
 
@@ -125,7 +130,7 @@ class _BookingDetailsView extends StatelessWidget {
           builder: (_) => _PaymentProofAcceptSheet(payment: payment),
         );
     if (result != null) {
-      bloc.add(
+      bloc.addIfOpen(
         VerifyPaymentEvent(
           bookingId: booking.id,
           paymentId: payment.id,
@@ -153,7 +158,7 @@ class _BookingDetailsView extends StatelessWidget {
       builder: (_) => const _PaymentProofRejectSheet(),
     );
     if (result != null) {
-      bloc.add(
+      bloc.addIfOpen(
         RejectPaymentEvent(
           bookingId: booking.id,
           paymentId: payment.id,
@@ -182,7 +187,7 @@ class _BookingDetailsView extends StatelessWidget {
       ok ? MsgType.success : MsgType.error,
       ok ? 'Booking marked as completed.' : 'Could not complete the booking.',
     );
-    if (ok) bloc.add(FetchBookingDetailsEvent(booking.id));
+    if (ok) bloc.addIfOpen(FetchBookingDetailsEvent(booking.id));
   }
 
   Future<void> _collectDue(BuildContext context, BookingModel booking) async {
@@ -201,14 +206,14 @@ class _BookingDetailsView extends StatelessWidget {
           ? 'Due amount collected successfully.'
           : 'Could not collect the due amount.',
     );
-    if (ok) bloc.add(FetchBookingDetailsEvent(booking.id));
+    if (ok) bloc.addIfOpen(FetchBookingDetailsEvent(booking.id));
   }
 
   // ── Booking accept / reject ──
 
   void _acceptBooking(BuildContext context) {
     final BookingDetailsBloc bloc = context.read<BookingDetailsBloc>();
-    bloc.add(AcceptBookingEvent(bookingId: bloc.state.booking.id));
+    bloc.addIfOpen(AcceptBookingEvent(bookingId: bloc.state.booking.id));
   }
 
   Future<void> _rejectBooking(BuildContext context) async {
@@ -219,7 +224,7 @@ class _BookingDetailsView extends StatelessWidget {
       builder: (_) => const _RejectBookingSheet(),
     );
     if (result != null) {
-      bloc.add(RejectBookingEvent(bookingId: bookingId, note: result.note));
+      bloc.addIfOpen(RejectBookingEvent(bookingId: bookingId, note: result.note));
     }
   }
 
@@ -1171,88 +1176,106 @@ class _CollectDueActionBar extends StatelessWidget {
   }
 }
 
+/// The page's opening card.
+///
+/// Deliberately the same object as the row the reader tapped in the list: the
+/// shared [DataCardHeader] and the same 2×2 grid of facts, so arriving here
+/// feels like the card opening rather than a different screen describing the
+/// same booking.
 class _BookingSummary extends StatelessWidget {
   const _BookingSummary({required this.booking, required this.isFutsalView});
+
+  /// This page is read rather than scanned, so its facts run a step larger
+  /// than the same facts on a list card.
+  static const DataCardDensity _density = DataCardDensity.detail;
 
   final BookingModel booking;
   final bool isFutsalView;
 
   @override
   Widget build(BuildContext context) {
-    final FutsalTextTheme textTheme = FutsalTheme.getTextTheme(context);
+    final Color statusColor = bookingStatusColor(booking.status);
+    final String? bookingType = bookingTypeLabel(booking.bookingType);
     final String title = isFutsalView
-        ? booking.playerName?.trim().isNotEmpty == true
+        ? (booking.playerName?.trim().isNotEmpty == true
               ? booking.playerName!
-              : 'Customer booking'
-        : booking.futsalName.isNotEmpty
-        ? booking.futsalName
-        : 'Futsal booking';
+              : StringConstants.customerBooking)
+        : (booking.futsalName.isNotEmpty
+              ? booking.futsalName
+              : StringConstants.futsalBooking);
+    // The other party, under the title: on a vendor's page the venue and the
+    // court, on a customer's page the court alone — the venue is the title.
     final String subtitle = isFutsalView
-        ? booking.futsalName
+        ? <String>[
+            if (booking.futsalName.isNotEmpty) booking.futsalName,
+            if (booking.courtName.isNotEmpty) booking.courtName,
+          ].join('  ·  ')
         : booking.courtName;
+
+    final String timeRange = booking.displayTimeRange;
+    final double balanceDue = booking.balanceDue;
+    final List<Widget> cells = <Widget>[
+      DataCardCell(
+        label: StringConstants.date,
+        value: DateFmt.date(booking.date),
+        density: _density,
+      ),
+      if (timeRange.isNotEmpty)
+        DataCardCell(
+          label: StringConstants.time,
+          value: timeRange,
+          density: _density,
+        ),
+      if (booking.bookingRef.isNotEmpty)
+        DataCardCell(
+          label: StringConstants.reference,
+          value: booking.bookingRef,
+          density: _density,
+        ),
+      if (bookingType != null && bookingType.isNotEmpty)
+        DataCardCell(
+          label: StringConstants.type,
+          value: bookingType,
+          density: _density,
+        ),
+      if (booking.createdAt != null)
+        DataCardCell(
+          label: StringConstants.bookedOn,
+          value: DateFmt.dateTime(booking.createdAt!),
+          density: _density,
+        ),
+      if (balanceDue > 0)
+        DataCardCell(
+          label: StringConstants.balanceDue,
+          value: Money.npr(balanceDue),
+          valueColor: LightColor.warningColor,
+          density: _density,
+        )
+      else if (booking.paidAmount > 0)
+        DataCardCell(
+          label: StringConstants.paid,
+          value: Money.npr(booking.paidAmount),
+          valueColor: LightColor.brandTextColor,
+          density: _density,
+        ),
+    ];
 
     return BookingDetailCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: textTheme.bodyTextLarge?.copyWith(
-                        color: LightColor.primaryTextColor,
-                        fontSize: AppDimens.fontHeadingSubTitle,
-                        fontWeight: FontWeight.w700,
-                        height: 1.25,
-                      ),
-                    ),
-                    if (subtitle.trim().isNotEmpty) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        subtitle,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: textTheme.bodyTextSmall?.copyWith(
-                          color: LightColor.secondaryTextColor,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              BookingStatusChip(status: booking.status),
-            ],
+        children: <Widget>[
+          DataCardHeader(
+            icon: isFutsalView ? Icons.person_rounded : Icons.stadium_rounded,
+            iconColor: statusColor,
+            title: title,
+            subtitle: subtitle,
+            amount: booking.amount > 0 ? Money.npr(booking.amount) : null,
+            chipLabel: booking.status.value,
+            chipColor: statusColor,
+            density: _density,
           ),
-          const SizedBox(height: 14),
-          Text(
-            booking.displayTimeRange.isEmpty
-                ? bookingFormatDate(booking.date)
-                : '${bookingFormatDate(booking.date)} · '
-                      '${booking.displayTimeRange}',
-            style: textTheme.bodyTextSmall?.copyWith(
-              color: LightColor.primaryTextColor,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          if (booking.bookingRef.isNotEmpty) ...[
-            const SizedBox(height: 4),
-            Text(
-              '${StringConstants.bookingId} ${booking.bookingRef}',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: textTheme.bodyTextSmall?.copyWith(
-                color: LightColor.secondaryTextColor,
-              ),
-            ),
-          ],
+          const DataCardDivider(),
+          DataCardGrid(cells: cells),
         ],
       ),
     );
@@ -1266,9 +1289,9 @@ class _BookingInformation extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final String? bookingType = bookingTypeLabel(booking.bookingType);
     final List<Widget> rows = <Widget>[
-      // Time is already the hero fact — not repeated here.
+      // Date, time, reference, type and the money are in the summary card's
+      // grid above; this section carries what did not fit there.
       BookingDetailRow(
         label: StringConstants.venue,
         value: booking.futsalName.isEmpty ? '—' : booking.futsalName,
@@ -1278,8 +1301,6 @@ class _BookingInformation extends StatelessWidget {
         label: StringConstants.court,
         value: booking.courtName.isEmpty ? '—' : booking.courtName,
       ),
-      if (bookingType != null)
-        BookingDetailRow(label: StringConstants.bookedVia, value: bookingType),
       if (booking.isRecurring)
         BookingDetailRow(
           label: StringConstants.recurrence,
@@ -1496,7 +1517,10 @@ class _PaymentCard extends StatelessWidget {
                 Text(
                   StringConstants.paymentStatus,
                   style: textTheme.bodyTextSmall?.copyWith(
-                    color: LightColor.secondaryTextColor,
+                    color: LightColor.hintTextColor,
+                    fontSize: DataCardDensity.detail.labelSize,
+                    fontWeight: FontWeight.w500,
+                    height: 1.3,
                   ),
                 ),
                 const Spacer(),
@@ -1540,7 +1564,10 @@ class _PaymentCard extends StatelessWidget {
             value: bookingCurrency(booking.bookingTotal),
             labelWeight: FontWeight.w700,
             valueWeight: FontWeight.w700,
-            valueSize: extras > 0 ? null : AppDimens.fontBodyTextLarge,
+            // The booking total closes the charges list; when products follow,
+            // the grand total below is the figure that settles the card, so
+            // this one stays level with the rows it sums.
+            emphasised: extras <= 0,
           ),
           if (extras > 0) ...[
             const SizedBox(height: BookingDetailsSpacing.rowGap),
@@ -1603,8 +1630,10 @@ class _PaymentCard extends StatelessWidget {
                 Text(
                   'Paid via ${bookingTitleCase(booking.payment!.method!)}',
                   style: textTheme.bodyTextSmall?.copyWith(
-                    color: LightColor.secondaryTextColor,
+                    color: LightColor.hintTextColor,
+                    fontSize: DataCardDensity.detail.labelSize,
                     fontWeight: FontWeight.w500,
+                    height: 1.3,
                   ),
                 ),
               ],
@@ -1677,10 +1706,25 @@ class _PaymentProofCard extends StatelessWidget {
                 label: bookingTitleCase(verification),
                 color: bookingVerificationColor(verification),
               ),
+              // The proof is a record the vendor and the player both need to
+              // keep — a bank dispute is settled with the file, not with a
+              // screenshot of the app — so downloading it is offered right on
+              // the card rather than only inside the full-screen view.
+              if (hasProof && proofUrl != null)
+                AttachmentDownloadAction(
+                  key: const Key('payment-proof-download'),
+                  url: proofUrl,
+                  fileName: _paymentProofFileName(payment, proofUrl),
+                ),
             ],
           ),
           const SizedBox(height: 12),
-          if (hasProof && proofUrl != null)
+          if (hasProof && proofUrl != null && !isViewableImageUrl(proofUrl))
+            _ProofFileTile(
+              url: proofUrl,
+              fileName: _paymentProofFileName(payment, proofUrl),
+            )
+          else if (hasProof && proofUrl != null)
             Material(
               color: LightColor.background,
               borderRadius: BorderRadius.circular(AppDimens.radiusX10),
@@ -1689,7 +1733,11 @@ class _PaymentProofCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(AppDimens.radiusX10),
                 onTap: () => Navigator.of(context).push<void>(
                   MaterialPageRoute<void>(
-                    builder: (_) => _PaymentProofViewer(imageUrl: proofUrl),
+                    builder: (_) => AttachmentViewer(
+                      url: proofUrl,
+                      title: StringConstants.paymentProof,
+                      fileName: _paymentProofFileName(payment, proofUrl),
+                    ),
                   ),
                 ),
                 child: ClipRRect(
@@ -1794,45 +1842,82 @@ class _PaymentProofCard extends StatelessWidget {
   }
 }
 
-class _PaymentProofViewer extends StatelessWidget {
-  const _PaymentProofViewer({required this.imageUrl});
+/// A proof submitted as a file rather than an image. There is nothing to
+/// preview, so the tile names it and offers the two things that can be done
+/// with it.
+class _ProofFileTile extends StatelessWidget {
+  const _ProofFileTile({required this.url, required this.fileName});
 
-  final String imageUrl;
+  final String url;
+  final String fileName;
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: const Text(
-          StringConstants.paymentProof,
-          style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+    final FutsalTextTheme textTheme = FutsalTheme.getTextTheme(context);
+    return Material(
+      color: LightColor.background,
+      borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+      child: InkWell(
+        key: const Key('payment-proof-file-tile'),
+        borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+        onTap: () => Navigator.of(context).push<void>(
+          MaterialPageRoute<void>(
+            builder: (_) => AttachmentViewer(
+              url: url,
+              title: StringConstants.paymentProof,
+              fileName: fileName,
+            ),
+          ),
         ),
-      ),
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (BuildContext context, BoxConstraints constraints) {
-            return InteractiveViewer(
-              minScale: 0.8,
-              maxScale: 5,
-              child: Center(
-                child: CustomImageView(
-                  url: imageUrl,
-                  width: constraints.maxWidth,
-                  height: constraints.maxHeight,
-                  fit: BoxFit.contain,
-                  isHidePlaceholderImage: true,
+        child: Padding(
+          padding: const EdgeInsets.all(AppDimens.paddingX12),
+          child: Row(
+            children: <Widget>[
+              Icon(
+                Icons.description_outlined,
+                color: LightColor.secondaryColor,
+                size: AppDimens.sizeX24,
+              ),
+              const SizedBox(width: AppDimens.paddingX10),
+              Expanded(
+                child: Text(
+                  fileName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: textTheme.bodyTextSmall?.copyWith(
+                    color: LightColor.primaryTextColor,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
-            );
-          },
+              const SizedBox(width: AppDimens.paddingX8),
+              Text(
+                StringConstants.openAttachment,
+                style: textTheme.bodyTextSmall?.copyWith(
+                  color: LightColor.secondaryColor,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
+}
+
+/// The name a downloaded proof is saved under.
+///
+/// The uploaded file's own name is used when the API reports a path — that is
+/// what the person who sent it will recognise — and a payment-stamped name
+/// stands in when it does not, so two proofs never land on top of each other
+/// in the user's files.
+String _paymentProofFileName(BookingPaymentModel payment, String url) {
+  final String stored = payment.paymentProofPath?.trim() ?? '';
+  final String candidate = stored.isNotEmpty ? stored : url;
+  final String last = Uri.tryParse(candidate)?.pathSegments.lastOrNull ?? '';
+  if (last.contains('.')) return last;
+  return 'payment-proof-${payment.id}.jpg';
 }
 
 String _recurrenceLabel(BookingModel booking) {

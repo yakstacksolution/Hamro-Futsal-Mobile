@@ -1,3 +1,5 @@
+import 'package:hamro_futsal/core/utils/string_constants.dart';
+
 enum UploadVerificationStatus {
   none,
   pending,
@@ -234,7 +236,12 @@ class SlotPricingDraft {
     this.customDatePrices = const <SlotCustomDatePriceDraft>[],
     this.discountPrice,
     this.discountType = 'Flat',
+    this.hasDiscount = false,
+    this.discountStartsAt,
+    this.discountEndsAt,
     this.paymentPercent,
+    this.isActive = true,
+    this.sortOrder,
   });
 
   final String id;
@@ -248,7 +255,47 @@ class SlotPricingDraft {
   final List<SlotCustomDatePriceDraft> customDatePrices;
   final double? discountPrice;
   final String discountType;
+
+  final bool hasDiscount;
+
+  final DateTime? discountStartsAt;
+  final DateTime? discountEndsAt;
+
   final double? paymentPercent;
+
+  /// Whether the slot is open for booking. The server sends `is_active`, and a
+  /// slot switched off must not read as live in the list.
+  final bool isActive;
+
+  /// The server's own ordering (`sort_order`); slots are shown in it so the
+  /// list matches what the vendor arranged.
+  final int? sortOrder;
+
+  String? get discountProblem {
+    if (!hasDiscount) return null;
+
+    final double? value = discountPrice;
+    if (value == null) return StringConstants.discountNeedsTypeAndValue;
+    if (value <= 0) return StringConstants.discountValueMustBePositive;
+    if (discountType.trim().isEmpty) {
+      return StringConstants.discountNeedsTypeAndValue;
+    }
+    if (_isPercentDiscount && value > 100) {
+      return StringConstants.discountPercentTooHigh;
+    }
+
+    final DateTime? start = discountStartsAt;
+    final DateTime? end = discountEndsAt;
+    if (start != null && end != null && !end.isAfter(start)) {
+      return StringConstants.discountEndMustFollowStart;
+    }
+    return null;
+  }
+
+  bool get _isPercentDiscount {
+    final String normalized = discountType.trim().toLowerCase();
+    return normalized == 'percent' || normalized == 'percentage';
+  }
 
   SlotPricingDraft copyWith({
     String? label,
@@ -261,11 +308,18 @@ class SlotPricingDraft {
     List<SlotCustomDatePriceDraft>? customDatePrices,
     double? discountPrice,
     String? discountType,
+    bool? hasDiscount,
+    DateTime? discountStartsAt,
+    DateTime? discountEndsAt,
     double? paymentPercent,
+    bool? isActive,
+    int? sortOrder,
     bool clearPrice = false,
     bool clearWeekendPrice = false,
     bool clearHolidayPrice = false,
     bool clearDiscountPrice = false,
+    bool clearDiscountStartsAt = false,
+    bool clearDiscountEndsAt = false,
     bool clearPaymentPercent = false,
   }) {
     return SlotPricingDraft(
@@ -286,9 +340,18 @@ class SlotPricingDraft {
           ? null
           : discountPrice ?? this.discountPrice,
       discountType: discountType ?? this.discountType,
+      hasDiscount: hasDiscount ?? this.hasDiscount,
+      discountStartsAt: clearDiscountStartsAt
+          ? null
+          : discountStartsAt ?? this.discountStartsAt,
+      discountEndsAt: clearDiscountEndsAt
+          ? null
+          : discountEndsAt ?? this.discountEndsAt,
       paymentPercent: clearPaymentPercent
           ? null
           : paymentPercent ?? this.paymentPercent,
+      isActive: isActive ?? this.isActive,
+      sortOrder: sortOrder ?? this.sortOrder,
     );
   }
 
@@ -307,7 +370,12 @@ class SlotPricingDraft {
           .toList(),
       'discountPrice': discountPrice,
       'discountType': discountType,
+      'hasDiscount': hasDiscount,
+      'discountStartsAt': discountStartsAt?.toIso8601String(),
+      'discountEndsAt': discountEndsAt?.toIso8601String(),
       'paymentPercent': paymentPercent,
+      'isActive': isActive,
+      'sortOrder': sortOrder,
     };
   }
 
@@ -324,7 +392,14 @@ class SlotPricingDraft {
       customDatePrices: _slotCustomDatePricesFromJson(json['customDatePrices']),
       discountPrice: _asDouble(json['discountPrice']),
       discountType: _normalizedDiscountType(json['discountType'] as String?),
+      hasDiscount:
+          json['hasDiscount'] as bool? ??
+          ((_asDouble(json['discountPrice']) ?? 0) > 0),
+      discountStartsAt: _asDateTime(json['discountStartsAt']),
+      discountEndsAt: _asDateTime(json['discountEndsAt']),
       paymentPercent: _asDouble(json['paymentPercent']),
+      isActive: json['isActive'] as bool? ?? true,
+      sortOrder: (_asDouble(json['sortOrder']))?.toInt(),
     );
   }
 }
@@ -517,9 +592,6 @@ class FutsalDraft {
   }
 }
 
-/// Advance payment is mandatory on every court, and never below this share of
-/// the court's price. A percentage advance is entered directly; a flat advance
-/// must be at least this share of the base price.
 const double kMinimumAdvancePercent = 20;
 
 enum AdvancePaymentType {
@@ -1068,6 +1140,14 @@ class ClosedDateDraft {
       endTime: isFullDay ? '' : json['endTime'] as String? ?? '',
     );
   }
+}
+
+DateTime? _asDateTime(Object? value) {
+  if (value == null) return null;
+  if (value is DateTime) return value;
+  final String raw = value.toString().trim();
+  if (raw.isEmpty) return null;
+  return DateTime.tryParse(raw.replaceFirst(' ', 'T'))?.toLocal();
 }
 
 double? _asDouble(Object? value) {

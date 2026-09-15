@@ -70,6 +70,9 @@ class ExpenseCategoryIcon extends StatelessWidget {
       }
     }
 
+    // Tinted, not drawn as-is: the server sends dark glyphs on transparent,
+    // which vanish on the dark chip. [ExpenseCategory.color] is already
+    // brightness-adapted, so the icon tracks the theme either way.
     final Widget child;
     if (api == null) {
       child = Icon(category.icon, color: category.color, size: iconSize);
@@ -79,6 +82,7 @@ class ExpenseCategoryIcon extends StatelessWidget {
         svgFromOnline: true,
         height: iconSize + 2,
         width: iconSize + 2,
+        color: category.color,
       );
     } else {
       child = CustomImageView(
@@ -86,6 +90,7 @@ class ExpenseCategoryIcon extends StatelessWidget {
         height: iconSize + 2,
         width: iconSize + 2,
         fit: BoxFit.contain,
+        color: category.color,
       );
     }
 

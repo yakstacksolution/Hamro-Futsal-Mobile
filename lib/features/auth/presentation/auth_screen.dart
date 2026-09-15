@@ -11,10 +11,12 @@ import 'package:hamro_futsal/core/security/biometric_auth_service.dart';
 import 'package:hamro_futsal/core/security/biometric_session_store.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
+import 'package:hamro_futsal/core/utils/app_urls.dart';
 import 'package:hamro_futsal/core/utils/app_utils.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
 import 'package:hamro_futsal/core/utils/responsive.dart';
 import 'package:hamro_futsal/core/validation/app_validators.dart';
+import 'package:hamro_futsal/core/widgets/in_app_web_view_page.dart';
 import 'package:hamro_futsal/features/auth/presentation/authentication_bloc/authentication_bloc.dart';
 import 'package:hamro_futsal/features/auth/presentation/widgets/auth_screen_frame.dart';
 import 'package:hamro_futsal/features/auth/presentation/widgets/login_form.dart';
@@ -210,6 +212,14 @@ class _AuthScreenState extends State<AuthScreen> {
     _setMode(_isLogin ? AuthMode.register : AuthMode.login);
   }
 
+  void _openPolicyPage({required String title, required String url}) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => InAppWebViewPage(title: title, url: url),
+      ),
+    );
+  }
+
   String? _validateName(String? value) {
     return AppValidators.fullName(value);
   }
@@ -387,8 +397,8 @@ class _AuthScreenState extends State<AuthScreen> {
               isRotate: isLogin,
               title: isLogin ? 'Welcome Back' : 'Create Your Account',
               subtitle: isLogin
-                  ? 'Sign in to book matches or manage your futsal.'
-                  : 'Join as a player or a futsal vendor.',
+                  ? 'Sign in to book matches or manage your venue.'
+                  : 'Join as a player or a venue vendor.',
               primaryButtonLabel: isLogin ? 'Sign In' : 'Create Account',
               primaryButtonIcon: isLogin
                   ? Icons.login_rounded
@@ -403,7 +413,7 @@ class _AuthScreenState extends State<AuthScreen> {
                   !isAppleSubmitting,
               onPrimaryTap: _submit,
               secondaryPrefixText: isLogin
-                  ? 'New to Futsal App?'
+                  ? 'New to Hamro Futsal?'
                   : 'Already have an account?',
               secondaryActionText: isLogin ? 'Create account' : 'Sign in',
               onSecondaryTap: _toggleMode,
@@ -563,6 +573,14 @@ class _AuthScreenState extends State<AuthScreen> {
                               onTermsChanged: (bool? value) {
                                 _acceptedTermsNotifier.value = value ?? false;
                               },
+                              onTermsTap: () => _openPolicyPage(
+                                title: 'Terms & Conditions',
+                                url: AppUrls.termsAndConditions,
+                              ),
+                              onPrivacyPolicyTap: () => _openPolicyPage(
+                                title: 'Privacy Policy',
+                                url: AppUrls.privacyPolicy,
+                              ),
                             ),
                     ),
                   ),

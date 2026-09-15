@@ -328,6 +328,9 @@ class _ConfirmWordSheetState extends State<_ConfirmWordSheet> {
                   ),
                 ],
               ),
+              // Matches the gap above the row, so the buttons are not pinned to
+              // the sheet's bottom edge.
+              const SizedBox(height: AppDimens.paddingX18),
             ],
           ),
         ),
@@ -588,6 +591,9 @@ class _ConfirmWordReasonSheetState extends State<_ConfirmWordReasonSheet> {
                     ),
                   ],
                 ),
+                // The same gap below the buttons as above them, so the row sits
+                // centred in its own space instead of against the sheet's edge.
+                const SizedBox(height: AppDimens.paddingX18),
               ],
             ),
           ),

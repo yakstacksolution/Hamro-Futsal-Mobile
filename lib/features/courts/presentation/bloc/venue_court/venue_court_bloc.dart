@@ -6,82 +6,27 @@ import 'package:equatable/equatable.dart';
 import 'package:hamro_futsal/core/helper/exception_helper.dart';
 import 'package:hamro_futsal/features/courts/data/model/venue_court_model.dart';
 import 'package:hamro_futsal/features/courts/data/model/venue_court_page_model.dart';
+import 'package:hamro_futsal/features/courts/domain/model/venue_court_purpose.dart';
 import 'package:hamro_futsal/features/courts/domain/usecase/get_venue_court_use_case.dart';
-import 'package:hamro_futsal/features/vendor/presentation/models/vendor_onboarding_drafts.dart';
 
 part 'venue_court_event.dart';
 part 'venue_court_state.dart';
 
 class VenueCourtBloc extends Bloc<VenueCourtEvent, VenueCourtState> {
-  VenueCourtBloc(this._getVenueCourtUseCase) : super(const VenueCourtState()) {
+  VenueCourtBloc(this._getVenueCourtUseCase, {required this.purpose})
+    : super(const VenueCourtState()) {
     on<FetchVenueCourtEvent>(_onFetchVenueCourt);
-    on<UpsertVenueCourtLocallyEvent>(_onUpsertVenueCourtLocally);
-    on<RemoveVenueCourtLocallyEvent>(_onRemoveVenueCourtLocally);
   }
+
+  /// Which answer this bloc's screen wants from `/auth/get-venue-courts`.
+  ///
+  /// A screen's purpose never changes while it is open, so it is held here
+  /// rather than repeated on every fetch, refresh and load-more event — where
+  /// one call site forgetting it would silently ask for the other list.
+  final VenueCourtPurpose purpose;
 
   final GetVenueCourtUseCase _getVenueCourtUseCase;
   bool _isFetching = false;
-
-  void _onUpsertVenueCourtLocally(
-    UpsertVenueCourtLocallyEvent event,
-    Emitter<VenueCourtState> emit,
-  ) {
-    final List<VenueCourtModel> updatedVenues = state.venues.map((venue) {
-      if (venue.id != event.venueId) return venue;
-
-      final List<CourtDraft> courts = List<CourtDraft>.from(venue.courts);
-      final int existingIndex = courts.indexWhere(
-        (c) => c.remoteId != null && c.remoteId == event.court.remoteId,
-      );
-
-      if (existingIndex >= 0) {
-        courts[existingIndex] = event.court;
-      } else {
-        courts.add(event.court);
-      }
-
-      return VenueCourtModel(
-        id: venue.id,
-        title: venue.title,
-        address: venue.address,
-        phone: venue.phone,
-        status: venue.status,
-        courts: courts,
-        imageUrl: venue.imageUrl,
-      );
-    }).toList();
-
-    emit(state.copyWith(venues: updatedVenues));
-  }
-
-  void _onRemoveVenueCourtLocally(
-    RemoveVenueCourtLocallyEvent event,
-    Emitter<VenueCourtState> emit,
-  ) {
-    final List<VenueCourtModel> updatedVenues = state.venues.map((venue) {
-      if (venue.id != event.venueId) return venue;
-
-      final List<CourtDraft> courts = venue.courts.where((CourtDraft c) {
-        final bool sameRemote =
-            c.remoteId != null &&
-            event.court.remoteId != null &&
-            c.remoteId == event.court.remoteId;
-        return !(sameRemote || c.id == event.court.id);
-      }).toList();
-
-      return VenueCourtModel(
-        id: venue.id,
-        title: venue.title,
-        address: venue.address,
-        phone: venue.phone,
-        status: venue.status,
-        courts: courts,
-        imageUrl: venue.imageUrl,
-      );
-    }).toList();
-
-    emit(state.copyWith(venues: updatedVenues));
-  }
 
   FutureOr<void> _onFetchVenueCourt(
     FetchVenueCourtEvent event,
@@ -98,7 +43,11 @@ class VenueCourtBloc extends Bloc<VenueCourtEvent, VenueCourtState> {
     final int page = event.loadMore ? state.currentPage + 1 : 1;
     late final Either<AppException, VenueCourtPageModel> response;
     try {
-      response = await _getVenueCourtUseCase(page: page, perPage: 10);
+      response = await _getVenueCourtUseCase(
+        page: page,
+        perPage: 10,
+        purpose: purpose,
+      );
     } catch (_) {
       response = left(
         DefaultException(

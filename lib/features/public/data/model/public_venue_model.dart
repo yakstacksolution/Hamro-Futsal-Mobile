@@ -58,6 +58,116 @@ final class VenueGalleryImageModel extends Equatable {
   List<Object?> get props => <Object?>[id, mediaId, imageUrl, sortOrder];
 }
 
+final class VenueShareModel extends Equatable {
+  const VenueShareModel({
+    this.title,
+    this.description,
+    this.address,
+    this.startingPrice,
+    this.url,
+    this.deepLink,
+    this.image,
+    this.message,
+  });
+
+  final String? title;
+  final String? description;
+  final String? address;
+  final double? startingPrice;
+  final String? url;
+  final String? deepLink;
+  final String? image;
+  final String? message;
+
+  /// The link to put in a share, preferring the web URL over [deepLink].
+  ///
+  /// [deepLink] uses the app's private `hamrofutsal://` scheme: it is the right
+  /// thing to hand the OS once the app is installed, but pasted into a chat it
+  /// is dead text for everyone who does not have the app, and most targets will
+  /// not even linkify it. The https URL opens for everyone and, as a universal
+  /// link, still lands in the app for those who have it — so that is what gets
+  /// shared, with the custom scheme kept only as a last resort.
+  String? get shareUrl {
+    final String webUrl = (url ?? '').trim();
+    final Uri? parsed = Uri.tryParse(webUrl);
+    if (webUrl.isNotEmpty &&
+        parsed != null &&
+        (parsed.scheme == 'http' || parsed.scheme == 'https')) {
+      return webUrl;
+    }
+
+    final String appLink = (deepLink ?? '').trim();
+    return appLink.isEmpty ? null : appLink;
+  }
+
+  /// The human sentence for a share, without any link appended.
+  ///
+  /// [shareText] bakes the link into the same string, which is what a plain
+  /// text share needs; this keeps them separate so a link-only share can hand
+  /// the URL to the OS as a URL and get a rich preview instead of a raw string.
+  String? get shareMessage {
+    for (final String? candidate in <String?>[message, title, description]) {
+      final String text = (candidate ?? '').trim();
+      if (text.isNotEmpty) return text;
+    }
+    return null;
+  }
+
+  String? get shareText {
+    final String text = (message ?? '').trim();
+    if (text.isNotEmpty) {
+      final String link = (deepLink ?? url ?? '').trim();
+      if (link.isNotEmpty && !text.contains(link)) return '$text\n$link';
+      return text;
+    }
+
+    final String link = (deepLink ?? url ?? '').trim();
+    if (link.isEmpty) return null;
+    final String heading = (title ?? description ?? '').trim();
+    return heading.isEmpty ? link : '$heading\n$link';
+  }
+
+  factory VenueShareModel.fromJson(Map<String, dynamic> json) {
+    return VenueShareModel(
+      title: PublicListingVenueModel._parseString(json['title']),
+      description: PublicListingVenueModel._parseString(json['description']),
+      address: PublicListingVenueModel._parseString(json['address']),
+      startingPrice: PublicListingVenueModel._parseDouble(
+        json['starting_price'],
+      ),
+      url: PublicListingVenueModel._parseString(json['url']),
+      deepLink: PublicListingVenueModel._parseString(json['deep_link']),
+      image: PublicListingVenueModel._parseString(json['image']),
+      message: PublicListingVenueModel._parseString(json['message']),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return <String, dynamic>{
+      'title': title,
+      'description': description,
+      'address': address,
+      'starting_price': startingPrice,
+      'url': url,
+      'deep_link': deepLink,
+      'image': image,
+      'message': message,
+    };
+  }
+
+  @override
+  List<Object?> get props => <Object?>[
+    title,
+    description,
+    address,
+    startingPrice,
+    url,
+    deepLink,
+    image,
+    message,
+  ];
+}
+
 /// One venue row from the public venue listing endpoint
 /// (`data.venues[]`).
 final class PublicListingVenueModel extends Equatable {
@@ -79,6 +189,8 @@ final class PublicListingVenueModel extends Equatable {
     this.minTime,
     this.maxTime,
     this.distanceKm,
+    this.share,
+    this.isVerified = false,
   });
 
   final int? id;
@@ -97,6 +209,13 @@ final class PublicListingVenueModel extends Equatable {
   final int? maxPlayer;
   final String? minTime;
   final String? maxTime;
+  final VenueShareModel? share;
+
+  /// Whether the venue has been verified by Hamro Futsal.
+  ///
+  /// Defaults to false, so a payload without the flag simply shows no badge —
+  /// an unverified venue must never be presented as verified.
+  final bool isVerified;
 
   /// Road/haversine distance from the requested origin, in kilometres, as
   /// returned by the API (`distance_km`). Null when the request carried no
@@ -127,6 +246,8 @@ final class PublicListingVenueModel extends Equatable {
       minTime: _parseString(json['min_time'] ?? json['opening_time']),
       maxTime: _parseString(json['max_time'] ?? json['closing_time']),
       distanceKm: _parseDistanceKm(json),
+      share: _parseShare(json['share']),
+      isVerified: _parseVerified(json),
     );
   }
 
@@ -148,6 +269,8 @@ final class PublicListingVenueModel extends Equatable {
     String? minTime,
     String? maxTime,
     double? distanceKm,
+    VenueShareModel? share,
+    bool? isVerified,
   }) {
     return PublicListingVenueModel(
       id: id ?? this.id,
@@ -167,6 +290,8 @@ final class PublicListingVenueModel extends Equatable {
       minTime: minTime ?? this.minTime,
       maxTime: maxTime ?? this.maxTime,
       distanceKm: distanceKm ?? this.distanceKm,
+      share: share ?? this.share,
+      isVerified: isVerified ?? this.isVerified,
     );
   }
 
@@ -193,7 +318,16 @@ final class PublicListingVenueModel extends Equatable {
       'min_time': minTime,
       'max_time': maxTime,
       'distance_km': distanceKm,
+      'share': share?.toJson(),
+      'is_verified': isVerified,
     };
+  }
+
+  static VenueShareModel? _parseShare(dynamic value) {
+    if (value is Map) {
+      return VenueShareModel.fromJson(Map<String, dynamic>.from(value));
+    }
+    return null;
   }
 
   static List<VenueGalleryImageModel> _parseGalleryImages(dynamic value) {
@@ -247,6 +381,24 @@ final class PublicListingVenueModel extends Equatable {
     return meters == null ? null : meters / 1000;
   }
 
+  /// Reads the verified flag from whichever key the payload carries.
+  ///
+  /// The venue listing does not send one yet, so several spellings are
+  /// accepted: a boolean (`is_verified`/`verified`) or a status string, where
+  /// only `verified`/`approved` count — `pending` and `rejected` are not
+  /// verified.
+  static bool _parseVerified(Map<String, dynamic> json) {
+    final dynamic flag = json['is_verified'] ?? json['verified'];
+    if (flag != null) return _parseBool(flag) ?? false;
+
+    final String status =
+        _parseString(
+          json['verification_status'] ?? json['verified_status'],
+        )?.trim().toLowerCase() ??
+        '';
+    return status == 'verified' || status == 'approved';
+  }
+
   static bool? _parseBool(dynamic value) {
     if (value == null) return null;
     if (value is bool) return value;
@@ -286,6 +438,8 @@ final class PublicListingVenueModel extends Equatable {
     minTime,
     maxTime,
     distanceKm,
+    share,
+    isVerified,
   ];
 }
 

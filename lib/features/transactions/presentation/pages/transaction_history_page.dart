@@ -1,3 +1,4 @@
+import 'package:hamro_futsal/core/utils/bloc_safe_add.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -152,7 +153,7 @@ class _TransactionHistoryViewState extends State<_TransactionHistoryView> {
       current: bloc.state.range,
     );
     if (picked == null || !mounted) return;
-    bloc.add(ChangeTransactionRangeEvent(picked));
+    bloc.addIfOpen(ChangeTransactionRangeEvent(picked));
   }
 
   Future<void> _openFilters() async {
@@ -171,7 +172,7 @@ class _TransactionHistoryViewState extends State<_TransactionHistoryView> {
 
     // One event for all three: dispatching them separately would cost a round
     // trip per filter and briefly render half-applied combinations.
-    bloc.add(
+    bloc.addIfOpen(
       ApplyTransactionFiltersEvent(
         direction: selection.direction,
         type: selection.type,

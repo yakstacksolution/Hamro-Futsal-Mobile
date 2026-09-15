@@ -48,12 +48,12 @@ class GeneratedCouponSheet extends StatelessWidget {
               width: 64,
               height: 64,
               decoration: BoxDecoration(
-                color: LightColor.secondaryColor.withValues(alpha: 0.1),
+                color: LightColor.greenLightColor,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.card_giftcard_rounded,
-                color: LightColor.secondaryColor,
+                color: LightColor.brandTextColor,
                 size: AppDimens.sizeX28,
               ),
             ),
@@ -131,10 +131,10 @@ class _CodeTicket extends StatelessWidget {
           vertical: AppDimens.paddingX14,
         ),
         decoration: BoxDecoration(
-          color: LightColor.secondaryColor.withValues(alpha: 0.06),
+          color: LightColor.greenLightColor,
           borderRadius: BorderRadius.circular(AppDimens.radiusX12),
           border: Border.all(
-            color: LightColor.secondaryColor.withValues(alpha: 0.35),
+            color: LightColor.brandTextColor.withValues(alpha: 0.35),
           ),
         ),
         child: Row(

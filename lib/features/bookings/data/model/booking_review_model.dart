@@ -70,6 +70,18 @@ class BookingReviewModel extends Equatable {
     );
   }
 
+  Map<String, dynamic> toJson() => <String, dynamic>{
+    'id': id,
+    'booking_id': bookingId,
+    'user_id': userId,
+    'venue_id': venueId,
+    'court_id': courtId,
+    'rating': rating,
+    'review': review,
+    'status': status,
+    'created_at': createdAt?.toIso8601String(),
+  };
+
   /// Null when the booking has not been reviewed.
   ///
   /// The endpoint expresses "no review" in more than one way depending on the

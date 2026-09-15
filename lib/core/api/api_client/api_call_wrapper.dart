@@ -80,6 +80,8 @@ class ApiCallWrapper {
       }
       if (error.response?.statusCode == 401 && token != null) {
         if (isTokenFreshApiCalling) {
+          // Inside a `catch`: nothing above would catch a throw from here, so
+          // the retry is contracted to return a Result for every outcome.
           return await retryApiCallWithDelay(url, method, data, query);
         } else {
           TokenModel tokenModel = AppSettings().tokenModel;
@@ -133,6 +135,14 @@ class ApiCallWrapper {
     }
   }
 
+  /// Waits out an in-flight token refresh, then replays the call once.
+  ///
+  /// Every failure here comes back as a [Result], never as a thrown
+  /// [DioException]. This method is awaited from inside [makeRequest]'s own
+  /// `catch`, so anything thrown escapes the wrapper entirely and reaches the
+  /// zone as an unhandled async error — which is how a replayed request that
+  /// 401s again (a refresh that produced a token the server still rejects)
+  /// was crashing the app instead of surfacing as a failed call.
   Future<Result> retryApiCallWithDelay(
     String? url,
     HttpVerb method,
@@ -140,25 +150,50 @@ class ApiCallWrapper {
     Map<dynamic, dynamic>? query,
   ) async {
     return Future.delayed(const Duration(seconds: 2), () async {
-      // Result? result;
-      numberOfRetry++;
-      if (!isTokenFreshApiCalling) {
-        var response = await getResponseFromApi(
-          url: url,
-          token: AppSettings().tokenModel.accessToken,
-          method: method,
-          data: data,
-          query: query,
-        );
-        numberOfRetry = 0;
-        return Result.success(await response.data);
-      } else {
-        if (numberOfRetry < 3) {
-          return await retryApiCallWithDelay(url, method, data, query);
+      // Everything inside is wrapped: this runs from `makeRequest`'s own
+      // `catch`, so a throw from any line here — the replay, the recursion,
+      // or the session teardown — leaves the wrapper entirely and lands in
+      // the zone as an unhandled async error.
+      try {
+        numberOfRetry++;
+        if (!isTokenFreshApiCalling) {
+          try {
+            var response = await getResponseFromApi(
+              url: url,
+              token: AppSettings().tokenModel.accessToken,
+              method: method,
+              data: data,
+              query: query,
+            );
+            numberOfRetry = 0;
+            return Result.success(await response.data);
+          } catch (error) {
+            numberOfRetry = 0;
+            // The replay failed on its own terms. A second 401 means the
+            // fresh token is not being accepted either, so the session is
+            // gone.
+            if (error is DioException && error.response?.statusCode == 401) {
+              await revokeAuthFromApp();
+            }
+            return Result.error(_getErrorData(error));
+          }
         } else {
-          await revokeAuthFromApp();
-          return Result.error("Auth error");
+          if (numberOfRetry < maxNumberOfRetry) {
+            return await retryApiCallWithDelay(url, method, data, query);
+          } else {
+            numberOfRetry = 0;
+            await revokeAuthFromApp();
+            return Result.error(
+              DataError('Session expired. Please log in again.', 401, null),
+            );
+          }
         }
+      } catch (error, stackTrace) {
+        // Nothing is meant to reach here; if something does, it is reported
+        // as a failed call rather than as a crash.
+        debugPrint('Retry wrapper failed unexpectedly: $error\n$stackTrace');
+        numberOfRetry = 0;
+        return Result.error(_getErrorData(error));
       }
     });
   }
@@ -218,7 +253,15 @@ class ApiCallWrapper {
     // The session is gone (refresh failed / token revoked): stop all
     // authenticated traffic until a new token is stored.
     SessionGate.close();
-    await Client.revokeAuth?.call();
+    try {
+      await Client.revokeAuth?.call();
+    } catch (error, stackTrace) {
+      // The app's own sign-out hook — it navigates, clears storage and tears
+      // down sockets. A failure there must not become the caller's problem:
+      // the session is already closed above, and this runs from inside error
+      // handling where a throw would escape the wrapper as a crash.
+      debugPrint('Sign-out after a lost session failed: $error\n$stackTrace');
+    }
   }
 
   /// Parses the `/auth/refresh-token` response into a [TokenModel].

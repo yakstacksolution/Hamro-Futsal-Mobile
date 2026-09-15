@@ -5,7 +5,13 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 /// Single source of truth for the venue-listing page size: the API client, the
 /// repository, the use case, the filter payload and [PublicVenueBloc] all
 /// default to it, so the wire value can never drift between them.
-const int kVenueListPerPage = 5;
+const int kVenueListPerPage = 15;
+
+/// `per_page` for the one-venue lookup a shared link triggers.
+///
+/// Larger than 1: a backend that ignores `slug` answers with a name search
+/// instead, and the exact row can sit behind a few near-matches.
+const int kVenueLinkLookupPerPage = 20;
 
 class APIEndpoint {
   // Read through [dotenv.maybeGet] with an empty fallback: a `!` here threw on

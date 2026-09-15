@@ -33,12 +33,46 @@ final class AuthenticationRepositoryImpl extends AuthRepository {
   }
 
   @override
-  Future<Either<AppException, bool>> forgotPassword(data) async {
+  Future<bool> endSession() async {
+    // A changed password invalidates the credentials behind the encrypted
+    // biometric session too, so that is dropped instead of being kept for the
+    // next biometric sign-in.
+    AppSettings().biometricLogin = false;
+    await BiometricSessionStore().clear();
+    return clearTokenDetails();
+  }
+
+  @override
+  Future<Either<AppException, String>> forgotPassword(data) async {
     final response = await _remoteDataSource.forgotPassword(data);
     if (response.isError()) {
       return left(ResponseHelper.error(response));
     }
-    return right(true);
+
+    // The endpoint answers deliberately vaguely ("if this email is
+    // registered...") so it cannot be used to probe for accounts — show its
+    // wording rather than promising an email was sent.
+    final dynamic payload = response.getValue();
+    final String message = payload is Map && payload['message'] is String
+        ? payload['message'] as String
+        : StringConstants.otpSentSuccessfully;
+    return right(message);
+  }
+
+  @override
+  Future<Either<AppException, String>> resetPassword(data) async {
+    final response = await _remoteDataSource.resetPassword(data);
+    if (response.isError()) {
+      return left(ResponseHelper.error(response));
+    }
+
+    // The reset does not sign the user in; they go back to login with the new
+    // password, so no token is stored here even if one is returned.
+    final dynamic payload = response.getValue();
+    final String message = payload is Map && payload['message'] is String
+        ? payload['message'] as String
+        : StringConstants.passwordResetSuccessfully;
+    return right(message);
   }
 
   @override

@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:bloc/bloc.dart';
 import 'package:dartz/dartz.dart';
 import 'package:equatable/equatable.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:hamro_futsal/core/helper/exception_helper.dart';
@@ -26,6 +27,8 @@ class AuthenticationBloc
     on<RegisterEvent>(_onRegister);
     on<OtpVerificationEvent>(_onOtpVerification);
     on<ResendOtpEvent>(_onResendOtp);
+    on<ForgotPasswordEvent>(_onForgotPassword);
+    on<ResetPasswordEvent>(_onResetPassword);
     on<LogoutEvent>(_onLogout);
   }
 
@@ -92,25 +95,19 @@ class AuthenticationBloc
           clearSuccessMessage: true,
         ),
       );
-      final String? serverClientId = dotenv.env['GOOGLE_SERVER_CLIENT_ID'];
+      final String? serverClientId = dotenv.env['GOOGLE_SERVER_CLIENT_ID']
+          ?.trim();
 
-      final String? iosClientId = dotenv.env['GOOGLE_IOS_CLIENT_ID'];
-
-      if (Platform.isAndroid &&
-          (serverClientId == null || serverClientId.isEmpty)) {
-        emit(
-          state.copyWith(
-            googleLoginStatus: AuthStatus.failure,
-            errorMessage: StringConstants
-                .googleSignInIsNotConfiguredMissingGoogleServerClientId,
-          ),
-        );
-        return;
-      }
+      final String? iosClientId = dotenv.env['GOOGLE_IOS_CLIENT_ID']?.trim();
 
       final GoogleSignIn googleSignIn = GoogleSignIn(
         scopes: const <String>['email', 'profile'],
-        serverClientId: (serverClientId != null && serverClientId.isNotEmpty)
+        // Android reads default_web_client_id generated from google-services.json.
+        // This keeps Play builds tied to the Firebase configuration being shipped.
+        serverClientId:
+            (!Platform.isAndroid &&
+                serverClientId != null &&
+                serverClientId.isNotEmpty)
             ? serverClientId
             : null,
         clientId:
@@ -162,6 +159,25 @@ class AuthenticationBloc
             ),
           );
         },
+      );
+    } on PlatformException catch (error) {
+      // Keep a support reference without displaying native exception details,
+      // which may contain account information. API error 10 identifies an OAuth
+      // configuration failure; it must not be presented as a transient error.
+      final status = RegExp(
+        r'ApiException:\s*(\d+)',
+      ).firstMatch(error.message ?? '')?.group(1);
+      final message = status == '10'
+          ? 'Google sign-in is not configured for this app version. '
+                'Please contact support. (Google 10)'
+          : '${StringConstants.googleSignInFailedPleaseTryAgain} '
+                '(Google ${status ?? error.code})';
+      emit(
+        state.copyWith(
+          googleLoginStatus: AuthStatus.failure,
+          errorMessage: message,
+          clearErrorData: true,
+        ),
       );
     } catch (error) {
       emit(
@@ -455,6 +471,109 @@ class AuthenticationBloc
       emit(
         state.copyWith(
           resendOtpStatus: AuthStatus.failure,
+          errorMessage: error.toString(),
+        ),
+      );
+    }
+  }
+
+  FutureOr<void> _onForgotPassword(
+    ForgotPasswordEvent event,
+    Emitter<AuthenticationState> emit,
+  ) async {
+    try {
+      emit(
+        state.copyWith(
+          forgotPasswordStatus: AuthStatus.loading,
+          clearErrorMessage: true,
+          clearErrorData: true,
+          clearSuccessMessage: true,
+        ),
+      );
+
+      final Either<AppException, String>? response = await authUseCase
+          .forgotPassword(ForgotPasswordOtpRequestEntity(email: event.email));
+
+      if (response == null) {
+        emit(
+          state.copyWith(
+            forgotPasswordStatus: AuthStatus.failure,
+            errorMessage: StringConstants.couldNotSendOtpPleaseTryAgain,
+          ),
+        );
+        return;
+      }
+
+      response.fold(
+        (AppException failure) => emit(
+          state.copyWith(
+            forgotPasswordStatus: AuthStatus.failure,
+            errorMessage: failure.errorMessage,
+          ),
+        ),
+        (String message) => emit(
+          state.copyWith(
+            forgotPasswordStatus: AuthStatus.success,
+            successMessage: message.trim().isEmpty
+                ? StringConstants.otpSentSuccessfully
+                : message,
+            clearErrorMessage: true,
+          ),
+        ),
+      );
+    } catch (error) {
+      emit(
+        state.copyWith(
+          forgotPasswordStatus: AuthStatus.failure,
+          errorMessage: error.toString(),
+        ),
+      );
+    }
+  }
+
+  FutureOr<void> _onResetPassword(
+    ResetPasswordEvent event,
+    Emitter<AuthenticationState> emit,
+  ) async {
+    try {
+      emit(
+        state.copyWith(
+          resetPasswordStatus: AuthStatus.loading,
+          clearErrorMessage: true,
+          clearErrorData: true,
+          clearSuccessMessage: true,
+        ),
+      );
+
+      final Either<AppException, String> response = await authUseCase
+          .resetPassword(
+            ResetPasswordEntity(
+              email: event.email,
+              otp: event.otp,
+              password: event.password,
+              passwordConfirmation: event.passwordConfirmation,
+            ),
+          );
+
+      response.fold(
+        (AppException failure) => emit(
+          state.copyWith(
+            resetPasswordStatus: AuthStatus.failure,
+            errorMessage: failure.errorMessage,
+          ),
+        ),
+        (String message) => emit(
+          state.copyWith(
+            resetPasswordStatus: AuthStatus.success,
+            successMessage: message,
+            clearErrorMessage: true,
+          ),
+        ),
+      );
+    } catch (error) {
+      emit(
+        state.copyWith(
+          resetPasswordStatus: AuthStatus.failure,
           errorMessage: error.toString(),
         ),
       );

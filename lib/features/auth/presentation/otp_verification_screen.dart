@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hamro_futsal/core/routers/app_router_params.dart';
@@ -12,12 +11,27 @@ import 'package:hamro_futsal/core/utils/dimens.dart';
 import 'package:hamro_futsal/core/utils/responsive.dart';
 import 'package:hamro_futsal/features/auth/presentation/authentication_bloc/authentication_bloc.dart';
 import 'package:hamro_futsal/features/auth/presentation/widgets/auth_screen_frame.dart';
+import 'package:hamro_futsal/features/auth/presentation/widgets/otp_digit_field.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 
+/// Which flow the OTP screen was opened for, sent to `POST /auth/resend-otp`
+/// as `purpose` so the backend re-mails the right kind of code.
+abstract final class OtpPurpose {
+  static const String registration = 'registration';
+  static const String passwordReset = 'password_reset';
+}
+
 class OtpVerificationScreen extends StatefulWidget {
-  const OtpVerificationScreen({super.key, this.email});
+  const OtpVerificationScreen({
+    super.key,
+    this.email,
+    this.purpose = OtpPurpose.registration,
+  });
 
   final String? email;
+
+  /// One of [OtpPurpose]; decides what a resend asks the backend to send.
+  final String purpose;
 
   @override
   State<OtpVerificationScreen> createState() => _OtpVerificationScreenState();
@@ -99,51 +113,116 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   }
 
   void _onOtpChanged(int index, String value) {
+    final digits = value.replaceAll(RegExp(r'\D'), '');
     if (value.length > 1) {
-      _controllers[index].text = value.substring(value.length - 1);
-      _controllers[index].selection = const TextSelection.collapsed(offset: 1);
+      _setOtpDigits(digits.length >= _otpLength ? 0 : index, digits);
+      setState(() {});
+      return;
     }
 
-    if (value.isNotEmpty && index < _otpLength - 1) {
+    if (digits.isNotEmpty && index < _otpLength - 1) {
       _focusNodes[index + 1].requestFocus();
-    } else if (value.isEmpty && index > 0) {
+    } else if (digits.isEmpty && index > 0) {
       _focusNodes[index - 1].requestFocus();
     }
 
     setState(() {});
   }
 
+  void _setOtpDigits(int startIndex, String digits) {
+    if (digits.isEmpty) return;
+    final int end = (startIndex + digits.length).clamp(0, _otpLength).toInt();
+    for (int i = startIndex; i < end; i++) {
+      final digit = digits[i - startIndex];
+      _controllers[i].value = TextEditingValue(
+        text: digit,
+        selection: const TextSelection.collapsed(offset: 1),
+      );
+    }
+    final nextIndex = end >= _otpLength ? _otpLength - 1 : end;
+    _focusNodes[nextIndex].requestFocus();
+    _updateCanVerify();
+  }
+
+  String get _otp =>
+      _controllers.map((TextEditingController c) => c.text).join();
+
   void _submit() {
     if (!_canVerifyNotifier.value) return;
     context.read<AuthenticationBloc>().add(
-      OtpVerificationEvent(
-        email: widget.email ?? '',
-        otp: _controllers.map((TextEditingController c) => c.text).join(),
-      ),
+      OtpVerificationEvent(email: widget.email ?? '', otp: _otp),
     );
   }
 
   void _resendOtp() {
     if (_secondsLeftNotifier.value > 0) return;
+    final String email = widget.email?.trim() ?? '';
+    if (email.isEmpty) {
+      AppUtils().showSnackBar(
+        context,
+        MsgType.error,
+        StringConstants.resendOtpFailedPleaseTryAgain,
+      );
+      return;
+    }
+
     for (final TextEditingController controller in _controllers) {
       controller.clear();
     }
     _focusNodes.first.requestFocus();
     _startResendTimer();
+    context.read<AuthenticationBloc>().add(
+      ResendOtpEvent(email: email, purpose: widget.purpose),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<AuthenticationBloc, AuthenticationState>(
       listenWhen: (AuthenticationState previous, AuthenticationState current) =>
-          previous.otpVerificationStatus != current.otpVerificationStatus,
+          previous.otpVerificationStatus != current.otpVerificationStatus ||
+          previous.resendOtpStatus != current.resendOtpStatus,
       listener: (BuildContext context, AuthenticationState state) {
+        if (state.resendOtpStatus == AuthStatus.failure &&
+            state.errorMessage != null) {
+          AppUtils().showSnackBar(context, MsgType.error, state.errorMessage!);
+        }
+
+        if (state.resendOtpStatus == AuthStatus.success) {
+          AppUtils().showSnackBar(
+            context,
+            MsgType.success,
+            state.successMessage.isNotEmpty
+                ? state.successMessage
+                : 'OTP resent successfully. Check your email.',
+          );
+        }
+
         if (state.otpVerificationStatus == AuthStatus.failure &&
             state.errorMessage != null) {
           AppUtils().showSnackBar(context, MsgType.error, state.errorMessage!);
         }
 
         if (state.otpVerificationStatus == AuthStatus.success) {
+          // Password reset: the code is now proven, but the reset endpoint
+          // still needs it in its body, so it travels to the password screen
+          // rather than being typed a second time.
+          if (widget.purpose == OtpPurpose.passwordReset) {
+            AppUtils().showSnackBar(
+              context,
+              MsgType.success,
+              StringConstants.codeVerifiedChooseANewPassword,
+            );
+            context.pushNamed(
+              AppRouterParams.createNewPassword.name,
+              extra: <String, dynamic>{
+                'email': widget.email?.trim() ?? '',
+                'otp': _otp,
+              },
+            );
+            return;
+          }
+
           final Map<String, dynamic> responseData =
               state.otpVerificationData is Map<String, dynamic>
               ? state.otpVerificationData as Map<String, dynamic>
@@ -199,25 +278,27 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                     SizedBox(height: AppDimens.sizeX12),
                     // On wide cards, cap and centre the row so the digit boxes
                     // stay a readable group instead of spreading to the edges.
-                    Center(
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          maxWidth: context.isTabletOrWider
-                              ? AppDimens.otpRowMaxWidth
-                              : double.infinity,
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: List<Widget>.generate(_otpLength, (
-                            int index,
-                          ) {
-                            return _OtpDigitField(
-                              controller: _controllers[index],
-                              focusNode: _focusNodes[index],
-                              onChanged: (String value) =>
-                                  _onOtpChanged(index, value),
-                            );
-                          }),
+                    AutofillGroup(
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            maxWidth: context.isTabletOrWider
+                                ? AppDimens.otpRowMaxWidth
+                                : double.infinity,
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: List<Widget>.generate(_otpLength, (
+                              int index,
+                            ) {
+                              return OtpDigitField(
+                                controller: _controllers[index],
+                                focusNode: _focusNodes[index],
+                                onChanged: (String value) =>
+                                    _onOtpChanged(index, value),
+                              );
+                            }),
+                          ),
                         ),
                       ),
                     ),
@@ -238,71 +319,6 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
           },
         );
       },
-    );
-  }
-}
-
-class _OtpDigitField extends StatelessWidget {
-  const _OtpDigitField({
-    required this.controller,
-    required this.focusNode,
-    required this.onChanged,
-  });
-
-  final TextEditingController controller;
-  final FocusNode focusNode;
-  final ValueChanged<String> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = FutsalTheme.getTextTheme(context);
-    return SizedBox(
-      width: context.responsive<double>(
-        mobile: AppDimens.sizeX64,
-        tablet: AppDimens.sizeX76,
-        desktop: AppDimens.sizeX84,
-      ),
-      child: TextField(
-        controller: controller,
-        focusNode: focusNode,
-        autofocus: false,
-        textAlign: TextAlign.center,
-        keyboardType: TextInputType.number,
-        inputFormatters: <TextInputFormatter>[
-          FilteringTextInputFormatter.digitsOnly,
-          LengthLimitingTextInputFormatter(1),
-        ],
-        cursorColor: LightColor.primaryTextColor,
-        style: textTheme.headingSmall?.copyWith(
-          fontWeight: FontWeight.w800,
-          color: LightColor.primaryTextColor,
-          fontSize: AppDimens.fontHeadingSmall,
-        ),
-        onChanged: onChanged,
-        decoration: InputDecoration(
-          counterText: '',
-          filled: true,
-          fillColor: LightColor.background.withValues(alpha: 0.9),
-          // Plain EdgeInsets: AppUtils.getPadding scales by screenWidth/375,
-          // which inflates ~2.7x on a tablet.
-          contentPadding: EdgeInsets.symmetric(
-            vertical: context.isTabletOrWider
-                ? AppDimens.paddingX18
-                : AppDimens.paddingX14,
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(AppDimens.radiusX12),
-            borderSide: BorderSide(color: LightColor.borderColor, width: 1.1),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(AppDimens.radiusX12),
-            borderSide: BorderSide(
-              color: LightColor.secondaryColor,
-              width: 1.4,
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

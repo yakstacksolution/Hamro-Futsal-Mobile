@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
@@ -14,6 +16,18 @@ class CustomBottomNavigationBar extends StatelessWidget {
 
   final int currentIndex;
   final ValueChanged<int> onTap;
+
+  static double heightOf(BuildContext context) {
+    final double labelHeight =
+        MediaQuery.textScalerOf(context).scale(AppDimens.fontBodyTextSmall) *
+        1.4;
+    final double itemHeight =
+        math.max(AppDimens.sizeX20, labelHeight) + AppDimens.paddingX8 * 2;
+    return itemHeight +
+        AppDimens.paddingX8 * 2 +
+        1 + // top divider
+        MediaQuery.viewPaddingOf(context).bottom;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -34,15 +48,28 @@ class CustomBottomNavigationBar extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: <Widget>[
+              // Loosely flexible, and the active destination gets the
+              // larger share.
+              //
+              // Only the active one shows a label, so an equal split starved
+              // it — each item was capped at a fifth of the bar and "Chat"
+              // came out as "C…" with the rest of the bar empty. Weighting it
+              // lets it take the room it needs while the icon-only items keep
+              // theirs; loose fit means every item still stops at its natural
+              // width, and only gives ground if the bar genuinely runs out —
+              // which is what keeps a large text scale from overflowing.
               for (
                 int index = 0;
                 index < dashboardNavDestinations.length;
                 index++
               )
-                _NavBarItem(
-                  item: dashboardNavDestinations[index],
-                  isActive: currentIndex == index,
-                  onTap: () => onTap(index),
+                Flexible(
+                  flex: currentIndex == index ? 4 : 1,
+                  child: _NavBarItem(
+                    item: dashboardNavDestinations[index],
+                    isActive: currentIndex == index,
+                    onTap: () => onTap(index),
+                  ),
                 ),
             ],
           ),
@@ -135,24 +162,32 @@ class _NavBarItemState extends State<_NavBarItem>
                     ? LightColor.inverseTextColor
                     : LightColor.secondaryTextColor,
               ),
-              AnimatedSize(
-                duration: const Duration(milliseconds: 220),
-                curve: Curves.easeInOut,
-                child: widget.isActive
-                    ? Padding(
-                        padding: const EdgeInsets.only(
-                          left: AppDimens.paddingX6,
-                        ),
-                        child: Text(
-                          widget.item.label,
-                          style: FutsalTheme.getTextTheme(context).bodyTextSmall
-                              ?.copyWith(
-                                color: LightColor.inverseTextColor,
-                                fontWeight: FontWeight.w600,
-                              ),
-                        ),
-                      )
-                    : const SizedBox.shrink(),
+              // Flexible so the label gives way inside the pill once the pill
+              // itself is squeezed; without it the shrinking happens one level
+              // too high and this Row overflows instead.
+              Flexible(
+                child: AnimatedSize(
+                  duration: const Duration(milliseconds: 220),
+                  curve: Curves.easeInOut,
+                  child: widget.isActive
+                      ? Padding(
+                          padding: const EdgeInsets.only(
+                            left: AppDimens.paddingX6,
+                          ),
+                          child: Text(
+                            widget.item.label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: FutsalTheme.getTextTheme(context)
+                                .bodyTextSmall
+                                ?.copyWith(
+                                  color: LightColor.inverseTextColor,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                          ),
+                        )
+                      : const SizedBox.shrink(),
+                ),
               ),
             ],
           ),

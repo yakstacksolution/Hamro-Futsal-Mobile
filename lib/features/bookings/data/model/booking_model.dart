@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:hamro_futsal/features/bookings/data/model/booking_review_model.dart';
 
 class BookingModel extends Equatable {
   const BookingModel({
@@ -46,6 +47,9 @@ class BookingModel extends Equatable {
     this.bookingSlots = const <BookingSlotModel>[],
     this.extraItems = const <BookingExtraItemModel>[],
     this.createdAt,
+    this.canReview = false,
+    this.reviewSubmitted = false,
+    this.review,
   });
 
   final int id;
@@ -117,6 +121,18 @@ class BookingModel extends Equatable {
 
   /// When the booking was placed, when the API reports it.
   final DateTime? createdAt;
+
+  /// Whether the server will accept a review for this booking.
+  final bool canReview;
+
+  /// Whether one has already been left. Kept apart from [review] because the
+  /// list says a review exists without always embedding a usable one.
+  final bool reviewSubmitted;
+
+  /// The review embedded in the list response, when it belongs to this
+  /// booking. Null when there is none — see [BookingModel.fromJson] for why a
+  /// mismatched one is dropped.
+  final BookingReviewModel? review;
 
   /// Total number of extra product units attached to this booking.
   int get extraItemsCount => extraItems.fold<int>(
@@ -255,6 +271,9 @@ class BookingModel extends Equatable {
     List<BookingSlotModel>? bookingSlots,
     List<BookingExtraItemModel>? extraItems,
     DateTime? createdAt,
+    bool? canReview,
+    bool? reviewSubmitted,
+    BookingReviewModel? review,
   }) {
     return BookingModel(
       id: id ?? this.id,
@@ -301,6 +320,9 @@ class BookingModel extends Equatable {
       bookingSlots: bookingSlots ?? this.bookingSlots,
       extraItems: extraItems ?? this.extraItems,
       createdAt: createdAt ?? this.createdAt,
+      canReview: canReview ?? this.canReview,
+      reviewSubmitted: reviewSubmitted ?? this.reviewSubmitted,
+      review: review ?? this.review,
     );
   }
 
@@ -351,6 +373,21 @@ class BookingModel extends Equatable {
     final List<BookingExtraItemModel> extraItems = _mapList(
       json['extra_items'] ?? json['booking_extra_items'] ?? json['extras'],
     ).map(BookingExtraItemModel.fromJson).toList(growable: false);
+
+    // The list response has been seen embedding another booking's review — a
+    // review whose `booking_id` names a different booking is not this
+    // booking's, and showing it would put someone else's words on this card.
+    final Map<String, dynamic> reviewJson = _mapOf(json['review']);
+    final int? bookingId = _asInt(json['id'] ?? json['booking_id']);
+    BookingReviewModel? embeddedReview;
+    if (reviewJson.isNotEmpty) {
+      final BookingReviewModel parsed = BookingReviewModel.fromJson(reviewJson);
+      final bool belongsHere =
+          parsed.bookingId == 0 ||
+          bookingId == null ||
+          parsed.bookingId == bookingId;
+      if (belongsHere && !parsed.isEmpty) embeddedReview = parsed;
+    }
 
     return BookingModel(
       id: _asInt(json['id'] ?? json['booking_id']) ?? 0,
@@ -506,6 +543,9 @@ class BookingModel extends Equatable {
       bookingSlots: bookingSlots,
       extraItems: extraItems,
       createdAt: _asNullableDate(json['created_at'] ?? json['booked_at']),
+      canReview: _asBool(json['can_review']),
+      reviewSubmitted: _asBool(json['review_submitted']),
+      review: embeddedReview,
     );
   }
 
@@ -561,6 +601,9 @@ class BookingModel extends Equatable {
         .map((BookingExtraItemModel item) => item.toJson())
         .toList(growable: false),
     'created_at': createdAt?.toIso8601String(),
+    'can_review': canReview,
+    'review_submitted': reviewSubmitted,
+    'review': review?.toJson(),
   };
 
   static List<BookingModel> listFromResponse(dynamic payload) {
@@ -627,6 +670,9 @@ class BookingModel extends Equatable {
     bookingSlots,
     extraItems,
     createdAt,
+    canReview,
+    reviewSubmitted,
+    review,
   ];
 }
 

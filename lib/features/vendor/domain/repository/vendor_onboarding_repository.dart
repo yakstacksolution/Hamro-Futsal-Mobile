@@ -6,7 +6,7 @@ import 'package:hamro_futsal/features/vendor/presentation/models/vendor_onboardi
 
 abstract class VendorOnboardingRepository {
   Future<Either<AppException, VendorOnboardingResponseModel>>
-  fetchVendorOnboardingFutsal(int futsalId);
+  fetchVendorOnboardingFutsal(String venueSlug);
 
   Future<Either<AppException, List<CourtDraft>>> fetchCourtsByVenueId(
     int venueId,

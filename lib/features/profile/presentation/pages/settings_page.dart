@@ -153,7 +153,7 @@ class _SettingsPageState extends State<SettingsPage> {
           onChanged: _controller.setBookingAlerts,
         ),
         _SettingsItem.toggle(
-          icon: Icons.sports_kabaddi_rounded,
+          icon: Icons.sports_soccer_outlined,
           title: StringConstants.opponentRequests,
           subtitle: StringConstants.notifyMeWhenSomeoneWantsToPlay,
           value: _controller.opponentRequests,
@@ -171,12 +171,12 @@ class _SettingsPageState extends State<SettingsPage> {
     _Section(
       label: StringConstants.preferences,
       items: <_SettingsItem>[
-        _SettingsItem.toggle(
-          icon: Icons.dark_mode_outlined,
-          title: StringConstants.darkMode,
-          subtitle: StringConstants.switchToADarkerAppearance,
-          value: _controller.darkMode,
-          onChanged: _controller.setDarkMode,
+        _SettingsItem.nav(
+          icon: Icons.palette_outlined,
+          title: StringConstants.appTheme,
+          subtitle: StringConstants.chooseHowTheAppLooks,
+          trailingValue: _controller.themeModeLabel,
+          onTap: _showThemePicker,
         ),
         _SettingsItem.nav(
           icon: Icons.language_rounded,
@@ -239,18 +239,31 @@ class _SettingsPageState extends State<SettingsPage> {
       title: StringConstants.language,
       options: SettingsController.languages,
       current: _controller.language,
+      labelFor: (String option) => option,
     );
     if (selected != null) _controller.setLanguage(selected);
   }
 
-  Future<String?> _showOptionSheet({
+  Future<void> _showThemePicker() async {
+    final ThemeMode? selected = await _showOptionSheet<ThemeMode>(
+      title: StringConstants.appTheme,
+      options: SettingsController.themeModeOptions.keys.toList(),
+      current: _controller.themeMode,
+      labelFor: (ThemeMode option) =>
+          SettingsController.themeModeOptions[option] ?? option.name,
+    );
+    if (selected != null) _controller.setThemeMode(selected);
+  }
+
+  Future<T?> _showOptionSheet<T>({
     required String title,
-    required List<String> options,
-    required String current,
+    required List<T> options,
+    required T current,
+    required String Function(T option) labelFor,
   }) {
     final textTheme = FutsalTheme.getTextTheme(context);
 
-    return showModalBottomSheet<String>(
+    return showModalBottomSheet<T>(
       context: context,
       backgroundColor: LightColor.cardColor,
       shape: const RoundedRectangleBorder(
@@ -303,7 +316,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         children: [
                           Expanded(
                             child: Text(
-                              option,
+                              labelFor(option),
                               style: textTheme.bodyTextMedium?.copyWith(
                                 color: LightColor.primaryTextColor,
                                 fontWeight: FontWeight.w500,

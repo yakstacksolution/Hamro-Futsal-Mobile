@@ -1,6 +1,10 @@
 import 'package:hamro_futsal/features/bookings/data/model/booking_model.dart';
+import 'package:hamro_futsal/features/bookings/domain/model/booking_list_query.dart';
 
-enum BookingDateOrder { ascending, descending }
+// The order is part of the request now, so it lives with the rest of the
+// query. Re-exported because everything that sorts already imports it here.
+export 'package:hamro_futsal/features/bookings/domain/model/booking_list_query.dart'
+    show BookingDateOrder;
 
 bool bookingMatchesSearch(BookingModel booking, String query) {
   final String normalizedQuery = query.trim().toLowerCase();

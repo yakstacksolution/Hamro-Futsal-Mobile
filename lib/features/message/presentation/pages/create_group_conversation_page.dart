@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
@@ -8,31 +10,48 @@ import 'package:hamro_futsal/core/widgets/custom_app_bar.dart';
 import 'package:hamro_futsal/core/widgets/custom_button.dart';
 import 'package:hamro_futsal/core/widgets/custom_text_field.dart';
 import 'package:hamro_futsal/features/message/data/model/conversation_model.dart';
+import 'package:hamro_futsal/features/message/data/model/registered_user_page_model.dart';
+import 'package:hamro_futsal/features/message/data/repositories/message_repository_impl.dart';
+import 'package:hamro_futsal/features/message/domain/usecase/message_usecase.dart';
+import 'package:hamro_futsal/features/message/presentation/utils/pagination_trigger.dart';
 import 'package:hamro_futsal/features/message/presentation/widgets/group_member_widgets.dart';
+
+typedef RegisteredUsersLoader =
+    Future<RegisteredUserPageModel> Function({
+      required int page,
+      required int perPage,
+      required String search,
+    });
 
 /// Full-page create-group flow.
 ///
 /// Pushed as its own route rather than shown in a sheet: the form is long —
-/// a name, a searchable member list, selected-member chips and an optional
-/// venue — and a sheet fought the keyboard for what little height was left.
+/// a name, a searchable member list and selected-member chips — and a sheet
+/// fought the keyboard for what little height was left.
 /// Pops a [GroupConversationDraft] on submit, or null when abandoned.
 class CreateGroupConversationPage extends StatefulWidget {
   const CreateGroupConversationPage({
     super.key,
     required this.participants,
     required this.currentUserId,
+    this.useCase,
+    this.registeredUsersLoader,
   });
 
-  /// Everyone the user already shares a conversation with — the pool a group
-  /// can be built from. Deduplicated and sorted by [open].
+  /// Optional seed while the registered-users endpoint loads. Direct tests and
+  /// legacy callers can still pass this without a [useCase].
   final Iterable<ParticipantModel> participants;
   final int currentUserId;
+  final MessageUseCase? useCase;
+  final RegisteredUsersLoader? registeredUsersLoader;
 
   /// Pushes the page and returns the draft the user submitted, if any.
   static Future<GroupConversationDraft?> open(
     BuildContext context, {
     required Iterable<ParticipantModel> participants,
     required int currentUserId,
+    MessageUseCase? useCase,
+    RegisteredUsersLoader? registeredUsersLoader,
   }) {
     final byUserId = <int, ParticipantModel>{};
     for (final participant in participants) {
@@ -53,6 +72,10 @@ class CreateGroupConversationPage extends StatefulWidget {
         builder: (_) => CreateGroupConversationPage(
           participants: candidates,
           currentUserId: currentUserId,
+          useCase: registeredUsersLoader == null
+              ? useCase ?? MessageUseCase(MessageRepositoryImpl())
+              : useCase,
+          registeredUsersLoader: registeredUsersLoader,
         ),
       ),
     );
@@ -65,30 +88,78 @@ class CreateGroupConversationPage extends StatefulWidget {
 
 class _CreateGroupConversationPageState
     extends State<CreateGroupConversationPage> {
+  static const int _registeredUsersPerPage = 15;
+
+  /// Long enough that a burst of typing is one request, short enough that the
+  /// list answers while the user is still looking at it. Three seconds felt
+  /// like the search was ignoring them.
+  static const Duration _searchDebounceDelay = Duration(milliseconds: 450);
+
   final TextEditingController _title = TextEditingController();
   final TextEditingController _search = TextEditingController();
-  final TextEditingController _venueId = TextEditingController();
   final FocusNode _titleFocus = FocusNode();
+  final ScrollController _scrollController = ScrollController();
+  final Map<int, ParticipantModel> _knownParticipants =
+      <int, ParticipantModel>{};
 
   /// Insertion-ordered so the chip strip reads in the order people were
   /// picked, which is the order the user remembers choosing them in.
   final Set<int> _selected = <int>{};
 
-  String? _error;
-  bool _venueExpanded = false;
+  /// Guards the registered-users endpoint: without it a short list re-triggers
+  /// its own "load more" after every page and walks straight into a 429.
+  final PaginationTrigger _pagination = PaginationTrigger();
 
-  List<ParticipantModel> get _candidates =>
+  Timer? _searchDebounce;
+  List<ParticipantModel> _remoteCandidates = const <ParticipantModel>[];
+  bool _loadingInitial = false;
+  bool _loadingMore = false;
+  bool _hasMoreUsers = false;
+  bool _queuedSearchReload = false;
+  int _currentUserPage = 0;
+  int _requestSerial = 0;
+  String? _error;
+  String? _loadError;
+
+  /// A query is in flight: the field shows a spinner so a slow search does not
+  /// read as a search that did nothing.
+  bool get _searching =>
+      _usesRemoteMembers &&
+      (_loadingInitial || _searchDebounce?.isActive == true) &&
+      _search.text.trim().isNotEmpty;
+
+  bool get _usesRemoteMembers =>
+      widget.useCase != null || widget.registeredUsersLoader != null;
+
+  List<ParticipantModel> get _seedCandidates =>
       widget.participants is List<ParticipantModel>
       ? widget.participants as List<ParticipantModel>
       : widget.participants.toList(growable: false);
+
+  List<ParticipantModel> get _candidates {
+    final byUserId = <int, ParticipantModel>{};
+    for (final participant in _seedCandidates.followedBy(_remoteCandidates)) {
+      if (participant.userId > 0 &&
+          participant.userId != widget.currentUserId) {
+        byUserId[participant.userId] = participant;
+      }
+    }
+    return byUserId.values.toList(growable: false);
+  }
 
   int get _selectedCount => _selected.length;
 
   bool get _isFull => _selectedCount >= kMaxGroupMembers;
 
+  /// The rows to show for the current query.
+  ///
+  /// The server does the searching, but the list also carries seed rows from
+  /// the inbox and the pages loaded before the query changed. Those were shown
+  /// unfiltered, so typing a name appeared to do nothing — the same faces
+  /// stayed on screen. Filtering locally as well keeps only rows that match
+  /// what was typed, whoever supplied them.
   List<ParticipantModel> get _visibleCandidates {
     final query = _search.text.trim().toLowerCase();
-
     if (query.isEmpty) return _candidates;
 
     return _candidates
@@ -102,6 +173,7 @@ class _CreateGroupConversationPageState
   /// Chips follow the pick order, not the list order.
   List<ParticipantModel> get _selectedMembers {
     final byUserId = <int, ParticipantModel>{
+      ..._knownParticipants,
       for (final participant in _candidates) participant.userId: participant,
     };
     return <ParticipantModel>[
@@ -111,12 +183,147 @@ class _CreateGroupConversationPageState
   }
 
   @override
+  void initState() {
+    super.initState();
+    _rememberParticipants(_seedCandidates);
+    if (_usesRemoteMembers) {
+      unawaited(_loadRegisteredUsers(reset: true));
+    }
+  }
+
+  @override
   void dispose() {
+    _searchDebounce?.cancel();
+    _scrollController.dispose();
     _titleFocus.dispose();
     _title.dispose();
     _search.dispose();
-    _venueId.dispose();
     super.dispose();
+  }
+
+  void _rememberParticipants(Iterable<ParticipantModel> participants) {
+    for (final participant in participants) {
+      if (participant.userId > 0) {
+        _knownParticipants[participant.userId] = participant;
+      }
+    }
+  }
+
+  Future<void> _loadRegisteredUsers({required bool reset}) async {
+    if (!_usesRemoteMembers) return;
+    if (_loadingInitial || _loadingMore) {
+      if (reset) _queuedSearchReload = true;
+      return;
+    }
+
+    final int page = reset ? 1 : _currentUserPage + 1;
+    final int serial = ++_requestSerial;
+    final String search = _search.text.trim();
+
+    setState(() {
+      _loadError = null;
+      if (reset) {
+        _pagination.reset();
+        _loadingInitial = true;
+        _currentUserPage = 0;
+        _hasMoreUsers = false;
+        _remoteCandidates = const <ParticipantModel>[];
+      } else {
+        _loadingMore = true;
+      }
+    });
+
+    final loader = widget.registeredUsersLoader;
+    if (!mounted || serial != _requestSerial) return;
+
+    try {
+      final pageResult = loader == null
+          ? await widget.useCase!
+                .getRegisteredUsers(
+                  page: page,
+                  perPage: _registeredUsersPerPage,
+                  search: search,
+                )
+                .then(
+                  (result) => result.fold(
+                    (failure) => throw _RegisteredUsersLoadException(
+                      failure.errorMessage,
+                    ),
+                    (pageResult) => pageResult,
+                  ),
+                )
+          : await loader(
+              page: page,
+              perPage: _registeredUsersPerPage,
+              search: search,
+            );
+      if (!mounted || serial != _requestSerial) return;
+      setState(() {
+        _loadingInitial = false;
+        _loadingMore = false;
+        _currentUserPage = pageResult.currentPage;
+        _hasMoreUsers = pageResult.hasMorePages;
+        final byUserId = <int, ParticipantModel>{
+          if (!reset)
+            for (final participant in _remoteCandidates)
+              participant.userId: participant,
+          for (final participant in pageResult.items)
+            participant.userId: participant,
+        };
+        _remoteCandidates = byUserId.values.toList(growable: false);
+        _rememberParticipants(_remoteCandidates);
+      });
+    } on _RegisteredUsersLoadException catch (failure) {
+      if (!mounted || serial != _requestSerial) return;
+      setState(() {
+        _loadingInitial = false;
+        _loadingMore = false;
+        _loadError = failure.message;
+      });
+    } catch (_) {
+      if (!mounted || serial != _requestSerial) return;
+      setState(() {
+        _loadingInitial = false;
+        _loadingMore = false;
+        _loadError = 'Could not load users.';
+      });
+    }
+    // A standing error stops the auto-pager (see [PaginationTrigger]); the
+    // user retries from the footer, which is also what a 429's "try again in
+    // N seconds" needs.
+    if (_queuedSearchReload) {
+      _queuedSearchReload = false;
+      unawaited(_loadRegisteredUsers(reset: true));
+    }
+  }
+
+  void _onSearchChanged(String _) {
+    _searchDebounce?.cancel();
+    // A pending timer is part of "searching", so the field has to rebuild when
+    // one starts as well as when the request lands.
+    if (_usesRemoteMembers) {
+      _searchDebounce = Timer(
+        _searchDebounceDelay,
+        () => unawaited(_loadRegisteredUsers(reset: true)),
+      );
+    }
+    setState(() {
+      _error = null;
+      if (_usesRemoteMembers) _loadError = null;
+    });
+  }
+
+  bool _onScroll(ScrollNotification notification) {
+    final bool canLoad =
+        _usesRemoteMembers &&
+        _hasMoreUsers &&
+        !_loadingInitial &&
+        !_loadingMore &&
+        _loadError == null;
+    if (_pagination.shouldLoadMore(notification, canLoad: canLoad)) {
+      unawaited(_loadRegisteredUsers(reset: false));
+    }
+    return false;
   }
 
   void _submit() {
@@ -146,24 +353,10 @@ class _CreateGroupConversationPageState
       return;
     }
 
-    // A venue id that is not a number used to be dropped without a word, so
-    // the group was created unlinked and the user never knew.
-    final String rawVenue = _venueId.text.trim();
-    final int? venueId = rawVenue.isEmpty ? null : int.tryParse(rawVenue);
-
-    if (rawVenue.isNotEmpty && venueId == null) {
-      setState(() {
-        _venueExpanded = true;
-        _error = 'Venue id must be a number.';
-      });
-      return;
-    }
-
     Navigator.of(context).pop(
       GroupConversationDraft(
         title: title,
         participantIds: _selected.toList(growable: false),
-        venueId: venueId,
       ),
     );
   }
@@ -228,195 +421,78 @@ class _CreateGroupConversationPageState
       appBar: CustomAppBar(title: StringConstants.createGroup),
       body: SafeArea(
         top: false,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppDimens.paddingX16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: AppDimens.paddingX12),
-              _buildHeader(),
-              const SizedBox(height: AppDimens.paddingX12),
-              // One scroll for the whole form. The member list used to be its
-              // own 420px scroller inside this one, which trapped the gesture
-              // and hid the venue section below it.
-              Expanded(child: _buildScrollableContent()),
-              _buildBottomAction(),
-            ],
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 640),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(child: _buildScrollableContent()),
+                  _buildBottomAction(),
+                ],
+              ),
+            ),
           ),
         ),
-      ),
-    );
-  }
-
-  /// A summary card: who is in so far, and how far off the cap that is.
-  Widget _buildHeader() {
-    final textTheme = FutsalTheme.getTextTheme(context);
-    final List<ParticipantModel> members = _selectedMembers;
-
-    return Container(
-      padding: const EdgeInsets.all(AppDimens.paddingX12),
-      decoration: BoxDecoration(
-        color: LightColor.secondaryColor.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(AppDimens.radiusX12),
-        border: Border.all(
-          color: LightColor.secondaryColor.withValues(alpha: 0.18),
-        ),
-      ),
-      child: Row(
-        children: [
-          if (members.isEmpty)
-            Container(
-              width: 46,
-              height: 46,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: LightColor.secondaryColor.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(AppDimens.radiusX12),
-              ),
-              child: const Icon(
-                Icons.groups_2_rounded,
-                color: LightColor.secondaryColor,
-                size: 24,
-              ),
-            )
-          else
-            _buildSelectedAvatarStack(members),
-          const SizedBox(width: AppDimens.paddingX12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _selectedCount == 0
-                      ? StringConstants.addMembers
-                      : '$_selectedCount of $kMaxGroupMembers ${StringConstants.selected.toLowerCase()}',
-                  style: textTheme.bodyTextLarge?.copyWith(
-                    color: LightColor.primaryTextColor,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  _isFull
-                      ? StringConstants.groupFull
-                      : _selectedCount == 0
-                      ? StringConstants.nameTheGroupAndChooseWhoIsInIt
-                      : StringConstants.tapANameToAddOrRemoveThem,
-                  style: textTheme.bodyTextSmall?.copyWith(
-                    color: _isFull
-                        ? LightColor.redColor
-                        : LightColor.secondaryTextColor,
-                  ),
-                ),
-                const SizedBox(height: AppDimens.paddingX8),
-                // How close the selection is to the cap, without a number to
-                // read: the count above already carries that.
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(AppDimens.radiusX8),
-                  child: LinearProgressIndicator(
-                    minHeight: 4,
-                    value: _selectedCount / kMaxGroupMembers,
-                    backgroundColor: LightColor.secondaryColor.withValues(
-                      alpha: 0.12,
-                    ),
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      _isFull ? LightColor.redColor : LightColor.secondaryColor,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Up to three faces, overlapped, with a "+n" for the rest — the selection
-  /// at a glance while the chip strip is scrolled away.
-  Widget _buildSelectedAvatarStack(List<ParticipantModel> members) {
-    final textTheme = FutsalTheme.getTextTheme(context);
-    const double size = 34;
-    const double step = 22;
-    final List<ParticipantModel> shown = members
-        .take(3)
-        .toList(growable: false);
-    final int extra = members.length - shown.length;
-    final int slots = shown.length + (extra > 0 ? 1 : 0);
-
-    return SizedBox(
-      width: step * (slots - 1) + size,
-      height: 46,
-      child: Stack(
-        alignment: Alignment.centerLeft,
-        children: [
-          for (int i = 0; i < shown.length; i++)
-            Positioned(
-              left: step * i,
-              child: Container(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: LightColor.cardColor, width: 2),
-                ),
-                child: GroupMemberAvatar(
-                  participant: shown[i],
-                  size: size,
-                  showPresence: false,
-                ),
-              ),
-            ),
-          if (extra > 0)
-            Positioned(
-              left: step * shown.length,
-              child: Container(
-                width: size,
-                height: size,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: LightColor.secondaryColor,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: LightColor.cardColor, width: 2),
-                ),
-                child: Text(
-                  '+$extra',
-                  style: textTheme.bodyTextSmall?.copyWith(
-                    color: LightColor.inverseTextColor,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-            ),
-        ],
       ),
     );
   }
 
   Widget _buildScrollableContent() {
-    return ListView(
-      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-      padding: const EdgeInsets.only(bottom: AppDimens.paddingX16),
-      children: [
-        const SizedBox(height: 6),
-        _buildGroupNameField(),
-        const SizedBox(height: AppDimens.paddingX12),
-        _buildMembersHeader(),
-        const SizedBox(height: AppDimens.paddingX10),
-        if (_candidates.isNotEmpty) ...[
-          _buildSearchField(),
-          const SizedBox(height: AppDimens.paddingX10),
-        ],
-        if (_selected.isNotEmpty) ...[
-          GroupSelectedMembersStrip(
-            members: _selectedMembers,
-            onRemove: _toggleParticipant,
+    return NotificationListener<ScrollNotification>(
+      onNotification: _onScroll,
+      child: ListView(
+        controller: _scrollController,
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        padding: const EdgeInsets.only(bottom: AppDimens.paddingX16),
+        children: [
+          const SizedBox(height: AppDimens.paddingX14),
+          Text(
+            StringConstants.nameTheGroupAndChooseWhoIsInIt,
+            style: FutsalTheme.getTextTheme(
+              context,
+            ).bodyTextSmall?.copyWith(color: LightColor.secondaryTextColor),
           ),
-          const SizedBox(height: AppDimens.paddingX12),
+          const SizedBox(height: AppDimens.paddingX16),
+          _buildGroupNameField(),
+          const SizedBox(height: AppDimens.paddingX16),
+          _buildMembersHeader(),
+          if (_isFull || _selectedCount == 0) ...[
+            const SizedBox(height: AppDimens.paddingX4),
+            Semantics(
+              liveRegion: true,
+              child: Text(
+                _isFull
+                    ? StringConstants.groupFull
+                    : 'Tap to add up to $kMaxGroupMembers people.',
+                style: FutsalTheme.getTextTheme(context).bodyTextSmall
+                    ?.copyWith(
+                      color: _isFull
+                          ? LightColor.redColor
+                          : LightColor.secondaryTextColor,
+                      fontWeight: _isFull ? FontWeight.w600 : FontWeight.w400,
+                    ),
+              ),
+            ),
+          ],
+          const SizedBox(height: AppDimens.paddingX10),
+          if (_usesRemoteMembers || _candidates.isNotEmpty) ...[
+            _buildSearchField(),
+            const SizedBox(height: AppDimens.paddingX10),
+          ],
+          if (_selected.isNotEmpty) ...[
+            GroupSelectedMembersStrip(
+              members: _selectedMembers,
+              onRemove: _toggleParticipant,
+            ),
+            const SizedBox(height: AppDimens.paddingX12),
+          ],
+          _buildMembersList(),
+          const SizedBox(height: AppDimens.paddingX16),
         ],
-        _buildMembersList(),
-        const SizedBox(height: AppDimens.paddingX16),
-        _buildOptionalVenueSection(),
-        const SizedBox(height: AppDimens.paddingX16),
-      ],
+      ),
     );
   }
 
@@ -428,7 +504,7 @@ class _CreateGroupConversationPageState
       onChanged: (_) => setState(() => _error = null),
       labelText: StringConstants.groupName,
       hintText: StringConstants.eGWeekendFutsalTeam,
-      icon: Icons.groups_2_outlined,
+      textInputAction: TextInputAction.next,
       ensureVisibleOnFocus: true,
     );
   }
@@ -442,17 +518,16 @@ class _CreateGroupConversationPageState
         _visibleCandidates.any((p) => !_selected.contains(p.userId));
 
     return GroupSectionHeader(
-      title: _selectedCount == 0
-          ? StringConstants.members
-          : '${StringConstants.members} · $_selectedCount',
+      title: StringConstants.addMembers,
+      countLabel: _selectedCount == 0
+          ? null
+          : '$_selectedCount/$kMaxGroupMembers',
       trailingLabel: _selectedCount > 0
           ? StringConstants.clearAll
           : canSelectAll
           ? StringConstants.selectAll
           : null,
-      trailingColor: _selectedCount > 0
-          ? LightColor.redColor
-          : LightColor.secondaryColor,
+      trailingColor: LightColor.brandTextColor,
       onTrailingTap: _selectedCount > 0
           ? _clearSelection
           : canSelectAll
@@ -464,13 +539,22 @@ class _CreateGroupConversationPageState
   Widget _buildSearchField() {
     return CustomTextField(
       controller: _search,
-      onChanged: (_) => setState(() {}),
+      onChanged: _onSearchChanged,
       textInputAction: TextInputAction.search,
       labelText: StringConstants.searchMembers,
       hintText: StringConstants.searchByNameOrEmail,
       icon: Icons.search_rounded,
       isRequired: false,
-      suffixIcon: _search.text.isEmpty
+      suffixIcon: _searching
+          ? const Padding(
+              padding: EdgeInsets.all(AppDimens.paddingX12),
+              child: SizedBox(
+                width: AppDimens.sizeX16,
+                height: AppDimens.sizeX16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            )
+          : _search.text.isEmpty
           ? null
           : IconButton(
               tooltip: StringConstants.clearSearch,
@@ -481,11 +565,26 @@ class _CreateGroupConversationPageState
   }
 
   Widget _buildMembersList() {
+    if (_loadingInitial && _candidates.isEmpty) {
+      return const GroupMembersLoadingCard();
+    }
+
+    if (_loadError != null && _candidates.isEmpty) {
+      return GroupMembersErrorCard(
+        message: _loadError!,
+        onRetry: () => unawaited(_loadRegisteredUsers(reset: true)),
+      );
+    }
+
     if (_candidates.isEmpty) {
-      return const GroupEmptyStateCard(
+      return GroupEmptyStateCard(
         icon: Icons.person_search_outlined,
-        title: StringConstants.noMembersFound,
-        message: StringConstants.startAConversationFirstThenCreateAGroupFromIt,
+        title: _usesRemoteMembers
+            ? 'No users found'
+            : StringConstants.noMembersFound,
+        message: _usesRemoteMembers
+            ? 'Registered users will appear here.'
+            : StringConstants.startAConversationFirstThenCreateAGroupFromIt,
       );
     }
 
@@ -500,13 +599,19 @@ class _CreateGroupConversationPageState
     }
 
     // Laid out, not scrolled: the page owns the only scroll, so every row is
-    // reachable with one gesture and the venue section sits below the list
-    // instead of behind it.
+    // reachable with one gesture.
     return Container(
       decoration: BoxDecoration(
-        color: LightColor.background,
+        color: LightColor.cardColor,
         borderRadius: BorderRadius.circular(AppDimens.radiusX12),
         border: Border.all(color: LightColor.dividerColor),
+        boxShadow: <BoxShadow>[
+          BoxShadow(
+            color: LightColor.shadowColor.withValues(alpha: 0.04),
+            blurRadius: AppDimens.sizeX10,
+            offset: const Offset(0, AppDimens.sizeX2),
+          ),
+        ],
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(AppDimens.radiusX12),
@@ -515,10 +620,12 @@ class _CreateGroupConversationPageState
             const SizedBox(height: AppDimens.paddingX4),
             for (int index = 0; index < visible.length; index++) ...[
               if (index > 0)
-                const Divider(
+                Divider(
                   height: 1,
-                  indent: 64,
+                  thickness: 1,
+                  indent: 67,
                   endIndent: AppDimens.paddingX12,
+                  color: LightColor.dividerColor.withValues(alpha: 0.55),
                 ),
               GroupMemberTile(
                 participant: visible[index],
@@ -527,98 +634,15 @@ class _CreateGroupConversationPageState
                 onTap: () => _toggleParticipant(visible[index]),
               ),
             ],
+            if (_loadingMore || _loadError != null)
+              GroupMembersFooter(
+                loading: _loadingMore,
+                error: _loadError,
+                onRetry: () => unawaited(_loadRegisteredUsers(reset: false)),
+              ),
             const SizedBox(height: AppDimens.paddingX4),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildOptionalVenueSection() {
-    final textTheme = FutsalTheme.getTextTheme(context);
-    return Container(
-      decoration: BoxDecoration(
-        color: LightColor.background,
-        borderRadius: BorderRadius.circular(AppDimens.radiusX12),
-        border: Border.all(color: LightColor.dividerColor),
-      ),
-      child: Column(
-        children: [
-          InkWell(
-            borderRadius: BorderRadius.circular(AppDimens.radiusX12),
-            onTap: () => setState(() => _venueExpanded = !_venueExpanded),
-            child: Padding(
-              padding: const EdgeInsets.all(AppDimens.paddingX12),
-              child: Row(
-                children: [
-                  Container(
-                    width: 38,
-                    height: 38,
-                    decoration: BoxDecoration(
-                      color: LightColor.secondaryColor.withValues(alpha: 0.10),
-                      borderRadius: BorderRadius.circular(AppDimens.radiusX8),
-                    ),
-                    child: const Icon(
-                      Icons.stadium_outlined,
-                      color: LightColor.secondaryColor,
-                      size: 20,
-                    ),
-                  ),
-                  const SizedBox(width: AppDimens.paddingX10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          StringConstants.optionalVenue,
-                          style: textTheme.bodyTextMedium?.copyWith(
-                            color: LightColor.primaryTextColor,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        Text(
-                          StringConstants.connectThisGroupToAVenue,
-                          style: textTheme.bodyTextSmall?.copyWith(
-                            color: LightColor.secondaryTextColor,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  AnimatedRotation(
-                    turns: _venueExpanded ? 0.5 : 0,
-                    duration: const Duration(milliseconds: 180),
-                    child: const Icon(Icons.keyboard_arrow_down_rounded),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          AnimatedSize(
-            duration: const Duration(milliseconds: 180),
-            curve: Curves.easeOut,
-            alignment: Alignment.topCenter,
-            child: _venueExpanded
-                ? Padding(
-                    padding: const EdgeInsets.fromLTRB(
-                      AppDimens.paddingX12,
-                      0,
-                      AppDimens.paddingX12,
-                      AppDimens.paddingX12,
-                    ),
-                    child: CustomTextField(
-                      controller: _venueId,
-                      keyboardType: TextInputType.number,
-                      labelText: StringConstants.venueId,
-                      hintText: StringConstants.enterVenueId,
-                      icon: Icons.tag_rounded,
-                      isRequired: false,
-                      ensureVisibleOnFocus: true,
-                    ),
-                  )
-                : const SizedBox(width: double.infinity),
-          ),
-        ],
       ),
     );
   }
@@ -630,14 +654,17 @@ class _CreateGroupConversationPageState
     return GroupBottomActionContainer(
       error: _error,
       child: CustomButton(
-        text: _selectedCount == 0
-            ? StringConstants.createGroupAction
-            : '${StringConstants.createGroupAction} · $_selectedCount',
+        text: StringConstants.createGroupAction,
         onPressed: _submit,
-        icon: Icons.group_add_rounded,
-        minHeight: 46,
+        minHeight: 50,
         borderRadius: AppDimens.radiusX12,
       ),
     );
   }
+}
+
+class _RegisteredUsersLoadException implements Exception {
+  const _RegisteredUsersLoadException(this.message);
+
+  final String message;
 }

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/widgets/centered_horizontal_selection_row.dart';
 import 'package:hamro_futsal/features/booking_overview/data/model/booking_overview_model.dart';
 import 'package:hamro_futsal/features/booking_overview/presentation/models/booking_analytics.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
@@ -138,13 +139,16 @@ class BookingVenueFilter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final int selectedIndex = selectedId == null
+        ? 0
+        : venues.indexWhere((OverviewVenue venue) => venue.id == selectedId) +
+              1;
     return SizedBox(
       height: AppDimens.sizeX32,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
+      child: CenteredHorizontalSelectionRow(
         itemCount: venues.length + 1,
-        separatorBuilder: (_, __) => const SizedBox(width: AppDimens.paddingX8),
+        selectedIndex: selectedIndex,
+        spacing: AppDimens.paddingX8,
         itemBuilder: (_, i) {
           if (i == 0) {
             return BookingChip(

@@ -67,14 +67,21 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
     _court = widget.court ?? _fromPublicVenue(widget.publicVenue!);
 
     final int? venueId = _court.venueId ?? widget.publicVenue?.id;
+    final String? venueSlug = (_court.venueSlug ?? widget.publicVenue?.slug)
+        ?.trim();
     if (venueId != null) {
       final FutsalDetailsRepositoryImpl repository =
           FutsalDetailsRepositoryImpl();
       _hostedByBloc = HostedByBloc(GetHostedByUseCase(repository))
         ..add(FetchHostedByEvent(venueId: venueId));
-      _venueDescriptionBloc = VenueDescriptionBloc(
-        GetVenueDescriptionUseCase(repository),
-      )..add(FetchVenueDescriptionEvent(venueId: venueId));
+      // The description is the one section addressed by slug. Without one
+      // there is nothing to ask for, so the bloc is left null and the section
+      // falls back to the description already on the model.
+      if (venueSlug != null && venueSlug.isNotEmpty) {
+        _venueDescriptionBloc = VenueDescriptionBloc(
+          GetVenueDescriptionUseCase(repository),
+        )..add(FetchVenueDescriptionEvent(venueSlug: venueSlug));
+      }
       _venueAmenitiesFacilitiesBloc = VenueAmenitiesFacilitiesBloc(
         GetVenueAmenitiesFacilitiesUseCase(repository),
       )..add(FetchVenueAmenitiesFacilitiesEvent(venueId: venueId));
@@ -138,6 +145,7 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
 
     return CourtDetailModel(
       venueId: venue.id,
+      venueSlug: venue.slug,
       name: venue.name ?? '',
       location: address,
       address: exactLocation,
@@ -199,6 +207,7 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
 
     return CourtDetailModel(
       venueId: _court.venueId ?? widget.publicVenue?.id,
+      venueSlug: _court.venueSlug ?? widget.publicVenue?.slug,
       name: _court.name,
       location: _court.location,
       address: _court.address,
@@ -651,6 +660,38 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
     );
   }
 
+  /// The link the share sheet sends for this venue, or null when the page was
+  /// not opened from a public listing.
+  ///
+  /// Only the backend's `share` payload carries a link, so a page reached with
+  /// a [CourtDetailModel] shares the venue's details without one rather than
+  /// inventing a URL that may not resolve.
+  String? get _shareLink => widget.publicVenue?.share?.shareUrl;
+
+  /// The sentence that goes with [_shareLink].
+  ///
+  /// The backend's `message` is preferred; a page opened with a
+  /// [CourtDetailModel] falls back to the venue's own details, which is still
+  /// worth sharing.
+  String? get _shareMessage {
+    final String? fromApi = widget.publicVenue?.share?.shareMessage;
+    if (fromApi != null && fromApi.isNotEmpty) return fromApi;
+
+    final String name = _court.name.trim();
+    if (name.isEmpty) return null;
+
+    final String address = _court.location.trim().isEmpty
+        ? _court.address.trim()
+        : _court.location.trim();
+    final String price = _court.price.trim();
+
+    return <String>[
+      'Check out $name on ${StringConstants.hamroFutsal}.',
+      if (address.isNotEmpty) address,
+      if (price.isNotEmpty) 'Starting from $price',
+    ].join('\n');
+  }
+
   Widget _buildScrollBody(BuildContext context) {
     final bool desktop = context.isDesktop;
     return CustomScrollView(
@@ -660,6 +701,9 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
           child: DetailsImageGallery(
             images: _court.images,
             venueId: widget.publicVenue?.id,
+            shareText: _shareMessage,
+            shareLink: _shareLink,
+            shareSubject: _court.name,
           ),
         ),
         SliverToBoxAdapter(

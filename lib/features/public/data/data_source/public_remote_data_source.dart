@@ -18,6 +18,15 @@ abstract class PublicRemoteDataSource {
     double? latitude,
     double? longitude,
   });
+
+  /// `GET /venues` narrowed to one venue by slug and/or id — what a shared
+  /// link carries.
+  Future<Result> getVenueByLink({
+    String? slug,
+    int? id,
+    double? latitude,
+    double? longitude,
+  });
   Future<Result> getCategoryFilter();
   Future<Result> getWishlist();
   Future<Result> toggleWishlist(int venueId);
@@ -68,6 +77,31 @@ final class PublicRemoteDataSourceImpl extends PublicRemoteDataSource {
       latitude: latitude,
       longitude: longitude,
     ),
+  );
+
+  @override
+  Future<Result> getVenueByLink({
+    String? slug,
+    int? id,
+    double? latitude,
+    double? longitude,
+  }) async => await Client.instance().getAuthManager().getPublicVenueList(
+    data: <String, dynamic>{
+      'page': 1,
+      'per_page': kVenueLinkLookupPerPage,
+      // Sent together on purpose: a backend that filters on `slug`/`venue_id`
+      // answers with the one venue, and one that ignores them still returns a
+      // name search the caller can match the slug against.
+      if (slug != null && slug.trim().isNotEmpty) ...<String, dynamic>{
+        'slug': slug.trim(),
+        'search': slug.trim().replaceAll('-', ' '),
+      },
+      if (id != null) ...<String, dynamic>{'venue_id': id, 'venue': id},
+      if (latitude != null && longitude != null) ...<String, dynamic>{
+        'latitude': latitude,
+        'longitude': longitude,
+      },
+    },
   );
 
   @override

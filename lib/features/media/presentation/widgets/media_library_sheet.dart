@@ -769,25 +769,35 @@ class _CompactHeader extends StatelessWidget {
             ),
           ),
           const SizedBox(width: AppDimens.sizeX10),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: <Widget>[
-              Text(
-                '$itemCount items',
-                style: FutsalTheme.getTextTheme(context).bodySubTitle?.copyWith(
-                  fontWeight: FontWeight.w500,
-                  color: LightColor.primaryTextColor,
+          // Flexible: the counts grow with the reader's text scale, and sized
+          // to their content they pushed this row past its width.
+          Flexible(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: <Widget>[
+                Text(
+                  '$itemCount items',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: FutsalTheme.getTextTheme(context).bodySubTitle
+                      ?.copyWith(
+                        fontWeight: FontWeight.w500,
+                        color: LightColor.primaryTextColor,
+                      ),
                 ),
-              ),
-              const SizedBox(height: AppDimens.sizeX2),
-              Text(
-                '$selectedCount selected',
-                style: FutsalTheme.getTextTheme(context).bodySubTitle?.copyWith(
-                  fontWeight: FontWeight.w500,
-                  color: LightColor.secondaryColor,
+                const SizedBox(height: AppDimens.sizeX2),
+                Text(
+                  '$selectedCount selected',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: FutsalTheme.getTextTheme(context).bodySubTitle
+                      ?.copyWith(
+                        fontWeight: FontWeight.w500,
+                        color: LightColor.secondaryColor,
+                      ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
@@ -994,9 +1004,13 @@ class _CompactActionRow extends StatelessWidget {
           ),
         ),
         const SizedBox(width: AppDimens.sizeX8),
-        _FilterMenuButton(
-          activeFilter: activeFilter,
-          onSelected: onFilterChanged,
+        // Flexible for the same reason: it is sized to its own label, so a
+        // longer filter name or a larger text scale had nowhere to give.
+        Flexible(
+          child: _FilterMenuButton(
+            activeFilter: activeFilter,
+            onSelected: onFilterChanged,
+          ),
         ),
       ],
     );
@@ -1165,24 +1179,30 @@ class _AddMediaMenuButton extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: AppDimens.sizeX12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      source.label,
-                      style: FutsalTheme.getTextTheme(context).bodyTextSmall
-                          ?.copyWith(
-                            color: enabled
-                                ? LightColor.primaryTextColor
-                                : LightColor.secondaryTextColor,
-                          ),
-                    ),
-                    Text(
-                      source.description,
-                      style: FutsalTheme.getTextTheme(context).bodySubTitle
-                          ?.copyWith(color: LightColor.secondaryTextColor),
-                    ),
-                  ],
+                Flexible(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        source.label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: FutsalTheme.getTextTheme(context).bodyTextSmall
+                            ?.copyWith(
+                              color: enabled
+                                  ? LightColor.primaryTextColor
+                                  : LightColor.secondaryTextColor,
+                            ),
+                      ),
+                      Text(
+                        source.description,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: FutsalTheme.getTextTheme(context).bodySubTitle
+                            ?.copyWith(color: LightColor.secondaryTextColor),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -1685,19 +1705,24 @@ class _BottomSelectionBar extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: <Widget>[
-          Text(
-            titleText,
-
-            style: FutsalTheme.getTextTheme(context).bodySubTitle?.copyWith(
-              fontWeight: FontWeight.w700,
-              color: LightColor.primaryTextColor,
+          Flexible(
+            child: Text(
+              titleText,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: FutsalTheme.getTextTheme(context).bodySubTitle?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: LightColor.primaryTextColor,
+              ),
             ),
           ),
 
-          const Spacer(),
-          SizedBox(
-            height: AppDimens.sizeX40,
-            width: AppDimens.sizeX200,
+          SizedBox(width: AppDimens.paddingX10),
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: AppDimens.sizeX40,
+              maxWidth: AppDimens.sizeX200,
+            ),
             child: CustomButton(
               isLoading: false,
               icon: Icons.arrow_forward_rounded,

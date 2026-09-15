@@ -13,6 +13,17 @@ abstract class AuthRepository {
 
   Future<Either<AppException, TokenModel>> getTokenDetails();
   Future<bool> clearTokenDetails();
-  Future<Either<AppException, bool>>? forgotPassword(data);
+
+  /// Clears the session, including any stored biometric session, so the user
+  /// has to sign in again — used after the password changes.
+  Future<bool> endSession();
+
+  /// Resolves with the API's own `message` so the caller can show exactly
+  /// what the server said.
+  Future<Either<AppException, String>>? forgotPassword(data);
+
+  /// Completes the reset with the emailed OTP and the new password. Returns
+  /// the server's success message.
+  Future<Either<AppException, String>> resetPassword(data);
   Future<Either<AppException, bool>>? changePassword(data);
 }

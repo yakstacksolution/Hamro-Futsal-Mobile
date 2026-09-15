@@ -1,6 +1,7 @@
 import 'package:dartz/dartz.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hamro_futsal/features/bookings/domain/model/booking_list_query.dart';
 import 'package:hamro_futsal/core/helper/exception_helper.dart';
 import 'package:hamro_futsal/features/bookings/data/model/booking_model.dart';
 import 'package:hamro_futsal/features/bookings/data/model/booking_review_model.dart';
@@ -62,10 +63,16 @@ void main() {
     expect(find.byKey(const Key('cancel-booking-button')), findsOneWidget);
     expect(find.text('Dhananjay sports'), findsWidgets);
     expect(find.text('Shidartha'), findsWidgets);
-    expect(find.text('Wed, 12 Aug 2026 · 6:00 PM – 7:00 PM'), findsOneWidget);
-    expect(find.text('Weekly'), findsOneWidget);
-    expect(find.text('Booked via'), findsOneWidget);
+    // The summary opens with the same grid the list card shows.
+    expect(find.text('DATE'), findsOneWidget);
+    expect(find.text('Aug 12, 2026'), findsOneWidget);
+    expect(find.text('TIME'), findsOneWidget);
+    expect(find.text('6:00 PM – 7:00 PM'), findsOneWidget);
+    expect(find.text('REFERENCE'), findsOneWidget);
+    expect(find.text('BK-9BSUCLB3'), findsOneWidget);
+    expect(find.text('TYPE'), findsOneWidget);
     expect(find.text('Online'), findsOneWidget);
+    expect(find.text('Weekly'), findsOneWidget);
 
     await tester.scrollUntilVisible(
       find.text('Payment summary'),
@@ -75,7 +82,7 @@ void main() {
     expect(find.text('Vendor'), findsOneWidget);
     expect(find.byKey(const Key('chat-venue-button')), findsOneWidget);
     expect(find.text('Discount (FIRSTBOOK)'), findsOneWidget);
-    expect(find.text('NPR 1080'), findsOneWidget);
+    expect(find.text('NPR 1,080'), findsOneWidget);
     expect(find.text('Partial'), findsOneWidget);
     expect(find.text('Balance due later'), findsOneWidget);
     expect(find.text('Paid via Cash'), findsOneWidget);
@@ -323,32 +330,28 @@ final class _FakeBookingRepository implements BookingRepository {
   }
 
   @override
-  Future<Either<AppException, PaginatedBookings>> getMyBookings({
-    required int page,
-    required int perPage,
-    String? status,
-  }) async => right(
+  Future<Either<AppException, PaginatedBookings>> getMyBookings(
+    BookingListQuery query,
+  ) async => right(
     PaginatedBookings(
       items: <BookingModel>[booking],
-      currentPage: page,
-      lastPage: page,
-      perPage: perPage,
+      currentPage: query.page,
+      lastPage: query.page,
+      perPage: query.perPage,
       total: 1,
       hasMorePages: false,
     ),
   );
 
   @override
-  Future<Either<AppException, PaginatedBookings>> getFutsalBookings({
-    required int page,
-    required int perPage,
-    String? status,
-  }) async => right(
+  Future<Either<AppException, PaginatedBookings>> getFutsalBookings(
+    BookingListQuery query,
+  ) async => right(
     PaginatedBookings(
       items: <BookingModel>[booking],
-      currentPage: page,
-      lastPage: page,
-      perPage: perPage,
+      currentPage: query.page,
+      lastPage: query.page,
+      perPage: query.perPage,
       total: 1,
       hasMorePages: false,
     ),

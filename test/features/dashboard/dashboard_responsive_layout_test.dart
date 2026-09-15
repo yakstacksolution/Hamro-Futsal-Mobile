@@ -403,4 +403,72 @@ void main() {
       );
     });
   });
+
+  group('Verified badge on the venue card', () {
+    testWidgets('appears for a verified venue, beside the name', (
+      WidgetTester tester,
+    ) async {
+      await _pumpAt(
+        tester,
+        _phone,
+        const CourtCard(
+          publicListingVenueModel: PublicListingVenueModel(
+            id: 1,
+            name: 'UN park futsal',
+            address: 'UN park',
+            price: 1400,
+            isVerified: true,
+          ),
+        ),
+      );
+
+      expect(tester.takeException(), isNull);
+      expect(find.byIcon(Icons.verified_rounded), findsOneWidget);
+      expect(find.text('UN park futsal'), findsOneWidget);
+    });
+
+    testWidgets('is absent when the venue is not verified', (
+      WidgetTester tester,
+    ) async {
+      await _pumpAt(
+        tester,
+        _phone,
+        const CourtCard(
+          publicListingVenueModel: PublicListingVenueModel(
+            id: 1,
+            name: 'UN park futsal',
+            address: 'UN park',
+            price: 1400,
+          ),
+        ),
+      );
+
+      expect(tester.takeException(), isNull);
+      expect(find.byIcon(Icons.verified_rounded), findsNothing);
+    });
+
+    testWidgets('keeps the badge when the name is too long for the card', (
+      WidgetTester tester,
+    ) async {
+      await _pumpAt(
+        tester,
+        _phone,
+        const CourtCard(
+          publicListingVenueModel: PublicListingVenueModel(
+            id: 1,
+            name:
+                'An extremely long futsal venue name that cannot possibly fit '
+                'on one line of a phone card',
+            address: 'UN park',
+            price: 1400,
+            isVerified: true,
+          ),
+        ),
+      );
+
+      // The name ellipsizes; the badge is not pushed off the row.
+      expect(tester.takeException(), isNull);
+      expect(find.byIcon(Icons.verified_rounded), findsOneWidget);
+    });
+  });
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/app_utils.dart';
@@ -95,43 +96,86 @@ class CustomCheckbox extends StatelessWidget {
             symmetricHorizontal: AppDimens.paddingX2,
             symmetricVertical: AppDimens.paddingX2,
           ),
-          child: LayoutBuilder(
-            builder: (BuildContext context, BoxConstraints constraints) {
-              final bool canUseFlexibleLabel = constraints.hasBoundedWidth;
-              final bool shouldFillRow =
-                  isExpanded && constraints.hasBoundedWidth;
-
-              Widget buildLabel() {
-                if (!canUseFlexibleLabel) {
-                  return labelContent;
-                }
-
-                return Flexible(
-                  fit: isExpanded ? FlexFit.tight : FlexFit.loose,
-                  child: labelContent,
-                );
-              }
-
-              final List<Widget> children = <Widget>[
-                if (labelPosition == CheckboxLabelPosition.left) buildLabel(),
-                if (labelPosition == CheckboxLabelPosition.left)
+          // Deliberately not a LayoutBuilder: it cannot answer an intrinsic
+          // measurement, so any ancestor that asks for one — an
+          // `IntrinsicHeight` row, an `IntrinsicWidth`, `AlertDialog`'s
+          // `OverflowBar`, a scrollable `TabBar` — threw "LayoutBuilder does
+          // not support returning intrinsic dimensions" mid-layout. The
+          // aborted layout then left this `InkWell`'s ink box unsized, which
+          // is the second crash: "RenderBox was not laid out:
+          // _RenderInkFeatures". [_BoundedWidth] reports intrinsics straight
+          // from its child and only substitutes a width when it is handed an
+          // unbounded one.
+          child: _BoundedWidth(
+            child: Row(
+              mainAxisSize: isExpanded ? MainAxisSize.max : MainAxisSize.min,
+              children: <Widget>[
+                if (labelPosition == CheckboxLabelPosition.left) ...<Widget>[
+                  Flexible(
+                    fit: isExpanded ? FlexFit.tight : FlexFit.loose,
+                    child: labelContent,
+                  ),
                   SizedBox(width: spacing),
+                ],
                 checkbox,
-                if (labelPosition == CheckboxLabelPosition.right)
+                if (labelPosition == CheckboxLabelPosition.right) ...<Widget>[
                   SizedBox(width: spacing),
-                if (labelPosition == CheckboxLabelPosition.right) buildLabel(),
-              ];
-
-              return Row(
-                mainAxisSize: shouldFillRow
-                    ? MainAxisSize.max
-                    : MainAxisSize.min,
-                children: children,
-              );
-            },
+                  Flexible(
+                    fit: isExpanded ? FlexFit.tight : FlexFit.loose,
+                    child: labelContent,
+                  ),
+                ],
+              ],
+            ),
           ),
         ),
       ),
     );
+  }
+}
+
+/// Hands its child a bounded width even when it is offered an unbounded one,
+/// by substituting the child's own maximum intrinsic width.
+///
+/// The `Flexible` label above needs bounded constraints — a flex child under
+/// an unbounded main axis throws — but the checkbox is also used inside
+/// horizontally scrolling rows and unbounded `Row`s, where the width is
+/// infinite. Deciding that with a `LayoutBuilder` made the whole subtree
+/// unmeasurable for intrinsics; this decides it one level lower, in layout,
+/// where intrinsics still pass through to the child.
+class _BoundedWidth extends SingleChildRenderObjectWidget {
+  const _BoundedWidth({required Widget super.child});
+
+  @override
+  _RenderBoundedWidth createRenderObject(BuildContext context) =>
+      _RenderBoundedWidth();
+}
+
+class _RenderBoundedWidth extends RenderProxyBox {
+  BoxConstraints _bound(BoxConstraints constraints) {
+    if (constraints.hasBoundedWidth) return constraints;
+    final RenderBox? child = this.child;
+    if (child == null) return constraints;
+    return constraints.copyWith(
+      maxWidth: child.getMaxIntrinsicWidth(constraints.maxHeight),
+    );
+  }
+
+  @override
+  Size computeDryLayout(BoxConstraints constraints) {
+    final RenderBox? child = this.child;
+    if (child == null) return constraints.smallest;
+    return constraints.constrain(child.getDryLayout(_bound(constraints)));
+  }
+
+  @override
+  void performLayout() {
+    final RenderBox? child = this.child;
+    if (child == null) {
+      size = constraints.smallest;
+      return;
+    }
+    child.layout(_bound(constraints), parentUsesSize: true);
+    size = constraints.constrain(child.size);
   }
 }

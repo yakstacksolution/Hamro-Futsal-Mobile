@@ -6,6 +6,7 @@ import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
 import 'package:hamro_futsal/features/message/data/model/chat_message_model.dart';
+import 'package:hamro_futsal/features/message/domain/model/message_mentions.dart';
 
 class ChatInputBar extends StatefulWidget {
   const ChatInputBar({
@@ -21,9 +22,19 @@ class ChatInputBar extends StatefulWidget {
     this.onCancelReply,
     this.enabled = true,
     this.disabledHint = 'You cannot send messages in this conversation.',
+    this.mentionCandidates = const <MentionCandidate>[],
+    this.currentUserId,
   });
 
-  final ValueChanged<String> onSend;
+  /// Sends the typed body along with whatever it mentions.
+  final void Function(String body, ResolvedMentions mentions) onSend;
+
+  /// People who can be mentioned here. Empty in a direct chat, where `@` is
+  /// just a character.
+  final List<MentionCandidate> mentionCandidates;
+
+  /// The signed-in user, kept out of their own mention picker.
+  final int? currentUserId;
   final ValueChanged<bool>? onTypingChanged;
   final bool sending;
   final FocusNode? focusNode;
@@ -44,6 +55,58 @@ class _ChatInputBarState extends State<ChatInputBar> {
   Timer? _typingTimer;
   bool _typingSent = false;
 
+  /// The `@…` the caret is currently inside, or null. Drives the suggestion
+  /// list above the composer.
+  ({int start, String query})? _mentionQuery;
+
+  bool get _supportsMentions => widget.mentionCandidates.isNotEmpty;
+
+  /// `@all` plus every participant, filtered by what has been typed so far.
+  List<MentionCandidate> get _mentionSuggestions {
+    final String query = _mentionQuery?.query ?? '';
+    final List<MentionCandidate> people = widget.mentionCandidates
+        .where(
+          (MentionCandidate person) =>
+              person.userId != widget.currentUserId &&
+              person.matchesQuery(query),
+        )
+        .toList(growable: false);
+    final bool offersAll = 'all'.startsWith(query.trim().toLowerCase());
+    return <MentionCandidate>[
+      if (offersAll) const MentionCandidate(userId: -1, name: 'all'),
+      ...people,
+    ];
+  }
+
+  void _syncMentionQuery() {
+    if (!_supportsMentions) return;
+    final TextSelection selection = _ctrl.selection;
+    final ({int start, String query})? next = selection.isCollapsed
+        ? activeMentionQuery(_ctrl.text, selection.baseOffset)
+        : null;
+    if (next?.start != _mentionQuery?.start ||
+        next?.query != _mentionQuery?.query) {
+      setState(() => _mentionQuery = next);
+    }
+  }
+
+  void _applyMention(MentionCandidate candidate) {
+    final ({int start, String query})? query = _mentionQuery;
+    if (query == null) return;
+
+    final ({String text, int caret}) result = insertMention(
+      text: _ctrl.text,
+      start: query.start,
+      caret: _ctrl.selection.baseOffset,
+      handle: candidate.handle,
+    );
+    _ctrl.value = TextEditingValue(
+      text: result.text,
+      selection: TextSelection.collapsed(offset: result.caret),
+    );
+    setState(() => _mentionQuery = null);
+  }
+
   bool get _canSend =>
       (_ctrl.text.trim().isNotEmpty || widget.attachmentNames.isNotEmpty) &&
       !widget.sending &&
@@ -59,6 +122,7 @@ class _ChatInputBarState extends State<ChatInputBar> {
 
   void _onChanged(String _) {
     setState(() {});
+    _syncMentionQuery();
 
     if (widget.onTypingChanged == null) return;
 
@@ -98,10 +162,10 @@ class _ChatInputBarState extends State<ChatInputBar> {
     _typingTimer?.cancel();
     _stopTyping();
 
-    widget.onSend(text);
+    widget.onSend(text, resolveMentions(text, widget.mentionCandidates));
 
     _ctrl.clear();
-    setState(() {});
+    setState(() => _mentionQuery = null);
   }
 
   @override
@@ -122,6 +186,13 @@ class _ChatInputBarState extends State<ChatInputBar> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              // The picker sits directly above the composer, so the name being
+              // typed and the list of names are in the same place.
+              if (_mentionQuery != null && _mentionSuggestions.isNotEmpty)
+                _MentionSuggestions(
+                  candidates: _mentionSuggestions,
+                  onSelected: _applyMention,
+                ),
               if (widget.replyingTo != null)
                 _ReplyPreview(
                   message: widget.replyingTo!,
@@ -193,6 +264,7 @@ class _ChatInputBarState extends State<ChatInputBar> {
                               controller: _ctrl,
                               focusNode: widget.focusNode,
                               onChanged: _onChanged,
+                              onTap: _syncMentionQuery,
                               minLines: 1,
                               maxLines: 4,
                               textAlignVertical: TextAlignVertical.center,
@@ -302,6 +374,116 @@ class _ChatInputBarState extends State<ChatInputBar> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The list of people an `@` can resolve to, shown while one is being typed.
+class _MentionSuggestions extends StatelessWidget {
+  const _MentionSuggestions({
+    required this.candidates,
+    required this.onSelected,
+  });
+
+  final List<MentionCandidate> candidates;
+  final ValueChanged<MentionCandidate> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppDimens.paddingX8),
+      constraints: const BoxConstraints(maxHeight: 196),
+      decoration: BoxDecoration(
+        color: context.appColors.surface,
+        borderRadius: BorderRadius.circular(AppDimens.radiusX14),
+        border: Border.all(color: LightColor.dividerColor),
+        boxShadow: <BoxShadow>[
+          BoxShadow(
+            color: LightColor.shadowColor.withValues(alpha: 0.12),
+            blurRadius: 16,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(AppDimens.radiusX14),
+        child: ListView.separated(
+          shrinkWrap: true,
+          padding: EdgeInsets.zero,
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          itemCount: candidates.length,
+          separatorBuilder: (_, __) =>
+              Divider(height: 1, indent: 52, color: LightColor.dividerColor),
+          itemBuilder: (BuildContext context, int index) {
+            final MentionCandidate candidate = candidates[index];
+            final bool isAll = candidate.userId < 0;
+            return InkWell(
+              onTap: () => onSelected(candidate),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppDimens.paddingX12,
+                  vertical: AppDimens.paddingX10,
+                ),
+                child: Row(
+                  children: <Widget>[
+                    Container(
+                      width: AppDimens.sizeX28,
+                      height: AppDimens.sizeX28,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: LightColor.secondaryColor.withValues(
+                          alpha: 0.12,
+                        ),
+                      ),
+                      child: isAll
+                          ? Icon(
+                              Icons.campaign_rounded,
+                              size: AppDimens.sizeX16,
+                              color: LightColor.secondaryColor,
+                            )
+                          : Text(
+                              candidate.name.isEmpty
+                                  ? '?'
+                                  : candidate.name
+                                        .trim()
+                                        .substring(0, 1)
+                                        .toUpperCase(),
+                              style: textTheme.bodyTextSmall?.copyWith(
+                                color: LightColor.secondaryColor,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                    ),
+                    const SizedBox(width: AppDimens.paddingX10),
+                    Expanded(
+                      child: Text(
+                        isAll ? 'all' : candidate.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: textTheme.bodyTextSmall?.copyWith(
+                          color: LightColor.primaryTextColor,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    if (isAll)
+                      Text(
+                        'Notify everyone',
+                        style: textTheme.bodySubTitle?.copyWith(
+                          color: LightColor.secondaryTextColor,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            );
+          },
         ),
       ),
     );

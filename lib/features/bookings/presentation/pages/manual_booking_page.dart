@@ -14,6 +14,7 @@ import 'package:hamro_futsal/core/widgets/custom_text_field.dart';
 import 'package:hamro_futsal/features/bookings/data/model/manual_booking_details.dart';
 import 'package:hamro_futsal/features/courts/data/model/venue_court_model.dart';
 import 'package:hamro_futsal/features/courts/data/repositories/venue_court_repository_impl.dart';
+import 'package:hamro_futsal/features/courts/domain/model/venue_court_purpose.dart';
 import 'package:hamro_futsal/features/courts/domain/usecase/get_venue_court_use_case.dart';
 import 'package:hamro_futsal/features/courts_details/presentation/page/court_details.dart';
 import 'package:hamro_futsal/features/futsal_details/data/model/slots_selection_route_args.dart';
@@ -29,10 +30,14 @@ class _ManualBookingPageState extends State<ManualBookingPage> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _name = TextEditingController();
   final TextEditingController _phone = TextEditingController();
-  final TextEditingController _email = TextEditingController();
   final TextEditingController _note = TextEditingController(
     text: 'Paid at counter',
   );
+
+  /// Optional override for what the booking should cost. Left blank, the
+  /// server prices the slots itself — which is the normal case; it is filled
+  /// in only when a counter price was agreed that the slot rates do not give.
+  final TextEditingController _totalAmount = TextEditingController();
 
   List<VenueCourtModel> _venues = const <VenueCourtModel>[];
   VenueCourtModel? _venue;
@@ -56,7 +61,11 @@ class _ManualBookingPageState extends State<ManualBookingPage> {
     final Either<AppException, List<VenueCourtModel>> result =
         await GetVenueCourtUseCase(
           VenueCourtRepositoryImpl(),
-        ).getAllVenueCourts();
+        ).getAllVenueCourts(
+          // A walk-in is a booking being taken now, so this asks for the
+          // bookable venues and courts rather than the whole portfolio.
+          purpose: VenueCourtPurpose.booking,
+        );
     if (!mounted) return;
     result.fold(
       (AppException error) => setState(() {
@@ -77,7 +86,7 @@ class _ManualBookingPageState extends State<ManualBookingPage> {
   void dispose() {
     _name.dispose();
     _phone.dispose();
-    _email.dispose();
+    _totalAmount.dispose();
     _note.dispose();
     super.dispose();
   }
@@ -90,6 +99,7 @@ class _ManualBookingPageState extends State<ManualBookingPage> {
       extra: SlotsSelectionRouteArgs(
         court: CourtDetailModel(
           venueId: venue.id,
+          venueSlug: venue.slug,
           name: venue.title,
           location: venue.address,
           address: venue.address,
@@ -120,7 +130,7 @@ class _ManualBookingPageState extends State<ManualBookingPage> {
         manualBooking: ManualBookingDetails(
           customerName: _name.text.trim(),
           customerPhone: _phone.text.trim(),
-          customerEmail: _email.text.trim(),
+          totalAmount: _parsedTotalAmount,
           paymentMethod: _paymentMethod,
           paymentType: _paymentMethod,
           paymentStatus: _paymentStatus,
@@ -134,6 +144,25 @@ class _ManualBookingPageState extends State<ManualBookingPage> {
 
   String? _required(String? value) =>
       value == null || value.trim().isEmpty ? 'This field is required.' : null;
+
+  /// The typed total, or null when the box is empty. Null is a valid answer —
+  /// it means "let the server price it".
+  double? get _parsedTotalAmount {
+    final String raw = _totalAmount.text.trim();
+    if (raw.isEmpty) return null;
+    return double.tryParse(raw);
+  }
+
+  /// Optional, so an empty box passes. Anything typed still has to be a
+  /// number the server can charge.
+  String? _optionalAmount(String? value) {
+    final String raw = value?.trim() ?? '';
+    if (raw.isEmpty) return null;
+    final double? amount = double.tryParse(raw);
+    if (amount == null) return 'Enter an amount like 1200 or 1200.50.';
+    if (amount <= 0) return 'Enter an amount greater than zero.';
+    return null;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -258,24 +287,6 @@ class _ManualBookingPageState extends State<ManualBookingPage> {
                             LengthLimitingTextInputFormatter(15),
                           ],
                         ),
-                        _gap(),
-                        CustomTextField(
-                          labelText: 'Email address',
-                          hintText: 'customer@example.com',
-                          controller: _email,
-                          icon: Icons.email_outlined,
-                          keyboardType: TextInputType.emailAddress,
-                          textInputAction: TextInputAction.next,
-                          ensureVisibleOnFocus: true,
-                          autovalidateMode: AutovalidateMode.onUserInteraction,
-                          validator: (String? value) {
-                            final String? required = _required(value);
-                            if (required != null) return required;
-                            return value!.contains('@')
-                                ? null
-                                : 'Enter a valid email.';
-                          },
-                        ),
                       ],
                     ),
                     const SizedBox(height: AppDimens.paddingX16),
@@ -285,6 +296,32 @@ class _ManualBookingPageState extends State<ManualBookingPage> {
                       subtitle: 'Set the initial payment and booking status.',
                       icon: Icons.payments_outlined,
                       children: <Widget>[
+                        CustomTextField(
+                          key: const Key('manual-booking-total-amount'),
+                          labelText: 'Total amount',
+                          hintText: 'Add valid, paid amount',
+                          controller: _totalAmount,
+                          // CustomTextField marks every label required by
+                          // default; this one genuinely is not.
+                          isRequired: false,
+                          icon: Icons.payments_outlined,
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          textInputAction: TextInputAction.next,
+                          ensureVisibleOnFocus: true,
+                          autovalidateMode: AutovalidateMode.onUserInteraction,
+                          inputFormatters: <TextInputFormatter>[
+                            // Digits and at most one decimal point, so the
+                            // value always parses.
+                            FilteringTextInputFormatter.allow(
+                              RegExp(r'^\d*\.?\d{0,2}'),
+                            ),
+                            LengthLimitingTextInputFormatter(10),
+                          ],
+                          validator: _optionalAmount,
+                        ),
+                        _gap(),
                         _dropdown(
                           label: 'Payment method',
                           icon: Icons.account_balance_wallet_outlined,

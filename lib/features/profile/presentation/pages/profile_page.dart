@@ -13,11 +13,16 @@ import 'package:hamro_futsal/core/widgets/loading_widget.dart';
 import 'package:hamro_futsal/features/auth/data/repositories/authentication_repository_impl.dart';
 import 'package:hamro_futsal/features/dashboard/presentation/page/dashboard_screen.dart';
 import 'package:hamro_futsal/features/profile/data/model/profile_model.dart';
+import 'package:hamro_futsal/features/dashboard/presentation/widgets/bottom_navigation_bar.dart';
 import 'package:hamro_futsal/features/profile/presentation/profile_bloc/profile_bloc.dart';
 import 'package:hamro_futsal/features/profile/presentation/widgets/profile_details_page.dart';
 import 'package:hamro_futsal/features/profile/presentation/widgets/vendor_request_bottom_sheet.dart';
 import 'package:hamro_futsal/features/rewards/presentation/widgets/profile_rewards_badge.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
+
+/// Space above and below the app-version line, so it sits centred in its own
+/// gap instead of hanging off the last section.
+const double _kVersionGap = AppDimens.paddingX22;
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -42,7 +47,9 @@ class _ProfilePageState extends State<ProfilePage> {
     ),
     _ProfileItem(
       title: StringConstants.opponentRequests,
-      icon: Icons.sports_kabaddi_rounded,
+      // Outlined, like every other row's icon — `sports_kabaddi` is a filled
+      // glyph with no outlined variant, so it read heavier than its neighbours.
+      icon: Icons.sports_soccer_outlined,
       onTap: () => context.pushNamed(AppRouterParams.opponentMatch.name),
     ),
     _ProfileItem(
@@ -196,8 +203,14 @@ class _ProfilePageState extends State<ProfilePage> {
             Expanded(
               child: ListView(
                 physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.only(
-                  bottom: AppDimens.paddingX50 * 3,
+                // The bar the list scrolls under, measured rather than a fixed
+                // 150 (that left a dead half-screen below the version line),
+                // plus `_kVersionGap` so the version text is framed by the
+                // same space above and below it.
+                padding: EdgeInsets.only(
+                  bottom:
+                      CustomBottomNavigationBar.heightOf(context) +
+                      _kVersionGap,
                 ),
                 children: [
                   _ProfileRow(
@@ -247,7 +260,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: AppDimens.paddingX22),
+                  const SizedBox(height: _kVersionGap),
                   _appVersion(context),
                 ],
               ),

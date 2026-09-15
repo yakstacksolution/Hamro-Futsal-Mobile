@@ -2,6 +2,7 @@ import 'package:dartz/dartz.dart';
 import 'package:hamro_futsal/core/helper/exception_helper.dart';
 import 'package:hamro_futsal/features/courts/data/model/venue_court_model.dart';
 import 'package:hamro_futsal/features/courts/data/model/venue_court_page_model.dart';
+import 'package:hamro_futsal/features/courts/domain/model/venue_court_purpose.dart';
 import 'package:hamro_futsal/features/courts/domain/repository/venue_court_repository.dart';
 import 'package:hamro_futsal/features/vendor/presentation/models/vendor_onboarding_drafts.dart';
 
@@ -10,19 +11,28 @@ final class GetVenueCourtUseCase {
 
   final VenueCourtRepository _repository;
 
+  /// [purpose] says which of the endpoint's two answers is wanted — see
+  /// [VenueCourtPurpose]. It has no default on purpose: every screen has to
+  /// name the one it means.
   Future<Either<AppException, VenueCourtPageModel>> call({
     required int page,
+    required VenueCourtPurpose purpose,
     int perPage = 10,
-  }) async => await _repository.getVenueCourt(page: page, perPage: perPage);
+  }) async => await _repository.getVenueCourt(
+    page: page,
+    perPage: perPage,
+    purpose: purpose,
+  );
 
   /// Loads every page for flows that need the complete venue set in a picker.
   Future<Either<AppException, List<VenueCourtModel>>> getAllVenueCourts({
+    required VenueCourtPurpose purpose,
     int perPage = 10,
   }) async {
     final List<VenueCourtModel> all = <VenueCourtModel>[];
     int page = 1;
     while (true) {
-      final result = await call(page: page, perPage: perPage);
+      final result = await call(page: page, perPage: perPage, purpose: purpose);
       final AppException? failure = result.fold((error) => error, (_) => null);
       if (failure != null) return left(failure);
       final VenueCourtPageModel current = result.getOrElse(

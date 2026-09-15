@@ -26,6 +26,9 @@ void main() {
       startTime: '06:00 AM',
       endTime: '07:00 AM',
       price: 1200,
+      // The discount switch is what sends the discount now, so a slot that
+      // means to discount sets it — see slot_discount_test.dart.
+      hasDiscount: true,
       discountPrice: 10,
       discountType: 'Percent',
     );

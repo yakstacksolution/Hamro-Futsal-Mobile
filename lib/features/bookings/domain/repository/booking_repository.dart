@@ -3,21 +3,18 @@ import 'package:hamro_futsal/core/helper/exception_helper.dart';
 import 'package:hamro_futsal/features/bookings/data/model/booking_model.dart';
 import 'package:hamro_futsal/features/bookings/data/model/booking_review_model.dart';
 import 'package:hamro_futsal/features/bookings/domain/model/paginated_bookings.dart';
+import 'package:hamro_futsal/features/bookings/domain/model/booking_list_query.dart';
 
 abstract class BookingRepository {
-  /// [status] is the endpoint's `status` filter — `all`, `pending`,
-  /// `confirmed`, `completed`, `cancelled`, `rejected`. Null sends none.
-  Future<Either<AppException, PaginatedBookings>> getMyBookings({
-    required int page,
-    required int perPage,
-    String? status,
-  });
+  /// [query] carries the whole request: the page, the status, the date
+  /// window and the sort order.
+  Future<Either<AppException, PaginatedBookings>> getMyBookings(
+    BookingListQuery query,
+  );
   Future<Either<AppException, BookingModel>> getBookingDetails(int bookingId);
-  Future<Either<AppException, PaginatedBookings>> getFutsalBookings({
-    required int page,
-    required int perPage,
-    String? status,
-  });
+  Future<Either<AppException, PaginatedBookings>> getFutsalBookings(
+    BookingListQuery query,
+  );
   Future<Either<AppException, BookingModel?>> cancelBooking(int bookingId);
 
   Future<Either<AppException, bool>> getCancelBoundary(int bookingId);

@@ -7,22 +7,86 @@ final class AppThemeController extends ValueNotifier<ThemeMode> {
 
   static final AppThemeController instance = AppThemeController._();
 
-  bool get isDark => value == ThemeMode.dark;
+  bool get isDark =>
+      value == ThemeMode.dark ||
+      (value == ThemeMode.system &&
+          WidgetsBinding.instance.platformDispatcher.platformBrightness ==
+              Brightness.dark);
+
+  /// The mode this session started on, before the reader changed anything.
+  ///
+  /// Only [restore] sets it. Kept so a redundant write is not made on startup:
+  /// restoring is not a choice the reader made, and must not look like one.
+  static ThemeMode _restored = ThemeMode.system;
 
   static ThemeMode _initialMode() {
     final AppSettings settings = AppSettings();
-    return settings.isInitialized && settings.darkMode
-        ? ThemeMode.dark
-        : ThemeMode.light;
+    // Settings are usually ready by now, but this is a lazily-created
+    // singleton: whoever reads a colour first builds it, and that can happen
+    // before storage is open. [restore] is what guarantees the stored choice
+    // is applied — see its doc.
+    if (!settings.isInitialized) return ThemeMode.system;
+    return _modeFromStorage(settings.appThemeMode);
   }
 
-  void setDarkMode(bool enabled) {
-    final ThemeMode next = enabled ? ThemeMode.dark : ThemeMode.light;
+  /// Applies the mode saved on this device.
+  ///
+  /// Call once from `main`, straight after settings are initialised. The
+  /// controller reads storage when it is first built, but it is built lazily —
+  /// the first `LightColor.*` read anywhere creates it — so if that happened
+  /// before storage was open, it fell back to [ThemeMode.system] and stayed
+  /// there for the whole session, even though the reader's choice was sitting
+  /// in storage. That is the bug where picking Light, closing the app and
+  /// reopening it came back on System.
+  ///
+  /// Restoring is not a choice, so nothing is written back and no rebuild is
+  /// forced: this runs before the first frame.
+  static void restore() {
     final AppSettings settings = AppSettings();
-    if (settings.isInitialized) settings.darkMode = enabled;
+    if (!settings.isInitialized) return;
+    final ThemeMode stored = _modeFromStorage(settings.appThemeMode);
+    _restored = stored;
+    if (instance.value != stored) instance.value = stored;
+  }
+
+  /// What is actually on disk, whatever this controller currently shows.
+  @visibleForTesting
+  static ThemeMode get storedMode {
+    final AppSettings settings = AppSettings();
+    if (!settings.isInitialized) return ThemeMode.system;
+    return _modeFromStorage(settings.appThemeMode);
+  }
+
+  /// The mode restored at startup — the reader's standing choice.
+  @visibleForTesting
+  static ThemeMode get restoredMode => _restored;
+
+  void setDarkMode(bool enabled) {
+    setThemeMode(enabled ? ThemeMode.dark : ThemeMode.light);
+  }
+
+  void setThemeMode(ThemeMode next) {
+    final AppSettings settings = AppSettings();
+    if (settings.isInitialized) {
+      // Written before the early return below, so choosing the mode the app is
+      // already showing still records it — picking System on a device that is
+      // currently light has to stick.
+      settings.appThemeMode = next.name;
+      settings.darkMode = next == ThemeMode.dark;
+      _restored = next;
+    }
     if (value == next) return;
     value = next;
     _rebuildEverything();
+  }
+
+  static ThemeMode _modeFromStorage(String mode) {
+    return switch (mode) {
+      'light' => ThemeMode.light,
+      'dark' => ThemeMode.dark,
+      'system' => ThemeMode.system,
+      _ => ThemeMode.system,
+    };
   }
 
   /// Rebuilds the whole widget tree after a brightness change.

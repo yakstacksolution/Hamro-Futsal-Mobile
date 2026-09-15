@@ -3,6 +3,39 @@ platform :osx, '10.15'
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
 
+require 'shellwords'
+
+flutterfire_macos_project_dir = File.dirname(File.realpath(__FILE__))
+Kernel.module_eval do
+  unless method_defined?(:flutterfire_original_system)
+    alias_method :flutterfire_original_system, :system
+  end
+
+  define_method(:system) do |*args|
+    command = args.first
+    if args.length == 1 &&
+       command.is_a?(String) &&
+       command.include?('crashlytics_add_upload_symbols -f -p ') &&
+       command.end_with?(' -n Runner.xcodeproj')
+      script_path = command
+                    .sub(/\Aruby /, '')
+                    .sub(/ -f -p .* -n Runner\.xcodeproj\z/, '')
+      script_path = Shellwords.split(script_path).first if script_path.include?('\\ ')
+      flutterfire_original_system(
+        'ruby',
+        script_path,
+        '-f',
+        '-p',
+        flutterfire_macos_project_dir,
+        '-n',
+        'Runner.xcodeproj'
+      )
+    else
+      flutterfire_original_system(*args)
+    end
+  end
+end
+
 project 'Runner', {
   'Debug' => :debug,
   'Profile' => :release,

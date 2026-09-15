@@ -28,7 +28,7 @@ class SignInEntity extends Equatable {
 /// vendor as a candidate.
 abstract final class AccountTypeLabels {
   static const String player = 'Player';
-  static const String vendor = 'Futsal Vendor';
+  static const String vendor = 'Venue Vendor';
 
   static const List<String> all = <String>[player, vendor];
 }
@@ -77,22 +77,49 @@ class SignUpEntity extends Equatable {
   }
 }
 
-class ForgotPasswordEntity extends Equatable {
+/// Payload for the first step of the reset flow: request the OTP email.
+///
+/// Separate from [ForgotPasswordEntity], which carries the OTP and the new
+/// password for the step that actually changes the credential.
+class ForgotPasswordOtpRequestEntity extends Equatable {
   final String email;
-  final int otp;
-  final String newPassword;
 
-  const ForgotPasswordEntity({
+  const ForgotPasswordOtpRequestEntity({required this.email});
+
+  @override
+  List<Object?> get props => [email];
+
+  Map<String, dynamic> toMap() => <String, dynamic>{"email": email};
+}
+
+/// Payload for the final step of the reset flow — `POST /auth/reset-password`.
+///
+/// The OTP is sent as the string the user typed rather than an int: leading
+/// zeros are significant in a one-time code, and `0412` parsed as a number
+/// goes on the wire as `412`.
+class ResetPasswordEntity extends Equatable {
+  final String email;
+  final String otp;
+  final String password;
+  final String passwordConfirmation;
+
+  const ResetPasswordEntity({
     required this.email,
     required this.otp,
-    required this.newPassword,
+    required this.password,
+    required this.passwordConfirmation,
   });
 
   @override
-  List<Object?> get props => [otp, email, newPassword];
+  List<Object?> get props => [email, otp, password, passwordConfirmation];
 
   Map<String, dynamic> toMap() {
-    return {"newPassword": newPassword, "otp": otp, "email": email};
+    return <String, dynamic>{
+      "email": email,
+      "otp": otp,
+      "password": password,
+      "password_confirmation": passwordConfirmation,
+    };
   }
 }
 

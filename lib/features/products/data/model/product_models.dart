@@ -1,3 +1,5 @@
+import 'package:hamro_futsal/core/utils/currency.dart';
+
 class ProductModel {
   const ProductModel({
     required this.id,
@@ -13,10 +15,8 @@ class ProductModel {
   final double price;
   final bool isActive;
 
-  String get formattedPrice {
-    final bool hasDecimals = price % 1 != 0;
-    return 'Rs. ${price.toStringAsFixed(hasDecimals ? 2 : 0)}';
-  }
+  /// `NPR 1,200` — the one spelling every screen uses; see [Money].
+  String get formattedPrice => Money.npr(price);
 
   factory ProductModel.fromJson(Map<String, dynamic> json) {
     return ProductModel(

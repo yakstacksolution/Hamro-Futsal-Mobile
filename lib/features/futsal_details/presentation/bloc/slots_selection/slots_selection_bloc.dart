@@ -1,3 +1,4 @@
+import 'package:hamro_futsal/core/utils/currency.dart';
 import 'dart:async';
 
 import 'package:bloc/bloc.dart';
@@ -600,6 +601,12 @@ class SlotsSelectionBloc
             courts: courts,
             selectedCourtIndex: selectedCourtIndex,
             clearError: true,
+            // The server counts the window's courts itself; the list only
+            // carries the ones it chose to send back.
+            clearAvailabilitySummary: true,
+            serverAvailableCount: availability.availableCount,
+            serverTotalCourts: availability.totalCourts,
+            availabilityFallbackType: availability.fallbackType,
           ),
         );
       },

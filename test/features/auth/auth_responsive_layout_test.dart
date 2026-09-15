@@ -5,12 +5,15 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
+import 'package:hamro_futsal/core/widgets/custom_button.dart';
 import 'package:hamro_futsal/features/auth/data/repositories/authentication_repository_impl.dart';
 import 'package:hamro_futsal/features/auth/domain/usecase/authentication_usecase.dart';
 import 'package:hamro_futsal/features/auth/presentation/authentication_bloc/authentication_bloc.dart';
+import 'package:hamro_futsal/features/auth/presentation/create_new_password_screen.dart';
 import 'package:hamro_futsal/features/auth/presentation/forgot_password_screen.dart';
 import 'package:hamro_futsal/features/auth/presentation/otp_verification_screen.dart';
 import 'package:hamro_futsal/features/auth/presentation/widgets/auth_screen_frame.dart';
+import 'package:hamro_futsal/features/auth/presentation/widgets/otp_digit_field.dart';
 import 'package:hamro_futsal/features/auth/presentation/widgets/register_form.dart';
 
 /// Sizes representing each breakpoint we support.
@@ -271,6 +274,14 @@ void main() {
   });
 
   group('Forgot password screen', () {
+    Widget forgotPasswordScreen() {
+      return BlocProvider<AuthenticationBloc>(
+        create: (_) =>
+            AuthenticationBloc(AuthUseCase(AuthenticationRepositoryImpl())),
+        child: const ForgotPasswordScreen(),
+      );
+    }
+
     for (final (String label, Size size) in <(String, Size)>[
       ('phone', _phone),
       ('tablet portrait', _tabletPortrait),
@@ -279,7 +290,7 @@ void main() {
       testWidgets('$label lays out without overflow', (
         WidgetTester tester,
       ) async {
-        await _pumpAt(tester, size, const ForgotPasswordScreen());
+        await _pumpAt(tester, size, forgotPasswordScreen());
 
         expect(tester.takeException(), isNull);
         expect(find.text(StringConstants.forgotPassword), findsOneWidget);
@@ -314,6 +325,22 @@ void main() {
         expect(find.byType(TextField), findsNWidgets(4));
       });
     }
+
+    testWidgets('pasting a full code fills all digit fields', (
+      WidgetTester tester,
+    ) async {
+      await _pumpAt(tester, _phone, otpScreen(), settle: false);
+
+      await tester.enterText(find.byType(TextField).first, '1234');
+      await tester.pump();
+
+      for (int i = 0; i < 4; i++) {
+        final TextField field = tester.widget<TextField>(
+          find.byType(TextField).at(i),
+        );
+        expect(field.controller?.text, '${i + 1}');
+      }
+    });
   });
 
   group('Register form', () {
@@ -332,6 +359,8 @@ void main() {
             onToggleConfirmPassword: () {},
             onAccountTypeChanged: (_) {},
             onTermsChanged: (_) {},
+            onTermsTap: () {},
+            onPrivacyPolicyTap: () {},
             nameController: TextEditingController(),
             emailController: TextEditingController(),
             passwordController: TextEditingController(),
@@ -386,5 +415,113 @@ void main() {
         }
       });
     }
+  });
+
+  group('Create new password screen', () {
+    Widget createNewPasswordScreen() {
+      return BlocProvider<AuthenticationBloc>(
+        create: (_) =>
+            AuthenticationBloc(AuthUseCase(AuthenticationRepositoryImpl())),
+        child: const CreateNewPasswordScreen(email: 'player@example.com'),
+      );
+    }
+
+    for (final (String label, Size size) in <(String, Size)>[
+      ('phone', _phone),
+      ('tablet portrait', _tabletPortrait),
+      ('tablet landscape', _tabletLandscape),
+    ]) {
+      testWidgets('$label lays out the code and both password fields', (
+        WidgetTester tester,
+      ) async {
+        await _pumpAt(tester, size, createNewPasswordScreen(), settle: false);
+
+        expect(tester.takeException(), isNull);
+        expect(find.text(StringConstants.createNewPassword), findsOneWidget);
+        expect(find.text(StringConstants.newPassword), findsOneWidget);
+        expect(find.text(StringConstants.confirmPassword), findsOneWidget);
+        // Four code boxes, and the address is masked rather than shown whole.
+        expect(find.byType(OtpDigitField), findsNWidgets(4));
+        expect(find.textContaining('pl***@example.com'), findsOneWidget);
+      });
+    }
+
+    testWidgets('hides the code row when the code is already verified', (
+      WidgetTester tester,
+    ) async {
+      await _pumpAt(
+        tester,
+        _phone,
+        BlocProvider<AuthenticationBloc>(
+          create: (_) =>
+              AuthenticationBloc(AuthUseCase(AuthenticationRepositoryImpl())),
+          child: const CreateNewPasswordScreen(
+            email: 'player@example.com',
+            otp: '1234',
+          ),
+        ),
+        settle: false,
+      );
+
+      expect(tester.takeException(), isNull);
+      // The OTP screen already proved the code, so it is not asked for again.
+      expect(find.byType(OtpDigitField), findsNothing);
+      expect(find.text(StringConstants.newPassword), findsOneWidget);
+      // ...and the reset can be submitted as soon as the passwords are valid.
+      expect(
+        tester
+            .widget<CustomButton>(
+              find.widgetWithText(CustomButton, StringConstants.resetPassword),
+            )
+            .onPressed,
+        isNotNull,
+      );
+    });
+
+    testWidgets('will not submit until the code is complete', (
+      WidgetTester tester,
+    ) async {
+      await _pumpAt(tester, _phone, createNewPasswordScreen(), settle: false);
+
+      final Finder button = find.widgetWithText(
+        CustomButton,
+        StringConstants.resetPassword,
+      );
+      expect(button, findsOneWidget);
+      // Disabled is expressed as a null onPressed by AuthScreenFrame.
+      expect(tester.widget<CustomButton>(button).onPressed, isNull);
+
+      for (int i = 0; i < 4; i++) {
+        await tester.enterText(find.byType(OtpDigitField).at(i), '1');
+        await tester.pump();
+      }
+
+      expect(tester.widget<CustomButton>(button).onPressed, isNotNull);
+    });
+
+    testWidgets('reports a password mismatch instead of submitting', (
+      WidgetTester tester,
+    ) async {
+      await _pumpAt(tester, _phone, createNewPasswordScreen(), settle: false);
+
+      for (int i = 0; i < 4; i++) {
+        await tester.enterText(find.byType(OtpDigitField).at(i), '1');
+        await tester.pump();
+      }
+      await tester.enterText(
+        find.widgetWithText(TextFormField, StringConstants.newPassword),
+        'newpassword123',
+      );
+      await tester.enterText(
+        find.widgetWithText(TextFormField, StringConstants.confirmPassword),
+        'newpassword124',
+      );
+      await tester.tap(
+        find.widgetWithText(CustomButton, StringConstants.resetPassword),
+      );
+      await tester.pump();
+
+      expect(find.text(StringConstants.passwordsDoNotMatch), findsOneWidget);
+    });
   });
 }

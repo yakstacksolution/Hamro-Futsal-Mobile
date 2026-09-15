@@ -113,12 +113,12 @@ class UserProfilePage extends StatelessWidget {
             previous.currentUserId != current.currentUserId,
         builder: (context, state) {
           final MessageProfileModel? profile = state.profile;
-          final String name = (profile?.name.isNotEmpty ?? false)
-              ? profile!.name
-              : fallbackName;
-          final String imageUrl = (profile?.imageUrl.isNotEmpty ?? false)
-              ? profile!.imageUrl
-              : fallbackImageUrl;
+          // The profile's own values win, but only once they have arrived and
+          // only when the user actually has them: a profile with no photo
+          // keeps showing whatever the caller already knew rather than
+          // blanking the hero.
+          final String name = profile?.name ?? fallbackName;
+          final String imageUrl = profile?.imageUrl ?? fallbackImageUrl;
           final bool loading = state.profileStatus == MessageStatus.loading;
           final bool failed = state.profileStatus == MessageStatus.failure;
           final bool showMessage =
@@ -164,8 +164,9 @@ class UserProfilePage extends StatelessWidget {
                             )
                           else
                             _AboutCard(
-                              address: profile?.address ?? '',
-                              gender: profile?.genderLabel ?? '',
+                              address: profile?.address,
+                              email: profile?.email,
+                              gender: profile?.genderLabel,
                               loading: loading,
                             ),
                         ],
@@ -396,12 +397,15 @@ class _PresencePill extends StatelessWidget {
 class _AboutCard extends StatelessWidget {
   const _AboutCard({
     required this.address,
+    required this.email,
     required this.gender,
     required this.loading,
   });
 
-  final String address;
-  final String gender;
+  /// Null for anything this profile does not carry — each row says so itself.
+  final String? address;
+  final String? email;
+  final String? gender;
   final bool loading;
 
   @override
@@ -439,10 +443,14 @@ class _AboutCard extends StatelessWidget {
             value: address,
             loading: loading,
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: AppDimens.paddingX14),
-            child: Divider(height: 1, color: LightColor.dividerColor),
+          _rowDivider,
+          _ProfileRow(
+            icon: Icons.mail_outline_rounded,
+            label: StringConstants.emailAddressSentenceCase,
+            value: email,
+            loading: loading,
           ),
+          _rowDivider,
           _ProfileRow(
             icon: Icons.person_outline_rounded,
             label: StringConstants.gender,
@@ -455,23 +463,34 @@ class _AboutCard extends StatelessWidget {
   }
 }
 
+/// The hairline between two detail rows — the same spacing on both sides, so
+/// the rows read as one list rather than separate blocks.
+Widget get _rowDivider => Padding(
+  padding: const EdgeInsets.symmetric(vertical: AppDimens.paddingX14),
+  child: Divider(height: 1, color: LightColor.dividerColor),
+);
+
 class _ProfileRow extends StatelessWidget {
   const _ProfileRow({
     required this.icon,
     required this.label,
-    required this.value,
+    this.value,
     this.loading = false,
   });
 
   final IconData icon;
   final String label;
-  final String value;
+
+  /// Null or blank renders as "Not provided" rather than an empty line, so a
+  /// half-filled profile still reads as a list of facts.
+  final String? value;
   final bool loading;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
-    final bool hasValue = value.trim().isNotEmpty;
+    final String text = value?.trim() ?? '';
+    final bool hasValue = text.isNotEmpty;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -503,7 +522,7 @@ class _ProfileRow extends StatelessWidget {
                 const _SkeletonBar()
               else
                 Text(
-                  hasValue ? value.trim() : StringConstants.notProvided,
+                  hasValue ? text : StringConstants.notProvided,
                   style: textTheme.bodyTextMedium?.copyWith(
                     fontWeight: FontWeight.w600,
                     color: hasValue

@@ -209,7 +209,12 @@ Map<String, dynamic> _courtSubstepBody(
       switch (subStep) {
         case 0:
           return <String, dynamic>{
-            'advance_payment_required': court.advancePaymentRequired,
+            // Not a choice: every court collects an advance before a booking
+            // is confirmed, which is what the section's own copy tells the
+            // vendor. Sent as a constant so a draft that had the flag off —
+            // an older saved draft, or online booking having been toggled —
+            // cannot submit a court the rest of the flow assumes takes one.
+            'advance_payment_required': true,
             'advance_payment_type': court.advancePaymentType?.apiValue,
             'advance_price': court.advancePrice,
           };
@@ -265,7 +270,7 @@ Map<String, dynamic> _fullCourtBody(CourtDraft court) {
     'description': court.description.trim(),
     'court_photo_ids': _uploadIds(court.photos),
     'memory_ids': _uploadIds(court.memories),
-    'advance_payment_required': court.advancePaymentRequired,
+    'advance_payment_required': true,
     'advance_payment_type': court.advancePaymentType?.apiValue,
     'advance_price': court.advancePrice,
     'payment_qr_id': court.paymentQr?.id,
@@ -312,6 +317,10 @@ Map<String, dynamic> courtSlotBody(
     'days': slot.days.map((String day) => day.toLowerCase()).toList(),
     'start_time': _toApiTime(slot.startTime),
     'end_time': _toApiTime(slot.endTime),
+    // Sent back as read: editing a slot's times must not silently switch a
+    // deactivated slot back on.
+    'is_active': slot.isActive,
+    if (slot.sortOrder != null) 'sort_order': slot.sortOrder,
   };
 }
 
@@ -322,8 +331,10 @@ Map<String, dynamic> courtSlotPricingBody(
   required int courtId,
 }) {
   final int? scheduleId = int.tryParse(slot.id);
+  // The vendor's switch decides this, not a leftover amount: turning the
+  // discount off has to clear it server-side, not just stop showing it.
   final bool hasDiscount =
-      slot.discountPrice != null && slot.discountPrice! > 0;
+      slot.hasDiscount && slot.discountPrice != null && slot.discountPrice! > 0;
   return <String, dynamic>{
     'court_id': courtId,
     'main_step': 3,
@@ -332,10 +343,18 @@ Map<String, dynamic> courtSlotPricingBody(
     'price': slot.price,
     'weekend_price': slot.weekendPrice,
     'holiday_price': slot.holidayPrice,
-    // Only send discount fields when a discount is actually set; the backend
-    // rejects a discount_type with no discount.
+    // Always sent, both ways: `false` is what clears a discount the slot used
+    // to have. The fields below only accompany a `true`, which is the shape
+    // the endpoint validates — a discount must come with its type and value.
+    'is_discount_available': hasDiscount,
     if (hasDiscount) 'discount_type': _discountTypeApiValue(slot.discountType),
-    if (hasDiscount) 'discount_price': slot.discountPrice,
+    if (hasDiscount) 'discount_value': slot.discountPrice,
+    // The window is optional even when discounting: no times means the
+    // discount runs for as long as it is switched on.
+    if (hasDiscount && slot.discountStartsAt != null)
+      'discount_start_time': _apiDateTime(slot.discountStartsAt!),
+    if (hasDiscount && slot.discountEndsAt != null)
+      'discount_end_time': _apiDateTime(slot.discountEndsAt!),
     'payment_percent': slot.paymentPercent,
     'custom_date_prices': slot.customDatePrices
         .map(
@@ -346,6 +365,14 @@ Map<String, dynamic> courtSlotPricingBody(
         )
         .toList(),
   };
+}
+
+/// `2026-09-14 06:00:00` — the shape this API uses for date-times elsewhere
+/// (`booking_date`, `created_at`), rather than an ISO `T` separator.
+String _apiDateTime(DateTime value) {
+  String two(int n) => n.toString().padLeft(2, '0');
+  return '${value.year}-${two(value.month)}-${two(value.day)} '
+      '${two(value.hour)}:${two(value.minute)}:${two(value.second)}';
 }
 
 /// Maps the draft discount type (`Flat`/`Percent`) to the backend value

@@ -5,6 +5,7 @@ import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
 import 'package:hamro_futsal/features/message/data/model/chat_message_model.dart';
+import 'package:hamro_futsal/features/message/domain/model/message_mentions.dart';
 import 'package:hamro_futsal/features/message/presentation/utils/message_fmt.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 
@@ -19,6 +20,8 @@ class ChatBubble extends StatelessWidget {
     this.onLongPress,
     this.onMediaTap,
     this.mediaBytesLoader,
+    this.mentionCandidates = const <MentionCandidate>[],
+    this.mentionsMe = false,
   });
 
   final ChatMessageModel message;
@@ -33,6 +36,14 @@ class ChatBubble extends StatelessWidget {
   /// attachments render inline (the relative media URL needs a bearer token,
   /// so it can't be loaded as a plain network image).
   final Future<Uint8List?> Function(ChatMediaModel media)? mediaBytesLoader;
+
+  /// The conversation's participants, so `@name` in the body can be matched
+  /// and highlighted.
+  final List<MentionCandidate> mentionCandidates;
+
+  /// Whether this message calls out the signed-in user — a direct mention or
+  /// an `@all`.
+  final bool mentionsMe;
 
   @override
   Widget build(BuildContext context) {
@@ -53,7 +64,18 @@ class ChatBubble extends StatelessWidget {
         AppDimens.paddingX6,
       ),
       decoration: BoxDecoration(
-        color: isMe ? LightColor.secondaryColor : LightColor.cardColor,
+        // A message that names you is tinted and outlined, so it is findable
+        // when scrolling back through a busy group.
+        color: mentionsMe
+            ? LightColor.secondaryColor.withValues(alpha: 0.10)
+            : isMe
+            ? LightColor.secondaryColor
+            : LightColor.cardColor,
+        border: mentionsMe
+            ? Border.all(
+                color: LightColor.secondaryColor.withValues(alpha: 0.45),
+              )
+            : null,
         borderRadius: BorderRadius.only(
           topLeft: const Radius.circular(AppDimens.radiusX14),
           topRight: const Radius.circular(AppDimens.radiusX14),
@@ -120,19 +142,7 @@ class ChatBubble extends StatelessWidget {
           if (message.isDeleted || message.body.isNotEmpty)
             Align(
               alignment: Alignment.centerLeft,
-              child: Text(
-                message.isDeleted ? 'Message deleted' : message.body,
-                style: textTheme.bodyTextSmall?.copyWith(
-                  color: isMe
-                      ? LightColor.inverseTextColor
-                      : LightColor.primaryTextColor,
-                  fontWeight: FontWeight.w500,
-                  fontStyle: message.isDeleted
-                      ? FontStyle.italic
-                      : FontStyle.normal,
-                  height: 1.4,
-                ),
-              ),
+              child: _buildBody(textTheme),
             ),
           if (!message.isDeleted && locationText != null)
             Padding(
@@ -228,6 +238,48 @@ class ChatBubble extends StatelessWidget {
         child: GestureDetector(onLongPress: onLongPress, child: bubble),
       ),
     );
+  }
+
+  /// The message body, with any `@mention` picked out of it.
+  Widget _buildBody(dynamic textTheme) {
+    final TextStyle? base = textTheme.bodyTextSmall?.copyWith(
+      color: isMe ? LightColor.inverseTextColor : LightColor.primaryTextColor,
+      fontWeight: FontWeight.w500,
+      fontStyle: message.isDeleted ? FontStyle.italic : FontStyle.normal,
+      height: 1.4,
+    );
+
+    if (message.isDeleted) {
+      return Text('Message deleted', style: base);
+    }
+
+    final List<MentionSpan> spans = findMentionSpans(
+      message.body,
+      mentionCandidates,
+    );
+    if (spans.isEmpty) return Text(message.body, style: base);
+
+    // A mention is set in the accent colour and bolded; on my own (green)
+    // bubbles the accent is unreadable, so weight alone carries it there.
+    final TextStyle? mentionStyle = base?.copyWith(
+      fontWeight: FontWeight.w800,
+      color: isMe ? LightColor.inverseTextColor : LightColor.secondaryColor,
+    );
+
+    final List<InlineSpan> pieces = <InlineSpan>[];
+    int cursor = 0;
+    for (final MentionSpan span in spans) {
+      if (span.start > cursor) {
+        pieces.add(TextSpan(text: message.body.substring(cursor, span.start)));
+      }
+      pieces.add(TextSpan(text: span.text, style: mentionStyle));
+      cursor = span.end;
+    }
+    if (cursor < message.body.length) {
+      pieces.add(TextSpan(text: message.body.substring(cursor)));
+    }
+
+    return Text.rich(TextSpan(children: pieces), style: base);
   }
 
   String? _locationText(Map metadata) {

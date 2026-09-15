@@ -3,6 +3,7 @@ import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/app_utils.dart';
 import 'package:hamro_futsal/core/utils/custom_image_view.dart';
+import 'package:hamro_futsal/core/utils/currency.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
 import 'package:hamro_futsal/features/futsal_details/data/model/time_slot_model.dart';
 import 'package:hamro_futsal/features/futsal_details/data/model/venue_court_item_model.dart';
@@ -56,6 +57,19 @@ class CourtSlotCard extends StatelessWidget {
             (double sum, DateTime d) => sum + court.priceFor(d, selectedTime),
           )
         : price;
+    // What the same booking would cost without the slot's discount, so the
+    // saving is visible rather than implied.
+    final bool showsDiscount = court.hasDiscount;
+    final double originalTotal = isRecurring && hasSlot
+        ? sessionDates.fold<double>(
+            0,
+            (double sum, DateTime d) =>
+                sum + court.originalPriceFor(d, selectedTime),
+          )
+        : court.originalPriceFor(selectedDate, selectedTime);
+    // "from" is only honest when the figure is a starting price. Once the
+    // server has priced the requested slot, this IS the price.
+    final bool isExactPrice = hasSlot || court.actualPrice != null;
     final Color accent = LightColor.secondaryColor;
 
     return AnimatedContainer(
@@ -156,30 +170,65 @@ class CourtSlotCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     mainAxisSize: MainAxisSize.min,
                     children: <Widget>[
+                      if (showsDiscount && isAvailable) ...<Widget>[
+                        Text(
+                          _money(originalTotal),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: textTheme.bodyMiniSubTitle?.copyWith(
+                            color: LightColor.hintTextColor,
+                            fontWeight: FontWeight.w600,
+                            decoration: TextDecoration.lineThrough,
+                            decorationColor: LightColor.hintTextColor,
+                          ),
+                        ),
+                        const SizedBox(height: AppDimens.sizeX2),
+                      ],
                       Text(
-                        hasSlot
-                            ? 'Rs ${totalPrice.toStringAsFixed(0)}'
-                            : 'from Rs ${price.toStringAsFixed(0)}',
+                        isExactPrice
+                            ? _money(totalPrice)
+                            : 'from ${_money(price)}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: textTheme.bodyTextMedium?.copyWith(
-                          color: isAvailable
-                              ? LightColor.primaryTextColor
-                              : LightColor.hintTextColor,
+                          color: !isAvailable
+                              ? LightColor.hintTextColor
+                              : showsDiscount
+                              ? LightColor.secondaryColor
+                              : LightColor.primaryTextColor,
                           fontWeight: FontWeight.w900,
                         ),
                       ),
                       const SizedBox(height: AppDimens.sizeX2),
-                      Text(
-                        isRecurring && hasSlot
-                            ? '${sessionDates.length} sessions'
-                            : '/ hour',
+                      // The unit and the saving share one line: two stacked
+                      // grey lines under the price made the column look like
+                      // a paragraph.
+                      Text.rich(
+                        TextSpan(
+                          children: <InlineSpan>[
+                            TextSpan(
+                              text: isRecurring && hasSlot
+                                  ? '${sessionDates.length} sessions'
+                                  : '/ hour',
+                              style: textTheme.bodyMiniSubTitle?.copyWith(
+                                color: LightColor.hintTextColor,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            if (showsDiscount && isAvailable)
+                              TextSpan(
+                                text:
+                                    ' · save ${_money(originalTotal - totalPrice)}',
+                                style: textTheme.bodyMiniSubTitle?.copyWith(
+                                  color: LightColor.secondaryColor,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                          ],
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: textTheme.bodyMiniSubTitle?.copyWith(
-                          color: LightColor.hintTextColor,
-                          fontWeight: FontWeight.w500,
-                        ),
+                        textAlign: TextAlign.end,
                       ),
                     ],
                   ),
@@ -226,6 +275,10 @@ class CourtSlotCard extends StatelessWidget {
       ),
     );
   }
+
+  /// `Rs 1,200` — grouped, so four-figure prices stay readable.
+  String _money(double value) =>
+      'Rs ${Money.group(value.round().abs().toString())}';
 
   IconData _statusIcon(SlotStatus status) {
     return switch (status) {

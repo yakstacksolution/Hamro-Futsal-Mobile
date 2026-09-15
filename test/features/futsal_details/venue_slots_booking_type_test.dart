@@ -78,7 +78,7 @@ final class _FakeDataSource implements FutsalDetailsRemoteDataSource {
       throw UnimplementedError();
 
   @override
-  Future<Result> getVenueDescription({required int venueId}) =>
+  Future<Result> getVenueDescription({required String venueSlug}) =>
       throw UnimplementedError();
 
   @override

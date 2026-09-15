@@ -1,3 +1,4 @@
+import 'package:hamro_futsal/core/utils/currency.dart';
 import 'package:flutter/material.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
@@ -9,7 +10,11 @@ import 'package:hamro_futsal/core/widgets/loading_widget.dart';
 import 'package:hamro_futsal/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_cubit.dart';
 import 'package:hamro_futsal/features/vendor/presentation/models/vendor_onboarding_models.dart';
 import 'package:hamro_futsal/features/vendor/presentation/widgets/vendor_onboarding/vendor_form_components.dart';
+import 'package:hamro_futsal/core/utils/date_format.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
+import 'package:hamro_futsal/core/widgets/custom_checkbox.dart';
+import 'package:hamro_futsal/core/widgets/custom_date_picker.dart';
+import 'package:hamro_futsal/core/widgets/custom_time_picker_dialog.dart';
 
 const List<String> weekdayOptions = <String>[
   'Sun',
@@ -367,14 +372,40 @@ class _SlotListTile extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: <Widget>[
-                                Text(
-                                  _slotDisplayTitle(slot),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: textTheme.bodyTextMedium?.copyWith(
-                                    color: LightColor.primaryTextColor,
-                                    fontWeight: FontWeight.w800,
-                                  ),
+                                Row(
+                                  children: <Widget>[
+                                    Flexible(
+                                      child: Text(
+                                        _slotDisplayTitle(slot),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: textTheme.bodyTextMedium
+                                            ?.copyWith(
+                                              color: slot.isActive
+                                                  ? LightColor.primaryTextColor
+                                                  : LightColor
+                                                        .secondaryTextColor,
+                                              fontWeight: FontWeight.w800,
+                                            ),
+                                      ),
+                                    ),
+                                    // A slot the vendor switched off has to say
+                                    // so: it looked live in this list before.
+                                    if (!slot.isActive) ...<Widget>[
+                                      const SizedBox(width: AppDimens.sizeX6),
+                                      _SlotTag(
+                                        label: StringConstants.inactive,
+                                        color: LightColor.secondaryTextColor,
+                                      ),
+                                    ],
+                                    if (slot.hasDiscount) ...<Widget>[
+                                      const SizedBox(width: AppDimens.sizeX6),
+                                      _SlotTag(
+                                        label: _discountTagLabel(slot),
+                                        color: LightColor.secondaryColor,
+                                      ),
+                                    ],
+                                  ],
                                 ),
                                 const SizedBox(height: AppDimens.sizeX6),
                                 Text(
@@ -775,6 +806,49 @@ class _SlotFormSheetState extends State<_SlotFormSheet> {
 String _slotDisplayTitle(SlotPricingDraft slot) =>
     slot.label.trim().isEmpty ? 'Untitled slot' : slot.label.trim();
 
+/// `NPR 100` or `10%` — a discount reads differently depending on its type.
+String _discountAmountLabel(SlotPricingDraft slot) {
+  final double? value = slot.discountPrice;
+  if (value == null) return '—';
+  return slot.discountType.trim().toLowerCase() == 'percent'
+      ? '${formatDouble(value)}%'
+      : Money.npr(value);
+}
+
+/// The short form worn on the tile: `-NPR 100` / `-10%`.
+String _discountTagLabel(SlotPricingDraft slot) =>
+    '-${_discountAmountLabel(slot)}';
+
+/// A small tinted tag beside a slot's name.
+class _SlotTag extends StatelessWidget {
+  const _SlotTag({required this.label, required this.color});
+
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(AppDimens.radiusX6),
+      ),
+      child: Text(
+        label,
+        maxLines: 1,
+        style: FutsalTheme.getTextTheme(context).bodySubTitle?.copyWith(
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.2,
+          height: 1.2,
+          fontSize: AppDimens.fontBodySubTitle + 1,
+          color: color,
+        ),
+      ),
+    );
+  }
+}
+
 String _slotTimeSummary(SlotPricingDraft slot) {
   final String start = slot.startTime.trim();
   final String end = slot.endTime.trim();
@@ -1156,19 +1230,27 @@ class _SlotPricingViewState extends State<_SlotPricingView> {
   }
 
   /// Price summary shown under the slot name in place of booking days.
+  ///
+  /// The base price is part of it: a slot priced only at weekends used to read
+  /// as though it had no weekday price at all. The discount follows the slot's
+  /// own switch, not a leftover amount.
   String _pricingSummary(SlotPricingDraft slot) {
     final List<String> parts = <String>[];
+    if (slot.price != null) {
+      parts.add('Base ${Money.npr(slot.price!)}');
+    }
     if (slot.weekendPrice != null) {
-      parts.add('Weekend ${formatDouble(slot.weekendPrice)}');
+      parts.add('Weekend ${Money.npr(slot.weekendPrice!)}');
     }
     if (slot.holidayPrice != null) {
-      parts.add('Holiday ${formatDouble(slot.holidayPrice)}');
+      parts.add('Holiday ${Money.npr(slot.holidayPrice!)}');
     }
-    if (slot.discountPrice != null) {
-      final String value = slot.discountType == 'Percent'
-          ? '${formatDouble(slot.discountPrice)}%'
-          : formatDouble(slot.discountPrice);
-      parts.add('Discount $value');
+    if (slot.hasDiscount && slot.discountPrice != null) {
+      parts.add('Discount ${_discountAmountLabel(slot)}');
+    }
+    if (slot.customDatePrices.isNotEmpty) {
+      final int count = slot.customDatePrices.length;
+      parts.add('$count custom ${count == 1 ? 'date' : 'dates'}');
     }
     return parts.isEmpty ? 'No special pricing set' : parts.join(' · ');
   }
@@ -1265,6 +1347,68 @@ class _SlotPricingSheetState extends State<_SlotPricingSheet> {
     });
   }
 
+  /// Turning the discount off clears what it was, so a slot never carries a
+  /// half-set discount the vendor cannot see. Turning it back on starts blank.
+  void _setDiscountEnabled(bool enabled) {
+    FocusScope.of(context).unfocus();
+    if (enabled) {
+      _update(_slot.copyWith(hasDiscount: true));
+      return;
+    }
+    _update(
+      _slot.copyWith(
+        hasDiscount: false,
+        clearDiscountPrice: true,
+        clearDiscountStartsAt: true,
+        clearDiscountEndsAt: true,
+      ),
+    );
+  }
+
+  /// Date first, then time — one moment, picked in two steps, using the same
+  /// pickers as the rest of the app. Backing out of either step leaves the
+  /// field untouched.
+  Future<void> _pickDiscountMoment({required bool isStart}) async {
+    FocusScope.of(context).unfocus();
+    final DateTime? existing = isStart
+        ? _slot.discountStartsAt
+        : _slot.discountEndsAt;
+    final DateTime now = DateTime.now();
+    final DateTime seed =
+        existing ?? (isStart ? now : _slot.discountStartsAt ?? now);
+
+    final DateTime? date = await showCustomDatePicker(
+      context,
+      title: isStart
+          ? StringConstants.discountStarts
+          : StringConstants.discountEnds,
+      initialDate: seed,
+      // A window may legitimately start today and can be set well ahead.
+      minDate: DateTime(now.year - 1),
+      maxDate: DateTime(now.year + 5, 12, 31),
+    );
+    if (date == null || !mounted) return;
+
+    final TimeOfDay? time = await showCustomTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(seed),
+    );
+    if (time == null || !mounted) return;
+
+    final DateTime picked = DateTime(
+      date.year,
+      date.month,
+      date.day,
+      time.hour,
+      time.minute,
+    );
+    _update(
+      isStart
+          ? _slot.copyWith(discountStartsAt: picked)
+          : _slot.copyWith(discountEndsAt: picked),
+    );
+  }
+
   Future<void> _addCustomDatePrice() async {
     FocusScope.of(context).unfocus();
     final SlotCustomDatePriceDraft? picked =
@@ -1300,6 +1444,13 @@ class _SlotPricingSheetState extends State<_SlotPricingSheet> {
   Future<void> _submit() async {
     if (_isSaving) return;
     FocusScope.of(context).unfocus();
+
+    final String? invalid = _slot.discountProblem;
+    if (invalid != null) {
+      setState(() => _error = invalid);
+      return;
+    }
+
     setState(() {
       _isSaving = true;
       _error = null;
@@ -1409,24 +1560,54 @@ class _SlotPricingSheetState extends State<_SlotPricingSheet> {
                   ),
                 ),
                 const SizedBox(height: AppDimens.sizeX16),
-                _DiscountTypeSelector(
-                  value: _slot.discountType,
-                  onChanged: (String value) =>
-                      _update(_slot.copyWith(discountType: value)),
+                // Off unless the vendor says otherwise. Everything below is
+                // part of one decision — discount this slot or not — so the
+                // type, the amount and the window appear together and clear
+                // together.
+                CustomCheckbox(
+                  value: _slot.hasDiscount,
+                  isExpanded: true,
+                  label: StringConstants.offerADiscountOnThisSlot,
+                  onChanged: (bool? checked) =>
+                      _setDiscountEnabled(checked ?? false),
                 ),
-                const SizedBox(height: AppDimens.sizeX16),
-                _MoneyField(
-                  label: _slot.discountType == 'Percent'
-                      ? 'Discount %'
-                      : 'Discount price',
-                  value: _slot.discountPrice,
-                  onChanged: (String value) => _update(
-                    _slot.copyWith(
-                      discountPrice: parseDouble(value),
-                      clearDiscountPrice: value.trim().isEmpty,
+                if (_slot.hasDiscount) ...<Widget>[
+                  const SizedBox(height: AppDimens.sizeX16),
+                  _DiscountTypeSelector(
+                    value: _slot.discountType,
+                    onChanged: (String value) =>
+                        _update(_slot.copyWith(discountType: value)),
+                  ),
+                  const SizedBox(height: AppDimens.sizeX16),
+                  _MoneyField(
+                    label: _slot.discountType == 'Percent'
+                        ? 'Discount %'
+                        : 'Discount price',
+                    value: _slot.discountPrice,
+                    onChanged: (String value) => _update(
+                      _slot.copyWith(
+                        discountPrice: parseDouble(value),
+                        clearDiscountPrice: value.trim().isEmpty,
+                      ),
                     ),
                   ),
-                ),
+                  const SizedBox(height: AppDimens.sizeX16),
+                  _DiscountWindowField(
+                    label: StringConstants.discountStarts,
+                    value: _slot.discountStartsAt,
+                    onPick: () => _pickDiscountMoment(isStart: true),
+                    onClear: () =>
+                        _update(_slot.copyWith(clearDiscountStartsAt: true)),
+                  ),
+                  const SizedBox(height: AppDimens.sizeX12),
+                  _DiscountWindowField(
+                    label: StringConstants.discountEnds,
+                    value: _slot.discountEndsAt,
+                    onPick: () => _pickDiscountMoment(isStart: false),
+                    onClear: () =>
+                        _update(_slot.copyWith(clearDiscountEndsAt: true)),
+                  ),
+                ],
                 const SizedBox(height: AppDimens.sizeX16),
                 _CustomDatePricesSection(
                   prices: _slot.customDatePrices,
@@ -1511,6 +1692,96 @@ class _SlotPricingSheetState extends State<_SlotPricingSheet> {
     }
     if (widget.court.weekendDays.contains(day)) return _DatePriceMarker.weekend;
     return null;
+  }
+}
+
+/// One end of the discount window: a tappable field showing the chosen moment,
+/// or "Any time" when that end is open.
+///
+/// Both ends are optional — a discount with no window runs for as long as it
+/// is switched on — so each carries a clear button rather than forcing a date.
+class _DiscountWindowField extends StatelessWidget {
+  const _DiscountWindowField({
+    required this.label,
+    required this.value,
+    required this.onPick,
+    required this.onClear,
+  });
+
+  final String label;
+  final DateTime? value;
+  final VoidCallback onPick;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    final bool isSet = value != null;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Text(
+          label,
+          style: textTheme.bodySubTitle?.copyWith(
+            color: LightColor.secondaryTextColor,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: AppDimens.sizeX6),
+        InkWell(
+          onTap: onPick,
+          borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+          child: Container(
+            padding: AppUtils().getPadding(
+              symmetricHorizontal: AppDimens.paddingX12,
+              symmetricVertical: AppDimens.paddingX12,
+            ),
+            decoration: BoxDecoration(
+              color: LightColor.inputFillColor,
+              borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+              border: Border.all(color: LightColor.dividerColor),
+            ),
+            child: Row(
+              children: <Widget>[
+                Icon(
+                  Icons.event_rounded,
+                  size: AppDimens.sizeX18,
+                  color: LightColor.iconGrey,
+                ),
+                const SizedBox(width: AppDimens.sizeX8),
+                Expanded(
+                  child: Text(
+                    isSet ? DateFmt.dateTime(value!) : StringConstants.anyTime,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: textTheme.bodyTextSmall?.copyWith(
+                      color: isSet
+                          ? LightColor.primaryTextColor
+                          : LightColor.hintTextColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                if (isSet)
+                  InkWell(
+                    onTap: onClear,
+                    borderRadius: BorderRadius.circular(AppDimens.radiusX20),
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppDimens.paddingX2),
+                      child: Icon(
+                        Icons.close_rounded,
+                        size: AppDimens.sizeX16,
+                        color: LightColor.iconGrey,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }
 

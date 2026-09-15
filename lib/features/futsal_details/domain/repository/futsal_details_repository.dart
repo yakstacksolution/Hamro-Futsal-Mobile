@@ -16,8 +16,10 @@ abstract class FutsalDetailsRepository {
   Future<Either<AppException, HostedByModel>> getHostedBy({
     required int venueId,
   });
+
+  /// Addressed by the venue's slug — see `ApiClient.getVenueDescription`.
   Future<Either<AppException, VenueDescriptionModel>> getVenueDescription({
-    required int venueId,
+    required String venueSlug,
   });
 
   /// One page of `/venues/{venue_id}/reviews`.

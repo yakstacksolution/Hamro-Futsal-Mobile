@@ -2,11 +2,13 @@ import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:hamro_futsal/core/helper/share_helper.dart';
 import 'package:hamro_futsal/core/helper/wishlist_store.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/utils/app_utils.dart';
 import 'package:hamro_futsal/core/utils/custom_image_view.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:hamro_futsal/core/utils/responsive.dart';
 import 'package:hamro_futsal/features/public/data/repositories/public_repository_impl.dart';
 import 'package:hamro_futsal/features/wishlist/domain/usecase/toggle_wishlist_use_case.dart';
@@ -16,17 +18,33 @@ class DetailsImageGallery extends StatefulWidget {
     super.key,
     this.images = const <String>[],
     this.venueId,
+    this.shareText,
+    this.shareLink,
+    this.shareSubject,
   });
 
   final List<String> images;
-
   final int? venueId;
+
+  /// Human sentence for the share, without the link appended.
+  final String? shareText;
+
+  /// Link for the share, preferably an https URL so it stays clickable for
+  /// people who do not have the app. Passed separately from [shareText] so a
+  /// link-only share can go to the OS as a URL and get a preview card.
+  final String? shareLink;
+
+  /// Subject line for targets that have one, usually the venue name.
+  final String? shareSubject;
 
   @override
   State<DetailsImageGallery> createState() => _DetailsImageGalleryState();
 }
 
 class _DetailsImageGalleryState extends State<DetailsImageGallery> {
+  /// Anchors the iPad share popover to the share button.
+  final GlobalKey _shareButtonKey = GlobalKey();
+
   late final PageController _imagePageController;
   int _currentImageIndex = 0;
   bool _isSaved = false;
@@ -58,6 +76,28 @@ class _DetailsImageGalleryState extends State<DetailsImageGallery> {
       duration: const Duration(milliseconds: 320),
       curve: Curves.easeOutCubic,
     );
+  }
+
+  bool get _canShare =>
+      (widget.shareText?.trim().isNotEmpty ?? false) ||
+      (widget.shareLink?.trim().isNotEmpty ?? false);
+
+  Future<void> _shareVenue() async {
+    final ShareOutcome outcome = await ShareHelper.share(
+      context,
+      message: widget.shareText,
+      link: widget.shareLink,
+      subject: widget.shareSubject,
+      originKey: _shareButtonKey,
+    );
+
+    if (outcome == ShareOutcome.nothingToShare && mounted) {
+      AppUtils().showSnackBar(
+        context,
+        MsgType.error,
+        StringConstants.shareIsNotAvailableForThisVenue,
+      );
+    }
   }
 
   @override
@@ -155,11 +195,14 @@ class _DetailsImageGalleryState extends State<DetailsImageGallery> {
                       ),
                       Row(
                         children: [
-                          _glassButton(
-                            icon: Icons.share_outlined,
-                            onTap: () {},
-                          ),
-                          const SizedBox(width: 10),
+                          if (_canShare) ...<Widget>[
+                            _glassButton(
+                              key: _shareButtonKey,
+                              icon: Icons.share_outlined,
+                              onTap: _shareVenue,
+                            ),
+                            const SizedBox(width: 10),
+                          ],
                           // Heart follows the shared wishlist store when a venue id
                           // is available.
                           ValueListenableBuilder<Set<int>>(
@@ -315,8 +358,10 @@ class _DetailsImageGalleryState extends State<DetailsImageGallery> {
     required IconData icon,
     required VoidCallback onTap,
     Color? iconColor,
+    Key? key,
   }) {
     return GestureDetector(
+      key: key,
       onTap: onTap,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(10),

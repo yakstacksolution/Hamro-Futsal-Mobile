@@ -17,6 +17,7 @@ class _SettingsPreferenceKeys {
   static const promotionalEmails = 'settings_promotional_emails';
   static const biometricLogin = 'settings_biometric_login';
   static const darkMode = 'settings_dark_mode';
+  static const appThemeMode = 'settings_app_theme_mode';
   static const appLanguage = 'settings_app_language';
 }
 
@@ -114,6 +115,22 @@ class AppSettings {
       _preferences.setBool(_SettingsPreferenceKeys.darkMode, val);
   bool get darkMode =>
       _preferences.getBool(_SettingsPreferenceKeys.darkMode) ?? false;
+
+  set appThemeMode(String val) =>
+      _preferences.setString(_SettingsPreferenceKeys.appThemeMode, val);
+  String get appThemeMode {
+    final String? mode = _preferences.getString(
+      _SettingsPreferenceKeys.appThemeMode,
+    );
+    if (mode != null && mode.isNotEmpty) return mode;
+
+    // Backward compatibility for users who saved the previous dark-mode
+    // switch before the three-way theme picker existed.
+    if (_preferences.containsKey(_SettingsPreferenceKeys.darkMode)) {
+      return darkMode ? 'dark' : 'light';
+    }
+    return 'system';
+  }
 
   set appLanguage(String val) =>
       _preferences.setString(_SettingsPreferenceKeys.appLanguage, val);

@@ -2,7 +2,7 @@ class ManualBookingDetails {
   const ManualBookingDetails({
     required this.customerName,
     required this.customerPhone,
-    required this.customerEmail,
+    this.totalAmount,
     required this.paymentMethod,
     required this.paymentType,
     required this.paymentStatus,
@@ -12,7 +12,10 @@ class ManualBookingDetails {
 
   final String customerName;
   final String customerPhone;
-  final String customerEmail;
+
+  /// What the booking should cost, when the counter agreed a price the slot
+  /// rates do not produce. Null leaves the pricing to the server.
+  final double? totalAmount;
   final String paymentMethod;
   final String paymentType;
   final String paymentStatus;

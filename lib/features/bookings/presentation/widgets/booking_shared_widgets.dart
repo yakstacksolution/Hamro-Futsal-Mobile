@@ -5,8 +5,37 @@ import 'package:hamro_futsal/core/utils/app_utils.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
 import 'package:hamro_futsal/features/bookings/data/model/booking_model.dart';
 import 'package:hamro_futsal/features/bookings/presentation/widgets/booking_details_widgets.dart';
+import 'package:hamro_futsal/core/utils/currency.dart';
+import 'package:hamro_futsal/core/utils/date_format.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
+import 'package:hamro_futsal/core/widgets/data_card.dart';
 import 'package:hamro_futsal/core/widgets/app_message_view.dart';
+import 'package:hamro_futsal/core/utils/responsive.dart';
+import 'package:hamro_futsal/features/dashboard/presentation/widgets/bottom_navigation_bar.dart';
+
+/// Height of the manual-booking pill on the futsal bookings list.
+const double kManualBookingFabHeight = 44;
+
+/// Gap kept between the pill and whatever sits below it.
+const double _kManualBookingFabGap = AppDimens.paddingX12;
+
+/// Where the manual-booking pill sits above the bottom of its Stack.
+///
+/// The dashboard's bottom navigation bar overlays this page as a sibling, and
+/// that bar is content-sized — it grows with the user's text scale and adds the
+/// system inset itself. A fixed offset therefore cleared it on some devices and
+/// not others, so it is measured. Wide layouts use side navigation and have
+/// already applied the bottom inset, so only the gap is needed there.
+double manualBookingFabBottomInset(BuildContext context) =>
+    context.isTabletOrWider
+    ? AppDimens.paddingX16
+    : CustomBottomNavigationBar.heightOf(context) + _kManualBookingFabGap;
+
+/// Bottom padding a list needs so its last row can scroll clear of the pill.
+double manualBookingFabListInset(BuildContext context) =>
+    manualBookingFabBottomInset(context) +
+    kManualBookingFabHeight +
+    _kManualBookingFabGap;
 
 Color bookingStatusColor(BookingStatus status) => switch (status) {
   BookingStatus.confirmed => LightColor.secondaryColor,
@@ -381,6 +410,21 @@ class BookingErrorView extends StatelessWidget {
   }
 }
 
+/// One booking, as a card.
+///
+/// Built from the shared card language in `core/widgets/data_card.dart`, the
+/// same parts the account ledger uses, so the two lists read as one product
+/// rather than two screens that happen to both show cards.
+///
+/// The header answers "whose booking, and how much": the venue (or, on a
+/// vendor's list, the player) with the court or phone under it, the amount in
+/// tabular digits on the right and the status as a chip beneath it. The body
+/// carries the facts that identify the slot — date, time, reference — as
+/// labelled rows whose values align down the card. Type and recurrence badges
+/// and the optional [footer] sit at the bottom.
+///
+/// Every field is optional: a missing one takes its row away rather than
+/// showing a blank, and long values elide instead of overflowing.
 class BookingCard extends StatelessWidget {
   const BookingCard({
     super.key,
@@ -390,7 +434,15 @@ class BookingCard extends StatelessWidget {
     this.footer,
   });
 
+  /// A booking card reads at the same size wherever it appears — in a list or
+  /// as the summary at the top of the details page. They show the same facts
+  /// about the same booking, so a reader moving between them should not have
+  /// to adjust.
+  static const DataCardDensity _density = DataCardDensity.detail;
+
   final BookingModel booking;
+
+  /// Vendor lists lead with the player rather than the venue.
   final bool showPlayer;
   final VoidCallback? onTap;
 
@@ -400,21 +452,31 @@ class BookingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = FutsalTheme.getTextTheme(context);
-    final Color dot = bookingStatusColor(booking.status);
+    final Color statusColor = bookingStatusColor(booking.status);
     final String? bookingType = bookingTypeLabel(booking.bookingType);
-    // Badges are shared between the "with ref" and "without ref" layouts below.
+    final bool manual = _isManual(booking.bookingType);
+
+    final String title = showPlayer
+        ? (booking.playerName?.isNotEmpty == true
+              ? booking.playerName!
+              : StringConstants.unknownPlayer)
+        : (booking.futsalName.isNotEmpty
+              ? booking.futsalName
+              : StringConstants.futsalCourt);
+    // Under the title goes the line that identifies the other party. A vendor
+    // list leads with the player, so the phone and the court share it there;
+    // a player's own list already names the venue, so the court stands alone.
+    // Keeping both here is what lets the grid below stay an exact 2×2.
+    final String subtitle = showPlayer
+        ? <String>[
+            if (booking.playerPhone?.isNotEmpty == true) booking.playerPhone!,
+            if (booking.courtName.isNotEmpty) booking.courtName,
+          ].join('  ·  ')
+        : booking.courtName;
+
+    // The booking type has its own cell in the grid below, so it is not also
+    // a badge — one fact, one place on the card.
     final List<Widget> badges = <Widget>[
-      if (bookingType != null)
-        BookingInfoChip(
-          icon: _isManual(booking.bookingType)
-              ? Icons.storefront_outlined
-              : Icons.phone_iphone_rounded,
-          label: bookingType,
-          color: _isManual(booking.bookingType)
-              ? LightColor.warningColor
-              : LightColor.blueColor,
-        ),
       if (booking.isRecurring)
         BookingInfoChip(
           icon: Icons.repeat_rounded,
@@ -424,164 +486,130 @@ class BookingCard extends StatelessWidget {
         ),
     ];
 
-    return Material(
-      color: LightColor.cardColor,
-      borderRadius: BorderRadius.circular(AppDimens.radiusX12),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(AppDimens.radiusX12),
+    final String timeRange = booking.displayTimeRange;
+    final double balanceDue = booking.balanceDue;
+
+    // The facts sit in a two-column grid that fills exactly: when it is for,
+    // how it was taken, when it was placed, and where the money stands. Cells
+    // are ordered so each row pairs two facts of a kind — the slot, then the
+    // booking's identity, then its money — and the count stays even so no row
+    // is left half empty. The court and phone live on the subtitle above
+    // rather than taking cells here.
+    final List<Widget> cells = <Widget>[
+      DataCardCell(
+        label: StringConstants.date,
+        value: DateFmt.date(booking.date),
+        density: _density,
+      ),
+      if (timeRange.isNotEmpty)
+        DataCardCell(
+          label: StringConstants.time,
+          value: timeRange,
+          density: _density,
+        ),
+      if (booking.bookingRef.isNotEmpty)
+        DataCardCell(
+          label: StringConstants.reference,
+          value: booking.bookingRef,
+          density: _density,
+        ),
+      // `regular`, `manual`, `online` — how the booking was taken. Paired with
+      // the reference because both answer "which booking is this".
+      if (bookingType != null && bookingType.isNotEmpty)
+        DataCardCell(
+          label: StringConstants.type,
+          value: bookingType,
+          valueColor: manual ? LightColor.warningColor : null,
+          density: _density,
+        ),
+      // When the booking was placed, as opposed to the slot it is for — the
+      // two are often weeks apart, so the card names both rather than showing
+      // one date and leaving the reader to guess which.
+      if (booking.createdAt != null)
+        DataCardCell(
+          label: StringConstants.bookedOn,
+          value: DateFmt.dateTime(booking.createdAt!),
+          density: _density,
+        ),
+      // What is still owed, or what has been paid when nothing is — the money
+      // question a reader has either way, and it completes the last pair.
+      if (balanceDue > 0)
+        DataCardCell(
+          label: StringConstants.balanceDue,
+          value: Money.npr(balanceDue),
+          valueColor: LightColor.warningColor,
+          density: _density,
+        )
+      else if (booking.paidAmount > 0)
+        DataCardCell(
+          label: StringConstants.paid,
+          value: Money.npr(booking.paidAmount),
+          valueColor: LightColor.brandTextColor,
+          density: _density,
+        ),
+    ];
+
+    return Semantics(
+      container: true,
+      button: onTap != null,
+      label: <String>[
+        title,
+        if (subtitle.isNotEmpty) subtitle,
+        booking.status.value,
+        if (booking.amount > 0) Money.npr(booking.amount),
+        DateFmt.date(booking.date),
+        if (timeRange.isNotEmpty) timeRange,
+        if (booking.bookingRef.isNotEmpty) booking.bookingRef,
+        if (bookingType != null && bookingType.isNotEmpty)
+          '${StringConstants.type} $bookingType',
+        if (booking.createdAt != null)
+          '${StringConstants.bookedOn} '
+              '${DateFmt.dateTime(booking.createdAt!)}',
+      ].join(', '),
+      child: DataCard(
         onTap: onTap,
-        child: Container(
-          decoration: BoxDecoration(
-            color: LightColor.cardColor,
-            borderRadius: BorderRadius.circular(AppDimens.radiusX12),
-            boxShadow: [
-              BoxShadow(
-                color: LightColor.shadowColor,
-                blurRadius: 10,
-                spreadRadius: 0,
-                offset: Offset(0, 2),
+        child: Column(
+          // Shrink-wraps: a card is as tall as its content, wherever it is
+          // put — a list item, a Column, an Align.
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            DataCardHeader(
+              icon: showPlayer
+                  ? Icons.person_rounded
+                  : Icons.stadium_rounded,
+              iconColor: statusColor,
+              title: title,
+              subtitle: subtitle,
+              amount: booking.amount > 0
+                  ? Money.npr(booking.amount)
+                  : null,
+              chipLabel: booking.status.value,
+              chipColor: statusColor,
+              titleMaxLines: 1,
+              density: _density,
+              // The venue name and the figure lead the card without heading
+              // it: on a list the card is scanned whole, and a full step up
+              // made the top of every card shout.
+              titleSize: kDataCardListTitleSize,
+            ),
+            const DataCardDivider(),
+            DataCardGrid(cells: cells),
+            if (badges.isNotEmpty) ...<Widget>[
+              const SizedBox(height: AppDimens.paddingX10),
+              Wrap(
+                spacing: AppDimens.paddingX6,
+                runSpacing: AppDimens.paddingX4,
+                children: badges,
               ),
             ],
-          ),
-          padding: AppUtils().getPadding(all: AppDimens.paddingX16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          showPlayer
-                              ? (booking.playerName?.isNotEmpty == true
-                                    ? booking.playerName!
-                                    : 'Unknown Player')
-                              : (booking.futsalName.isNotEmpty
-                                    ? booking.futsalName
-                                    : 'Futsal Court'),
-                          style: textTheme.bodyTextMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: LightColor.primaryTextColor,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: AppDimens.paddingX2),
-                        Text(
-                          booking.courtName.isNotEmpty
-                              ? booking.courtName
-                              : '—',
-                          style: textTheme.bodyTextSmall?.copyWith(
-                            color: LightColor.secondaryTextColor,
-                            fontSize: AppDimens.fontBodySubTitle,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: AppDimens.paddingX12),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: AppDimens.sizeX6,
-                        height: AppDimens.sizeX6,
-                        decoration: BoxDecoration(
-                          color: dot,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: AppDimens.paddingX4),
-                      Text(
-                        booking.status.value[0].toUpperCase() +
-                            booking.status.value.substring(1),
-                        style: textTheme.bodyTextSmall?.copyWith(
-                          color: dot,
-                          fontWeight: FontWeight.w600,
-                          fontSize: AppDimens.fontBodySubTitle,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              if (showPlayer && booking.playerPhone?.isNotEmpty == true) ...[
-                const SizedBox(height: AppDimens.paddingX4),
-                Text(
-                  booking.playerPhone!,
-                  style: textTheme.bodyTextSmall?.copyWith(
-                    color: LightColor.hintTextColor,
-                    fontSize: AppDimens.fontBodySubTitle,
-                  ),
-                ),
-              ],
-              const SizedBox(height: AppDimens.paddingX12),
-              Divider(color: LightColor.dividerColor, height: 1),
-              const SizedBox(height: AppDimens.paddingX12),
-              Row(
-                children: [
-                  _Meta(
-                    icon: Icons.calendar_today_outlined,
-                    label: _fmt(booking.date),
-                  ),
-                  _separator(),
-                  _Meta(
-                    icon: Icons.access_time_outlined,
-                    label: booking.displayTimeRange.isNotEmpty
-                        ? booking.displayTimeRange
-                        : '—',
-                  ),
-                  if (booking.amount > 0) ...[
-                    _separator(),
-                    _Meta(
-                      icon: Icons.payments_outlined,
-                      label: 'Rs. ${booking.amount.toStringAsFixed(0)}',
-                      color: LightColor.secondaryColor,
-                    ),
-                  ],
-                ],
-              ),
-              if (booking.bookingRef.isNotEmpty) ...[
-                const SizedBox(height: AppDimens.paddingX8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Ref: #${booking.bookingRef}',
-                        style: textTheme.bodyTextSmall?.copyWith(
-                          color: LightColor.hintTextColor,
-                          fontSize: AppDimens.fontBodySubTitle,
-                        ),
-                      ),
-                    ),
-                    if (badges.isNotEmpty)
-                      Wrap(
-                        spacing: AppDimens.paddingX6,
-                        runSpacing: AppDimens.paddingX4,
-                        alignment: WrapAlignment.end,
-                        children: badges,
-                      ),
-                  ],
-                ),
-              ] else if (badges.isNotEmpty) ...[
-                const SizedBox(height: AppDimens.paddingX8),
-                Wrap(
-                  spacing: AppDimens.paddingX6,
-                  runSpacing: AppDimens.paddingX4,
-                  children: badges,
-                ),
-              ],
-              if (footer != null) ...[
-                const SizedBox(height: AppDimens.paddingX12),
-                Divider(color: LightColor.dividerColor, height: 1),
-                const SizedBox(height: AppDimens.paddingX10),
-                Align(alignment: Alignment.centerLeft, child: footer!),
-              ],
+            if (footer != null) ...<Widget>[
+              const DataCardDivider(),
+              // Full width, not aligned: the actions are a row of equal-width
+              // buttons and they are meant to span the card.
+              footer!,
             ],
-          ),
+          ],
         ),
       ),
     );
@@ -596,65 +624,11 @@ class BookingCard extends StatelessWidget {
     }.contains(type?.trim().toLowerCase() ?? '');
   }
 
-  Widget _separator() => Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 6),
-    child: Container(
-      width: 3,
-      height: 3,
-      decoration: BoxDecoration(
-        color: LightColor.iconGrey,
-        shape: BoxShape.circle,
-      ),
-    ),
-  );
 
-  String _fmt(DateTime d) {
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-    return '${d.day} ${months[d.month - 1]} ${d.year}';
-  }
 }
 
 String _capitalize(String value) {
   final String text = value.trim();
   if (text.isEmpty) return text;
   return text[0].toUpperCase() + text.substring(1).toLowerCase();
-}
-
-class _Meta extends StatelessWidget {
-  const _Meta({required this.icon, required this.label, this.color});
-  final IconData icon;
-  final String label;
-  final Color? color;
-
-  @override
-  Widget build(BuildContext context) {
-    final Color c = color ?? LightColor.secondaryTextColor;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: AppDimens.sizeX12, color: c),
-        const SizedBox(width: AppDimens.paddingX4),
-        Text(
-          label,
-          style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
-            color: c,
-            fontSize: AppDimens.fontBodySubTitle,
-          ),
-        ),
-      ],
-    );
-  }
 }

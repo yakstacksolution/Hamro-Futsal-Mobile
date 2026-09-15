@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
@@ -9,6 +11,9 @@ import 'package:hamro_futsal/core/widgets/custom_button.dart';
 import 'package:hamro_futsal/core/widgets/custom_text_field.dart';
 import 'package:hamro_futsal/features/change_password/presentation/bloc/change_password_bloc/change_password_bloc.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
+import 'package:hamro_futsal/core/routers/app_router_params.dart';
+import 'package:hamro_futsal/features/auth/data/repositories/authentication_repository_impl.dart';
+import 'package:go_router/go_router.dart';
 
 /// Change the signed-in user's password — `PUT /auth/password`.
 ///
@@ -49,6 +54,13 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
     );
   }
 
+  /// Clears the session after a successful change and returns to login.
+  Future<void> _signOut(BuildContext context) async {
+    await AuthenticationRepositoryImpl().endSession();
+    if (!context.mounted) return;
+    context.goNamed(AppRouterParams.login.name);
+  }
+
   Widget _visibilityToggle(bool visible, VoidCallback onTap) {
     return IconButton(
       onPressed: onTap,
@@ -80,9 +92,11 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
               AppUtils().showSnackBar(
                 context,
                 MsgType.success,
-                state.message ?? 'Password updated successfully.',
+                state.message ?? StringConstants.passwordUpdatedPleaseLogIn,
               );
-              Navigator.of(context).pop();
+              // The old token no longer matches the new password, so the
+              // session is dropped and the user signs in again.
+              unawaited(_signOut(context));
             }
           },
           builder: (context, state) {

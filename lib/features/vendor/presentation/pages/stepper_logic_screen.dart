@@ -1,3 +1,4 @@
+import 'package:hamro_futsal/core/utils/bloc_safe_add.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -24,11 +25,13 @@ import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 class StepperLogicScreen extends StatefulWidget {
   final int? futsalId;
+  final String? futsalSlug;
   final int? mainStep;
   final int? subStep;
   const StepperLogicScreen({
     super.key,
     this.futsalId,
+    this.futsalSlug,
     this.mainStep,
     this.subStep,
   });
@@ -52,10 +55,23 @@ class _StepperLogicScreenState extends State<StepperLogicScreen> {
 
   Future<void> _bootstrapScreen() async {
     final int? futsalId = widget.futsalId;
+    final String? futsalSlug = widget.futsalSlug?.trim();
 
-    if (futsalId != null && futsalId > 0) {
-      await _cubit.fetchVendorOnboarding(futsalId);
+    // `/auth/get-venue/{slug}` is addressed by slug only. A numeric id in that
+    // position used to be sent as a stand-in; it no longer resolves, so a venue
+    // that reached here without a slug is reported rather than silently opened
+    // as a blank draft the user would save as a second venue.
+    if (futsalSlug != null && futsalSlug.isNotEmpty) {
+      await _cubit.fetchVendorOnboarding(futsalSlug, futsalId: futsalId);
       if (!mounted) return;
+    } else if (futsalId != null && futsalId > 0) {
+      _appUtils.showSnackBar(
+        context,
+        MsgType.error,
+        StringConstants.venueSlugMissing,
+      );
+      if (context.canPop()) context.pop();
+      return;
     }
 
     _fetchBackgroundResources();
@@ -70,7 +86,7 @@ class _StepperLogicScreenState extends State<StepperLogicScreen> {
       return;
     }
     if (templatesState.status != PublicTemplatesStatus.loading) {
-      templatesBloc.add(FetchPublicTemplatesEvent());
+      templatesBloc.addIfOpen(FetchPublicTemplatesEvent());
     }
   }
 
@@ -219,6 +235,7 @@ class _StepperLogicScreenState extends State<StepperLogicScreen> {
                       const SizedBox(height: AppDimens.sizeX14),
                       VendorCategorySwitcher(
                         activeCategory: state.cursor.category,
+                        isCourtLocked: !cubit.canAccessCourtCategory,
                         onCategorySelected: cubit.selectCategory,
                       ),
                       if (state.isInCourtCategory) ...<Widget>[

@@ -11,10 +11,15 @@ class VendorCategorySwitcher extends StatefulWidget {
     super.key,
     required this.activeCategory,
     required this.onCategorySelected,
+    this.isCourtLocked = false,
   });
 
   final VendorCategory activeCategory;
   final ValueChanged<VendorCategory> onCategorySelected;
+
+  /// Courts belong to a saved venue, so the tab stays closed — greyed out and
+  /// tapping it only explains why — until the futsal itself is created.
+  final bool isCourtLocked;
 
   @override
   State<VendorCategorySwitcher> createState() => _VendorCategorySwitcherState();
@@ -80,7 +85,12 @@ class _VendorCategorySwitcherState extends State<VendorCategorySwitcher>
       child: TabBar(
         controller: _tabController,
         onTap: (int index) {
-          widget.onCategorySelected(_categoryForIndex(index));
+          final VendorCategory category = _categoryForIndex(index);
+          if (category == VendorCategory.court && widget.isCourtLocked) {
+            // Snap back: the tab bar has already moved its indicator.
+            _tabController.animateTo(_indexForCategory(widget.activeCategory));
+          }
+          widget.onCategorySelected(category);
         },
         dividerColor: Colors.transparent,
         indicatorSize: TabBarIndicatorSize.tab,
@@ -92,14 +102,17 @@ class _VendorCategorySwitcherState extends State<VendorCategorySwitcher>
         unselectedLabelColor: LightColor.primaryTextColor,
         labelStyle: labelStyle,
         unselectedLabelStyle: labelStyle,
-        tabs: const <Widget>[
-          _CategoryTab(
+        tabs: <Widget>[
+          const _CategoryTab(
             icon: Icons.storefront_rounded,
             title: StringConstants.futsal,
           ),
           _CategoryTab(
-            icon: Icons.stadium_rounded,
+            icon: widget.isCourtLocked
+                ? Icons.lock_outline_rounded
+                : Icons.stadium_rounded,
             title: StringConstants.court,
+            isLocked: widget.isCourtLocked,
           ),
         ],
       ),
@@ -108,23 +121,31 @@ class _VendorCategorySwitcherState extends State<VendorCategorySwitcher>
 }
 
 class _CategoryTab extends StatelessWidget {
-  const _CategoryTab({required this.icon, required this.title});
+  const _CategoryTab({
+    required this.icon,
+    required this.title,
+    this.isLocked = false,
+  });
 
   final IconData icon;
   final String title;
+  final bool isLocked;
 
   @override
   Widget build(BuildContext context) {
-    return Tab(
-      height: AppDimens.sizeX44,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Icon(icon, size: AppDimens.sizeX16),
-          const SizedBox(width: AppDimens.sizeX8),
-          Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
-        ],
+    return Opacity(
+      opacity: isLocked ? 0.4 : 1,
+      child: Tab(
+        height: AppDimens.sizeX44,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Icon(icon, size: AppDimens.sizeX16),
+            const SizedBox(width: AppDimens.sizeX8),
+            Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
+          ],
+        ),
       ),
     );
   }

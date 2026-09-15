@@ -124,7 +124,7 @@ class RewardsView extends StatelessWidget {
             );
 
             return RefreshIndicator(
-              color: LightColor.secondaryColor,
+              color: LightColor.brandTextColor,
               onRefresh: () => _refresh(context),
               child: ListView(
                 physics: const AlwaysScrollableScrollPhysics(

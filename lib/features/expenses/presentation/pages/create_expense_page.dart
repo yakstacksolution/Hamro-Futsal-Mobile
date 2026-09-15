@@ -576,16 +576,21 @@ class _CategoryOption extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // The server's glyphs are dark artwork on transparent, which disappears
+    // against the dark dropdown. Tinting them with the category's own
+    // brightness-adapted accent — the colour the fallback icon already uses —
+    // keeps them legible in both themes.
+    final Color tint = category.asEnum.color;
     final Widget icon;
     if (!category.hasImage) {
-      final fallback = category.asEnum;
-      icon = Icon(fallback.icon, size: _iconSize - 2, color: fallback.color);
+      icon = Icon(category.asEnum.icon, size: _iconSize - 2, color: tint);
     } else if (category.isSvgImage) {
       icon = CustomImageView(
         svgPath: category.image,
         svgFromOnline: true,
         height: _iconSize,
         width: _iconSize,
+        color: tint,
       );
     } else {
       icon = CustomImageView(
@@ -593,6 +598,7 @@ class _CategoryOption extends StatelessWidget {
         height: _iconSize,
         width: _iconSize,
         fit: BoxFit.contain,
+        color: tint,
       );
     }
 

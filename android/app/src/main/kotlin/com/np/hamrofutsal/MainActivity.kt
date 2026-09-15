@@ -26,7 +26,7 @@ class MainActivity : FlutterFragmentActivity() {
             MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).apply {
                 setMethodCallHandler { call, result ->
                     when (call.method) {
-                        "getLaunchNotification" -> result.success(notificationData(intent))
+                        "getLaunchNotification" -> result.success(takeLaunchNotification())
                         else -> result.notImplemented()
                     }
                 }
@@ -72,8 +72,26 @@ class MainActivity : FlutterFragmentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         notificationData(intent)?.let {
+            clearNotificationExtras(intent)
             notificationChannel?.invokeMethod("notificationTap", it)
         }
+    }
+
+    /**
+     * Reads the notification that launched the activity, once.
+     *
+     * MainActivity is `singleTask`, so its intent is retained: without
+     * clearing it, every later read — a relaunch from the launcher, a Flutter
+     * engine restart — replays the last tapped notification and navigates
+     * although the user never tapped anything.
+     */
+    private fun takeLaunchNotification(): Map<String, Any?>? =
+        notificationData(intent)?.also { clearNotificationExtras(intent) }
+
+    private fun clearNotificationExtras(source: Intent) {
+        source.replaceExtras(null as Bundle?)
+        source.action = null
+        setIntent(source)
     }
 
     private fun notificationData(source: Intent?): Map<String, Any?>? {

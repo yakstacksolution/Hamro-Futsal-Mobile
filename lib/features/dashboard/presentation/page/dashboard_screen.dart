@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -18,6 +17,9 @@ import 'package:hamro_futsal/core/utils/responsive.dart';
 import 'package:hamro_futsal/features/dashboard/presentation/widgets/bottom_navigation_bar.dart';
 import 'package:hamro_futsal/features/dashboard/presentation/widgets/dashboard_side_nav.dart';
 import 'package:hamro_futsal/features/dashboard/presentation/widgets/category_filter_widget.dart';
+import 'package:hamro_futsal/features/public/data/repositories/public_repository_impl.dart';
+import 'package:hamro_futsal/features/public/domain/usecase/get_category_filter_use_case.dart';
+import 'package:hamro_futsal/features/public/presentation/bloc/category_filter/category_filter_bloc.dart';
 import 'package:hamro_futsal/features/dashboard/presentation/widgets/search_bar_widget.dart';
 import 'package:hamro_futsal/features/public/presentation/models/venue_filter.dart';
 import 'package:hamro_futsal/features/profile/presentation/profile_bloc/profile_bloc.dart';
@@ -171,7 +173,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _appBar() {
     final AppUtils appUtils = AppUtils();
-    final textTheme = FutsalTheme.getTextTheme(context);
     final ProfileState profileState = context.watch<ProfileBloc>().state;
     final String firstName =
         profileState.profile?.data.fullName.trim().isNotEmpty == true
@@ -186,46 +187,35 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
         vertical: AppDimens.paddingX10,
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: <Widget>[
-          Text(
-            "${appUtils.greeting()}, $firstName 👋",
-            style: textTheme.bodyTextLarge?.copyWith(
-              fontSize: AppDimens.fontBodyTextLarge,
-              fontWeight: FontWeight.w600,
-              color: LightColor.primaryTextColor,
+      child: HomeGreeting(
+        text: "${appUtils.greeting()}, $firstName 👋",
+        trailing: Stack(
+          clipBehavior: Clip.none,
+          children: <Widget>[
+            _buildActionIcon(
+              Icons.notifications_outlined,
+              color: LightColor.secondaryColor,
+              onTap: _openNotifications,
             ),
-          ),
-
-          Stack(
-            clipBehavior: Clip.none,
-            children: <Widget>[
-              _buildActionIcon(
-                Icons.notifications_outlined,
-                color: LightColor.secondaryColor,
-                onTap: _openNotifications,
-              ),
-              if (_hasUnreadNotifications)
-                Positioned(
-                  top: -2,
-                  right: -2,
-                  child: Container(
-                    width: AppDimens.sizeX10,
-                    height: AppDimens.sizeX10,
-                    decoration: BoxDecoration(
-                      color: LightColor.redColor,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: LightColor.whiteColor,
-                        width: AppDimens.sizeX2,
-                      ),
+            if (_hasUnreadNotifications)
+              Positioned(
+                top: -2,
+                right: -2,
+                child: Container(
+                  width: AppDimens.sizeX10,
+                  height: AppDimens.sizeX10,
+                  decoration: BoxDecoration(
+                    color: LightColor.redColor,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: LightColor.whiteColor,
+                      width: AppDimens.sizeX2,
                     ),
                   ),
                 ),
-            ],
-          ),
-        ],
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -240,6 +230,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Provided here, above both the header's category strip and the home
+    // tab's venue list, so the list's "Retry" can refetch the strip too.
+    return BlocProvider<CategoryFilterBloc>(
+      create: (_) =>
+          CategoryFilterBloc(GetCategoryFilterUseCase(PublicRepositoryImpl()))
+            ..add(const FetchCategoryFilterEvent()),
+      child: _buildScaffold(context),
+    );
+  }
+
+  Widget _buildScaffold(BuildContext context) {
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: LightColor.background,
@@ -256,10 +257,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
               final bool isDashboardOnTop =
                   ModalRoute.of(context)?.isCurrent ?? false;
               if (!isDashboardOnTop) return;
+              final String? futsalSlug = state.profile!.data.futsalSlug;
               context.pushNamed(
                 AppRouterParams.vendorStepper.name,
                 queryParameters: {
                   'futsalId': state.profile!.data.futsalId.toString(),
+                  if (futsalSlug != null && futsalSlug.isNotEmpty)
+                    'futsalSlug': futsalSlug,
                   'mainStep': state.profile!.data.mainStep.toString(),
                   'subStep': state.profile!.data.subStep.toString(),
                 },
@@ -318,16 +322,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
               return Stack(
                 fit: StackFit.expand,
                 children: <Widget>[
-                  SingleChildScrollView(
-                    child: Container(
-                      height: math.max(
-                        0,
-                        MediaQuery.of(context).size.height - AppDimens.sizeX24,
-                      ),
+                  // The shell fills the viewport exactly. It used to be a
+                  // SingleChildScrollView around a box a whole `sizeX24`
+                  // taller than the screen, which did two bad things: it put
+                  // the bottom of every tab below the fold (under the
+                  // navigation bar), and it wrapped every tab's vertical list
+                  // in a second vertical scrollable — two of them competing
+                  // for the same drag, which is how a pull-to-refresh ends up
+                  // stranded.
+                  DecoratedBox(
+                    decoration: _shellGradient,
+                    child: Padding(
                       padding: const EdgeInsets.only(
                         bottom: AppDimens.paddingX10,
                       ),
-                      decoration: _shellGradient,
                       child: _buildContent(selectedNavIndex),
                     ),
                   ),
@@ -458,6 +466,43 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ],
           ),
         ),
+      ],
+    );
+  }
+}
+
+/// The home tab's greeting line: "Good evening, Dilli 👋" with the
+/// notification button beside it.
+///
+/// The greeting is [Expanded] and ellipsised. Read as a bare `Text` it is
+/// wider than a 320pt screen once the button and the page insets are taken
+/// out — a long first name, a longer greeting at a large text scale, or both,
+/// overflowed the row.
+class HomeGreeting extends StatelessWidget {
+  const HomeGreeting({super.key, required this.text, required this.trailing});
+
+  final String text;
+  final Widget trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: <Widget>[
+        Expanded(
+          child: Text(
+            text,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: FutsalTheme.getTextTheme(context).bodyTextLarge?.copyWith(
+              fontSize: AppDimens.fontBodyTextLarge,
+              fontWeight: FontWeight.w600,
+              color: LightColor.primaryTextColor,
+            ),
+          ),
+        ),
+        const SizedBox(width: AppDimens.paddingX8),
+        trailing,
       ],
     );
   }

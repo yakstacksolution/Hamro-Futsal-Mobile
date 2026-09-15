@@ -11,8 +11,9 @@ import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/app_utils.dart';
 import 'package:hamro_futsal/core/utils/custom_image_view.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
-import 'package:hamro_futsal/core/utils/image_constants.dart';
 import 'package:hamro_futsal/core/widgets/custom_button.dart';
+import 'package:hamro_futsal/core/utils/currency.dart';
+import 'package:hamro_futsal/core/widgets/data_card.dart';
 import 'package:hamro_futsal/core/widgets/loading_widget.dart';
 import 'package:hamro_futsal/features/courts/data/model/venue_court_model.dart';
 import 'package:hamro_futsal/features/courts/data/repositories/venue_court_repository_impl.dart';
@@ -26,12 +27,17 @@ import 'package:hamro_futsal/features/vendor/data/repositories/vendor_onboarding
 import 'package:hamro_futsal/features/vendor/data/vendor_draft_repository.dart';
 import 'package:hamro_futsal/features/vendor/domain/usecase/vendor_onboarding_usecase.dart';
 import 'package:hamro_futsal/features/vendor/presentation/bloc/vendor_onboarding_cubit/vendor_onboarding_cubit.dart';
+import 'package:hamro_futsal/features/courts/domain/model/venue_court_purpose.dart';
 import 'package:hamro_futsal/features/vendor/presentation/models/vendor_onboarding_drafts.dart';
 import 'package:hamro_futsal/features/vendor/presentation/widgets/vendor_onboarding/vendor_court_manager.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 class VenueCourtsListPage extends StatefulWidget {
-  const VenueCourtsListPage({super.key});
+  const VenueCourtsListPage({super.key, this.bloc});
+
+  /// Bloc to render from. Only for tests — in the app the page owns its own,
+  /// built on the real repository, and closes it again on the way out.
+  final VenueCourtBloc? bloc;
 
   @override
   State<VenueCourtsListPage> createState() => _VenueCourtsListPageState();
@@ -40,20 +46,26 @@ class VenueCourtsListPage extends StatefulWidget {
 class _VenueCourtsListPageState extends State<VenueCourtsListPage> {
   final TextEditingController _searchController = TextEditingController();
   late final VenueCourtBloc _venueCourtBloc;
-  _VenueFilter _selectedFilter = _VenueFilter.all;
+  late final bool _ownsBloc;
 
   @override
   void initState() {
     super.initState();
-    _venueCourtBloc = VenueCourtBloc(
-      GetVenueCourtUseCase(VenueCourtRepositoryImpl()),
-    )..add(const FetchVenueCourtEvent());
+    _ownsBloc = widget.bloc == null;
+    _venueCourtBloc =
+        widget.bloc ??
+        (VenueCourtBloc(
+          GetVenueCourtUseCase(VenueCourtRepositoryImpl()),
+          // This page is the vendor's own portfolio, so it asks for everything
+          // they own — inactive and half-onboarded courts included.
+          purpose: VenueCourtPurpose.myVenues,
+        )..add(const FetchVenueCourtEvent()));
   }
 
   @override
   void dispose() {
     _searchController.dispose();
-    _venueCourtBloc.close();
+    if (_ownsBloc) _venueCourtBloc.close();
     super.dispose();
   }
 
@@ -73,32 +85,14 @@ class _VenueCourtsListPageState extends State<VenueCourtsListPage> {
             builder: (BuildContext context, _) {
               final String query = _searchController.text.trim().toLowerCase();
 
-              List<_FutsalEntry> filtered = source.where((item) {
-                final bool matchesSearch = query.isEmpty
-                    ? true
-                    : item.matchesQuery(query);
+              final List<_FutsalEntry> filtered = query.isEmpty
+                  ? source
+                  : source
+                        .where((_FutsalEntry item) => item.matchesQuery(query))
+                        .toList();
 
-                final bool matchesFilter = switch (_selectedFilter) {
-                  _VenueFilter.all => true,
-                  _VenueFilter.liveOnly => item.liveCourts > 0,
-                  _VenueFilter.needsSetup =>
-                    item.liveCourts < item.courts.length,
-                };
-
-                return matchesSearch && matchesFilter;
-              }).toList();
-
-              return DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: <Color>[
-                      LightColor.background,
-                      LightColor.cardColor,
-                    ],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                  ),
-                ),
+              return ColoredBox(
+                color: LightColor.background,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
@@ -108,27 +102,16 @@ class _VenueCourtsListPageState extends State<VenueCourtsListPage> {
                         context.pushNamed(AppRouterParams.vendorStepper.name);
                       },
                     ),
-                    const SizedBox(height: AppDimens.paddingX16),
-                    _VenueSearchField(controller: _searchController),
-                    const SizedBox(height: AppDimens.paddingX14),
-                    _VenueFilterRow(
-                      stats: stats,
-                      selectedFilter: _selectedFilter,
-                      onFilterChanged: (_VenueFilter filter) {
-                        if (_selectedFilter == filter) return;
-                        setState(() => _selectedFilter = filter);
-                      },
-                    ),
                     const SizedBox(height: AppDimens.paddingX10),
+                    _VenueSearchField(controller: _searchController),
+                    const SizedBox(height: AppDimens.paddingX6),
                     Expanded(
                       child: state.status == VenueCourtStatus.loading
                           ? const VenueListLoading()
                           : _VenueListSection(
                               state: state,
                               entries: filtered,
-                              isSearching:
-                                  query.isNotEmpty ||
-                                  _selectedFilter != _VenueFilter.all,
+                              isSearching: query.isNotEmpty,
                             ),
                     ),
                   ],
@@ -210,11 +193,18 @@ Future<void> _launchCourtEditorInternal(
     ),
   );
 
-  final CourtDraft? updated = cubit.state.courts.firstOrNull;
-  if (updated != null && venueId != null) {
-    venueCourtBloc.add(
-      UpsertVenueCourtLocallyEvent(venueId: venueId, court: updated),
-    );
+  // Only a court the API actually persisted belongs in the list. Backing out
+  // of the editor leaves the seeded draft unsaved (no remote id), so the list
+  // is re-read from the server rather than merging that draft in locally.
+  final bool savedRemotely = cubit.state.courts.any(
+    (CourtDraft court) => court.remoteId != null,
+  );
+  // The editor is a whole screen: the list underneath can be disposed while it
+  // is open — a deep link, a session ending, the tab being rebuilt — and its
+  // bloc closed with it. Asking a closed bloc to refresh throws "Cannot add
+  // new events after calling close", which crashed the app on the way back.
+  if (savedRemotely && !venueCourtBloc.isClosed) {
+    venueCourtBloc.add(const FetchVenueCourtEvent(silent: true));
   }
 }
 
@@ -309,6 +299,10 @@ class _VenueListSection extends StatelessWidget {
               onEditVenue: () => context.pushNamed(
                 AppRouterParams.vendorStepper.name,
                 queryParameters: <String, String>{
+                  // The slug is what loads the venue; the id only rides along
+                  // so the update payload has it before the fetch lands.
+                  if (entry.slug != null && entry.slug!.isNotEmpty)
+                    'futsalSlug': entry.slug!,
                   if (entry.id != null) 'futsalId': entry.id.toString(),
                   'mainStep': '0',
                   'subStep': '1',
@@ -369,8 +363,6 @@ class _VenuePaginationFooter extends StatelessWidget {
   }
 }
 
-enum _VenueFilter { all, liveOnly, needsSetup }
-
 enum _VenueMenuAction {
   manageFutsal,
   addCourt,
@@ -379,7 +371,32 @@ enum _VenueMenuAction {
   deleteCourt,
 }
 
-enum _VenueApprovalStatus { pending, approved, active, inactive }
+/// The venue status badge, resolved from the API's own `status` string.
+enum _VenueApprovalStatus {
+  pending,
+  approved,
+  active,
+  inactive,
+  rejected;
+
+  /// Maps `status` from `/auth/get-venue-courts` onto a badge.
+  ///
+  /// Anything unrecognised — and the empty string a half-finished venue can
+  /// come back with — reads as [inactive], never as [approved]: claiming a
+  /// venue is approved is the one wrong answer here.
+  static _VenueApprovalStatus fromStatus(String? status) {
+    return switch (status?.trim().toLowerCase()) {
+      'active' => active,
+      'approved' => approved,
+      'pending' ||
+      'pending_approval' ||
+      'under_review' ||
+      'in_review' => pending,
+      'rejected' || 'declined' => rejected,
+      _ => inactive,
+    };
+  }
+}
 
 class _TopDashboardHeader extends StatelessWidget {
   const _TopDashboardHeader({required this.stats, required this.onAddFutsal});
@@ -390,50 +407,152 @@ class _TopDashboardHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
-    final int needsSetup = stats.courtCount - stats.liveCourtCount;
-    final String subtitle = stats.futsalCount == 0
-        ? 'Start by adding your first venue'
-        : '${stats.futsalCount} ${stats.futsalCount == 1 ? 'venue' : 'venues'}'
-              ' · ${stats.courtCount} ${stats.courtCount == 1 ? 'court' : 'courts'}'
-              '${needsSetup > 0 ? ' · $needsSetup pending setup' : ''}';
+    final int pending = stats.courtCount - stats.liveCourtCount;
 
     return Padding(
       padding: AppUtils().getPadding(
-        left: AppDimens.paddingX20,
-        right: AppDimens.paddingX20,
-        top: AppDimens.paddingX24,
+        left: AppDimens.paddingX16,
+        right: AppDimens.paddingX16,
+        top: AppDimens.paddingX14,
       ),
-      child: Row(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  StringConstants.futsalPortfolio,
-                  style: textTheme.bodyTextLarge?.copyWith(
-                    fontSize: AppDimens.fontHeadingSmall,
-                    fontWeight: FontWeight.w700,
-                    color: LightColor.primaryTextColor,
-                  ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: <Widget>[
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      StringConstants.futsalPortfolio,
+                      style: textTheme.bodyTextLarge?.copyWith(
+                        fontSize: AppDimens.fontHeadingSmall - 2,
+                        fontWeight: FontWeight.w800,
+                        color: LightColor.primaryTextColor,
+                        height: 1.1,
+                      ),
+                    ),
+                    const SizedBox(height: AppDimens.paddingX4),
+                    Text(
+                      stats.futsalCount == 0
+                          ? 'Start by adding your first venue'
+                          : 'Everything you own, at a glance',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: textTheme.bodyTextSmall?.copyWith(
+                        color: LightColor.secondaryTextColor,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: AppDimens.paddingX4),
-                Text(
-                  subtitle,
-                  style: textTheme.bodyTextSmall?.copyWith(
-                    color: LightColor.secondaryTextColor,
-                  ),
+              ),
+              const SizedBox(width: AppDimens.paddingX10),
+              _AddFutsalButton(onTap: onAddFutsal),
+            ],
+          ),
+          const SizedBox(height: AppDimens.paddingX14),
+          // The four numbers a vendor actually manages this screen by. Read as
+          // one strip so they can be compared at a glance rather than hunted
+          // for in each card.
+          DataCard(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: <Widget>[
+                _PortfolioMetric(
+                  label: 'Venues',
+                  value: stats.futsalCount,
+                  color: LightColor.brandTextColor,
+                ),
+                const _MetricSeparator(),
+                _PortfolioMetric(
+                  label: 'Courts',
+                  value: stats.courtCount,
+                  color: LightColor.primaryTextColor,
+                ),
+                const _MetricSeparator(),
+                _PortfolioMetric(
+                  label: 'Live',
+                  value: stats.liveCourtCount,
+                  color: LightColor.secondaryColor,
+                ),
+                const _MetricSeparator(),
+                _PortfolioMetric(
+                  label: 'Pending',
+                  value: pending,
+                  color: pending > 0
+                      ? LightColor.warningColor
+                      : LightColor.secondaryTextColor,
                 ),
               ],
             ),
           ),
-          const SizedBox(width: AppDimens.paddingX10),
-          _AddFutsalButton(onTap: onAddFutsal),
         ],
       ),
     );
   }
+}
+
+/// One figure in the portfolio strip: the number first, its name beneath.
+class _PortfolioMetric extends StatelessWidget {
+  const _PortfolioMetric({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  final String label;
+  final int value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    return Expanded(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Text(
+            '$value',
+            maxLines: 1,
+            style: textTheme.bodyTextLarge?.copyWith(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: color,
+              height: 1.1,
+              fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label.toUpperCase(),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: textTheme.bodyTextSmall?.copyWith(
+              fontSize: AppDimens.fontBodySubTitle,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.6,
+              color: LightColor.secondaryTextColor,
+              height: 1.2,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MetricSeparator extends StatelessWidget {
+  const _MetricSeparator();
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: 1,
+    height: AppDimens.sizeX32,
+    margin: const EdgeInsets.symmetric(horizontal: AppDimens.paddingX6),
+    color: LightColor.dividerColor,
+  );
 }
 
 class _AddFutsalButton extends StatelessWidget {
@@ -508,9 +627,9 @@ class _VenueSearchFieldState extends State<_VenueSearchField> {
     final bool hasText = widget.controller.text.isNotEmpty;
 
     return Padding(
-      padding: AppUtils().getPadding(symmetricHorizontal: AppDimens.paddingX20),
+      padding: AppUtils().getPadding(symmetricHorizontal: AppDimens.paddingX16),
       child: Container(
-        height: AppDimens.sizeX52,
+        height: AppDimens.sizeX44,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(AppDimens.radiusX6),
           boxShadow: <BoxShadow>[
@@ -605,136 +724,6 @@ class _VenueSearchFieldState extends State<_VenueSearchField> {
   }
 }
 
-class _VenueFilterRow extends StatelessWidget {
-  const _VenueFilterRow({
-    required this.stats,
-    required this.selectedFilter,
-    required this.onFilterChanged,
-  });
-
-  final _PortfolioStats stats;
-  final _VenueFilter selectedFilter;
-  final ValueChanged<_VenueFilter> onFilterChanged;
-
-  int _countFor(_VenueFilter filter) {
-    switch (filter) {
-      case _VenueFilter.all:
-        return stats.futsalCount;
-      case _VenueFilter.liveOnly:
-        return stats.liveCourtCount;
-      case _VenueFilter.needsSetup:
-        return stats.courtCount - stats.liveCourtCount;
-    }
-  }
-
-  String _labelFor(_VenueFilter filter) {
-    switch (filter) {
-      case _VenueFilter.all:
-        return 'All';
-      case _VenueFilter.liveOnly:
-        return 'Live';
-      case _VenueFilter.needsSetup:
-        return 'Needs Setup';
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: AppDimens.sizeX32,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        padding: AppUtils().getPadding(
-          symmetricHorizontal: AppDimens.paddingX20,
-        ),
-        itemCount: _VenueFilter.values.length,
-        separatorBuilder: (_, __) => const SizedBox(width: AppDimens.paddingX8),
-        itemBuilder: (BuildContext context, int index) {
-          final _VenueFilter filter = _VenueFilter.values[index];
-          return _VenueFilterChip(
-            label: _labelFor(filter),
-            count: _countFor(filter),
-            isSelected: selectedFilter == filter,
-            onTap: () => onFilterChanged(filter),
-          );
-        },
-      ),
-    );
-  }
-}
-
-class _VenueFilterChip extends StatelessWidget {
-  const _VenueFilterChip({
-    required this.label,
-    required this.count,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  final String label;
-  final int count;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = FutsalTheme.getTextTheme(context);
-
-    return Material(
-      color: Colors.transparent,
-      borderRadius: BorderRadius.circular(AppDimens.radiusX20),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppDimens.radiusX20),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          curve: Curves.easeOut,
-          alignment: Alignment.center,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-          decoration: BoxDecoration(
-            color: isSelected ? LightColor.secondaryColor : Colors.transparent,
-            borderRadius: BorderRadius.circular(AppDimens.radiusX20),
-            border: Border.all(
-              color: isSelected
-                  ? LightColor.secondaryColor
-                  : LightColor.dividerColor,
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              Text(
-                label,
-                style: textTheme.bodyTextSmall?.copyWith(
-                  color: isSelected
-                      ? LightColor.inverseTextColor
-                      : LightColor.secondaryTextColor,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                  fontSize: AppDimens.fontBodySubTitle,
-                ),
-              ),
-              if (count > 0) ...<Widget>[
-                const SizedBox(width: AppDimens.paddingX6),
-                Text(
-                  count.toString(),
-                  style: textTheme.bodyTextSmall?.copyWith(
-                    color: isSelected
-                        ? LightColor.inverseTextColor.withValues(alpha: 0.7)
-                        : LightColor.hintTextColor,
-                    fontWeight: FontWeight.w500,
-                    fontSize: AppDimens.fontBodySubTitle,
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _VenueCardV2 extends StatefulWidget {
   const _VenueCardV2({
     required this.entry,
@@ -751,7 +740,9 @@ class _VenueCardV2 extends StatefulWidget {
 }
 
 class _VenueCardV2State extends State<_VenueCardV2> {
-  bool _expandedCourts = true;
+  /// Starts open only when there is something to show — a venue with no courts
+  /// would otherwise open onto nothing but the empty hint.
+  late bool _expandedCourts = widget.entry.courts.isNotEmpty;
 
   void _handleMenuAction(_VenueMenuAction action) {
     switch (action) {
@@ -770,308 +761,336 @@ class _VenueCardV2State extends State<_VenueCardV2> {
 
   @override
   Widget build(BuildContext context) {
-    final AppUtils appUtils = AppUtils();
     final textTheme = FutsalTheme.getTextTheme(context);
     final double? startPrice = widget.entry.startingPrice;
-    final String address = widget.entry.address.isEmpty
-        ? 'Address not available'
-        : widget.entry.address;
     final int liveCourts = widget.entry.liveCourts;
     final int totalCourts = widget.entry.courts.length;
-
-    final bool needsAttention = liveCourts < totalCourts || totalCourts == 0;
+    final int pendingCourts = totalCourts - liveCourts;
+    final String address = widget.entry.address.trim();
+    final String phone = widget.entry.phone.trim();
 
     return Container(
       decoration: BoxDecoration(
-        color: LightColor.cardColor,
+        color: LightColor.whiteColor,
         borderRadius: BorderRadius.circular(AppDimens.radiusX14),
-        border: Border.all(
-          color: needsAttention
-              ? LightColor.secondaryColor.withValues(alpha: 0.18)
-              : LightColor.dividerColor,
-          width: 1,
-        ),
+        border: Border.all(color: LightColor.dividerColor),
         boxShadow: <BoxShadow>[
           BoxShadow(
-            color: LightColor.shadowColor,
-            blurRadius: 10,
-            offset: Offset(0, 2),
+            color: LightColor.shadowColor.withValues(alpha: 0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
-      child: Stack(
-        children: [
-          Column(
-            children: <Widget>[
-              Padding(
-                padding: appUtils.getPadding(
-                  left: AppDimens.paddingX14,
-                  top: AppDimens.paddingX14,
-                  right: AppDimens.paddingX14,
-                  bottom: AppDimens.paddingX10,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        SizedBox(
-                          width: AppDimens.sizeX50,
-                          height: AppDimens.sizeX50,
-                          child: CustomImageView(
-                            fit: BoxFit.cover,
-                            radius: BorderRadius.circular(AppDimens.radiusX10),
-                            url: widget.entry.imageUrl,
-                          ),
-                        ),
-                        const SizedBox(width: AppDimens.paddingX12),
-                        Expanded(
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: <Widget>[
-                                    Text(
-                                      widget.entry.title,
-                                      style: textTheme.bodyTextMedium?.copyWith(
-                                        fontWeight: FontWeight.w600,
-                                        color: LightColor.primaryTextColor,
-                                      ),
-                                    ),
-                                    const SizedBox(height: AppDimens.sizeX4),
-                                    Row(
-                                      children: <Widget>[
-                                        CustomImageView(
-                                          imagePath:
-                                              ImageConstants.locationIcon,
-                                          height: AppDimens.sizeX14,
-                                          width: AppDimens.sizeX14,
-                                          fit: BoxFit.contain,
-                                          color: LightColor.secondaryTextColor,
-                                        ),
-                                        const SizedBox(width: AppDimens.sizeX4),
-                                        Expanded(
-                                          child: Text(
-                                            address,
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: textTheme.bodySubTitle
-                                                ?.copyWith(
-                                                  color: LightColor
-                                                      .secondaryTextColor,
-                                                  fontWeight: FontWeight.w500,
-                                                ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(AppDimens.radiusX14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppDimens.paddingX12,
+                AppDimens.paddingX12,
+                AppDimens.paddingX8,
+                AppDimens.paddingX12,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      _VenueCover(url: widget.entry.imageUrl ?? ''),
+                      const SizedBox(width: AppDimens.paddingX12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: <Widget>[
+                            Text(
+                              widget.entry.title,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: textTheme.bodyTextMedium?.copyWith(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                height: 1.25,
+                                color: LightColor.primaryTextColor,
                               ),
-                              PopupMenuButton<_VenueMenuAction>(
-                                padding: EdgeInsets.zero,
-                                menuPadding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(),
-                                tooltip: StringConstants.venueActions,
-                                color: LightColor.whiteColor,
-                                surfaceTintColor: LightColor.whiteColor,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(
-                                    AppDimens.radiusX10,
-                                  ),
-                                ),
-                                onSelected: _handleMenuAction,
-                                itemBuilder: (BuildContext context) => [
-                                  PopupMenuItem<_VenueMenuAction>(
-                                    value: _VenueMenuAction.manageFutsal,
-                                    child: Row(
-                                      children: <Widget>[
-                                        Icon(
-                                          Icons.edit_outlined,
-                                          size: AppDimens.sizeX18,
-                                          color: LightColor.primaryTextColor,
-                                        ),
-                                        const SizedBox(
-                                          width: AppDimens.sizeX10,
-                                        ),
-                                        Text(
-                                          StringConstants.manageFutsal,
-                                          style: textTheme.bodyTextSmall
-                                              ?.copyWith(
-                                                fontWeight: FontWeight.w600,
-                                                color:
-                                                    LightColor.primaryTextColor,
-                                              ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  PopupMenuItem<_VenueMenuAction>(
-                                    value: _VenueMenuAction.addCourt,
-                                    child: Row(
-                                      children: <Widget>[
-                                        Icon(
-                                          Icons.add_circle_outline_rounded,
-                                          size: AppDimens.sizeX18,
-                                          color: LightColor.primaryTextColor,
-                                        ),
-                                        const SizedBox(
-                                          width: AppDimens.sizeX10,
-                                        ),
-                                        Text(
-                                          StringConstants.addCourt,
-                                          style: textTheme.bodyTextSmall
-                                              ?.copyWith(
-                                                fontWeight: FontWeight.w600,
-                                                color:
-                                                    LightColor.primaryTextColor,
-                                              ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-
-                                child: Icon(
-                                  Icons.more_vert_rounded,
-                                  size: AppDimens.sizeX22,
+                            ),
+                            if (address.isNotEmpty) ...<Widget>[
+                              const SizedBox(height: AppDimens.sizeX4),
+                              Text(
+                                address,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: textTheme.bodyTextSmall?.copyWith(
                                   color: LightColor.secondaryTextColor,
+                                  fontWeight: FontWeight.w500,
+                                  height: 1.3,
                                 ),
                               ),
                             ],
-                          ),
+                            if (phone.isNotEmpty) ...<Widget>[
+                              const SizedBox(height: 2),
+                              Text(
+                                phone,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: textTheme.bodyTextSmall?.copyWith(
+                                  color: LightColor.secondaryTextColor,
+                                  fontWeight: FontWeight.w500,
+                                  height: 1.3,
+                                  fontFeatures: const <FontFeature>[
+                                    FontFeature.tabularFigures(),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: AppDimens.paddingX6),
+                      _VenueMenu(onSelected: _handleMenuAction),
+                    ],
+                  ),
+                  const SizedBox(height: AppDimens.paddingX12),
+                  // Three figures on one rule beneath the header block.
+                  Padding(
+                    padding: const EdgeInsets.only(
+                      right: AppDimens.paddingX8,
+                      left: 2,
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: <Widget>[
+                        _VenueStat(
+                          label: 'Courts',
+                          value: '$totalCourts',
+                          color: LightColor.primaryTextColor,
+                        ),
+                        const _MetricSeparator(),
+                        _VenueStat(
+                          label: 'Live',
+                          value: '$liveCourts',
+                          color: liveCourts > 0
+                              ? LightColor.secondaryColor
+                              : LightColor.secondaryTextColor,
+                        ),
+                        const _MetricSeparator(),
+                        _VenueStat(
+                          label: pendingCourts > 0 ? 'Pending' : 'From',
+                          value: pendingCourts > 0
+                              ? '$pendingCourts'
+                              : startPrice == null
+                              ? '—'
+                              : Money.npr(startPrice),
+                          color: pendingCourts > 0
+                              ? LightColor.warningColor
+                              : LightColor.primaryTextColor,
+                        ),
+                        const _MetricSeparator(),
+                        // The status closes the figures row: it belongs with
+                        // the facts about the venue, not over its name.
+                        _VenueApprovalBadge(
+                          status: widget.entry.approvalStatus,
                         ),
                       ],
                     ),
-                    const SizedBox(height: AppDimens.sizeX14),
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
+                  ),
+                ],
+              ),
+            ),
+            Divider(height: 1, thickness: 1, color: LightColor.dividerColor),
+            InkWell(
+              onTap: () => setState(() => _expandedCourts = !_expandedCourts),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppDimens.paddingX12,
+                  AppDimens.paddingX10,
+                  AppDimens.paddingX12,
+                  AppDimens.paddingX10,
+                ),
+                child: Row(
+                  children: <Widget>[
+                    Icon(
+                      Icons.sports_soccer_rounded,
+                      size: AppDimens.sizeX16,
+                      color: LightColor.secondaryTextColor,
+                    ),
+                    const SizedBox(width: AppDimens.sizeX6),
+                    Expanded(
                       child: Row(
                         children: <Widget>[
-                          _InfoTag(
-                            icon: Icons.grid_view_rounded,
-                            label: '$totalCourts Courts',
-                            color: LightColor.brandTextColor,
-                          ),
-                          const SizedBox(width: AppDimens.sizeX8),
-                          _InfoTag(
-                            icon: Icons.check_circle_rounded,
-                            label: '$liveCourts Live',
-                            color: LightColor.secondaryColor,
-                          ),
-                          const SizedBox(width: AppDimens.sizeX8),
-                          if (startPrice != null)
-                            _InfoTag(
-                              icon: Icons.sell_outlined,
-                              label: 'From Rs ${startPrice.toStringAsFixed(0)}',
-                              color: LightColor.ratingColor,
-                            ),
-                          if (widget.entry.phone.isNotEmpty) ...<Widget>[
-                            const SizedBox(width: AppDimens.sizeX8),
-                            _InfoTag(
-                              icon: Icons.call_outlined,
-                              label: widget.entry.phone,
-                              color: LightColor.secondaryColor,
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: AppDimens.sizeX14),
-                  ],
-                ),
-              ),
-              Divider(height: 1, thickness: 1, color: LightColor.dividerColor),
-              GestureDetector(
-                onTap: () {
-                  setState(() => _expandedCourts = !_expandedCourts);
-                },
-                child: Padding(
-                  padding: appUtils.getPadding(
-                    symmetricHorizontal: AppDimens.paddingX16,
-                    symmetricVertical: AppDimens.paddingX12,
-                    // top: AppDimens.paddingX12,
-                    // bottom: AppDimens.paddingX14,
-                  ),
-                  child: Row(
-                    children: <Widget>[
-                      Icon(
-                        Icons.sports_soccer_rounded,
-                        size: AppDimens.sizeX20,
-                        color: LightColor.secondaryTextColor,
-                      ),
-                      const SizedBox(width: AppDimens.sizeX6),
-                      Expanded(
-                        child: Text(
-                          'Courts Inventory ($totalCourts)',
-                          style: textTheme.bodyTextSmall?.copyWith(
-                            color: LightColor.primaryTextColor,
-                          ),
-                        ),
-                      ),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: LightColor.inputFillColor,
-                          borderRadius: BorderRadius.circular(
-                            AppDimens.radiusX4,
-                          ),
-                        ),
-                        padding: appUtils.getPadding(all: AppDimens.paddingX4),
-                        child: Icon(
-                          _expandedCourts
-                              ? Icons.expand_less_rounded
-                              : Icons.expand_more_rounded,
-                          size: AppDimens.sizeX18,
-                          color: LightColor.secondaryTextColor,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              if (_expandedCourts)
-                Padding(
-                  padding: appUtils.getPadding(
-                    left: AppDimens.paddingX16,
-                    right: AppDimens.paddingX16,
-                    bottom: AppDimens.paddingX16,
-                  ),
-                  child: Column(
-                    children: <Widget>[
-                      if (widget.entry.courts.isEmpty)
-                        const _CourtEmptyHintV2()
-                      else
-                        ...List<Widget>.generate(
-                          widget.entry.courts.length,
-                          (int index) => Padding(
-                            padding: appUtils.getPadding(
-                              bottom: index == widget.entry.courts.length - 1
-                                  ? 0
-                                  : AppDimens.paddingX10,
-                            ),
-                            child: _CourtRowV2(
-                              court: widget.entry.courts[index],
-                              index: index + 1,
-                              venueId: widget.entry.id,
-                              onManageCourt: () => _launchCourtEditor(
-                                context,
-                                venueId: widget.entry.id,
-                                court: widget.entry.courts[index],
+                          Flexible(
+                            child: Text(
+                              'Courts',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: textTheme.bodyTextSmall?.copyWith(
+                                fontWeight: FontWeight.w700,
+                                color: LightColor.primaryTextColor,
                               ),
                             ),
                           ),
-                        ),
-                    ],
-                  ),
+                          const SizedBox(width: AppDimens.sizeX6),
+                          CountBadge(
+                            count: '$totalCourts',
+                            background: LightColor.secondaryColor.withValues(
+                              alpha: 0.12,
+                            ),
+                            foreground: LightColor.secondaryColor,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: AppDimens.sizeX8),
+                    Text(
+                      _expandedCourts ? 'Hide' : 'Show',
+                      maxLines: 1,
+                      style: textTheme.bodyTextSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: LightColor.secondaryColor,
+                      ),
+                    ),
+                    const SizedBox(width: 2),
+                    AnimatedRotation(
+                      duration: const Duration(milliseconds: 180),
+                      turns: _expandedCourts ? 0.5 : 0,
+                      child: Icon(
+                        Icons.expand_more_rounded,
+                        size: AppDimens.sizeX18,
+                        color: LightColor.secondaryColor,
+                      ),
+                    ),
+                  ],
                 ),
-            ],
+              ),
+            ),
+            if (_expandedCourts)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppDimens.paddingX12,
+                  0,
+                  AppDimens.paddingX12,
+                  AppDimens.paddingX12,
+                ),
+                child: widget.entry.courts.isEmpty
+                    ? _CourtEmptyHintV2(onTap: widget.onAddCourt)
+                    : Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: <Widget>[
+                          for (
+                            int index = 0;
+                            index < widget.entry.courts.length;
+                            index++
+                          )
+                            Padding(
+                              padding: EdgeInsets.only(
+                                bottom: index == widget.entry.courts.length - 1
+                                    ? 0
+                                    : AppDimens.paddingX10,
+                              ),
+                              child: _CourtRowV2(
+                                court: widget.entry.courts[index],
+                                index: index + 1,
+                                venueId: widget.entry.id,
+                                onManageCourt: () => _launchCourtEditor(
+                                  context,
+                                  venueId: widget.entry.id,
+                                  court: widget.entry.courts[index],
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The venue's photo at the head of the card, or a neutral placeholder glyph
+/// when it has none.
+class _VenueCover extends StatelessWidget {
+  const _VenueCover({required this.url});
+
+  final String url;
+
+  @override
+  Widget build(BuildContext context) {
+    final BorderRadius radius = BorderRadius.circular(AppDimens.radiusX10);
+    return Container(
+      width: AppDimens.sizeX60,
+      height: AppDimens.sizeX60,
+      decoration: BoxDecoration(
+        color: LightColor.secondaryColor.withValues(alpha: 0.08),
+        borderRadius: radius,
+        border: Border.all(color: LightColor.dividerColor),
+      ),
+      child: url.trim().isEmpty
+          ? Icon(
+              Icons.stadium_outlined,
+              size: AppDimens.sizeX26,
+              color: LightColor.secondaryColor.withValues(alpha: 0.5),
+            )
+          : ClipRRect(
+              borderRadius: radius,
+              child: CustomImageView(fit: BoxFit.cover, url: url),
+            ),
+    );
+  }
+}
+
+/// One figure on a venue card: value above, its name beneath, so the three
+/// read as a single measured row.
+class _VenueStat extends StatelessWidget {
+  const _VenueStat({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  final String label;
+  final String value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Text(
+            label.toUpperCase(),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: textTheme.bodyTextSmall?.copyWith(
+              fontSize: AppDimens.fontBodySubTitle,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.6,
+              height: 1.2,
+              color: LightColor.secondaryTextColor,
+            ),
           ),
-          Positioned(
-            top: 0,
-            right: 0,
-            child: _VenueApprovalBadge(status: widget.entry.approvalStatus),
+          const SizedBox(height: 2),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: textTheme.bodyTextSmall?.copyWith(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              height: 1.2,
+              color: color,
+              fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
+            ),
           ),
         ],
       ),
@@ -1079,45 +1098,71 @@ class _VenueCardV2State extends State<_VenueCardV2> {
   }
 }
 
-class _InfoTag extends StatelessWidget {
-  const _InfoTag({
-    required this.icon,
-    required this.label,
-    required this.color,
-  });
+/// The venue card's overflow menu — manage the venue, or add a court to it.
+class _VenueMenu extends StatelessWidget {
+  const _VenueMenu({required this.onSelected});
 
-  final IconData icon;
-  final String label;
-  final Color color;
+  final ValueChanged<_VenueMenuAction> onSelected;
 
   @override
   Widget build(BuildContext context) {
-    final AppUtils appUtils = AppUtils();
     final textTheme = FutsalTheme.getTextTheme(context);
-    return Container(
-      padding: appUtils.getPadding(
-        symmetricHorizontal: AppDimens.paddingX8,
-        symmetricVertical: AppDimens.paddingX4,
-      ),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(AppDimens.radiusX4),
-        border: Border.all(color: color.withValues(alpha: 0.18)),
-      ),
+
+    PopupMenuItem<_VenueMenuAction> item(
+      _VenueMenuAction value,
+      IconData icon,
+      String label,
+    ) => PopupMenuItem<_VenueMenuAction>(
+      value: value,
       child: Row(
-        mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          Icon(icon, size: AppDimens.sizeX14, color: color),
-          const SizedBox(width: 4),
+          Icon(
+            icon,
+            size: AppDimens.sizeX18,
+            color: LightColor.primaryTextColor,
+          ),
+          const SizedBox(width: AppDimens.sizeX10),
           Text(
             label,
             style: textTheme.bodyTextSmall?.copyWith(
-              fontWeight: FontWeight.w400,
-              color: color,
-              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              color: LightColor.primaryTextColor,
             ),
           ),
         ],
+      ),
+    );
+
+    return PopupMenuButton<_VenueMenuAction>(
+      padding: EdgeInsets.zero,
+      menuPadding: EdgeInsets.zero,
+      constraints: const BoxConstraints(),
+      tooltip: StringConstants.venueActions,
+      color: LightColor.whiteColor,
+      surfaceTintColor: LightColor.whiteColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+      ),
+      onSelected: onSelected,
+      itemBuilder: (BuildContext context) => <PopupMenuEntry<_VenueMenuAction>>[
+        item(
+          _VenueMenuAction.manageFutsal,
+          Icons.edit_outlined,
+          StringConstants.manageFutsal,
+        ),
+        item(
+          _VenueMenuAction.addCourt,
+          Icons.add_circle_outline_rounded,
+          StringConstants.addCourt,
+        ),
+      ],
+      child: Padding(
+        padding: const EdgeInsets.only(left: 2, top: 1),
+        child: Icon(
+          Icons.more_vert_rounded,
+          size: AppDimens.sizeX20,
+          color: LightColor.secondaryTextColor,
+        ),
       ),
     );
   }
@@ -1130,97 +1175,102 @@ class _VenueApprovalBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final AppUtils appUtils = AppUtils();
-    final textTheme = FutsalTheme.getTextTheme(context);
-    final ({String label, Color background, Color foreground}) config =
+    // Tinted, not solid: the status is a label on the card, not a banner
+    // competing with the venue's own name for attention.
+    final ({String label, IconData icon, Color color}) config =
         switch (status) {
           _VenueApprovalStatus.approved => (
             label: StringConstants.approved,
-            background: LightColor.secondaryColor,
-            foreground: LightColor.inverseTextColor,
-          ),
-          _VenueApprovalStatus.pending => (
-            label: StringConstants.pending,
-            background: LightColor.ratingColor.withValues(alpha: 0.20),
-            foreground: LightColor.onWarningLightColor,
+            icon: Icons.verified_rounded,
+            color: LightColor.secondaryColor,
           ),
           _VenueApprovalStatus.active => (
             label: StringConstants.active,
-            background: LightColor.secondaryColor,
-            foreground: LightColor.inverseTextColor,
+            icon: Icons.check_circle_rounded,
+            color: LightColor.secondaryColor,
+          ),
+          _VenueApprovalStatus.pending => (
+            label: StringConstants.pending,
+            icon: Icons.schedule_rounded,
+            color: LightColor.warningColor,
           ),
           _VenueApprovalStatus.inactive => (
             label: StringConstants.inactive,
-            background: LightColor.redColor,
-            foreground: LightColor.inverseTextColor,
+            icon: Icons.pause_circle_outline_rounded,
+            color: LightColor.secondaryTextColor,
+          ),
+          _VenueApprovalStatus.rejected => (
+            label: StringConstants.rejected,
+            icon: Icons.cancel_rounded,
+            color: LightColor.redColor,
           ),
         };
 
-    return Container(
-      padding: appUtils.getPadding(
-        symmetricHorizontal: AppDimens.paddingX10,
-        symmetricVertical: AppDimens.paddingX1,
-      ),
-      decoration: BoxDecoration(
-        color: config.background,
-        borderRadius: const BorderRadius.only(
-          bottomLeft: Radius.circular(AppDimens.radiusX14),
-          topRight: Radius.circular(AppDimens.radiusX14),
-        ),
-      ),
-      child: Text(
-        config.label,
-        style: textTheme.bodySubTitle?.copyWith(
-          fontWeight: FontWeight.w400,
-          fontSize: AppDimens.fontBodyMiniSubTitle,
-          color: config.foreground,
-        ),
-      ),
+    return _StatusChip(
+      icon: config.icon,
+      label: config.label,
+      color: config.color,
     );
   }
 }
 
 class _CourtEmptyHintV2 extends StatelessWidget {
-  const _CourtEmptyHintV2();
+  const _CourtEmptyHintV2({required this.onTap});
+
+  /// The hint is the only thing in an empty venue card's court list, so the
+  /// whole row doubles as the add-court button rather than making the user
+  /// hunt for the action in the card's overflow menu.
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final AppUtils appUtils = AppUtils();
     final textTheme = FutsalTheme.getTextTheme(context);
-    return Container(
-      width: double.infinity,
-      padding: appUtils.getPadding(all: AppDimens.paddingX18),
-      decoration: BoxDecoration(
-        color: LightColor.inputFillColor,
-        borderRadius: BorderRadius.circular(AppDimens.radiusX8),
-        border: Border.all(color: LightColor.iconGrey.withValues(alpha: 0.4)),
-      ),
-      child: Column(
-        children: <Widget>[
-          Icon(
-            Icons.add_circle_outline_rounded,
-            size: AppDimens.sizeX32,
-            color: LightColor.secondaryTextColor.withValues(alpha: 0.4),
+    final BorderRadius radius = BorderRadius.circular(AppDimens.radiusX8);
+
+    // One row, the same height as a court row: an empty venue should not open
+    // onto a panel three times taller than a venue with courts in it.
+    return Material(
+      color: LightColor.secondaryColor.withValues(alpha: 0.06),
+      borderRadius: radius,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: radius,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppDimens.paddingX10,
+            vertical: AppDimens.paddingX14,
           ),
-          const SizedBox(height: 8),
-          Text(
-            StringConstants.noCourtsAddedYet,
-            style: textTheme.bodyTextMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-              color: LightColor.secondaryTextColor,
-            ),
+          child: Row(
+            children: <Widget>[
+              Icon(
+                Icons.add_circle_outline_rounded,
+                size: AppDimens.sizeX20,
+                color: LightColor.secondaryColor,
+              ),
+              const SizedBox(width: AppDimens.sizeX8),
+              Expanded(
+                child: Text(
+                  StringConstants.noCourtsAddedYet,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: textTheme.bodyTextSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: LightColor.primaryTextColor,
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppDimens.sizeX8),
+              Text(
+                StringConstants.addCourt,
+                maxLines: 1,
+                style: textTheme.bodyTextSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: LightColor.secondaryColor,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 4),
-          Text(
-            StringConstants.addYourFirstCourtAndStartAcceptingBookings,
-            textAlign: TextAlign.center,
-            style: textTheme.bodyTextMedium?.copyWith(
-              fontWeight: FontWeight.w400,
-              color: LightColor.secondaryTextColor.withValues(alpha: 0.72),
-              height: 1.5,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -1252,9 +1302,9 @@ class _CourtRowV2 extends StatelessWidget {
         onConfirm: () async {
           final int? courtId = court.remoteId ?? int.tryParse(court.id);
           if (courtId == null) {
-            bloc.add(
-              RemoveVenueCourtLocallyEvent(venueId: venueId, court: court),
-            );
+            if (!bloc.isClosed) {
+              bloc.add(const FetchVenueCourtEvent(silent: true));
+            }
             return null;
           }
           final Either<AppException, Unit> result = await GetVenueCourtUseCase(
@@ -1263,9 +1313,11 @@ class _CourtRowV2 extends StatelessWidget {
           return result.fold((AppException failure) => failure.errorMessage, (
             _,
           ) {
-            bloc.add(
-              RemoveVenueCourtLocallyEvent(venueId: venueId, court: court),
-            );
+            // The delete round-trip outlives the dialog if the list is torn
+            // down mid-flight.
+            if (!bloc.isClosed) {
+              bloc.add(const FetchVenueCourtEvent(silent: true));
+            }
             return null;
           });
         },
@@ -1312,19 +1364,8 @@ class _CourtRowV2 extends StatelessWidget {
         messenger.showSnackBar(SnackBar(content: Text(failure.errorMessage)));
       },
       (_) {
-        final int? resolvedVenueId = venueId ?? court.venueId;
-        if (resolvedVenueId == null) {
-          bloc.add(const FetchVenueCourtEvent());
-        } else {
-          bloc.add(
-            UpsertVenueCourtLocallyEvent(
-              venueId: resolvedVenueId,
-              court: court.copyWith(
-                status: nextStatus,
-                enableOnlineBooking: !currentlyActive,
-              ),
-            ),
-          );
+        if (!bloc.isClosed) {
+          bloc.add(const FetchVenueCourtEvent(silent: true));
         }
         AppUtils().showSnackBar(
           context,
@@ -1337,247 +1378,144 @@ class _CourtRowV2 extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final AppUtils appUtils = AppUtils();
     final textTheme = FutsalTheme.getTextTheme(context);
     final String name = court.name.trim().isEmpty
         ? 'Court $index'
         : court.name.trim();
     final String type = (court.courtType ?? '').trim();
     final String matchFormat = (court.matchFormat ?? '').trim();
-    final List<String> courtDetails = <String>[
-      type,
-      matchFormat,
-    ].where((String detail) => detail.isNotEmpty).toList(growable: false);
-    final String basePriceLabel = court.basePrice == null
-        ? ''
-        : 'Base Price: Rs ${court.basePrice!.toStringAsFixed(0)}';
-    final String courtDetailsLabel = <String>[
-      courtDetails.join(' • '),
-      basePriceLabel,
-    ].where((String detail) => detail.isNotEmpty).join(' || ');
-    final bool isLive = _isCourtActive(court);
     final String photoUrl = court.photos
         .map((UploadRef photo) => (photo.remoteUrl ?? '').trim())
         .firstWhere((String url) => url.isNotEmpty, orElse: () => '');
+    final bool isLive = _isCourtActive(court);
 
-    final Color iconBg = isLive
-        ? LightColor.secondarySoft
-        : LightColor.warningLightColor;
+    final String meta = <String>[
+      matchFormat,
+      type,
+      if (court.maxPlayers != null) '${court.maxPlayers} players',
+    ].where((String detail) => detail.isNotEmpty).join('  ·  ');
 
     return Container(
-      padding: appUtils.getPadding(
-        symmetricHorizontal: AppDimens.paddingX10,
-        symmetricVertical: AppDimens.paddingX10,
-      ),
+      padding: const EdgeInsets.all(AppDimens.paddingX10),
       decoration: BoxDecoration(
         color: LightColor.whiteColor,
         borderRadius: BorderRadius.circular(AppDimens.radiusX10),
         border: Border.all(color: LightColor.dividerColor),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          Container(
-            width: AppDimens.sizeX72,
-            height: AppDimens.sizeX72,
-            decoration: BoxDecoration(
-              color: iconBg,
-              borderRadius: BorderRadius.circular(AppDimens.radiusX8),
-            ),
-
-            child: SizedBox(
-              width: AppDimens.sizeX50,
-              height: AppDimens.sizeX50,
-              child: CustomImageView(
-                fit: BoxFit.cover,
-                radius: BorderRadius.circular(AppDimens.radiusX6),
-                url: photoUrl.isEmpty ? null : photoUrl,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
+          // Row one: who the court is. The menu holds the card's top-right
+          // corner rather than floating beside the name.
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              _CourtThumb(url: photoUrl, isLive: isLive),
+              const SizedBox(width: AppDimens.paddingX10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          Text(
-                            name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: textTheme.bodyTextSmall?.copyWith(
-                              fontWeight: FontWeight.w600,
-                              color: LightColor.primaryTextColor,
-                            ),
-                          ),
-                          if (courtDetailsLabel.isNotEmpty) ...<Widget>[
-                            const SizedBox(height: AppDimens.sizeX4),
-                            Text(
-                              courtDetailsLabel,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: textTheme.bodySubTitle?.copyWith(
-                                fontWeight: FontWeight.w500,
-                                height: 1.2,
-                                color: LightColor.secondaryTextColor.withValues(
-                                  alpha: 0.82,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ],
+                    Text(
+                      name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: textTheme.bodyTextSmall?.copyWith(
+                        fontSize: kDataCardListTitleSize,
+                        fontWeight: FontWeight.w700,
+                        height: 1.25,
+                        color: LightColor.primaryTextColor,
                       ),
                     ),
-                    PopupMenuButton<_VenueMenuAction>(
-                      padding: EdgeInsets.zero,
-                      menuPadding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                      tooltip: StringConstants.courtActions,
-                      color: LightColor.whiteColor,
-                      surfaceTintColor: LightColor.whiteColor,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(
-                          AppDimens.radiusX10,
+                    if (meta.isNotEmpty) ...<Widget>[
+                      const SizedBox(height: 3),
+                      Text(
+                        meta,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: textTheme.bodySubTitle?.copyWith(
+                          fontWeight: FontWeight.w500,
+                          height: 1.3,
+                          color: LightColor.secondaryTextColor,
                         ),
                       ),
-                      onSelected: (action) {
-                        if (action == _VenueMenuAction.manageFutsal) {
-                          onManageCourt();
-                        } else if (action ==
-                            _VenueMenuAction.toggleCourtStatus) {
-                          unawaited(_toggleCourtStatus(context));
-                        } else if (action == _VenueMenuAction.deleteCourt) {
-                          unawaited(_confirmDeleteCourt(context));
-                        }
-                      },
-                      itemBuilder: (BuildContext context) => [
-                        PopupMenuItem<_VenueMenuAction>(
-                          value: _VenueMenuAction.manageFutsal,
-                          child: Row(
-                            children: <Widget>[
-                              Icon(
-                                Icons.edit_outlined,
-                                size: AppDimens.sizeX18,
-                                color: LightColor.primaryTextColor,
-                              ),
-                              const SizedBox(width: AppDimens.sizeX10),
-                              Text(
-                                StringConstants.manageCourt,
-                                style: textTheme.bodyTextSmall?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  color: LightColor.primaryTextColor,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        PopupMenuItem<_VenueMenuAction>(
-                          value: _VenueMenuAction.toggleCourtStatus,
-                          child: Row(
-                            children: <Widget>[
-                              Icon(
-                                isLive
-                                    ? Icons.toggle_off_outlined
-                                    : Icons.toggle_on_outlined,
-                                size: AppDimens.sizeX18,
-                                color: isLive
-                                    ? LightColor.redColor
-                                    : LightColor.secondaryColor,
-                              ),
-                              const SizedBox(width: AppDimens.sizeX10),
-                              Text(
-                                isLive ? 'Make Inactive' : 'Make Active',
-                                style: textTheme.bodyTextSmall?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  color: isLive
-                                      ? LightColor.redColor
-                                      : LightColor.secondaryColor,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        PopupMenuItem<_VenueMenuAction>(
-                          value: _VenueMenuAction.deleteCourt,
-                          child: Row(
-                            children: <Widget>[
-                              Icon(
-                                Icons.delete,
-                                size: AppDimens.sizeX18,
-                                color: LightColor.primaryTextColor,
-                              ),
-                              const SizedBox(width: AppDimens.sizeX10),
-                              Text(
-                                StringConstants.deleteCourt,
-                                style: textTheme.bodyTextSmall?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  color: LightColor.primaryTextColor,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-
-                      child: Icon(
-                        Icons.more_vert_rounded,
-                        size: AppDimens.sizeX22,
-                        color: LightColor.secondaryTextColor,
-                      ),
-                    ),
+                    ],
                   ],
                 ),
-
-                const SizedBox(height: AppDimens.sizeX8),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: <Widget>[
-                      _CourtStatusChip(
-                        icon: isLive
-                            ? Icons.check_circle_rounded
-                            : Icons.pending_actions_rounded,
-                        label: isLive ? 'Active' : 'Inactive',
-                        color: isLive
-                            ? LightColor.secondaryColor
-                            : LightColor.redColor,
+              ),
+              const SizedBox(width: AppDimens.paddingX6),
+              _CourtMenu(
+                isLive: isLive,
+                onManage: onManageCourt,
+                onToggleStatus: () => unawaited(_toggleCourtStatus(context)),
+                onDelete: () => unawaited(_confirmDeleteCourt(context)),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppDimens.sizeX10),
+          // Row two: the price anchors the left, the two standings close the
+          // right — one line, read left to right.
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: <Widget>[
+              Flexible(
+                child: Text.rich(
+                  TextSpan(
+                    children: <InlineSpan>[
+                      TextSpan(
+                        text: court.basePrice == null
+                            ? '—'
+                            : Money.npr(court.basePrice!),
+                        style: textTheme.bodyTextMedium?.copyWith(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          height: 1.2,
+                          color: LightColor.primaryTextColor,
+                          fontFeatures: const <FontFeature>[
+                            FontFeature.tabularFigures(),
+                          ],
+                        ),
                       ),
-                      if (court.advancePaymentRequired) ...<Widget>[
-                        const SizedBox(width: AppDimens.sizeX6),
-                        const _CourtStatusChip(
-                          icon: Icons.account_balance_wallet_outlined,
-                          label: StringConstants.advance,
-                          color: LightColor.secondaryColor,
+                      TextSpan(
+                        text: ' /hr',
+                        style: textTheme.bodyTextSmall?.copyWith(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          height: 1.2,
+                          color: LightColor.secondaryTextColor,
                         ),
-                      ],
-                      if (court.isPaymentRequired == true) ...<Widget>[
-                        const SizedBox(width: AppDimens.sizeX6),
-                        _CourtStatusChip(
-                          icon: Icons.payment_rounded,
-                          label: 'Online payment',
-                          color: LightColor.warningColor,
-                        ),
-                      ],
-                      if (matchFormat.isNotEmpty) ...<Widget>[
-                        const SizedBox(width: AppDimens.sizeX6),
-                        _CourtStatusChip(
-                          icon: Icons.sports_soccer_rounded,
-                          label: matchFormat,
-                          color: LightColor.brandTextColor,
-                        ),
-                      ],
+                      ),
                     ],
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(width: AppDimens.sizeX8),
+              _StatusChip(
+                icon: isLive
+                    ? Icons.check_circle_rounded
+                    : Icons.pause_circle_outline_rounded,
+                label: isLive ? 'Active' : 'Inactive',
+                color: isLive
+                    ? LightColor.secondaryColor
+                    : LightColor.secondaryTextColor,
+              ),
+              const SizedBox(width: AppDimens.sizeX6),
+              _StatusChip(
+                icon: court.advancePaymentRequired
+                    ? Icons.account_balance_wallet_outlined
+                    : Icons.money_off_csred_outlined,
+                label: court.advancePaymentRequired
+                    ? StringConstants.advance
+                    : 'No advance',
+                color: court.advancePaymentRequired
+                    ? LightColor.secondaryColor
+                    : LightColor.secondaryTextColor,
+              ),
+            ],
           ),
         ],
       ),
@@ -1585,8 +1523,11 @@ class _CourtRowV2 extends StatelessWidget {
   }
 }
 
-class _CourtStatusChip extends StatelessWidget {
-  const _CourtStatusChip({
+/// The one status chip this screen has: a tinted pill with a leading glyph.
+/// Venues and courts both wear it, so a standing reads the same wherever it
+/// appears.
+class _StatusChip extends StatelessWidget {
+  const _StatusChip({
     required this.icon,
     required this.label,
     required this.color,
@@ -1598,30 +1539,165 @@ class _CourtStatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final AppUtils appUtils = AppUtils();
     final textTheme = FutsalTheme.getTextTheme(context);
     return Container(
-      height: AppDimens.sizeX24,
-      padding: appUtils.getPadding(symmetricHorizontal: AppDimens.paddingX8),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppDimens.paddingX8,
+        vertical: 4,
+      ),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(AppDimens.radiusX4),
-        border: Border.all(color: color.withValues(alpha: 0.14)),
+        borderRadius: BorderRadius.circular(AppDimens.radiusX6),
+        border: Border.all(color: color.withValues(alpha: 0.16)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           Icon(icon, size: AppDimens.sizeX12, color: color),
           const SizedBox(width: 4),
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: textTheme.bodySubTitle?.copyWith(
+                fontWeight: FontWeight.w700,
+                height: 1.2,
+                color: color,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A court's photo, ringed in its own status colour so an inactive court is
+/// readable from the thumbnail alone.
+class _CourtThumb extends StatelessWidget {
+  const _CourtThumb({required this.url, required this.isLive});
+
+  final String url;
+  final bool isLive;
+
+  @override
+  Widget build(BuildContext context) {
+    final Color tint = isLive
+        ? LightColor.secondaryColor
+        : LightColor.secondaryTextColor;
+    final BorderRadius radius = BorderRadius.circular(AppDimens.radiusX8);
+    return Container(
+      width: AppDimens.sizeX52,
+      height: AppDimens.sizeX52,
+      decoration: BoxDecoration(
+        color: tint.withValues(alpha: 0.08),
+        borderRadius: radius,
+        border: Border.all(color: tint.withValues(alpha: 0.20)),
+      ),
+      child: url.isEmpty
+          ? Icon(
+              Icons.sports_soccer_rounded,
+              size: AppDimens.sizeX22,
+              color: tint.withValues(alpha: 0.55),
+            )
+          : ClipRRect(
+              borderRadius: radius,
+              child: CustomImageView(fit: BoxFit.cover, url: url),
+            ),
+    );
+  }
+}
+
+class _CourtMenu extends StatelessWidget {
+  const _CourtMenu({
+    required this.isLive,
+    required this.onManage,
+    required this.onToggleStatus,
+    required this.onDelete,
+  });
+
+  final bool isLive;
+  final VoidCallback onManage;
+  final VoidCallback onToggleStatus;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+
+    PopupMenuItem<_VenueMenuAction> item(
+      _VenueMenuAction value,
+      IconData icon,
+      String label,
+      Color color,
+    ) => PopupMenuItem<_VenueMenuAction>(
+      value: value,
+      child: Row(
+        children: <Widget>[
+          Icon(icon, size: AppDimens.sizeX18, color: color),
+          const SizedBox(width: AppDimens.sizeX10),
           Text(
             label,
-            style: textTheme.bodySubTitle?.copyWith(
+            style: textTheme.bodyTextSmall?.copyWith(
               fontWeight: FontWeight.w600,
-              height: 1,
               color: color,
             ),
           ),
         ],
+      ),
+    );
+
+    return PopupMenuButton<_VenueMenuAction>(
+      padding: EdgeInsets.zero,
+      menuPadding: EdgeInsets.zero,
+      constraints: const BoxConstraints(),
+      tooltip: StringConstants.courtActions,
+      color: LightColor.whiteColor,
+      surfaceTintColor: LightColor.whiteColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+      ),
+      onSelected: (_VenueMenuAction action) {
+        switch (action) {
+          case _VenueMenuAction.manageFutsal:
+            onManage();
+          case _VenueMenuAction.toggleCourtStatus:
+            onToggleStatus();
+          case _VenueMenuAction.deleteCourt:
+            onDelete();
+          case _VenueMenuAction.addCourt:
+          case _VenueMenuAction.deleteFutsal:
+            break;
+        }
+      },
+      itemBuilder: (BuildContext context) => <PopupMenuEntry<_VenueMenuAction>>[
+        item(
+          _VenueMenuAction.manageFutsal,
+          Icons.edit_outlined,
+          StringConstants.manageCourt,
+          LightColor.primaryTextColor,
+        ),
+        item(
+          _VenueMenuAction.toggleCourtStatus,
+          isLive ? Icons.toggle_off_outlined : Icons.toggle_on_outlined,
+          isLive ? 'Make Inactive' : 'Make Active',
+          isLive ? LightColor.redColor : LightColor.secondaryColor,
+        ),
+        item(
+          _VenueMenuAction.deleteCourt,
+          Icons.delete_outline_rounded,
+          StringConstants.deleteCourt,
+          LightColor.redColor,
+        ),
+      ],
+      child: Padding(
+        padding: const EdgeInsets.only(left: 2, top: 1),
+        child: Icon(
+          Icons.more_vert_rounded,
+          size: AppDimens.sizeX20,
+          color: LightColor.secondaryTextColor,
+        ),
       ),
     );
   }
@@ -1747,15 +1823,20 @@ bool _isCourtActive(CourtDraft court) {
 class _FutsalEntry {
   const _FutsalEntry({
     required this.id,
+    required this.slug,
     required this.title,
     required this.address,
     required this.phone,
     required this.courts,
     this.imageUrl,
-    this.approvalStatus = _VenueApprovalStatus.approved,
+    this.approvalStatus = _VenueApprovalStatus.inactive,
   });
 
   final int? id;
+
+  /// How the venue is addressed on the wire: `/auth/get-venue/{slug}` takes
+  /// the slug, never the numeric id.
+  final String? slug;
   final String title;
   final String address;
   final String phone;
@@ -1766,14 +1847,17 @@ class _FutsalEntry {
   factory _FutsalEntry.fromModel(VenueCourtModel model) {
     return _FutsalEntry(
       id: model.id,
+      slug: model.slug,
       title: model.title.isEmpty ? 'My Futsal' : model.title,
       address: model.address,
       phone: model.phone,
       courts: model.courts,
       imageUrl: model.imageUrl,
-      approvalStatus: model.isActive
-          ? _VenueApprovalStatus.active
-          : _VenueApprovalStatus.approved,
+      // The venue's own status, not a guess from it: this read
+      // `isActive ? active : approved`, so every inactive venue — including a
+      // half-finished draft with no address, image or courts — was badged
+      // "Approved".
+      approvalStatus: _VenueApprovalStatus.fromStatus(model.status),
     );
   }
 

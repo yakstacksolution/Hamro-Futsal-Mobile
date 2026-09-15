@@ -30,6 +30,14 @@ final class AuthUseCase {
     ResendOtpEntity resendOtpData,
   ) async => await repository.resendOtp(resendOtpData.toMap());
 
+  Future<Either<AppException, String>?> forgotPassword(
+    ForgotPasswordOtpRequestEntity params,
+  ) async => await repository.forgotPassword(params.toMap());
+
+  Future<Either<AppException, String>> resetPassword(
+    ResetPasswordEntity params,
+  ) async => await repository.resetPassword(params.toMap());
+
   Future<Either<AppException, bool>?> logout() async =>
       await repository.logout();
 }

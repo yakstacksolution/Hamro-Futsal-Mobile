@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/widgets/centered_horizontal_selection_row.dart';
 import 'package:hamro_futsal/features/expenses/data/model/expense_model.dart';
 import 'package:hamro_futsal/features/expenses/presentation/models/expense_analytics.dart';
 import 'package:hamro_futsal/features/expenses/presentation/utils/expense_ui_utils.dart';
@@ -307,13 +308,15 @@ class ExpenseVenueFilter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final int selectedIndex = selectedId == null
+        ? 0
+        : venues.indexWhere((VenueModel venue) => venue.id == selectedId) + 1;
     return SizedBox(
       height: AppDimens.sizeX32,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
+      child: CenteredHorizontalSelectionRow(
         itemCount: venues.length + 1,
-        separatorBuilder: (_, __) => const SizedBox(width: AppDimens.paddingX8),
+        selectedIndex: selectedIndex,
+        spacing: AppDimens.paddingX8,
         itemBuilder: (_, i) {
           if (i == 0) {
             return ExpenseChip(
@@ -354,13 +357,18 @@ class ExpenseCategoryFilterRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (categories.isEmpty) return const SizedBox.shrink();
+    final int selectedIndex = selected == null
+        ? 0
+        : categories.indexWhere(
+                (ExpenseCategoryModel category) => category.id == selected,
+              ) +
+              1;
     return SizedBox(
       height: AppDimens.sizeX32,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
+      child: CenteredHorizontalSelectionRow(
         itemCount: categories.length + 1,
-        separatorBuilder: (_, __) => const SizedBox(width: AppDimens.paddingX8),
+        selectedIndex: selectedIndex,
+        spacing: AppDimens.paddingX8,
         itemBuilder: (_, i) {
           if (i == 0) {
             return ExpenseChip(

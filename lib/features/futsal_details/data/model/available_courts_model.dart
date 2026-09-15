@@ -6,10 +6,50 @@ final class AvailableCourtsModel {
   const AvailableCourtsModel({
     this.timeSlots = const <TimeSlotModel>[],
     this.courts = const <VenueCourtItemModel>[],
+    this.venueId,
+    this.date,
+    this.startTime,
+    this.endTime,
+    this.totalCourts,
+    this.availableCount,
+    this.fallbackType,
   });
 
   final List<TimeSlotModel> timeSlots;
+
+  /// Every court the venue has for this window — available or not. The
+  /// response's `courts` list, which is a superset of `available_courts`.
   final List<VenueCourtItemModel> courts;
+
+  final int? venueId;
+
+  /// The day the availability was computed for (`2026-09-15`).
+  final String? date;
+
+  /// The window asked for, as the server echoes it back.
+  final String? startTime;
+  final String? endTime;
+
+  /// How many courts the venue has in this window, and how many are free.
+  final int? totalCourts;
+  final int? availableCount;
+
+  /// Set when the server answered with something other than the exact window
+  /// asked for (e.g. the nearest slot); null on an exact match.
+  final String? fallbackType;
+
+  /// Courts that can actually be booked for the window.
+  List<VenueCourtItemModel> get availableCourts => courts
+      .where((VenueCourtItemModel court) => court.isAvailable)
+      .toList(growable: false);
+
+  /// How many are free — the server's own count when it sent one.
+  int get freeCourtCount => availableCount ?? availableCourts.length;
+
+  /// How many exist in this window.
+  int get courtCount => totalCourts ?? courts.length;
+
+  bool get isFallback => (fallbackType ?? '').trim().isNotEmpty;
 
   factory AvailableCourtsModel.fromResponse(dynamic payload) {
     final dynamic data = _unwrapPayload(payload);
@@ -59,6 +99,13 @@ final class AvailableCourtsModel {
     return AvailableCourtsModel(
       timeSlots: _parseTimeSlots(slots),
       courts: _parseCourts(courts),
+      venueId: _asInt(map['venue_id'] ?? map['venueId']),
+      date: _asString(map['date'] ?? map['select_date'] ?? map['selectDate']),
+      startTime: _asString(map['start_time'] ?? map['startTime']),
+      endTime: _asString(map['end_time'] ?? map['endTime']),
+      totalCourts: _asInt(map['total_courts'] ?? map['totalCourts']),
+      availableCount: _asInt(map['available_count'] ?? map['availableCount']),
+      fallbackType: _asString(map['fallback_type'] ?? map['fallbackType']),
     );
   }
 }
@@ -232,8 +279,20 @@ VenueCourtItemModel _courtFromJson(Map<String, dynamic> json) {
     json['end_time'] ?? json['endTime'] ?? matchingSlotMap['end_time'],
   );
   final SlotStatus status = SlotStatus.fromApi(
-    json['availability_status'] ?? json['availabilityStatus'] ?? json['status'],
+    json['availability_status'] ??
+        json['availabilityStatus'] ??
+        json['status'] ??
+        (_asBool(json['is_available'] ?? json['isAvailable']) == false
+            ? 'unavailable'
+            : null),
   );
+
+  // The priced slot the server worked out for the requested window. It carries
+  // the discount, so it is what the card and every total read from.
+  final dynamic rawActualPrice = json['actual_price'] ?? json['actualPrice'];
+  final CourtActualPrice? actualPrice = rawActualPrice is Map
+      ? CourtActualPrice.fromJson(Map<String, dynamic>.from(rawActualPrice))
+      : null;
 
   return VenueCourtItemModel(
     id: _asInt(json['id'] ?? json['court_id'] ?? json['courtId']),
@@ -262,6 +321,23 @@ VenueCourtItemModel _courtFromJson(Map<String, dynamic> json) {
     startTime: startTime,
     endTime: endTime,
     priceList: priceList,
+    slug: _asString(json['slug']),
+    basePrice: _asDouble(json['base_price'] ?? json['basePrice']),
+    actualPrice: actualPrice,
+    matchingSlot: matchingSlotMap.isEmpty
+        ? null
+        : CourtMatchingSlot(
+            id: _asInt(matchingSlotMap['id']),
+            label: _asString(matchingSlotMap['label']) ?? '',
+            startTime: _displayTimeFromAny(matchingSlotMap['start_time']),
+            endTime: _displayTimeFromAny(matchingSlotMap['end_time']),
+          ),
+    slotDurationMinutes: _asInt(
+      json['slot_duration_minutes'] ?? json['slotDurationMinutes'],
+    ),
+    availabilityReason: _asString(
+      json['availability_reason'] ?? json['availabilityReason'],
+    ),
   );
 }
 

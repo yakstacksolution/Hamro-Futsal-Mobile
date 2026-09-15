@@ -24,7 +24,7 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
     on<SendMessageEvent>(_onSendMessage);
     on<CreateGroupConversationEvent>(_onCreateGroup);
     on<AddGroupMembersEvent>(_onAddGroupMembers);
-    on<RenameGroupConversationEvent>(_onRenameGroup);
+    on<UpdateGroupConversationEvent>(_onUpdateGroupConversation);
     on<LeaveGroupConversationEvent>(_onLeaveGroup);
     on<RespondToConversationInvitationEvent>(_onRespondToInvitation);
     on<ClearLeftConversationEvent>(_onClearLeftConversation);
@@ -51,6 +51,12 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
     });
   }
 
+  /// Shortest gap between two background `/conversations` fetches. Presence
+  /// polling, app-lifecycle changes and tab switches can all ask for a refresh
+  /// within the same second; without this the endpoint was hit several times
+  /// in a row for the same data. User-driven loads pass `force: true`.
+  static const Duration _conversationsRefreshThrottle = Duration(seconds: 20);
+
   /// Thread page size for `/conversations/{id}/messages`.
   static const int _messagesPerPage = 20;
 
@@ -63,6 +69,8 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
   Timer? _peerTypingTimer;
   Timer? _markReadTimer;
   bool _loadingConversations = false;
+  DateTime? _lastConversationsFetch;
+  bool? _lastConversationsArchived;
   bool _loadingOlderMessages = false;
 
   Future<void> _onLoadConversations(
@@ -71,6 +79,9 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
   ) async {
     if (_loadingConversations ||
         (event.loadMore && !state.conversationsHasMorePages)) {
+      return;
+    }
+    if (!event.loadMore && !event.force && _isThrottled(event.archived)) {
       return;
     }
     _loadingConversations = true;
@@ -97,6 +108,8 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
       perPage: 10,
     );
     _loadingConversations = false;
+    _lastConversationsFetch = DateTime.now();
+    _lastConversationsArchived = event.archived;
     result.fold(
       (failure) => emit(
         event.loadMore
@@ -134,6 +147,15 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
         ),
       ),
     );
+  }
+
+  /// True when the same list (same archived scope) was fetched moments ago and
+  /// the caller did not insist on a fresh one.
+  bool _isThrottled(bool archived) {
+    final DateTime? last = _lastConversationsFetch;
+    if (last == null || _lastConversationsArchived != archived) return false;
+    if (state.conversationsStatus != MessageStatus.success) return false;
+    return DateTime.now().difference(last) < _conversationsRefreshThrottle;
   }
 
   List<ConversationModel> _mergeConversations(
@@ -369,12 +391,14 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
   /// Renaming a group. The title is patched onto the conversation everywhere
   /// it is held — the open thread and the inbox row — so the header and the
   /// list both read the new name without a refetch.
-  Future<void> _onRenameGroup(
-    RenameGroupConversationEvent event,
+  Future<void> _onUpdateGroupConversation(
+    UpdateGroupConversationEvent event,
     Emitter<MessageState> emit,
   ) async {
-    final String title = event.title.trim();
-    if (title.isEmpty || state.actionBusy) return;
+    final String? title = event.title?.trim();
+    final bool hasTitle = title != null && title.isNotEmpty;
+    // Nothing to send, or an edit already in flight.
+    if ((!hasTitle && event.mediaId == null) || state.actionBusy) return;
 
     emit(
       state.copyWith(
@@ -383,31 +407,43 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
         clearErrorMessage: true,
       ),
     );
-    final result = await useCase.updateConversationTitle(
+    final result = await useCase.updateConversation(
       event.conversationId,
-      title,
+      title: hasTitle ? title : null,
+      mediaId: event.mediaId,
     );
     result.fold(
       (failure) => emit(
         state.copyWith(actionBusy: false, errorMessage: failure.errorMessage),
       ),
       (updated) {
-        // The server's own copy when it echoed one back; otherwise the title
-        // that was just accepted, applied to the conversation in hand.
+        /// The server's own copy when it echoed one back; otherwise the
+        /// conversation in hand with what was just accepted applied to it —
+        /// including the picked image's URL, so the picture changes now rather
+        /// than at the next refresh.
+        ConversationModel patch(ConversationModel conversation) {
+          if (updated != null) return updated;
+          return conversation.copyWith(
+            title: hasTitle ? title : null,
+            imageUrl: event.imageUrl,
+          );
+        }
+
         final ConversationModel? active = state.activeConversation;
-        final ConversationModel? renamedActive =
-            active?.id == event.conversationId
-            ? (updated ?? active!.copyWith(title: title))
+        final ConversationModel? nextActive = active?.id == event.conversationId
+            ? patch(active!)
             : active;
         emit(
           state.copyWith(
             actionBusy: false,
-            actionMessage: 'Group name updated.',
-            activeConversation: renamedActive,
+            actionMessage: event.mediaId != null && !hasTitle
+                ? 'Group photo updated.'
+                : 'Group updated.',
+            activeConversation: nextActive,
             conversations: state.conversations
                 .map(
                   (conversation) => conversation.id == event.conversationId
-                      ? (updated ?? conversation.copyWith(title: title))
+                      ? patch(conversation)
                       : conversation,
                 )
                 .toList(growable: false),

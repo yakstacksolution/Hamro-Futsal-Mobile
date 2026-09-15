@@ -44,6 +44,13 @@ class PublicVenueBloc extends Bloc<PublicVenueEvent, PublicVenueState> {
   final int _perPage;
   final VenueOriginResolver _originResolver;
 
+  /// Incremented on every first-page fetch. A response whose token no longer
+  /// matches belongs to a superseded request (the re-query fired once the GPS
+  /// fix lands overlaps the initial one) and must not be emitted — otherwise
+  /// the list paints the older result and then the newer one, which reads as
+  /// the page loading twice.
+  int _fetchToken = 0;
+
   FutureOr<void> _onFetchPublicVenues(
     FetchPublicVenuesEvent event,
     Emitter<PublicVenueState> emit,
@@ -51,6 +58,7 @@ class PublicVenueBloc extends Bloc<PublicVenueEvent, PublicVenueState> {
     // Resolved once per listing: every page of one listing must share the same
     // origin, or the distances would be measured from different points.
     final VenueOrigin? origin = event.origin ?? _originResolver();
+    final int token = ++_fetchToken;
 
     emit(
       state.copyWith(
@@ -73,8 +81,9 @@ class PublicVenueBloc extends Bloc<PublicVenueEvent, PublicVenueState> {
         );
 
     // A newer fetch (e.g. triggered by a location fix) superseded this one
-    // while it was in flight — drop the stale response.
-    if (event.filter != state.activeFilter) return;
+    // while it was in flight — drop the stale response. The token covers the
+    // case the filter comparison cannot: two fetches for the *same* filter.
+    if (token != _fetchToken || event.filter != state.activeFilter) return;
 
     response.fold(
       (AppException failure) => emit(
@@ -109,6 +118,7 @@ class PublicVenueBloc extends Bloc<PublicVenueEvent, PublicVenueState> {
 
     final int requestedPage = state.page + 1;
     final VenueFilter requestedFilter = state.activeFilter;
+    final int token = _fetchToken;
 
     final Either<AppException, PublicListingVenuePage> response =
         await _getPublicVenuesUseCase(
@@ -121,7 +131,8 @@ class PublicVenueBloc extends Bloc<PublicVenueEvent, PublicVenueState> {
 
     // The filter changed (or the list was reloaded) while the page was in
     // flight; appending it now would mix results from two different queries.
-    if (requestedFilter != state.activeFilter ||
+    if (token != _fetchToken ||
+        requestedFilter != state.activeFilter ||
         state.page != requestedPage - 1) {
       return;
     }

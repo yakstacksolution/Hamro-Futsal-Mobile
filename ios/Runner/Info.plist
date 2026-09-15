@@ -32,6 +32,16 @@
 				<string>com.googleusercontent.apps.900384285987-u7o5d5le64975lme0v2fo19d3p461693</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>CFBundleURLName</key>
+			<string>com.hamrofutsal.deeplink</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>hamrofutsal</string>
+			</array>
+		</dict>
 	</array>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
@@ -56,8 +66,14 @@
 	<string>Hamro Futsal uses your location to show nearby futsal venues and calculate venue distances.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Hamro Futsal uses your location to show how far away each futsal venue is.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Hamro Futsal saves payment proofs and QR codes to your photo library when you download them.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Hamro Futsal needs photo library access to select images for your media library.</string>
+	<key>UIFileSharingEnabled</key>
+	<true/>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<true/>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

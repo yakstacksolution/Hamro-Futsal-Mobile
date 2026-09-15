@@ -1,3 +1,4 @@
+import 'package:hamro_futsal/core/utils/bloc_safe_add.dart';
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
@@ -603,7 +604,7 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
       return false;
     }
 
-    bloc.add(
+    bloc.addIfOpen(
       SaveOpponentMatchStepEvent(
         OpponentMatchStepRequest(
           teamId: teamId,
@@ -645,7 +646,7 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
     if (request == null) return false;
 
     final OpponentMatchBloc bloc = context.read<OpponentMatchBloc>();
-    bloc.add(SaveOpponentVenueStepEvent(request));
+    bloc.addIfOpen(SaveOpponentVenueStepEvent(request));
 
     final OpponentMatchState result = await bloc.stream.firstWhere(
       (OpponentMatchState s) =>
@@ -665,7 +666,7 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
     // Read the request back: the venue step is what settles the court fee, and
     // for a platform booking the server is the only one that knows it.
     if (result.draftRequestId.isNotEmpty) {
-      bloc.add(LoadOpponentDraftEvent(result.draftRequestId));
+      bloc.addIfOpen(LoadOpponentDraftEvent(result.draftRequestId));
     }
     return true;
   }
@@ -867,7 +868,7 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
         padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
         child: CreateTeamSheet(
           onCreate: (name) {
-            bloc.add(CreateTeamEvent(name));
+            bloc.addIfOpen(CreateTeamEvent(name));
             Navigator.pop(ctx);
           },
         ),
@@ -1181,6 +1182,7 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
         '';
     return CourtDetailModel(
       venueId: venue.id,
+      venueSlug: venue.slug,
       name: venue.name?.trim().isNotEmpty == true
           ? venue.name!.trim()
           : 'Futsal venue',

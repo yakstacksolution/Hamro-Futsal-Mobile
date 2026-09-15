@@ -5,8 +5,11 @@ import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_text.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/app_utils.dart';
+import 'package:hamro_futsal/core/utils/currency.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:hamro_futsal/core/widgets/custom_bottom_sheet.dart';
+import 'package:hamro_futsal/core/widgets/data_card.dart';
 import 'package:hamro_futsal/core/widgets/custom_button.dart';
 import 'package:hamro_futsal/core/widgets/custom_text_field.dart';
 import 'package:hamro_futsal/features/bookings/data/model/booking_model.dart';
@@ -669,22 +672,11 @@ class _ProductsCartSheetState extends State<_ProductsCartSheet> {
         ),
         if (_itemCount > 0) ...<Widget>[
           const SizedBox(width: AppDimens.paddingX8),
-          Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppDimens.paddingX10,
-              vertical: AppDimens.paddingX4,
-            ),
-            decoration: BoxDecoration(
-              color: LightColor.secondaryColor,
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: Text(
-              '$_itemCount item${_itemCount == 1 ? '' : 's'}',
-              style: textTheme.bodyTextSmall?.copyWith(
-                color: LightColor.inverseTextColor,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
+          // The same chip the cards use, so the count reads as a state of the
+          // sheet rather than as a second button.
+          DataCardChip(
+            label: '$_itemCount item${_itemCount == 1 ? '' : 's'}',
+            color: LightColor.secondaryColor,
           ),
         ],
       ],
@@ -711,9 +703,16 @@ class _ProductsCartSheetState extends State<_ProductsCartSheet> {
               const Spacer(),
               Text(
                 _formatMoney(_total),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: textTheme.bodyTextLarge?.copyWith(
                   color: LightColor.secondaryColor,
                   fontWeight: FontWeight.w800,
+                  // Same tabular digits as the cards, so the total does not
+                  // jitter as quantities change.
+                  fontFeatures: const <FontFeature>[
+                    FontFeature.tabularFigures(),
+                  ],
                 ),
               ),
             ],
@@ -736,10 +735,9 @@ class _ProductsCartSheetState extends State<_ProductsCartSheet> {
 
 // ─── Complete-booking sheet ───────────────────────────────────────────────────
 
-String _formatMoney(double amount) {
-  final bool hasDecimals = amount % 1 != 0;
-  return 'Rs. ${amount.toStringAsFixed(hasDecimals ? 2 : 0)}';
-}
+/// `NPR 1,200` — shared with the booking cards and the account ledger so a
+/// figure reads the same wherever it appears. See [Money].
+String _formatMoney(double amount) => Money.npr(amount);
 
 class _CollectBookingDueSheet extends StatefulWidget {
   const _CollectBookingDueSheet({required this.booking});
@@ -1636,6 +1634,12 @@ class _ReceiptRow extends StatelessWidget {
   }
 }
 
+/// One product in the cart sheet.
+///
+/// Built on the shared [DataCard] so a product reads like every other record
+/// card in the app: name in full strength, the unit price quiet beneath it,
+/// and the money right-aligned in tabular digits. Adding one tints the card
+/// rather than reshaping it, so the list does not shift as the cart fills.
 class _CartProductTile extends StatelessWidget {
   const _CartProductTile({
     required this.product,
@@ -1653,22 +1657,11 @@ class _CartProductTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final FutsalTextTheme textTheme = FutsalTheme.getTextTheme(context);
     final bool selected = quantity > 0;
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 160),
-      curve: Curves.easeOut,
-      padding: const EdgeInsets.all(AppDimens.paddingX12),
-      decoration: BoxDecoration(
-        color: selected
-            ? LightColor.secondaryColor.withValues(alpha: 0.06)
-            : LightColor.cardColor,
-        borderRadius: BorderRadius.circular(AppDimens.radiusX12),
-        border: Border.all(
-          color: selected
-              ? LightColor.secondaryColor.withValues(alpha: 0.45)
-              : LightColor.dividerColor,
-        ),
-      ),
+    return DataCard(
+      selected: selected,
+      animate: true,
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: <Widget>[
           Expanded(
             child: Column(
@@ -1678,25 +1671,39 @@ class _CartProductTile extends StatelessWidget {
                   product.name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: textTheme.bodyTextMedium?.copyWith(
+                  style: textTheme.bodyTextSmall?.copyWith(
                     color: LightColor.primaryTextColor,
                     fontWeight: FontWeight.w700,
+                    height: 1.25,
                   ),
                 ),
-                const SizedBox(height: AppDimens.paddingX4),
+                const SizedBox(height: 2),
                 Text(
-                  '${product.formattedPrice} each',
+                  '${product.formattedPrice} ${StringConstants.each}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: textTheme.bodyTextSmall?.copyWith(
-                    color: LightColor.secondaryTextColor,
+                    color: LightColor.hintTextColor,
+                    fontSize: AppDimens.fontBodySubTitle,
+                    fontWeight: FontWeight.w600,
+                    height: 1.3,
                   ),
                 ),
+                // The line total appears only once there is one, so an
+                // untouched card stays two quiet lines.
                 if (selected) ...<Widget>[
-                  const SizedBox(height: AppDimens.paddingX6),
+                  const SizedBox(height: 3),
                   Text(
-                    'Subtotal ${_formatMoney(calculatedAmount)}',
+                    _formatMoney(calculatedAmount),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: textTheme.bodyTextSmall?.copyWith(
                       color: LightColor.secondaryColor,
                       fontWeight: FontWeight.w700,
+                      height: 1.25,
+                      fontFeatures: const <FontFeature>[
+                        FontFeature.tabularFigures(),
+                      ],
                     ),
                   ),
                 ],

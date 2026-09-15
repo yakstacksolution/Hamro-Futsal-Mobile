@@ -8,18 +8,26 @@ import 'package:hamro_futsal/features/expenses/presentation/models/expense_analy
 ///   date_filter = today | week | month | year | custom
 ///   date_from / date_to (custom only, `YYYY-MM-DD`)
 ///   venue_id
+///   expense_category_id
 ///   payment_method = cash | online
 class ExpenseFilter extends Equatable {
   const ExpenseFilter({
     this.period = ExpensePeriod.week,
     this.customRange,
     this.venueId,
+    this.categoryId,
     this.paymentMethod,
   });
 
   final ExpensePeriod period;
   final ({DateTime start, DateTime end})? customRange;
   final String? venueId;
+
+  /// Server category id from `/expense-categories`. Sent to the API so the
+  /// summary and analytics are scoped to the category too — narrowing only the
+  /// records list on the client left every total contradicting it.
+  final String? categoryId;
+
   final PaymentMethod? paymentMethod;
 
   ExpenseFilter copyWith({
@@ -28,6 +36,8 @@ class ExpenseFilter extends Equatable {
     bool clearCustomRange = false,
     String? venueId,
     bool clearVenue = false,
+    String? categoryId,
+    bool clearCategory = false,
     PaymentMethod? paymentMethod,
     bool clearPaymentMethod = false,
   }) {
@@ -35,6 +45,7 @@ class ExpenseFilter extends Equatable {
       period: period ?? this.period,
       customRange: clearCustomRange ? null : (customRange ?? this.customRange),
       venueId: clearVenue ? null : (venueId ?? this.venueId),
+      categoryId: clearCategory ? null : (categoryId ?? this.categoryId),
       paymentMethod: clearPaymentMethod
           ? null
           : (paymentMethod ?? this.paymentMethod),
@@ -54,11 +65,13 @@ class ExpenseFilter extends Equatable {
       q['date_to'] = _ymd(customRange!.end);
     }
     if (venueId != null) q['venue_id'] = venueId;
+    if (categoryId != null) q['expense_category_id'] = categoryId;
     if (paymentMethod != null) q['payment_method'] = paymentMethod!.name;
     return q;
   }
 
-  bool get hasSecondaryFilters => venueId != null || paymentMethod != null;
+  bool get hasSecondaryFilters =>
+      venueId != null || categoryId != null || paymentMethod != null;
 
   @override
   List<Object?> get props => [
@@ -66,6 +79,7 @@ class ExpenseFilter extends Equatable {
     customRange?.start,
     customRange?.end,
     venueId,
+    categoryId,
     paymentMethod,
   ];
 }

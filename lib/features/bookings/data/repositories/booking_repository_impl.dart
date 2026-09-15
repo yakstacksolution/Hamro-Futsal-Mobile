@@ -7,6 +7,7 @@ import 'package:hamro_futsal/features/bookings/data/model/booking_review_model.d
 import 'package:hamro_futsal/features/bookings/domain/repository/booking_repository.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:hamro_futsal/features/bookings/domain/model/paginated_bookings.dart';
+import 'package:hamro_futsal/features/bookings/domain/model/booking_list_query.dart';
 
 final class BookingRepositoryImpl implements BookingRepository {
   BookingRepositoryImpl({BookingRemoteDataSource? remoteDataSource})
@@ -15,16 +16,10 @@ final class BookingRepositoryImpl implements BookingRepository {
   final BookingRemoteDataSource _remoteDataSource;
 
   @override
-  Future<Either<AppException, PaginatedBookings>> getMyBookings({
-    required int page,
-    required int perPage,
-    String? status,
-  }) async {
-    final response = await _remoteDataSource.getMyBookings(
-      page: page,
-      perPage: perPage,
-      status: status,
-    );
+  Future<Either<AppException, PaginatedBookings>> getMyBookings(
+    BookingListQuery query,
+  ) async {
+    final response = await _remoteDataSource.getMyBookings(query);
     if (response.isError()) {
       return left(ResponseHelper.error(response));
     }
@@ -61,16 +56,10 @@ final class BookingRepositoryImpl implements BookingRepository {
   }
 
   @override
-  Future<Either<AppException, PaginatedBookings>> getFutsalBookings({
-    required int page,
-    required int perPage,
-    String? status,
-  }) async {
-    final response = await _remoteDataSource.getFutsalBookings(
-      page: page,
-      perPage: perPage,
-      status: status,
-    );
+  Future<Either<AppException, PaginatedBookings>> getFutsalBookings(
+    BookingListQuery query,
+  ) async {
+    final response = await _remoteDataSource.getFutsalBookings(query);
     if (response.isError()) {
       return left(ResponseHelper.error(response));
     }

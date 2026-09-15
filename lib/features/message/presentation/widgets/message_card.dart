@@ -128,20 +128,42 @@ class MessageCard extends StatelessWidget {
                           ],
                         ),
                         const SizedBox(height: 3),
-                        Text(
-                          pendingInvite
-                              ? StringConstants.groupInvitationPrompt
-                              : conversation.preview(currentUserId),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: textTheme.bodyTextSmall?.copyWith(
-                            color: isUnread
-                                ? LightColor.primaryTextColor
-                                : LightColor.secondaryTextColor,
-                            fontWeight: isUnread
-                                ? FontWeight.w600
-                                : FontWeight.w400,
-                          ),
+                        Row(
+                          children: <Widget>[
+                            // "@ you" before the preview: being named in a
+                            // group is the reason to open it first.
+                            if (!pendingInvite &&
+                                (conversation.lastMessageDetail?.mentionsUser(
+                                      currentUserId,
+                                    ) ??
+                                    false) &&
+                                conversation.lastMessageDetail?.senderId !=
+                                    currentUserId) ...<Widget>[
+                              Icon(
+                                Icons.alternate_email_rounded,
+                                size: 13,
+                                color: LightColor.secondaryColor,
+                              ),
+                              const SizedBox(width: 3),
+                            ],
+                            Expanded(
+                              child: Text(
+                                pendingInvite
+                                    ? StringConstants.groupInvitationPrompt
+                                    : conversation.preview(currentUserId),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: textTheme.bodyTextSmall?.copyWith(
+                                  color: isUnread
+                                      ? LightColor.primaryTextColor
+                                      : LightColor.secondaryTextColor,
+                                  fontWeight: isUnread
+                                      ? FontWeight.w600
+                                      : FontWeight.w400,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -308,7 +330,7 @@ class _Avatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (isGroup || url.isEmpty) {
+    if (url.isEmpty) {
       return _withPresence(
         Container(
           width: 46,

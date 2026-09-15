@@ -8,6 +8,8 @@ final class VenueCourtPageModel extends Equatable {
     required this.lastPage,
     required this.perPage,
     required this.total,
+    this.from = 0,
+    this.to = 0,
     required this.hasMorePages,
   });
 
@@ -16,6 +18,11 @@ final class VenueCourtPageModel extends Equatable {
   final int lastPage;
   final int perPage;
   final int total;
+
+  /// 1-based index of the first and last venue of this page within [total].
+  /// Both are 0 when the page came back empty.
+  final int from;
+  final int to;
   final bool hasMorePages;
 
   factory VenueCourtPageModel.fromResponse(dynamic response) {
@@ -27,12 +34,23 @@ final class VenueCourtPageModel extends Equatable {
     );
     final int currentPage = _integer(pagination['current_page'], 1);
     final int lastPage = _integer(pagination['last_page'], currentPage);
+    final int perPage = _integer(pagination['per_page'], items.length);
     return VenueCourtPageModel(
       items: items,
       currentPage: currentPage,
       lastPage: lastPage,
-      perPage: _integer(pagination['per_page'], items.length),
+      perPage: perPage,
       total: _integer(pagination['total'], items.length),
+      // Derived from the page when the server omits them, so "showing 11-16 of
+      // 34" is answerable either way.
+      from: _integer(
+        pagination['from'],
+        items.isEmpty ? 0 : (currentPage - 1) * perPage + 1,
+      ),
+      to: _integer(
+        pagination['to'],
+        items.isEmpty ? 0 : (currentPage - 1) * perPage + items.length,
+      ),
       hasMorePages: _boolean(
         pagination['has_more_pages'],
         currentPage < lastPage,
@@ -64,6 +82,8 @@ final class VenueCourtPageModel extends Equatable {
     lastPage,
     perPage,
     total,
+    from,
+    to,
     hasMorePages,
   ];
 }

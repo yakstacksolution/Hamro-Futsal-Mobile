@@ -10,6 +10,13 @@ final class VenueCourtModel {
     required this.status,
     required this.courts,
     this.imageUrl,
+    this.email = '',
+    this.slug,
+    this.registrationNumber,
+    this.userId,
+    this.vendorOnboardingId,
+    this.mainStep,
+    this.subStep,
   });
 
   final int? id;
@@ -20,7 +27,76 @@ final class VenueCourtModel {
   final List<CourtDraft> courts;
   final String? imageUrl;
 
+  /// Contact email the venue was registered with (`email`).
+  final String email;
+
+  /// Url-safe identifier (`slug`), e.g. `dhanawantary-sports`.
+  final String? slug;
+
+  /// The venue's business registration number (`registration_number`).
+  final String? registrationNumber;
+
+  /// Owner of the venue (`user_id`).
+  final int? userId;
+
+  /// The onboarding run this venue was created from, when it came from one
+  /// (`vendor_onboarding_id`); null for venues added later.
+  final int? vendorOnboardingId;
+
+  /// How far the vendor got in the venue setup wizard (`main_step` /
+  /// `sub_step`). A venue still at step 0 has only its registration details —
+  /// no address, no cover image and no courts — so the UI can send the vendor
+  /// back to finish it instead of showing an empty venue.
+  final int? mainStep;
+  final int? subStep;
+
   bool get isActive => status.toLowerCase() == 'active';
+
+  /// True while the venue setup wizard has not been completed.
+  ///
+  /// The step counters are the only signal for this: such a venue is returned
+  /// with `status: inactive`, null `futsal_address`, null `cover_image_media`
+  /// and an empty `courts` list.
+  bool get isSetupIncomplete => (mainStep ?? 0) <= 0 && (subStep ?? 0) <= 0;
+
+  /// A copy with [courts] (or any other field) replaced.
+  ///
+  /// Local edits — a court added, renamed or removed without a refetch — must
+  /// go through this rather than rebuilding the venue field by field, which
+  /// silently dropped every field the caller forgot to carry over.
+  VenueCourtModel copyWith({
+    int? id,
+    String? title,
+    String? address,
+    String? phone,
+    String? status,
+    List<CourtDraft>? courts,
+    String? imageUrl,
+    String? email,
+    String? slug,
+    String? registrationNumber,
+    int? userId,
+    int? vendorOnboardingId,
+    int? mainStep,
+    int? subStep,
+  }) {
+    return VenueCourtModel(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      address: address ?? this.address,
+      phone: phone ?? this.phone,
+      status: status ?? this.status,
+      courts: courts ?? this.courts,
+      imageUrl: imageUrl ?? this.imageUrl,
+      email: email ?? this.email,
+      slug: slug ?? this.slug,
+      registrationNumber: registrationNumber ?? this.registrationNumber,
+      userId: userId ?? this.userId,
+      vendorOnboardingId: vendorOnboardingId ?? this.vendorOnboardingId,
+      mainStep: mainStep ?? this.mainStep,
+      subStep: subStep ?? this.subStep,
+    );
+  }
 
   factory VenueCourtModel.fromJson(Map<String, dynamic> json) {
     final List<dynamic> courtItems = _listFromAny(
@@ -41,6 +117,15 @@ final class VenueCourtModel {
       phone: _asString(json['phone'] ?? json['phone_number']),
       status: _asString(json['status']),
       imageUrl: _venueImageUrlFromJson(json),
+      email: _asString(json['email'] ?? json['futsal_email']),
+      slug: _nullIfEmpty(json['slug']),
+      registrationNumber: _nullIfEmpty(
+        json['registration_number'] ?? json['registrationNumber'],
+      ),
+      userId: _asInt(json['user_id']),
+      vendorOnboardingId: _asInt(json['vendor_onboarding_id']),
+      mainStep: _asInt(json['main_step']),
+      subStep: _asInt(json['sub_step']),
       courts: courtItems
           .whereType<Map>()
           .map((Map item) => _courtFromJson(Map<String, dynamic>.from(item)))
@@ -308,21 +393,37 @@ String? _venueImageUrlFromJson(Map<String, dynamic> json) {
 /// Resolves an image url from either a plain string or a media object.
 String _imageUrlFromAny(dynamic value) {
   if (value is Map) {
-    return _asString(
-      value['image_url'] ??
-          value['full_url'] ??
-          value['url'] ??
-          value['original_url'] ??
-          value['preview_url'] ??
-          value['media_url'] ??
-          value['file_url'] ??
-          value['thumbnail_url'] ??
-          value['src'] ??
-          value['path'] ??
-          value['file_path'],
+    return _normalizeUrl(
+      _asString(
+        value['image_url'] ??
+            value['full_url'] ??
+            value['url'] ??
+            value['original_url'] ??
+            value['preview_url'] ??
+            value['media_url'] ??
+            value['file_url'] ??
+            value['thumbnail_url'] ??
+            value['src'] ??
+            value['path'] ??
+            value['file_path'],
+      ),
     );
   }
-  return _asString(value);
+  return _normalizeUrl(_asString(value));
+}
+
+/// The API concatenates its app url with a leading-slash path, so media urls
+/// arrive as `https://hamrofutsal.com//storage/...`. Collapse the duplicate
+/// slashes in the path — some hosts 404 on them — leaving `https://` alone.
+String _normalizeUrl(String url) {
+  if (url.isEmpty) return url;
+  final int schemeEnd = url.indexOf('://');
+  if (schemeEnd < 0) return url.replaceAll(RegExp(r'/{2,}'), '/');
+  final String scheme = url.substring(0, schemeEnd + 3);
+  final String rest = url
+      .substring(schemeEnd + 3)
+      .replaceAll(RegExp(r'/{2,}'), '/');
+  return '$scheme$rest';
 }
 
 List<dynamic> _listFromAny(dynamic value) {
@@ -364,6 +465,13 @@ String _optionDisplayName({
     if (scalar.isNotEmpty) return scalar;
   }
   return labelsById[id] ?? '';
+}
+
+/// Trimmed text, or null when the field is absent or blank — the endpoint
+/// sends `null` for details a half-finished venue has not supplied yet.
+String? _nullIfEmpty(Object? value) {
+  final String text = _asString(value);
+  return text.isEmpty ? null : text;
 }
 
 int? _asInt(Object? value) {
@@ -495,12 +603,14 @@ UploadRef _uploadRefFromMap(Map<String, dynamic> map) {
   return UploadRef(
     name: _asString(map['name'] ?? map['file_name'] ?? map['title']),
     id: _asInt(map['id'] ?? map['media_id']),
-    remoteUrl: _asString(
-      map['full_url'] ??
-          map['remoteUrl'] ??
-          map['url'] ??
-          map['path'] ??
-          map['file_url'],
+    remoteUrl: _normalizeUrl(
+      _asString(
+        map['full_url'] ??
+            map['remoteUrl'] ??
+            map['url'] ??
+            map['path'] ??
+            map['file_url'],
+      ),
     ),
   );
 }
@@ -576,7 +686,8 @@ List<SlotPricingDraft> _slotsFromResponse(dynamic schedules, dynamic pricings) {
           );
         })
         .where((SlotPricingDraft slot) => slot.id.isNotEmpty)
-        .toList(growable: false);
+        .toList(growable: false)
+      ..sort(_bySortOrder);
   }
 
   // Legacy / pricing-only shape: structure and pricing live in the same map.
@@ -588,7 +699,16 @@ List<SlotPricingDraft> _slotsFromResponse(dynamic schedules, dynamic pricings) {
           Map<String, dynamic>.from(item),
         ),
       )
-      .toList(growable: false);
+      .toList(growable: false)
+    ..sort(_bySortOrder);
+}
+
+/// The server's `sort_order` decides the list; slots without one keep the
+/// order they arrived in, after the sorted ones.
+int _bySortOrder(SlotPricingDraft left, SlotPricingDraft right) {
+  final int a = left.sortOrder ?? 1 << 30;
+  final int b = right.sortOrder ?? 1 << 30;
+  return a.compareTo(b);
 }
 
 SlotPricingDraft _slotFromMaps(
@@ -628,9 +748,21 @@ SlotPricingDraft _slotFromMaps(
     'price': price['price'] ?? price['base_price'],
     'weekendPrice': price['weekend_price'],
     'holidayPrice': price['holiday_price'],
-    'discountPrice': price['discount_price'],
+    // `discount_value` is the endpoint's name; `discount_price` is what older
+    // responses called the same figure.
+    'discountPrice': price['discount_value'] ?? price['discount_price'],
     'discountType': price['discount_type'],
+    // A slot the server already discounts opens with the switch on and its
+    // window filled in, so editing it does not silently drop the times. The
+    // flag is authoritative when the server sends it; otherwise an amount
+    // that is actually set is what says the discount is on.
+    'hasDiscount': price['is_discount_available'],
+    'discountStartsAt':
+        price['discount_start_time'] ?? price['discount_start_date'],
+    'discountEndsAt': price['discount_end_time'] ?? price['discount_end_date'],
     'paymentPercent': price['payment_percent'],
+    'isActive': _asBool(schedule['is_active'] ?? pricing['is_active']) ?? true,
+    'sortOrder': schedule['sort_order'] ?? pricing['sort_order'],
     'customDatePrices': _customDatePricesFromAny(
       price['custom_date_prices'] ?? price['customDatePrices'],
     ),

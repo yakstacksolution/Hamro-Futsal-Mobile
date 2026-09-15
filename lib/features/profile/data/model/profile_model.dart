@@ -136,6 +136,7 @@ class UserData extends Equatable {
   final DateTime? createdAt;
   final DateTime? updatedAt;
   final int? futsalId;
+  final String? futsalSlug;
   final int? mainStep;
   final int? subStep;
   final Set<String> capabilities;
@@ -173,6 +174,7 @@ class UserData extends Equatable {
     this.createdAt,
     this.updatedAt,
     this.futsalId,
+    this.futsalSlug,
     this.mainStep,
     this.subStep,
     this.capabilities = const <String>{},
@@ -241,6 +243,9 @@ class UserData extends Equatable {
       futsalId:
           _asInt(json['futsal_id']) ??
           _asInt((json['vendor_onboarding_data'] as Map?)?['id']),
+      futsalSlug:
+          _asTrimmedString(json['futsal_slug']) ??
+          _asTrimmedString((json['vendor_onboarding_data'] as Map?)?['slug']),
       mainStep:
           _asInt(json['main_step']) ??
           _asInt((json['vendor_onboarding_data'] as Map?)?['main_step']),
@@ -295,6 +300,7 @@ class UserData extends Equatable {
       'created_at': createdAt?.toIso8601String(),
       'updated_at': updatedAt?.toIso8601String(),
       'futsal_id': futsalId,
+      'futsal_slug': futsalSlug,
       'main_step': mainStep,
       'sub_step': subStep,
       'capabilities': capabilities.toList(growable: false),
@@ -330,6 +336,7 @@ class UserData extends Equatable {
     createdAt,
     updatedAt,
     futsalId,
+    futsalSlug,
     mainStep,
     subStep,
     capabilities,
@@ -364,6 +371,7 @@ class UserData extends Equatable {
     DateTime? createdAt,
     DateTime? updatedAt,
     int? futsalId,
+    String? futsalSlug,
     int? mainStep,
     int? subStep,
     Set<String>? capabilities,
@@ -398,6 +406,7 @@ class UserData extends Equatable {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       futsalId: futsalId ?? this.futsalId,
+      futsalSlug: futsalSlug ?? this.futsalSlug,
       mainStep: mainStep ?? this.mainStep,
       subStep: subStep ?? this.subStep,
       capabilities: capabilities ?? this.capabilities,
@@ -435,6 +444,7 @@ class UserData extends Equatable {
       createdAt: other.createdAt,
       updatedAt: other.updatedAt,
       futsalId: other.futsalId,
+      futsalSlug: other.futsalSlug,
       mainStep: other.mainStep,
       subStep: other.subStep,
       capabilities: other.capabilities.isNotEmpty ? other.capabilities : null,
@@ -463,4 +473,9 @@ bool _asBool(Object? value) {
   if (value is num) return value != 0;
   final String normalized = value?.toString().trim().toLowerCase() ?? '';
   return normalized == '1' || normalized == 'true';
+}
+
+String? _asTrimmedString(Object? value) {
+  final String text = value?.toString().trim() ?? '';
+  return text.isEmpty ? null : text;
 }

@@ -258,6 +258,75 @@ final class PublicRepositoryImpl extends PublicRepository {
   }
 
   @override
+  Future<Either<AppException, PublicListingVenueModel?>> getVenueByLink({
+    String? slug,
+    int? id,
+    double? latitude,
+    double? longitude,
+  }) async {
+    final Position? fix = DeviceLocationHelper.instance.position.value;
+
+    final response = await _remoteDataSource.getVenueByLink(
+      slug: slug,
+      id: id,
+      latitude: latitude ?? fix?.latitude,
+      longitude: longitude ?? fix?.longitude,
+    );
+    if (response.isError()) {
+      return left(ResponseHelper.error(response));
+    }
+
+    try {
+      final dynamic payload = response.getValue();
+      final Map<String, dynamic> json = payload is Map
+          ? Map<String, dynamic>.from(payload)
+          : <String, dynamic>{};
+      final PublicListingVenuePage page = PublicListingVenuePage.fromJson(json);
+      return right(_matchLinkedVenue(page.venues, slug: slug, id: id));
+    } catch (_) {
+      return left(
+        DefaultException(
+          errorMessage: StringConstants.couldNotParseVenuesFromServer,
+          statusCode: 0,
+        ),
+      );
+    }
+  }
+
+  /// Picks the row a link points at.
+  ///
+  /// The id is checked first because it cannot change; the slug is the
+  /// fallback for the app-scheme link, which carries no id. A single result is
+  /// trusted as the answer when the backend filtered on the slug itself. A
+  /// search hit matching neither is *not* returned — opening the wrong venue
+  /// is worse than opening none.
+  static PublicListingVenueModel? _matchLinkedVenue(
+    List<PublicListingVenueModel> venues, {
+    String? slug,
+    int? id,
+  }) {
+    if (venues.isEmpty) return null;
+
+    if (id != null) {
+      for (final PublicListingVenueModel venue in venues) {
+        if (venue.id == id) return venue;
+      }
+    }
+
+    final String? wanted = slug?.trim().toLowerCase();
+    if (wanted != null && wanted.isNotEmpty) {
+      for (final PublicListingVenueModel venue in venues) {
+        if (venue.slug?.trim().toLowerCase() == wanted) return venue;
+      }
+      // A server that understood `slug` answers with exactly one row, whose
+      // own slug may be spelled differently from the one in the link.
+      if (venues.length == 1 && id == null) return venues.first;
+    }
+
+    return null;
+  }
+
+  @override
   Future<Either<AppException, PublicListingVenuePage>> getVenueList({
     int page = 1,
     int perPage = kVenueListPerPage,
