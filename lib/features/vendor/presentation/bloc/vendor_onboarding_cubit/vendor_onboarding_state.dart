@@ -21,6 +21,7 @@ class VendorOnboardingState {
     this.lastSavedAt,
     this.errorMessage,
     this.errorOrigin,
+    this.blockedClosedDates = const <String, String>{},
   });
 
   factory VendorOnboardingState.initial() {
@@ -68,6 +69,12 @@ class VendorOnboardingState {
   final String? errorMessage;
   final VendorErrorOrigin? errorOrigin;
 
+  /// Closed dates the API refused on the last save, keyed by `yyyy-MM-dd` with
+  /// the server's reason as the value (typically a pending booking on that
+  /// day). Rebuilt from the `closed_dates.<index>.date` keys of a 422 so the
+  /// slots step can mark the exact chips that blocked the save.
+  final Map<String, String> blockedClosedDates;
+
   bool get isInCourtCategory => cursor.category == VendorCategory.court;
 
   CourtDraft? get activeCourt {
@@ -103,6 +110,7 @@ class VendorOnboardingState {
     int? remoteFutsalId,
     String? errorMessage,
     VendorErrorOrigin? errorOrigin,
+    Map<String, String>? blockedClosedDates,
     bool clearActiveCourtId = false,
     bool clearLastSavedAt = false,
     bool clearErrorMessage = false,
@@ -135,6 +143,9 @@ class VendorOnboardingState {
           ? null
           : errorMessage ?? this.errorMessage,
       errorOrigin: clearErrorMessage ? null : errorOrigin ?? this.errorOrigin,
+      blockedClosedDates: clearErrorMessage
+          ? const <String, String>{}
+          : blockedClosedDates ?? this.blockedClosedDates,
     );
   }
 

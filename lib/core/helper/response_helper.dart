@@ -69,12 +69,16 @@ class ResponseHelper {
           data: errorData,
         );
       case 422:
-        errorMessage = _extractValidationMessage(error);
+        final Map<String, List<String>> fieldErrors = _extractFieldErrors(
+          error,
+        );
+        errorMessage = _extractValidationMessage(error, fieldErrors);
         return ValidationException(
           errorMessage: errorMessage,
           statusCode: statusCode,
           icon: icon,
           data: errorData,
+          fieldErrors: fieldErrors,
         );
       case 413:
         return ValidationException(
@@ -103,7 +107,61 @@ class ResponseHelper {
     );
   }
 
-  static String _extractValidationMessage(DataError error) {
+  /// Laravel's `errors` bag: `{"closed_dates.1.date": ["...", ...], ...}`.
+  /// Kept keyed and ordered so callers can attribute a message to the field —
+  /// and, for an indexed key, to the exact row of the list they submitted.
+  static Map<String, List<String>> _extractFieldErrors(DataError error) {
+    final dynamic payload = _extractPreferredPayload(error);
+    final dynamic errors = payload is Map ? payload['errors'] : null;
+    if (errors is! Map) return const <String, List<String>>{};
+
+    final Map<String, List<String>> result = <String, List<String>>{};
+    errors.forEach((dynamic key, dynamic value) {
+      final String field = key.toString();
+      final List<String> messages = _flattenMessages(value);
+      if (field.trim().isEmpty || messages.isEmpty) return;
+      result.putIfAbsent(field, () => <String>[]).addAll(messages);
+    });
+    return result;
+  }
+
+  static List<String> _flattenMessages(dynamic value) {
+    if (value is String) {
+      return value.trim().isEmpty ? <String>[] : <String>[value.trim()];
+    }
+    if (value is List) {
+      return value.expand((dynamic item) => _flattenMessages(item)).toList();
+    }
+    if (value is Map) {
+      return value.values
+          .expand((dynamic item) => _flattenMessages(item))
+          .toList();
+    }
+    return <String>[];
+  }
+
+  /// Every validation message, not just the first — a single save can fail on
+  /// several closed dates at once, and dropping the rest leaves the vendor
+  /// fixing them one round trip at a time.
+  static String _extractValidationMessage(
+    DataError error, [
+    Map<String, List<String>> fieldErrors = const <String, List<String>>{},
+  ]) {
+    final List<String> messages = <String>[];
+    for (final List<String> value in fieldErrors.values) {
+      for (final String message in value) {
+        if (!messages.contains(message)) messages.add(message);
+      }
+    }
+    if (messages.length == 1) {
+      return _actionableUploadMessage(messages.first);
+    }
+    if (messages.length > 1) {
+      return messages
+          .map((String item) => '\u2022 ${_actionableUploadMessage(item)}')
+          .join('\n');
+    }
+
     final dynamic payload = _extractPreferredPayload(error);
 
     if (payload is Map) {

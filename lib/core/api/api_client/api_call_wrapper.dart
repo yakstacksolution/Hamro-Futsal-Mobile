@@ -25,9 +25,6 @@ class ApiCallWrapper {
   ApiCallWrapper._privateConstructor();
   static final ApiCallWrapper _instance = ApiCallWrapper._privateConstructor();
 
-  /// Builds a standalone wrapper over a specific transport so tests can assert
-  /// what is actually put on the wire. Never returns the shared singleton, so
-  /// tests cannot leak a fake transport into app code.
   @visibleForTesting
   ApiCallWrapper.withHttp(IHttp http) {
     _iHttp = http;
@@ -45,8 +42,6 @@ class ApiCallWrapper {
     dynamic data,
     Map? query,
   }) async {
-    // A cleared session means every authenticated endpoint would 401; refuse
-    // the call here so late teardown work never reaches the network.
     if (SessionGate.blocks(url)) {
       return Result.error(DataError('Session ended', 401, null));
     }
@@ -80,8 +75,6 @@ class ApiCallWrapper {
       }
       if (error.response?.statusCode == 401 && token != null) {
         if (isTokenFreshApiCalling) {
-          // Inside a `catch`: nothing above would catch a throw from here, so
-          // the retry is contracted to return a Result for every outcome.
           return await retryApiCallWithDelay(url, method, data, query);
         } else {
           TokenModel tokenModel = AppSettings().tokenModel;
@@ -97,10 +90,6 @@ class ApiCallWrapper {
               await refreshResponse.data,
             );
 
-            // If the refresh response does not carry a usable access token,
-            // never persist it — doing so would overwrite the stored
-            // credentials with nulls and silently log the user out on the
-            // next app launch. Treat it as a failed refresh instead.
             if (newTokenModel.accessToken == null ||
                 newTokenModel.accessToken!.trim().isEmpty) {
               await revokeAuthFromApp();
@@ -135,14 +124,6 @@ class ApiCallWrapper {
     }
   }
 
-  /// Waits out an in-flight token refresh, then replays the call once.
-  ///
-  /// Every failure here comes back as a [Result], never as a thrown
-  /// [DioException]. This method is awaited from inside [makeRequest]'s own
-  /// `catch`, so anything thrown escapes the wrapper entirely and reaches the
-  /// zone as an unhandled async error — which is how a replayed request that
-  /// 401s again (a refresh that produced a token the server still rejects)
-  /// was crashing the app instead of surfacing as a failed call.
   Future<Result> retryApiCallWithDelay(
     String? url,
     HttpVerb method,
@@ -150,10 +131,6 @@ class ApiCallWrapper {
     Map<dynamic, dynamic>? query,
   ) async {
     return Future.delayed(const Duration(seconds: 2), () async {
-      // Everything inside is wrapped: this runs from `makeRequest`'s own
-      // `catch`, so a throw from any line here — the replay, the recursion,
-      // or the session teardown — leaves the wrapper entirely and lands in
-      // the zone as an unhandled async error.
       try {
         numberOfRetry++;
         if (!isTokenFreshApiCalling) {
@@ -169,9 +146,6 @@ class ApiCallWrapper {
             return Result.success(await response.data);
           } catch (error) {
             numberOfRetry = 0;
-            // The replay failed on its own terms. A second 401 means the
-            // fresh token is not being accepted either, so the session is
-            // gone.
             if (error is DioException && error.response?.statusCode == 401) {
               await revokeAuthFromApp();
             }
@@ -189,8 +163,6 @@ class ApiCallWrapper {
           }
         }
       } catch (error, stackTrace) {
-        // Nothing is meant to reach here; if something does, it is reported
-        // as a failed call rather than as a crash.
         debugPrint('Retry wrapper failed unexpectedly: $error\n$stackTrace');
         numberOfRetry = 0;
         return Result.error(_getErrorData(error));
@@ -205,8 +177,6 @@ class ApiCallWrapper {
     dynamic data,
     Map? query,
   }) async {
-    // FormData contains one-shot streams. Clone it for every HTTP attempt so
-    // token-refresh retries do not resend already-consumed multipart files.
     final dynamic requestData = data is FormData ? data.clone() : data;
     dynamic response;
     switch (method) {
@@ -250,27 +220,14 @@ class ApiCallWrapper {
   Future revokeAuthFromApp() async {
     isTokenFreshApiCalling = false;
     numberOfRetry = 0;
-    // The session is gone (refresh failed / token revoked): stop all
-    // authenticated traffic until a new token is stored.
     SessionGate.close();
     try {
       await Client.revokeAuth?.call();
     } catch (error, stackTrace) {
-      // The app's own sign-out hook — it navigates, clears storage and tears
-      // down sockets. A failure there must not become the caller's problem:
-      // the session is already closed above, and this runs from inside error
-      // handling where a throw would escape the wrapper as a crash.
       debugPrint('Sign-out after a lost session failed: $error\n$stackTrace');
     }
   }
 
-  /// Parses the `/auth/refresh-token` response into a [TokenModel].
-  ///
-  /// The backend wraps successful payloads in a `data` envelope
-  /// (`{"data": {"access_token": ...}}`), exactly like the login response.
-  /// We unwrap it here and fall back to the top-level map so both shapes work,
-  /// and tolerate the `expires_in`/`expired_in` and `access_token`/`token`
-  /// key variants used elsewhere in the auth layer.
   TokenModel _parseRefreshedToken(dynamic payload) {
     Map<String, dynamic> data = {};
     if (payload is Map) {
@@ -319,8 +276,6 @@ class ApiCallWrapper {
   }
 
   void printTokenDetails(String? token) {
-    // Never write bearer tokens or decoded identity claims to device logs.
-    // Keep the flag because refresh handling uses it to track a new session.
     if (kDebugMode && !isTokenPrinted && token?.isNotEmpty == true) {
       isTokenPrinted = true;
     }

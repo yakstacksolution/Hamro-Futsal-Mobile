@@ -1,5 +1,13 @@
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 
+/// Defaults for the court type / match format dropdowns. The backend requires
+/// both on every court save, so a court that has no explicit pick yet is
+/// treated as Indoor / 5v5 rather than sending nothing.
+const int kDefaultCourtTypeId = 1;
+const String kDefaultCourtTypeName = 'Indoor';
+const int kDefaultMatchFormatId = 1;
+const String kDefaultMatchFormatName = '5v5';
+
 enum UploadVerificationStatus {
   none,
   pending,
@@ -714,10 +722,10 @@ class CourtDraft {
     this.name = '',
     this.basePrice,
     this.description = '',
-    this.courtTypeId = 1,
-    this.courtType = 'Indoor',
-    this.matchFormatId = 1,
-    this.matchFormat = '5v5',
+    this.courtTypeId = kDefaultCourtTypeId,
+    this.courtType = kDefaultCourtTypeName,
+    this.matchFormatId = kDefaultMatchFormatId,
+    this.matchFormat = kDefaultMatchFormatName,
     this.maxPlayers = 10,
     this.isActive = true,
     this.surfaceType,
@@ -1175,7 +1183,7 @@ int? _asInt(Object? value) {
 
 String _normalizedCourtType(Object? value) {
   final String normalized = value?.toString().trim() ?? '';
-  if (normalized.isEmpty) return 'Indoor';
+  if (normalized.isEmpty) return kDefaultCourtTypeName;
   return switch (normalized.toLowerCase()) {
     'outdoor' || 'outdoor turf' => 'Outdoor',
     'indoor' => 'Indoor',
@@ -1185,7 +1193,7 @@ String _normalizedCourtType(Object? value) {
 
 String _normalizedMatchFormat(Object? value) {
   final String normalized = value?.toString().trim() ?? '';
-  if (normalized.isEmpty) return '5v5';
+  if (normalized.isEmpty) return kDefaultMatchFormatName;
   return switch (normalized.toLowerCase()) {
     '6v6' => '6v6',
     '7v7' => '7v7',
@@ -1197,7 +1205,7 @@ String _normalizedMatchFormat(Object? value) {
 int _knownCourtTypeId(Object? value) {
   return switch (value?.toString().trim().toLowerCase()) {
     '2' || 'outdoor' || 'outdoor turf' => 2,
-    _ => 1,
+    _ => kDefaultCourtTypeId,
   };
 }
 
@@ -1205,7 +1213,7 @@ int _knownMatchFormatId(Object? value) {
   return switch (value?.toString().trim().toLowerCase()) {
     '2' || '6v6' => 2,
     '3' || '7v7' => 3,
-    _ => 1,
+    _ => kDefaultMatchFormatId,
   };
 }
 

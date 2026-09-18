@@ -290,12 +290,19 @@ List<int> _uploadIds(List<UploadRef> uploads) {
       .toList();
 }
 
-int? _courtTypeId(CourtDraft court) {
-  return court.courtTypeId ?? int.tryParse(court.courtType?.trim() ?? '');
+// The backend requires both on every court save, so a draft that never got
+// an explicit pick (an older court the API returned without these fields)
+// falls back to the same defaults the dropdowns show: Indoor / 5v5.
+int _courtTypeId(CourtDraft court) {
+  return court.courtTypeId ??
+      int.tryParse(court.courtType?.trim() ?? '') ??
+      kDefaultCourtTypeId;
 }
 
-int? _matchFormatId(CourtDraft court) {
-  return court.matchFormatId ?? int.tryParse(court.matchFormat?.trim() ?? '');
+int _matchFormatId(CourtDraft court) {
+  return court.matchFormatId ??
+      int.tryParse(court.matchFormat?.trim() ?? '') ??
+      kDefaultMatchFormatId;
 }
 
 /// Body for the single-slot create/update endpoint

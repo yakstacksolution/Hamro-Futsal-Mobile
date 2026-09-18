@@ -1,6 +1,10 @@
 import 'dart:typed_data';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:hamro_futsal/core/routers/link_opener.dart';
+import 'package:hamro_futsal/core/utils/app_utils.dart';
+import 'package:hamro_futsal/features/message/domain/model/message_links.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
@@ -240,7 +244,7 @@ class ChatBubble extends StatelessWidget {
     );
   }
 
-  /// The message body, with any `@mention` picked out of it.
+  /// The message body, with any `@mention` and any URL picked out of it.
   Widget _buildBody(dynamic textTheme) {
     final TextStyle? base = textTheme.bodyTextSmall?.copyWith(
       color: isMe ? LightColor.inverseTextColor : LightColor.primaryTextColor,
@@ -253,33 +257,12 @@ class ChatBubble extends StatelessWidget {
       return Text('Message deleted', style: base);
     }
 
-    final List<MentionSpan> spans = findMentionSpans(
-      message.body,
-      mentionCandidates,
+    return _MessageBodyText(
+      body: message.body,
+      baseStyle: base,
+      isMe: isMe,
+      mentionCandidates: mentionCandidates,
     );
-    if (spans.isEmpty) return Text(message.body, style: base);
-
-    // A mention is set in the accent colour and bolded; on my own (green)
-    // bubbles the accent is unreadable, so weight alone carries it there.
-    final TextStyle? mentionStyle = base?.copyWith(
-      fontWeight: FontWeight.w800,
-      color: isMe ? LightColor.inverseTextColor : LightColor.secondaryColor,
-    );
-
-    final List<InlineSpan> pieces = <InlineSpan>[];
-    int cursor = 0;
-    for (final MentionSpan span in spans) {
-      if (span.start > cursor) {
-        pieces.add(TextSpan(text: message.body.substring(cursor, span.start)));
-      }
-      pieces.add(TextSpan(text: span.text, style: mentionStyle));
-      cursor = span.end;
-    }
-    if (cursor < message.body.length) {
-      pieces.add(TextSpan(text: message.body.substring(cursor)));
-    }
-
-    return Text.rich(TextSpan(children: pieces), style: base);
   }
 
   String? _locationText(Map metadata) {
@@ -505,4 +488,176 @@ class ChatDayChip extends StatelessWidget {
       ),
     );
   }
+}
+
+/// A message body rendered as text with its `@mentions` highlighted and its
+/// links tappable.
+///
+/// Stateful only because a tappable span needs a [TapGestureRecognizer], and a
+/// recognizer has to be disposed; building them inside a stateless `build`
+/// leaks one per rebuild, and a chat rebuilds constantly.
+class _MessageBodyText extends StatefulWidget {
+  const _MessageBodyText({
+    required this.body,
+    required this.baseStyle,
+    required this.isMe,
+    required this.mentionCandidates,
+  });
+
+  final String body;
+  final TextStyle? baseStyle;
+  final bool isMe;
+  final List<MentionCandidate> mentionCandidates;
+
+  @override
+  State<_MessageBodyText> createState() => _MessageBodyTextState();
+}
+
+class _MessageBodyTextState extends State<_MessageBodyText> {
+  /// One recognizer per link, kept across rebuilds and keyed by where the link
+  /// sits in the body. Reused rather than rebuilt because disposing a
+  /// recognizer that a finger is still on throws — and a chat rebuilds under
+  /// the user's finger every time a message arrives.
+  final Map<String, TapGestureRecognizer> _recognizers =
+      <String, TapGestureRecognizer>{};
+
+  @override
+  void didUpdateWidget(_MessageBodyText oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // An edited message is a different body: the old offsets no longer mean
+    // anything, so the recognizers built from them go.
+    if (oldWidget.body != widget.body) _disposeRecognizers();
+  }
+
+  @override
+  void dispose() {
+    _disposeRecognizers();
+    super.dispose();
+  }
+
+  void _disposeRecognizers() {
+    for (final TapGestureRecognizer recognizer in _recognizers.values) {
+      recognizer.dispose();
+    }
+    _recognizers.clear();
+  }
+
+  TapGestureRecognizer _recognizerFor(LinkSpan link) {
+    final TapGestureRecognizer recognizer = _recognizers.putIfAbsent(
+      '${link.start}:${link.text}',
+      TapGestureRecognizer.new,
+    );
+    return recognizer..onTap = () => _openLink(link);
+  }
+
+  Future<void> _openLink(LinkSpan link) async {
+    final bool opened = await LinkOpener.open(link.uri);
+    if (opened || !mounted) return;
+    AppUtils().showSnackBar(
+      context,
+      MsgType.error,
+      StringConstants.couldNotOpenThisLink,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final String body = widget.body;
+    final List<MentionSpan> mentions = findMentionSpans(
+      body,
+      widget.mentionCandidates,
+    );
+    final List<LinkSpan> links = findLinkSpans(body);
+    if (mentions.isEmpty && links.isEmpty) {
+      return Text(body, style: widget.baseStyle);
+    }
+
+    // A mention is set in the accent colour and bolded; on my own (green)
+    // bubbles the accent is unreadable, so weight alone carries it there.
+    final TextStyle? mentionStyle = widget.baseStyle?.copyWith(
+      fontWeight: FontWeight.w800,
+      color: widget.isMe
+          ? LightColor.inverseTextColor
+          : LightColor.secondaryColor,
+    );
+    final TextStyle? linkStyle = widget.baseStyle?.copyWith(
+      color: widget.isMe
+          ? LightColor.inverseTextColor
+          : LightColor.secondaryColor,
+      decoration: TextDecoration.underline,
+      decorationColor: widget.isMe
+          ? LightColor.inverseTextColor
+          : LightColor.secondaryColor,
+      fontWeight: FontWeight.w700,
+    );
+
+    // Both passes read the same body, so a `@name` inside a URL would be
+    // highlighted twice. Links win: the URL has to stay tappable as one run.
+    final List<_BodySpan> ordered = <_BodySpan>[
+      ...links.map(_BodySpan.link),
+      ...mentions
+          .where(
+            (MentionSpan mention) => !links.any(
+              (LinkSpan link) =>
+                  mention.start < link.end && link.start < mention.end,
+            ),
+          )
+          .map(_BodySpan.mention),
+    ]..sort((_BodySpan a, _BodySpan b) => a.start.compareTo(b.start));
+
+    final List<InlineSpan> pieces = <InlineSpan>[];
+    int cursor = 0;
+    for (final _BodySpan span in ordered) {
+      if (span.start > cursor) {
+        pieces.add(TextSpan(text: body.substring(cursor, span.start)));
+      }
+      final LinkSpan? link = span.link;
+      if (link == null) {
+        pieces.add(TextSpan(text: span.text, style: mentionStyle));
+      } else {
+        pieces.add(
+          TextSpan(
+            text: span.text,
+            style: linkStyle,
+            recognizer: _recognizerFor(link),
+            semanticsLabel: link.isInternal
+                ? '${link.text}, opens in the app'
+                : null,
+          ),
+        );
+      }
+      cursor = span.end;
+    }
+    if (cursor < body.length) {
+      pieces.add(TextSpan(text: body.substring(cursor)));
+    }
+
+    return Text.rich(TextSpan(children: pieces), style: widget.baseStyle);
+  }
+}
+
+/// A run of the body that is drawn differently from the rest — either a
+/// mention or a link.
+class _BodySpan {
+  const _BodySpan._({
+    required this.start,
+    required this.end,
+    required this.text,
+    this.link,
+  });
+
+  factory _BodySpan.mention(MentionSpan span) =>
+      _BodySpan._(start: span.start, end: span.end, text: span.text);
+
+  factory _BodySpan.link(LinkSpan span) => _BodySpan._(
+    start: span.start,
+    end: span.end,
+    text: span.text,
+    link: span,
+  );
+
+  final int start;
+  final int end;
+  final String text;
+  final LinkSpan? link;
 }

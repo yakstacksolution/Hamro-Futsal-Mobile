@@ -7,6 +7,7 @@ import 'package:hamro_futsal/features/futsal_details/data/model/create_booking_r
 import 'package:hamro_futsal/features/futsal_details/data/model/hosted_by_model.dart';
 import 'package:hamro_futsal/features/futsal_details/data/model/payment_qr_model.dart';
 import 'package:hamro_futsal/features/futsal_details/data/model/recurring_availability_model.dart';
+import 'package:hamro_futsal/features/futsal_details/data/model/review_change_request.dart';
 import 'package:hamro_futsal/features/futsal_details/data/model/time_slot_model.dart';
 import 'package:hamro_futsal/features/futsal_details/data/model/venue_amenities_facilities_model.dart';
 import 'package:hamro_futsal/features/futsal_details/data/model/venue_description_model.dart';
@@ -28,6 +29,13 @@ abstract class FutsalDetailsRepository {
     int page,
     int perPage,
   });
+  /// `POST /reviews/{review}/change-request` — asks for the signed-in user's
+  /// own review to be edited or removed. Resolves to the server's message.
+  Future<Either<AppException, String>> submitReviewChangeRequest({
+    required int reviewId,
+    required ReviewChangeRequestInput input,
+  });
+
   Future<Either<AppException, VenueAmenitiesFacilitiesModel>>
   getVenueAmenitiesFacilities({required int venueId});
   Future<Either<AppException, AvailableCourtsModel>> getAvailableCourts({

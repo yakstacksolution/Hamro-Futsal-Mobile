@@ -1,3 +1,4 @@
+import 'package:hamro_futsal/features/vendor/presentation/models/vendor_onboarding_drafts.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -246,7 +247,10 @@ class _CourtBasicInfoForm extends StatelessWidget {
                   hintText: state.status == PublicCourtOptionsStatus.loading
                       ? 'Loading court types...'
                       : null,
-                  initialValue: _selectedId(court.courtTypeId, options),
+                  initialValue: _selectedId(
+                    court.courtTypeId ?? kDefaultCourtTypeId,
+                    options,
+                  ),
                   items: _dropdownItems(options),
                   onChanged: (int? value) => cubit.updateActiveCourt(
                     court.copyWith(
@@ -271,7 +275,10 @@ class _CourtBasicInfoForm extends StatelessWidget {
                   hintText: state.status == PublicCourtOptionsStatus.loading
                       ? 'Loading match formats...'
                       : null,
-                  initialValue: _selectedId(court.matchFormatId, options),
+                  initialValue: _selectedId(
+                    court.matchFormatId ?? kDefaultMatchFormatId,
+                    options,
+                  ),
                   items: _dropdownItems(options),
                   onChanged: (int? value) => cubit.updateActiveCourt(
                     court.copyWith(
@@ -462,12 +469,20 @@ class _CourtStatusToggle extends StatelessWidget {
 }
 
 const List<PublicOptionModel> _fallbackCourtTypes = <PublicOptionModel>[
-  PublicOptionModel(id: '1', name: 'Indoor', raw: <String, dynamic>{}),
+  PublicOptionModel(
+    id: '1',
+    name: kDefaultCourtTypeName,
+    raw: <String, dynamic>{},
+  ),
   PublicOptionModel(id: '2', name: 'Outdoor', raw: <String, dynamic>{}),
 ];
 
 const List<PublicOptionModel> _fallbackMatchFormats = <PublicOptionModel>[
-  PublicOptionModel(id: '1', name: '5v5', raw: <String, dynamic>{}),
+  PublicOptionModel(
+    id: '1',
+    name: kDefaultMatchFormatName,
+    raw: <String, dynamic>{},
+  ),
   PublicOptionModel(id: '2', name: '6v6', raw: <String, dynamic>{}),
   PublicOptionModel(id: '3', name: '7v7', raw: <String, dynamic>{}),
 ];

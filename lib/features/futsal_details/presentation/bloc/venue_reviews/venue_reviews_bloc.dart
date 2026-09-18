@@ -4,8 +4,10 @@ import 'package:bloc/bloc.dart';
 import 'package:dartz/dartz.dart';
 import 'package:equatable/equatable.dart';
 import 'package:hamro_futsal/core/helper/exception_helper.dart';
+import 'package:hamro_futsal/features/futsal_details/data/model/review_change_request.dart';
 import 'package:hamro_futsal/features/futsal_details/data/model/venue_review_model.dart';
 import 'package:hamro_futsal/features/futsal_details/domain/usecase/get_venue_reviews_use_case.dart';
+import 'package:hamro_futsal/features/futsal_details/domain/usecase/submit_review_change_request_use_case.dart';
 
 part 'venue_reviews_event.dart';
 part 'venue_reviews_state.dart';
@@ -16,13 +18,20 @@ part 'venue_reviews_state.dart';
 /// preview ([kVenueReviewsPreviewSize]) and the full-list page asks for
 /// [kVenueReviewsPageSize] at a time, appending as the user scrolls.
 class VenueReviewsBloc extends Bloc<VenueReviewsEvent, VenueReviewsState> {
-  VenueReviewsBloc(this._getVenueReviewsUseCase)
-    : super(const VenueReviewsState()) {
+  VenueReviewsBloc(
+    this._getVenueReviewsUseCase, [
+    this._submitReviewChangeRequestUseCase,
+  ]) : super(const VenueReviewsState()) {
     on<FetchVenueReviewsEvent>(_onFetch);
     on<LoadMoreVenueReviewsEvent>(_onLoadMore);
+    on<SubmitReviewChangeRequestEvent>(_onSubmitChangeRequest);
   }
 
   final GetVenueReviewsUseCase _getVenueReviewsUseCase;
+
+  /// Only the full reviews page offers the edit/delete menu, so the details
+  /// page's instance is built without it.
+  final SubmitReviewChangeRequestUseCase? _submitReviewChangeRequestUseCase;
 
   FutureOr<void> _onFetch(
     FetchVenueReviewsEvent event,
@@ -107,6 +116,43 @@ class VenueReviewsBloc extends Bloc<VenueReviewsEvent, VenueReviewsState> {
           ),
         );
       },
+    );
+  }
+
+  FutureOr<void> _onSubmitChangeRequest(
+    SubmitReviewChangeRequestEvent event,
+    Emitter<VenueReviewsState> emit,
+  ) async {
+    final SubmitReviewChangeRequestUseCase? useCase =
+        _submitReviewChangeRequestUseCase;
+    if (useCase == null || state.isSubmittingChangeRequest) return;
+
+    emit(
+      state.copyWith(
+        changeRequestStatus: ReviewChangeRequestStatus.submitting,
+        changeRequestReviewId: event.reviewId,
+        clearChangeRequestMessage: true,
+      ),
+    );
+
+    final Either<AppException, String> response = await useCase(
+      reviewId: event.reviewId,
+      input: event.input,
+    );
+
+    response.fold(
+      (AppException failure) => emit(
+        state.copyWith(
+          changeRequestStatus: ReviewChangeRequestStatus.failure,
+          changeRequestMessage: failure.errorMessage,
+        ),
+      ),
+      (String message) => emit(
+        state.copyWith(
+          changeRequestStatus: ReviewChangeRequestStatus.success,
+          changeRequestMessage: message,
+        ),
+      ),
     );
   }
 }

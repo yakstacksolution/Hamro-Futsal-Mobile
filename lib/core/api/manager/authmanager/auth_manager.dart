@@ -502,6 +502,16 @@ class AuthManager extends ServiceManager {
     );
   }
 
+  Future<Result> submitReviewChangeRequest({
+    required int reviewId,
+    required Map<String, dynamic> data,
+  }) async {
+    return await _apiClient.submitReviewChangeRequest(
+      reviewId: reviewId,
+      data: data,
+    );
+  }
+
   Future<Result> getVenueDescription(String venueSlug) async {
     return await _apiClient.getVenueDescription(venueSlug: venueSlug);
   }

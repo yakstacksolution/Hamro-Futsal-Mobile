@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
@@ -13,6 +12,7 @@ import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hamro_futsal/core/api/client.dart';
+import 'package:hamro_futsal/core/helper/crash_reporter.dart';
 import 'package:hamro_futsal/core/helper/fcm_helper.dart';
 import 'package:hamro_futsal/core/helper/share_preferences.dart';
 import 'package:hamro_futsal/core/routers/app_router_params.dart';
@@ -43,11 +43,7 @@ void main() async {
   }
 
   if (firebaseReady) {
-    FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
-    PlatformDispatcher.instance.onError = (error, stack) {
-      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
-      return true;
-    };
+    CrashReporter.install();
   }
 
   final SharedPreferences preferences = await SharedPreferences.getInstance();

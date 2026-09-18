@@ -1164,6 +1164,7 @@ class _WeekendHolidayView extends StatelessWidget {
         ),
         const SizedBox(height: AppDimens.sizeX12),
         _ClosedDateCollectionCard(
+          blockedDates: cubit.state.blockedClosedDates,
           title: StringConstants.closedDates,
           subtitle: StringConstants.closeAFullDayOrOnlyASpecificHourRange,
           icon: Icons.event_busy_rounded,
@@ -2222,8 +2223,13 @@ class _ClosedDateCollectionCard extends StatelessWidget {
     required this.actionLabel,
     required this.onAdd,
     required this.onRemove,
+    this.blockedDates = const <String, String>{},
   });
 
+  /// Dates the API refused on the last save, keyed by `yyyy-MM-dd`, with the
+  /// server's reason. Those chips are drawn in the error colour and the reasons
+  /// are listed under the card, so the vendor can see which day to drop.
+  final Map<String, String> blockedDates;
   final String title;
   final String subtitle;
   final IconData icon;
@@ -2239,6 +2245,10 @@ class _ClosedDateCollectionCard extends StatelessWidget {
     final List<ClosedDateDraft> sortedDates = List<ClosedDateDraft>.from(
       dates,
     )..sort((ClosedDateDraft a, ClosedDateDraft b) => a.date.compareTo(b.date));
+    final List<String> blockedReasons = blockedDates.values
+        .where((String reason) => reason.trim().isNotEmpty)
+        .toSet()
+        .toList();
     return Container(
       width: double.infinity,
       padding: AppUtils().getPadding(all: AppDimens.paddingX14),
@@ -2309,40 +2319,81 @@ class _ClosedDateCollectionCard extends StatelessWidget {
             Wrap(
               spacing: AppDimens.sizeX8,
               runSpacing: AppDimens.sizeX8,
-              children: sortedDates
-                  .map(
-                    (ClosedDateDraft item) => InputChip(
-                      label: Text(
-                        item.isFullDay
-                            ? item.date
-                            : '${item.date} · ${item.startTime}-${item.endTime}',
+              children: sortedDates.map((ClosedDateDraft item) {
+                final bool isBlocked = blockedDates.containsKey(item.date);
+                final Color accent = isBlocked
+                    ? LightColor.redColor
+                    : item.isFullDay
+                    ? LightColor.brandTextColor
+                    : LightColor.yellowColor;
+                return InputChip(
+                  tooltip: blockedDates[item.date],
+                  label: Text(
+                    item.isFullDay
+                        ? item.date
+                        : '${item.date} · ${item.startTime}-${item.endTime}',
+                    style: textTheme.bodySubTitle?.copyWith(
+                      color: accent,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  avatar: isBlocked
+                      ? Icon(
+                          Icons.error_outline_rounded,
+                          size: AppDimens.sizeX14,
+                          color: LightColor.redColor,
+                        )
+                      : null,
+                  onDeleted: () => onRemove(item.date),
+                  deleteIcon: const Icon(
+                    Icons.close_rounded,
+                    size: AppDimens.sizeX14,
+                  ),
+                  deleteIconColor: isBlocked
+                      ? LightColor.redColor
+                      : item.isFullDay
+                      ? LightColor.secondaryColor
+                      : LightColor.yellowColor,
+                  backgroundColor: accent.withValues(alpha: 0.12),
+                  side: BorderSide(
+                    color: isBlocked
+                        ? LightColor.redColor
+                        : item.isFullDay
+                        ? LightColor.secondaryLight
+                        : LightColor.yellowColor.withValues(alpha: 0.45),
+                  ),
+                );
+              }).toList(),
+            ),
+          if (blockedReasons.isNotEmpty) ...<Widget>[
+            const SizedBox(height: AppDimens.sizeX10),
+            ...blockedReasons.map(
+              (String reason) => Padding(
+                padding: AppUtils().getPadding(bottom: AppDimens.paddingX4),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Icon(
+                      Icons.error_outline_rounded,
+                      size: AppDimens.sizeX14,
+                      color: LightColor.redColor,
+                    ),
+                    const SizedBox(width: AppDimens.sizeX6),
+                    Expanded(
+                      child: Text(
+                        reason,
                         style: textTheme.bodySubTitle?.copyWith(
-                          color: item.isFullDay
-                              ? LightColor.brandTextColor
-                              : LightColor.yellowColor,
-                          fontWeight: FontWeight.w800,
+                          color: LightColor.redColor,
+                          height: 1.35,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                      onDeleted: () => onRemove(item.date),
-                      deleteIcon: const Icon(
-                        Icons.close_rounded,
-                        size: AppDimens.sizeX14,
-                      ),
-                      deleteIconColor: item.isFullDay
-                          ? LightColor.secondaryColor
-                          : LightColor.yellowColor,
-                      backgroundColor: item.isFullDay
-                          ? LightColor.secondaryLight.withValues(alpha: 0.14)
-                          : LightColor.yellowColor.withValues(alpha: 0.12),
-                      side: BorderSide(
-                        color: item.isFullDay
-                            ? LightColor.secondaryLight
-                            : LightColor.yellowColor.withValues(alpha: 0.45),
-                      ),
                     ),
-                  )
-                  .toList(),
+                  ],
+                ),
+              ),
             ),
+          ],
         ],
       ),
     );

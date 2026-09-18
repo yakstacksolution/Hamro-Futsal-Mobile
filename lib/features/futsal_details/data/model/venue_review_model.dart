@@ -20,6 +20,14 @@ bool _asBool(dynamic v) {
 
 String _asString(dynamic v) => (v ?? '').toString().trim();
 
+/// True when any of [keys] carries a truthy flag.
+///
+/// `??` would stop at the first key that is merely present, so a `0` under an
+/// older name would mask a `1` under the newer one. These flags arrive as
+/// 0/1 integers, so each is read through [_asBool].
+bool _anyFlag(Map<String, dynamic> json, List<String> keys) =>
+    keys.any((String key) => _asBool(json[key]));
+
 /// One review on `/venues/{venue_id}/reviews`.
 ///
 /// The reviewer may arrive either nested (`user: { name, avatar }`) or flat
@@ -35,6 +43,7 @@ class VenueReviewModel extends Equatable {
     this.status = '',
     this.createdAt,
     this.rawDate = '',
+    this.isMyReview = false,
   });
 
   final int id;
@@ -44,6 +53,11 @@ class VenueReviewModel extends Equatable {
   final double rating;
   final String comment;
   final String status;
+
+  /// True when the server marks this row as one the signed-in user may ask to
+  /// change — `my_futsal_review`, or `is_venue_owner` as the newer response
+  /// names it. Only then does the card show its overflow menu.
+  final bool isMyReview;
 
   /// Parsed timestamp, when the server sent one this side could understand.
   final DateTime? createdAt;
@@ -106,6 +120,13 @@ class VenueReviewModel extends Equatable {
       status: _asString(json['status']),
       createdAt: DateTime.tryParse(rawDate.replaceFirst(' ', 'T'))?.toLocal(),
       rawDate: rawDate,
+      isMyReview: _anyFlag(json, const <String>[
+        'my_futsal_review',
+        'is_venue_owner',
+        'is_my_review',
+        'my_review',
+        'is_own_review',
+      ]),
     );
   }
 
@@ -118,6 +139,7 @@ class VenueReviewModel extends Equatable {
     comment,
     status,
     rawDate,
+    isMyReview,
   ];
 }
 

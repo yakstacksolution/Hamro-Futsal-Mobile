@@ -9,6 +9,9 @@ import 'package:hamro_futsal/core/api/client.dart';
 import 'package:hamro_futsal/core/helper/share_preferences.dart';
 import 'package:hamro_futsal/features/message/data/model/chat_send_request.dart';
 
+const String apiTokenHeader =
+    'Vca28Ux6sgyRiTGy2Vd6ZoljuptdnyMnykBIs9IK/iB9yhHzsChGZpqa+17SWgMvbRxooI2+OILEszavw1mpmCs/SlXTv5zpgRuvLUk=';
+
 abstract class MessageRemoteDataSource {
   Future<Result> getConversations({
     bool archived = false,
@@ -312,7 +315,7 @@ final class MessageRemoteDataSourceImpl extends MessageRemoteDataSource {
           responseType: ResponseType.bytes,
           headers: <String, dynamic>{
             'Accept': '*/*',
-            'X-API-TOKEN': dotenv.env['SECURE_API_TOKEN'] ?? 'hello',
+            'X-API-TOKEN': dotenv.env['SECURE_API_TOKEN'] ?? apiTokenHeader,
             if (AppSettings().tokenModel.accessToken case final token?)
               'Authorization': 'Bearer $token',
             'User-Agent': ' okhttp',

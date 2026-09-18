@@ -5,11 +5,16 @@ import 'package:hamro_futsal/core/api/api_client/booking_type_payload.dart';
 import 'package:hamro_futsal/core/api/api_client/result.dart';
 import 'package:hamro_futsal/core/api/client.dart';
 import 'package:hamro_futsal/features/futsal_details/data/model/create_booking_request.dart';
+import 'package:hamro_futsal/features/futsal_details/data/model/review_change_request.dart';
 
 abstract class FutsalDetailsRemoteDataSource {
   Future<Result> getHostedBy({required int venueId});
   Future<Result> getVenueDescription({required String venueSlug});
   Future<Result> getVenueReviews({required int venueId, int page, int perPage});
+  Future<Result> submitReviewChangeRequest({
+    required int reviewId,
+    required ReviewChangeRequestInput input,
+  });
   Future<Result> getVenueAmenitiesFacilities({required int venueId});
   Future<Result> getAvailableCourts({
     required int venueId,
@@ -50,6 +55,16 @@ final class FutsalDetailsRemoteDataSourceImpl
     page: page,
     perPage: perPage,
   );
+
+  @override
+  Future<Result> submitReviewChangeRequest({
+    required int reviewId,
+    required ReviewChangeRequestInput input,
+  }) async =>
+      await Client.instance().getAuthManager().submitReviewChangeRequest(
+        reviewId: reviewId,
+        data: input.toJson(),
+      );
 
   @override
   Future<Result> getVenueAmenitiesFacilities({required int venueId}) async =>

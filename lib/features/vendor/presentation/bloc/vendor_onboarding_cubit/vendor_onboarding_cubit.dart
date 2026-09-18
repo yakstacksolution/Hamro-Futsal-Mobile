@@ -34,6 +34,18 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
         VendorOnboardingUseCase(VendorOnboardingRepositoryImpl());
   }
 
+  /// Every API call here outlives the widget that started it — the onboarding
+  /// stepper is popped, or the user backs out mid-save — and the `fold` that
+  /// comes back then emits into a closed cubit, which throws
+  /// `Bad state: Cannot emit new states after calling close` and is reported as
+  /// a fatal crash. A closed cubit has no listeners left, so dropping the state
+  /// is the correct outcome; guarding here covers every path at once.
+  @override
+  void emit(VendorOnboardingState state) {
+    if (isClosed) return;
+    super.emit(state);
+  }
+
   final VendorDraftRepository _draftRepository;
   late final VendorOnboardingUseCase _onboardingUseCase;
   Timer? _saveDebounce;
@@ -2145,11 +2157,27 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
 
       return response.fold(
         (AppException failure) {
+          final Map<String, String> blockedDates = _blockedClosedDatesFrom(
+            failure,
+            body,
+            court,
+          );
+          final Set<String> errorKeys = Set<String>.from(state.errorKeys);
+          if (blockedDates.isNotEmpty) {
+            errorKeys.add(
+              VendorOnboardingValidator.courtSectionKey(
+                court.id,
+                currentSectionIndex,
+              ),
+            );
+          }
           emit(
             state.copyWith(
               isSubmitting: false,
               errorMessage: failure.errorMessage,
               errorOrigin: VendorErrorOrigin.api,
+              errorKeys: errorKeys,
+              blockedClosedDates: blockedDates,
             ),
           );
           return failure.errorMessage;
@@ -2204,6 +2232,59 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
       );
       return error.toString();
     }
+  }
+
+  /// Resolves a 422's `closed_dates.<index>.date` keys back to the dates that
+  /// were actually sent, so the chips the server rejected can be marked.
+  /// The index refers to the `closed_dates` array of the request body, which is
+  /// built in the order of the draft's list — the body is preferred over the
+  /// draft so a partial (current-substep-only) payload still lines up.
+  Map<String, String> _blockedClosedDatesFrom(
+    AppException failure,
+    Map<String, dynamic> body,
+    CourtDraft court,
+  ) {
+    if (failure is! ValidationException) return const <String, String>{};
+    final List<String> messages = failure.messagesFor('closed_dates');
+    if (messages.isEmpty) return const <String, String>{};
+
+    final List<String> submitted = _submittedClosedDates(body, court);
+    final Map<String, String> blocked = <String, String>{};
+    failure.fieldErrors.forEach((String key, List<String> value) {
+      if (!key.startsWith('closed_dates')) return;
+      final List<String> parts = key.split('.');
+      final int? index = parts.length > 1 ? int.tryParse(parts[1]) : null;
+      final String reason = value.join('\n');
+      if (index != null && index >= 0 && index < submitted.length) {
+        blocked[submitted[index]] = reason;
+        return;
+      }
+      // No usable index (`closed_dates` itself, or an index the payload no
+      // longer covers): fall back to any date named inside the message.
+      final RegExpMatch? match = RegExp(
+        r'\d{4}-\d{2}-\d{2}',
+      ).firstMatch(reason);
+      if (match != null) blocked[match.group(0)!] = reason;
+    });
+    return blocked;
+  }
+
+  List<String> _submittedClosedDates(
+    Map<String, dynamic> body,
+    CourtDraft court,
+  ) {
+    final dynamic payload = body['closed_dates'];
+    if (payload is List) {
+      return payload
+          .map((dynamic item) {
+            if (item is Map) return item['date']?.toString() ?? '';
+            return item?.toString() ?? '';
+          })
+          .toList(growable: false);
+    }
+    return court.closedDates
+        .map((ClosedDateDraft item) => item.date)
+        .toList(growable: false);
   }
 
   void _registerValidationFailure(VendorValidationResult result) {

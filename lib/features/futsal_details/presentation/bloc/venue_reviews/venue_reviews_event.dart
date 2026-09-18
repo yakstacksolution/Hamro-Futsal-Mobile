@@ -36,3 +36,23 @@ final class FetchVenueReviewsEvent extends VenueReviewsEvent {
 final class LoadMoreVenueReviewsEvent extends VenueReviewsEvent {
   const LoadMoreVenueReviewsEvent();
 }
+
+/// Asks the venue admin to let the signed-in user edit or delete their own
+/// review, with the reason they typed in the sheet.
+final class SubmitReviewChangeRequestEvent extends VenueReviewsEvent {
+  const SubmitReviewChangeRequestEvent({
+    required this.reviewId,
+    required this.input,
+  });
+
+  final int reviewId;
+  final ReviewChangeRequestInput input;
+
+  @override
+  List<Object?> get props => <Object?>[
+    reviewId,
+    input.type,
+    input.reason,
+    input.requestedReview,
+  ];
+}

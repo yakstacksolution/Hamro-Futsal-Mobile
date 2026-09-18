@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hamro_futsal/core/api/api_client/api_constants.dart';
@@ -113,7 +114,11 @@ abstract final class DownloadHelper {
         final File file = File('${target.path}/${_uniqueIn(target, name)}');
         await file.writeAsBytes(bytes, flush: true);
         return DownloadOutcome.savedToFiles;
-      } on FileSystemException {}
+      } on FileSystemException {
+        if (kDebugMode) {
+          print('Failed to save to ${target.path}');
+        }
+      }
     }
 
     return _handOff(bytes: bytes, name: name, originKey: originKey);

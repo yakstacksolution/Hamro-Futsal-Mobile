@@ -18,8 +18,6 @@ class DioHttp implements IHttp {
     _instance.dio = Dio();
     _instance.dio.options = BaseOptions(
       connectTimeout: const Duration(milliseconds: 15000),
-      // An upload is not a 20-second operation on a phone connection. This is
-      // the send timeout specifically; receive stays as it was.
       sendTimeout: const Duration(minutes: 2),
       receiveTimeout: const Duration(milliseconds: 20000),
       listFormat: ListFormat.multiCompatible,
@@ -43,8 +41,6 @@ class DioHttp implements IHttp {
 
   @override
   get({String? url, String? token, Map? query, dynamic data}) async {
-    // A few endpoints expect their filters in a JSON body on GET, so the body
-    // is only attached when one is supplied.
     return dio.get(
       url!,
       queryParameters: query as Map<String, dynamic>?,
@@ -81,17 +77,6 @@ class DioHttp implements IHttp {
     );
   }
 
-  /// Headers for ONE request.
-  ///
-  /// These used to be written onto the shared `dio.options`, which every
-  /// in-flight request reads from. With an `await` sitting between the write
-  /// and the send, a concurrent JSON request could overwrite an upload's
-  /// content type in that window — the account screen alone fires several
-  /// requests at once. Per-request [Options] cannot be clobbered that way.
-  ///
-  /// Content type is deliberately left unset for `FormData`: Dio derives
-  /// `multipart/form-data; boundary=…` from the body itself, and pinning it
-  /// here would strip the boundary the server needs to find the file.
   Options _optionsFor({String? url, String? token, dynamic data}) {
     final bool isMultipart = data is FormData;
     if (data case final FormData form) {
@@ -112,10 +97,6 @@ class DioHttp implements IHttp {
     return Options(
       headers: headers,
       contentType: isMultipart ? null : Headers.jsonContentType,
-      // An upload is two slow phases, not one: pushing the bytes up, then
-      // waiting while the server stores and validates them. The default
-      // 20-second receive window expires during the second phase and surfaces
-      // as a 504 with a null body, even though the file arrived intact.
       sendTimeout: isMultipart ? const Duration(minutes: 2) : null,
       receiveTimeout: isMultipart ? const Duration(minutes: 2) : null,
     );

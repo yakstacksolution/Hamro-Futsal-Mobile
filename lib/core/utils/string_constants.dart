@@ -989,7 +989,26 @@ final class StringConstants {
   static const String reviewFacilitiesBeforeBooking =
       'Review facilities before booking.';
   static const String reviewYourBooking = 'Review your booking';
+  static const String viewDetails = 'View details';
   static const String reviews = 'Reviews';
+  static const String requestEdit = 'Request edit';
+  static const String requestDelete = 'Request delete';
+  static const String requestEditTitle = 'Request an edit';
+  static const String requestDeleteTitle = 'Request a deletion';
+  static const String requestEditSubtitle =
+      'Write the wording that should replace it and why. A super admin reviews your request before anything changes.';
+  static const String requestDeleteSubtitle =
+      'Tell the super admin why this review should be taken down — abusive or offensive wording, for instance. They approve the removal before it disappears.';
+  static const String reason = 'Reason';
+  static const String updatedReview = 'Suggested wording';
+  static const String updatedReviewHint = 'How should this review read?';
+  static const String updatedReviewRequired =
+      'Please write the wording you are suggesting.';
+  static const String reasonHint = 'Write your reason...';
+  static const String reasonRequired = 'Please enter a reason.';
+  static const String submitRequest = 'Submit request';
+  static const String reviewRequestSubmitted =
+      'Your request has been sent to the super admin.';
   static const String rs1200 = "Rs. 1200";
   static const String rulesToFollowAtThisVenue =
       'Rules to follow at this venue';

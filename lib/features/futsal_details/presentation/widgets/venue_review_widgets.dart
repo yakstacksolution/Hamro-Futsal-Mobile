@@ -3,6 +3,9 @@ import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/custom_image_view.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
+import 'package:hamro_futsal/core/widgets/custom_menu_item.dart';
+import 'package:hamro_futsal/features/futsal_details/data/model/review_change_request.dart';
 import 'package:hamro_futsal/features/futsal_details/data/model/venue_review_model.dart';
 
 /// Average rating plus the star distribution, shared by the details-page
@@ -80,10 +83,26 @@ class VenueRatingSummaryCard extends StatelessWidget {
 }
 
 /// One review: reviewer, when, what they said, and their score.
+///
+/// When the row is the reader's own (`my_futsal_review`) and [onChangeRequest]
+/// is given, an overflow menu offers to ask the admin for an edit or a delete.
 class VenueReviewCard extends StatelessWidget {
-  const VenueReviewCard({super.key, required this.review});
+  const VenueReviewCard({
+    super.key,
+    required this.review,
+    this.onChangeRequest,
+    this.isSubmittingChangeRequest = false,
+  });
 
   final VenueReviewModel review;
+
+  /// Called with the action the reader picked from the overflow menu.
+  final ValueChanged<ReviewChangeRequestType>? onChangeRequest;
+
+  /// Swaps the menu for a spinner while this review's request is in flight.
+  final bool isSubmittingChangeRequest;
+
+  bool get _showMenu => review.isMyReview && onChangeRequest != null;
 
   @override
   Widget build(BuildContext context) {
@@ -127,6 +146,11 @@ class VenueReviewCard extends StatelessWidget {
                 ),
               ),
               _ScorePill(rating: review.rating),
+              if (_showMenu)
+                _ReviewCardMenu(
+                  isSubmitting: isSubmittingChangeRequest,
+                  onSelected: onChangeRequest!,
+                ),
             ],
           ),
           if (review.comment.isNotEmpty) ...<Widget>[
@@ -139,6 +163,63 @@ class VenueReviewCard extends StatelessWidget {
               ),
             ),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+/// The three-dot menu on the reader's own review.
+class _ReviewCardMenu extends StatelessWidget {
+  const _ReviewCardMenu({required this.isSubmitting, required this.onSelected});
+
+  final bool isSubmitting;
+  final ValueChanged<ReviewChangeRequestType> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    if (isSubmitting) {
+      return const Padding(
+        padding: EdgeInsets.only(left: AppDimens.paddingX8),
+        child: SizedBox(
+          width: AppDimens.sizeX18,
+          height: AppDimens.sizeX18,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      );
+    }
+    return SizedBox(
+      width: AppDimens.sizeX32,
+      height: AppDimens.sizeX32,
+      child: PopupMenuButton<ReviewChangeRequestType>(
+        padding: EdgeInsets.zero,
+        tooltip: '',
+        color: LightColor.cardColor,
+        icon: Icon(
+          Icons.more_vert_rounded,
+          size: AppDimens.sizeX18,
+          color: LightColor.secondaryTextColor,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+        ),
+        onSelected: onSelected,
+        itemBuilder: (_) => <PopupMenuEntry<ReviewChangeRequestType>>[
+          const PopupMenuItem<ReviewChangeRequestType>(
+            value: ReviewChangeRequestType.edit,
+            child: CustomMenuItem(
+              icon: Icons.edit_outlined,
+              label: StringConstants.requestEdit,
+            ),
+          ),
+          const PopupMenuItem<ReviewChangeRequestType>(
+            value: ReviewChangeRequestType.delete,
+            child: CustomMenuItem(
+              icon: Icons.delete_outline_rounded,
+              label: StringConstants.requestDelete,
+              isDestructive: true,
+            ),
+          ),
         ],
       ),
     );

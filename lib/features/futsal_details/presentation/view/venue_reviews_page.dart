@@ -6,7 +6,12 @@ import 'package:hamro_futsal/core/utils/dimens.dart';
 import 'package:hamro_futsal/core/utils/responsive.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:hamro_futsal/core/widgets/custom_app_bar.dart';
+import 'package:hamro_futsal/core/utils/app_utils.dart';
 import 'package:hamro_futsal/core/widgets/loading_widget.dart';
+import 'package:hamro_futsal/features/futsal_details/data/model/review_change_request.dart';
+import 'package:hamro_futsal/features/futsal_details/data/model/venue_review_model.dart';
+import 'package:hamro_futsal/features/futsal_details/domain/usecase/submit_review_change_request_use_case.dart';
+import 'package:hamro_futsal/features/futsal_details/presentation/widgets/review_change_request_sheet.dart';
 import 'package:hamro_futsal/features/futsal_details/presentation/widgets/venue_review_widgets.dart';
 import 'package:hamro_futsal/features/futsal_details/data/repositories/futsal_details_repository_impl.dart';
 import 'package:hamro_futsal/features/futsal_details/domain/usecase/get_venue_reviews_use_case.dart';
@@ -39,9 +44,12 @@ class _VenueReviewsPageState extends State<VenueReviewsPage> {
   @override
   void initState() {
     super.initState();
+    final FutsalDetailsRepositoryImpl repository = FutsalDetailsRepositoryImpl();
     _bloc =
-        VenueReviewsBloc(GetVenueReviewsUseCase(FutsalDetailsRepositoryImpl()))
-          ..add(
+        VenueReviewsBloc(
+          GetVenueReviewsUseCase(repository),
+          SubmitReviewChangeRequestUseCase(repository),
+        )..add(
             FetchVenueReviewsEvent(
               venueId: widget.venueId,
               perPage: kVenueReviewsPageSize,
@@ -70,6 +78,24 @@ class _VenueReviewsPageState extends State<VenueReviewsPage> {
     }
   }
 
+  /// Asks for the reason, then submits it. The list is left alone either way:
+  /// the review only changes once an admin acts on the request.
+  Future<void> _onChangeRequest(
+    VenueReviewModel review,
+    ReviewChangeRequestType type,
+  ) async {
+    final ReviewChangeRequestInput? input =
+        await ReviewChangeRequestSheet.show(
+          context,
+          type: type,
+          initialComment: review.comment,
+        );
+    if (input == null || !mounted) return;
+    _bloc.add(
+      SubmitReviewChangeRequestEvent(reviewId: review.id, input: input),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocProvider<VenueReviewsBloc>.value(
@@ -83,7 +109,21 @@ class _VenueReviewsPageState extends State<VenueReviewsPage> {
         ),
         body: SafeArea(
           top: false,
-          child: BlocBuilder<VenueReviewsBloc, VenueReviewsState>(
+          child: BlocConsumer<VenueReviewsBloc, VenueReviewsState>(
+            listenWhen: (VenueReviewsState prev, VenueReviewsState next) =>
+                prev.changeRequestStatus != next.changeRequestStatus &&
+                next.changeRequestStatus != ReviewChangeRequestStatus.submitting,
+            listener: (BuildContext context, VenueReviewsState state) {
+              final String? message = state.changeRequestMessage;
+              if (message == null || message.isEmpty) return;
+              AppUtils().showSnackBar(
+                context,
+                state.changeRequestStatus == ReviewChangeRequestStatus.success
+                    ? MsgType.success
+                    : MsgType.error,
+                message,
+              );
+            },
             builder: (BuildContext context, VenueReviewsState state) {
               if (state.isLoading && state.reviews.isEmpty) {
                 return const Center(child: LoadingWidget());
@@ -141,7 +181,15 @@ class _VenueReviewsPageState extends State<VenueReviewsPage> {
                     if (index == state.reviews.length + 1) {
                       return _ListFooter(state: state);
                     }
-                    return VenueReviewCard(review: state.reviews[index - 1]);
+                    final VenueReviewModel review = state.reviews[index - 1];
+                    return VenueReviewCard(
+                      review: review,
+                      isSubmittingChangeRequest:
+                          state.isSubmittingChangeRequest &&
+                          state.changeRequestReviewId == review.id,
+                      onChangeRequest: (ReviewChangeRequestType type) =>
+                          _onChangeRequest(review, type),
+                    );
                   },
                 ),
               );

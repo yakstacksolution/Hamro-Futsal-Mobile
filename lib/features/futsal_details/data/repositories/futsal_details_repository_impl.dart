@@ -10,6 +10,7 @@ import 'package:hamro_futsal/features/futsal_details/data/model/create_booking_r
 import 'package:hamro_futsal/features/futsal_details/data/model/hosted_by_model.dart';
 import 'package:hamro_futsal/features/futsal_details/data/model/payment_qr_model.dart';
 import 'package:hamro_futsal/features/futsal_details/data/model/recurring_availability_model.dart';
+import 'package:hamro_futsal/features/futsal_details/data/model/review_change_request.dart';
 import 'package:hamro_futsal/features/futsal_details/data/model/time_slot_model.dart';
 import 'package:hamro_futsal/features/futsal_details/data/model/venue_amenities_facilities_model.dart';
 import 'package:hamro_futsal/features/futsal_details/data/model/venue_description_model.dart';
@@ -102,6 +103,30 @@ final class FutsalDetailsRepositoryImpl extends FutsalDetailsRepository {
         ),
       );
     }
+  }
+
+  @override
+  Future<Either<AppException, String>> submitReviewChangeRequest({
+    required int reviewId,
+    required ReviewChangeRequestInput input,
+  }) async {
+    final response = await _remoteDataSource.submitReviewChangeRequest(
+      reviewId: reviewId,
+      input: input,
+    );
+    if (response.isError()) {
+      return left(ResponseHelper.error(response));
+    }
+
+    // Nothing but an acknowledgement comes back, so the server's own message is
+    // the payload — it names what the admin will review.
+    final dynamic payload = response.getValue();
+    final String message = payload is Map && payload['message'] is String
+        ? (payload['message'] as String).trim()
+        : '';
+    return right(
+      message.isEmpty ? StringConstants.reviewRequestSubmitted : message,
+    );
   }
 
   @override

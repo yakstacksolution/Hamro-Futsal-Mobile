@@ -149,6 +149,8 @@ final class CourtOnboardingResponseModel {
       name: name.isEmpty ? draft.name : name,
       basePrice: basePrice,
       description: description.isEmpty ? draft.description : description,
+      // Null here means the response omitted the field; copyWith then keeps
+      // whatever the draft already had (its Indoor / 5v5 default).
       courtTypeId: courtTypeId,
       matchFormatId: matchFormatId,
       maxPlayers: capacity,

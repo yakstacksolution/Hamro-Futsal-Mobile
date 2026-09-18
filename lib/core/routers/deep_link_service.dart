@@ -78,6 +78,22 @@ class DeepLinkService {
     flush();
   }
 
+  /// Opens a link that was tapped *inside* the app — a venue URL pasted into a
+  /// chat, say — reusing the queue so it behaves exactly like the same link
+  /// arriving from the OS.
+  ///
+  /// Returns false when the app does not own the URI, which is the caller's cue
+  /// to hand it to the browser instead.
+  bool openInternal(Uri uri) {
+    final DeepLinkTarget? target = DeepLinkTarget.parse(uri);
+    if (target == null) return false;
+
+    debugPrint('In-app link queued: $target');
+    _pending = target;
+    flush();
+    return true;
+  }
+
   /// Navigates to whatever is queued, as soon as there is a router to do it
   /// with. Called again from the first frame, so a cold-start link is not lost.
   void flush() {

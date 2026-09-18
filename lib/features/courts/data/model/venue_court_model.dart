@@ -245,8 +245,12 @@ CourtDraft _courtFromJson(Map<String, dynamic> json) {
   // The list endpoint sends `match_type` (e.g. "5v5"); detail/other endpoints
   // may use `match_format`. Accept both.
   final Object? matchFormat = json['match_format'] ?? json['match_type'];
-  final int? courtTypeId = _asInt(json['court_type_id'] ?? courtType);
-  final int? matchFormatId = _asInt(json['match_format_id'] ?? matchFormat);
+  // Both are required by the court save endpoint, so a court the API returns
+  // without them still carries the dropdown defaults (Indoor / 5v5).
+  final int courtTypeId =
+      _asInt(json['court_type_id'] ?? courtType) ?? kDefaultCourtTypeId;
+  final int matchFormatId =
+      _asInt(json['match_format_id'] ?? matchFormat) ?? kDefaultMatchFormatId;
   final String slug = _asString(json['slug']);
   final String code = _asString(json['code']);
   final String surfaceType = _asString(json['surface_type']);

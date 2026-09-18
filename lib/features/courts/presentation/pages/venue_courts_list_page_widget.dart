@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:dartz/dartz.dart' hide State;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hamro_futsal/core/helper/exception_helper.dart';
@@ -20,6 +21,7 @@ import 'package:hamro_futsal/features/courts/data/repositories/venue_court_repos
 import 'package:hamro_futsal/features/courts/domain/usecase/get_venue_court_use_case.dart';
 import 'package:hamro_futsal/features/courts/presentation/bloc/venue_court/venue_court_bloc.dart';
 import 'package:hamro_futsal/features/courts/presentation/widgets/loadings/venue_list_loading.dart';
+import 'package:hamro_futsal/features/public/data/model/public_venue_model.dart';
 import 'package:hamro_futsal/features/public/data/repositories/public_repository_impl.dart';
 import 'package:hamro_futsal/features/public/domain/usecase/get_public_templates_use_case.dart';
 import 'package:hamro_futsal/features/public/presentation/bloc/public_templates/public_templates_bloc.dart';
@@ -91,6 +93,16 @@ class _VenueCourtsListPageState extends State<VenueCourtsListPage> {
                         .where((_FutsalEntry item) => item.matchesQuery(query))
                         .toList();
 
+              // First load has no figures to show and no rows to filter, so the
+              // whole screen — header and search box included — is drawn as a
+              // skeleton rather than a real header reporting four zeros.
+              if (state.status == VenueCourtStatus.loading) {
+                return ColoredBox(
+                  color: LightColor.background,
+                  child: const VenueCourtsPageLoading(),
+                );
+              }
+
               return ColoredBox(
                 color: LightColor.background,
                 child: Column(
@@ -106,13 +118,11 @@ class _VenueCourtsListPageState extends State<VenueCourtsListPage> {
                     _VenueSearchField(controller: _searchController),
                     const SizedBox(height: AppDimens.paddingX6),
                     Expanded(
-                      child: state.status == VenueCourtStatus.loading
-                          ? const VenueListLoading()
-                          : _VenueListSection(
-                              state: state,
-                              entries: filtered,
-                              isSearching: query.isNotEmpty,
-                            ),
+                      child: _VenueListSection(
+                        state: state,
+                        entries: filtered,
+                        isSearching: query.isNotEmpty,
+                      ),
                     ),
                   ],
                 ),
@@ -296,6 +306,12 @@ class _VenueListSection extends StatelessWidget {
             return _VenueCardV2(
               entry: entry,
               onAddCourt: () => _launchCourtEditor(context, venueId: entry.id),
+              onOpenDetails: entry.id == null
+                  ? null
+                  : () => context.pushNamed(
+                      AppRouterParams.courtDetails.name,
+                      extra: entry.toPublicVenue(),
+                    ),
               onEditVenue: () => context.pushNamed(
                 AppRouterParams.vendorStepper.name,
                 queryParameters: <String, String>{
@@ -729,11 +745,16 @@ class _VenueCardV2 extends StatefulWidget {
     required this.entry,
     required this.onAddCourt,
     required this.onEditVenue,
+    this.onOpenDetails,
   });
 
   final _FutsalEntry entry;
   final VoidCallback onAddCourt;
   final VoidCallback onEditVenue;
+
+  /// Opens the public details page for this venue. Null for a venue with no id
+  /// yet — the details page has nothing to fetch without one.
+  final VoidCallback? onOpenDetails;
 
   @override
   State<_VenueCardV2> createState() => _VenueCardV2State();
@@ -802,7 +823,10 @@ class _VenueCardV2State extends State<_VenueCardV2> {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
-                      _VenueCover(url: widget.entry.imageUrl ?? ''),
+                      _VenueCover(
+                        url: widget.entry.imageUrl ?? '',
+                        onTap: widget.onOpenDetails,
+                      ),
                       const SizedBox(width: AppDimens.paddingX12),
                       Expanded(
                         child: Column(
@@ -1017,14 +1041,17 @@ class _VenueCardV2State extends State<_VenueCardV2> {
 /// The venue's photo at the head of the card, or a neutral placeholder glyph
 /// when it has none.
 class _VenueCover extends StatelessWidget {
-  const _VenueCover({required this.url});
+  const _VenueCover({required this.url, this.onTap});
 
   final String url;
+
+  /// Tapping the cover opens the venue's public details page.
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final BorderRadius radius = BorderRadius.circular(AppDimens.radiusX10);
-    return Container(
+    final Widget cover = Container(
       width: AppDimens.sizeX60,
       height: AppDimens.sizeX60,
       decoration: BoxDecoration(
@@ -1042,6 +1069,20 @@ class _VenueCover extends StatelessWidget {
               borderRadius: radius,
               child: CustomImageView(fit: BoxFit.cover, url: url),
             ),
+    );
+
+    if (onTap == null) return cover;
+    return Semantics(
+      button: true,
+      label: StringConstants.viewDetails,
+      child: InkWell(
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onTap!();
+        },
+        borderRadius: radius,
+        child: cover,
+      ),
     );
   }
 }
@@ -1870,6 +1911,19 @@ class _FutsalEntry {
       if ((court.courtType ?? '').toLowerCase().contains(query)) return true;
     }
     return false;
+  }
+
+  /// Seeds the public details page, which re-fetches the rest itself once it
+  /// has the venue's id and slug.
+  PublicListingVenueModel toPublicVenue() {
+    return PublicListingVenueModel(
+      id: id,
+      name: title,
+      slug: slug,
+      address: address,
+      featureImage: imageUrl,
+      price: startingPrice,
+    );
   }
 
   int get liveCourts => courts.where(_isCourtActive).length;

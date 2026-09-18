@@ -537,6 +537,15 @@ class ApiClient {
     );
   }
 
+  /// Asks the venue's admin to let the signed-in user edit or delete their own
+  /// review. `data` carries `request_type` (`edit`/`delete`) and `reason`.
+  Future<Result> submitReviewChangeRequest({
+    required int reviewId,
+    required Map<String, dynamic> data,
+  }) {
+    return _post(url: '$_baseUrl/reviews/$reviewId/change-request', data: data);
+  }
+
   /// Addressed by the venue's slug, not its id — the slug is the venue's
   /// public identifier, and it is what a shared link carries.
   Future<Result> getVenueDescription({required String venueSlug}) {
