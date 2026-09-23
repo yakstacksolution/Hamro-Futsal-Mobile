@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hamro_futsal/core/api/api_client/booking_type_payload.dart';
+import 'package:hamro_futsal/core/helper/share_preferences.dart';
 import 'package:hamro_futsal/core/routers/app_router_params.dart';
 import 'package:hamro_futsal/core/routers/deep_link_target.dart';
 import 'package:hamro_futsal/core/routers/root_navigator_key.dart';
@@ -29,6 +30,7 @@ import 'package:hamro_futsal/features/coupons/data/repositories/coupon_repositor
 import 'package:hamro_futsal/features/coupons/domain/usecase/apply_coupon_use_case.dart';
 import 'package:hamro_futsal/features/coupons/domain/usecase/get_active_coupons_use_case.dart';
 import 'package:hamro_futsal/features/coupons/presentation/bloc/coupon_bloc.dart';
+import 'package:hamro_futsal/features/futsal_details/data/model/booking_checkout_route_args.dart';
 import 'package:hamro_futsal/features/futsal_details/data/model/booking_draft.dart';
 import 'package:hamro_futsal/features/futsal_details/data/model/slots_selection_route_args.dart';
 import 'package:hamro_futsal/features/futsal_details/presentation/view/booking_checkout_page.dart';
@@ -130,6 +132,16 @@ class AppRouters {
       navigatorKey: RootNavigatorKey.key,
       initialLocation: effectiveInitialLocation,
       observers: observers,
+      // Every signed-in screen lives under /dashboard. Guarding the whole
+      // subtree here means a notification tap, a shared link or a stale
+      // location can never build a screen that would fire authenticated
+      // requests without a session — those come back 401 and nothing else.
+      redirect: (BuildContext context, GoRouterState state) {
+        final String location = state.location.split('?').first;
+        if (!location.startsWith(AppRouterParams.dashboard.path)) return null;
+        if (AppSettings().hasSession) return null;
+        return AppRouterParams.login.path;
+      },
       // Nothing the app owns should end on go_router's default error screen:
       // an unknown location that still parses as one of our links opens it,
       // and anything else offers a way home.
@@ -466,12 +478,15 @@ class AppRouters {
           name: AppRouterParams.slotsSelection.name,
           path: AppRouterParams.slotsSelection.path,
           builder: (context, state) {
-            final Object? extra = state.extra;
             final SlotsSelectionRouteArgs args =
-                extra is SlotsSelectionRouteArgs
-                ? extra
-                : SlotsSelectionRouteArgs(court: extra as CourtDetailModel);
+                SlotsSelectionRouteArgs.maybeFromExtra(state.extra) ??
+                const SlotsSelectionRouteArgs(
+                  court: _MissingCourtDetailModel(),
+                );
             final CourtDetailModel court = args.court;
+            if (court is _MissingCourtDetailModel) {
+              return const _MissingSlotsSelectionArgsPage();
+            }
             final FutsalDetailsRepositoryImpl repository =
                 FutsalDetailsRepositoryImpl();
             return BlocProvider<SlotsSelectionBloc>(
@@ -494,6 +509,7 @@ class AppRouters {
               child: SlotsSelectionPage(
                 court: court,
                 manualBooking: args.manualBooking,
+                successAction: args.successAction,
               ),
             );
           },
@@ -517,7 +533,10 @@ class AppRouters {
           name: AppRouterParams.bookingCheckout.name,
           path: AppRouterParams.bookingCheckout.path,
           builder: (context, state) {
-            final BookingDraft draft = state.extra as BookingDraft;
+            final BookingCheckoutRouteArgs? args =
+                BookingCheckoutRouteArgs.maybeFromExtra(state.extra);
+            if (args == null) return const _MissingBookingCheckoutArgsPage();
+            final BookingDraft draft = args.draft;
             final CouponRepositoryImpl couponRepository =
                 CouponRepositoryImpl();
             final FutsalDetailsRepositoryImpl futsalRepository =
@@ -550,7 +569,10 @@ class AppRouters {
                       BookingHoldBloc(BookingHoldUseCase(futsalRepository)),
                 ),
               ],
-              child: BookingCheckoutPage(draft: draft),
+              child: BookingCheckoutPage(
+                draft: draft,
+                successAction: args.successAction,
+              ),
             );
           },
         ),
@@ -656,6 +678,155 @@ class _UnknownLocationPage extends StatelessWidget {
                 const SizedBox(height: AppDimens.sizeX8),
                 Text(
                   StringConstants.thatLinkDoesNotOpenAnythingInTheApp,
+                  textAlign: TextAlign.center,
+                  style: FutsalTheme.getTextTheme(
+                    context,
+                  ).bodyTextSmall?.copyWith(color: LightColor.hintTextColor),
+                ),
+                const SizedBox(height: AppDimens.sizeX20),
+                CustomButton(
+                  text: StringConstants.browseVenues,
+                  onPressed: () =>
+                      GoRouter.of(context).go(AppRouters.startLocation),
+                  minHeight: AppDimens.sizeX46,
+                  minWidth: AppDimens.sizeX180,
+                  borderRadius: AppDimens.radiusX10,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MissingCourtDetailModel extends CourtDetailModel {
+  const _MissingCourtDetailModel()
+    : super(
+        name: '',
+        location: '',
+        address: '',
+        price: '',
+        rating: 0,
+        reviewCount: 0,
+        images: const <String>[],
+        isOpen: false,
+        distance: '',
+        features: const <String>[],
+        description: '',
+        hostedByName: '',
+        hostedByAvatar: '',
+        hostedSince: '',
+        hostedCourts: 0,
+        responseRate: 0,
+        policies: const <String>[],
+        rules: const <String>[],
+        reviews: const <ReviewModel>[],
+        openTime: '',
+        closeTime: '',
+        courtType: '',
+        surfaceType: '',
+        maxPlayers: 0,
+      );
+}
+
+/// Slot selection depends on a [CourtDetailModel] carried in route extras.
+/// Deep links, restored routes, or stale notification payloads may reach this
+/// named route without that object; show a recoverable page instead of letting
+/// a cast exception crash the app.
+class _MissingSlotsSelectionArgsPage extends StatelessWidget {
+  const _MissingSlotsSelectionArgsPage();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: LightColor.background,
+      appBar: const CustomAppBar(title: StringConstants.selectMatchDateTime),
+      body: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(AppDimens.paddingX32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Icon(
+                  Icons.sports_soccer_rounded,
+                  size: AppDimens.sizeX36,
+                  color: LightColor.hintTextColor,
+                ),
+                const SizedBox(height: AppDimens.sizeX12),
+                Text(
+                  StringConstants.courtNotFound,
+                  textAlign: TextAlign.center,
+                  style: FutsalTheme.getTextTheme(context).bodyTextMedium
+                      ?.copyWith(
+                        color: LightColor.primaryTextColor,
+                        fontWeight: FontWeight.w800,
+                      ),
+                ),
+                const SizedBox(height: AppDimens.sizeX8),
+                Text(
+                  'Please choose a venue again to view available slots.',
+                  textAlign: TextAlign.center,
+                  style: FutsalTheme.getTextTheme(
+                    context,
+                  ).bodyTextSmall?.copyWith(color: LightColor.hintTextColor),
+                ),
+                const SizedBox(height: AppDimens.sizeX20),
+                CustomButton(
+                  text: StringConstants.browseVenues,
+                  onPressed: () =>
+                      GoRouter.of(context).go(AppRouters.startLocation),
+                  minHeight: AppDimens.sizeX46,
+                  minWidth: AppDimens.sizeX180,
+                  borderRadius: AppDimens.radiusX10,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Shown when the checkout route is reached without a booking draft — a
+/// restored deep link or a hot reload mid-funnel. There is nothing to check out
+/// from here, so the user is sent back to pick a slot again.
+class _MissingBookingCheckoutArgsPage extends StatelessWidget {
+  const _MissingBookingCheckoutArgsPage();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: LightColor.background,
+      appBar: const CustomAppBar(title: StringConstants.checkout),
+      body: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(AppDimens.paddingX32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Icon(
+                  Icons.receipt_long_rounded,
+                  size: AppDimens.sizeX36,
+                  color: LightColor.hintTextColor,
+                ),
+                const SizedBox(height: AppDimens.sizeX12),
+                Text(
+                  'This booking is no longer available.',
+                  textAlign: TextAlign.center,
+                  style: FutsalTheme.getTextTheme(context).bodyTextMedium
+                      ?.copyWith(
+                        color: LightColor.primaryTextColor,
+                        fontWeight: FontWeight.w800,
+                      ),
+                ),
+                const SizedBox(height: AppDimens.sizeX8),
+                Text(
+                  'Please pick your slot again to continue.',
                   textAlign: TextAlign.center,
                   style: FutsalTheme.getTextTheme(
                     context,

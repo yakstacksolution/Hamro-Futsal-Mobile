@@ -41,7 +41,19 @@ class AppSettings {
   Future<void> init(Preferences preferences) async {
     _preferences = preferences;
     _initialized = true;
+    // A cold start begins with the gate open, so without this a launch with no
+    // stored session would put every authenticated call on the wire and collect
+    // 401s before anything routed the user to login.
+    if (hasSession) {
+      SessionGate.open();
+    } else {
+      SessionGate.close();
+    }
   }
+
+  /// Whether a usable session is stored — the app's "is the user logged in?".
+  bool get hasSession =>
+      _initialized && (tokenModel.accessToken?.trim().isNotEmpty ?? false);
 
   bool get isInitialized => _initialized;
 

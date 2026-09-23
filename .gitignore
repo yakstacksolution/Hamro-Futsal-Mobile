@@ -47,9 +47,6 @@ app.*.map.json
 # Secrets / environment
 .env
 .env.*
-!.env.example
-!.env.staging
-!.env.production
 
 # Android signing
 *.jks

@@ -224,7 +224,9 @@ class _BookingDetailsView extends StatelessWidget {
       builder: (_) => const _RejectBookingSheet(),
     );
     if (result != null) {
-      bloc.addIfOpen(RejectBookingEvent(bookingId: bookingId, note: result.note));
+      bloc.addIfOpen(
+        RejectBookingEvent(bookingId: bookingId, note: result.note),
+      );
     }
   }
 

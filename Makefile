@@ -1,6 +1,6 @@
 # Environment switching for Hamro Futsal.
 #
-# The app reads one compile-time constant, ENV, and loads `.env.<ENV>` from the
+# The app reads one compile-time constant, ENV, and loads `env_<ENV>.env` from the
 # bundled assets at start-up. Nothing else selects an environment, so every
 # target below differs only in `--dart-define=ENV=…`.
 #

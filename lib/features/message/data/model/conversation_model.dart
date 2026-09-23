@@ -91,7 +91,7 @@ class ParticipantModel {
       leftAt: DateTime.tryParse(json['left_at']?.toString() ?? ''),
       isMuted: _asBool(json['is_muted']),
       isPinned: _asBool(json['is_pinned']),
-      isArchived: _asBool(json['is_archived']),
+      isArchived: _archivedFromJson(json),
       unreadCount: int.tryParse(json['unread_count']?.toString() ?? '') ?? 0,
     );
   }
@@ -160,6 +160,7 @@ class ConversationModel {
     this.createdAt,
     this.imageUrl = '',
     this.imageId,
+    this.isSuperadminCreatedGroup = false,
   });
 
   final int id;
@@ -197,6 +198,10 @@ class ConversationModel {
   /// The media id behind [imageUrl] — what `conversations/{id}/update` takes
   /// back as `image_id`.
   final int? imageId;
+
+  /// A group created by a superadmin. Its picture and name belong to whoever
+  /// set it up, so the app offers no way to change either.
+  final bool isSuperadminCreatedGroup;
 
   bool get isGroup => type == 'group';
   bool get isUnread => unreadCount > 0;
@@ -290,7 +295,7 @@ class ConversationModel {
       unreadCount: int.tryParse(json['unread_count']?.toString() ?? '') ?? 0,
       isMuted: _asBool(json['is_muted']),
       isPinned: _asBool(json['is_pinned']),
-      isArchived: _asBool(json['is_archived']),
+      isArchived: _archivedFromJson(json),
       participants: rawParticipants is List
           ? rawParticipants
                 .whereType<Map>()
@@ -303,6 +308,11 @@ class ConversationModel {
       createdAt: DateTime.tryParse(json['created_at']?.toString() ?? ''),
       imageUrl: _imageUrlFromJson(json),
       imageId: _imageIdFromJson(json),
+      // The conversation payload carries the flag when the server sends it;
+      // otherwise the nested message resource does.
+      isSuperadminCreatedGroup:
+          _asBool(json['is_superadmin_created_group']) ||
+          (lastDetail?.isSuperadminCreatedGroup ?? false),
     );
   }
 
@@ -355,6 +365,7 @@ class ConversationModel {
     List<ParticipantModel>? participants,
     String? imageUrl,
     int? imageId,
+    bool? isSuperadminCreatedGroup,
   }) => ConversationModel(
     id: id,
     type: type,
@@ -378,6 +389,8 @@ class ConversationModel {
     createdAt: createdAt,
     imageUrl: imageUrl ?? this.imageUrl,
     imageId: imageId ?? this.imageId,
+    isSuperadminCreatedGroup:
+        isSuperadminCreatedGroup ?? this.isSuperadminCreatedGroup,
   );
 
   /// Returns a copy with [message] as the conversation's latest message —
@@ -419,8 +432,22 @@ class ConversationModel {
       createdAt: createdAt,
       imageUrl: imageUrl,
       imageId: imageId,
+      // A message resource reports the flag too, so a thread the inbox never
+      // flagged still learns about it from its latest message.
+      isSuperadminCreatedGroup:
+          isSuperadminCreatedGroup || message.isSuperadminCreatedGroup,
     );
   }
+}
+
+/// The archived flag, however this API spells it: a boolean column, the
+/// pivot's `archived_at` timestamp, or a plain `archived` field.
+bool _archivedFromJson(Map<String, dynamic> json) {
+  final dynamic archivedAt = json['archived_at'];
+  if (archivedAt != null && archivedAt.toString().trim().isNotEmpty) {
+    return true;
+  }
+  return _asBool(json['is_archived']) || _asBool(json['archived']);
 }
 
 bool _asBool(dynamic value) =>

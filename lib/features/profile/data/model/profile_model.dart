@@ -147,6 +147,14 @@ class UserData extends Equatable {
   final bool financeAccess;
   final bool isVendorRequested;
 
+  /// A demo account. Finance is hidden for these: they have no real money
+  /// behind them, so payouts must not be offered.
+  final bool isTestUser;
+
+  /// `notification_settings` on `/auth/me` — an opaque per-channel blob the
+  /// app stores as sent and does not interpret. Null when the user has none.
+  final Map<String, dynamic>? notificationSettings;
+
   /// Venue ids the user has wishlisted (`wishlists` on `/auth/me`) — drives
   /// the heart state on venue cards.
   final List<int> wishlistVenueIds;
@@ -184,6 +192,8 @@ class UserData extends Equatable {
     this.businessVerified = false,
     this.financeAccess = false,
     this.isVendorRequested = false,
+    this.isTestUser = false,
+    this.notificationSettings,
     this.wishlistVenueIds = const <int>[],
     this.notificationPreferences = const NotificationPreferences(),
   });
@@ -217,7 +227,7 @@ class UserData extends Equatable {
       emailVerifiedAt: json['email_verified_at'] != null
           ? DateTime.tryParse(json['email_verified_at'])
           : null,
-      requiresVendorOnboarding: json['requires_vendor_onboarding'] ?? false,
+      requiresVendorOnboarding: _asBool(json['requires_vendor_onboarding']),
       vendorOnboardingCompletedAt:
           json['vendor_onboarding_completed_at'] != null
           ? DateTime.tryParse(json['vendor_onboarding_completed_at'])
@@ -273,6 +283,10 @@ class UserData extends Equatable {
           (json['capabilities'] is List &&
               (json['capabilities'] as List).contains('vendor.finance.read')),
       isVendorRequested: _asBool(json['is_vendor_requested']),
+      isTestUser: _asBool(json['is_test_user']),
+      notificationSettings: json['notification_settings'] is Map
+          ? Map<String, dynamic>.from(json['notification_settings'] as Map)
+          : null,
       wishlistVenueIds: _parseWishlistIds(json['wishlists']),
       notificationPreferences: NotificationPreferences.fromUserJson(json),
     );
@@ -310,6 +324,8 @@ class UserData extends Equatable {
       'business_verified': businessVerified,
       'finance_access': financeAccess,
       'is_vendor_requested': isVendorRequested,
+      'is_test_user': isTestUser,
+      'notification_settings': notificationSettings,
       'wishlists': wishlistVenueIds,
       'notification_preferences': notificationPreferences.toJson(),
     };
@@ -346,6 +362,8 @@ class UserData extends Equatable {
     businessVerified,
     financeAccess,
     isVendorRequested,
+    isTestUser,
+    notificationSettings,
     wishlistVenueIds,
     notificationPreferences,
   ];
@@ -381,6 +399,8 @@ class UserData extends Equatable {
     bool? businessVerified,
     bool? financeAccess,
     bool? isVendorRequested,
+    bool? isTestUser,
+    Map<String, dynamic>? notificationSettings,
     List<int>? wishlistVenueIds,
     NotificationPreferences? notificationPreferences,
   }) {
@@ -416,6 +436,8 @@ class UserData extends Equatable {
       businessVerified: businessVerified ?? this.businessVerified,
       financeAccess: financeAccess ?? this.financeAccess,
       isVendorRequested: isVendorRequested ?? this.isVendorRequested,
+      isTestUser: isTestUser ?? this.isTestUser,
+      notificationSettings: notificationSettings ?? this.notificationSettings,
       wishlistVenueIds: wishlistVenueIds ?? this.wishlistVenueIds,
       notificationPreferences:
           notificationPreferences ?? this.notificationPreferences,
@@ -454,6 +476,8 @@ class UserData extends Equatable {
       businessVerified: other.businessVerified,
       financeAccess: other.financeAccess,
       isVendorRequested: other.isVendorRequested,
+      isTestUser: other.isTestUser,
+      notificationSettings: other.notificationSettings,
       wishlistVenueIds: other.wishlistVenueIds.isNotEmpty
           ? other.wishlistVenueIds
           : null,

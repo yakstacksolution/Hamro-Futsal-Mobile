@@ -60,11 +60,9 @@ final class FutsalDetailsRemoteDataSourceImpl
   Future<Result> submitReviewChangeRequest({
     required int reviewId,
     required ReviewChangeRequestInput input,
-  }) async =>
-      await Client.instance().getAuthManager().submitReviewChangeRequest(
-        reviewId: reviewId,
-        data: input.toJson(),
-      );
+  }) async => await Client.instance()
+      .getAuthManager()
+      .submitReviewChangeRequest(reviewId: reviewId, data: input.toJson());
 
   @override
   Future<Result> getVenueAmenitiesFacilities({required int venueId}) async =>

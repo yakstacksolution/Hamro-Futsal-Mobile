@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:dartz/dartz.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:hamro_futsal/core/api/api_client/result.dart';
 import 'package:hamro_futsal/core/helper/exception_helper.dart';
 import 'package:hamro_futsal/core/helper/share_preferences.dart';
@@ -14,6 +13,7 @@ import 'package:hamro_futsal/features/app_update/domain/entities/app_update_chec
 import 'package:hamro_futsal/features/app_update/domain/entities/app_version.dart';
 import 'package:hamro_futsal/features/app_update/domain/repository/app_update_repository.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:hamro_futsal/core/config/app_environment.dart';
 
 final class AppUpdateRepositoryImpl extends AppUpdateRepository {
   AppUpdateRepositoryImpl({
@@ -227,13 +227,11 @@ final class AppUpdateRepositoryImpl extends AppUpdateRepository {
   /// The App Store storefront to look the app up in. A wrong storefront returns
   /// no results, so this prefers an explicit override, then the device region.
   String? get _appStoreCountry {
-    // `maybeGet` still throws when the file was never loaded — a check that runs
-    // before or without `dotenv.load` must not blow up.
-    final String? configured = dotenv.isInitialized
-        ? dotenv.maybeGet('APP_STORE_COUNTRY')
-        : null;
-    if (configured != null && configured.trim().isNotEmpty) {
-      return configured.trim();
+    // `AppEnvironment.read` is safe before the env file loads — it returns ''
+    // rather than throwing.
+    final String configured = AppEnvironment.read('APP_STORE_COUNTRY');
+    if (configured.isNotEmpty) {
+      return configured;
     }
     return PlatformDispatcher.instance.locale.countryCode;
   }

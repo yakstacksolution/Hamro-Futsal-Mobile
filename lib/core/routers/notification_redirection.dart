@@ -124,8 +124,7 @@ void notificationRedirection(
   String type, {
   Map<String, dynamic> payloadData = const <String, dynamic>{},
 }) {
-  final _NotificationKind? kind =
-      _kindOf(type) ?? _kindOfPayload(payloadData);
+  final _NotificationKind? kind = _kindOf(type) ?? _kindOfPayload(payloadData);
   if (kind == null) {
     debugPrint('Ignoring unsupported notification type: $type');
     return;

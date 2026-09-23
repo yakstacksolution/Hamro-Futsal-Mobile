@@ -1,4 +1,4 @@
-// Compares `.env.staging` with `.env.production`.
+// Compares `env_staging.env` with `env_production.env`.
 //
 // A key present in one file and missing from the other is the failure mode
 // that matters: `dotenv.env['X']` returns null and the call site falls back to
@@ -6,7 +6,7 @@
 // rather than failing. Run with `make env-check`.
 import 'dart:io';
 
-const List<String> _files = <String>['.env.staging', '.env.production'];
+const List<String> _files = <String>['env_staging.env', 'env_production.env'];
 
 /// Keys that may be blank: the app has a documented fallback for each.
 const Set<String> _optional = <String>{'IOS_APP_STORE_ID', 'APP_STORE_COUNTRY'};
@@ -55,11 +55,11 @@ void main() {
 
   for (final String key in onlyStaging) {
     problems++;
-    stdout.writeln('MISSING in .env.production: $key');
+    stdout.writeln('MISSING in env_production.env: $key');
   }
   for (final String key in onlyProduction) {
     problems++;
-    stdout.writeln('MISSING in .env.staging: $key');
+    stdout.writeln('MISSING in env_staging.env: $key');
   }
 
   for (final String key in staging.keys.where(production.containsKey)) {
@@ -74,13 +74,13 @@ void main() {
   for (final MapEntry<String, String> entry in staging.entries) {
     if (entry.value.isEmpty && !_optional.contains(entry.key)) {
       problems++;
-      stdout.writeln('EMPTY in .env.staging: ${entry.key}');
+      stdout.writeln('EMPTY in env_staging.env: ${entry.key}');
     }
   }
   for (final MapEntry<String, String> entry in production.entries) {
     if (entry.value.isEmpty && !_optional.contains(entry.key)) {
       problems++;
-      stdout.writeln('EMPTY in .env.production: ${entry.key}');
+      stdout.writeln('EMPTY in env_production.env: ${entry.key}');
     }
   }
 

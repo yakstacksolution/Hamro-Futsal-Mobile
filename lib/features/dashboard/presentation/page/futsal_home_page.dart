@@ -226,7 +226,11 @@ class _CourtsListScreenState extends State<CourtsListScreen>
             return showSkeleton
                 ? const HomeBodyLoading()
                 : Padding(
-                    padding: EdgeInsets.symmetric(horizontal: horizontal),
+                    padding: EdgeInsets.only(
+                      left: horizontal,
+                      right: horizontal,
+                      top: AppDimens.sizeX22,
+                    ),
                     child: RefreshIndicator(
                       onRefresh: _refresh,
                       color: LightColor.secondaryColor,
@@ -240,9 +244,6 @@ class _CourtsListScreenState extends State<CourtsListScreen>
                           parent: BouncingScrollPhysics(),
                         ),
                         slivers: <Widget>[
-                          SliverToBoxAdapter(
-                            child: SizedBox(height: AppDimens.sizeX22),
-                          ),
                           ..._buildContentSlivers(state, availableWidth),
                         ],
                       ),

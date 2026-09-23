@@ -2,15 +2,11 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:hamro_futsal/core/utils/upload_attachment.dart';
 import 'package:hamro_futsal/core/utils/upload_part.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:hamro_futsal/core/api/api_client/api_constants.dart';
 import 'package:hamro_futsal/core/api/api_client/result.dart';
 import 'package:hamro_futsal/core/api/client.dart';
 import 'package:hamro_futsal/core/helper/share_preferences.dart';
 import 'package:hamro_futsal/features/message/data/model/chat_send_request.dart';
-
-const String apiTokenHeader =
-    'Vca28Ux6sgyRiTGy2Vd6ZoljuptdnyMnykBIs9IK/iB9yhHzsChGZpqa+17SWgMvbRxooI2+OILEszavw1mpmCs/SlXTv5zpgRuvLUk=';
 
 abstract class MessageRemoteDataSource {
   Future<Result> getConversations({
@@ -38,10 +34,6 @@ abstract class MessageRemoteDataSource {
     List<int> participantIds,
   );
 
-  /// Edits a group's name, picture, or both.
-  ///
-  /// The picture is sent as `image_id`: the media library owns uploading, and
-  /// this endpoint only points at an image it already holds.
   Future<Result> updateConversation(
     int conversationId, {
     String? title,
@@ -315,7 +307,9 @@ final class MessageRemoteDataSourceImpl extends MessageRemoteDataSource {
           responseType: ResponseType.bytes,
           headers: <String, dynamic>{
             'Accept': '*/*',
-            'X-API-TOKEN': dotenv.env['SECURE_API_TOKEN'] ?? apiTokenHeader,
+            if (APIEndpoint.secureApiToken case final String t
+                when t.isNotEmpty)
+              APIEndpoint.secureApiTokenHeader: t,
             if (AppSettings().tokenModel.accessToken case final token?)
               'Authorization': 'Bearer $token',
             'User-Agent': ' okhttp',

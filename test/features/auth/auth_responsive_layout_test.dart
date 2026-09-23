@@ -314,15 +314,15 @@ void main() {
       ('tablet landscape', _tabletLandscape),
       ('desktop window', _desktopWindow),
     ]) {
-      testWidgets('$label lays out 4 digit fields without overflow', (
+      testWidgets('$label lays out 6 digit fields without overflow', (
         WidgetTester tester,
       ) async {
         await _pumpAt(tester, size, otpScreen(), settle: false);
 
         expect(tester.takeException(), isNull);
         expect(find.text(StringConstants.otpVerification), findsOneWidget);
-        // 4 OTP boxes; the frame itself adds no other TextFields.
-        expect(find.byType(TextField), findsNWidgets(4));
+        // 6 OTP boxes; the frame itself adds no other TextFields.
+        expect(find.byType(TextField), findsNWidgets(6));
       });
     }
 
@@ -331,10 +331,10 @@ void main() {
     ) async {
       await _pumpAt(tester, _phone, otpScreen(), settle: false);
 
-      await tester.enterText(find.byType(TextField).first, '1234');
+      await tester.enterText(find.byType(TextField).first, '123456');
       await tester.pump();
 
-      for (int i = 0; i < 4; i++) {
+      for (int i = 0; i < 6; i++) {
         final TextField field = tester.widget<TextField>(
           find.byType(TextField).at(i),
         );
@@ -440,8 +440,8 @@ void main() {
         expect(find.text(StringConstants.createNewPassword), findsOneWidget);
         expect(find.text(StringConstants.newPassword), findsOneWidget);
         expect(find.text(StringConstants.confirmPassword), findsOneWidget);
-        // Four code boxes, and the address is masked rather than shown whole.
-        expect(find.byType(OtpDigitField), findsNWidgets(4));
+        // Six code boxes, and the address is masked rather than shown whole.
+        expect(find.byType(OtpDigitField), findsNWidgets(6));
         expect(find.textContaining('pl***@example.com'), findsOneWidget);
       });
     }
@@ -457,7 +457,7 @@ void main() {
               AuthenticationBloc(AuthUseCase(AuthenticationRepositoryImpl())),
           child: const CreateNewPasswordScreen(
             email: 'player@example.com',
-            otp: '1234',
+            otp: '123456',
           ),
         ),
         settle: false,
@@ -491,7 +491,7 @@ void main() {
       // Disabled is expressed as a null onPressed by AuthScreenFrame.
       expect(tester.widget<CustomButton>(button).onPressed, isNull);
 
-      for (int i = 0; i < 4; i++) {
+      for (int i = 0; i < 6; i++) {
         await tester.enterText(find.byType(OtpDigitField).at(i), '1');
         await tester.pump();
       }
@@ -504,7 +504,7 @@ void main() {
     ) async {
       await _pumpAt(tester, _phone, createNewPasswordScreen(), settle: false);
 
-      for (int i = 0; i < 4; i++) {
+      for (int i = 0; i < 6; i++) {
         await tester.enterText(find.byType(OtpDigitField).at(i), '1');
         await tester.pump();
       }

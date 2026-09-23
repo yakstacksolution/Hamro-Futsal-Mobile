@@ -8,7 +8,6 @@ import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/app_utils.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
-import 'package:hamro_futsal/core/utils/responsive.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:hamro_futsal/core/widgets/custom_text_field.dart';
 import 'package:hamro_futsal/features/auth/presentation/authentication_bloc/authentication_bloc.dart';
@@ -31,7 +30,7 @@ class CreateNewPasswordScreen extends StatefulWidget {
 }
 
 class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen> {
-  static const int _otpLength = 4;
+  static const int _otpLength = 6;
   static const int _resendDelay = 30;
 
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
@@ -299,24 +298,13 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen> {
   Widget _buildOtpRow(BuildContext context) {
     // On wide cards, cap and centre the row so the digit boxes stay a readable
     // group instead of spreading to the edges.
-    return AutofillGroup(
-      child: Center(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            maxWidth: context.isTabletOrWider
-                ? AppDimens.otpRowMaxWidth
-                : double.infinity,
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: List<Widget>.generate(_otpLength, (int index) {
-              return OtpDigitField(
-                controller: _otpControllers[index],
-                focusNode: _otpFocusNodes[index],
-                onChanged: (String value) => _onOtpChanged(index, value),
-              );
-            }),
-          ),
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: AppDimens.otpRowMaxWidth),
+        child: OtpDigitRow(
+          controllers: _otpControllers,
+          focusNodes: _otpFocusNodes,
+          onChanged: _onOtpChanged,
         ),
       ),
     );

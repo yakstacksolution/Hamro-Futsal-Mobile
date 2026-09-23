@@ -109,9 +109,15 @@ class _HeaderSkeleton extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    _Block(width: AppDimens.sizeX150, height: AppDimens.sizeX16),
+                    _Block(
+                      width: AppDimens.sizeX150,
+                      height: AppDimens.sizeX16,
+                    ),
                     SizedBox(height: AppDimens.paddingX6),
-                    _Block(width: AppDimens.sizeX180, height: AppDimens.sizeX10),
+                    _Block(
+                      width: AppDimens.sizeX180,
+                      height: AppDimens.sizeX10,
+                    ),
                   ],
                 ),
               ),
@@ -178,9 +184,7 @@ class _SearchFieldSkeleton extends StatelessWidget {
           borderRadius: BorderRadius.circular(AppDimens.radiusX6),
           border: Border.all(color: LightColor.dividerColor, width: 0.8),
         ),
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppDimens.paddingX14,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: AppDimens.paddingX14),
         child: Row(
           children: const <Widget>[
             _Block(
@@ -425,7 +429,10 @@ class _CourtRowSkeleton extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
-                    _Block(width: AppDimens.sizeX120, height: AppDimens.sizeX12),
+                    _Block(
+                      width: AppDimens.sizeX120,
+                      height: AppDimens.sizeX12,
+                    ),
                     SizedBox(height: 3),
                     _Block(height: AppDimens.sizeX10),
                   ],

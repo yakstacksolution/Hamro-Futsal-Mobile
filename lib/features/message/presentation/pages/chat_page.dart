@@ -533,14 +533,22 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
           },
           builder: (context, state) {
             final active = state.activeConversation ?? widget.conversation;
-            final blocked = active.participants.any(
-              (participant) =>
-                  participant.userId != state.currentUserId &&
-                  participant.isBlocked,
-            );
+            final Set<int> blockedUserIds = active.participants
+                .where(
+                  (participant) =>
+                      participant.userId != state.currentUserId &&
+                      participant.isBlocked,
+                )
+                .map((participant) => participant.userId)
+                .toSet();
+            // Blocking someone in a group silences that one member, not the
+            // whole thread: their messages are hidden and everyone else's is
+            // still read and answered. Only a direct chat with a blocked
+            // person closes the composer.
+            final bool blocked = !active.isGroup && blockedUserIds.isNotEmpty;
             return Column(
               children: [
-                Expanded(child: _thread(state)),
+                Expanded(child: _thread(state, blockedUserIds)),
                 if (blocked)
                   Padding(
                     padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
@@ -578,7 +586,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
     );
   }
 
-  Widget _thread(MessageState state) {
+  Widget _thread(MessageState state, Set<int> blockedUserIds) {
     if (state.chatStatus == MessageStatus.initial ||
         state.chatStatus == MessageStatus.loading) {
       return const LoadingWidget(isTransparentBackground: true);
@@ -594,7 +602,14 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
         ),
       );
     }
-    if (state.messages.isEmpty) {
+    // A blocked member's messages are left out of the thread; the rest of the
+    // group reads as it always did.
+    final List<ChatMessageModel> messages = blockedUserIds.isEmpty
+        ? state.messages
+        : state.messages
+              .where((message) => !blockedUserIds.contains(message.senderId))
+              .toList(growable: false);
+    if (messages.isEmpty) {
       return const _EmptyThread();
     }
 
@@ -602,7 +617,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
     // viewport pinned there).
     final entries = <Object>[];
     DateTime? lastDay;
-    for (final m in state.messages) {
+    for (final m in messages) {
       final day = DateTime(
         m.createdAt.year,
         m.createdAt.month,

@@ -197,9 +197,7 @@ class _EntryCardSkeleton extends StatelessWidget {
           ),
           // The card's own hairline, drawn for real.
           Padding(
-            padding: const EdgeInsets.symmetric(
-              vertical: AppDimens.paddingX10,
-            ),
+            padding: const EdgeInsets.symmetric(vertical: AppDimens.paddingX10),
             child: Divider(
               height: 1,
               thickness: 1,
@@ -476,9 +474,17 @@ class _SummaryRowSkeleton extends StatelessWidget {
               child: const _AccountShimmer(
                 child: Column(
                   children: <Widget>[
-                    _LineBlock(width: 22, height: 14, radius: AppDimens.radiusX4),
+                    _LineBlock(
+                      width: 22,
+                      height: 14,
+                      radius: AppDimens.radiusX4,
+                    ),
                     SizedBox(height: 4),
-                    _LineBlock(width: 44, height: 10, radius: AppDimens.radiusX4),
+                    _LineBlock(
+                      width: 44,
+                      height: 10,
+                      radius: AppDimens.radiusX4,
+                    ),
                   ],
                 ),
               ),
@@ -536,11 +542,7 @@ class _SettlementCardSkeleton extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: AppDimens.paddingX8),
-                _LineBlock(
-                  width: 74,
-                  height: 22,
-                  radius: AppDimens.radiusX20,
-                ),
+                _LineBlock(width: 74, height: 22, radius: AppDimens.radiusX20),
               ],
             ),
           ),

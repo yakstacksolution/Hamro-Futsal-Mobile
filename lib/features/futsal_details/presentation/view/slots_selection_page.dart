@@ -13,7 +13,9 @@ import 'package:hamro_futsal/core/widgets/custom_bottom_sheet.dart';
 import 'package:hamro_futsal/core/widgets/custom_button.dart';
 import 'package:hamro_futsal/features/bookings/data/model/manual_booking_details.dart';
 import 'package:hamro_futsal/features/courts_details/presentation/page/court_details.dart';
+import 'package:hamro_futsal/features/futsal_details/data/model/booking_checkout_route_args.dart';
 import 'package:hamro_futsal/features/futsal_details/data/model/booking_draft.dart';
+import 'package:hamro_futsal/features/futsal_details/data/model/booking_success_action.dart';
 import 'package:hamro_futsal/features/futsal_details/data/model/booking_recurrence.dart';
 import 'package:hamro_futsal/features/futsal_details/data/model/create_booking_request.dart';
 import 'package:hamro_futsal/features/futsal_details/data/model/recurring_availability_model.dart';
@@ -32,10 +34,15 @@ class SlotsSelectionPage extends StatefulWidget {
     super.key,
     required this.court,
     this.manualBooking,
+    this.successAction = BookingSuccessAction.openBookingDetails,
   });
 
   final CourtDetailModel court;
   final ManualBookingDetails? manualBooking;
+
+  /// Passed straight through to checkout: where the flow lands once the
+  /// booking exists.
+  final BookingSuccessAction successAction;
 
   @override
   State<SlotsSelectionPage> createState() => _SlotsSelectionPageState();
@@ -599,14 +606,24 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
                                                 );
                                                 return;
                                               }
-                                              final BookingDraft? booked =
-                                                  await context
-                                                      .pushNamed<BookingDraft>(
-                                                        AppRouterParams
-                                                            .bookingCheckout
-                                                            .name,
-                                                        extra: draft,
-                                                      );
+                                              final BookingDraft?
+                                              booked = await context
+                                                  .pushNamed<BookingDraft>(
+                                                    AppRouterParams
+                                                        .bookingCheckout
+                                                        .name,
+                                                    extra:
+                                                        BookingCheckoutRouteArgs(
+                                                          draft: draft,
+                                                          successAction: widget
+                                                              .successAction,
+                                                        ),
+                                                  );
+                                              // Only reached when checkout
+                                              // handed the draft back; when it
+                                              // opened the booking details it
+                                              // reset the stack and this page
+                                              // is already gone.
                                               if (booked != null &&
                                                   context.mounted) {
                                                 Navigator.of(

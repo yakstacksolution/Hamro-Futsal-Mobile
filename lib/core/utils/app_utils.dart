@@ -131,11 +131,14 @@ final class AppUtils {
     String message, {
     Object? key,
   }) {
+    final OverlayState? overlay = Overlay.maybeOf(context);
+    if (overlay == null) return;
+
     // Create a unique key based on message content to prevent duplicates
     final messageKey = key ?? '${msgType.name}_${message.hashCode}';
 
     showTopSnackBar(
-      Overlay.of(context),
+      overlay,
       msgType == MsgType.error
           ? CustomSnackBar.error(message: message)
           : msgType == MsgType.success

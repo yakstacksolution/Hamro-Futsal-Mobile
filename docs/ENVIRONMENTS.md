@@ -5,27 +5,33 @@
 Open `lib/main.dart` and change one line:
 
 ```dart
-const AppFlavor kAppFlavor = AppFlavor.staging;   // or AppFlavor.production
+const AppFlavor? kAppFlavor = AppFlavor.staging;  // or AppFlavor.production
 ```
 
 That is the whole switch. There is one `main.dart`; no `main_staging.dart`, no
 Android product flavors, no per-environment bundle id. Restart the app after
-changing it — `.env.*` are bundled assets, so hot reload will not pick it up.
+changing it — `env_*.env` are bundled assets, so hot reload will not pick it up.
 
 Precedence, highest first:
 
-1. `--dart-define=ENV=staging|production` — what every CI workflow passes, so a
-   pipeline always ships the environment it names whatever `kAppFlavor` says.
-2. `kAppFlavor` in `main.dart` — every build you make yourself.
+1. `kAppFlavor` in `main.dart`, when it is not `null` — a hard override, so
+   editing that line always takes effect whatever the IDE launch config or the
+   Makefile target passes.
+2. `--dart-define=ENV=staging|production` — used when `kAppFlavor` is `null`,
+   which is what every CI workflow relies on.
 3. The build mode — debug → staging, release/profile → production.
+
+> **Set `kAppFlavor` back to `null` before pushing.** Left at `production` it
+> overrides the `ENV=staging` in `dev.yml` and `ios_dev.yml`, and your staging
+> builds would ship pointing at the production API.
 
 `AppEnvironment` (`lib/core/config/app_environment.dart`) turns that into a
 flavor, and `main.dart` loads the matching asset file:
 
 | `ENV`        | file loaded       | API base                              |
 | ------------ | ----------------- | ------------------------------------- |
-| `staging`    | `.env.staging`    | `https://staging.hamrofutsal.com/api` |
-| `production` | `.env.production` | `https://hamrofutsal.com/api`         |
+| `staging`    | `env_staging.env`    | `https://staging.hamrofutsal.com/api` |
+| `production` | `env_production.env` | `https://hamrofutsal.com/api`         |
 | *(omitted)*  | depends on build mode — **debug → staging, profile/release → production** ||
 
 `staging` also accepts `stage` / `dev`, and `production` accepts `prod` /
@@ -39,13 +45,13 @@ entry points, no per-environment bundle id.
 | I want to change…                        | Edit                                        |
 | ---------------------------------------- | ------------------------------------------- |
 | **Which backend my builds use**          | `kAppFlavor` in `lib/main.dart`              |
-| An API URL, socket host, key or event    | `.env.staging` and/or `.env.production`      |
-| Add a **new** key                        | all of `.env.staging`, `.env.production`, `.env.example` — then `make env-check` |
+| An API URL, socket host, key or event    | `env_staging.env` and/or `env_production.env`      |
+| Add a **new** key                        | all of `env_staging.env`, `env_production.env`, `env_example.env` — then `make env-check` |
 | Which environment a CI build ships       | the `--dart-define=ENV=…` in the workflow (see below) |
 | Which environment one run uses, without touching code | `make run-prod` / the IDE's production config |
 | The fallback when neither is set         | `_defaultFlavor` in `lib/core/config/app_environment.dart` |
 
-After editing an env file, **do a full restart** — `.env.*` are bundled assets,
+After editing an env file, **do a full restart** — `env_*.env` are bundled assets,
 so hot reload will not pick up a change.
 
 ## Running locally
@@ -70,7 +76,7 @@ Android Studio: Run → Edit Configurations → *Additional run args*:
 in `lib/main.dart`. Flip that line and restart — that is the normal way to move
 between backends.
 
-If `kAppFlavor` were ever removed, `_defaultFlavor` in
+If `kAppFlavor` is `null`, the build flag decides; with neither, `_defaultFlavor` in
 `lib/core/config/app_environment.dart` still keeps debug on staging and
 release on production.
 
@@ -79,8 +85,8 @@ release on production.
 Set `kAppFlavor = AppFlavor.production` in `main.dart` and hit Debug — you keep
 breakpoints, hot reload and DevTools, pointed at the live backend.
 
-To do it for one run without editing code, pass the flag; it outranks
-`kAppFlavor`:
+To do it for one run without editing code, set `kAppFlavor = null` and pass the
+flag:
 
 **Android Studio / IntelliJ** — pick **`main.dart (production)`** from the run
 configuration dropdown beside the Run button, then Debug (⌃D / Shift+F9).
@@ -101,7 +107,7 @@ flutter run --dart-define=ENV=production
 Confirm which one you got from the first console line:
 
 ```
-[env] production (--dart-define=ENV) → https://hamrofutsal.com/api
+[env] production (kAppFlavor in main.dart) → env_production.env → https://hamrofutsal.com/api
 ```
 
 > `.idea/` is gitignored, so those run configurations stay on your machine;
@@ -138,9 +144,12 @@ To move a workflow between environments, change that one `--dart-define` in its
   `API_URL`, `REVERB_HOST`, `REVERB_AUTH_URL`.
 * Every workflow passes `ENV` explicitly, so no shipped build depends on the
   default.
-* `.env`, `.env.staging`, `.env.production` are **committed** (`.gitignore`
-  re-includes the last two) and listed as assets in `pubspec.yaml`. The plain
-  `.env` is only a fallback if the flavor file fails to load.
+* `env_staging.env` and `env_production.env` are **committed** and listed as
+  assets in `pubspec.yaml`. There is no `.env` fallback: if the flavour file is
+  missing or a required key is blank, `AppEnvironment.load()` throws
+  `EnvLoadException` — debug builds stop at start-up, release builds report it
+  to Crashlytics. A packaging mistake is never papered over by quietly loading
+  a different backend's configuration.
 
 ### Known gaps
 

@@ -21,6 +21,7 @@ import 'package:hamro_futsal/core/widgets/custom_time_picker_bottom_sheet.dart';
 import 'package:hamro_futsal/features/bookings/data/model/booking_model.dart';
 import 'package:hamro_futsal/features/courts_details/presentation/page/court_details.dart';
 import 'package:hamro_futsal/features/futsal_details/data/model/booking_draft.dart';
+import 'package:hamro_futsal/features/futsal_details/data/model/booking_success_action.dart';
 import 'package:hamro_futsal/features/futsal_details/data/model/slots_selection_route_args.dart';
 import 'package:hamro_futsal/features/opponent_match/data/model/opponent_match_model.dart';
 import 'package:hamro_futsal/features/opponent_match/presentation/bloc/opponent_match_bloc/opponent_match_bloc.dart';
@@ -921,6 +922,9 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
         court: _courtFromVenue(venue),
         initialDate: _date,
         initialStartTime: _apiTime(_time),
+        // This wizard owns what happens next: it needs the confirmed draft
+        // back to attach to the request, so checkout must not navigate away.
+        successAction: BookingSuccessAction.returnDraft,
       ),
     );
     if (booking == null || !mounted) return;

@@ -194,7 +194,7 @@ class AppDimens {
   static const double authCardMaxWidthDesktop = 560;
 
   /// Keeps the OTP digit boxes grouped instead of spreading across a wide card.
-  static const double otpRowMaxWidth = 360;
+  static const double otpRowMaxWidth = 420;
 
   /// Caps the brand panel's text measure so lines stay readable and the block
   /// reads as one group rather than stretching across the whole pane.

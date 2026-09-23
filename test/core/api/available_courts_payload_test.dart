@@ -4,6 +4,7 @@ import 'package:hamro_futsal/core/api/api_client/api_client.dart';
 import 'package:hamro_futsal/core/api/api_client/booking_type_payload.dart';
 import 'package:hamro_futsal/core/api/api_client/ihttp.dart';
 import 'package:hamro_futsal/core/helper/share_preferences.dart';
+import 'package:hamro_futsal/features/auth/data/model/token_model.dart';
 
 /// Captures what the transport is handed, so the GET body is verified end to
 /// end through ApiClient → ApiCallWrapper → IHttp.
@@ -76,6 +77,9 @@ void main() {
 
   setUpAll(() async {
     await AppSettings().init(_MemoryPreferences());
+    // These endpoints are authenticated; without a stored session the app
+    // refuses them locally instead of putting them on the wire.
+    AppSettings().token = TokenModel(accessToken: 'test-access-token');
   });
 
   setUp(() {

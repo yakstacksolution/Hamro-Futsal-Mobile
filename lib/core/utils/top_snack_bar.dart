@@ -11,6 +11,19 @@ enum DismissType { onTap, onSwipe, none }
 
 final Map<Object, OverlayEntry> _activeEntries = {};
 
+void _removeOverlayEntry(OverlayEntry entry) {
+  if (!entry.mounted) return;
+  try {
+    entry.remove();
+  } on FlutterError catch (error) {
+    // OverlayEntry.remove can throw when the owning overlay has already been
+    // disposed during route/app lifecycle changes. The snack bar is already
+    // gone in that case, so swallowing this keeps a transient toast from
+    // becoming a fatal app crash.
+    debugPrint('Top snack bar overlay removal skipped: ${error.message}');
+  }
+}
+
 void showTopSnackBar(
   OverlayState overlayState,
   Widget child, {
@@ -33,9 +46,7 @@ void showTopSnackBar(
   // Remove any existing entry with the same key
   if (_activeEntries.containsKey(entryKey)) {
     final existingEntry = _activeEntries[entryKey];
-    if (existingEntry != null && existingEntry.mounted) {
-      existingEntry.remove();
-    }
+    if (existingEntry != null) _removeOverlayEntry(existingEntry);
     _activeEntries.remove(entryKey);
   }
 
@@ -44,9 +55,7 @@ void showTopSnackBar(
     builder: (_) {
       return _TopSnackBar(
         onDismissed: () {
-          if (overlayEntry.mounted) {
-            overlayEntry.remove();
-          }
+          _removeOverlayEntry(overlayEntry);
           _activeEntries.remove(entryKey);
         },
         animationDuration: animationDuration,

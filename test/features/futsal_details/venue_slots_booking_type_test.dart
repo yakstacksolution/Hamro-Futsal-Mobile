@@ -3,6 +3,7 @@ import 'package:hamro_futsal/core/api/api_client/booking_type_payload.dart';
 import 'package:hamro_futsal/core/api/api_client/result.dart';
 import 'package:hamro_futsal/features/futsal_details/data/data_source/futsal_details_remote_data_source.dart';
 import 'package:hamro_futsal/features/futsal_details/data/model/create_booking_request.dart';
+import 'package:hamro_futsal/features/futsal_details/data/model/review_change_request.dart';
 import 'package:hamro_futsal/features/futsal_details/data/repositories/futsal_details_repository_impl.dart';
 import 'package:hamro_futsal/features/futsal_details/domain/usecase/get_venue_slots_use_case.dart';
 
@@ -86,6 +87,12 @@ final class _FakeDataSource implements FutsalDetailsRemoteDataSource {
     required int venueId,
     int page = 1,
     int perPage = 10,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<Result> submitReviewChangeRequest({
+    required int reviewId,
+    required ReviewChangeRequestInput input,
   }) => throw UnimplementedError();
 
   @override

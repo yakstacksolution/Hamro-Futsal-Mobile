@@ -343,7 +343,7 @@ class ApiClient {
     return _get(
       url: '$_baseUrl/conversations',
       query: <String, dynamic>{
-        'archived': archived,
+        'archived': archived ? 1 : 0,
         'page': page,
         'per_page': perPage,
       },

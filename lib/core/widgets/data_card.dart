@@ -40,19 +40,16 @@ enum DataCardDensity {
   bool get isDetail => this == DataCardDensity.detail;
 
   /// Labels, captions and the quiet second line.
-  double get labelSize => isDetail
-      ? AppDimens.fontBodyTextSmall
-      : AppDimens.fontBodySubTitle;
+  double get labelSize =>
+      isDetail ? AppDimens.fontBodyTextSmall : AppDimens.fontBodySubTitle;
 
   /// Values and figures.
-  double get valueSize => isDetail
-      ? AppDimens.fontBodyTextSmall
-      : AppDimens.fontBodySubTitle;
+  double get valueSize =>
+      isDetail ? AppDimens.fontBodyTextSmall : AppDimens.fontBodySubTitle;
 
   /// A card's title and its amount.
-  double get titleSize => isDetail
-      ? AppDimens.fontBodyTextMedium
-      : AppDimens.fontBodyTextSmall;
+  double get titleSize =>
+      isDetail ? AppDimens.fontBodyTextMedium : AppDimens.fontBodyTextSmall;
 }
 
 /// A bordered panel holding one record.
@@ -85,9 +82,7 @@ class DataCard extends StatelessWidget {
     final BorderRadius radius = BorderRadius.circular(AppDimens.radiusX14);
     final Color tint = accent ?? LightColor.secondaryColor;
     final BoxDecoration decoration = BoxDecoration(
-      color: selected
-          ? tint.withValues(alpha: 0.06)
-          : LightColor.whiteColor,
+      color: selected ? tint.withValues(alpha: 0.06) : LightColor.whiteColor,
       borderRadius: radius,
       border: Border.all(
         color: selected
@@ -376,11 +371,7 @@ class DataCardDivider extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: AppDimens.paddingX10),
-      child: Divider(
-        height: 1,
-        thickness: 1,
-        color: LightColor.dividerColor,
-      ),
+      child: Divider(height: 1, thickness: 1, color: LightColor.dividerColor),
     );
   }
 }

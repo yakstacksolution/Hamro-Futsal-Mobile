@@ -8,6 +8,7 @@
 library;
 
 import 'package:hamro_futsal/core/routers/deep_link_target.dart';
+
 /// One URL found in a body.
 class LinkSpan {
   const LinkSpan({

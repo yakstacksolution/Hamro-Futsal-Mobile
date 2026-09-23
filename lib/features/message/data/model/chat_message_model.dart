@@ -86,6 +86,7 @@ class ChatMessageModel {
     this.mentions = const <int>[],
     this.mentionAll = false,
     this.isMentioned = false,
+    this.isSuperadminCreatedGroup = false,
   });
 
   final int id;
@@ -119,6 +120,10 @@ class ChatMessageModel {
   /// true for a direct mention and for `@all`.
   final bool isMentioned;
 
+  /// The thread is a group a superadmin created, so its picture and name are
+  /// managed centrally and cannot be edited from the app.
+  final bool isSuperadminCreatedGroup;
+
   bool isMine(int currentUserId) => senderId == currentUserId;
 
   /// Whether this message calls out [currentUserId], falling back to the id
@@ -149,6 +154,7 @@ class ChatMessageModel {
     mentions: mentions,
     mentionAll: mentionAll,
     isMentioned: isMentioned,
+    isSuperadminCreatedGroup: isSuperadminCreatedGroup,
   );
 
   factory ChatMessageModel.fromJson(Map<String, dynamic> json) {
@@ -204,6 +210,9 @@ class ChatMessageModel {
           : const <int>[],
       mentionAll: json['mention_all'] == true || json['mention_all'] == 1,
       isMentioned: json['is_mentioned'] == true || json['is_mentioned'] == 1,
+      isSuperadminCreatedGroup:
+          json['is_superadmin_created_group'] == true ||
+          json['is_superadmin_created_group'] == 1,
     );
   }
 }

@@ -5,15 +5,16 @@ import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:hamro_futsal/core/config/app_environment.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hamro_futsal/core/api/client.dart';
 import 'package:hamro_futsal/core/helper/crash_reporter.dart';
 import 'package:hamro_futsal/core/helper/fcm_helper.dart';
+import 'package:hamro_futsal/core/helper/session_bootstrap.dart';
 import 'package:hamro_futsal/core/helper/share_preferences.dart';
 import 'package:hamro_futsal/core/routers/app_router_params.dart';
 import 'package:hamro_futsal/core/routers/app_routers.dart';
@@ -29,11 +30,28 @@ import 'package:hamro_futsal/features/app_update/presentation/widgets/app_update
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 
-const AppFlavor kAppFlavor = AppFlavor.staging;
+// ignore: unnecessary_nullable_for_final_variable_declarations
+const AppFlavor? kAppFlavor = AppFlavor.staging;
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  AppEnvironment.selected = kAppFlavor;
+  final WidgetsBinding widgetsBinding =
+      WidgetsFlutterBinding.ensureInitialized();
+  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+  if (kAppFlavor != null) {
+    AppEnvironment.selected = kAppFlavor;
+  }
+
+  Object? envError;
+  StackTrace? envStack;
+  try {
+    await AppEnvironment.load();
+  } catch (error, stack) {
+    envError = error;
+    envStack = stack;
+    debugPrint('$error');
+    AppEnvironment.ensureInitialized();
+  }
+
   bool firebaseReady = false;
   try {
     await Firebase.initializeApp();
@@ -44,29 +62,28 @@ void main() async {
 
   if (firebaseReady) {
     CrashReporter.install();
-  }
-
-  final SharedPreferences preferences = await SharedPreferences.getInstance();
-  await AppSettings().init(SharedPreferencesWrapper(preferences));
-  AppThemeController.restore();
-  final bool hasLoggedIn =
-      AppSettings().tokenModel.accessToken?.trim().isNotEmpty ?? false;
-  try {
-    await dotenv.load(fileName: AppEnvironment.envFileName);
-    if (kDebugMode) {
-      debugPrint(
-        '[env] ${AppEnvironment.name} (${AppEnvironment.source})'
-        ' → ${dotenv.maybeGet('API_URL') ?? 'no API_URL'}',
+    if (envError != null) {
+      FirebaseCrashlytics.instance.recordError(
+        envError,
+        envStack,
+        fatal: false,
       );
     }
+  }
+
+  if (kDebugMode && envError != null) throw envError;
+
+  bool hasLoggedIn = false;
+  try {
+    final SharedPreferences preferences = await SharedPreferences.getInstance();
+    await AppSettings().init(SharedPreferencesWrapper(preferences));
+    AppThemeController.restore();
+
+    hasLoggedIn = await SessionBootstrap.resolve();
   } catch (error, stack) {
+    debugPrint('Session restore failed: $error\n$stack');
     if (firebaseReady) {
       FirebaseCrashlytics.instance.recordError(error, stack, fatal: false);
-    }
-    try {
-      await dotenv.load(fileName: '.env');
-    } catch (_) {
-      dotenv.loadFromString(envString: '');
     }
   }
 
@@ -110,7 +127,10 @@ class _MyAppState extends State<MyApp> {
               FirebaseAnalyticsObserver(analytics: FirebaseAnalytics.instance),
             ],
     );
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await WidgetsBinding.instance.endOfFrame;
+      if (!mounted) return;
+      FlutterNativeSplash.remove();
       flushPendingNotificationNavigation();
       DeepLinkService.instance.flush();
     });

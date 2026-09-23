@@ -123,6 +123,12 @@ dependencies {
     
     // Firebase Remote Config
     implementation("com.google.firebase:firebase-config")
+
+    // google_sign_in_android 6.x pins play-services-auth 21.0.0, which has
+    // produced SignInHubActivity startup NPEs in production. Keep the Flutter
+    // plugin API stable while resolving the native auth activity from a fixed
+    // Play Services Auth release.
+    implementation("com.google.android.gms:play-services-auth:21.6.0")
 }
 
 tasks.matching { it.name.matches(Regex("process.+Manifest")) }.configureEach {

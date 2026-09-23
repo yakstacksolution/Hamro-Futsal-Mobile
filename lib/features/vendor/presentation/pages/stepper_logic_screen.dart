@@ -56,11 +56,6 @@ class _StepperLogicScreenState extends State<StepperLogicScreen> {
   Future<void> _bootstrapScreen() async {
     final int? futsalId = widget.futsalId;
     final String? futsalSlug = widget.futsalSlug?.trim();
-
-    // `/auth/get-venue/{slug}` is addressed by slug only. A numeric id in that
-    // position used to be sent as a stand-in; it no longer resolves, so a venue
-    // that reached here without a slug is reported rather than silently opened
-    // as a blank draft the user would save as a second venue.
     if (futsalSlug != null && futsalSlug.isNotEmpty) {
       await _cubit.fetchVendorOnboarding(futsalSlug, futsalId: futsalId);
       if (!mounted) return;

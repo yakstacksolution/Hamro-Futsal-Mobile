@@ -3,11 +3,11 @@ import 'dart:convert';
 
 import 'package:dart_pusher_channels/dart_pusher_channels.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:hamro_futsal/core/api/api_client/api_constants.dart';
 import 'package:hamro_futsal/core/helper/share_preferences.dart';
 import 'package:hamro_futsal/core/socket/reverb_connection.dart';
 import 'package:hamro_futsal/features/futsal_details/data/service/slot_socket_service.dart';
+import 'package:hamro_futsal/core/config/app_environment.dart';
 
 /// Realtime slot availability backed by **Laravel Reverb** (Pusher protocol).
 ///
@@ -33,14 +33,15 @@ final class ReverbSlotSocketService implements SlotSocketService {
 
   static final ReverbSlotSocketService instance = ReverbSlotSocketService._();
 
-  static String get _authUrl =>
-      dotenv.env['REVERB_AUTH_URL'] ??
-      '${APIEndpoint.baseUrl}/broadcasting/auth';
+  static String get _authUrl => AppEnvironment.readOr(
+    'REVERB_AUTH_URL',
+    '${APIEndpoint.baseUrl}/broadcasting/auth',
+  );
 
   /// Laravel Echo private channel carrying slot availability for a venue.
   static String _venueSlotsChannel(int venueId) {
-    final String? template = dotenv.env['REVERB_SLOT_CHANNEL'];
-    final String name = template != null && template.trim().isNotEmpty
+    final String template = AppEnvironment.read('REVERB_SLOT_CHANNEL');
+    final String name = template.isNotEmpty
         ? template.replaceAll('{venueId}', '$venueId')
         : 'venue.$venueId.slots';
     return _withChannelPrefix(name, 'private');
@@ -48,8 +49,8 @@ final class ReverbSlotSocketService implements SlotSocketService {
 
   /// Presence channel carrying live hold/booking state for one venue + date.
   static String _bookingChannel(int venueId, String bookingDate) {
-    final String? template = dotenv.env['REVERB_BOOKING_CHANNEL'];
-    final String name = template != null && template.trim().isNotEmpty
+    final String template = AppEnvironment.read('REVERB_BOOKING_CHANNEL');
+    final String name = template.isNotEmpty
         ? template
               .replaceAll('{venueId}', '$venueId')
               .replaceAll('{bookingDate}', bookingDate)
@@ -89,11 +90,19 @@ final class ReverbSlotSocketService implements SlotSocketService {
 
   /// HTTP token auth delegates that sign channel subscriptions against
   /// Laravel's `/broadcasting/auth`, carrying the current bearer token.
+  String? get _accessToken {
+    if (!AppSettings().isInitialized) return null;
+    final String? token = AppSettings().tokenModel.accessToken?.trim();
+    return token == null || token.isEmpty ? null : token;
+  }
+
+  bool get _isLoggedIn => _accessToken != null;
+
   Map<String, String> get _authHeaders {
-    final String? token = AppSettings().tokenModel.accessToken;
+    final String? token = _accessToken;
     return <String, String>{
       'Accept': 'application/json',
-      if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+      if (token != null) 'Authorization': 'Bearer $token',
     };
   }
 
@@ -311,6 +320,7 @@ final class ReverbSlotSocketService implements SlotSocketService {
 
   @override
   Stream<SlotAvailabilityUpdate> venueSlots(int venueId) {
+    if (!_isLoggedIn) return const Stream<SlotAvailabilityUpdate>.empty();
     final controller = _slotControllers.putIfAbsent(
       venueId,
       () => StreamController<SlotAvailabilityUpdate>.broadcast(),
@@ -321,12 +331,14 @@ final class ReverbSlotSocketService implements SlotSocketService {
 
   @override
   Stream<BookingSlotEvent> bookingEvents(int venueId, String bookingDate) {
+    if (!_isLoggedIn) return const Stream<BookingSlotEvent>.empty();
     _ensureBookingChannel(venueId, bookingDate);
     return _bookings[_bookingKey(venueId, bookingDate)]!.events.stream;
   }
 
   @override
   Stream<int> bookingViewers(int venueId, String bookingDate) {
+    if (!_isLoggedIn) return const Stream<int>.empty();
     _ensureBookingChannel(venueId, bookingDate);
     return _bookings[_bookingKey(venueId, bookingDate)]!.viewerStream();
   }

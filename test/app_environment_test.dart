@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hamro_futsal/core/config/app_environment.dart';
 
 void main() {
-  tearDown(() => AppEnvironment.selected = null);
+  tearDown(AppEnvironment.reset);
 
   group('AppEnvironment', () {
     test('resolves the flavour passed via --dart-define=ENV', () {
@@ -15,10 +15,14 @@ void main() {
           : flag;
 
       expect(AppEnvironment.name, expected);
-      expect(AppEnvironment.envFileName, '.env.$expected');
+      expect(AppEnvironment.envFileName, 'env_$expected.env');
       expect(AppEnvironment.isStaging, expected == 'staging');
       expect(AppEnvironment.isProduction, expected == 'production');
       expect(AppEnvironment.isExplicit, flag.isNotEmpty);
+      expect(
+        AppEnvironment.source,
+        flag.isEmpty ? 'default for this build mode' : '--dart-define=ENV',
+      );
     });
 
     test('a debug run never defaults to production', () {
@@ -28,28 +32,36 @@ void main() {
       expect(AppEnvironment.isProduction, isFalse);
     });
 
-    test('main.dart picks the flavour when no build flag is passed', () {
-      if (const String.fromEnvironment('ENV').isNotEmpty) return;
+    test('main.dart picks the flavour', () {
       AppEnvironment.selected = AppFlavor.production;
       expect(AppEnvironment.flavor, AppFlavor.production);
-      expect(AppEnvironment.envFileName, '.env.production');
+      expect(AppEnvironment.envFileName, 'env_production.env');
       expect(AppEnvironment.source, 'kAppFlavor in main.dart');
 
       AppEnvironment.selected = AppFlavor.staging;
       expect(AppEnvironment.flavor, AppFlavor.staging);
-      expect(AppEnvironment.envFileName, '.env.staging');
+      expect(AppEnvironment.envFileName, 'env_staging.env');
     });
 
-    test('a build flag always beats the line in main.dart', () {
+    test('the line in main.dart always beats a build flag', () {
       const String flag = String.fromEnvironment('ENV');
       if (flag.isEmpty) return;
 
-      // CI passes ENV explicitly; whatever main.dart says, the pipeline ships
-      // the environment it named.
+      // kAppFlavor is a hard override: editing it takes effect whatever the
+      // IDE launch config or Makefile target passed.
       AppEnvironment.selected = flag == 'production'
           ? AppFlavor.staging
           : AppFlavor.production;
 
+      expect(AppEnvironment.name, isNot(flag));
+      expect(AppEnvironment.source, 'kAppFlavor in main.dart');
+    });
+
+    test('a build flag decides when main.dart selects nothing', () {
+      const String flag = String.fromEnvironment('ENV');
+      if (flag.isEmpty) return;
+
+      AppEnvironment.selected = null;
       expect(AppEnvironment.name, flag);
       expect(AppEnvironment.source, '--dart-define=ENV');
     });
@@ -64,6 +76,18 @@ void main() {
             ? AppFlavor.production
             : AppFlavor.staging,
       );
+    });
+
+    test('each flavour maps to its own env asset', () {
+      AppEnvironment.selected = AppFlavor.staging;
+      expect(AppEnvironment.envFileName, 'env_staging.env');
+      AppEnvironment.selected = AppFlavor.production;
+      expect(AppEnvironment.envFileName, 'env_production.env');
+    });
+
+    test('load() has not run, so nothing is marked loaded', () {
+      expect(AppEnvironment.isLoaded, isFalse);
+      expect(AppEnvironment.loadedFlavor, isNull);
     });
 
     test('exposes exactly one flavour at a time', () {

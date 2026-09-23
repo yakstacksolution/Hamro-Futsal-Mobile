@@ -44,17 +44,18 @@ class _VenueReviewsPageState extends State<VenueReviewsPage> {
   @override
   void initState() {
     super.initState();
-    final FutsalDetailsRepositoryImpl repository = FutsalDetailsRepositoryImpl();
+    final FutsalDetailsRepositoryImpl repository =
+        FutsalDetailsRepositoryImpl();
     _bloc =
         VenueReviewsBloc(
           GetVenueReviewsUseCase(repository),
           SubmitReviewChangeRequestUseCase(repository),
         )..add(
-            FetchVenueReviewsEvent(
-              venueId: widget.venueId,
-              perPage: kVenueReviewsPageSize,
-            ),
-          );
+          FetchVenueReviewsEvent(
+            venueId: widget.venueId,
+            perPage: kVenueReviewsPageSize,
+          ),
+        );
     _scrollCtrl.addListener(_onScroll);
   }
 
@@ -84,12 +85,11 @@ class _VenueReviewsPageState extends State<VenueReviewsPage> {
     VenueReviewModel review,
     ReviewChangeRequestType type,
   ) async {
-    final ReviewChangeRequestInput? input =
-        await ReviewChangeRequestSheet.show(
-          context,
-          type: type,
-          initialComment: review.comment,
-        );
+    final ReviewChangeRequestInput? input = await ReviewChangeRequestSheet.show(
+      context,
+      type: type,
+      initialComment: review.comment,
+    );
     if (input == null || !mounted) return;
     _bloc.add(
       SubmitReviewChangeRequestEvent(reviewId: review.id, input: input),
@@ -112,7 +112,8 @@ class _VenueReviewsPageState extends State<VenueReviewsPage> {
           child: BlocConsumer<VenueReviewsBloc, VenueReviewsState>(
             listenWhen: (VenueReviewsState prev, VenueReviewsState next) =>
                 prev.changeRequestStatus != next.changeRequestStatus &&
-                next.changeRequestStatus != ReviewChangeRequestStatus.submitting,
+                next.changeRequestStatus !=
+                    ReviewChangeRequestStatus.submitting,
             listener: (BuildContext context, VenueReviewsState state) {
               final String? message = state.changeRequestMessage;
               if (message == null || message.isEmpty) return;

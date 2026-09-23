@@ -119,20 +119,25 @@ class _GroupProfilePageState extends State<GroupProfilePage> {
               ? state.activeConversation!
               : conversation;
 
-          return ListView(
-            padding: const EdgeInsets.only(bottom: AppDimens.paddingX24),
-            children: [
-              _Header(
-                group: group,
-                currentUserId: state.currentUserId,
-                busy: state.actionBusy,
-                mediaCubit: _mediaCubit,
-              ),
-              const SizedBox(height: AppDimens.paddingX16),
-              _Actions(group: group, busy: state.actionBusy),
-              const SizedBox(height: AppDimens.paddingX16),
-              _Members(group: group, currentUserId: state.currentUserId),
-            ],
+          // The last member row would otherwise end under the home
+          // indicator; the app bar already handles the top inset.
+          return SafeArea(
+            top: false,
+            child: ListView(
+              padding: const EdgeInsets.only(bottom: AppDimens.paddingX24),
+              children: [
+                _Header(
+                  group: group,
+                  currentUserId: state.currentUserId,
+                  busy: state.actionBusy,
+                  mediaCubit: _mediaCubit,
+                ),
+                const SizedBox(height: AppDimens.paddingX16),
+                _Actions(group: group, busy: state.actionBusy),
+                const SizedBox(height: AppDimens.paddingX16),
+                _Members(group: group, currentUserId: state.currentUserId),
+              ],
+            ),
           );
         },
       ),
@@ -205,6 +210,10 @@ class _Header extends StatelessWidget {
     final textTheme = FutsalTheme.getTextTheme(context);
     final List<ParticipantModel> members = group.participants;
     final String venue = group.venue?.name.trim() ?? '';
+    // A superadmin's group owns its own name and picture; neither is the
+    // members' to change, so both edit affordances are gone rather than
+    // offered and refused by the API.
+    final bool locked = group.isSuperadminCreatedGroup;
 
     // Material again: the name below is an InkWell, and its ripple would be
     // painted behind a plain coloured box.
@@ -219,17 +228,18 @@ class _Header extends StatelessWidget {
         child: Column(
           children: [
             // The picture is editable now, so it carries its own camera badge
-            // rather than relying on the pencil beside the name below.
+            // rather than relying on the pencil beside the name below. A group
+            // a superadmin created is managed centrally: no badge, no picker.
             _GroupImage(
               members: members,
               imageUrl: group.imageUrl,
-              onEdit: busy ? null : () => _changePhoto(context),
+              onEdit: busy || locked ? null : () => _changePhoto(context),
             ),
             const SizedBox(height: AppDimens.paddingX12),
             // The name is the one thing here that can be edited, so it carries
             // the pencil rather than hiding a rename in the overflow.
             InkWell(
-              onTap: busy ? null : () => _rename(context),
+              onTap: busy || locked ? null : () => _rename(context),
               borderRadius: BorderRadius.circular(AppDimens.radiusX8),
               child: Padding(
                 padding: const EdgeInsets.symmetric(
@@ -249,12 +259,14 @@ class _Header extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const SizedBox(width: AppDimens.paddingX6),
-                    Icon(
-                      Icons.edit_outlined,
-                      size: 16,
-                      color: LightColor.secondaryColor,
-                    ),
+                    if (!locked) ...[
+                      const SizedBox(width: AppDimens.paddingX6),
+                      Icon(
+                        Icons.edit_outlined,
+                        size: 16,
+                        color: LightColor.secondaryColor,
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -658,6 +670,7 @@ class _Members extends StatelessWidget {
                 participant: participant,
                 isSelf: participant.userId == currentUserId,
                 conversationId: group.id,
+                locked: group.isSuperadminCreatedGroup,
               ),
           ],
         ),
@@ -671,11 +684,16 @@ class _MemberRow extends StatelessWidget {
     required this.participant,
     required this.isSelf,
     required this.conversationId,
+    this.locked = false,
   });
 
   final ParticipantModel participant;
   final bool isSelf;
   final int conversationId;
+
+  /// A superadmin's group: who is in it, and who may speak, is not the
+  /// members' call, so the row offers no overflow menu to block anyone from.
+  final bool locked;
 
   @override
   Widget build(BuildContext context) {
@@ -744,7 +762,7 @@ class _MemberRow extends StatelessWidget {
               fallbackImageUrl: participant.avatarUrl,
               isOnline: participant.isOnline,
             ),
-      trailing: isSelf || participant.userId <= 0
+      trailing: isSelf || locked || participant.userId <= 0
           ? null
           : PopupMenuButton<bool>(
               tooltip: StringConstants.moreOptions,

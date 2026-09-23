@@ -2,12 +2,12 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:dart_pusher_channels/dart_pusher_channels.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:hamro_futsal/core/api/api_client/api_constants.dart';
 import 'package:hamro_futsal/core/helper/share_preferences.dart';
 import 'package:hamro_futsal/core/socket/reverb_connection.dart';
 import 'package:hamro_futsal/features/message/data/model/chat_message_model.dart';
 import 'package:hamro_futsal/features/message/data/service/chat_socket_service.dart';
+import 'package:hamro_futsal/core/config/app_environment.dart';
 
 /// Realtime chat backed by **Laravel Reverb** (Pusher protocol) via
 /// `dart_pusher_channels` — a pure-Dart client that, unlike the native Pusher
@@ -19,7 +19,8 @@ import 'package:hamro_futsal/features/message/data/service/chat_socket_service.d
 /// auth endpoint with the signed-in user's bearer token.
 ///
 /// ─────────────────────────────────────────────────────────────────────────
-/// BACKEND CONFIG — set in `.env` (from the server's Reverb config). Each value
+/// BACKEND CONFIG — set in the flavour env file (from the server's Reverb
+/// config). Each value
 /// has a Laravel-default fallback; override per environment:
 ///
 ///   REVERB_APP_KEY       = your REVERB_APP_KEY              (required)
@@ -40,17 +41,18 @@ final class ReverbChatSocketService implements ChatSocketService {
 
   static final ReverbChatSocketService instance = ReverbChatSocketService._();
 
-  static String get _authUrl =>
-      dotenv.env['REVERB_AUTH_URL'] ??
-      '${APIEndpoint.baseUrl}/broadcasting/auth';
+  static String get _authUrl => AppEnvironment.readOr(
+    'REVERB_AUTH_URL',
+    '${APIEndpoint.baseUrl}/broadcasting/auth',
+  );
   static String get _messageEvent =>
-      dotenv.env['REVERB_MESSAGE_EVENT'] ?? 'message.sent';
+      AppEnvironment.readOr('REVERB_MESSAGE_EVENT', 'message.sent');
   static String get _typingEvent =>
-      dotenv.env['REVERB_TYPING_EVENT'] ?? 'typing';
+      AppEnvironment.readOr('REVERB_TYPING_EVENT', 'typing');
   static String get _stopTypingEvent =>
-      dotenv.env['REVERB_STOP_TYPING_EVENT'] ?? 'stop-typing';
+      AppEnvironment.readOr('REVERB_STOP_TYPING_EVENT', 'stop-typing');
   static String get _readEvent =>
-      dotenv.env['REVERB_READ_EVENT'] ?? 'messages.read';
+      AppEnvironment.readOr('REVERB_READ_EVENT', 'messages.read');
 
   /// Laravel Echo private channel for a single conversation.
   static String _conversationChannel(int id) => 'private-conversation.$id';

@@ -1,12 +1,11 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:hamro_futsal/core/api/api_client/api_constants.dart';
 import 'package:hamro_futsal/core/api/api_client/ihttp.dart';
 import 'package:hamro_futsal/core/api/api_client/logging_interceptor.dart';
 import 'package:hamro_futsal/core/utils/upload_part.dart';
 
 class DioHttp implements IHttp {
-  static const String _apiTokenHeader = 'X-API-TOKEN';
   late Dio dio;
   bool _initialized = false;
 
@@ -88,7 +87,10 @@ class DioHttp implements IHttp {
     };
 
     if (_isApiRequest(url)) {
-      headers[_apiTokenHeader] = dotenv.env['SECURE_API_TOKEN'] ?? 'hello';
+      final String apiToken = APIEndpoint.secureApiToken;
+      if (apiToken.isNotEmpty) {
+        headers[APIEndpoint.secureApiTokenHeader] = apiToken;
+      }
     }
     if (token != null && token.isNotEmpty) {
       headers['Authorization'] = 'Bearer $token';

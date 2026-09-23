@@ -8,7 +8,6 @@ import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/app_utils.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
-import 'package:hamro_futsal/core/utils/responsive.dart';
 import 'package:hamro_futsal/features/auth/presentation/authentication_bloc/authentication_bloc.dart';
 import 'package:hamro_futsal/features/auth/presentation/widgets/auth_screen_frame.dart';
 import 'package:hamro_futsal/features/auth/presentation/widgets/otp_digit_field.dart';
@@ -38,7 +37,7 @@ class OtpVerificationScreen extends StatefulWidget {
 }
 
 class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
-  static const int _otpLength = 4;
+  static const int _otpLength = 6;
   static const int _resendDelay = 30;
 
   late final List<TextEditingController> _controllers;
@@ -276,29 +275,15 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                   onSecondaryTap: _resendOtp,
                   formFields: <Widget>[
                     SizedBox(height: AppDimens.sizeX12),
-                    // On wide cards, cap and centre the row so the digit boxes
-                    // stay a readable group instead of spreading to the edges.
-                    AutofillGroup(
-                      child: Center(
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(
-                            maxWidth: context.isTabletOrWider
-                                ? AppDimens.otpRowMaxWidth
-                                : double.infinity,
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: List<Widget>.generate(_otpLength, (
-                              int index,
-                            ) {
-                              return OtpDigitField(
-                                controller: _controllers[index],
-                                focusNode: _focusNodes[index],
-                                onChanged: (String value) =>
-                                    _onOtpChanged(index, value),
-                              );
-                            }),
-                          ),
+                    Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(
+                          maxWidth: AppDimens.otpRowMaxWidth,
+                        ),
+                        child: OtpDigitRow(
+                          controllers: _controllers,
+                          focusNodes: _focusNodes,
+                          onChanged: _onOtpChanged,
                         ),
                       ),
                     ),

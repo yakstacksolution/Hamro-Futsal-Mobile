@@ -5,7 +5,6 @@ import 'package:bloc/bloc.dart';
 import 'package:dartz/dartz.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:hamro_futsal/core/helper/exception_helper.dart';
 import 'package:hamro_futsal/core/helper/fcm_helper.dart';
@@ -14,6 +13,7 @@ import 'package:hamro_futsal/features/auth/domain/entities/auth_entities.dart';
 import 'package:hamro_futsal/features/auth/domain/usecase/authentication_usecase.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
+import 'package:hamro_futsal/core/config/app_environment.dart';
 part 'authentication_event.dart';
 part 'authentication_state.dart';
 
@@ -95,23 +95,20 @@ class AuthenticationBloc
           clearSuccessMessage: true,
         ),
       );
-      final String? serverClientId = dotenv.env['GOOGLE_SERVER_CLIENT_ID']
-          ?.trim();
+      final String serverClientId = AppEnvironment.read(
+        'GOOGLE_SERVER_CLIENT_ID',
+      );
 
-      final String? iosClientId = dotenv.env['GOOGLE_IOS_CLIENT_ID']?.trim();
+      final String iosClientId = AppEnvironment.read('GOOGLE_IOS_CLIENT_ID');
 
       final GoogleSignIn googleSignIn = GoogleSignIn(
         scopes: const <String>['email', 'profile'],
         // Android reads default_web_client_id generated from google-services.json.
         // This keeps Play builds tied to the Firebase configuration being shipped.
-        serverClientId:
-            (!Platform.isAndroid &&
-                serverClientId != null &&
-                serverClientId.isNotEmpty)
+        serverClientId: (!Platform.isAndroid && serverClientId.isNotEmpty)
             ? serverClientId
             : null,
-        clientId:
-            (Platform.isIOS && iosClientId != null && iosClientId.isNotEmpty)
+        clientId: (Platform.isIOS && iosClientId.isNotEmpty)
             ? iosClientId
             : null,
       );

@@ -575,15 +575,11 @@ class BookingCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             DataCardHeader(
-              icon: showPlayer
-                  ? Icons.person_rounded
-                  : Icons.stadium_rounded,
+              icon: showPlayer ? Icons.person_rounded : Icons.stadium_rounded,
               iconColor: statusColor,
               title: title,
               subtitle: subtitle,
-              amount: booking.amount > 0
-                  ? Money.npr(booking.amount)
-                  : null,
+              amount: booking.amount > 0 ? Money.npr(booking.amount) : null,
               chipLabel: booking.status.value,
               chipColor: statusColor,
               titleMaxLines: 1,
@@ -623,8 +619,6 @@ class BookingCard extends StatelessWidget {
       'offline',
     }.contains(type?.trim().toLowerCase() ?? '');
   }
-
-
 }
 
 String _capitalize(String value) {

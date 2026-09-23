@@ -66,7 +66,10 @@ class _ProfilePageState extends State<ProfilePage> {
     ),
   ];
 
-  late final List<_ProfileItem> _vendorItems = <_ProfileItem>[
+  /// The vendor section. A test account has no real money behind it, so
+  /// finance and payouts are left out for one rather than opened onto an
+  /// empty ledger.
+  List<_ProfileItem> _vendorItems(UserData? user) => <_ProfileItem>[
     _ProfileItem(
       title: StringConstants.yourVenues,
       icon: Icons.stadium_outlined,
@@ -77,11 +80,12 @@ class _ProfilePageState extends State<ProfilePage> {
       icon: Icons.insights_rounded,
       onTap: () => context.pushNamed(AppRouterParams.bookingOverview.name),
     ),
-    _ProfileItem(
-      title: 'Finance & Payouts',
-      icon: Icons.account_balance_outlined,
-      onTap: () => context.pushNamed(AppRouterParams.account.name),
-    ),
+    if (!(user?.isTestUser ?? false))
+      _ProfileItem(
+        title: StringConstants.financeAndPayouts,
+        icon: Icons.account_balance_outlined,
+        onTap: () => context.pushNamed(AppRouterParams.account.name),
+      ),
     _ProfileItem(
       title: 'Products',
       icon: Icons.inventory_2_outlined,
@@ -240,7 +244,9 @@ class _ProfilePageState extends State<ProfilePage> {
                   const SizedBox(height: AppDimens.paddingX20),
                   _SectionGroup(
                     label: StringConstants.vendor,
-                    items: isVendor ? _vendorItems : candidateVendorItems,
+                    items: isVendor
+                        ? _vendorItems(profile?.data)
+                        : candidateVendorItems,
                   ),
                   const SizedBox(height: AppDimens.paddingX20),
                   _SectionGroup(

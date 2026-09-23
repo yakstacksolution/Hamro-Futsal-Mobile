@@ -29,6 +29,7 @@ abstract class FutsalDetailsRepository {
     int page,
     int perPage,
   });
+
   /// `POST /reviews/{review}/change-request` — asks for the signed-in user's
   /// own review to be edited or removed. Resolves to the server's message.
   Future<Either<AppException, String>> submitReviewChangeRequest({

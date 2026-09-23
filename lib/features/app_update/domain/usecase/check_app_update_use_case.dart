@@ -1,10 +1,10 @@
 import 'package:dartz/dartz.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:hamro_futsal/core/helper/exception_helper.dart';
 import 'package:hamro_futsal/features/app_update/data/service/in_app_update_service.dart';
 import 'package:hamro_futsal/features/app_update/domain/entities/app_update_check.dart';
 import 'package:hamro_futsal/features/app_update/domain/entities/install_progress.dart';
 import 'package:hamro_futsal/features/app_update/domain/repository/app_update_repository.dart';
+import 'package:hamro_futsal/core/config/app_environment.dart';
 
 /// The single entry point the presentation layer uses for updates: check,
 /// decide whether to prompt, snooze, and drive the platform update flow.
@@ -54,9 +54,10 @@ final class CheckAppUpdateUseCase {
   Future<bool> openStore(AppUpdateCheck check) => _updateService.openStore(
     storeUrl: check.storeUrl,
     packageName: check.packageName,
-    appStoreId: dotenv.isInitialized
-        ? dotenv.maybeGet('IOS_APP_STORE_ID')
-        : null,
+    appStoreId: switch (AppEnvironment.read('IOS_APP_STORE_ID')) {
+      '' => null,
+      final String id => id,
+    },
   );
 
   Future<PlayFlowOutcome> _startFlexibleThenImmediate(

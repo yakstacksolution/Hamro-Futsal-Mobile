@@ -2,18 +2,19 @@ import 'dart:async';
 
 import 'package:dart_pusher_channels/dart_pusher_channels.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:hamro_futsal/core/config/app_environment.dart';
 
 final class ReverbConnection {
   ReverbConnection._();
 
   static final ReverbConnection instance = ReverbConnection._();
 
-  static String get _appKey => dotenv.env['REVERB_APP_KEY'] ?? '';
-  static String get _host => dotenv.env['REVERB_HOST'] ?? '';
-  static int get _port => int.tryParse(dotenv.env['REVERB_PORT'] ?? '') ?? 443;
+  static String get _appKey => AppEnvironment.read('REVERB_APP_KEY');
+  static String get _host => AppEnvironment.read('REVERB_HOST');
+  static int get _port =>
+      int.tryParse(AppEnvironment.read('REVERB_PORT')) ?? 443;
   static String get _scheme =>
-      (dotenv.env['REVERB_SCHEME'] ?? 'https').toLowerCase() == 'http'
+      AppEnvironment.read('REVERB_SCHEME').toLowerCase() == 'http'
       ? 'ws'
       : 'wss';
 
@@ -41,7 +42,7 @@ final class ReverbConnection {
     if (!isEnabled) {
       debugPrint(
         'ReverbConnection: REVERB_APP_KEY/REVERB_HOST missing — realtime '
-        'disabled. Set them in .env.',
+        'disabled. Set them in ${AppEnvironment.envFileName}.',
       );
       return;
     }

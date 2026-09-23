@@ -129,24 +129,45 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
                 conversationsRefreshTick: state.conversationsRefreshTick + 1,
               ),
       ),
-      (pageResult) => emit(
-        state.copyWith(
-          conversationsStatus: MessageStatus.success,
-          conversations: event.loadMore
-              ? _mergeConversations(state.conversations, pageResult.items)
-              : pageResult.items,
-          conversationsCurrentPage: pageResult.currentPage,
-          conversationsLastPage: pageResult.lastPage,
-          conversationsTotal: pageResult.total,
-          conversationsHasMorePages: pageResult.hasMorePages,
-          conversationsLoadingMore: false,
-          showingArchived: event.archived,
-          clearErrorMessage: true,
-          clearConversationsLoadMoreError: true,
-          conversationsRefreshTick: state.conversationsRefreshTick + 1,
-        ),
-      ),
+      (pageResult) {
+        final items = _scoped(pageResult.items, event.archived);
+        emit(
+          state.copyWith(
+            conversationsStatus: MessageStatus.success,
+            conversations: event.loadMore
+                ? _mergeConversations(state.conversations, items)
+                : items,
+            conversationsCurrentPage: pageResult.currentPage,
+            conversationsLastPage: pageResult.lastPage,
+            conversationsTotal: pageResult.total,
+            conversationsHasMorePages: pageResult.hasMorePages,
+            conversationsLoadingMore: false,
+            showingArchived: event.archived,
+            clearErrorMessage: true,
+            clearConversationsLoadMoreError: true,
+            conversationsRefreshTick: state.conversationsRefreshTick + 1,
+          ),
+        );
+      },
     );
+  }
+
+  /// Keeps only the conversations belonging to the requested scope: the archive
+  /// tab lists archived threads only, the inbox lists everything else. The API
+  /// has been seen to ignore the `archived` query and answer with the full
+  /// list, so the scope is enforced here too.
+  ///
+  /// If the payload carries no archived flag at all, an archived request is
+  /// left untouched — filtering then would wrongly empty the tab.
+  List<ConversationModel> _scoped(
+    Iterable<ConversationModel> items,
+    bool archived,
+  ) {
+    final list = items.toList(growable: false);
+    if (archived && !list.any((item) => item.isArchived)) return list;
+    return list
+        .where((item) => item.isArchived == archived)
+        .toList(growable: false);
   }
 
   /// True when the same list (same archived scope) was fetched moments ago and
@@ -219,9 +240,26 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
         ),
       ),
       (pageResult) {
+        // Only the message resource reports whether this is a superadmin's
+        // group, so the thread's first page is where the conversation learns
+        // it — the group screen hides its name and photo editing on it.
+        final ConversationModel? active = state.activeConversation;
+        final bool superadminGroup = pageResult.items.any(
+          (message) => message.isSuperadminCreatedGroup,
+        );
+        final ConversationModel? nextActive =
+            active != null &&
+                superadminGroup &&
+                !active.isSuperadminCreatedGroup
+            ? active.copyWith(isSuperadminCreatedGroup: true)
+            : active;
         emit(
           state.copyWith(
             chatStatus: MessageStatus.success,
+            activeConversation: nextActive,
+            conversations: identical(nextActive, active)
+                ? state.conversations
+                : _upsertConversation(nextActive!),
             // Preserve socket messages that arrived during the history fetch.
             messages: _mergeMessages(state.messages, pageResult.items),
             messagesCurrentPage: pageResult.currentPage,
@@ -864,6 +902,12 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
     final index = conversations.indexWhere(
       (item) => item.id == conversation.id,
     );
+    // A thread that no longer belongs to the visible scope (archived vs inbox)
+    // drops off the list instead of being inserted into the wrong one.
+    if (conversation.isArchived != state.showingArchived) {
+      if (index < 0) return conversations;
+      return conversations..removeAt(index);
+    }
     if (index < 0) {
       conversations.insert(0, conversation);
     } else if (moveToTop) {

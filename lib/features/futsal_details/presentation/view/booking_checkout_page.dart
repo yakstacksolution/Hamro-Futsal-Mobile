@@ -22,13 +22,22 @@ import 'package:hamro_futsal/features/futsal_details/data/model/create_booking_r
 import 'package:hamro_futsal/features/futsal_details/presentation/bloc/booking_hold/booking_hold_bloc.dart';
 import 'package:hamro_futsal/features/futsal_details/presentation/bloc/create_booking/create_booking_bloc.dart';
 import 'package:hamro_futsal/features/futsal_details/presentation/bloc/payment_qr/payment_qr_bloc.dart';
+import 'package:hamro_futsal/core/routers/booking_navigation.dart';
+import 'package:hamro_futsal/features/futsal_details/data/model/booking_success_action.dart';
 import 'package:hamro_futsal/features/media/utils/media_file_picker.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 class BookingCheckoutPage extends StatefulWidget {
-  const BookingCheckoutPage({super.key, required this.draft});
+  const BookingCheckoutPage({
+    super.key,
+    required this.draft,
+    this.successAction = BookingSuccessAction.openBookingDetails,
+  });
 
   final BookingDraft draft;
+
+  /// Where the flow lands once the booking has been created.
+  final BookingSuccessAction successAction;
 
   @override
   State<BookingCheckoutPage> createState() => _BookingCheckoutPageState();
@@ -387,6 +396,11 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
   Future<void> _showSuccessSheet(_Pricing pricing) async {
     await showModalBottomSheet<void>(
       context: context,
+      // The sheet is the confirmation of a booking that already exists on the
+      // server; dismissing it must not look like a way to undo that, so it
+      // only closes through its own Done button.
+      isDismissible: false,
+      enableDrag: false,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (BuildContext context) => _BookingSuccessSheet(
@@ -395,12 +409,35 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
         balanceDue: pricing.balanceDue,
       ),
     );
-    if (mounted) {
-      final int? bookingId = context.read<CreateBookingBloc>().state.result?.id;
-      Navigator.of(context).pop(
-        widget.draft.withCompletedBooking(total: pricing.total, id: bookingId),
-      );
+    if (!mounted) return;
+
+    final int? bookingId = context.read<CreateBookingBloc>().state.result?.id;
+    final BookingDraft booked = widget.draft.withCompletedBooking(
+      total: pricing.total,
+      id: bookingId,
+    );
+
+    // A wizard that sent the user here is waiting on the draft — hand it back
+    // and let it decide where to go next.
+    if (widget.successAction == BookingSuccessAction.returnDraft ||
+        bookingId == null ||
+        bookingId <= 0) {
+      Navigator.of(context).pop(booked);
+      return;
     }
+
+    // The normal journey: leave the funnel behind and open what was just
+    // booked, with the bookings list underneath it.
+    await openBookingDetails(
+      context,
+      booking: bookingSeed(
+        id: bookingId,
+        courtName: booked.courtName,
+        date: booked.selectedDate,
+        startTime: booked.apiTime,
+        endTime: booked.apiEndTime,
+      ),
+    );
   }
 
   @override

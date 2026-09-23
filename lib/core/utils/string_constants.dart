@@ -61,6 +61,7 @@ final class StringConstants {
   static const String financeAndPayouts = 'Finance & Payouts';
   static const String accountStatement = 'Statement';
   static const String recentActivity = 'Recent activity';
+
   /// Direction of a ledger entry, shown as a chip and announced by a screen
   /// reader — the sign and the colour must not be the only cue.
   static const String credit = 'Credit';
@@ -1533,6 +1534,8 @@ final class StringConstants {
       'Press back again to leave this request.';
 
   // Booking checkout
+  static const String checkout = 'Checkout';
+
   /// Label for the checkout's payment-reference field. The field is still
   /// `payment_description` on the wire — only what the user reads changed,
   /// because a transaction ID is all it was ever asking for.

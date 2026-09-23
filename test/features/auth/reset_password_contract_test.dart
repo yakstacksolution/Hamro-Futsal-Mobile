@@ -6,14 +6,14 @@ void main() {
     test('matches the POST /auth/reset-password body', () {
       const ResetPasswordEntity entity = ResetPasswordEntity(
         email: 'john@example.com',
-        otp: '1234',
+        otp: '123456',
         password: 'newpassword123',
         passwordConfirmation: 'newpassword123',
       );
 
       expect(entity.toMap(), <String, dynamic>{
         'email': 'john@example.com',
-        'otp': '1234',
+        'otp': '123456',
         'password': 'newpassword123',
         'password_confirmation': 'newpassword123',
       });

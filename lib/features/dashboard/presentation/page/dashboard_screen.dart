@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hamro_futsal/core/helper/share_preferences.dart';
 import 'package:hamro_futsal/core/socket/reverb_connection.dart';
 import 'package:hamro_futsal/features/bookings/presentation/pages/bookings_page.dart';
 import 'package:hamro_futsal/features/dashboard/presentation/page/futsal_home_page.dart';
@@ -41,34 +42,57 @@ class _DashboardScreenState extends State<DashboardScreen> {
       DashboardScreen.selectedNavIndex;
   final ValueNotifier<VenueFilter> _venueFilterNotifier =
       ValueNotifier<VenueFilter>(VenueFilter.empty);
+  late final CategoryFilterBloc _categoryFilterBloc;
   bool _hasHandledVendorOnboarding = false;
   bool _hasUnreadNotifications = false;
   int _notificationRefreshGeneration = 0;
+  late final Set<int> _visitedTabIndexes;
 
   @override
   void initState() {
     super.initState();
-    ReverbConnection.instance.connect();
+    _visitedTabIndexes = <int>{_selectedNavIndexNotifier.value};
+    _categoryFilterBloc = CategoryFilterBloc(
+      GetCategoryFilterUseCase(PublicRepositoryImpl()),
+    );
+    if (_selectedNavIndexNotifier.value == 0) {
+      _categoryFilterBloc.add(const FetchCategoryFilterEvent());
+    }
+    // The router keeps signed-out users off this screen, but a session can also
+    // end while it is alive; neither the socket nor the badge has anything to
+    // fetch without one.
+    if (AppSettings().hasSession) {
+      ReverbConnection.instance.connect();
+      _refreshNotificationBadge();
+    }
     DeviceLocationHelper.instance.ensurePosition();
-    _refreshNotificationBadge();
     _selectedNavIndexNotifier.addListener(_onNavIndexChanged);
   }
 
-  /// Leaving the home tab drops the search term.
-  ///
-  /// The search field lives in the home header, which is torn down while
-  /// another tab is showing, so its text is gone when the user comes back.
-  /// Clearing the term with it keeps the two in step: an empty field means the
-  /// full venue list, which is re-fetched right away (the home tab stays alive
-  /// inside the IndexedStack, so it sees the new filter immediately).
   void _onNavIndexChanged() {
-    if (_selectedNavIndexNotifier.value == 0) return;
+    final int selectedIndex = _selectedNavIndexNotifier.value;
+    _visitedTabIndexes.add(selectedIndex);
+
+    if (selectedIndex == 0) {
+      _fetchCategoryFiltersIfNeeded();
+      return;
+    }
+
     final VenueFilter filter = _venueFilterNotifier.value;
     if (filter.search == null) return;
     _venueFilterNotifier.value = filter.copyWith(clearSearch: true);
   }
 
+  void _fetchCategoryFiltersIfNeeded() {
+    if (_categoryFilterBloc.state.status == CategoryFilterStatus.loading ||
+        _categoryFilterBloc.state.status == CategoryFilterStatus.success) {
+      return;
+    }
+    _categoryFilterBloc.add(const FetchCategoryFilterEvent());
+  }
+
   Future<void> _refreshNotificationBadge() async {
+    if (!AppSettings().hasSession) return;
     final int generation = ++_notificationRefreshGeneration;
     final result = await NotificationRepositoryImpl().getNotifications(
       filter: NotificationFilter.all,
@@ -88,7 +112,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     await _refreshNotificationBadge();
   }
 
-  // A getter, not a field: a `static` initialiser runs once per app launch, so
   // a cached shadow keeps the brightness it was first built under and never
   // follows a theme toggle.
   static List<BoxShadow> get _cardShadow => <BoxShadow>[
@@ -224,6 +247,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void dispose() {
     // The nav-index notifier is static and shared, so only the listener goes.
     _selectedNavIndexNotifier.removeListener(_onNavIndexChanged);
+    _categoryFilterBloc.close();
     _venueFilterNotifier.dispose();
     super.dispose();
   }
@@ -232,10 +256,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     // Provided here, above both the header's category strip and the home
     // tab's venue list, so the list's "Retry" can refetch the strip too.
-    return BlocProvider<CategoryFilterBloc>(
-      create: (_) =>
-          CategoryFilterBloc(GetCategoryFilterUseCase(PublicRepositoryImpl()))
-            ..add(const FetchCategoryFilterEvent()),
+    return BlocProvider<CategoryFilterBloc>.value(
+      value: _categoryFilterBloc,
       child: _buildScaffold(context),
     );
   }
@@ -276,8 +298,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
           }
         },
         child: SafeArea(
-          // With no bottom bar on wide layouts, the bottom inset must be
-          // respected instead of being covered by the bar.
           bottom: context.isTabletOrWider,
           child: AnimatedBuilder(
             animation: Listenable.merge(<Listenable>[
@@ -287,9 +307,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
             builder: (BuildContext context, Widget? child) {
               final int selectedNavIndex = _selectedNavIndexNotifier.value;
 
-              // Tablet/desktop: side navigation beside a content pane that
-              // fills the available height naturally. No fixed-height slab and
-              // no bottom bar.
               if (context.isTabletOrWider) {
                 return Row(
                   children: <Widget>[
@@ -301,9 +318,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     Expanded(
                       child: DecoratedBox(
                         decoration: _shellGradient,
-                        // Stop stretching on very wide monitors, which would
-                        // otherwise give many thin card columns. Applied here
-                        // so the header and the feed stay aligned.
+
                         child: Center(
                           child: ConstrainedBox(
                             constraints: const BoxConstraints(
@@ -322,14 +337,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
               return Stack(
                 fit: StackFit.expand,
                 children: <Widget>[
-                  // The shell fills the viewport exactly. It used to be a
-                  // SingleChildScrollView around a box a whole `sizeX24`
-                  // taller than the screen, which did two bad things: it put
-                  // the bottom of every tab below the fold (under the
-                  // navigation bar), and it wrapped every tab's vertical list
-                  // in a second vertical scrollable — two of them competing
-                  // for the same drag, which is how a pull-to-refresh ends up
-                  // stranded.
                   DecoratedBox(
                     decoration: _shellGradient,
                     child: Padding(
@@ -365,7 +372,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     ),
   );
 
-  /// Header (home tab only) plus the tab stack. Shared by every breakpoint.
   Widget _buildContent(int selectedNavIndex) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -396,27 +402,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
               _stackChild(
                 index: 0,
                 selectedIndex: selectedNavIndex,
-                child: FutsalHomePage(filter: _venueFilterNotifier.value),
+                childBuilder: () =>
+                    FutsalHomePage(filter: _venueFilterNotifier.value),
               ),
               _stackChild(
                 index: 1,
                 selectedIndex: selectedNavIndex,
-                child: const BookingsPage(),
+                childBuilder: () => const BookingsPage(),
               ),
               _stackChild(
                 index: 2,
                 selectedIndex: selectedNavIndex,
-                child: MessagesPage(),
+                childBuilder: () => MessagesPage(),
               ),
               _stackChild(
                 index: 3,
                 selectedIndex: selectedNavIndex,
-                child: const WishlistPage(),
+                childBuilder: () => const WishlistPage(),
               ),
               _stackChild(
                 index: 4,
                 selectedIndex: selectedNavIndex,
-                child: ProfilePage(),
+                childBuilder: () => ProfilePage(),
               ),
             ],
           ),
@@ -428,14 +435,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _stackChild({
     required int index,
     required int selectedIndex,
-    required Widget child,
+    required Widget Function() childBuilder,
   }) {
     final bool active = index == selectedIndex;
-    // No ExcludeSemantics here: RenderIndexedStack already visits only the
-    // displayed child for semantics. Toggling an exclusion boundary on top of
-    // that made the branch leave and rejoin the semantics tree on every tab
-    // switch, which is what tripped the framework's parent-data assertion.
-    return TickerMode(enabled: active, child: child);
+    final bool visited = _visitedTabIndexes.contains(index);
+
+    return TickerMode(
+      enabled: active,
+      child: visited ? childBuilder() : const SizedBox.shrink(),
+    );
   }
 
   Widget _homeHeader() {
@@ -471,13 +479,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 }
 
-/// The home tab's greeting line: "Good evening, Dilli 👋" with the
-/// notification button beside it.
-///
-/// The greeting is [Expanded] and ellipsised. Read as a bare `Text` it is
-/// wider than a 320pt screen once the button and the page insets are taken
-/// out — a long first name, a longer greeting at a large text scale, or both,
-/// overflowed the row.
 class HomeGreeting extends StatelessWidget {
   const HomeGreeting({super.key, required this.text, required this.trailing});
 

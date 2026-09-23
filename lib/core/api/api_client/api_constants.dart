@@ -1,20 +1,23 @@
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:hamro_futsal/core/config/app_environment.dart';
 
 const int kVenueListPerPage = 15;
 
 const int kVenueLinkLookupPerPage = 20;
 
+/// Every value here comes from the env file the flavour in `main.dart` selects
+/// (`env_staging.env` / `env_production.env`), loaded by
+/// [AppEnvironment.load] before `runApp`. Nothing is hard-coded, so no build
+/// can silently talk to the wrong backend.
+///
+/// These are getters rather than `static final` fields on purpose: a field
+/// touched before the env file loads would pin an empty value for the rest of
+/// the process.
 class APIEndpoint {
-  static String _read(String key) =>
-      dotenv.isInitialized ? (dotenv.maybeGet(key) ?? '') : '';
+  static String get baseUrl => AppEnvironment.read('API_URL');
 
-  static final String _appUrl = _read('API_URL');
-  static final String _chatUrl = _read('CHAT_URL');
-  static final String _chatXORKey = _read('CHAT_X_ORIGIN');
+  /// Value for the [secureApiTokenHeader] header. Read it from here everywhere
+  /// it is needed — it differs per flavour.
+  static String get secureApiToken => AppEnvironment.read('SECURE_API_TOKEN');
 
-  static String get baseUrl => _appUrl;
-
-  static String get chatUrl => _chatUrl;
-
-  static String get chatXORKey => _chatXORKey;
+  static const String secureApiTokenHeader = 'X-API-TOKEN';
 }
