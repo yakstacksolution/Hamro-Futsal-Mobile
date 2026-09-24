@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -55,6 +57,9 @@ class _CourtsListScreenState extends State<CourtsListScreen>
   late Animation<double> _fadeIn;
   late final PublicVenueBloc _publicVenueBloc;
   final ScrollController _scrollController = ScrollController();
+  List<PublicListingVenueModel>? _lastFilterSource;
+  VenueFilter? _lastFilter;
+  List<PublicListingVenueModel>? _lastFilteredVenues;
 
   @override
   void initState() {
@@ -183,18 +188,26 @@ class _CourtsListScreenState extends State<CourtsListScreen>
   /// The strip is its own request, and it fails with the list when there is no
   /// connection — so anything that retries the list has to retry the strip
   /// too, or the filters stay missing on a screen that otherwise recovered.
-  void _reloadHomeData() {
-    _publicVenueBloc.add(FetchPublicVenuesEvent(filter: widget.filter));
+  void _reloadHomeData({Completer<void>? completer}) {
+    _publicVenueBloc.add(
+      FetchPublicVenuesEvent(filter: widget.filter, completer: completer),
+    );
     if (!mounted) return;
     context.read<CategoryFilterBloc>().add(const FetchCategoryFilterEvent());
   }
 
+  /// Upper bound on how long the pull-to-refresh spinner can stay up, so a
+  /// request stuck in the network layer never pins it on screen.
+  static const Duration _refreshTimeout = Duration(seconds: 20);
+
   Future<void> _refresh() async {
     context.read<ProfileBloc>().add(const FetchProfileEvent());
-    _reloadHomeData();
-    await _publicVenueBloc.stream.firstWhere(
-      (PublicVenueState state) => state.status != PublicVenueStatus.loading,
-    );
+    // Awaits the fetch itself, not a state change: when the refreshed list
+    // matches what is already shown, Bloc drops the identical state and a
+    // stream wait would keep the indicator spinning indefinitely.
+    final Completer<void> done = Completer<void>();
+    _reloadHomeData(completer: done);
+    await done.future.timeout(_refreshTimeout, onTimeout: () {});
   }
 
   @override
@@ -303,7 +316,7 @@ class _CourtsListScreenState extends State<CourtsListScreen>
       ];
     }
 
-    final List<PublicListingVenueModel> filtered = widget.filter.apply(venues);
+    final List<PublicListingVenueModel> filtered = _filteredVenues(venues);
 
     // A page that does not fill the screen leaves nothing to scroll, so top up
     // once the layout is known. `canLoadMore` makes this a no-op afterwards.
@@ -391,6 +404,22 @@ class _CourtsListScreenState extends State<CourtsListScreen>
         ),
       ),
     ];
+  }
+
+  List<PublicListingVenueModel> _filteredVenues(
+    List<PublicListingVenueModel> venues,
+  ) {
+    if (identical(_lastFilterSource, venues) &&
+        _lastFilter == widget.filter &&
+        _lastFilteredVenues != null) {
+      return _lastFilteredVenues!;
+    }
+
+    final List<PublicListingVenueModel> filtered = widget.filter.apply(venues);
+    _lastFilterSource = venues;
+    _lastFilter = widget.filter;
+    _lastFilteredVenues = filtered;
+    return filtered;
   }
 }
 

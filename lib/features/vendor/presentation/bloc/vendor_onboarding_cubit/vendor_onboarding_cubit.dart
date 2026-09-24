@@ -1496,13 +1496,19 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     final CourtDraft? court = state.activeCourt;
     final String normalized = closedDate.date.trim();
     if (court == null || normalized.isEmpty) return;
+    final ClosedDateDraft normalizedDate = closedDate.copyWith(
+      date: normalized,
+    );
     updateActiveCourt(
       court.copyWith(
         closedDates: <ClosedDateDraft>[
           ...court.closedDates.where((ClosedDateDraft item) {
-            return item.date != normalized;
+            if (item.date != normalized) return true;
+            if (normalizedDate.isFullDay || item.isFullDay) return false;
+            return item.startTime != normalizedDate.startTime ||
+                item.endTime != normalizedDate.endTime;
           }),
-          closedDate.copyWith(date: normalized),
+          normalizedDate,
         ],
         holidayDates: court.holidayDates.where((String item) {
           return item != normalized;
@@ -1511,13 +1517,16 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     );
   }
 
-  void removeCourtClosedDate(String isoDate) {
+  void removeCourtClosedDate(ClosedDateDraft closedDate) {
     final CourtDraft? court = state.activeCourt;
     if (court == null) return;
     updateActiveCourt(
       court.copyWith(
         closedDates: court.closedDates.where((ClosedDateDraft item) {
-          return item.date != isoDate;
+          if (item.date != closedDate.date) return true;
+          if (item.isFullDay || closedDate.isFullDay) return false;
+          return item.startTime != closedDate.startTime ||
+              item.endTime != closedDate.endTime;
         }).toList(),
       ),
     );

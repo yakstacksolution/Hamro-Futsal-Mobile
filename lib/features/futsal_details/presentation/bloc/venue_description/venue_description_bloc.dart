@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:bloc/bloc.dart';
 import 'package:dartz/dartz.dart';
 import 'package:equatable/equatable.dart';
+import 'package:hamro_futsal/core/cache/hive/hive_boxes.dart';
+import 'package:hamro_futsal/core/cache/hive/hive_cache_service.dart';
 import 'package:hamro_futsal/core/helper/exception_helper.dart';
 import 'package:hamro_futsal/features/futsal_details/data/model/venue_description_model.dart';
 import 'package:hamro_futsal/features/futsal_details/domain/usecase/get_venue_description_use_case.dart';
@@ -23,8 +25,22 @@ class VenueDescriptionBloc
     FetchVenueDescriptionEvent event,
     Emitter<VenueDescriptionState> emit,
   ) async {
+    final String cacheKey =
+        '${HiveCacheService.instance.userScope}:${event.venueSlug}';
+    final VenueDescriptionModel? cached = await HiveCacheService.instance
+        .readItem<VenueDescriptionModel>(
+          boxName: HiveBoxes.venueDetails,
+          key: cacheKey,
+          fromJson: VenueDescriptionModel.fromJson,
+        );
     emit(
-      state.copyWith(status: VenueDescriptionStatus.loading, clearError: true),
+      state.copyWith(
+        status: cached == null
+            ? VenueDescriptionStatus.loading
+            : VenueDescriptionStatus.success,
+        venueDescription: cached ?? state.venueDescription,
+        clearError: true,
+      ),
     );
 
     final Either<AppException, VenueDescriptionModel> response =
@@ -32,18 +48,32 @@ class VenueDescriptionBloc
 
     response.fold(
       (AppException failure) => emit(
-        state.copyWith(
-          status: VenueDescriptionStatus.failure,
-          errorMessage: failure.errorMessage,
-        ),
+        cached != null
+            ? state.copyWith(
+                status: VenueDescriptionStatus.success,
+                errorMessage: failure.errorMessage,
+              )
+            : state.copyWith(
+                status: VenueDescriptionStatus.failure,
+                errorMessage: failure.errorMessage,
+              ),
       ),
-      (VenueDescriptionModel venueDescription) => emit(
-        state.copyWith(
-          status: VenueDescriptionStatus.success,
-          venueDescription: venueDescription,
-          clearError: true,
-        ),
-      ),
+      (VenueDescriptionModel venueDescription) {
+        unawaited(
+          HiveCacheService.instance.syncItem(
+            boxName: HiveBoxes.venueDetails,
+            key: cacheKey,
+            json: venueDescription.toJson(),
+          ),
+        );
+        emit(
+          state.copyWith(
+            status: VenueDescriptionStatus.success,
+            venueDescription: venueDescription,
+            clearError: true,
+          ),
+        );
+      },
     );
   }
 }

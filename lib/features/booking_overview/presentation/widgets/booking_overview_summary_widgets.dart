@@ -18,11 +18,11 @@ class BookingHeroCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
-    final delta = analytics.revenue - analytics.prevRevenue;
-    final pct = analytics.prevRevenue == 0
-        ? null
-        : (delta / analytics.prevRevenue) * 100;
-    final up = delta >= 0;
+    // Server-computed change vs the previous period (100% when the previous
+    // period had no revenue). Hidden only when both periods are empty.
+    final double pct = analytics.revenueChangePct;
+    final bool showPill = analytics.revenue != 0 || analytics.prevRevenue != 0;
+    final bool up = pct >= 0;
     return BookingSurface(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -52,7 +52,7 @@ class BookingHeroCard extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              if (pct != null) BookingTrendPill(value: pct, up: up),
+              if (showPill) BookingTrendPill(value: pct, up: up),
             ],
           ),
           const SizedBox(height: AppDimens.paddingX12),
@@ -154,44 +154,56 @@ class BookingKpiGrid extends StatelessWidget {
     final items = <_Kpi>[
       _Kpi(
         icon: Icons.calendar_month_rounded,
-        label: StringConstants.totalBookings,
+        label: analytics.cardLabel(
+          'total_bookings',
+          StringConstants.totalBookings,
+        ),
         value: '${analytics.totalBookings}',
-        sub: '${analytics.confirmed + analytics.completed} paid',
+        sub: analytics.cardSubtext(
+          'total_bookings',
+          '${analytics.paidBookings} paid',
+        ),
         accent: LightColor.secondaryColor,
       ),
       _Kpi(
         icon: Icons.cancel_outlined,
-        label: StringConstants.cancelled,
-        value: '${analytics.cancelled}',
-        sub: '${(analytics.cancelRate * 100).toStringAsFixed(1)}% of bookings',
+        label: analytics.cardLabel('cancelled', StringConstants.cancelled),
+        value: '${analytics.cancelledBookings}',
+        sub: analytics.cardSubtext(
+          'cancelled',
+          '${(analytics.cancelRate * 100).toStringAsFixed(1)}% of bookings',
+        ),
         accent: LightColor.redColor,
       ),
       _Kpi(
         icon: Icons.payments_outlined,
-        label: StringConstants.revenue,
+        label: analytics.cardLabel('revenue', StringConstants.revenue),
         value: BookingFmt.npr(analytics.revenue),
-        sub: 'Avg ${BookingFmt.npr(analytics.avgBookingValue)} / booking',
+        sub: analytics.cardSubtext(
+          'revenue',
+          'Avg ${BookingFmt.npr(analytics.avgPaidBookingValue.round())} / booking',
+        ),
         accent: LightColor.secondaryColor,
       ),
       _Kpi(
         icon: Icons.receipt_long_outlined,
-        label: StringConstants.expenses,
+        label: analytics.cardLabel('expenses', StringConstants.expenses),
         value: BookingFmt.npr(analytics.expenses),
-        sub: 'Overheads + processing',
+        sub: analytics.cardSubtext('expenses', 'Overheads + processing'),
         accent: LightColor.warningColor,
       ),
       _Kpi(
         icon: Icons.timer_outlined,
-        label: StringConstants.hoursPlayed,
-        value: '${analytics.hoursPlayed}h',
-        sub: 'Across all paid slots',
+        label: analytics.cardLabel('hours_played', StringConstants.hoursPlayed),
+        value: '${BookingFmt.hours(analytics.hoursPlayed)}h',
+        sub: analytics.cardSubtext('hours_played', 'Across all paid slots'),
         accent: LightColor.secondaryColor,
       ),
       _Kpi(
         icon: Icons.stadium_outlined,
-        label: StringConstants.occupancy,
+        label: analytics.cardLabel('occupancy', StringConstants.occupancy),
         value: '${(analytics.occupancy * 100).round()}%',
-        sub: 'Of available court hours',
+        sub: analytics.cardSubtext('occupancy', 'Of available court hours'),
         accent: LightColor.secondaryColor,
       ),
     ];
@@ -303,9 +315,7 @@ class BookingProfitCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
     final profitable = analytics.profit >= 0;
-    final margin = analytics.revenue == 0
-        ? 0.0
-        : analytics.profit / analytics.revenue;
+    final double margin = analytics.profitMargin;
     final color = profitable ? LightColor.secondaryColor : LightColor.redColor;
 
     return BookingSurface(
@@ -363,7 +373,7 @@ class BookingProfitCard extends StatelessWidget {
               ),
               const SizedBox(height: 2),
               Text(
-                '${(margin * 100).toStringAsFixed(1)}%',
+                '${BookingFmt.percent(margin)}%',
                 style: textTheme.bodyTextMedium?.copyWith(
                   fontWeight: FontWeight.w800,
                   color: color,

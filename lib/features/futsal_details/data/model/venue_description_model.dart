@@ -40,6 +40,12 @@ final class VenueDescriptionModel extends Equatable {
     );
   }
 
+  Map<String, dynamic> toJson() => <String, dynamic>{
+    'description': description,
+    'rules': rules,
+    'policy': policy,
+  };
+
   bool get hasData =>
       description.isNotEmpty || rules.isNotEmpty || policy.isNotEmpty;
 

@@ -650,7 +650,10 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
                         bottom: 0,
                         left: 0,
                         right: 0,
-                        child: _buildBottomBar(),
+                        // The slide-in repaints every frame for 600ms, while
+                        // the route transition is still running; keep that
+                        // off the rest of the page.
+                        child: RepaintBoundary(child: _buildBottomBar()),
                       ),
                     ],
                   ),
@@ -697,76 +700,88 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
     return CustomScrollView(
       physics: const BouncingScrollPhysics(),
       slivers: [
+        // Each sliver gets its own layer. SliverToBoxAdapter adds no repaint
+        // boundary, so without these every scroll frame re-recorded the whole
+        // page — gallery blurs, map and all — instead of just moving layers.
         SliverToBoxAdapter(
-          child: DetailsImageGallery(
-            images: _court.images,
-            venueId: widget.publicVenue?.id,
-            shareText: _shareMessage,
-            shareLink: _shareLink,
-            shareSubject: _court.name,
+          child: RepaintBoundary(
+            child: DetailsImageGallery(
+              images: _court.images,
+              venueId: widget.publicVenue?.id,
+              shareText: _shareMessage,
+              shareLink: _shareLink,
+              shareSubject: _court.name,
+            ),
           ),
         ),
         SliverToBoxAdapter(
-          child: Container(
-            decoration: BoxDecoration(
-              color: LightColor.background,
-              borderRadius: BorderRadius.vertical(
-                top: Radius.circular(AppDimens.radiusX28),
+          child: RepaintBoundary(
+            child: Container(
+              decoration: BoxDecoration(
+                color: LightColor.background,
+                borderRadius: BorderRadius.vertical(
+                  top: Radius.circular(AppDimens.radiusX28),
+                ),
               ),
-            ),
-            transform: Matrix4.translationValues(
-              0,
-              desktop ? 0 : -AppDimens.sizeX24,
-              0,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                if (!desktop)
-                  Center(
-                    child: Container(
-                      margin: const EdgeInsets.only(
-                        top: AppDimens.marginX12,
-                        bottom: AppDimens.marginX4,
-                      ),
-                      width: AppDimens.sizeX40,
-                      height: AppDimens.sizeX4,
-                      decoration: BoxDecoration(
-                        color: LightColor.dividerColor,
-                        borderRadius: BorderRadius.circular(
-                          AppDimens.radiusX50,
+              transform: Matrix4.translationValues(
+                0,
+                desktop ? 0 : -AppDimens.sizeX24,
+                0,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  if (!desktop)
+                    Center(
+                      child: Container(
+                        margin: const EdgeInsets.only(
+                          top: AppDimens.marginX12,
+                          bottom: AppDimens.marginX4,
+                        ),
+                        width: AppDimens.sizeX40,
+                        height: AppDimens.sizeX4,
+                        decoration: BoxDecoration(
+                          color: LightColor.dividerColor,
+                          borderRadius: BorderRadius.circular(
+                            AppDimens.radiusX50,
+                          ),
                         ),
                       ),
                     ),
+
+                  CourtIntroWidget(court: _court),
+                  // Sections load independently and some animate while they do
+                  // (the hosted-by shimmer ticks every frame). Isolating each one
+                  // keeps a section's repaint from re-recording the whole column.
+                  if (!desktop) RepaintBoundary(child: _buildHostedBySection()),
+
+                  RepaintBoundary(child: _buildDescriptionSection()),
+
+                  RepaintBoundary(child: _buildAmenitiesSection()),
+
+                  RepaintBoundary(
+                    child: CourtLocationMapSection(
+                      latitude: widget.publicVenue?.latitude,
+                      longitude: widget.publicVenue?.longitude,
+                      venueName: _court.name,
+                      address: _court.address.trim().isEmpty
+                          ? _court.location
+                          : _court.address,
+                    ),
                   ),
 
-                CourtIntroWidget(court: _court),
-                if (!desktop) _buildHostedBySection(),
+                  RepaintBoundary(child: _buildPolicySection()),
+                  RepaintBoundary(child: _buildRulesSection()),
+                  RepaintBoundary(child: _buildReviewsSection()),
 
-                _buildDescriptionSection(),
-
-                _buildAmenitiesSection(),
-
-                CourtLocationMapSection(
-                  latitude: widget.publicVenue?.latitude,
-                  longitude: widget.publicVenue?.longitude,
-                  venueName: _court.name,
-                  address: _court.address.trim().isEmpty
-                      ? _court.location
-                      : _court.address,
-                ),
-
-                _buildPolicySection(),
-                _buildRulesSection(),
-                _buildReviewsSection(),
-
-                SizedBox(
-                  height: desktop
-                      ? AppDimens.sizeX32
-                      : MediaQuery.of(context).padding.bottom +
-                            AppDimens.sizeX100,
-                ),
-              ],
+                  SizedBox(
+                    height: desktop
+                        ? AppDimens.sizeX32
+                        : MediaQuery.paddingOf(context).bottom +
+                              AppDimens.sizeX100,
+                  ),
+                ],
+              ),
             ),
           ),
         ),

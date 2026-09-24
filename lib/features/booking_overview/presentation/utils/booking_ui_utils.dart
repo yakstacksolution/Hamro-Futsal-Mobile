@@ -12,9 +12,33 @@ extension BookingStatusUi on BookingStatus {
   };
 }
 
+/// Parses `#RRGGBB` / `#AARRGGBB`; null when missing or malformed.
+Color? bookingHexColor(String hex) {
+  var h = hex.trim().replaceFirst('#', '');
+  if (h.length == 6) h = 'FF$h';
+  if (h.length != 8) return null;
+  final v = int.tryParse(h, radix: 16);
+  return v == null ? null : Color(v);
+}
+
+extension StatusMixEntryUi on StatusMixEntry {
+  /// Server color when provided, theme color otherwise.
+  Color get color => bookingHexColor(colorHex) ?? status.color;
+
+  String get displayLabel => label.isEmpty ? status.label : label;
+}
+
 class BookingFmt {
   static String npr(int v) =>
       '${v < 0 ? '-' : ''}NPR ${group(v.abs().toString())}';
+
+  /// `2` → `2`, `1.5` → `1.5`, `1.25` → `1.3`.
+  static String hours(double v) =>
+      v == v.roundToDouble() ? v.toInt().toString() : v.toStringAsFixed(1);
+
+  /// `100` → `100`, `22.2` → `22.2`.
+  static String percent(double v) =>
+      v == v.roundToDouble() ? v.toInt().toString() : v.toStringAsFixed(1);
 
   /// Groups a digit-only string with thousands separators: 1234567 → 1,234,567.
   static String group(String digits) {

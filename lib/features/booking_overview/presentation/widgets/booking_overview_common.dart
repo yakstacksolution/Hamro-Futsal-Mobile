@@ -92,11 +92,15 @@ class BookingContextLine extends StatelessWidget {
     required this.range,
     required this.count,
     required this.revenue,
+    this.summaryLine = '',
   });
 
   final BookingRange range;
   final int count;
   final int revenue;
+
+  /// Server-built line; used verbatim when present.
+  final String summaryLine;
 
   @override
   Widget build(BuildContext context) {
@@ -109,7 +113,9 @@ class BookingContextLine extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(top: AppDimens.paddingX4),
       child: Text(
-        '$label · $count bookings · ${BookingFmt.npr(revenue)}',
+        summaryLine.isNotEmpty
+            ? summaryLine
+            : '$label · $count bookings · ${BookingFmt.npr(revenue)}',
         style: textTheme.bodyTextSmall?.copyWith(
           color: LightColor.secondaryTextColor,
         ),

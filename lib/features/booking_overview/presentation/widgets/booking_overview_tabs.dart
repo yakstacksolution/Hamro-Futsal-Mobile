@@ -46,9 +46,9 @@ class BookingAnalyticsTab extends StatelessWidget {
       padding: _tabPadding(context),
       children: _pairSections(
         context,
-        firstLabel: 'Revenue trend',
+        firstLabel: analytics.trendTitle,
         first: BookingTrendCard(analytics: analytics),
-        secondLabel: 'Booking statuses',
+        secondLabel: analytics.statusTitle,
         second: BookingStatusCard(analytics: analytics),
       ),
     );

@@ -14,12 +14,20 @@ class TokenModel extends Equatable {
   });
 
   factory TokenModel.fromJson(Map<String, dynamic> json) {
+    final dynamic expires = json['expires_in'] ?? json['expired_in'];
     return TokenModel(
-      tokenType: json['token_type'] as String?,
-      expiredIn: json['expired_in'] as int?,
-      accessToken: json['access_token'] as String?,
-      refreshToken: json['refresh_token'] as String?,
+      tokenType: _string(json['token_type'] ?? json['type']),
+      expiredIn: expires is int ? expires : int.tryParse('$expires'),
+      accessToken: _string(json['access_token'] ?? json['token']),
+      refreshToken: _string(json['refresh_token']),
     );
+  }
+
+  bool get hasAccessToken => accessToken?.trim().isNotEmpty == true;
+
+  static String? _string(dynamic value) {
+    final String text = value?.toString().trim() ?? '';
+    return text.isEmpty ? null : text;
   }
 
   Map<String, dynamic> toJson() {

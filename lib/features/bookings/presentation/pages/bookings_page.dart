@@ -369,13 +369,9 @@ class _BookingsViewState extends State<_BookingsView>
     }
   }
 
-  /// The All page shows everything, so selecting it releases the search box
-  /// and the date window too.
   void _clearNarrowingFilters() {
     setState(() => _activeSearchController.clear());
     if (_activeDateFilter.isActive) {
-      // Goes through the same path as any other change, so the server is told
-      // as well rather than the rows being re-sifted on the device.
       _setActiveDateFilter(const BookingDateFilter.all());
     }
   }
@@ -387,11 +383,9 @@ class _BookingsViewState extends State<_BookingsView>
     });
   }
 
-  /// Keeps the selected chip on screen as the pager moves.
   void _revealChip(int index) {
     if (!_chipCtrl.hasClients) return;
-    // Approximate chip pitch — enough to bring the active one into view, and
-    // clamped to the strip's own extent either way.
+
     const double chipExtent = 104;
     final double target = (chipExtent * index - chipExtent).clamp(
       0.0,
@@ -404,8 +398,6 @@ class _BookingsViewState extends State<_BookingsView>
     );
   }
 
-  /// Opens the one sheet that holds all three ways of narrowing by date, plus
-  /// the order the rows are listed in. Both tabs use it.
   Future<void> _openDateFilter() async {
     final BookingDateFilterResult? result = await showBookingDateFilterSheet(
       context,
@@ -416,12 +408,9 @@ class _BookingsViewState extends State<_BookingsView>
     _setActiveDateFilter(result.filter, order: result.order);
   }
 
-  /// The strip's arrows: a day at a time in day mode, a month at a time in
-  /// month mode. [BookingDateFilter.stepped] knows which.
   void _stepActiveDate(int steps) =>
       _setActiveDateFilter(_activeDateFilter.stepped(steps));
 
-  /// Resets the visible list's date filter back to "all dates".
   void _clearActiveDateFilter() =>
       _setActiveDateFilter(const BookingDateFilter.all());
 
@@ -431,8 +420,6 @@ class _BookingsViewState extends State<_BookingsView>
     setState(() {});
   }
 
-  /// Opens the manual (walk-in) booking flow. It pops `true` once a booking is
-  /// created, so the futsal list is refreshed to show it straight away.
   Future<void> _openManualBooking() async {
     final bool? created = await context.pushNamed<bool>(
       AppRouterParams.manualBooking.name,
@@ -445,22 +432,14 @@ class _BookingsViewState extends State<_BookingsView>
 
   @override
   Widget build(BuildContext context) {
-    // The dashboard hosts this page, so the FAB lives in a Stack rather than a
-    // nested Scaffold — walk-in bookings are a vendor-only action on the futsal
-    // tab, so it is hidden everywhere else.
     if (!widget.isCandidate && _activeTab == _BookingTab.futsal) {
       return Stack(
         children: <Widget>[
           _buildBody(context),
           Positioned(
             right: AppDimens.paddingX16,
-            // The dashboard paints its bottom navigation bar as a sibling laid
-            // over this content, so the button must clear the bar — measured,
-            // because the bar grows with the text scale and the system inset.
-            // On tablets and wider the shell uses side navigation and has
-            // already applied the bottom inset, so only a margin is needed.
+
             bottom: manualBookingFabBottomInset(context),
-            // Same compact pill as the expenses screen's "New Expense" action.
             child: SizedBox(
               height: kManualBookingFabHeight,
               child: FloatingActionButton.extended(
@@ -529,9 +508,6 @@ class _BookingsViewState extends State<_BookingsView>
       );
     }
 
-    // Match Help & FAQ: the TabController drives both the indicator and the
-    // horizontally swipeable booking pages, keeping taps and drag gestures in
-    // sync throughout the transition.
     return TabBar(
       controller: _tabController,
       labelColor: LightColor.secondaryColor,
@@ -557,9 +533,6 @@ class _BookingsViewState extends State<_BookingsView>
     final TextEditingController searchController = _activeSearchController;
     final bool hasQuery = searchController.text.trim().isNotEmpty;
     final String hint = _showsMyBookings
-        // Names what the search actually reaches, which is more than the old
-        // hint claimed: `bookingMatchesSearch` also matches the player's name
-        // and phone on the vendor's list.
         ? 'Search venue, court or booking ID'
         : 'Search court, player or booking ID';
 
@@ -632,10 +605,7 @@ class _BookingsViewState extends State<_BookingsView>
                 ),
               ),
               const SizedBox(width: AppDimens.paddingX8),
-              // One button, all three date modes, both tabs. The old pair —
-              // an inline day-stepper on the futsal list and a range-only
-              // button on My Bookings — could each express one shape of window
-              // and nothing else.
+
               BookingDateFilterButton(
                 filter: _activeDateFilter,
                 onTap: _openDateFilter,
@@ -665,24 +635,11 @@ class _BookingsViewState extends State<_BookingsView>
     );
   }
 
-  /// One page per status, swipeable left/right. Every page is built from the
-  /// same state, so a status already fetched is there the moment it is swiped
-  /// to — with the rows and the scroll offset it had — and one not fetched yet
-  /// shows its own skeleton while [_onStatusPageChanged] triggers its call.
   Widget _statusPager(BookingListKind kind) {
     final bool isMine = kind == BookingListKind.mine;
     final ValueNotifier<BookingStatusFilter> filterVN = _filterVNFor(kind);
     final PageController controller = _pageCtrlFor(kind);
 
-    // A TabBarView disposes the tab it scrolls away from, which detaches this
-    // controller. Re-attaching builds a fresh ScrollPosition, and a fresh
-    // position starts at `initialPage` — page 0, "All" — while the chip strip
-    // still shows the status the user had selected. `onPageChanged` does not
-    // fire for that, so the two disagreed for good: the chips read "Pending"
-    // over the All page's rows.
-    //
-    // Only re-attachment is corrected, never a rebuild mid-gesture: with
-    // clients attached this is a no-op, so a swipe in progress is left alone.
     if (!controller.hasClients) {
       final int target = _visibleFilterIndex(filterVN.value);
       if (target != 0) {
@@ -700,25 +657,10 @@ class _BookingsViewState extends State<_BookingsView>
       physics: const BouncingScrollPhysics(),
       itemCount: _visibleFilters.length,
       onPageChanged: (int index) => _onStatusPageChanged(kind, index),
-      // Each page paints into its own layer, so the one sliding in does not
-      // force the one sliding out to repaint with it.
+
       itemBuilder: (BuildContext context, int index) {
         final BookingStatusFilter filter = _visibleFilters[index];
-        // No TickerMode here. It used to be `selected == filter`, which
-        // silenced every ticker in the page whenever the pager and the chips
-        // disagreed — and the page it silenced was the one on screen. A muted
-        // ticker freezes the RefreshIndicator's animations (the spinner stops
-        // mid-air and never dismisses or re-arms) and the scroll position's
-        // ballistic simulations (the list drags but never flings, which reads
-        // as the whole app having seized up). The pager only builds the pages
-        // at or beside the viewport, and the dashboard already mutes this
-        // whole branch when another tab is showing, so there is nothing left
-        // for a per-page gate to save.
-        //
-        // Semantics is left to the pager's own viewport, which already skips
-        // the pages that are off screen. An ExcludeSemantics that flipped with
-        // the page made each page detach and reattach to the semantics tree
-        // mid-swipe — the parent-data assertion's cause.
+
         return RepaintBoundary(
           child: BookingStatusPage(
             kind: kind,

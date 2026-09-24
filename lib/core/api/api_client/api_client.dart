@@ -97,8 +97,6 @@ class ApiClient {
     return _post(url: '$_baseUrl/auth/forgot-password', data: data);
   }
 
-  /// Completes the forgot-password flow: the emailed OTP plus the new
-  /// password. Unauthenticated, and whitelisted in [SessionGate].
   Future<Result> resetPassword({required Map<String, dynamic> data}) {
     return _post(url: '$_baseUrl/auth/reset-password', data: data);
   }

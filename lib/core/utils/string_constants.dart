@@ -610,6 +610,7 @@ final class StringConstants {
   static const String helloSirGoodMorning = 'Hello sir, good morning.';
   static const String help = 'Help';
   static const String helpAndFaq = 'Help & FAQ';
+  static const String videos = 'Videos';
   static const String helpAndSupport = 'Help & Support';
   static const String helpfulSupport = 'Helpful Support';
   static const String feedback = 'Feedback';

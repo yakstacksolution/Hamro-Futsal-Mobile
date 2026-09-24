@@ -1,4 +1,4 @@
-name: Android Production — Google Play
+name: Android Production — Google Play Review
 
 on:
   push:
@@ -12,8 +12,9 @@ concurrency:
 
 jobs:
   build:
-    name: Build AAB and release to Google Play
+    name: Build AAB and send to Google Play review
     runs-on: ubuntu-latest
+    environment: production
     env:
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
     permissions:
@@ -155,13 +156,16 @@ jobs:
           path: build/app/outputs/bundle/release/app-release.aab
           retention-days: 30
 
-      - name: 🚀 Deploy to Google Play
+      - name: 🚀 Send release to Google Play review
         uses: r0adkll/upload-google-play@v1.1.5
         with:
           serviceAccountJson: /tmp/google_play_key.json
           packageName: com.np.hamrofutsal
           releaseFiles: build/app/outputs/bundle/release/app-release.aab
           tracks: production
+          # This submits the production release for Google review. Keep Managed
+          # publishing enabled in Play Console so the approved app waits for a
+          # human to publish it.
           status: completed
           changesNotSentForReview: false
 
@@ -169,7 +173,7 @@ jobs:
         if: success() && env.SLACK_WEBHOOK_URL != ''
         run: |
           curl -X POST -H 'Content-type: application/json' --data '{
-            "text": "🎉 Hamro Futsal Android production release succeeded — AAB uploaded to Google Play.",
+            "text": "🎉 Hamro Futsal Android production release succeeded — AAB sent to Google Play review. Publish manually from Play Console after approval.",
             "attachments": [
               {
                 "color": "#36a64f",

@@ -36,6 +36,17 @@ class ChatMediaModel {
         : const <String, dynamic>{},
     createdAt: DateTime.tryParse(json['created_at']?.toString() ?? ''),
   );
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+    'id': id,
+    'name': name,
+    'mime_type': mimeType,
+    'size': size,
+    'human_readable_size': humanReadableSize,
+    'url': url,
+    'custom_properties': customProperties,
+    'created_at': createdAt?.toIso8601String(),
+  };
 }
 
 final class ChatReplyModel {
@@ -63,6 +74,15 @@ final class ChatReplyModel {
     body: (json['body'] ?? '').toString(),
     isDeleted: json['deleted_at'] != null,
   );
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+    'id': id,
+    'sender_id': senderId,
+    'sender_name': senderName,
+    'type': type,
+    'body': body,
+    'deleted_at': isDeleted ? true : null,
+  };
 }
 
 class ChatMessageModel {
@@ -215,4 +235,27 @@ class ChatMessageModel {
           json['is_superadmin_created_group'] == 1,
     );
   }
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+    'id': id,
+    'conversation_id': conversationId,
+    'sender_id': senderId,
+    'sender_name': senderName,
+    'sender_avatar': senderAvatar,
+    'type': type,
+    'body': body,
+    'status': status,
+    'reply_to_message_id': replyToMessageId,
+    'reply_to': replyTo?.toJson(),
+    'metadata': metadata,
+    'media': media.map((ChatMediaModel item) => item.toJson()).toList(),
+    'is_edited': isEdited,
+    'edited_at': editedAt?.toIso8601String(),
+    'deleted_at': deletedAt?.toIso8601String(),
+    'created_at': createdAt.toIso8601String(),
+    'mentions': mentions,
+    'mention_all': mentionAll,
+    'is_mentioned': isMentioned,
+    'is_superadmin_created_group': isSuperadminCreatedGroup,
+  };
 }

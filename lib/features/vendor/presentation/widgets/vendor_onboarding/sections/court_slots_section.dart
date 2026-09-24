@@ -2237,7 +2237,7 @@ class _ClosedDateCollectionCard extends StatelessWidget {
   final String emptyText;
   final String actionLabel;
   final VoidCallback onAdd;
-  final ValueChanged<String> onRemove;
+  final ValueChanged<ClosedDateDraft> onRemove;
 
   @override
   Widget build(BuildContext context) {
@@ -2344,7 +2344,7 @@ class _ClosedDateCollectionCard extends StatelessWidget {
                           color: LightColor.redColor,
                         )
                       : null,
-                  onDeleted: () => onRemove(item.date),
+                  onDeleted: () => onRemove(item),
                   deleteIcon: const Icon(
                     Icons.close_rounded,
                     size: AppDimens.sizeX14,

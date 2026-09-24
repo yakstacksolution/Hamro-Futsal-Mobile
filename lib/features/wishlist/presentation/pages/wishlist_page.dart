@@ -1,4 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:hamro_futsal/core/cache/hive/hive_boxes.dart';
+import 'package:hamro_futsal/core/cache/hive/hive_cache_service.dart';
 import 'package:hamro_futsal/core/helper/wishlist_store.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
@@ -59,11 +63,32 @@ class _WishlistPageState extends State<WishlistPage> {
   }
 
   Future<void> _fetch({bool silent = false}) async {
-    if (!silent) {
+    final String cacheScope = HiveCacheService.instance.userScope;
+    final List<PublicListingVenueModel> cached = await HiveCacheService.instance
+        .readList<PublicListingVenueModel>(
+          boxName: HiveBoxes.wishlist,
+          scope: cacheScope,
+          fromJson: PublicListingVenueModel.fromJson,
+        );
+    if (!silent && cached.isNotEmpty && mounted) {
+      WishlistStore.instance.seed(
+        cached.map((v) => v.id).whereType<int>().toList(),
+      );
       setState(() {
-        _loading = true;
+        _loading = false;
+        _loadedOnce = true;
+        _venues = cached;
         _error = null;
       });
+    }
+
+    if (!silent) {
+      if (cached.isEmpty) {
+        setState(() {
+          _loading = true;
+          _error = null;
+        });
+      }
     } else {
       _error = null;
     }
@@ -84,6 +109,15 @@ class _WishlistPageState extends State<WishlistPage> {
         // The fetched wishlist is canonical — re-seed the shared heart state.
         WishlistStore.instance.seed(
           page.venues.map((v) => v.id).whereType<int>().toList(),
+        );
+        unawaited(
+          HiveCacheService.instance.syncList<PublicListingVenueModel>(
+            boxName: HiveBoxes.wishlist,
+            scope: cacheScope,
+            items: page.venues,
+            idOf: (PublicListingVenueModel venue) => venue.id,
+            toJson: (PublicListingVenueModel venue) => venue.toJson(),
+          ),
         );
         setState(() {
           _loading = false;

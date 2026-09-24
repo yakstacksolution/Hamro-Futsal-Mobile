@@ -96,6 +96,27 @@ class ParticipantModel {
     );
   }
 
+  Map<String, dynamic> toJson() => <String, dynamic>{
+    'id': id,
+    'user_id': userId,
+    'name': name,
+    'email': email,
+    'role': role,
+    'invitation_status': invitationStatus,
+    'invited_at': invitedAt?.toIso8601String(),
+    'responded_at': respondedAt?.toIso8601String(),
+    'avatar': <String, dynamic>{'id': avatarId, 'url': avatarUrl},
+    'is_blocked': isBlocked,
+    'is_online': isOnline,
+    'last_seen_at': lastSeenAt?.toIso8601String(),
+    'joined_at': joinedAt?.toIso8601String(),
+    'left_at': leftAt?.toIso8601String(),
+    'is_muted': isMuted,
+    'is_pinned': isPinned,
+    'is_archived': isArchived,
+    'unread_count': unreadCount,
+  };
+
   ParticipantModel copyWith({
     bool? isBlocked,
     bool? isOnline,
@@ -134,6 +155,8 @@ class ConversationVenueModel {
         id: int.tryParse(json['id']?.toString() ?? '') ?? 0,
         name: (json['name'] ?? '').toString(),
       );
+
+  Map<String, dynamic> toJson() => <String, dynamic>{'id': id, 'name': name};
 }
 
 class ConversationModel {
@@ -315,6 +338,32 @@ class ConversationModel {
           (lastDetail?.isSuperadminCreatedGroup ?? false),
     );
   }
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+    'id': id,
+    'type': type,
+    'title': title,
+    'status': status,
+    'invitation_status': invitationStatus,
+    'can_accept_invitation': canAcceptInvitation,
+    'can_decline_invitation': canDeclineInvitation,
+    'venue_id': venueId,
+    'venue': venue?.toJson(),
+    'conversationable_type': conversationableType,
+    'conversationable_id': conversationableId,
+    'last_message': lastMessageDetail?.toJson() ?? lastMessage,
+    'last_message_at': lastMessageAt?.toIso8601String(),
+    'unread_count': unreadCount,
+    'is_muted': isMuted,
+    'is_pinned': isPinned,
+    'is_archived': isArchived,
+    'participants': participants
+        .map((ParticipantModel item) => item.toJson())
+        .toList(),
+    'created_at': createdAt?.toIso8601String(),
+    'image': <String, dynamic>{'id': imageId, 'url': imageUrl},
+    'is_superadmin_created_group': isSuperadminCreatedGroup,
+  };
 
   /// The group picture, however the server spells it.
   ///

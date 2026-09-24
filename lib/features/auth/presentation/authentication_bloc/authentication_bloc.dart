@@ -277,8 +277,6 @@ class AuthenticationBloc
         },
       );
     } on SignInWithAppleAuthorizationException catch (error) {
-      // Dismissing the Apple sheet is not a failure — reset so the button
-      // becomes tappable again without showing an error snackbar.
       if (error.code == AuthorizationErrorCode.canceled) {
         emit(state.copyWith(appleLoginStatus: AuthStatus.initial));
         return;

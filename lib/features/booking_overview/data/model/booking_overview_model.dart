@@ -33,84 +33,97 @@ double _double(dynamic v) =>
 
 String _str(dynamic v) => v?.toString().trim() ?? '';
 
+Map<String, dynamic> _map(dynamic v) =>
+    v is Map ? Map<String, dynamic>.from(v) : const <String, dynamic>{};
+
 List<Map<String, dynamic>> _mapList(dynamic v) => v is List
     ? v.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList()
     : const <Map<String, dynamic>>[];
 
 /// Full payload of `GET /booking-overview`. The server pre-computes every
-/// aggregate; the UI just renders it.
+/// aggregate (and most display strings); the UI just renders it.
 class BookingOverviewResponse {
   const BookingOverviewResponse({
     required this.period,
+    required this.header,
+    required this.datePresets,
     required this.summary,
+    required this.cards,
     required this.trend,
     required this.statusMix,
+    required this.statusTitle,
+    required this.statusChartTitle,
     required this.netEarnings,
+    required this.netProfit,
     required this.availableVenues,
     required this.venueChips,
+    required this.selectedVenueIds,
     required this.venuePerformance,
     required this.topCourts,
     required this.topCustomers,
   });
 
   final OverviewPeriod period;
+  final OverviewHeader header;
+  final List<DatePreset> datePresets;
   final OverviewSummary summary;
+
+  /// `overview.snapshot` (falls back to `overview.cards`), keyed by card key:
+  /// `total_bookings`, `cancelled`, `revenue`, `expenses`, `hours_played`,
+  /// `occupancy`.
+  final Map<String, OverviewCard> cards;
   final RevenueTrend trend;
   final List<StatusMixEntry> statusMix;
+  final String statusTitle;
+  final String statusChartTitle;
   final NetEarnings netEarnings;
+  final NetProfit netProfit;
   final List<OverviewVenue> availableVenues;
   final List<OverviewVenue> venueChips;
+  final List<String> selectedVenueIds;
   final List<VenuePerformanceRow> venuePerformance;
   final List<CourtPerformanceRow> topCourts;
   final List<CustomerPerformanceRow> topCustomers;
 
   factory BookingOverviewResponse.fromResponse(dynamic payload) {
     final root = _root(payload);
-    final filters = root['filters'] is Map
-        ? Map<String, dynamic>.from(root['filters'])
-        : const <String, dynamic>{};
-    final analytics = root['analytics'] is Map
-        ? Map<String, dynamic>.from(root['analytics'])
-        : const <String, dynamic>{};
-    final overview = root['overview'] is Map
-        ? Map<String, dynamic>.from(root['overview'])
-        : const <String, dynamic>{};
-    final rankings = root['rankings'] is Map
-        ? Map<String, dynamic>.from(root['rankings'])
-        : const <String, dynamic>{};
+    final filters = _map(root['filters']);
+    final analytics = _map(root['analytics']);
+    final overview = _map(root['overview']);
+    final rankings = _map(root['rankings']);
+    final statuses = _map(analytics['booking_statuses']);
+    final summary = OverviewSummary.fromJson(_map(root['summary']));
 
     return BookingOverviewResponse(
-      period: OverviewPeriod.fromJson(
-        root['period'] is Map
-            ? Map<String, dynamic>.from(root['period'])
-            : const {},
-      ),
-      summary: OverviewSummary.fromJson(
-        root['summary'] is Map
-            ? Map<String, dynamic>.from(root['summary'])
-            : const {},
-      ),
-      trend: RevenueTrend.fromJson(
-        analytics['revenue_trend'] is Map
-            ? Map<String, dynamic>.from(analytics['revenue_trend'])
-            : const {},
-      ),
+      period: OverviewPeriod.fromJson(_map(root['period'])),
+      header: OverviewHeader.fromJson(_map(root['header'])),
+      datePresets: _mapList(
+        filters['date_presets'],
+      ).map(DatePreset.fromJson).toList(),
+      summary: summary,
+      cards: _cards(overview),
+      trend: RevenueTrend.fromJson(_map(analytics['revenue_trend'])),
       statusMix: _mapList(
-        (analytics['booking_statuses'] is Map
-            ? Map<String, dynamic>.from(analytics['booking_statuses'])
-            : const {})['status_mix'],
+        statuses['status_mix'],
       ).map(StatusMixEntry.fromJson).toList(),
-      netEarnings: NetEarnings.fromJson(
-        overview['net_earnings'] is Map
-            ? Map<String, dynamic>.from(overview['net_earnings'])
-            : const {},
-      ),
+      statusTitle: _str(statuses['title']),
+      statusChartTitle: _str(statuses['chart_title']),
+      netEarnings: NetEarnings.fromJson(_map(overview['net_earnings'])),
+      netProfit: overview['net_profit'] is Map
+          ? NetProfit.fromJson(_map(overview['net_profit']))
+          : NetProfit(value: summary.netProfit, margin: summary.profitMargin),
       availableVenues: _mapList(
         filters['available_venues'],
       ).map(OverviewVenue.fromJson).toList(),
       venueChips: _mapList(
         filters['venue_chips'],
       ).map(OverviewVenue.fromJson).toList(),
+      selectedVenueIds: filters['selected_venue_ids'] is List
+          ? (filters['selected_venue_ids'] as List)
+                .where((e) => e != null)
+                .map(_str)
+                .toList()
+          : const <String>[],
       venuePerformance: _mapList(
         rankings['performance_by_venue'] ?? rankings['venues'],
       ).map(VenuePerformanceRow.fromJson).toList(),
@@ -121,6 +134,24 @@ class BookingOverviewResponse {
         rankings['top_customers'] ?? rankings['customers'],
       ).map(CustomerPerformanceRow.fromJson).toList(),
     );
+  }
+
+  static Map<String, OverviewCard> _cards(Map<String, dynamic> overview) {
+    final snapshot = _mapList(overview['snapshot']);
+    if (snapshot.isNotEmpty) {
+      return {
+        for (final json in snapshot)
+          _str(json['key']): OverviewCard.fromJson(json),
+      };
+    }
+    return {
+      for (final entry in _map(overview['cards']).entries)
+        if (entry.value is Map)
+          entry.key: OverviewCard.fromJson({
+            ..._map(entry.value),
+            'key': entry.key,
+          }),
+    };
   }
 
   /// Peels the `data`/`result` envelope down to the overview object.
@@ -169,6 +200,85 @@ class OverviewPeriod {
   );
 }
 
+class OverviewHeader {
+  const OverviewHeader({
+    required this.title,
+    required this.periodLabel,
+    required this.totalBookings,
+    required this.revenue,
+    required this.summaryLine,
+  });
+
+  final String title;
+  final String periodLabel;
+  final int totalBookings;
+  final int revenue;
+
+  /// e.g. `Sep 21 - Sep 27 · 9 bookings · NPR 8,400`.
+  final String summaryLine;
+
+  factory OverviewHeader.fromJson(Map<String, dynamic> json) => OverviewHeader(
+    title: _str(json['title']),
+    periodLabel: _str(json['period_label']),
+    totalBookings: _int(json['total_bookings']),
+    revenue: _int(json['revenue']),
+    summaryLine: _str(json['summary_line']),
+  );
+}
+
+/// A date-window chip from `filters.date_presets`.
+class DatePreset {
+  const DatePreset({
+    required this.key,
+    required this.label,
+    required this.selected,
+  });
+
+  final String key;
+  final String label;
+  final bool selected;
+
+  factory DatePreset.fromJson(Map<String, dynamic> json) => DatePreset(
+    key: _str(json['key']),
+    label: _str(json['label']),
+    selected: json['selected'] == true,
+  );
+}
+
+/// One KPI tile from `overview.snapshot` / `overview.cards`.
+class OverviewCard {
+  const OverviewCard({
+    required this.key,
+    required this.label,
+    required this.value,
+    required this.subtext,
+  });
+
+  final String key;
+  final String label;
+  final num value;
+  final String subtext;
+
+  factory OverviewCard.fromJson(Map<String, dynamic> json) => OverviewCard(
+    key: _str(json['key']),
+    label: _str(json['label']),
+    value: json['value'] is num ? json['value'] as num : _double(json['value']),
+    subtext: _str(json['subtext']),
+  );
+}
+
+class NetProfit {
+  const NetProfit({required this.value, required this.margin});
+
+  final int value;
+
+  /// Percentage, e.g. `100` for 100%.
+  final double margin;
+
+  factory NetProfit.fromJson(Map<String, dynamic> json) =>
+      NetProfit(value: _int(json['value']), margin: _double(json['margin']));
+}
+
 class OverviewSummary {
   const OverviewSummary({
     required this.totalBookings,
@@ -193,12 +303,12 @@ class OverviewSummary {
   final int expenses;
   final int netProfit;
   final double profitMargin;
-  final int hoursPlayed;
-  final int bookedHours;
-  final int availableHours;
+  final double hoursPlayed;
+  final double bookedHours;
+  final double availableHours;
   final double occupancyPercentage;
-  final int avgRevenuePerBooking;
-  final int avgRevenuePerPaidBooking;
+  final double avgRevenuePerBooking;
+  final double avgRevenuePerPaidBooking;
 
   factory OverviewSummary.fromJson(Map<String, dynamic> json) =>
       OverviewSummary(
@@ -209,12 +319,12 @@ class OverviewSummary {
         expenses: _int(json['expenses']),
         netProfit: _int(json['net_profit']),
         profitMargin: _double(json['profit_margin']),
-        hoursPlayed: _int(json['hours_played']),
-        bookedHours: _int(json['booked_hours']),
-        availableHours: _int(json['available_hours']),
+        hoursPlayed: _double(json['hours_played']),
+        bookedHours: _double(json['booked_hours']),
+        availableHours: _double(json['available_hours']),
         occupancyPercentage: _double(json['occupancy_percentage']),
-        avgRevenuePerBooking: _int(json['avg_revenue_per_booking']),
-        avgRevenuePerPaidBooking: _int(json['avg_revenue_per_paid_booking']),
+        avgRevenuePerBooking: _double(json['avg_revenue_per_booking']),
+        avgRevenuePerPaidBooking: _double(json['avg_revenue_per_paid_booking']),
       );
 }
 
@@ -222,21 +332,32 @@ class RevenueTrend {
   const RevenueTrend({
     required this.granularity,
     required this.average,
+    required this.title,
     required this.chartTitle,
+    required this.averageLabel,
     required this.buckets,
   });
 
+  /// `hourly` / `daily` / `monthly`.
   final String granularity;
   final int average;
+
+  /// Section heading, e.g. `Revenue trend`.
+  final String title;
+
+  /// Card heading, e.g. `Daily revenue`.
   final String chartTitle;
+
+  /// e.g. `Avg NPR 1,200`.
+  final String averageLabel;
   final List<TrendBucket> buckets;
 
   factory RevenueTrend.fromJson(Map<String, dynamic> json) => RevenueTrend(
     granularity: _str(json['granularity']),
     average: _int(json['average']),
-    chartTitle: _str(json['chart_title']).isEmpty
-        ? _str(json['title'])
-        : _str(json['chart_title']),
+    title: _str(json['title']),
+    chartTitle: _str(json['chart_title']),
+    averageLabel: _str(json['average_label']),
     buckets: _mapList(json['buckets']).map(TrendBucket.fromJson).toList(),
   );
 }
@@ -315,77 +436,112 @@ class OverviewVenue {
 
 class VenuePerformanceRow {
   const VenuePerformanceRow({
+    required this.id,
     required this.name,
     required this.area,
     required this.courtCount,
     required this.bookings,
     required this.revenue,
+    required this.bookedHours,
     required this.occupancy,
   });
 
+  final String? id;
   final String name;
   final String area;
   final int courtCount;
   final int bookings;
   final int revenue;
+  final double bookedHours;
 
   /// 0..1
   final double occupancy;
 
   factory VenuePerformanceRow.fromJson(Map<String, dynamic> json) {
-    final rawOcc = _double(
-      json['occupancy'] ?? json['occupancy_percentage'] ?? 0,
-    );
+    // `occupancy_percentage` is always 0..100; a bare `occupancy` may be 0..1.
+    final double occupancy = json.containsKey('occupancy_percentage')
+        ? _double(json['occupancy_percentage']) / 100
+        : () {
+            final raw = _double(json['occupancy']);
+            return raw > 1 ? raw / 100 : raw;
+          }();
     return VenuePerformanceRow(
+      id: json['id'] == null ? null : _str(json['id']),
       name: _str(json['name'] ?? json['venue_name']),
       area: _str(json['area'] ?? json['location'] ?? json['address']),
       courtCount: _int(
         json['courts'] ?? json['court_count'] ?? json['courts_count'],
       ),
-      bookings: _int(json['bookings'] ?? json['total_bookings']),
+      bookings: _int(
+        json['bookings_count'] ?? json['bookings'] ?? json['total_bookings'],
+      ),
       revenue: _int(json['revenue']),
-      occupancy: rawOcc > 1 ? rawOcc / 100 : rawOcc,
+      bookedHours: _double(json['booked_hours']),
+      occupancy: occupancy.clamp(0.0, 1.0),
     );
   }
 }
 
 class CourtPerformanceRow {
   const CourtPerformanceRow({
+    required this.id,
     required this.courtName,
     required this.venueName,
     required this.bookings,
     required this.revenue,
+    required this.progress,
   });
 
+  final String? id;
   final String courtName;
   final String venueName;
   final int bookings;
   final int revenue;
 
+  /// Relative revenue bar, 0..1. Null when the server didn't send one.
+  final double? progress;
+
   factory CourtPerformanceRow.fromJson(Map<String, dynamic> json) =>
       CourtPerformanceRow(
+        id: json['id'] == null ? null : _str(json['id']),
         courtName: _str(json['name'] ?? json['court_name']),
         venueName: _str(json['venue_name'] ?? json['futsal_name']),
-        bookings: _int(json['bookings'] ?? json['total_bookings']),
+        bookings: _int(
+          json['bookings_count'] ?? json['bookings'] ?? json['total_bookings'],
+        ),
         revenue: _int(json['revenue']),
+        progress: json['progress_percentage'] == null
+            ? null
+            : (_double(json['progress_percentage']) / 100).clamp(0.0, 1.0),
       );
 }
 
 class CustomerPerformanceRow {
   const CustomerPerformanceRow({
     required this.name,
+    required this.initials,
+    required this.email,
+    required this.phone,
     required this.bookings,
     required this.spent,
   });
 
   final String name;
+  final String initials;
+  final String email;
+  final String phone;
   final int bookings;
   final int spent;
 
   factory CustomerPerformanceRow.fromJson(Map<String, dynamic> json) =>
       CustomerPerformanceRow(
         name: _str(json['name'] ?? json['customer_name']),
-        bookings: _int(json['bookings'] ?? json['total_bookings']),
+        initials: _str(json['initials']),
+        email: _str(json['email']),
+        phone: _str(json['phone']),
+        bookings: _int(
+          json['bookings_count'] ?? json['bookings'] ?? json['total_bookings'],
+        ),
         spent: _int(json['spent'] ?? json['revenue']),
       );
 }

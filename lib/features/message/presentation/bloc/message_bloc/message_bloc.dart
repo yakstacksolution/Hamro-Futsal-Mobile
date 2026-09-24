@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
+import 'package:hamro_futsal/core/cache/hive/hive_boxes.dart';
+import 'package:hamro_futsal/core/cache/hive/hive_cache_service.dart';
 import 'package:hamro_futsal/features/message/data/model/chat_message_model.dart';
 import 'package:hamro_futsal/features/message/data/model/chat_send_request.dart';
 import 'package:hamro_futsal/features/message/data/model/conversation_model.dart';
@@ -85,10 +87,31 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
       return;
     }
     _loadingConversations = true;
+    final String cacheScope = _conversationCacheScope(event.archived);
+    final List<ConversationModel> cached = event.loadMore
+        ? const <ConversationModel>[]
+        : await HiveCacheService.instance.readList<ConversationModel>(
+            boxName: HiveBoxes.chat,
+            scope: cacheScope,
+            fromJson: ConversationModel.fromJson,
+          );
+    if (cached.isNotEmpty) {
+      emit(
+        state.copyWith(
+          conversationsStatus: MessageStatus.success,
+          conversations: cached,
+          conversationsCurrentPage: 1,
+          showingArchived: event.archived,
+          clearErrorMessage: true,
+        ),
+      );
+    }
     if (!event.silent) {
       emit(
         state.copyWith(
-          conversationsStatus: MessageStatus.loading,
+          conversationsStatus: cached.isEmpty
+              ? MessageStatus.loading
+              : MessageStatus.success,
           clearErrorMessage: true,
         ),
       );
@@ -118,7 +141,7 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
                 conversationsLoadMoreError: failure.errorMessage,
                 conversationsRefreshTick: state.conversationsRefreshTick + 1,
               )
-            : event.silent
+            : (event.silent || cached.isNotEmpty)
             ? state.copyWith(
                 errorMessage: failure.errorMessage,
                 conversationsRefreshTick: state.conversationsRefreshTick + 1,
@@ -131,12 +154,18 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
       ),
       (pageResult) {
         final items = _scoped(pageResult.items, event.archived);
+        final conversations = event.loadMore
+            ? _mergeConversations(state.conversations, items)
+            : items;
+        _syncConversations(
+          event.archived,
+          conversations,
+          deleteMissing: !event.loadMore,
+        );
         emit(
           state.copyWith(
             conversationsStatus: MessageStatus.success,
-            conversations: event.loadMore
-                ? _mergeConversations(state.conversations, items)
-                : items,
+            conversations: conversations,
             conversationsCurrentPage: pageResult.currentPage,
             conversationsLastPage: pageResult.lastPage,
             conversationsTotal: pageResult.total,
@@ -196,14 +225,23 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
   ) async {
     // Re-point the realtime streams at the opened conversation.
     _subscribe(event.conversationId);
+    final List<ChatMessageModel> cachedMessages = await HiveCacheService
+        .instance
+        .readList<ChatMessageModel>(
+          boxName: HiveBoxes.chat,
+          scope: _messagesCacheScope(event.conversationId),
+          fromJson: ChatMessageModel.fromJson,
+        );
     emit(
       state.copyWith(
-        chatStatus: MessageStatus.loading,
+        chatStatus: cachedMessages.isEmpty
+            ? MessageStatus.loading
+            : MessageStatus.success,
         activeConversationId: event.conversationId,
         activeConversation:
             event.conversation ?? _conversationById(event.conversationId),
-        messages: const [],
-        messagesCurrentPage: 0,
+        messages: cachedMessages,
+        messagesCurrentPage: cachedMessages.isEmpty ? 0 : 1,
         messagesLastPage: 1,
         messagesTotal: 0,
         messagesHasMorePages: false,
@@ -253,6 +291,8 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
                 !active.isSuperadminCreatedGroup
             ? active.copyWith(isSuperadminCreatedGroup: true)
             : active;
+        final messages = _mergeMessages(state.messages, pageResult.items);
+        _syncMessages(event.conversationId, messages, deleteMissing: false);
         emit(
           state.copyWith(
             chatStatus: MessageStatus.success,
@@ -261,7 +301,7 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
                 ? state.conversations
                 : _upsertConversation(nextActive!),
             // Preserve socket messages that arrived during the history fetch.
-            messages: _mergeMessages(state.messages, pageResult.items),
+            messages: messages,
             messagesCurrentPage: pageResult.currentPage,
             messagesLastPage: pageResult.lastPage,
             messagesTotal: pageResult.total,
@@ -311,20 +351,24 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
           messagesLoadOlderError: failure.errorMessage,
         ),
       ),
-      (pageResult) => emit(
-        state.copyWith(
-          messages: _mergeMessages(state.messages, pageResult.items),
-          messagesCurrentPage: pageResult.currentPage,
-          messagesLastPage: pageResult.lastPage,
-          messagesTotal: pageResult.total,
-          // An empty page means we have reached the start of the thread even
-          // if the server still claims there is more.
-          messagesHasMorePages:
-              pageResult.hasMorePages && pageResult.items.isNotEmpty,
-          messagesLoadingOlder: false,
-          clearMessagesLoadOlderError: true,
-        ),
-      ),
+      (pageResult) {
+        final messages = _mergeMessages(state.messages, pageResult.items);
+        _syncMessages(event.conversationId, messages, deleteMissing: false);
+        emit(
+          state.copyWith(
+            messages: messages,
+            messagesCurrentPage: pageResult.currentPage,
+            messagesLastPage: pageResult.lastPage,
+            messagesTotal: pageResult.total,
+            // An empty page means we have reached the start of the thread even
+            // if the server still claims there is more.
+            messagesHasMorePages:
+                pageResult.hasMorePages && pageResult.items.isNotEmpty,
+            messagesLoadingOlder: false,
+            clearMessagesLoadOlderError: true,
+          ),
+        );
+      },
     );
   }
 
@@ -368,20 +412,26 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
       (failure) => emit(
         state.copyWith(sending: false, errorMessage: failure.errorMessage),
       ),
-      (message) => emit(
-        state.copyWith(
-          sending: false,
-          // The socket can win the race with this REST response. Merge by the
-          // server id so the sender still gets exactly one bubble.
-          messages: state.activeConversationId == event.conversationId
-              ? _mergeMessages(state.messages, [message])
-              : state.messages,
-          // Reflect the just-sent message in the inbox list (shows as "You: …")
-          // and float the thread to the top.
-          conversations: _bumpToTop(message),
-          clearErrorMessage: true,
-        ),
-      ),
+      (message) {
+        final messages = state.activeConversationId == event.conversationId
+            ? _mergeMessages(state.messages, [message])
+            : state.messages;
+        final conversations = _bumpToTop(message);
+        _syncMessages(event.conversationId, messages, deleteMissing: false);
+        _syncConversations(state.showingArchived, conversations);
+        emit(
+          state.copyWith(
+            sending: false,
+            // The socket can win the race with this REST response. Merge by the
+            // server id so the sender still gets exactly one bubble.
+            messages: messages,
+            // Reflect the just-sent message in the inbox list (shows as "You: …")
+            // and float the thread to the top.
+            conversations: conversations,
+            clearErrorMessage: true,
+          ),
+        );
+      },
     );
   }
 
@@ -866,6 +916,10 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
         peerTyping: isActive ? false : state.peerTyping,
       ),
     );
+    _syncConversations(state.showingArchived, conversations);
+    if (isActive) {
+      _syncMessages(message.conversationId, messages, deleteMissing: false);
+    }
 
     if (isActive && !mine) _scheduleMarkRead(message.conversationId);
   }
@@ -938,6 +992,46 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
       return byTime != 0 ? byTime : a.id.compareTo(b.id);
     });
     return result;
+  }
+
+  String _conversationCacheScope(bool archived) =>
+      '${HiveCacheService.instance.userScope}:conversations:${archived ? 'archived' : 'inbox'}';
+
+  String _messagesCacheScope(int conversationId) =>
+      '${HiveCacheService.instance.userScope}:messages:$conversationId';
+
+  void _syncConversations(
+    bool archived,
+    List<ConversationModel> conversations, {
+    bool deleteMissing = true,
+  }) {
+    unawaited(
+      HiveCacheService.instance.syncList<ConversationModel>(
+        boxName: HiveBoxes.chat,
+        scope: _conversationCacheScope(archived),
+        items: conversations,
+        idOf: (ConversationModel conversation) => conversation.id,
+        toJson: (ConversationModel conversation) => conversation.toJson(),
+        deleteMissing: deleteMissing,
+      ),
+    );
+  }
+
+  void _syncMessages(
+    int conversationId,
+    List<ChatMessageModel> messages, {
+    required bool deleteMissing,
+  }) {
+    unawaited(
+      HiveCacheService.instance.syncList<ChatMessageModel>(
+        boxName: HiveBoxes.chat,
+        scope: _messagesCacheScope(conversationId),
+        items: messages,
+        idOf: (ChatMessageModel message) => message.id,
+        toJson: (ChatMessageModel message) => message.toJson(),
+        deleteMissing: deleteMissing,
+      ),
+    );
   }
 
   int _statusRank(String status) => switch (status.toLowerCase()) {

@@ -1,6 +1,8 @@
 import 'dart:convert';
 
+import 'package:hamro_futsal/core/cache/hive/hive_cache_service.dart';
 import 'package:hamro_futsal/core/api/api_client/session_gate.dart';
+import 'package:hamro_futsal/core/helper/wishlist_store.dart';
 import 'package:hamro_futsal/features/auth/data/model/token_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -191,6 +193,9 @@ class AppSettings {
     // Block authenticated requests from anything still winding down.
     SessionGate.close();
     _preferences.remove(_AuthPreferenceKeys.tokenModel);
+    _preferences.remove(_AuthPreferenceKeys.recentVenueSearches);
+    WishlistStore.instance.clear();
+    HiveCacheService.instance.clearAll();
   }
 }
 

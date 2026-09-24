@@ -16,6 +16,7 @@ class SessionGate {
   static const List<String> _publicPaths = <String>[
     '/auth/login',
     '/auth/google-login',
+    '/auth/apple-login',
     '/auth/register',
     '/auth/verify-otp',
     '/auth/resend-otp',

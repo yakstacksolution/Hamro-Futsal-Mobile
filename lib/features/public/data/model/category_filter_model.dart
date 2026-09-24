@@ -39,6 +39,13 @@ final class CategoryFilterModel extends Equatable {
     );
   }
 
+  Map<String, dynamic> toJson() => Map<String, dynamic>.from(raw)
+    ..['id'] = id
+    ..['title'] = title
+    ..['slug'] = slug
+    ..['status'] = status
+    ..['image'] = image;
+
   @override
   List<Object?> get props => <Object?>[id, title, slug, status, image, raw];
 }

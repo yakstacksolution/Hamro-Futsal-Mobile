@@ -190,6 +190,7 @@ class _BookingOverviewViewState extends State<_BookingOverviewView>
                 range: range,
                 count: analytics.totalBookings,
                 revenue: analytics.revenue,
+                summaryLine: analytics.summaryLine,
               ),
               const SizedBox(height: AppDimens.paddingX12),
               BookingPeriodChips(

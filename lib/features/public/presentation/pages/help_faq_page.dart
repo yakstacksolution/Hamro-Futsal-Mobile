@@ -16,8 +16,9 @@ import 'package:hamro_futsal/features/public/domain/usecase/get_helps_use_case.d
 import 'package:hamro_futsal/features/public/presentation/bloc/support/support_bloc.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 
-/// Help & FAQ — two tabs backed by the public `GET /faqs` and `GET /helps`
-/// endpoints, opened from the profile's Support section.
+/// Help & FAQ — FAQ and Help tabs backed by the public `GET /faqs` and
+/// `GET /helps` endpoints, plus a placeholder Videos tab. Opened from the
+/// profile's Support section.
 class HelpFaqPage extends StatelessWidget {
   const HelpFaqPage({super.key});
 
@@ -45,7 +46,7 @@ class _HelpFaqView extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Scaffold(
         backgroundColor: LightColor.background,
         appBar: const CustomAppBar(title: StringConstants.helpAndFaq),
@@ -68,6 +69,7 @@ class _HelpFaqView extends StatelessWidget {
                 tabs: const <Widget>[
                   Tab(text: StringConstants.faqs, height: 40),
                   Tab(text: StringConstants.help, height: 40),
+                  Tab(text: StringConstants.videos, height: 40),
                 ],
               ),
               Expanded(
@@ -95,37 +97,38 @@ class _HelpFaqView extends StatelessWidget {
                             final List<PublicHelpModel> otherHelps = state.helps
                                 .where((PublicHelpModel h) => !_isSocialHelp(h))
                                 .toList(growable: false);
-                            return Column(
-                              children: <Widget>[
-                                if (socials.isNotEmpty)
-                                  _SocialConnectSection(channels: socials),
-                                Expanded(
-                                  child:
-                                      (otherHelps.isEmpty &&
-                                          socials.isNotEmpty &&
-                                          state.helpsStatus ==
-                                              SupportStatus.success)
-                                      // Only social links exist — no need for
-                                      // an empty-help placeholder below them.
-                                      ? const SizedBox.shrink()
-                                      : _SupportTab(
-                                          status: state.helpsStatus,
-                                          isEmpty: otherHelps.isEmpty,
-                                          errorMessage:
-                                              state.helpsError ??
-                                              'Could not load help topics.',
-                                          emptyTitle: 'No help topics yet',
-                                          emptyMessage:
-                                              'Help and how-to guides will appear here.',
-                                          onRetry: () => context
-                                              .read<SupportBloc>()
-                                              .add(const FetchHelpsEvent()),
-                                          child: _HelpList(helps: otherHelps),
-                                        ),
+                            // Social links come from the same payload, so once
+                            // any exist the tab has loaded and can render as
+                            // one scrollable list (links first, then topics).
+                            if (socials.isNotEmpty) {
+                              return _HelpList(
+                                header: _SocialConnectSection(
+                                  channels: socials,
                                 ),
-                              ],
+                                helps: otherHelps,
+                              );
+                            }
+                            return _SupportTab(
+                              status: state.helpsStatus,
+                              isEmpty: otherHelps.isEmpty,
+                              errorMessage:
+                                  state.helpsError ??
+                                  'Could not load help topics.',
+                              emptyTitle: 'No help topics yet',
+                              emptyMessage:
+                                  'Help and how-to guides will appear here.',
+                              onRetry: () => context.read<SupportBloc>().add(
+                                const FetchHelpsEvent(),
+                              ),
+                              child: _HelpList(helps: otherHelps),
                             );
                           },
+                        ),
+                        const _SupportMessage(
+                          icon: Icons.ondemand_video_rounded,
+                          title: 'Coming soon',
+                          message:
+                              'Video guides on how to use the application will appear here.',
                         ),
                       ],
                     );
@@ -297,22 +300,27 @@ class _FaqTile extends StatelessWidget {
 }
 
 class _HelpList extends StatelessWidget {
-  const _HelpList({required this.helps});
+  const _HelpList({required this.helps, this.header});
 
   final List<PublicHelpModel> helps;
 
+  /// Optional widget shown above the help topics, scrolling with them.
+  final Widget? header;
+
   @override
   Widget build(BuildContext context) {
+    final int offset = header == null ? 0 : 1;
     return ListView.separated(
       physics: const BouncingScrollPhysics(),
       padding: AppUtils().getPadding(
         symmetricHorizontal: AppDimens.paddingX16,
         symmetricVertical: AppDimens.paddingX16,
       ),
-      itemCount: helps.length,
+      itemCount: helps.length + offset,
       separatorBuilder: (_, __) => const SizedBox(height: AppDimens.paddingX10),
-      itemBuilder: (BuildContext context, int index) =>
-          _HelpTile(help: helps[index]),
+      itemBuilder: (BuildContext context, int index) => index < offset
+          ? header!
+          : _HelpTile(help: helps[index - offset]),
     );
   }
 }
@@ -533,11 +541,6 @@ class _SocialConnectSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
     return Container(
-      margin: AppUtils().getPadding(
-        left: AppDimens.paddingX16,
-        right: AppDimens.paddingX16,
-        top: AppDimens.paddingX16,
-      ),
       padding: AppUtils().getPadding(all: AppDimens.paddingX16),
       decoration: BoxDecoration(
         color: LightColor.cardColor,
@@ -563,29 +566,13 @@ class _SocialConnectSection extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppDimens.paddingX16),
-          LayoutBuilder(
-            builder: (BuildContext context, BoxConstraints constraints) {
-              const double spacing = AppDimens.paddingX12;
-              // Up to 3 per row; fewer channels stretch to fill the row.
-              final int perRow = channels.length < 3 ? channels.length : 3;
-              final double tileWidth =
-                  (constraints.maxWidth - spacing * (perRow - 1)) / perRow;
-              return Wrap(
-                spacing: spacing,
-                runSpacing: spacing,
-                children: <Widget>[
-                  for (final _SocialChannel channel in channels)
-                    SizedBox(
-                      width: tileWidth,
-                      child: _SocialTile(
-                        channel: channel,
-                        onTap: () => _open(context, channel.url),
-                      ),
-                    ),
-                ],
-              );
-            },
-          ),
+          for (int i = 0; i < channels.length; i++) ...<Widget>[
+            if (i > 0) const SizedBox(height: AppDimens.paddingX8),
+            _SocialTile(
+              channel: channels[i],
+              onTap: () => _open(context, channels[i].url),
+            ),
+          ],
         ],
       ),
     );
@@ -609,14 +596,14 @@ class _SocialTile extends StatelessWidget {
         onTap: onTap,
         child: Padding(
           padding: AppUtils().getPadding(
-            symmetricVertical: AppDimens.paddingX14,
-            symmetricHorizontal: AppDimens.paddingX8,
+            symmetricVertical: AppDimens.paddingX10,
+            symmetricHorizontal: AppDimens.paddingX12,
           ),
-          child: Column(
+          child: Row(
             children: <Widget>[
               Container(
-                width: AppDimens.sizeX40,
-                height: AppDimens.sizeX40,
+                width: AppDimens.sizeX36,
+                height: AppDimens.sizeX36,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: LightColor.brandSafe(channel.color),
@@ -624,19 +611,26 @@ class _SocialTile extends StatelessWidget {
                 ),
                 child: Icon(
                   channel.icon,
-                  size: AppDimens.sizeX20,
+                  size: AppDimens.sizeX18,
                   color: LightColor.inverseTextColor,
                 ),
               ),
-              const SizedBox(height: AppDimens.paddingX8),
-              Text(
-                channel.label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: textTheme.bodyTextSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: LightColor.primaryTextColor,
+              const SizedBox(width: AppDimens.paddingX12),
+              Expanded(
+                child: Text(
+                  channel.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: textTheme.bodyTextSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: LightColor.primaryTextColor,
+                  ),
                 ),
+              ),
+              Icon(
+                Icons.chevron_right_rounded,
+                size: AppDimens.sizeX20,
+                color: LightColor.secondaryTextColor,
               ),
             ],
           ),

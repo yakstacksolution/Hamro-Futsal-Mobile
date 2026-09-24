@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:bloc/bloc.dart';
 import 'package:dartz/dartz.dart';
@@ -6,6 +7,8 @@ import 'package:equatable/equatable.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:hamro_futsal/core/helper/device_location_helper.dart';
 import 'package:hamro_futsal/core/helper/exception_helper.dart';
+import 'package:hamro_futsal/core/cache/hive/hive_boxes.dart';
+import 'package:hamro_futsal/core/cache/hive/hive_cache_service.dart';
 import 'package:hamro_futsal/features/public/data/model/public_venue_model.dart';
 import 'package:hamro_futsal/features/public/domain/usecase/get_public_venues_use_case.dart';
 import 'package:hamro_futsal/features/public/presentation/models/venue_filter.dart';
@@ -55,14 +58,42 @@ class PublicVenueBloc extends Bloc<PublicVenueEvent, PublicVenueState> {
     FetchPublicVenuesEvent event,
     Emitter<PublicVenueState> emit,
   ) async {
+    try {
+      await _fetchFirstPage(event, emit);
+    } finally {
+      final Completer<void>? completer = event.completer;
+      if (completer != null && !completer.isCompleted) completer.complete();
+    }
+  }
+
+  Future<void> _fetchFirstPage(
+    FetchPublicVenuesEvent event,
+    Emitter<PublicVenueState> emit,
+  ) async {
     // Resolved once per listing: every page of one listing must share the same
     // origin, or the distances would be measured from different points.
     final VenueOrigin? origin = event.origin ?? _originResolver();
     final int token = ++_fetchToken;
+    final String cacheScope = _homeCacheScope(
+      filter: event.filter,
+      page: 1,
+      perPage: _perPage,
+      origin: origin,
+    );
+    final List<PublicListingVenueModel> cached = await HiveCacheService.instance
+        .readList<PublicListingVenueModel>(
+          boxName: HiveBoxes.home,
+          scope: cacheScope,
+          fromJson: PublicListingVenueModel.fromJson,
+        );
 
     emit(
       state.copyWith(
-        status: PublicVenueStatus.loading,
+        status: cached.isEmpty
+            ? PublicVenueStatus.loading
+            : PublicVenueStatus.success,
+        venues: cached.isEmpty ? state.venues : cached,
+        page: cached.isEmpty ? state.page : 1,
         activeFilter: event.filter,
         origin: origin,
         clearOrigin: origin == null,
@@ -87,22 +118,22 @@ class PublicVenueBloc extends Bloc<PublicVenueEvent, PublicVenueState> {
 
     response.fold(
       (AppException failure) => emit(
-        state.copyWith(
-          status: PublicVenueStatus.failure,
-          errorMessage: failure.errorMessage,
-        ),
+        cached.isNotEmpty
+            ? state.copyWith(
+                status: PublicVenueStatus.success,
+                errorMessage: failure.errorMessage,
+              )
+            : state.copyWith(
+                status: PublicVenueStatus.failure,
+                errorMessage: failure.errorMessage,
+              ),
       ),
       (PublicListingVenuePage page) => emit(
-        state.copyWith(
-          status: PublicVenueStatus.success,
-          venues: page.venues,
-          page: page.page,
-          hasReachedMax: !page.hasMore,
-          total: page.total,
-          activeFilter: event.filter,
-          isLoadingMore: false,
-          clearError: true,
-          clearLoadMoreError: true,
+        _freshVenueState(
+          page: page,
+          filter: event.filter,
+          origin: origin,
+          cacheScope: cacheScope,
         ),
       ),
     );
@@ -148,15 +179,18 @@ class PublicVenueBloc extends Bloc<PublicVenueEvent, PublicVenueState> {
         ),
       ),
       (PublicListingVenuePage page) => emit(
-        state.copyWith(
-          status: PublicVenueStatus.success,
-          venues: _appendUnique(state.venues, page.venues),
-          page: page.page,
-          hasReachedMax: !page.hasMore,
-          total: page.total,
-          isLoadingMore: false,
-          clearError: true,
-          clearLoadMoreError: true,
+        _freshVenueState(
+          page: page,
+          filter: requestedFilter,
+          origin: state.origin,
+          existing: state.venues,
+          cacheScope: _homeCacheScope(
+            filter: requestedFilter,
+            page: requestedPage,
+            perPage: _perPage,
+            origin: state.origin,
+          ),
+          deleteMissingCacheItems: false,
         ),
       ),
     );
@@ -194,5 +228,67 @@ class PublicVenueBloc extends Bloc<PublicVenueEvent, PublicVenueState> {
       merged.add(venue);
     }
     return List<PublicListingVenueModel>.unmodifiable(merged);
+  }
+
+  PublicVenueState _freshVenueState({
+    required PublicListingVenuePage page,
+    required VenueFilter filter,
+    required VenueOrigin? origin,
+    required String cacheScope,
+    List<PublicListingVenueModel> existing = const <PublicListingVenueModel>[],
+    bool deleteMissingCacheItems = true,
+  }) {
+    final List<PublicListingVenueModel> venues = existing.isEmpty
+        ? page.venues
+        : _appendUnique(existing, page.venues);
+    unawaited(
+      HiveCacheService.instance.syncList<PublicListingVenueModel>(
+        boxName: HiveBoxes.home,
+        scope: cacheScope,
+        items: page.venues,
+        idOf: (PublicListingVenueModel venue) => venue.id,
+        toJson: (PublicListingVenueModel venue) => venue.toJson(),
+        deleteMissing: deleteMissingCacheItems,
+      ),
+    );
+    for (final PublicListingVenueModel venue in page.venues) {
+      final int? id = venue.id;
+      if (id == null) continue;
+      unawaited(
+        HiveCacheService.instance.syncItem(
+          boxName: HiveBoxes.venueDetails,
+          key: '${HiveCacheService.instance.userScope}:$id',
+          json: venue.toJson(),
+        ),
+      );
+    }
+    return state.copyWith(
+      status: PublicVenueStatus.success,
+      venues: venues,
+      page: page.page,
+      hasReachedMax: !page.hasMore,
+      total: page.total,
+      activeFilter: filter,
+      origin: origin,
+      clearOrigin: origin == null,
+      isLoadingMore: false,
+      clearError: true,
+      clearLoadMoreError: true,
+    );
+  }
+
+  String _homeCacheScope({
+    required VenueFilter filter,
+    required int page,
+    required int perPage,
+    required VenueOrigin? origin,
+  }) {
+    final Map<String, dynamic> payload = filter.toVenueListPayload(
+      page: page,
+      perPage: perPage,
+      latitude: origin?.latitude,
+      longitude: origin?.longitude,
+    );
+    return '${HiveCacheService.instance.userScope}:${jsonEncode(payload)}';
   }
 }

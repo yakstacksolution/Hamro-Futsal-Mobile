@@ -115,7 +115,9 @@ class CustomImageView extends StatelessWidget {
   }
 
   Widget _buildImageContent(BuildContext context) {
-    final double devicePixelRatio = MediaQuery.of(context).devicePixelRatio;
+    // Subscribes to the pixel ratio alone: `MediaQuery.of` would rebuild every
+    // image on screen whenever any metric changes (keyboard, insets, ...).
+    final double devicePixelRatio = MediaQuery.devicePixelRatioOf(context);
     final String? normalizedUrl = _normalizeNetworkUrl(url);
     final String? normalizedImagePath = _normalizeNetworkUrl(imagePath);
 

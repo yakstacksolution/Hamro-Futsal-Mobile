@@ -103,6 +103,19 @@ void main() {
     expect(result.isError(), isTrue);
   });
 
+  test('social login endpoints are allowed after the session gate closes', () {
+    SessionGate.close();
+
+    expect(
+      SessionGate.blocks('https://example.test/auth/google-login'),
+      isFalse,
+    );
+    expect(
+      SessionGate.blocks('https://example.test/auth/apple-login'),
+      isFalse,
+    );
+  });
+
   test('a sign-out hook that throws does not escape the wrapper', () async {
     // `Client.revokeAuth` is the app's own logout: it navigates and tears
     // down sockets. It runs from inside error handling, so a throw there

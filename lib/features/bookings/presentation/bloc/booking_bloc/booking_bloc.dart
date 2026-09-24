@@ -1,8 +1,11 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:bloc/bloc.dart';
 import 'package:dartz/dartz.dart';
+import 'package:hamro_futsal/core/cache/hive/hive_boxes.dart';
+import 'package:hamro_futsal/core/cache/hive/hive_cache_service.dart';
 import 'package:hamro_futsal/core/helper/exception_helper.dart';
 import 'package:equatable/equatable.dart';
 import 'package:hamro_futsal/features/bookings/data/model/booking_model.dart';
@@ -47,6 +50,8 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
         state.copyWith(mySelectedFilter: filter),
     writeSlice: (BookingStatusFilter filter, BookingListSlice slice) =>
         state.withMySlice(filter, slice),
+    dateFilter: state.myDateFilter,
+    order: state.myOrder,
     request: (int page, BookingStatusFilter filter) => _useCase.getMyBookings(
       BookingListQuery(
         page: page,
@@ -75,6 +80,8 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
         state.copyWith(futsalSelectedFilter: filter),
     writeSlice: (BookingStatusFilter filter, BookingListSlice slice) =>
         state.withFutsalSlice(filter, slice),
+    dateFilter: state.futsalDateFilter,
+    order: state.futsalOrder,
     request: (int page, BookingStatusFilter filter) =>
         _useCase.getFutsalBookings(
           BookingListQuery(
@@ -170,6 +177,8 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
     required BookingState Function(BookingStatusFilter) selectFilter,
     required BookingState Function(BookingStatusFilter, BookingListSlice)
     writeSlice,
+    required BookingDateFilter dateFilter,
+    required BookingDateOrder order,
     required Future<Either<AppException, PaginatedBookings>> Function(
       int page,
       BookingStatusFilter filter,
@@ -198,6 +207,30 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
     final int page = loadMore ? slice.currentPage + 1 : 1;
     final String key = '$kind:${target.name}:$page';
     if (_inFlight.contains(key)) return;
+    final String cacheScope = _bookingListCacheScope(
+      kind: kind,
+      filter: target,
+      dateFilter: dateFilter,
+      order: order,
+      page: page,
+    );
+    final List<BookingModel> cached = loadMore
+        ? const <BookingModel>[]
+        : await HiveCacheService.instance.readList<BookingModel>(
+            boxName: HiveBoxes.bookingList,
+            scope: cacheScope,
+            fromJson: BookingModel.fromJson,
+          );
+    if (cached.isNotEmpty && slice.bookings.isEmpty) {
+      slice = slice.copyWith(
+        loadStatus: BookingLoadStatus.success,
+        bookings: cached,
+        currentPage: 1,
+        hasMorePages: true,
+        clearError: true,
+      );
+      emit(writeSlice(target, slice));
+    }
 
     if (loadMore) {
       emit(
@@ -274,6 +307,11 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
         final List<BookingModel> rows = loadMore
             ? _mergeBookings(slice.bookings, pageResult.items)
             : pageResult.items;
+        _syncBookingList(
+          scope: cacheScope,
+          rows: pageResult.items,
+          deleteMissing: !loadMore,
+        );
 
         // A next page has to actually move the list on. A server that echoes
         // the page it was already given — or reports `has_more_pages` with a
@@ -323,6 +361,50 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
       for (final BookingModel booking in incoming) booking.id: booking,
     };
     return byId.values.toList(growable: false);
+  }
+
+  String _bookingListCacheScope({
+    required String kind,
+    required BookingStatusFilter filter,
+    required BookingDateFilter dateFilter,
+    required BookingDateOrder order,
+    required int page,
+  }) {
+    final Map<String, dynamic> query = <String, dynamic>{
+      'kind': kind,
+      'status': filter.query,
+      'page': page,
+      'per_page': _perPage,
+      'order': order.name,
+      ...dateFilter.toQueryParameters(),
+    };
+    return '${HiveCacheService.instance.userScope}:${jsonEncode(query)}';
+  }
+
+  void _syncBookingList({
+    required String scope,
+    required List<BookingModel> rows,
+    required bool deleteMissing,
+  }) {
+    unawaited(
+      HiveCacheService.instance.syncList<BookingModel>(
+        boxName: HiveBoxes.bookingList,
+        scope: scope,
+        items: rows,
+        idOf: (BookingModel booking) => booking.id,
+        toJson: (BookingModel booking) => booking.toJson(),
+        deleteMissing: deleteMissing,
+      ),
+    );
+    for (final BookingModel booking in rows) {
+      unawaited(
+        HiveCacheService.instance.syncItem(
+          boxName: HiveBoxes.bookingDetails,
+          key: '${HiveCacheService.instance.userScope}:${booking.id}',
+          json: booking.toJson(),
+        ),
+      );
+    }
   }
 
   /// An [AppException] for anything the layers below threw instead of

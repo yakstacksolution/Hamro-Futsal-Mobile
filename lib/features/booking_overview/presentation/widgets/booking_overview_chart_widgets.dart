@@ -6,7 +6,6 @@ import 'package:hamro_futsal/features/booking_overview/data/model/booking_overvi
 import 'package:hamro_futsal/features/booking_overview/presentation/models/booking_analytics.dart';
 import 'package:hamro_futsal/features/booking_overview/presentation/utils/booking_ui_utils.dart';
 import 'package:hamro_futsal/features/booking_overview/presentation/widgets/booking_overview_common.dart';
-import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
 /// Revenue trend bar chart bucketed by the selected period.
@@ -19,12 +18,14 @@ class BookingTrendCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
     final values = analytics.series;
-    final avg = values.isEmpty
-        ? 0
-        : (values.reduce((a, b) => a + b) / values.length).round();
+    final labels = analytics.seriesLabels;
     final points = <_TrendPoint>[
       for (int i = 0; i < values.length; i++)
-        _TrendPoint(index: i, value: values[i]),
+        _TrendPoint(
+          // Unique fallback keeps category slots distinct if labels are absent.
+          label: i < labels.length && labels[i].isNotEmpty ? labels[i] : '#$i',
+          value: values[i],
+        ),
     ];
 
     return BookingSurface(
@@ -42,7 +43,7 @@ class BookingTrendCard extends StatelessWidget {
               ),
               const Spacer(),
               Text(
-                'Avg ${BookingFmt.npr(avg)}',
+                analytics.averageLabel,
                 style: textTheme.bodyTextSmall?.copyWith(
                   color: LightColor.secondaryTextColor,
                   fontWeight: FontWeight.w600,
@@ -58,7 +59,7 @@ class BookingTrendCard extends StatelessWidget {
                 key: ValueKey<int>(Object.hashAll(values)),
                 margin: EdgeInsets.zero,
                 plotAreaBorderWidth: 0,
-                primaryXAxis: const NumericAxis(isVisible: false),
+                primaryXAxis: const CategoryAxis(isVisible: false),
                 primaryYAxis: NumericAxis(
                   isVisible: false,
                   maximum: values.every((int value) => value == 0) ? 1 : null,
@@ -66,7 +67,7 @@ class BookingTrendCard extends StatelessWidget {
                 tooltipBehavior: TooltipBehavior(
                   enable: true,
                   header: '',
-                  format: 'point.y',
+                  format: 'point.x : NPR point.y',
                   color: LightColor.primaryTextColor,
                   textStyle: TextStyle(
                     color: LightColor.inverseTextColor,
@@ -74,10 +75,10 @@ class BookingTrendCard extends StatelessWidget {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                series: <ColumnSeries<_TrendPoint, int>>[
-                  ColumnSeries<_TrendPoint, int>(
+                series: <ColumnSeries<_TrendPoint, String>>[
+                  ColumnSeries<_TrendPoint, String>(
                     dataSource: points,
-                    xValueMapper: (_TrendPoint point, _) => point.index,
+                    xValueMapper: (_TrendPoint point, _) => point.label,
                     yValueMapper: (_TrendPoint point, _) => point.value,
                     color: LightColor.secondaryColor,
                     width: values.length > 31 ? 0.9 : 0.72,
@@ -97,7 +98,9 @@ class BookingTrendCard extends StatelessWidget {
           Row(
             children: [
               Text(
-                analytics.period == BookingPeriod.today
+                labels.isNotEmpty
+                    ? labels.first
+                    : analytics.period == BookingPeriod.today
                     ? '12 AM'
                     : BookingFmt.shortDate(analytics.range.start),
                 style: textTheme.bodyTextSmall?.copyWith(
@@ -107,7 +110,9 @@ class BookingTrendCard extends StatelessWidget {
               ),
               const Spacer(),
               Text(
-                analytics.period == BookingPeriod.today
+                labels.isNotEmpty
+                    ? labels.last
+                    : analytics.period == BookingPeriod.today
                     ? '11 PM'
                     : BookingFmt.shortDate(
                         analytics.range.end.subtract(const Duration(days: 1)),
@@ -126,13 +131,14 @@ class BookingTrendCard extends StatelessWidget {
 }
 
 class _TrendPoint {
-  const _TrendPoint({required this.index, required this.value});
+  const _TrendPoint({required this.label, required this.value});
 
-  final int index;
+  final String label;
   final int value;
 }
 
-/// Stacked status bar + per-status legend rows.
+/// Stacked status bar + per-status legend tiles, driven by the server's
+/// `status_mix` (labels, colors and percentages as sent).
 class BookingStatusCard extends StatelessWidget {
   const BookingStatusCard({super.key, required this.analytics});
 
@@ -141,14 +147,8 @@ class BookingStatusCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
-    final breakdown = analytics.statusBreakdown;
-    final total = breakdown.values.fold<int>(0, (a, b) => a + b);
-    const statuses = <BookingStatus>[
-      BookingStatus.pending,
-      BookingStatus.cancelled,
-      BookingStatus.completed,
-      BookingStatus.confirmed,
-    ];
+    final List<StatusMixEntry> entries = analytics.statusMix;
+    final int total = analytics.statusTotal;
 
     return BookingSurface(
       child: Column(
@@ -157,7 +157,7 @@ class BookingStatusCard extends StatelessWidget {
           Row(
             children: [
               Text(
-                StringConstants.statusMix,
+                analytics.statusChartTitle,
                 style: textTheme.bodyTextMedium?.copyWith(
                   fontWeight: FontWeight.w700,
                   color: LightColor.primaryTextColor,
@@ -174,19 +174,23 @@ class BookingStatusCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: AppDimens.paddingX12),
-          _StatusMixBar(statuses: statuses, breakdown: breakdown, total: total),
+          _StatusMixBar(entries: entries, total: total),
           const SizedBox(height: AppDimens.paddingX14),
-          _StatusTileRow(
-            statuses: statuses.take(2).toList(growable: false),
-            breakdown: breakdown,
-            total: total,
-          ),
-          const SizedBox(height: AppDimens.paddingX10),
-          _StatusTileRow(
-            statuses: statuses.skip(2).toList(growable: false),
-            breakdown: breakdown,
-            total: total,
-          ),
+          // Two tiles per row, however many statuses the server sends.
+          for (int i = 0; i < entries.length; i += 2) ...<Widget>[
+            if (i > 0) const SizedBox(height: AppDimens.paddingX10),
+            Row(
+              children: <Widget>[
+                Expanded(child: _StatusTile(entry: entries[i])),
+                const SizedBox(width: AppDimens.paddingX10),
+                Expanded(
+                  child: i + 1 < entries.length
+                      ? _StatusTile(entry: entries[i + 1])
+                      : const SizedBox.shrink(),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
@@ -194,14 +198,9 @@ class BookingStatusCard extends StatelessWidget {
 }
 
 class _StatusMixBar extends StatelessWidget {
-  const _StatusMixBar({
-    required this.statuses,
-    required this.breakdown,
-    required this.total,
-  });
+  const _StatusMixBar({required this.entries, required this.total});
 
-  final List<BookingStatus> statuses;
-  final Map<BookingStatus, int> breakdown;
+  final List<StatusMixEntry> entries;
   final int total;
 
   @override
@@ -214,11 +213,11 @@ class _StatusMixBar extends StatelessWidget {
             ? ColoredBox(color: LightColor.dividerColor)
             : Row(
                 children: <Widget>[
-                  for (final status in statuses)
-                    if ((breakdown[status] ?? 0) > 0)
+                  for (final StatusMixEntry entry in entries)
+                    if (entry.count > 0)
                       Expanded(
-                        flex: breakdown[status]!,
-                        child: ColoredBox(color: status.color),
+                        flex: entry.count,
+                        child: ColoredBox(color: entry.color),
                       ),
                 ],
               ),
@@ -227,59 +226,23 @@ class _StatusMixBar extends StatelessWidget {
   }
 }
 
-class _StatusTileRow extends StatelessWidget {
-  const _StatusTileRow({
-    required this.statuses,
-    required this.breakdown,
-    required this.total,
-  });
-
-  final List<BookingStatus> statuses;
-  final Map<BookingStatus, int> breakdown;
-  final int total;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: <Widget>[
-        for (int i = 0; i < statuses.length; i++) ...<Widget>[
-          if (i > 0) const SizedBox(width: AppDimens.paddingX10),
-          Expanded(
-            child: _StatusTile(
-              status: statuses[i],
-              count: breakdown[statuses[i]] ?? 0,
-              total: total,
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-}
-
 class _StatusTile extends StatelessWidget {
-  const _StatusTile({
-    required this.status,
-    required this.count,
-    required this.total,
-  });
+  const _StatusTile({required this.entry});
 
-  final BookingStatus status;
-  final int count;
-  final int total;
+  final StatusMixEntry entry;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
-    final percentage = total == 0 ? 0 : (count * 100 / total).round();
+    final Color color = entry.color;
 
     return Container(
       height: 82,
       padding: const EdgeInsets.all(AppDimens.paddingX12),
       decoration: BoxDecoration(
-        color: status.color.withValues(alpha: 0.045),
+        color: color.withValues(alpha: 0.045),
         borderRadius: BorderRadius.circular(AppDimens.radiusX12),
-        border: Border.all(color: status.color.withValues(alpha: 0.2)),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -289,15 +252,12 @@ class _StatusTile extends StatelessWidget {
               Container(
                 width: 8,
                 height: 8,
-                decoration: BoxDecoration(
-                  color: status.color,
-                  shape: BoxShape.circle,
-                ),
+                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
               ),
               const SizedBox(width: AppDimens.paddingX6),
               Expanded(
                 child: Text(
-                  status.label,
+                  entry.displayLabel,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: textTheme.bodyTextSmall?.copyWith(
@@ -307,9 +267,9 @@ class _StatusTile extends StatelessWidget {
                 ),
               ),
               Text(
-                '$percentage%',
+                '${BookingFmt.percent(entry.percentage)}%',
                 style: textTheme.bodyTextSmall?.copyWith(
-                  color: status.color,
+                  color: color,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -317,7 +277,7 @@ class _StatusTile extends StatelessWidget {
           ),
           const Spacer(),
           Text(
-            '$count',
+            '${entry.count}',
             style: textTheme.headingSmall?.copyWith(
               color: LightColor.primaryTextColor,
               fontWeight: FontWeight.w700,

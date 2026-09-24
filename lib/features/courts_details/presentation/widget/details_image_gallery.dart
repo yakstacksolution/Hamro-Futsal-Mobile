@@ -46,13 +46,24 @@ class _DetailsImageGalleryState extends State<DetailsImageGallery> {
   final GlobalKey _shareButtonKey = GlobalKey();
 
   late final PageController _imagePageController;
-  int _currentImageIndex = 0;
+
+  /// The visible slide. A notifier rather than state: a `setState` per swipe
+  /// rebuilt the whole hero — PageView, every slide and the frosted controls —
+  /// when only the dots, the counter and the thumbnail highlight change.
+  final ValueNotifier<int> _currentImageIndex = ValueNotifier<int>(0);
   bool _isSaved = false;
 
   @override
   void initState() {
     _imagePageController = PageController();
     super.initState();
+  }
+
+  @override
+  void dispose() {
+    _imagePageController.dispose();
+    _currentImageIndex.dispose();
+    super.dispose();
   }
 
   Future<void> _toggleWishlist() async {
@@ -143,8 +154,7 @@ class _DetailsImageGalleryState extends State<DetailsImageGallery> {
                         // starts loading before the user's swipe reaches it.
                         allowImplicitScrolling: true,
                         itemCount: widget.images.length,
-                        onPageChanged: (i) =>
-                            setState(() => _currentImageIndex = i),
+                        onPageChanged: (i) => _currentImageIndex.value = i,
                         itemBuilder: (context, index) {
                           return Stack(
                             fit: StackFit.expand,
@@ -183,7 +193,7 @@ class _DetailsImageGalleryState extends State<DetailsImageGallery> {
                       ),
 
                 Positioned(
-                  top: MediaQuery.of(context).padding.top + 8,
+                  top: MediaQuery.paddingOf(context).top + 8,
                   left: wide ? AppDimens.paddingX24 : 16,
                   right: wide ? AppDimens.paddingX24 : 16,
                   child: Row(
@@ -236,24 +246,27 @@ class _DetailsImageGalleryState extends State<DetailsImageGallery> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       if (widget.images.isNotEmpty && !wide)
-                        Row(
-                          children: List.generate(widget.images.length, (i) {
-                            final active = i == _currentImageIndex;
-                            return AnimatedContainer(
-                              duration: const Duration(milliseconds: 300),
-                              margin: const EdgeInsets.only(right: 6),
-                              width: active ? 24 : 8,
-                              height: 6,
-                              decoration: BoxDecoration(
-                                color: active
-                                    ? LightColor.whiteColor
-                                    : LightColor.whiteColor.withValues(
-                                        alpha: 0.4,
-                                      ),
-                                borderRadius: BorderRadius.circular(100),
-                              ),
-                            );
-                          }),
+                        ValueListenableBuilder<int>(
+                          valueListenable: _currentImageIndex,
+                          builder: (context, current, _) => Row(
+                            children: List.generate(widget.images.length, (i) {
+                              final active = i == current;
+                              return AnimatedContainer(
+                                duration: const Duration(milliseconds: 300),
+                                margin: const EdgeInsets.only(right: 6),
+                                width: active ? 24 : 8,
+                                height: 6,
+                                decoration: BoxDecoration(
+                                  color: active
+                                      ? LightColor.whiteColor
+                                      : LightColor.whiteColor.withValues(
+                                          alpha: 0.4,
+                                        ),
+                                  borderRadius: BorderRadius.circular(100),
+                                ),
+                              );
+                            }),
+                          ),
                         ),
                       if (widget.images.isNotEmpty)
                         ClipRRect(
@@ -285,12 +298,15 @@ class _DetailsImageGalleryState extends State<DetailsImageGallery> {
                                     size: 14,
                                   ),
                                   const SizedBox(width: 5),
-                                  Text(
-                                    '${_currentImageIndex + 1}/${widget.images.length}',
-                                    style: TextStyle(
-                                      color: LightColor.inverseTextColor,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w700,
+                                  ValueListenableBuilder<int>(
+                                    valueListenable: _currentImageIndex,
+                                    builder: (context, current, _) => Text(
+                                      '${current + 1}/${widget.images.length}',
+                                      style: TextStyle(
+                                        color: LightColor.inverseTextColor,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w700,
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -321,21 +337,12 @@ class _DetailsImageGalleryState extends State<DetailsImageGallery> {
         itemCount: widget.images.length,
         separatorBuilder: (_, __) => const SizedBox(width: AppDimens.sizeX8),
         itemBuilder: (BuildContext context, int index) {
-          final bool active = index == _currentImageIndex;
           return GestureDetector(
             onTap: () => _showImage(index),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              width: AppDimens.venueThumbnailSize,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(AppDimens.radiusX10),
-                border: Border.all(
-                  color: active
-                      ? LightColor.secondaryColor
-                      : LightColor.dividerColor,
-                  width: active ? 2 : 1,
-                ),
-              ),
+            child: ValueListenableBuilder<int>(
+              valueListenable: _currentImageIndex,
+              // The image is the builder's child, so a swipe only restyles
+              // the border instead of rebuilding every thumbnail.
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(AppDimens.radiusX8),
                 child: CustomImageView(
@@ -347,6 +354,23 @@ class _DetailsImageGalleryState extends State<DetailsImageGallery> {
                   cacheHeight: AppDimens.venueThumbnailSize,
                 ),
               ),
+              builder: (BuildContext context, int current, Widget? image) {
+                final bool active = index == current;
+                return AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  width: AppDimens.venueThumbnailSize,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+                    border: Border.all(
+                      color: active
+                          ? LightColor.secondaryColor
+                          : LightColor.dividerColor,
+                      width: active ? 2 : 1,
+                    ),
+                  ),
+                  child: image,
+                );
+              },
             ),
           );
         },

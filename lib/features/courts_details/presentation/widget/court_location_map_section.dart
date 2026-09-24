@@ -28,6 +28,9 @@ class CourtLocationMapSection extends StatelessWidget {
 
   static const double _mercatorLatitudeLimit = 85.05112878;
 
+  /// [MapOptions.backgroundColor]'s default, shown until tiles paint.
+  static const Color _mapBackgroundColor = Color(0xFFE0E0E0);
+
   bool get _hasCoordinates =>
       latitude != null &&
       longitude != null &&
@@ -146,46 +149,51 @@ class CourtLocationMapSection extends StatelessWidget {
                     Positioned.fill(
                       child: GestureDetector(
                         onTap: () => _openFullMap(context),
-                        child: FlutterMap(
-                          options: MapOptions(
-                            initialCenter: point,
-                            initialZoom: 15.5,
-                            cameraConstraint: CameraConstraint.contain(
-                              bounds: LatLngBounds(
-                                const LatLng(-_mercatorLatitudeLimit, -180),
-                                const LatLng(_mercatorLatitudeLimit, 180),
+                        child: _BuildAfterRouteTransition(
+                          // FlutterMap's own background, so the box looks the
+                          // same before the map mounts as while tiles load.
+                          placeholderColor: _mapBackgroundColor,
+                          child: FlutterMap(
+                            options: MapOptions(
+                              initialCenter: point,
+                              initialZoom: 15.5,
+                              cameraConstraint: CameraConstraint.contain(
+                                bounds: LatLngBounds(
+                                  const LatLng(-_mercatorLatitudeLimit, -180),
+                                  const LatLng(_mercatorLatitudeLimit, 180),
+                                ),
+                              ),
+                              // Static preview — taps open the external maps app
+                              // and gestures don't hijack the page scroll.
+                              interactionOptions: const InteractionOptions(
+                                flags: InteractiveFlag.none,
                               ),
                             ),
-                            // Static preview — taps open the external maps app
-                            // and gestures don't hijack the page scroll.
-                            interactionOptions: const InteractionOptions(
-                              flags: InteractiveFlag.none,
-                            ),
-                          ),
-                          children: <Widget>[
-                            TileLayer(
-                              urlTemplate:
-                                  'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                              userAgentPackageName: 'hamro_futsal',
-                              panBuffer: 0,
-                              keepBuffer: 0,
-                            ),
-                            MarkerLayer(
-                              markers: <Marker>[
-                                Marker(
-                                  point: point,
-                                  width: AppDimens.sizeX48,
-                                  height: AppDimens.sizeX48,
-                                  alignment: Alignment.topCenter,
-                                  child: const Icon(
-                                    Icons.location_on,
-                                    color: LightColor.secondaryColor,
-                                    size: AppDimens.sizeX36,
+                            children: <Widget>[
+                              TileLayer(
+                                urlTemplate:
+                                    'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                userAgentPackageName: 'hamro_futsal',
+                                panBuffer: 0,
+                                keepBuffer: 0,
+                              ),
+                              MarkerLayer(
+                                markers: <Marker>[
+                                  Marker(
+                                    point: point,
+                                    width: AppDimens.sizeX48,
+                                    height: AppDimens.sizeX48,
+                                    alignment: Alignment.topCenter,
+                                    child: const Icon(
+                                      Icons.location_on,
+                                      color: LightColor.secondaryColor,
+                                      size: AppDimens.sizeX36,
+                                    ),
                                   ),
-                                ),
-                              ],
-                            ),
-                          ],
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -265,5 +273,67 @@ class CourtLocationMapSection extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// Builds [child] only once the enclosing route has finished its entry
+/// transition, showing a flat [placeholderColor] box until then.
+///
+/// The map is the heaviest thing on the venue page: mounting it kicks off tile
+/// requests, image decodes and its own layer tree. Doing that in the same
+/// frames as the page's fade/slide-in is what made opening the page stutter.
+/// The tiles are network-bound and blank at first either way, so waiting
+/// ~600ms to mount it is not visible.
+class _BuildAfterRouteTransition extends StatefulWidget {
+  const _BuildAfterRouteTransition({
+    required this.child,
+    required this.placeholderColor,
+  });
+
+  final Widget child;
+  final Color placeholderColor;
+
+  @override
+  State<_BuildAfterRouteTransition> createState() =>
+      _BuildAfterRouteTransitionState();
+}
+
+class _BuildAfterRouteTransitionState
+    extends State<_BuildAfterRouteTransition> {
+  Animation<double>? _routeAnimation;
+  bool _ready = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_ready) return;
+    final Animation<double>? animation = ModalRoute.of(context)?.animation;
+    if (identical(animation, _routeAnimation)) return;
+    _routeAnimation?.removeStatusListener(_onRouteStatus);
+    _routeAnimation = animation;
+    if (animation == null || animation.status == AnimationStatus.completed) {
+      _ready = true;
+    } else {
+      animation.addStatusListener(_onRouteStatus);
+    }
+  }
+
+  void _onRouteStatus(AnimationStatus status) {
+    if (status != AnimationStatus.completed) return;
+    _routeAnimation?.removeStatusListener(_onRouteStatus);
+    _routeAnimation = null;
+    if (mounted) setState(() => _ready = true);
+  }
+
+  @override
+  void dispose() {
+    _routeAnimation?.removeStatusListener(_onRouteStatus);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_ready) return widget.child;
+    return ColoredBox(color: widget.placeholderColor);
   }
 }

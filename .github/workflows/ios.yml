@@ -1,4 +1,4 @@
-name: iOS Production — TestFlight
+name: iOS Production — App Store Connect
 
 on:
   push:
@@ -12,8 +12,9 @@ concurrency:
 
 jobs:
   build-and-deploy:
-    name: Build IPA and upload to TestFlight
+    name: Build IPA and upload to App Store Connect
     runs-on: macos-15
+    environment: production
     env:
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
     permissions:
@@ -143,7 +144,7 @@ jobs:
           echo "IPA path found: $IPA_PATH"
           echo "ipa-path=$IPA_PATH" >> $GITHUB_OUTPUT
 
-      - name: 🚀 Deploy to TestFlight
+      - name: 🚀 Upload to App Store Connect
         uses: apple-actions/upload-testflight-build@v3
         with:
           app-path: ${{ steps.ipa.outputs.ipa-path }}
@@ -155,7 +156,7 @@ jobs:
         if: success() && env.SLACK_WEBHOOK_URL != ''
         run: |
           curl -X POST -H 'Content-type: application/json' --data '{
-            "text": "🎉 Hamro Futsal iOS Production build uploaded to TestFlight.",
+            "text": "🎉 Hamro Futsal iOS production build uploaded to App Store Connect/TestFlight. Submit or publish manually from App Store Connect.",
             "attachments": [
               {
                 "color": "#36a64f",

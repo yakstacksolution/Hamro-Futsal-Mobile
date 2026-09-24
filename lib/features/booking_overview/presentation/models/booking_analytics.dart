@@ -67,14 +67,41 @@ class BookingAnalytics {
   int get revenue => data.summary.revenue;
   int get prevRevenue => data.netEarnings.previousRevenue;
   int get expenses => data.summary.expenses;
-  int get profit => data.summary.netProfit;
+  int get profit => data.netProfit.value;
   int get totalBookings => data.summary.totalBookings;
-  int get hoursPlayed => data.summary.hoursPlayed;
-  int get avgBookingValue => data.summary.avgRevenuePerBooking;
+  int get paidBookings => data.summary.paidBookings;
+  int get cancelledBookings => data.summary.cancelledBookings;
+  double get hoursPlayed => data.summary.hoursPlayed;
+  double get avgPaidBookingValue => data.summary.avgRevenuePerPaidBooking;
+  double get avgBookingValue => data.summary.avgRevenuePerBooking;
 
   /// 0..1
   double get occupancy =>
       (data.summary.occupancyPercentage / 100).clamp(0.0, 1.0);
+
+  /// Server-computed profit margin, in percent.
+  double get profitMargin => data.netProfit.margin;
+
+  /// Server-computed revenue change vs the previous period, in percent.
+  double get revenueChangePct => data.netEarnings.changePercentage;
+
+  /// `Sep 21 - Sep 27 · 9 bookings · NPR 8,400`, straight from the server.
+  String get summaryLine => data.header.summaryLine;
+
+  /// KPI tile from `overview.snapshot`, or null if the server omitted it.
+  OverviewCard? card(String key) => data.cards[key];
+
+  /// Server subtext for a KPI tile, or [fallback] when missing/blank.
+  String cardSubtext(String key, String fallback) {
+    final String sub = data.cards[key]?.subtext ?? '';
+    return sub.isEmpty ? fallback : sub;
+  }
+
+  /// Server label for a KPI tile, or [fallback] when missing/blank.
+  String cardLabel(String key, String fallback) {
+    final String label = data.cards[key]?.label ?? '';
+    return label.isEmpty ? fallback : label;
+  }
 
   // ── Status breakdown ──
   late final Map<BookingStatus, int> statusBreakdown = {
@@ -91,12 +118,61 @@ class BookingAnalytics {
 
   double get cancelRate => totalBookings == 0 ? 0 : cancelled / totalBookings;
 
+  /// Status rows in server order; falls back to every status at zero.
+  List<StatusMixEntry> get statusMix => data.statusMix.isNotEmpty
+      ? data.statusMix
+      : [
+          for (final s in BookingStatus.values)
+            StatusMixEntry(
+              status: s,
+              count: 0,
+              percentage: 0,
+              label: s.label,
+              colorHex: '',
+            ),
+        ];
+
+  int get statusTotal =>
+      data.statusMix.fold(0, (int a, StatusMixEntry e) => a + e.count);
+
+  String get statusTitle =>
+      data.statusTitle.isEmpty ? 'Booking statuses' : data.statusTitle;
+
+  String get statusChartTitle =>
+      data.statusChartTitle.isEmpty ? 'Status mix' : data.statusChartTitle;
+
   // ── Revenue trend series ──
   List<int> get series =>
       data.trend.buckets.map((b) => b.value).toList(growable: false);
 
+  List<String> get seriesLabels =>
+      data.trend.buckets.map((b) => b.label).toList(growable: false);
+
+  String get trendTitle =>
+      data.trend.title.isEmpty ? 'Revenue trend' : data.trend.title;
+
   String get seriesLabel =>
       data.trend.chartTitle.isEmpty ? 'Revenue' : data.trend.chartTitle;
+
+  /// `Avg NPR 1,200` from the server, computed from the buckets otherwise.
+  String get averageLabel {
+    if (data.trend.averageLabel.isNotEmpty) return data.trend.averageLabel;
+    final values = series;
+    final int avg = data.trend.average != 0 || values.isEmpty
+        ? data.trend.average
+        : (values.reduce((a, b) => a + b) / values.length).round();
+    return 'Avg NPR ${_group(avg)}';
+  }
+
+  static String _group(int v) {
+    final digits = v.abs().toString();
+    final buf = StringBuffer(v < 0 ? '-' : '');
+    for (int i = 0; i < digits.length; i++) {
+      if (i > 0 && (digits.length - i) % 3 == 0) buf.write(',');
+      buf.write(digits[i]);
+    }
+    return buf.toString();
+  }
 
   // ── Leaderboards ──
   List<VenuePerformanceRow> get futsalLeaderboard => data.venuePerformance;

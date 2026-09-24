@@ -12,6 +12,7 @@ import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hamro_futsal/core/api/client.dart';
+import 'package:hamro_futsal/core/cache/hive/hive_cache_service.dart';
 import 'package:hamro_futsal/core/helper/crash_reporter.dart';
 import 'package:hamro_futsal/core/helper/fcm_helper.dart';
 import 'package:hamro_futsal/core/helper/session_bootstrap.dart';
@@ -31,16 +32,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 // ignore: unnecessary_nullable_for_final_variable_declarations
-const AppFlavor? kAppFlavor = AppFlavor.staging;
+const AppFlavor kAppFlavor = AppFlavor.staging;
 
 void main() async {
   final WidgetsBinding widgetsBinding =
       WidgetsFlutterBinding.ensureInitialized();
+  AppEnvironment.selected = kAppFlavor;
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
-  if (kAppFlavor != null) {
-    AppEnvironment.selected = kAppFlavor;
-  }
-
   Object? envError;
   StackTrace? envStack;
   try {
@@ -77,6 +75,7 @@ void main() async {
   try {
     final SharedPreferences preferences = await SharedPreferences.getInstance();
     await AppSettings().init(SharedPreferencesWrapper(preferences));
+    await HiveCacheService.instance.init();
     AppThemeController.restore();
 
     hasLoggedIn = await SessionBootstrap.resolve();
