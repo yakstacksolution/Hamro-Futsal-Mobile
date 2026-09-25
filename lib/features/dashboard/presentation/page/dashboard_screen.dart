@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hamro_futsal/core/helper/share_preferences.dart';
@@ -36,7 +37,8 @@ class DashboardScreen extends StatefulWidget {
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen> {
+class _DashboardScreenState extends State<DashboardScreen>
+    with SingleTickerProviderStateMixin {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final ValueNotifier<int> _selectedNavIndexNotifier =
       DashboardScreen.selectedNavIndex;
@@ -48,10 +50,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
   int _notificationRefreshGeneration = 0;
   late final Set<int> _visitedTabIndexes;
 
+  /// How much of the home header is on screen: 1 fully shown, 0 scrolled
+  /// away. It tracks the feed's scroll 1:1 (LinkedIn-style) and only animates
+  /// for the snap once a scroll settles.
+  late final AnimationController _headerController;
+  late final Animation<Offset> _headerOffset;
+
+  /// Measured height of the home header. The header floats over the feed
+  /// rather than sitting above it, so the feed reserves this much space at the
+  /// top of its scroll content.
+  final ValueNotifier<double> _homeHeaderHeight = ValueNotifier<double>(0);
+
   @override
   void initState() {
     super.initState();
     _visitedTabIndexes = <int>{_selectedNavIndexNotifier.value};
+    _headerController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 220),
+      value: 1,
+    );
+    // Linear on purpose: the header must move exactly as far as the finger.
+    _headerOffset = Tween<Offset>(
+      begin: const Offset(0, -1),
+      end: Offset.zero,
+    ).animate(_headerController);
     _categoryFilterBloc = CategoryFilterBloc(
       GetCategoryFilterUseCase(PublicRepositoryImpl()),
     );
@@ -72,6 +95,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void _onNavIndexChanged() {
     final int selectedIndex = _selectedNavIndexNotifier.value;
     _visitedTabIndexes.add(selectedIndex);
+    // Coming back to home always shows the header, whatever it was left at.
+    _headerController.value = 1;
 
     if (selectedIndex == 0) {
       _fetchCategoryFiltersIfNeeded();
@@ -81,6 +106,45 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final VenueFilter filter = _venueFilterNotifier.value;
     if (filter.search == null) return;
     _venueFilterNotifier.value = filter.copyWith(clearSearch: true);
+  }
+
+  bool _onHomeScroll(ScrollNotification notification) {
+    // Only the feed itself: horizontal carousels and nested scrollables must
+    // not move the header.
+    if (notification.depth != 0 || notification.metrics.axis != Axis.vertical) {
+      return false;
+    }
+    final double headerHeight = _homeHeaderHeight.value;
+    if (headerHeight <= 0) return false;
+
+    final ScrollMetrics metrics = notification.metrics;
+    // The header may never be hidden by more than the feed has scrolled:
+    // otherwise the space the feed reserves for it would show as a blank band.
+    final double maxHidden = (metrics.pixels - metrics.minScrollExtent).clamp(
+      0.0,
+      headerHeight,
+    );
+    final double hidden = (1 - _headerController.value) * headerHeight;
+
+    if (notification is ScrollUpdateNotification) {
+      // The bounce back after overscrolling past the end reads as an upward
+      // scroll; ignore it so reaching the bottom does not pull the header in.
+      if (metrics.pixels > metrics.maxScrollExtent) return false;
+      final double delta = notification.scrollDelta ?? 0;
+      if (delta == 0) return false;
+      final double next = (hidden + delta).clamp(0.0, maxHidden);
+      if (next != hidden) {
+        // Assigning the value also stops any snap still running.
+        _headerController.value = 1 - next / headerHeight;
+      }
+    } else if (notification is ScrollEndNotification) {
+      // Never leave it half-shown: settle to whichever end is nearer, and
+      // shown whenever there is not enough scroll to hide it fully.
+      if (hidden == 0 || hidden == headerHeight) return false;
+      final bool hide = hidden > headerHeight / 2 && maxHidden >= headerHeight;
+      _headerController.animateTo(hide ? 0 : 1, curve: Curves.easeOutCubic);
+    }
+    return false;
   }
 
   void _fetchCategoryFiltersIfNeeded() {
@@ -247,6 +311,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void dispose() {
     // The nav-index notifier is static and shared, so only the listener goes.
     _selectedNavIndexNotifier.removeListener(_onNavIndexChanged);
+    _headerController.dispose();
+    _homeHeaderHeight.dispose();
     _categoryFilterBloc.close();
     _venueFilterNotifier.dispose();
     super.dispose();
@@ -373,28 +439,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
   );
 
   Widget _buildContent(int selectedNavIndex) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    // The header floats over the feed and only slides — a paint-time
+    // transform. Collapsing it inside a Column instead would resize the feed's
+    // viewport every frame, relaying out the list mid-scroll.
+    return Stack(
       children: <Widget>[
-        AnimatedSwitcher(
-          duration: const Duration(milliseconds: 280),
-          switchInCurve: Curves.easeOutCubic,
-          switchOutCurve: Curves.easeInCubic,
-          transitionBuilder: (Widget child, Animation<double> anim) {
-            return FadeTransition(
-              opacity: anim,
-              child: SizeTransition(
-                sizeFactor: anim,
-                alignment: Alignment.topCenter,
-                child: child,
-              ),
-            );
-          },
-          child: selectedNavIndex == 0
-              ? _homeHeader()
-              : const SizedBox.shrink(key: ValueKey<String>('no-home-header')),
-        ),
-        Expanded(
+        Positioned.fill(
           child: IndexedStack(
             index: selectedNavIndex,
             sizing: StackFit.expand,
@@ -402,8 +452,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
               _stackChild(
                 index: 0,
                 selectedIndex: selectedNavIndex,
-                childBuilder: () =>
-                    FutsalHomePage(filter: _venueFilterNotifier.value),
+                childBuilder: () => NotificationListener<ScrollNotification>(
+                  onNotification: _onHomeScroll,
+                  child: ValueListenableBuilder<double>(
+                    valueListenable: _homeHeaderHeight,
+                    builder: (BuildContext context, double height, _) =>
+                        FutsalHomePage(
+                          filter: _venueFilterNotifier.value,
+                          topInset: height,
+                        ),
+                  ),
+                ),
               ),
               _stackChild(
                 index: 1,
@@ -428,6 +487,35 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ],
           ),
         ),
+        Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 280),
+            switchInCurve: Curves.easeOutCubic,
+            switchOutCurve: Curves.easeInCubic,
+            child: selectedNavIndex == 0
+                ? SlideTransition(
+                    key: const ValueKey<String>('home-header'),
+                    position: _headerOffset,
+                    child: RepaintBoundary(
+                      child: _SizeReporter(
+                        onHeightChanged: (double height) =>
+                            _homeHeaderHeight.value = height,
+                        // Opaque, since the cards now scroll underneath it.
+                        child: ColoredBox(
+                          color: LightColor.background,
+                          child: _homeHeader(),
+                        ),
+                      ),
+                    ),
+                  )
+                : const SizedBox.shrink(
+                    key: ValueKey<String>('no-home-header'),
+                  ),
+          ),
+        ),
       ],
     );
   }
@@ -448,7 +536,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _homeHeader() {
     return Column(
-      key: const ValueKey<String>('home-header'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         _appBar(),
@@ -471,6 +558,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 selectedFilterIds: _venueFilterNotifier.value.categoryFilterIds,
                 onSelectionChanged: _onCategoryFilterChanged,
               ),
+              // Matches the gap above the chips. It is part of the opaque
+              // header, so the spacing holds while cards scroll underneath.
+              const SizedBox(height: AppDimens.sizeX22),
             ],
           ),
         ),
@@ -506,5 +596,43 @@ class HomeGreeting extends StatelessWidget {
         trailing,
       ],
     );
+  }
+}
+
+/// Reports its child's height after layout, whenever it changes.
+class _SizeReporter extends SingleChildRenderObjectWidget {
+  const _SizeReporter({required this.onHeightChanged, super.child});
+
+  final ValueChanged<double> onHeightChanged;
+
+  @override
+  RenderObject createRenderObject(BuildContext context) =>
+      _RenderSizeReporter(onHeightChanged);
+
+  @override
+  void updateRenderObject(
+    BuildContext context,
+    _RenderSizeReporter renderObject,
+  ) {
+    renderObject.onHeightChanged = onHeightChanged;
+  }
+}
+
+class _RenderSizeReporter extends RenderProxyBox {
+  _RenderSizeReporter(this.onHeightChanged);
+
+  ValueChanged<double> onHeightChanged;
+  double? _lastHeight;
+
+  @override
+  void performLayout() {
+    super.performLayout();
+    final double height = size.height;
+    if (height == _lastHeight) return;
+    _lastHeight = height;
+    // Listeners rebuild widgets, which is not allowed during layout.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (attached) onHeightChanged(height);
+    });
   }
 }

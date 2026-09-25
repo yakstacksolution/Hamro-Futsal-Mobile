@@ -32,20 +32,33 @@ import 'package:hamro_futsal/features/wishlist/domain/usecase/toggle_wishlist_us
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 class FutsalHomePage extends StatelessWidget {
-  const FutsalHomePage({super.key, this.filter = VenueFilter.empty});
+  const FutsalHomePage({
+    super.key,
+    this.filter = VenueFilter.empty,
+    this.topInset = 0,
+  });
 
   final VenueFilter filter;
 
+  /// Height of the dashboard header floating over the top of the feed. It is
+  /// reserved inside the scroll content, so it scrolls away with the cards.
+  final double topInset;
+
   @override
   Widget build(BuildContext context) {
-    return CourtsListScreen(filter: filter);
+    return CourtsListScreen(filter: filter, topInset: topInset);
   }
 }
 
 class CourtsListScreen extends StatefulWidget {
-  const CourtsListScreen({super.key, this.filter = VenueFilter.empty});
+  const CourtsListScreen({
+    super.key,
+    this.filter = VenueFilter.empty,
+    this.topInset = 0,
+  });
 
   final VenueFilter filter;
+  final double topInset;
 
   @override
   State<CourtsListScreen> createState() => _CourtsListScreenState();
@@ -237,16 +250,14 @@ class _CourtsListScreenState extends State<CourtsListScreen>
                 MediaQuery.sizeOf(context).width - (horizontal * 2);
 
             return showSkeleton
-                ? const HomeBodyLoading()
+                ? HomeBodyLoading(topPadding: widget.topInset)
                 : Padding(
-                    padding: EdgeInsets.only(
-                      left: horizontal,
-                      right: horizontal,
-                      top: AppDimens.sizeX22,
-                    ),
+                    padding: EdgeInsets.symmetric(horizontal: horizontal),
                     child: RefreshIndicator(
                       onRefresh: _refresh,
                       color: LightColor.secondaryColor,
+                      // Below the floating header, not hidden behind it.
+                      edgeOffset: widget.topInset,
                       child: CustomScrollView(
                         controller: _scrollController,
                         // Keep the next cards laid out and their resized images
@@ -257,6 +268,9 @@ class _CourtsListScreenState extends State<CourtsListScreen>
                           parent: BouncingScrollPhysics(),
                         ),
                         slivers: <Widget>[
+                          SliverToBoxAdapter(
+                            child: SizedBox(height: widget.topInset),
+                          ),
                           ..._buildContentSlivers(state, availableWidth),
                         ],
                       ),

@@ -6,9 +6,16 @@ import 'package:shimmer/shimmer.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 
 class HomeBodyLoading extends StatelessWidget {
-  const HomeBodyLoading({super.key, this.itemCount = 4});
+  const HomeBodyLoading({
+    super.key,
+    this.itemCount = 4,
+    this.topPadding = AppDimens.sizeX22,
+  });
 
   final int itemCount;
+
+  /// Space above the first placeholder card.
+  final double topPadding;
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +37,7 @@ class HomeBodyLoading extends StatelessWidget {
                 ? ListView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    padding: const EdgeInsets.only(top: AppDimens.sizeX22),
+                    padding: EdgeInsets.only(top: topPadding),
                     itemCount: itemCount,
                     itemBuilder: (BuildContext context, int index) {
                       return const Padding(
@@ -42,7 +49,7 @@ class HomeBodyLoading extends StatelessWidget {
                 : GridView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    padding: const EdgeInsets.only(top: AppDimens.sizeX22),
+                    padding: EdgeInsets.only(top: topPadding),
                     itemCount: itemCount * columns,
                     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: columns,
