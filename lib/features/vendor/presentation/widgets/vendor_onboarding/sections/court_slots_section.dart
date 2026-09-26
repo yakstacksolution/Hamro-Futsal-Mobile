@@ -26,24 +26,19 @@ const List<String> weekdayOptions = <String>[
   'Sat',
 ];
 
-TimeOfDay? timeOfDayFromString(String value) {
-  final List<String> parts = value.split(':');
-  if (parts.length != 2) return null;
-  final int? hour = int.tryParse(parts.first);
-  final int? minute = int.tryParse(parts.last);
-  if (hour == null || minute == null) return null;
-  if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
-  return TimeOfDay(hour: hour, minute: minute);
-}
+// Time parsing/formatting comes from `custom_time_field.dart`. This file
+// used to declare its own 24-hour-only copies, which shadowed those helpers
+// and could not read the "06 : 00 PM" the time field returns — so an hourly
+// closure could never be applied.
 
-String formatTimeOfDay(TimeOfDay time) {
-  final String hour = time.hour.toString().padLeft(2, '0');
+/// A closure time for display, e.g. "6:00 PM", whichever format it was stored
+/// in (picked in the app, or "06:00" from the server).
+String _displayTime(String value) {
+  final TimeOfDay? time = timeOfDayFromString(value);
+  if (time == null) return value.trim();
+  final int hour = time.hourOfPeriod == 0 ? 12 : time.hourOfPeriod;
   final String minute = time.minute.toString().padLeft(2, '0');
-  return '$hour:$minute';
-}
-
-int minutesFromTimeOfDay(TimeOfDay time) {
-  return (time.hour * 60) + time.minute;
+  return '$hour:$minute ${time.period == DayPeriod.am ? 'AM' : 'PM'}';
 }
 
 class CourtSlotsSection extends StatelessWidget {
@@ -2331,7 +2326,8 @@ class _ClosedDateCollectionCard extends StatelessWidget {
                   label: Text(
                     item.isFullDay
                         ? item.date
-                        : '${item.date} · ${item.startTime}-${item.endTime}',
+                        : '${item.date} · ${_displayTime(item.startTime)}'
+                              ' – ${_displayTime(item.endTime)}',
                     style: textTheme.bodySubTitle?.copyWith(
                       color: accent,
                       fontWeight: FontWeight.w800,
@@ -2437,9 +2433,13 @@ class _ClosedDateDialog extends StatefulWidget {
 class _ClosedDateDialogState extends State<_ClosedDateDialog> {
   late DateTime _visibleMonth;
   String? _selectedDate;
+
+  /// Set when Apply is tapped with no date, cleared once one is picked.
+  bool _highlightMissingDate = false;
   bool _isFullDay = true;
-  String _startTime = '06:00';
-  String _endTime = '10:00';
+  // In the field's own format, so the defaults read like a picked time.
+  String _startTime = formatTimeOfDay(const TimeOfDay(hour: 6, minute: 0));
+  String _endTime = formatTimeOfDay(const TimeOfDay(hour: 10, minute: 0));
 
   @override
   void initState() {
@@ -2492,15 +2492,31 @@ class _ClosedDateDialogState extends State<_ClosedDateDialog> {
                 }),
               ),
               const SizedBox(height: AppDimens.sizeX12),
-              _HolidayCalendarGrid(
-                visibleMonth: _visibleMonth,
-                minDate: tomorrow,
-                selectedDates: _selectedDate == null
-                    ? const <String>{}
-                    : <String>{_selectedDate!},
-                onToggle: (DateTime date) => setState(() {
-                  _selectedDate = _formatIsoDate(date);
-                }),
+              // Outlined in red after Apply is tapped without a date, so the
+              // vendor sees where the missing piece is.
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: AppUtils().getPadding(all: AppDimens.paddingX4),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(AppDimens.radiusX12),
+                  border: Border.all(
+                    color: _highlightMissingDate
+                        ? LightColor.redColor
+                        : Colors.transparent,
+                    width: 1.5,
+                  ),
+                ),
+                child: _HolidayCalendarGrid(
+                  visibleMonth: _visibleMonth,
+                  minDate: tomorrow,
+                  selectedDates: _selectedDate == null
+                      ? const <String>{}
+                      : <String>{_selectedDate!},
+                  onToggle: (DateTime date) => setState(() {
+                    _selectedDate = _formatIsoDate(date);
+                    _highlightMissingDate = false;
+                  }),
+                ),
               ),
               const SizedBox(height: AppDimens.sizeX16),
               const VendorFieldLabel('Closure type'),
@@ -2582,14 +2598,38 @@ class _ClosedDateDialogState extends State<_ClosedDateDialog> {
                 ),
               ],
               const SizedBox(height: AppDimens.sizeX12),
-              Text(
-                _selectedDate == null
-                    ? 'No date selected'
-                    : 'Selected $_selectedDate',
-                style: textTheme.bodySubTitle?.copyWith(
-                  color: LightColor.secondaryTextColor,
-                  fontWeight: FontWeight.w700,
-                ),
+              // Says why Apply is disabled instead of leaving the vendor to
+              // guess — the missing date sits above the fold of the dialog.
+              Builder(
+                builder: (BuildContext context) {
+                  final String? blocker = _applyBlocker;
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Icon(
+                        blocker == null
+                            ? Icons.check_circle_rounded
+                            : Icons.info_outline_rounded,
+                        size: AppDimens.sizeX16,
+                        color: blocker == null
+                            ? LightColor.brandTextColor
+                            : LightColor.warningColor,
+                      ),
+                      const SizedBox(width: AppDimens.sizeX6),
+                      Expanded(
+                        child: Text(
+                          blocker ?? _selectionSummary,
+                          style: textTheme.bodySubTitle?.copyWith(
+                            color: blocker == null
+                                ? LightColor.secondaryTextColor
+                                : LightColor.warningColor,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
             ],
           ),
@@ -2616,16 +2656,9 @@ class _ClosedDateDialogState extends State<_ClosedDateDialog> {
                 minHeight: AppDimens.sizeX42,
                 backgroundColor: LightColor.secondaryColor,
                 foregroundColor: LightColor.inverseTextColor,
-                onPressed: _canApply
-                    ? () => Navigator.of(context).pop(
-                        ClosedDateDraft(
-                          date: _selectedDate!,
-                          isFullDay: _isFullDay,
-                          startTime: _isFullDay ? '' : _startTime,
-                          endTime: _isFullDay ? '' : _endTime,
-                        ),
-                      )
-                    : null,
+                // Always tappable: a disabled button gave no clue what was
+                // missing, so Apply now says it instead.
+                onPressed: _apply,
               ),
             ),
           ],
@@ -2634,14 +2667,44 @@ class _ClosedDateDialogState extends State<_ClosedDateDialog> {
     );
   }
 
-  bool get _canApply {
-    if (_selectedDate == null) return false;
-    if (_isFullDay) return true;
+  void _apply() {
+    final String? blocker = _applyBlocker;
+    if (blocker != null) {
+      setState(() => _highlightMissingDate = _selectedDate == null);
+      AppUtils().showSnackBar(context, MsgType.error, blocker);
+      return;
+    }
+    Navigator.of(context).pop(
+      ClosedDateDraft(
+        date: _selectedDate!,
+        isFullDay: _isFullDay,
+        startTime: _isFullDay ? '' : _startTime,
+        endTime: _isFullDay ? '' : _endTime,
+      ),
+    );
+  }
+
+  /// Why the closure cannot be applied yet, or null when it can.
+  String? get _applyBlocker {
+    if (_selectedDate == null) return StringConstants.selectClosureDate;
+    if (_isFullDay) return null;
     final TimeOfDay? start = timeOfDayFromString(_startTime);
     final TimeOfDay? end = timeOfDayFromString(_endTime);
-    if (start == null || end == null) return false;
-    return minutesFromTimeOfDay(start) < minutesFromTimeOfDay(end);
+    if (start == null || end == null) {
+      return StringConstants.selectClosureStartAndEnd;
+    }
+    // A closure is within one day; one that runs past midnight is two
+    // closures, one on each date.
+    if (minutesFromTimeOfDay(start) >= minutesFromTimeOfDay(end)) {
+      return StringConstants.closureEndAfterStart;
+    }
+    return null;
   }
+
+  String get _selectionSummary => _isFullDay
+      ? '$_selectedDate · ${StringConstants.fullDay}'
+      : '$_selectedDate · ${_displayTime(_startTime)}'
+            ' – ${_displayTime(_endTime)}';
 
   bool _canGoPreviousMonth(DateTime minDate) {
     final DateTime previous = DateTime(

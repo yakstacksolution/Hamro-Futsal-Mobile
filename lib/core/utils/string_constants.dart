@@ -76,6 +76,13 @@ final class StringConstants {
   /// Labels and fallbacks on a booking card.
   static const String reference = 'Reference';
   static const String bookedOn = 'Booked on';
+  static const String bookedBy = 'Booked by';
+  static const String selectClosureDate = 'Please select a date properly.';
+  static const String selectClosureStartAndEnd =
+      'Select a start and end time.';
+  static const String closureEndAfterStart =
+      'End time must be later than start time.';
+  static const String loadingBookings = 'Loading bookings…';
 
   /// Suffix on a product's unit price in the cart: `NPR 25 each`.
   static const String each = 'each';
@@ -364,6 +371,8 @@ final class StringConstants {
       'Could not parse category filters from server.';
   static const String couldNotParseCouponsFromServer =
       'Could not parse coupons from server.';
+  static const String couldNotParseMobileBannersFromServer =
+      'Could not parse banners from server.';
   static const String couldNotParseNotificationsFromServer =
       'Could not parse notifications from server.';
   static const String couldNotLoadNotifications =
@@ -1218,6 +1227,25 @@ final class StringConstants {
   static const String viewFullScreen = 'View full screen';
   static const String download = 'Download';
   static const String saveQrCode = 'Save QR code';
+  static const String dontShowAgain = "Don't show again";
+  static const String playerGuides = 'Player';
+  static const String vendorGuides = 'Vendor';
+  static const String learnTheBasics = 'Learn the basics';
+  static const String runYourVenue = 'Run your venue';
+  static const String playerVideosSubtitle =
+      'Short videos on booking courts, paying and finding opponents.';
+  static const String vendorVideosSubtitle =
+      'Short videos on setting up your venue, courts and bookings.';
+  static const String moreVideos = 'More videos';
+  static const String upNext = 'Up next';
+  static const String couldNotLoadVideos = 'Could not load videos.';
+  static const String couldNotParseVideosFromServer =
+      'Could not read the videos from the server.';
+  static const String startHere = 'Start here';
+  static const String noVideosYet = 'No videos yet';
+  static const String noVideosYetMessage =
+      'Video guides on how to use the app will appear here.';
+  static const String swipeForMoreQrs = 'Swipe for more QRs';
   static const String downloadingAttachment = 'Downloading…';
   static const String attachmentSaved = 'Saved to your device.';
   static const String attachmentSavedToGallery = 'Saved to your gallery.';

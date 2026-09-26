@@ -63,6 +63,10 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
   bool _agreedToTerms = false;
   bool _submitted = false;
 
+  /// True from the "Confirm Booking" tap until the overview sheet closes, so a
+  /// double tap cannot open two sheets and submit the booking twice.
+  bool _confirming = false;
+
   bool get _isManual => widget.draft.manualBooking != null;
 
   @override
@@ -298,6 +302,16 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
   }
 
   Future<void> _confirmBooking() async {
+    if (_confirming) return;
+    _confirming = true;
+    try {
+      await _runConfirmBooking();
+    } finally {
+      _confirming = false;
+    }
+  }
+
+  Future<void> _runConfirmBooking() async {
     _dismissKeyboard();
     setState(() => _submitted = true);
     if (!_isManual && _paymentDoc == null) {
@@ -360,6 +374,10 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
   }
 
   void _submitBooking() {
+    if (context.read<CreateBookingBloc>().state.status ==
+        CreateBookingStatus.submitting) {
+      return;
+    }
     HapticFeedback.mediumImpact();
     final BookingDraft draft = widget.draft;
     final CouponState coupon = context.read<CouponBloc>().state;

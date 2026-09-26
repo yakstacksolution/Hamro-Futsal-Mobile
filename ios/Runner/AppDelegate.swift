@@ -1,4 +1,5 @@
 import Flutter
+import GoogleMaps
 import UIKit
 
 @main
@@ -7,11 +8,37 @@ import UIKit
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
+    // Must run before any GoogleMap is created.
+    if let key = GoogleMapsKey.read() {
+      GMSServices.provideAPIKey(key)
+    }
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
+  }
+}
+
+/// GOOGLE_MAPS_API_KEY from the env file bundled as a Flutter asset — the same
+/// file the Dart side and the Android build read, so the key lives in one place.
+enum GoogleMapsKey {
+  static func read() -> String? {
+    for asset in ["env_production.env", "env_staging.env"] {
+      let key = FlutterDartProject.lookupKey(forAsset: asset)
+      guard
+        let path = Bundle.main.path(forResource: key, ofType: nil),
+        let contents = try? String(contentsOfFile: path, encoding: .utf8)
+      else { continue }
+      for line in contents.split(whereSeparator: \.isNewline) {
+        let trimmed = line.trimmingCharacters(in: .whitespaces)
+        guard trimmed.hasPrefix("GOOGLE_MAPS_API_KEY=") else { continue }
+        let value = trimmed.dropFirst("GOOGLE_MAPS_API_KEY=".count)
+          .trimmingCharacters(in: .whitespaces)
+        if !value.isEmpty { return value }
+      }
+    }
+    return nil
   }
 }
 

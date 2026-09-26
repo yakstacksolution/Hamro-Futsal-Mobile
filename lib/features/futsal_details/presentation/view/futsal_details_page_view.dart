@@ -72,8 +72,7 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
     if (venueId != null) {
       final FutsalDetailsRepositoryImpl repository =
           FutsalDetailsRepositoryImpl();
-      _hostedByBloc = HostedByBloc(GetHostedByUseCase(repository))
-        ..add(FetchHostedByEvent(venueId: venueId));
+      _hostedByBloc = HostedByBloc(GetHostedByUseCase(repository));
       // The description is the one section addressed by slug. Without one
       // there is nothing to ask for, so the bloc is left null and the section
       // falls back to the description already on the model.
@@ -84,16 +83,24 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
       }
       _venueAmenitiesFacilitiesBloc = VenueAmenitiesFacilitiesBloc(
         GetVenueAmenitiesFacilitiesUseCase(repository),
-      )..add(FetchVenueAmenitiesFacilitiesEvent(venueId: venueId));
+      );
       // Only the first page is fetched here. "View all" opens its own page and
       // keeps requesting the same five-row API page size as the user scrolls.
-      _venueReviewsBloc = VenueReviewsBloc(GetVenueReviewsUseCase(repository))
-        ..add(
+      _venueReviewsBloc = VenueReviewsBloc(GetVenueReviewsUseCase(repository));
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _hostedByBloc?.add(FetchHostedByEvent(venueId: venueId));
+        _venueAmenitiesFacilitiesBloc?.add(
+          FetchVenueAmenitiesFacilitiesEvent(venueId: venueId),
+        );
+        _venueReviewsBloc?.add(
           FetchVenueReviewsEvent(
             venueId: venueId,
             perPage: kVenueReviewsPreviewSize,
           ),
         );
+      });
     }
 
     _bottomBarController = AnimationController(
@@ -697,12 +704,29 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
 
   Widget _buildScrollBody(BuildContext context) {
     final bool desktop = context.isDesktop;
+    final double overlap = desktop ? 0 : AppDimens.sizeX24;
+    final List<Widget Function()> sectionBuilders = <Widget Function()>[
+      if (!desktop) () => _buildHostedBySection(),
+      () => _buildDescriptionSection(),
+      () => _buildAmenitiesSection(),
+      () => CourtLocationMapSection(
+        latitude: widget.publicVenue?.latitude,
+        longitude: widget.publicVenue?.longitude,
+        venueName: _court.name,
+        address: _court.address.trim().isEmpty
+            ? _court.location
+            : _court.address,
+      ),
+      () => _buildPolicySection(),
+      () => _buildRulesSection(),
+      () => _buildReviewsSection(),
+    ];
     return CustomScrollView(
       physics: const BouncingScrollPhysics(),
       slivers: [
         // Each sliver gets its own layer. SliverToBoxAdapter adds no repaint
         // boundary, so without these every scroll frame re-recorded the whole
-        // page — gallery blurs, map and all — instead of just moving layers.
+        // page — gallery, map and all — instead of just moving layers.
         SliverToBoxAdapter(
           child: RepaintBoundary(
             child: DetailsImageGallery(
@@ -714,19 +738,17 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
             ),
           ),
         ),
+        // The sheet overlaps the hero by [overlap]. A transform is paint-only,
+        // so every sliver below shifts by the same amount to keep the gaps.
         SliverToBoxAdapter(
-          child: RepaintBoundary(
+          child: Transform.translate(
+            offset: Offset(0, -overlap),
             child: Container(
               decoration: BoxDecoration(
                 color: LightColor.background,
                 borderRadius: BorderRadius.vertical(
                   top: Radius.circular(AppDimens.radiusX28),
                 ),
-              ),
-              transform: Matrix4.translationValues(
-                0,
-                desktop ? 0 : -AppDimens.sizeX24,
-                0,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -748,41 +770,35 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
                         ),
                       ),
                     ),
-
                   CourtIntroWidget(court: _court),
-                  // Sections load independently and some animate while they do
-                  // (the hosted-by shimmer ticks every frame). Isolating each one
-                  // keeps a section's repaint from re-recording the whole column.
-                  if (!desktop) RepaintBoundary(child: _buildHostedBySection()),
-
-                  RepaintBoundary(child: _buildDescriptionSection()),
-
-                  RepaintBoundary(child: _buildAmenitiesSection()),
-
-                  RepaintBoundary(
-                    child: CourtLocationMapSection(
-                      latitude: widget.publicVenue?.latitude,
-                      longitude: widget.publicVenue?.longitude,
-                      venueName: _court.name,
-                      address: _court.address.trim().isEmpty
-                          ? _court.location
-                          : _court.address,
-                    ),
-                  ),
-
-                  RepaintBoundary(child: _buildPolicySection()),
-                  RepaintBoundary(child: _buildRulesSection()),
-                  RepaintBoundary(child: _buildReviewsSection()),
-
-                  SizedBox(
-                    height: desktop
-                        ? AppDimens.sizeX32
-                        : MediaQuery.paddingOf(context).bottom +
-                              AppDimens.sizeX100,
-                  ),
                 ],
               ),
             ),
+          ),
+        ),
+        // Built lazily: the map, the three HTML sections and the reviews used
+        // to sit in one Column and were all laid out while the page was still
+        // opening, although most of them start well below the fold. Each keeps
+        // its own layer, since sections load (and shimmer) independently.
+        SliverList(
+          delegate: SliverChildBuilderDelegate(
+            (BuildContext context, int index) => RepaintBoundary(
+              child: Transform.translate(
+                offset: Offset(0, -overlap),
+                child: sectionBuilders[index](),
+              ),
+            ),
+            childCount: sectionBuilders.length,
+          ),
+        ),
+        SliverToBoxAdapter(
+          child: SizedBox(
+            height:
+                (desktop
+                    ? AppDimens.sizeX32
+                    : MediaQuery.paddingOf(context).bottom +
+                          AppDimens.sizeX100) -
+                overlap,
           ),
         ),
       ],

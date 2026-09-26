@@ -26,13 +26,14 @@ class VenueDescriptionBloc
     Emitter<VenueDescriptionState> emit,
   ) async {
     final String cacheKey =
-        '${HiveCacheService.instance.userScope}:${event.venueSlug}';
+        '${HiveCacheService.instance.userScope}:venue:${event.venueSlug}:description';
     final VenueDescriptionModel? cached = await HiveCacheService.instance
         .readItem<VenueDescriptionModel>(
-          boxName: HiveBoxes.venueDetails,
+          boxName: HiveBoxes.home,
           key: cacheKey,
           fromJson: VenueDescriptionModel.fromJson,
         );
+
     emit(
       state.copyWith(
         status: cached == null
@@ -61,7 +62,7 @@ class VenueDescriptionBloc
       (VenueDescriptionModel venueDescription) {
         unawaited(
           HiveCacheService.instance.syncItem(
-            boxName: HiveBoxes.venueDetails,
+            boxName: HiveBoxes.home,
             key: cacheKey,
             json: venueDescription.toJson(),
           ),

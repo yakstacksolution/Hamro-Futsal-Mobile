@@ -510,6 +510,7 @@ class _CourtDescriptionSubsectionState
   Timer? _debounceTimer;
   String _lastHtmlContent = '';
   bool _initialized = false;
+  bool _hasPrefilledDefault = false;
   final Object _flushOwner = Object();
 
   @override
@@ -644,6 +645,23 @@ class _CourtDescriptionSubsectionState
     super.dispose();
   }
 
+  /// A court with no description starts from the admin's "Court Description"
+  /// template. Runs once per editor, and only while the field is still empty,
+  /// so it never overwrites what the vendor wrote or what the server holds.
+  void _prefillDefaultIfEmpty(String? defaultDescription) {
+    if (_hasPrefilledDefault) return;
+    if (defaultDescription == null || defaultDescription.trim().isEmpty) {
+      return;
+    }
+    _hasPrefilledDefault = true;
+    if (_stripHtml(widget.court.description).isNotEmpty) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (_stripHtml(_lastHtmlContent).isNotEmpty) return;
+      _resetDescription(defaultDescription);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final String? defaultDescription = context.select((
@@ -654,6 +672,7 @@ class _CourtDescriptionSubsectionState
         VendorTemplateField.courtDescription,
       );
     });
+    _prefillDefaultIfEmpty(defaultDescription);
 
     return VendorPanel(
       padding: AppUtils().getPadding(all: AppDimens.paddingX12),

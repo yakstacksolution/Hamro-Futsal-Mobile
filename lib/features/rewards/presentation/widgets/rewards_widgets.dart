@@ -257,9 +257,38 @@ class _RedeemProgress extends StatelessWidget {
           '${RewardFmt.points(missing)} more points for your next coupon.';
     }
 
+    final int threshold = summary.pointsPerCoupon;
+    // Balance towards the threshold, capped at it once a coupon is ready.
+    final int towards = threshold <= 0
+        ? 0
+        : (threshold - missing).clamp(0, threshold);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
+        if (threshold > 0) ...<Widget>[
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: Text(
+                  summary.canRedeem ? 'Coupon unlocked' : 'Next coupon',
+                  style: textTheme.bodySubTitle?.copyWith(
+                    color: LightColor.onBrandSurface.withValues(alpha: 0.85),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Text(
+                '${RewardFmt.points(towards)} / ${RewardFmt.points(threshold)} pts',
+                style: textTheme.bodySubTitle?.copyWith(
+                  color: LightColor.onBrandSurface,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppDimens.paddingX6),
+        ],
         ClipRRect(
           borderRadius: BorderRadius.circular(AppDimens.radiusX8),
           child: LinearProgressIndicator(

@@ -15,6 +15,10 @@
         android:label="Hamro Futsal"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon">
+        <!-- Filled from GOOGLE_MAPS_API_KEY by android/app/build.gradle.kts. -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="${googleMapsApiKey}" />
         <meta-data
             android:name="google_analytics_adid_collection_enabled"
             android:value="false" />

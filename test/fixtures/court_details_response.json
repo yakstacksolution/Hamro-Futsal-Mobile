@@ -1,0 +1,306 @@
+{
+  "status": "success",
+  "message": "Court details fetched successfully.",
+  "data": {
+    "court": {
+      "main_step": 3,
+      "sub_step": 2,
+      "id": 14,
+      "venue_id": 2,
+      "court_type_id": 1,
+      "match_format_id": 1,
+      "court_name": "Court 1",
+      "slug": "court-1",
+      "code": null,
+      "description": "<p>This is the one I got in the car and I am not sure </p>",
+      "base_price": "1200.00",
+      "max_player": 10,
+      "surface_type": null,
+      "slot_duration": 60,
+      "opening_time": null,
+      "closing_time": null,
+      "is_payment_required": true,
+      "advance_payment_required": true,
+      "advance_payment_type": "percentage",
+      "advance_price": "50.00",
+      "payment_qr_media": {
+        "id": 560,
+        "name": "camera_1789701151855572",
+        "full_url": "https://staging.hamrofutsal.com//storage/users/4/library/560/camera_1789701151855572.jpg",
+        "status": "active"
+      },
+      "payment_qr_media_list": [
+        {
+          "id": 678,
+          "name": "camera_1789479440399887",
+          "full_url": "https://staging.hamrofutsal.com//storage/court/14/payment_qr/678/camera_1789479440399887.jpg",
+          "status": "active"
+        },
+        {
+          "id": 679,
+          "name": "camera_1789701151855572",
+          "full_url": "https://staging.hamrofutsal.com//storage/court/14/payment_qr/679/camera_1789701151855572.jpg",
+          "status": "active"
+        }
+      ],
+      "court_photos": [],
+      "court_memories": [],
+      "amenities": [
+        {
+          "id": 4,
+          "name": "CCTV Security",
+          "slug": "cctv-security",
+          "status": true,
+          "icon": {
+            "id": 531,
+            "name": "icon",
+            "full_url": "https://staging.hamrofutsal.com//storage/Amenity/4/icon/531/icon_1789488548_6aa96da4ddaf1.png",
+            "media": {
+              "id": 531,
+              "name": "icon",
+              "full_url": "https://staging.hamrofutsal.com//storage/Amenity/4/icon/531/icon_1789488548_6aa96da4ddaf1.png",
+              "status": "active"
+            }
+          },
+          "description": "24/7 monitored security cameras.",
+          "is_active": true,
+          "sort_order": 1
+        },
+        {
+          "id": 2,
+          "name": "Locker",
+          "slug": "locker",
+          "status": true,
+          "icon": {
+            "id": 529,
+            "name": "icon",
+            "full_url": "https://staging.hamrofutsal.com//storage/Amenity/2/icon/529/icon_1789488518_6aa96d8634bdf.png",
+            "media": {
+              "id": 529,
+              "name": "icon",
+              "full_url": "https://staging.hamrofutsal.com//storage/Amenity/2/icon/529/icon_1789488518_6aa96d8634bdf.png",
+              "status": "active"
+            }
+          },
+          "description": "Secure lockers for personal belongings.",
+          "is_active": true,
+          "sort_order": 2
+        },
+        {
+          "id": 5,
+          "name": "Waiting Lounge",
+          "slug": "waiting-lounge",
+          "status": true,
+          "icon": {
+            "id": 533,
+            "name": "icon",
+            "full_url": "https://staging.hamrofutsal.com//storage/Amenity/5/icon/533/icon_1789488607_6aa96ddf0480b.png",
+            "media": {
+              "id": 533,
+              "name": "icon",
+              "full_url": "https://staging.hamrofutsal.com//storage/Amenity/5/icon/533/icon_1789488607_6aa96ddf0480b.png",
+              "status": "active"
+            }
+          },
+          "description": "Comfortable waiting area for players.",
+          "is_active": true,
+          "sort_order": 3
+        },
+        {
+          "id": 3,
+          "name": "Restroom",
+          "slug": "restroom",
+          "status": true,
+          "icon": {
+            "id": 530,
+            "name": "icon",
+            "full_url": "https://staging.hamrofutsal.com//storage/Amenity/3/icon/530/icon_1789488536_6aa96d98ec240.png",
+            "media": {
+              "id": 530,
+              "name": "icon",
+              "full_url": "https://staging.hamrofutsal.com//storage/Amenity/3/icon/530/icon_1789488536_6aa96d98ec240.png",
+              "status": "active"
+            }
+          },
+          "description": "Well-maintained toilets for users.",
+          "is_active": true,
+          "sort_order": 4
+        },
+        {
+          "id": 1,
+          "name": "WiFi",
+          "slug": "wifi",
+          "status": true,
+          "icon": {
+            "id": 538,
+            "name": "icon",
+            "full_url": "https://staging.hamrofutsal.com//storage/Amenity/1/icon/538/icon_1789488923_6aa96f1b81500.png",
+            "media": {
+              "id": 538,
+              "name": "icon",
+              "full_url": "https://staging.hamrofutsal.com//storage/Amenity/1/icon/538/icon_1789488923_6aa96f1b81500.png",
+              "status": "active"
+            }
+          },
+          "description": "Free wireless internet access.",
+          "is_active": true,
+          "sort_order": 5
+        }
+      ],
+      "facilities": [
+        {
+          "id": 1,
+          "name": "Flood Lights",
+          "title": "Flood Lights",
+          "slug": "flood-lights",
+          "status": true,
+          "icon": {
+            "id": 534,
+            "name": "image",
+            "full_url": "https://staging.hamrofutsal.com//storage/facility/1/image/534/image_1789488644_6aa96e04cdb48.png",
+            "media": {
+              "id": 534,
+              "name": "image",
+              "full_url": "https://staging.hamrofutsal.com//storage/facility/1/image/534/image_1789488644_6aa96e04cdb48.png",
+              "status": "active"
+            }
+          },
+          "image": {
+            "id": 534,
+            "name": "image",
+            "full_url": "https://staging.hamrofutsal.com//storage/facility/1/image/534/image_1789488644_6aa96e04cdb48.png",
+            "media": {
+              "id": 534,
+              "name": "image",
+              "full_url": "https://staging.hamrofutsal.com//storage/facility/1/image/534/image_1789488644_6aa96e04cdb48.png",
+              "status": "active"
+            }
+          },
+          "description": "High-quality flood lights for night matches.",
+          "is_active": true,
+          "sort_order": 1
+        },
+        {
+          "id": 2,
+          "name": "Drinking Water",
+          "title": "Drinking Water",
+          "slug": "drinking-water",
+          "status": true,
+          "icon": {
+            "id": 535,
+            "name": "image",
+            "full_url": "https://staging.hamrofutsal.com//storage/facility/2/image/535/image_1789488668_6aa96e1cebce9.png",
+            "media": {
+              "id": 535,
+              "name": "image",
+              "full_url": "https://staging.hamrofutsal.com//storage/facility/2/image/535/image_1789488668_6aa96e1cebce9.png",
+              "status": "active"
+            }
+          },
+          "image": {
+            "id": 535,
+            "name": "image",
+            "full_url": "https://staging.hamrofutsal.com//storage/facility/2/image/535/image_1789488668_6aa96e1cebce9.png",
+            "media": {
+              "id": 535,
+              "name": "image",
+              "full_url": "https://staging.hamrofutsal.com//storage/facility/2/image/535/image_1789488668_6aa96e1cebce9.png",
+              "status": "active"
+            }
+          },
+          "description": "Safe drinking water available inside venue.",
+          "is_active": true,
+          "sort_order": 2
+        },
+        {
+          "id": 3,
+          "name": "First Aid",
+          "title": "First Aid",
+          "slug": "first-aid",
+          "status": true,
+          "icon": {
+            "id": 536,
+            "name": "image",
+            "full_url": "https://staging.hamrofutsal.com//storage/facility/3/image/536/image_1789488680_6aa96e28091b4.png",
+            "media": {
+              "id": 536,
+              "name": "image",
+              "full_url": "https://staging.hamrofutsal.com//storage/facility/3/image/536/image_1789488680_6aa96e28091b4.png",
+              "status": "active"
+            }
+          },
+          "image": {
+            "id": 536,
+            "name": "image",
+            "full_url": "https://staging.hamrofutsal.com//storage/facility/3/image/536/image_1789488680_6aa96e28091b4.png",
+            "media": {
+              "id": 536,
+              "name": "image",
+              "full_url": "https://staging.hamrofutsal.com//storage/facility/3/image/536/image_1789488680_6aa96e28091b4.png",
+              "status": "active"
+            }
+          },
+          "description": "Basic first-aid support at the venue.",
+          "is_active": true,
+          "sort_order": 3
+        },
+        {
+          "id": 5,
+          "name": "Equipment Rental",
+          "title": "Equipment Rental",
+          "slug": "equipment-rental",
+          "status": true,
+          "icon": {
+            "id": 537,
+            "name": "image",
+            "full_url": "https://staging.hamrofutsal.com//storage/facility/5/image/537/image_1789488724_6aa96e5486c04.png",
+            "media": {
+              "id": 537,
+              "name": "image",
+              "full_url": "https://staging.hamrofutsal.com//storage/facility/5/image/537/image_1789488724_6aa96e5486c04.png",
+              "status": "active"
+            }
+          },
+          "image": {
+            "id": 537,
+            "name": "image",
+            "full_url": "https://staging.hamrofutsal.com//storage/facility/5/image/537/image_1789488724_6aa96e5486c04.png",
+            "media": {
+              "id": 537,
+              "name": "image",
+              "full_url": "https://staging.hamrofutsal.com//storage/facility/5/image/537/image_1789488724_6aa96e5486c04.png",
+              "status": "active"
+            }
+          },
+          "description": "Footballs and bibs available for rent.",
+          "is_active": true,
+          "sort_order": 5
+        }
+      ],
+      "weekend_days": [
+        "sat",
+        "sun"
+      ],
+      "holiday_dates": [
+        {
+          "date": "2026-07-28"
+        }
+      ],
+      "closed_dates": [
+        {
+          "date": "2026-07-29",
+          "closure_type": "full_day",
+          "start_time": null,
+          "end_time": null
+        }
+      ],
+      "booking_policies": null,
+      "court_rules": null,
+      "cancellation_policy": null,
+      "status": "active",
+      "is_step_completed": true,
+      "created_at": "2026-07-16 15:39:28",
+      "updated_at": "2026-09-25 21:40:57"
+    }
+  }
+}

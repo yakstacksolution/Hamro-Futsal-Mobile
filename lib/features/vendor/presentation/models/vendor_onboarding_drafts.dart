@@ -46,6 +46,10 @@ enum UploadVerificationStatus {
       this == UploadVerificationStatus.approved;
 }
 
+/// Most payment apps a court takes money through (eSewa, Khalti, Fonepay, a
+/// bank or two) fit in this many QRs.
+const int kMaxCourtPaymentQrs = 5;
+
 class UploadRef {
   const UploadRef({
     required this.name,
@@ -738,7 +742,7 @@ class CourtDraft {
     this.advancePaymentType = AdvancePaymentType.percentage,
     this.advancePrice = kMinimumAdvancePercent,
     this.advancePriceUserEdited = false,
-    this.paymentQr,
+    this.paymentQrs = const <UploadRef>[],
     Set<int> amenities = const <int>{},
     Set<int> facilities = const <int>{},
     this.amenityDetails = const <CourtTagDetail>[],
@@ -785,7 +789,10 @@ class CourtDraft {
   final AdvancePaymentType? advancePaymentType;
   final double? advancePrice;
   final bool advancePriceUserEdited;
-  final UploadRef? paymentQr;
+
+  final List<UploadRef> paymentQrs;
+
+  UploadRef? get paymentQr => paymentQrs.isEmpty ? null : paymentQrs.first;
   final Set<Object?> _amenities;
   final Set<Object?> _facilities;
   Set<int> get amenities {
@@ -842,7 +849,7 @@ class CourtDraft {
     AdvancePaymentType? advancePaymentType,
     double? advancePrice,
     bool? advancePriceUserEdited,
-    UploadRef? paymentQr,
+    List<UploadRef>? paymentQrs,
     Set<int>? amenities,
     Set<int>? facilities,
     List<CourtTagDetail>? amenityDetails,
@@ -921,7 +928,9 @@ class CourtDraft {
           : advancePrice ?? this.advancePrice,
       advancePriceUserEdited:
           advancePriceUserEdited ?? this.advancePriceUserEdited,
-      paymentQr: clearPaymentQr ? null : paymentQr ?? this.paymentQr,
+      paymentQrs: clearPaymentQr
+          ? const <UploadRef>[]
+          : paymentQrs ?? this.paymentQrs,
       amenities: amenities ?? this.amenities,
       facilities: facilities ?? this.facilities,
       amenityDetails: amenityDetails ?? this.amenityDetails,
@@ -974,7 +983,7 @@ class CourtDraft {
       'advancePaymentType': advancePaymentType?.apiValue,
       'advancePrice': advancePrice,
       'advancePriceUserEdited': advancePriceUserEdited,
-      'paymentQr': paymentQr?.toJson(),
+      'paymentQrs': paymentQrs.map((UploadRef item) => item.toJson()).toList(),
       'amenities': amenities.toList(),
       'facilities': facilities.toList(),
       'amenityDetails': amenityDetails
@@ -1075,7 +1084,10 @@ class CourtDraft {
           AdvancePaymentType.percentage,
       advancePrice: _asDouble(json['advancePrice'] ?? json['paymentPercent']),
       advancePriceUserEdited: json['advancePriceUserEdited'] as bool? ?? false,
-      paymentQr: _uploadFromJson(json['paymentQr']),
+      // Drafts saved before multiple QRs held a single `paymentQr`.
+      paymentQrs: json['paymentQrs'] is List
+          ? _uploadsFromJson(json['paymentQrs'])
+          : <UploadRef>[?_uploadFromJson(json['paymentQr'])],
       amenities: _intSetFromJson(json['amenities']),
       facilities: _intSetFromJson(json['facilities']),
       amenityDetails: _tagDetailsFromJson(json['amenityDetails']),

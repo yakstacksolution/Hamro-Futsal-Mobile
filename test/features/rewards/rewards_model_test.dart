@@ -46,12 +46,56 @@ void main() {
       final RewardsSummaryModel summary = RewardsSummaryModel.fromResponse(
         <String, dynamic>{
           'points': 10,
-          'points_required': 500,
+          'coupon_threshold': 500,
           'can_generate_coupon': true,
         },
       );
 
       expect(summary.canRedeem, isTrue);
+    });
+
+    test('reads the live /customer/rewards body', () {
+      final RewardsSummaryModel summary = RewardsSummaryModel.fromResponse(
+        <String, dynamic>{
+          'status': 'success',
+          'message': '',
+          'data': <String, dynamic>{
+            'available_points': 70,
+            'total_earned': 170,
+            'total_redeemed': 100,
+            'coupon_threshold': 100,
+            'can_generate_coupon': false,
+            'points_required': 30,
+          },
+        },
+      );
+
+      expect(summary.availablePoints, 70);
+      expect(summary.totalEarnedPoints, 170);
+      expect(summary.totalRedeemedPoints, 100);
+      // The threshold is coupon_threshold; points_required is what is missing.
+      expect(summary.pointsPerCoupon, 100);
+      expect(summary.pointsRequired, 30);
+      expect(summary.canRedeem, isFalse);
+      expect(summary.pointsToNextCoupon, 30);
+      expect(summary.progressToNextCoupon, closeTo(0.7, 0.001));
+      expect(summary.redeemableCoupons, 0);
+      expect(summary.note, isEmpty);
+    });
+
+    test('once the server allows a coupon, nothing is missing', () {
+      final RewardsSummaryModel summary =
+          RewardsSummaryModel.fromResponse(<String, dynamic>{
+            'available_points': 130,
+            'coupon_threshold': 100,
+            'can_generate_coupon': true,
+            'points_required': 0,
+          });
+
+      expect(summary.canRedeem, isTrue);
+      expect(summary.pointsToNextCoupon, 0);
+      expect(summary.progressToNextCoupon, 1);
+      expect(summary.redeemableCoupons, 1);
     });
 
     test('degrades to an empty wallet on an unexpected payload', () {

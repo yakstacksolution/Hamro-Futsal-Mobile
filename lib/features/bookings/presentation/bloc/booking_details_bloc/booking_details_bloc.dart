@@ -2,8 +2,6 @@ import 'dart:async';
 
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
-import 'package:hamro_futsal/core/cache/hive/hive_boxes.dart';
-import 'package:hamro_futsal/core/cache/hive/hive_cache_service.dart';
 import 'package:hamro_futsal/features/bookings/data/model/booking_model.dart';
 import 'package:hamro_futsal/features/bookings/data/model/booking_review_model.dart';
 import 'package:hamro_futsal/features/bookings/domain/usecase/get_bookings_use_case.dart';
@@ -38,20 +36,9 @@ class BookingDetailsBloc
     FetchBookingDetailsEvent event,
     Emitter<BookingDetailsState> emit,
   ) async {
-    final String cacheKey =
-        '${HiveCacheService.instance.userScope}:${event.bookingId}';
-    final BookingModel? cached = await HiveCacheService.instance
-        .readItem<BookingModel>(
-          boxName: HiveBoxes.bookingDetails,
-          key: cacheKey,
-          fromJson: BookingModel.fromJson,
-        );
     emit(
       state.copyWith(
-        status: cached == null
-            ? BookingDetailsStatus.loading
-            : BookingDetailsStatus.success,
-        booking: cached ?? state.booking,
+        status: BookingDetailsStatus.loading,
         clearError: true,
       ),
     );
@@ -59,15 +46,10 @@ class BookingDetailsBloc
     final result = await _useCase.getBookingDetails(event.bookingId);
     result.fold(
       (error) => emit(
-        cached != null
-            ? state.copyWith(
-                status: BookingDetailsStatus.success,
-                errorMessage: error.errorMessage,
-              )
-            : state.copyWith(
-                status: BookingDetailsStatus.failure,
-                errorMessage: error.errorMessage,
-              ),
+        state.copyWith(
+          status: BookingDetailsStatus.failure,
+          errorMessage: error.errorMessage,
+        ),
       ),
       (booking) {
         final BookingModel fresh = booking.copyWith(
@@ -77,13 +59,6 @@ class BookingDetailsBloc
           playerEmail: booking.playerEmail ?? state.booking.playerEmail,
           venueId: booking.venueId ?? state.booking.venueId,
           vendorId: booking.vendorId ?? state.booking.vendorId,
-        );
-        unawaited(
-          HiveCacheService.instance.syncItem(
-            boxName: HiveBoxes.bookingDetails,
-            key: cacheKey,
-            json: fresh.toJson(),
-          ),
         );
         emit(
           state.copyWith(
@@ -343,6 +318,9 @@ class BookingDetailsBloc
     AcceptBookingEvent event,
     Emitter<BookingDetailsState> emit,
   ) async {
+    // Accept and reject are one decision: while either is in flight, a repeat
+    // tap must not send a second request.
+    if (state.decisionStatus == DecisionStatus.submitting) return;
     emit(
       state.copyWith(
         decisionStatus: DecisionStatus.submitting,
@@ -372,6 +350,9 @@ class BookingDetailsBloc
     RejectBookingEvent event,
     Emitter<BookingDetailsState> emit,
   ) async {
+    // Accept and reject are one decision: while either is in flight, a repeat
+    // tap must not send a second request.
+    if (state.decisionStatus == DecisionStatus.submitting) return;
     emit(
       state.copyWith(
         decisionStatus: DecisionStatus.submitting,

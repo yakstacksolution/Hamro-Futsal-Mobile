@@ -1,5 +1,4 @@
 import 'dart:math' as math;
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hamro_futsal/core/helper/share_helper.dart';
@@ -141,184 +140,176 @@ class _DetailsImageGalleryState extends State<DetailsImageGallery> {
             : 340;
         return SizedBox(
           height: height,
-          child: BackdropGroup(
-            // All frosted controls can reuse one backdrop capture while the
-            // hero moves beneath them, avoiding several blur passes per frame.
-            child: Stack(
-              children: [
-                widget.images.isEmpty
-                    ? Container(color: LightColor.inputFillColor)
-                    : PageView.builder(
-                        controller: _imagePageController,
-                        // Build neighbouring slides early so their resized image
-                        // starts loading before the user's swipe reaches it.
-                        allowImplicitScrolling: true,
-                        itemCount: widget.images.length,
-                        onPageChanged: (i) => _currentImageIndex.value = i,
-                        itemBuilder: (context, index) {
-                          return Stack(
-                            fit: StackFit.expand,
-                            children: [
-                              CustomImageView(
-                                url: widget.images[index],
-                                fit: BoxFit.cover,
-                                width: double.infinity,
-                                height: double.infinity,
-                                cacheWidth: constraints.maxWidth,
-                                cacheHeight: height,
-                              ),
-                              Positioned(
-                                bottom: 0,
-                                left: 0,
-                                right: 0,
-                                height: 120,
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      begin: Alignment.topCenter,
-                                      end: Alignment.bottomCenter,
-                                      colors: [
-                                        LightColor.transparentColor,
-                                        LightColor.primaryTextColor.withValues(
-                                          alpha: 0.5,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          );
-                        },
-                      ),
-
-                Positioned(
-                  top: MediaQuery.paddingOf(context).top + 8,
-                  left: wide ? AppDimens.paddingX24 : 16,
-                  right: wide ? AppDimens.paddingX24 : 16,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      _glassButton(
-                        icon: Icons.arrow_back_ios_new_rounded,
-                        onTap: () => Navigator.of(context).pop(),
-                      ),
-                      Row(
-                        children: [
-                          if (_canShare) ...<Widget>[
-                            _glassButton(
-                              key: _shareButtonKey,
-                              icon: Icons.share_outlined,
-                              onTap: _shareVenue,
+          child: Stack(
+            children: [
+              widget.images.isEmpty
+                  ? Container(color: LightColor.inputFillColor)
+                  : PageView.builder(
+                      controller: _imagePageController,
+                      // Build neighbouring slides early so their resized image
+                      // starts loading before the user's swipe reaches it.
+                      allowImplicitScrolling: true,
+                      itemCount: widget.images.length,
+                      onPageChanged: (i) => _currentImageIndex.value = i,
+                      itemBuilder: (context, index) {
+                        return Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            CustomImageView(
+                              url: widget.images[index],
+                              fit: BoxFit.cover,
+                              width: double.infinity,
+                              height: double.infinity,
+                              cacheWidth: constraints.maxWidth,
+                              cacheHeight: height,
                             ),
-                            const SizedBox(width: 10),
-                          ],
-                          // Heart follows the shared wishlist store when a venue id
-                          // is available.
-                          ValueListenableBuilder<Set<int>>(
-                            valueListenable: WishlistStore.instance.ids,
-                            builder: (context, ids, _) {
-                              final bool saved = widget.venueId != null
-                                  ? ids.contains(widget.venueId)
-                                  : _isSaved;
-                              return _glassButton(
-                                icon: saved
-                                    ? Icons.favorite_rounded
-                                    : Icons.favorite_border_rounded,
-                                iconColor: saved
-                                    ? LightColor.secondaryColor
-                                    : LightColor.primaryTextColor,
-                                onTap: _toggleWishlist,
-                              );
-                            },
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-
-                Positioned(
-                  bottom: 16,
-                  left: 16,
-                  right: 16,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      if (widget.images.isNotEmpty && !wide)
-                        ValueListenableBuilder<int>(
-                          valueListenable: _currentImageIndex,
-                          builder: (context, current, _) => Row(
-                            children: List.generate(widget.images.length, (i) {
-                              final active = i == current;
-                              return AnimatedContainer(
-                                duration: const Duration(milliseconds: 300),
-                                margin: const EdgeInsets.only(right: 6),
-                                width: active ? 24 : 8,
-                                height: 6,
+                            Positioned(
+                              bottom: 0,
+                              left: 0,
+                              right: 0,
+                              height: 120,
+                              child: Container(
                                 decoration: BoxDecoration(
-                                  color: active
-                                      ? LightColor.whiteColor
-                                      : LightColor.whiteColor.withValues(
-                                          alpha: 0.4,
-                                        ),
-                                  borderRadius: BorderRadius.circular(100),
-                                ),
-                              );
-                            }),
-                          ),
-                        ),
-                      if (widget.images.isNotEmpty)
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(20),
-                          child: BackdropFilter.grouped(
-                            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                color: LightColor.primaryTextColor.withValues(
-                                  alpha: 0.35,
-                                ),
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                  color: LightColor.onBrandSurface.withValues(
-                                    alpha: 0.15,
-                                  ),
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.photo,
-                                    color: LightColor.inverseTextColor,
-                                    size: 14,
-                                  ),
-                                  const SizedBox(width: 5),
-                                  ValueListenableBuilder<int>(
-                                    valueListenable: _currentImageIndex,
-                                    builder: (context, current, _) => Text(
-                                      '${current + 1}/${widget.images.length}',
-                                      style: TextStyle(
-                                        color: LightColor.inverseTextColor,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w700,
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: [
+                                      LightColor.transparentColor,
+                                      LightColor.primaryTextColor.withValues(
+                                        alpha: 0.5,
                                       ),
-                                    ),
+                                    ],
                                   ),
-                                ],
+                                ),
                               ),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+
+              Positioned(
+                top: MediaQuery.paddingOf(context).top + 8,
+                left: wide ? AppDimens.paddingX24 : 16,
+                right: wide ? AppDimens.paddingX24 : 16,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _glassButton(
+                      icon: Icons.arrow_back_ios_new_rounded,
+                      onTap: () => Navigator.of(context).pop(),
+                    ),
+                    Row(
+                      children: [
+                        if (_canShare) ...<Widget>[
+                          _glassButton(
+                            key: _shareButtonKey,
+                            icon: Icons.share_outlined,
+                            onTap: _shareVenue,
+                          ),
+                          const SizedBox(width: 10),
+                        ],
+                        // Heart follows the shared wishlist store when a venue id
+                        // is available.
+                        ValueListenableBuilder<Set<int>>(
+                          valueListenable: WishlistStore.instance.ids,
+                          builder: (context, ids, _) {
+                            final bool saved = widget.venueId != null
+                                ? ids.contains(widget.venueId)
+                                : _isSaved;
+                            return _glassButton(
+                              icon: saved
+                                  ? Icons.favorite_rounded
+                                  : Icons.favorite_border_rounded,
+                              iconColor: saved
+                                  ? LightColor.secondaryColor
+                                  : LightColor.primaryTextColor,
+                              onTap: _toggleWishlist,
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+              Positioned(
+                bottom: 16,
+                left: 16,
+                right: 16,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    if (widget.images.isNotEmpty && !wide)
+                      ValueListenableBuilder<int>(
+                        valueListenable: _currentImageIndex,
+                        builder: (context, current, _) => Row(
+                          children: List.generate(widget.images.length, (i) {
+                            final active = i == current;
+                            return AnimatedContainer(
+                              duration: const Duration(milliseconds: 300),
+                              margin: const EdgeInsets.only(right: 6),
+                              width: active ? 24 : 8,
+                              height: 6,
+                              decoration: BoxDecoration(
+                                color: active
+                                    ? LightColor.whiteColor
+                                    : LightColor.whiteColor.withValues(
+                                        alpha: 0.4,
+                                      ),
+                                borderRadius: BorderRadius.circular(100),
+                              ),
+                            );
+                          }),
+                        ),
+                      ),
+                    if (widget.images.isNotEmpty)
+                      // A darker tint stands in for the old live blur, which
+                      // had to be recomputed every frame the page scrolled.
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: LightColor.primaryTextColor.withValues(
+                            alpha: 0.55,
+                          ),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: LightColor.onBrandSurface.withValues(
+                              alpha: 0.15,
                             ),
                           ),
                         ),
-                    ],
-                  ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.photo,
+                              color: LightColor.inverseTextColor,
+                              size: 14,
+                            ),
+                            const SizedBox(width: 5),
+                            ValueListenableBuilder<int>(
+                              valueListenable: _currentImageIndex,
+                              builder: (context, current, _) => Text(
+                                '${current + 1}/${widget.images.length}',
+                                style: TextStyle(
+                                  color: LightColor.inverseTextColor,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         );
       },
@@ -387,35 +378,31 @@ class _DetailsImageGalleryState extends State<DetailsImageGallery> {
     return GestureDetector(
       key: key,
       onTap: onTap,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(10),
-        child: BackdropFilter.grouped(
-          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-          child: Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              // Soft frosted cream background so the dark icons stay legible
-              // over any image without looking starkly white.
-              color: LightColor.elevatedCardColor.withValues(alpha: 0.88),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: LightColor.primaryTextColor.withValues(alpha: 0.08),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: LightColor.primaryTextColor.withValues(alpha: 0.12),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Icon(
-              icon,
-              color: iconColor ?? context.appColors.primaryText,
-              size: 22,
-            ),
+      // No backdrop blur: at 88% opacity it was all but invisible, yet it
+      // re-blurred the hero on every scroll frame.
+      child: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          // Soft frosted cream background so the dark icons stay legible
+          // over any image without looking starkly white.
+          color: LightColor.elevatedCardColor.withValues(alpha: 0.88),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: LightColor.primaryTextColor.withValues(alpha: 0.08),
           ),
+          boxShadow: [
+            BoxShadow(
+              color: LightColor.primaryTextColor.withValues(alpha: 0.12),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Icon(
+          icon,
+          color: iconColor ?? context.appColors.primaryText,
+          size: 22,
         ),
       ),
     );

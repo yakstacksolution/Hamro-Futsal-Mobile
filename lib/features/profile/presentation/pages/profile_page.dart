@@ -102,7 +102,14 @@ class _ProfilePageState extends State<ProfilePage> {
     _ProfileItem(
       title: StringConstants.helpAndFaq,
       icon: Icons.help_outline_rounded,
-      onTap: () => context.pushNamed(AppRouterParams.helpFaq.name),
+      onTap: () {
+        final bool isVendor =
+            context.read<ProfileBloc>().state.profile?.data.role == 'vendor';
+        context.pushNamed(
+          AppRouterParams.helpFaq.name,
+          queryParameters: <String, String>{'vendor': isVendor.toString()},
+        );
+      },
     ),
     _ProfileItem(
       title: StringConstants.feedback,
@@ -137,6 +144,21 @@ class _ProfilePageState extends State<ProfilePage> {
         bloc.state.status != ProfileStatus.loading) {
       bloc.add(const FetchProfileEvent());
     }
+  }
+
+  /// Pull to refresh: re-fetches the signed-in user's profile only. Resolves
+  /// once the fetch settles so the indicator tracks the real request; the
+  /// profile already on screen stays put meanwhile.
+  Future<void> _refreshProfile() async {
+    final ProfileBloc bloc = context.read<ProfileBloc>();
+    if (bloc.state.status != ProfileStatus.loading) {
+      bloc.add(const FetchProfileEvent());
+    }
+    await bloc.stream
+        .firstWhere(
+          (ProfileState state) => state.status != ProfileStatus.loading,
+        )
+        .timeout(const Duration(seconds: 20), onTimeout: () => bloc.state);
   }
 
   Future<void> _showVendorRequestSheet(UserData user) async {
@@ -205,70 +227,78 @@ class _ProfilePageState extends State<ProfilePage> {
             _pageHeader(context),
             const SizedBox(height: AppDimens.paddingX12),
             Expanded(
-              child: ListView(
-                physics: const BouncingScrollPhysics(),
-                // The bar the list scrolls under, measured rather than a fixed
-                // 150 (that left a dead half-screen below the version line),
-                // plus `_kVersionGap` so the version text is framed by the
-                // same space above and below it.
-                padding: EdgeInsets.only(
-                  bottom:
-                      CustomBottomNavigationBar.heightOf(context) +
-                      _kVersionGap,
-                ),
-                children: [
-                  _ProfileRow(
-                    profile: profile,
-                    profileImage: state.profileImage,
-                    isLoading: isLoading,
-                    onTap: profile == null
-                        ? null
-                        : () => Navigator.of(context).push(
-                            MaterialPageRoute<void>(
-                              builder: (_) => BlocProvider<ProfileBloc>.value(
-                                value: context.read<ProfileBloc>(),
-                                child: ProfileDetailsPage(user: profile.data),
+              child: RefreshIndicator(
+                onRefresh: _refreshProfile,
+                color: LightColor.secondaryColor,
+                child: ListView(
+                  // Always scrollable, so a pull works even when the profile
+                  // fits on screen.
+                  physics: const AlwaysScrollableScrollPhysics(
+                    parent: BouncingScrollPhysics(),
+                  ),
+                  // The bar the list scrolls under, measured rather than a fixed
+                  // 150 (that left a dead half-screen below the version line),
+                  // plus `_kVersionGap` so the version text is framed by the
+                  // same space above and below it.
+                  padding: EdgeInsets.only(
+                    bottom:
+                        CustomBottomNavigationBar.heightOf(context) +
+                        _kVersionGap,
+                  ),
+                  children: [
+                    _ProfileRow(
+                      profile: profile,
+                      profileImage: state.profileImage,
+                      isLoading: isLoading,
+                      onTap: profile == null
+                          ? null
+                          : () => Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => BlocProvider<ProfileBloc>.value(
+                                  value: context.read<ProfileBloc>(),
+                                  child: ProfileDetailsPage(user: profile.data),
+                                ),
                               ),
                             ),
-                          ),
-                  ),
-                  // if (profile != null && isVendor) ...[
-                  //   _VendorStatusCard(user: profile.data),
-                  //   const SizedBox(height: AppDimens.paddingX20),
-                  // ],
-                  const SizedBox(height: AppDimens.paddingX20),
-                  _SectionGroup(
-                    label: StringConstants.general,
-                    items: _generalItems,
-                  ),
-                  const SizedBox(height: AppDimens.paddingX20),
-                  _SectionGroup(
-                    label: StringConstants.vendor,
-                    items: isVendor
-                        ? _vendorItems(profile?.data)
-                        : candidateVendorItems,
-                  ),
-                  const SizedBox(height: AppDimens.paddingX20),
-                  _SectionGroup(
-                    label: StringConstants.support,
-                    items: _supportItems,
-                  ),
-                  const SizedBox(height: AppDimens.paddingX20),
-                  _SectionGroup(
-                    label: StringConstants.account,
-                    items: [
-                      _ProfileItem(
-                        title: _isLoggingOut ? 'Logging out…' : 'Log out',
-                        icon: Icons.logout_rounded,
-                        destructive: true,
-                        loading: _isLoggingOut,
-                        onTap: _isLoggingOut ? () {} : _handleLogout,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: _kVersionGap),
-                  _appVersion(context),
-                ],
+                    ),
+                    // if (profile != null && isVendor) ...[
+                    //   _VendorStatusCard(user: profile.data),
+                    //   const SizedBox(height: AppDimens.paddingX20),
+                    // ],
+                    const SizedBox(height: AppDimens.paddingX20),
+                    _SectionGroup(
+                      label: StringConstants.general,
+                      items: _generalItems,
+                    ),
+                    const SizedBox(height: AppDimens.paddingX20),
+                    _SectionGroup(
+                      label: StringConstants.vendor,
+                      items: isVendor
+                          ? _vendorItems(profile?.data)
+                          : candidateVendorItems,
+                    ),
+                    const SizedBox(height: AppDimens.paddingX20),
+                    _SectionGroup(
+                      label: StringConstants.support,
+                      items: _supportItems,
+                    ),
+                    const SizedBox(height: AppDimens.paddingX20),
+                    _SectionGroup(
+                      label: StringConstants.account,
+                      items: [
+                        _ProfileItem(
+                          title: _isLoggingOut ? 'Logging out…' : 'Log out',
+                          icon: Icons.logout_rounded,
+                          destructive: true,
+                          loading: _isLoggingOut,
+                          onTap: _isLoggingOut ? () {} : _handleLogout,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: _kVersionGap),
+                    _appVersion(context),
+                  ],
+                ),
               ),
             ),
           ],

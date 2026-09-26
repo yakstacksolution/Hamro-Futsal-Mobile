@@ -18,6 +18,15 @@ import 'package:flutter/foundation.dart';
 abstract final class CrashReporter {
   /// Installs the framework and platform error handlers.
   static void install() {
+    // Debug sessions report errors that release builds cannot hit — a hot
+    // reload leaves instances built before a new field was added holding null
+    // in a non-nullable slot — and those were being filed as fatal crashes.
+    unawaited(
+      FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(
+        !kDebugMode,
+      ),
+    );
+
     FlutterError.onError = (FlutterErrorDetails details) {
       FlutterError.presentError(details);
       unawaited(

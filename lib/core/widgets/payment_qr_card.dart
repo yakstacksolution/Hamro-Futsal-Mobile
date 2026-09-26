@@ -11,7 +11,10 @@ import 'package:hamro_futsal/features/futsal_details/data/model/payment_qr_model
 /// Manual-payment QR card — the QR image (tap to zoom), payee details, note,
 /// and an emphasized amount row. Shared by booking checkout and the
 /// opponent-request accept flow.
-class PaymentQrCard extends StatelessWidget {
+///
+/// A court with several QRs (eSewa, a bank, ...) shows them as a swipeable
+/// carousel with a page indicator; zoom and save act on the QR in view.
+class PaymentQrCard extends StatefulWidget {
   const PaymentQrCard({
     super.key,
     required this.qr,
@@ -31,17 +34,52 @@ class PaymentQrCard extends StatelessWidget {
   final String? amountLabel;
   final String? amountValue;
 
-  String get _payeeName {
-    final String? name = qr?.payeeName;
-    return (name != null && name.isNotEmpty) ? name : fallbackPayeeName;
+  @override
+  State<PaymentQrCard> createState() => _PaymentQrCardState();
+}
+
+class _PaymentQrCardState extends State<PaymentQrCard> {
+  final PageController _pageController = PageController();
+  int _page = 0;
+
+  List<PaymentQrImage> get _images =>
+      widget.qr?.images ?? const <PaymentQrImage>[];
+
+  /// The QR in view, or null when there is none to show.
+  PaymentQrImage? get _current {
+    final List<PaymentQrImage> images = _images;
+    if (images.isEmpty) return null;
+    return images[_page.clamp(0, images.length - 1)];
   }
 
-  /// The QR, filling whatever square box the caller gives it.
-  Widget _qrImage() {
-    final PaymentQrModel? model = qr;
-    if (model != null && model.qrImageBytes != null) {
+  @override
+  void didUpdateWidget(covariant PaymentQrCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // A refetch can return fewer QRs than before; keep the index in range so
+    // the header and save action never point past the list.
+    final int count = _images.length;
+    if (_page >= count && count > 0) {
+      _page = count - 1;
+      if (_pageController.hasClients) _pageController.jumpToPage(_page);
+    }
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  String get _payeeName {
+    final String? name = widget.qr?.payeeName;
+    return (name != null && name.isNotEmpty) ? name : widget.fallbackPayeeName;
+  }
+
+  /// [image], filling whatever square box the caller gives it.
+  Widget _qrImage(PaymentQrImage? image) {
+    if (image != null && image.bytes != null) {
       return Image.memory(
-        model.qrImageBytes!,
+        image.bytes!,
         fit: BoxFit.contain,
         // A QR is hard pixels, not a photo: smoothing the upscale is what
         // makes a large one look soft and read badly.
@@ -50,9 +88,9 @@ class PaymentQrCard extends StatelessWidget {
         errorBuilder: (_, __, ___) => _qrPlaceholder(),
       );
     }
-    if (model != null && model.qrImageUrl != null) {
+    if (image != null && image.url != null) {
       return CustomImageView(
-        url: model.qrImageUrl,
+        url: image.url,
         width: double.infinity,
         height: double.infinity,
         fit: BoxFit.contain,
@@ -62,7 +100,7 @@ class PaymentQrCard extends StatelessWidget {
   }
 
   Widget _qrPlaceholder() {
-    if (isLoading) {
+    if (widget.isLoading) {
       return const Center(
         child: SizedBox(
           width: AppDimens.sizeX24,
@@ -96,39 +134,42 @@ class PaymentQrCard extends StatelessWidget {
     );
   }
 
-  /// Save action for the QR, or nothing when there is no QR to save.
+  /// Save action for [image], or nothing when there is no QR to save.
   ///
   /// The QR is what the player scans in their banking app, and that app is not
   /// this one — so keeping the image is the whole point, exactly as it is for a
   /// payment proof on the booking-details card.
-  Widget? _downloadAction({Color? color}) {
-    final PaymentQrModel? model = qr;
-    if (model == null || !model.hasQr) return null;
+  Widget? _downloadAction(PaymentQrImage? image, {Color? color}) {
+    if (image == null || !image.hasImage) return null;
     return AttachmentDownloadAction(
-      key: const Key('payment-qr-download'),
-      bytes: model.qrImageBytes,
-      url: model.qrImageUrl,
-      fileName: _fileName,
+      // Keyed per QR so the action's saving state does not carry over when
+      // the user swipes to another one mid-download.
+      key: ValueKey<String>('payment-qr-download-${image.id ?? image.url}'),
+      bytes: image.bytes,
+      url: image.url,
+      fileName: _fileName(image),
       color: color,
       tooltip: StringConstants.saveQrCode,
     );
   }
 
-  /// A payee-stamped name, so QRs for two venues do not collide in the user's
-  /// files. The URL's own name wins when the server gave one with an
-  /// extension — [DownloadHelper] falls back to it on its own.
-  String get _fileName {
+  /// A payee-stamped name, so QRs for two venues — or two QRs of one venue —
+  /// do not collide in the user's files.
+  String _fileName(PaymentQrImage image) {
     final String payee = _payeeName
         .trim()
         .toLowerCase()
         .replaceAll(RegExp(r'[^a-z0-9]+'), '-')
         .replaceAll(RegExp(r'^-+|-+$'), '');
-    return payee.isEmpty ? 'payment-qr' : 'payment-qr-$payee';
+    final String base = payee.isEmpty ? 'payment-qr' : 'payment-qr-$payee';
+    return _images.length > 1 ? '$base-${_images.indexOf(image) + 1}' : base;
   }
 
-  void _zoom(BuildContext context) {
-    if (!(qr?.hasQr ?? false)) return;
-    final Widget? saveAction = _downloadAction(color: LightColor.onQrSurface);
+  void _zoom(BuildContext context, PaymentQrImage image) {
+    final Widget? saveAction = _downloadAction(
+      image,
+      color: LightColor.onQrSurface,
+    );
     showDialog<void>(
       context: context,
       builder: (BuildContext context) => Dialog(
@@ -142,7 +183,7 @@ class PaymentQrCard extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              AspectRatio(aspectRatio: 1, child: _qrImage()),
+              AspectRatio(aspectRatio: 1, child: _qrImage(image)),
               const SizedBox(height: AppDimens.sizeX16),
               Text(
                 _payeeName,
@@ -161,12 +202,84 @@ class PaymentQrCard extends StatelessWidget {
     );
   }
 
+  /// The QR box: a single image, or a swipeable pager when there are several.
+  Widget _qrViewport(BuildContext context) {
+    final List<PaymentQrImage> images = _images;
+    if (images.length <= 1) {
+      final PaymentQrImage? image = images.isEmpty ? null : images.first;
+      return GestureDetector(
+        onTap: image != null ? () => _zoom(context, image) : null,
+        child: _qrImage(image),
+      );
+    }
+    return PageView.builder(
+      controller: _pageController,
+      itemCount: images.length,
+      onPageChanged: (int page) => setState(() => _page = page),
+      itemBuilder: (BuildContext context, int index) => GestureDetector(
+        onTap: () => _zoom(context, images[index]),
+        child: _qrImage(images[index]),
+      ),
+    );
+  }
+
+  /// "1 of 2" with dots under a multi-QR carousel; tapping a dot jumps to it.
+  Widget _pageIndicator(BuildContext context) {
+    final int count = _images.length;
+    final textTheme = FutsalTheme.getTextTheme(context);
+    return Padding(
+      padding: AppUtils().getPadding(top: AppDimens.paddingX10),
+      child: Column(
+        children: <Widget>[
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List<Widget>.generate(count, (int index) {
+              final bool active = index == _page;
+              return GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => _pageController.animateToPage(
+                  index,
+                  duration: const Duration(milliseconds: 250),
+                  curve: Curves.easeOut,
+                ),
+                child: Padding(
+                  padding: AppUtils().getPadding(
+                    symmetricHorizontal: AppDimens.paddingX4,
+                    symmetricVertical: AppDimens.paddingX4,
+                  ),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    width: active ? AppDimens.sizeX16 : AppDimens.sizeX6,
+                    height: AppDimens.sizeX6,
+                    decoration: BoxDecoration(
+                      color: active
+                          ? LightColor.secondaryColor
+                          : LightColor.dividerColor,
+                      borderRadius: BorderRadius.circular(AppDimens.radiusX12),
+                    ),
+                  ),
+                ),
+              );
+            }),
+          ),
+          const SizedBox(height: AppDimens.sizeX4),
+          Text(
+            '${_page + 1} of $count · ${StringConstants.swipeForMoreQrs}',
+            style: textTheme.bodyMiniSubTitle?.copyWith(
+              color: LightColor.hintTextColor,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
-    final bool hasQr = qr?.hasQr ?? false;
-    final String? note = qr?.note;
-    final Widget? downloadAction = _downloadAction();
+    final String? note = widget.qr?.note;
+    final Widget? downloadAction = _downloadAction(_current);
     return Container(
       width: double.infinity,
       padding: AppUtils().getPadding(all: AppDimens.paddingX16),
@@ -202,16 +315,14 @@ class PaymentQrCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: AppDimens.sizeX8),
-          GestureDetector(
-            onTap: hasQr ? () => _zoom(context) : null,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(AppDimens.radiusX12),
-              child: ColoredBox(
-                color: LightColor.qrSurface,
-                child: AspectRatio(aspectRatio: 1, child: _qrImage()),
-              ),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(AppDimens.radiusX12),
+            child: ColoredBox(
+              color: LightColor.qrSurface,
+              child: AspectRatio(aspectRatio: 1, child: _qrViewport(context)),
             ),
           ),
+          if (_images.length > 1) _pageIndicator(context),
           if (note != null) ...<Widget>[
             const SizedBox(height: AppDimens.sizeX8),
             Text(
@@ -226,7 +337,8 @@ class PaymentQrCard extends StatelessWidget {
               ),
             ),
           ],
-          if (amountLabel != null && amountValue != null) ...<Widget>[
+          if (widget.amountLabel != null &&
+              widget.amountValue != null) ...<Widget>[
             Padding(
               padding: AppUtils().getPadding(
                 symmetricVertical: AppDimens.paddingX10,
@@ -240,7 +352,7 @@ class PaymentQrCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Text(
-                  amountLabel!,
+                  widget.amountLabel!,
                   style: textTheme.bodyTextSmall?.copyWith(
                     color: LightColor.secondaryTextColor,
                     fontWeight: FontWeight.w700,
@@ -249,7 +361,7 @@ class PaymentQrCard extends StatelessWidget {
                 const SizedBox(width: AppDimens.sizeX12),
                 Expanded(
                   child: Text(
-                    amountValue!,
+                    widget.amountValue!,
                     textAlign: TextAlign.right,
                     style: textTheme.bodyTextMedium?.copyWith(
                       color: LightColor.brandTextColor,

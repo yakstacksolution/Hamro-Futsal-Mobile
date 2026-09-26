@@ -81,6 +81,16 @@ class ApiClient {
     return _patch(url: '$_baseUrl/notifications/$notificationId/unread');
   }
 
+  // ── Mobile banners ──
+
+  Future<Result> getMobileBanners() {
+    return _get(url: '$_baseUrl/mobile-banners');
+  }
+
+  Future<Result> dismissMobileBanner({required String bannerId}) {
+    return _post(url: '$_baseUrl/auth/mobile-banners/$bannerId/dismiss');
+  }
+
   Future<Result> googleLogin({required Map<String, dynamic> data}) {
     return _post(url: '$_baseUrl/auth/google-login', data: data);
   }
@@ -143,6 +153,10 @@ class ApiClient {
 
   Future<Result> getHelps() {
     return _get(url: '$_baseUrl/helps');
+  }
+
+  Future<Result> getYoutubeVideos() {
+    return _get(url: '$_baseUrl/youtube-videos');
   }
 
   Future<Result> getFeedbackTypes() {

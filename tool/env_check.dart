@@ -20,6 +20,7 @@ const Set<String> _sharedByDesign = <String>{
   'REVERB_SCHEME',
   'REVERB_MESSAGE_EVENT',
   'REVERB_TYPING_EVENT',
+  'GOOGLE_MAPS_API_KEY',
 };
 
 Map<String, String> _read(String path) {

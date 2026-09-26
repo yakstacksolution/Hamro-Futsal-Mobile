@@ -219,7 +219,7 @@ Map<String, dynamic> _courtSubstepBody(
             'advance_price': court.advancePrice,
           };
         case 1:
-          return <String, dynamic>{'payment_qr_id': court.paymentQr?.id};
+          return _paymentQrBody(court);
       }
     case 2:
       switch (subStep) {
@@ -273,7 +273,7 @@ Map<String, dynamic> _fullCourtBody(CourtDraft court) {
     'advance_payment_required': true,
     'advance_payment_type': court.advancePaymentType?.apiValue,
     'advance_price': court.advancePrice,
-    'payment_qr_id': court.paymentQr?.id,
+    ..._paymentQrBody(court),
     'amenity_ids': court.amenities.toList(),
     'facility_ids': court.facilities.toList(),
     'weekend_days': court.weekendDays.toList(),
@@ -468,4 +468,17 @@ int? _packageIdFromPercent(double? percent) {
     default:
       return null;
   }
+}
+
+/// All QR ids, plus the first as `payment_qr_id` so a backend that still reads
+/// a single QR keeps working.
+Map<String, dynamic> _paymentQrBody(CourtDraft court) {
+  final List<int> ids = court.paymentQrs
+      .map((UploadRef item) => item.id)
+      .whereType<int>()
+      .toList(growable: false);
+  return <String, dynamic>{
+    'payment_qr_ids': ids,
+    'payment_qr_id': ids.isEmpty ? null : ids.first,
+  };
 }

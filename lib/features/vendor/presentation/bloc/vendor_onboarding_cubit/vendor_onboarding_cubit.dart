@@ -158,7 +158,9 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     }
 
     if (state.activeCourt == null) {
-      return 'Add First Court';
+      // On the court list: once a court exists, the vendor is done adding and
+      // the bar finishes onboarding; more courts come from the list itself.
+      return state.courts.isEmpty ? 'Add First Court' : 'Finish';
     }
 
     return isFinalStep ? 'Review & Publish' : 'Next';
@@ -475,6 +477,9 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     _flushActiveEditors();
 
     if (state.isInCourtCategory && state.activeCourt == null) {
+      // Court list with at least one court: "Finish" validates every step and
+      // publishes, jumping to whichever court step is still incomplete.
+      if (state.courts.isNotEmpty) return submit();
       addCourt();
       await _saveDraft(showSavingState: false);
       return null;
@@ -1691,10 +1696,25 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     );
   }
 
+  /// Adds [file] to the court's payment QRs (ignored if already there, or
+  /// once [kMaxCourtPaymentQrs] is reached).
   void setCourtPaymentQr(UploadRef file) {
     final CourtDraft? court = state.activeCourt;
     if (court == null) return;
-    updateActiveCourt(court.copyWith(paymentQr: file));
+    setCourtPaymentQrs(<UploadRef>[...court.paymentQrs, file]);
+  }
+
+  /// Replaces the court's payment QRs, dropping duplicates and anything past
+  /// [kMaxCourtPaymentQrs].
+  void setCourtPaymentQrs(List<UploadRef> files) {
+    final CourtDraft? court = state.activeCourt;
+    if (court == null) return;
+    final Set<String> seen = <String>{};
+    final List<UploadRef> unique = <UploadRef>[
+      for (final UploadRef file in files)
+        if (seen.add(file.storageKey)) file,
+    ].take(kMaxCourtPaymentQrs).toList(growable: false);
+    updateActiveCourt(court.copyWith(paymentQrs: unique));
   }
 
   void addCourtPhotos(List<UploadRef> files) {
@@ -1775,10 +1795,21 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     );
   }
 
-  void removeCourtPaymentQr() {
+  /// Removes one QR, or every QR when [file] is null.
+  void removeCourtPaymentQr([UploadRef? file]) {
     final CourtDraft? court = state.activeCourt;
     if (court == null) return;
-    updateActiveCourt(court.copyWith(clearPaymentQr: true));
+    if (file == null) {
+      updateActiveCourt(court.copyWith(clearPaymentQr: true));
+      return;
+    }
+    updateActiveCourt(
+      court.copyWith(
+        paymentQrs: court.paymentQrs
+            .where((UploadRef item) => item.storageKey != file.storageKey)
+            .toList(growable: false),
+      ),
+    );
   }
 
   void removeCourtPhoto(UploadRef file) {
@@ -1906,6 +1937,64 @@ class VendorOnboardingCubit extends Cubit<VendorOnboardingState> {
     await _saveDraft(showSavingState: false);
     emit(state.copyWith(isSubmitting: false, isCompleted: true));
     return null;
+  }
+
+  /// "Finish" on the court list. Courts listed there come from the venue's
+  /// court summaries, which leave out most of the fields [submit] validates,
+  /// so a court the server already marks complete is trusted as-is; any other
+  /// court must pass local validation. Returns a message when something still
+  /// needs doing.
+  Future<String?> finishFromCourtList() async {
+    if (state.isSubmitting) return null;
+    _flushActiveEditors();
+
+    if (state.courts.isEmpty) {
+      return 'Add at least one court before finishing.';
+    }
+    for (final CourtDraft court in state.courts) {
+      if (!_isCourtComplete(court)) {
+        final String name = court.name.trim().isEmpty
+            ? 'A court'
+            : '"${court.name.trim()}"';
+        return '$name is not set up yet. Complete it before finishing.';
+      }
+    }
+
+    // Starting from `isCompleted: false` guarantees the flip to true is seen
+    // even when onboarding was already finished once in this session.
+    emit(
+      state.copyWith(
+        isSubmitting: true,
+        isCompleted: false,
+        clearErrorMessage: true,
+        errorKeys: const <String>{},
+      ),
+    );
+    await _saveDraft(showSavingState: false);
+    emit(state.copyWith(isSubmitting: false, isCompleted: true));
+    return null;
+  }
+
+  bool _isCourtComplete(CourtDraft court) {
+    if (court.isStepCompleted) return true;
+    for (
+      int sectionIndex = 0;
+      sectionIndex < courtSectionDefinitions.length;
+      sectionIndex++
+    ) {
+      final int substepCount =
+          courtSectionDefinitions[sectionIndex].substeps.length;
+      for (int subIndex = 0; subIndex < substepCount; subIndex++) {
+        if (!VendorOnboardingValidator.validateCourtSubstep(
+          court,
+          sectionIndex,
+          subIndex,
+        ).isValid) {
+          return false;
+        }
+      }
+    }
+    return true;
   }
 
   Future<void> resetOnboarding() async {

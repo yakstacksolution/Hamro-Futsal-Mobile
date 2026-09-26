@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
 import 'package:go_router/go_router.dart';
-import 'package:latlong2/latlong.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import 'package:hamro_futsal/core/routers/app_router_params.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/utils/google_map_style.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 class CourtLocationMapSection extends StatelessWidget {
@@ -28,7 +28,7 @@ class CourtLocationMapSection extends StatelessWidget {
 
   static const double _mercatorLatitudeLimit = 85.05112878;
 
-  /// [MapOptions.backgroundColor]'s default, shown until tiles paint.
+  /// Close to Google's empty-map grey, shown until the map mounts.
   static const Color _mapBackgroundColor = Color(0xFFE0E0E0);
 
   bool get _hasCoordinates =>
@@ -153,73 +153,29 @@ class CourtLocationMapSection extends StatelessWidget {
                           // FlutterMap's own background, so the box looks the
                           // same before the map mounts as while tiles load.
                           placeholderColor: _mapBackgroundColor,
-                          child: FlutterMap(
-                            options: MapOptions(
-                              initialCenter: point,
-                              initialZoom: 15.5,
-                              cameraConstraint: CameraConstraint.contain(
-                                bounds: LatLngBounds(
-                                  const LatLng(-_mercatorLatitudeLimit, -180),
-                                  const LatLng(_mercatorLatitudeLimit, 180),
-                                ),
+                          // Lite mode (Android) renders a static bitmap: the
+                          // right cost for a preview inside a scrolling page.
+                          // IgnorePointer keeps the platform view from taking
+                          // the page's scroll; the tap opens the full map.
+                          child: IgnorePointer(
+                            child: GoogleMap(
+                              initialCameraPosition: CameraPosition(
+                                target: point,
+                                zoom: 15.5,
                               ),
-                              // Static preview — taps open the external maps app
-                              // and gestures don't hijack the page scroll.
-                              interactionOptions: const InteractionOptions(
-                                flags: InteractiveFlag.none,
-                              ),
+                              liteModeEnabled: true,
+                              markers: <Marker>{
+                                venueMarker(const MarkerId('venue'), point),
+                              },
+                              zoomControlsEnabled: false,
+                              zoomGesturesEnabled: false,
+                              scrollGesturesEnabled: false,
+                              rotateGesturesEnabled: false,
+                              tiltGesturesEnabled: false,
+                              myLocationButtonEnabled: false,
+                              mapToolbarEnabled: false,
+                              compassEnabled: false,
                             ),
-                            children: <Widget>[
-                              TileLayer(
-                                urlTemplate:
-                                    'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                                userAgentPackageName: 'hamro_futsal',
-                                panBuffer: 0,
-                                keepBuffer: 0,
-                              ),
-                              MarkerLayer(
-                                markers: <Marker>[
-                                  Marker(
-                                    point: point,
-                                    width: AppDimens.sizeX48,
-                                    height: AppDimens.sizeX48,
-                                    alignment: Alignment.topCenter,
-                                    child: const Icon(
-                                      Icons.location_on,
-                                      color: LightColor.secondaryColor,
-                                      size: AppDimens.sizeX36,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    // OpenStreetMap attribution (required by the tile usage
-                    // policy).
-                    Positioned(
-                      left: AppDimens.sizeX6,
-                      bottom: AppDimens.sizeX6,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppDimens.paddingX6,
-                          vertical: AppDimens.paddingX2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: LightColor.onBrandSurface.withValues(
-                            alpha: 0.8,
-                          ),
-                          borderRadius: BorderRadius.circular(
-                            AppDimens.radiusX4,
-                          ),
-                        ),
-                        child: Text(
-                          StringConstants.openstreetmap,
-                          style: textTheme.bodyMiniSubTitle?.copyWith(
-                            color: LightColor.secondaryTextColor,
                           ),
                         ),
                       ),

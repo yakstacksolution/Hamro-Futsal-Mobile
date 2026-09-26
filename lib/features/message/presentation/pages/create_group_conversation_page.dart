@@ -117,6 +117,10 @@ class _CreateGroupConversationPageState
   bool _hasMoreUsers = false;
   bool _queuedSearchReload = false;
   int _currentUserPage = 0;
+
+  /// The search the list currently shows results for. A debounced search that
+  /// lands back on it (typed then erased) sends nothing.
+  String? _loadedSearch;
   int _requestSerial = 0;
   String? _error;
   String? _loadError;
@@ -261,8 +265,13 @@ class _CreateGroupConversationPageState
       setState(() {
         _loadingInitial = false;
         _loadingMore = false;
-        _currentUserPage = pageResult.currentPage;
-        _hasMoreUsers = pageResult.hasMorePages;
+        _loadedSearch = search;
+        // Never move backwards: a page number the server echoes wrong would
+        // otherwise make "load more" ask for the same page again.
+        _currentUserPage = pageResult.currentPage < page
+            ? page
+            : pageResult.currentPage;
+        _hasMoreUsers = pageResult.hasMorePages && pageResult.items.isNotEmpty;
         final byUserId = <int, ParticipantModel>{
           if (!reset)
             for (final participant in _remoteCandidates)
@@ -302,10 +311,16 @@ class _CreateGroupConversationPageState
     // A pending timer is part of "searching", so the field has to rebuild when
     // one starts as well as when the request lands.
     if (_usesRemoteMembers) {
-      _searchDebounce = Timer(
-        _searchDebounceDelay,
-        () => unawaited(_loadRegisteredUsers(reset: true)),
-      );
+      _searchDebounce = Timer(_searchDebounceDelay, () {
+        final bool unchanged =
+            _search.text.trim() == _loadedSearch && _loadError == null;
+        if (unchanged) {
+          // Rebuild so the field's "searching" spinner stops.
+          if (mounted) setState(() {});
+          return;
+        }
+        unawaited(_loadRegisteredUsers(reset: true));
+      });
     }
     setState(() {
       _error = null;

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:hamro_futsal/core/helper/profile_refresh_signal.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hamro_futsal/core/routers/app_router_params.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
@@ -25,9 +26,43 @@ class ProfileRewardsBadge extends StatelessWidget {
       create: (_) =>
           RewardsBloc(RewardsUseCase(RewardsRepositoryImpl()))
             ..add(const LoadRewardsEvent()),
-      child: const _ProfileRewardsBadgeBody(),
+      child: const _RefreshOnProfileSignal(child: _ProfileRewardsBadgeBody()),
     );
   }
+}
+
+/// Reloads the badge's points whenever the profile is asked to refresh — a
+/// redemption spends points, and this bloc otherwise loads only once.
+class _RefreshOnProfileSignal extends StatefulWidget {
+  const _RefreshOnProfileSignal({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_RefreshOnProfileSignal> createState() =>
+      _RefreshOnProfileSignalState();
+}
+
+class _RefreshOnProfileSignalState extends State<_RefreshOnProfileSignal> {
+  @override
+  void initState() {
+    super.initState();
+    ProfileRefreshSignal.requests.addListener(_reload);
+  }
+
+  void _reload() {
+    if (!mounted) return;
+    context.read<RewardsBloc>().add(const LoadRewardsEvent(isRefresh: true));
+  }
+
+  @override
+  void dispose() {
+    ProfileRefreshSignal.requests.removeListener(_reload);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }
 
 class _ProfileRewardsBadgeBody extends StatelessWidget {

@@ -93,11 +93,90 @@ final class MessageRepositoryImpl extends MessageRepository {
     }
   }
 
+  /// `/auth/register-user` is rate limited, and both the create-group page
+  /// and the add-members sheet reload it on open, on every search and on
+  /// scroll. Shared across instances (each screen builds its own repository):
+  /// identical requests in flight are merged, a successful page is reused for
+  /// a short while, and after a 429 nothing is sent until the limit has had
+  /// time to reset.
+  static final Map<
+    String,
+    Future<Either<AppException, RegisteredUserPageModel>>
+  >
+  _registeredUsersInFlight =
+      <String, Future<Either<AppException, RegisteredUserPageModel>>>{};
+  static final Map<String, ({DateTime at, RegisteredUserPageModel page})>
+  _registeredUsersCache =
+      <String, ({DateTime at, RegisteredUserPageModel page})>{};
+  static const Duration _registeredUsersCacheTtl = Duration(minutes: 2);
+  static const Duration _registeredUsersRateLimitCooldown = Duration(
+    seconds: 30,
+  );
+  static DateTime? _registeredUsersBlockedUntil;
+
   @override
   Future<Either<AppException, RegisteredUserPageModel>> getRegisteredUsers({
     required int page,
     required int perPage,
     String search = '',
+  }) {
+    final String key =
+        '$currentUserId|$page|$perPage|${search.trim().toLowerCase()}';
+    final DateTime now = DateTime.now();
+
+    final cached = _registeredUsersCache[key];
+    if (cached != null &&
+        now.difference(cached.at) < _registeredUsersCacheTtl) {
+      return Future.value(right(cached.page));
+    }
+
+    final DateTime? blockedUntil = _registeredUsersBlockedUntil;
+    if (blockedUntil != null && now.isBefore(blockedUntil)) {
+      return Future.value(left(_registeredUsersRateLimited(blockedUntil)));
+    }
+
+    return _registeredUsersInFlight[key] ??=
+        _fetchRegisteredUsers(page: page, perPage: perPage, search: search)
+            .then((result) {
+              result.fold(
+                (failure) {
+                  if (failure.statusCode == 429) {
+                    _registeredUsersBlockedUntil = DateTime.now().add(
+                      _registeredUsersRateLimitCooldown,
+                    );
+                  }
+                },
+                (pageResult) {
+                  _registeredUsersCache[key] = (
+                    at: DateTime.now(),
+                    page: pageResult,
+                  );
+                },
+              );
+              return result.leftMap(
+                (failure) => failure.statusCode == 429
+                    ? _registeredUsersRateLimited(_registeredUsersBlockedUntil!)
+                    : failure,
+              );
+            })
+            .whenComplete(() => _registeredUsersInFlight.remove(key));
+  }
+
+  static AppException _registeredUsersRateLimited(DateTime until) {
+    final int seconds = until
+        .difference(DateTime.now())
+        .inSeconds
+        .clamp(1, _registeredUsersRateLimitCooldown.inSeconds);
+    return DefaultException(
+      errorMessage: 'Too many requests. Please try again in $seconds seconds.',
+      statusCode: 429,
+    );
+  }
+
+  Future<Either<AppException, RegisteredUserPageModel>> _fetchRegisteredUsers({
+    required int page,
+    required int perPage,
+    required String search,
   }) async {
     final response = await _remoteDataSource.getRegisteredUsers(
       page: page,

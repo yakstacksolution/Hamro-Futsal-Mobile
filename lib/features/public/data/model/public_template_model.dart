@@ -4,6 +4,7 @@ final class PublicTemplateModel extends Equatable {
   const PublicTemplateModel({
     required this.id,
     required this.title,
+    required this.slug,
     required this.description,
     required this.createdAt,
     required this.updatedAt,
@@ -12,6 +13,12 @@ final class PublicTemplateModel extends Equatable {
 
   final String id;
   final String title;
+
+  /// Stable identifier (`court-description`, `venue-description`, …). Titles
+  /// are editable by admins, so matching goes by slug first.
+  final String slug;
+
+  /// HTML body of the template.
   final String description;
   final DateTime? createdAt;
   final DateTime? updatedAt;
@@ -24,6 +31,7 @@ final class PublicTemplateModel extends Equatable {
       id: (json['id'] ?? json['_id'] ?? json['uuid'] ?? '').toString(),
       title: (json['title'] ?? json['name'] ?? json['template_name'] ?? '')
           .toString(),
+      slug: (json['slug'] ?? json['key'] ?? '').toString().trim(),
       description:
           (json['description'] ?? json['details'] ?? json['subtitle'] ?? '')
               .toString(),
@@ -42,6 +50,7 @@ final class PublicTemplateModel extends Equatable {
   List<Object?> get props => <Object?>[
     id,
     title,
+    slug,
     description,
     createdAt,
     updatedAt,

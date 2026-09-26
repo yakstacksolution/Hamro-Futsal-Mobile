@@ -1,21 +1,64 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+/// One QR image a court accepts payment on — a court can hold several (e.g.
+/// eSewa and a bank), each an entry of `payment_qr_media_list`.
+class PaymentQrImage {
+  const PaymentQrImage({this.id, this.name, this.url, this.bytes});
+
+  final int? id;
+  final String? name;
+
+  /// Network URL of the QR image, when the server returns a link.
+  final String? url;
+
+  /// Decoded QR image bytes, when the server returns base64.
+  final Uint8List? bytes;
+
+  bool get hasImage =>
+      (url != null && url!.isNotEmpty) || (bytes != null && bytes!.isNotEmpty);
+
+  /// Reads a media object (`{ id, name, full_url, status }`) or a plain URL /
+  /// base64 string. Returns null when there is no usable image.
+  static PaymentQrImage? fromValue(dynamic value) {
+    int? id;
+    String? name;
+    if (value is Map) {
+      final Map<String, dynamic> map = Map<String, dynamic>.from(value);
+      final String? status = _asString(map['status'])?.toLowerCase();
+      if (status != null && status != 'active') return null;
+      id = int.tryParse(map['id']?.toString() ?? '');
+      name = _asString(map['name'] ?? map['file_name']);
+    }
+    final PaymentQrImage? image = _imageFromRaw(_mediaUrl(value));
+    if (image == null) return null;
+    return PaymentQrImage(
+      id: id,
+      name: name,
+      url: image.url,
+      bytes: image.bytes,
+    );
+  }
+}
+
 /// The payment QR + payee details for a court, from
 /// `GET /courts/{court_id}/payment-qr`.
 ///
 /// The QR image may arrive either as a network URL or as a (data-URI or plain)
-/// base64 string; both are supported via [qrImageUrl] / [qrImageBytes].
+/// base64 string; both are supported via [qrImageUrl] / [qrImageBytes]. A court
+/// with several QRs lists every one in [images]; [qrImageUrl] / [qrImageBytes]
+/// then mirror the first.
 class PaymentQrModel {
   const PaymentQrModel({
     this.qrImageUrl,
     this.qrImageBytes,
+    List<PaymentQrImage> images = const <PaymentQrImage>[],
     this.payeeName,
     this.accountId,
     this.bankName,
     this.note,
     this.methods = const <String>[],
-  });
+  }) : _images = images;
 
   /// Network URL of the QR image, when the server returns a link.
   final String? qrImageUrl;
@@ -34,6 +77,21 @@ class PaymentQrModel {
 
   /// Accepted payment methods, e.g. ['eSewa', 'Khalti'].
   final List<String> methods;
+
+  final List<PaymentQrImage> _images;
+
+  /// Every QR the payer can choose from, in server order. Falls back to the
+  /// single [qrImageUrl] / [qrImageBytes] for payloads without a list.
+  List<PaymentQrImage> get images {
+    if (_images.isNotEmpty) return _images;
+    final PaymentQrImage single = PaymentQrImage(
+      url: qrImageUrl,
+      bytes: qrImageBytes,
+    );
+    return single.hasImage
+        ? <PaymentQrImage>[single]
+        : const <PaymentQrImage>[];
+  }
 
   bool get hasQr =>
       (qrImageUrl != null && qrImageUrl!.isNotEmpty) ||
@@ -70,21 +128,30 @@ class PaymentQrModel {
               map['imageUrl'],
         );
 
-    String? url;
-    Uint8List? bytes;
-    if (rawQr != null) {
-      if (rawQr.startsWith('http://') || rawQr.startsWith('https://')) {
-        url = rawQr;
-      } else {
-        bytes = _decodeBase64Image(rawQr);
-        // Fall back to treating it as a relative URL path if it isn't base64.
-        if (bytes == null && rawQr.contains('/')) url = rawQr;
-      }
-    }
+    // Courts that accept more than one QR send them all in
+    // `payment_qr_media_list`, with `payment_qr_media` left null.
+    final dynamic rawList =
+        map['payment_qr_media_list'] ??
+        map['paymentQrMediaList'] ??
+        map['payment_qrs'] ??
+        map['paymentQrs'];
+    final List<PaymentQrImage> listed = rawList is List
+        ? rawList
+              .map(PaymentQrImage.fromValue)
+              .whereType<PaymentQrImage>()
+              .toList(growable: false)
+        : const <PaymentQrImage>[];
+
+    final PaymentQrImage? single = _imageFromRaw(rawQr);
+    final List<PaymentQrImage> images = listed.isNotEmpty
+        ? listed
+        : <PaymentQrImage>[?single];
+    final PaymentQrImage? primary = images.isEmpty ? null : images.first;
 
     return PaymentQrModel(
-      qrImageUrl: url,
-      qrImageBytes: bytes,
+      qrImageUrl: primary?.url,
+      qrImageBytes: primary?.bytes,
+      images: images,
       payeeName:
           _asString(
             map['payee_name'] ??
@@ -152,6 +219,30 @@ Map<String, dynamic> _unwrap(dynamic payload) {
   return current is Map
       ? Map<String, dynamic>.from(current)
       : <String, dynamic>{};
+}
+
+/// Turns a raw QR value — a URL, a relative path or base64 — into an image.
+PaymentQrImage? _imageFromRaw(String? rawQr) {
+  if (rawQr == null) return null;
+  if (rawQr.startsWith('http://') || rawQr.startsWith('https://')) {
+    return PaymentQrImage(url: _collapseSlashes(rawQr));
+  }
+  final Uint8List? bytes = _decodeBase64Image(rawQr);
+  if (bytes != null) return PaymentQrImage(bytes: bytes);
+  // Fall back to treating it as a relative URL path if it isn't base64.
+  if (rawQr.contains('/')) return PaymentQrImage(url: rawQr);
+  return null;
+}
+
+/// The API joins its base URL and storage path with a doubled slash
+/// (`https://host//storage/...`); collapse it so caching keys and downloads
+/// see one canonical URL.
+String _collapseSlashes(String url) {
+  final Uri? uri = Uri.tryParse(url);
+  if (uri == null || !uri.hasAuthority) return url;
+  return uri
+      .replace(path: uri.path.replaceAll(RegExp(r'/{2,}'), '/'))
+      .toString();
 }
 
 /// Decodes a data-URI (`data:image/png;base64,...`) or a plain base64 string

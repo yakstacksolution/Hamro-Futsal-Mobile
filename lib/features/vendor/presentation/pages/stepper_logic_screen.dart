@@ -91,6 +91,35 @@ class _StepperLogicScreenState extends State<StepperLogicScreen> {
     super.dispose();
   }
 
+  Future<void> _finish(BuildContext context) async {
+    final String? failure = await _cubit.finishFromCourtList();
+    if (failure == null || !context.mounted) return;
+    // The court list has no inline error slot, so say it here.
+    AppUtils().showSnackBar(context, MsgType.error, failure);
+  }
+
+  /// After Finish, land on the "Your Venues" list. Opened from that list, the
+  /// stepper just pops back to it (the list refreshes itself on return);
+  /// opened from anywhere else, it is replaced by the list so Back from there
+  /// still leads to wherever the vendor started.
+  void _returnToYourVenues(BuildContext context) {
+    // go_router 7 does not export `RouteMatch`, so the list type is inferred.
+    final matches = GoRouter.of(
+      context,
+    ).routerDelegate.currentConfiguration.matches;
+    final RouteBase? previous = matches.length >= 2
+        ? matches[matches.length - 2].route
+        : null;
+    final bool openedFromYourVenues =
+        previous is GoRoute && previous.name == AppRouterParams.yourVenues.name;
+
+    if (openedFromYourVenues) {
+      context.pop();
+    } else {
+      context.pushReplacementNamed(AppRouterParams.yourVenues.name);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return MultiBlocListener(
@@ -118,6 +147,7 @@ class _StepperLogicScreenState extends State<StepperLogicScreen> {
                 MsgType.success,
                 'Vendor onboarding is complete.',
               );
+              _returnToYourVenues(context);
             } else if (state.saveStatus == DraftSaveStatus.failure) {
               AppUtils().showSnackBar(
                 context,
@@ -193,6 +223,9 @@ class _StepperLogicScreenState extends State<StepperLogicScreen> {
             );
           }
 
+          final bool isCourtListFinal =
+              state.isInCourtCategory && state.courts.isNotEmpty;
+
           return VendorOnboardingShell(
             isSubmitting: state.isSubmitting,
             onExitToHome: () async {
@@ -204,9 +237,11 @@ class _StepperLogicScreenState extends State<StepperLogicScreen> {
             bottomBar: VendorBottomActionBar(
               hasPrevious: cubit.canGoPrevious,
               isSubmitting: state.isSubmitting,
-              nextLabel: cubit.nextButtonLabel,
+
+              nextLabel: isCourtListFinal ? 'Finish' : cubit.nextButtonLabel,
               onPrevious: cubit.previous,
-              onNext: () => unawaited(cubit.next()),
+              onNext: () =>
+                  unawaited(isCourtListFinal ? _finish(context) : cubit.next()),
               cubit: cubit,
             ),
             body: SafeArea(

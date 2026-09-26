@@ -5,6 +5,7 @@ import 'package:hamro_futsal/core/helper/exception_helper.dart';
 import 'package:hamro_futsal/core/helper/response_helper.dart';
 import 'package:hamro_futsal/features/public/data/model/category_filter_model.dart';
 import 'package:hamro_futsal/features/public/data/data_source/public_remote_data_source.dart';
+import 'package:hamro_futsal/features/public/data/model/help_video_model.dart';
 import 'package:hamro_futsal/features/public/data/model/public_faq_model.dart';
 import 'package:hamro_futsal/features/public/data/model/public_help_model.dart';
 import 'package:hamro_futsal/features/public/data/model/public_option_model.dart';
@@ -145,6 +146,24 @@ final class PublicRepositoryImpl extends PublicRepository {
       return left(
         DefaultException(
           errorMessage: StringConstants.couldNotParseHelpTopicsFromServer,
+          statusCode: 0,
+        ),
+      );
+    }
+  }
+
+  @override
+  Future<Either<AppException, List<HelpVideo>>> getYoutubeVideos() async {
+    final response = await _remoteDataSource.getYoutubeVideos();
+    if (response.isError()) {
+      return left(ResponseHelper.error(response));
+    }
+    try {
+      return right(HelpVideo.listFromResponse(response.getValue()));
+    } catch (_) {
+      return left(
+        DefaultException(
+          errorMessage: StringConstants.couldNotParseVideosFromServer,
           statusCode: 0,
         ),
       );

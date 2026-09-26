@@ -58,9 +58,51 @@ class BookingCompleteResult {
   final bool isPartial;
 }
 
+/// Bookings whose complete flow (sheet and request) is currently running.
+final Set<int> _bookingsBeingCompleted = <int>{};
+
+/// In-flight complete requests, keyed by booking id.
+final Map<int, Future<bool>> _pendingCompletions = <int, Future<bool>>{};
+
+/// Runs [flow] — typically "open the complete sheet, then call
+/// [completeBooking]" — unless one is already running for [bookingId]. A
+/// double tap on "Complete" would otherwise open two sheets and send two
+/// requests.
+Future<void> runBookingCompletionOnce(
+  int bookingId,
+  Future<void> Function() flow,
+) async {
+  if (!_bookingsBeingCompleted.add(bookingId)) return;
+  try {
+    await flow();
+  } finally {
+    _bookingsBeingCompleted.remove(bookingId);
+  }
+}
+
 /// Marks a confirmed booking as completed, recording how the outstanding
 /// amount was collected. Returns `true` on success.
+///
+/// A call made while one for the same booking is still in flight shares its
+/// result instead of hitting the API again.
 Future<bool> completeBooking(
+  int bookingId, {
+  BookingCompleteResult? result,
+  List<Map<String, dynamic>>? extraItems,
+}) {
+  final Future<bool>? pending = _pendingCompletions[bookingId];
+  if (pending != null) return pending;
+
+  final Future<bool> request = _sendCompleteBooking(
+    bookingId,
+    result: result,
+    extraItems: extraItems,
+  ).whenComplete(() => _pendingCompletions.remove(bookingId));
+  _pendingCompletions[bookingId] = request;
+  return request;
+}
+
+Future<bool> _sendCompleteBooking(
   int bookingId, {
   BookingCompleteResult? result,
   List<Map<String, dynamic>>? extraItems,

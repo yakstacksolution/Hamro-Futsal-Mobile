@@ -132,7 +132,7 @@ class BookingStatusPage extends StatelessWidget {
 
         if (slice.loadStatus == BookingLoadStatus.idle ||
             slice.loadStatus == BookingLoadStatus.loading) {
-          return const BookingSkeletonLoader();
+          return BookingSkeletonLoader(showBookedBy: !_isMine);
         }
 
         if (slice.loadStatus == BookingLoadStatus.failure) {
@@ -230,6 +230,9 @@ class BookingStatusPage extends StatelessWidget {
                   final BookingModel booking = items[i];
                   return BookingCard(
                     booking: booking,
+                    // The vendor's list leads with the venue, so it names the
+                    // customer too; a player's own list would just name them.
+                    showBookedBy: !_isMine,
                     // The vendor's own list is where add-ons are sold and a
                     // booking is closed out, so the quick actions live on the
                     // card there; the customer's list has nothing to act on.
@@ -429,19 +432,21 @@ class _BookingCardActions extends StatelessWidget {
   }
 
   Future<void> _complete(BuildContext context) async {
-    final BookingCompleteResult? result = await showBookingCompleteSheet(
-      context,
-      booking,
-    );
-    if (result == null || !context.mounted) return;
-    final bool ok = await completeBooking(booking.id, result: result);
-    if (!context.mounted) return;
-    AppUtils().showSnackBar(
-      context,
-      ok ? MsgType.success : MsgType.error,
-      ok ? 'Booking marked as completed.' : 'Could not complete the booking.',
-    );
-    if (ok) onChanged();
+    await runBookingCompletionOnce(booking.id, () async {
+      final BookingCompleteResult? result = await showBookingCompleteSheet(
+        context,
+        booking,
+      );
+      if (result == null || !context.mounted) return;
+      final bool ok = await completeBooking(booking.id, result: result);
+      if (!context.mounted) return;
+      AppUtils().showSnackBar(
+        context,
+        ok ? MsgType.success : MsgType.error,
+        ok ? 'Booking marked as completed.' : 'Could not complete the booking.',
+      );
+      if (ok) onChanged();
+    });
   }
 
   @override

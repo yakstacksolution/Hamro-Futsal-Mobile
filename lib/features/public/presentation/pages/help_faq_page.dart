@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -13,14 +15,15 @@ import 'package:hamro_futsal/features/public/data/model/public_help_model.dart';
 import 'package:hamro_futsal/features/public/data/repositories/public_repository_impl.dart';
 import 'package:hamro_futsal/features/public/domain/usecase/get_faqs_use_case.dart';
 import 'package:hamro_futsal/features/public/domain/usecase/get_helps_use_case.dart';
+import 'package:hamro_futsal/features/public/domain/usecase/get_youtube_videos_use_case.dart';
 import 'package:hamro_futsal/features/public/presentation/bloc/support/support_bloc.dart';
+import 'package:hamro_futsal/features/public/presentation/widgets/help_videos_tab.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 
-/// Help & FAQ — FAQ and Help tabs backed by the public `GET /faqs` and
-/// `GET /helps` endpoints, plus a placeholder Videos tab. Opened from the
-/// profile's Support section.
 class HelpFaqPage extends StatelessWidget {
-  const HelpFaqPage({super.key});
+  const HelpFaqPage({super.key, this.isVendor = false});
+
+  final bool isVendor;
 
   @override
   Widget build(BuildContext context) {
@@ -30,17 +33,21 @@ class HelpFaqPage extends StatelessWidget {
         return SupportBloc(
             GetFaqsUseCase(repository),
             GetHelpsUseCase(repository),
+            GetYoutubeVideosUseCase(repository),
           )
           ..add(const FetchFaqsEvent())
-          ..add(const FetchHelpsEvent());
+          ..add(const FetchHelpsEvent())
+          ..add(const FetchVideosEvent());
       },
-      child: const _HelpFaqView(),
+      child: _HelpFaqView(isVendor: isVendor),
     );
   }
 }
 
 class _HelpFaqView extends StatelessWidget {
-  const _HelpFaqView();
+  const _HelpFaqView({required this.isVendor});
+
+  final bool isVendor;
 
   @override
   Widget build(BuildContext context) {
@@ -124,11 +131,31 @@ class _HelpFaqView extends StatelessWidget {
                             );
                           },
                         ),
-                        const _SupportMessage(
-                          icon: Icons.ondemand_video_rounded,
-                          title: 'Coming soon',
-                          message:
-                              'Video guides on how to use the application will appear here.',
+                        _SupportTab(
+                          status: state.videosStatus,
+                          isEmpty: state.videos.isEmpty,
+                          errorMessage:
+                              state.videosError ??
+                              StringConstants.couldNotLoadVideos,
+                          emptyTitle: StringConstants.noVideosYet,
+                          emptyMessage: StringConstants.noVideosYetMessage,
+                          onRetry: () => context.read<SupportBloc>().add(
+                            const FetchVideosEvent(),
+                          ),
+                          child: HelpVideosTab(
+                            isVendor: isVendor,
+                            videos: state.videos,
+                            onRefresh: () {
+                              final Completer<void> done = Completer<void>();
+                              context.read<SupportBloc>().add(
+                                FetchVideosEvent(
+                                  isRefresh: true,
+                                  completer: done,
+                                ),
+                              );
+                              return done.future;
+                            },
+                          ),
                         ),
                       ],
                     );
@@ -318,9 +345,8 @@ class _HelpList extends StatelessWidget {
       ),
       itemCount: helps.length + offset,
       separatorBuilder: (_, __) => const SizedBox(height: AppDimens.paddingX10),
-      itemBuilder: (BuildContext context, int index) => index < offset
-          ? header!
-          : _HelpTile(help: helps[index - offset]),
+      itemBuilder: (BuildContext context, int index) =>
+          index < offset ? header! : _HelpTile(help: helps[index - offset]),
     );
   }
 }

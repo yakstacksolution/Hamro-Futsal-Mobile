@@ -1,3 +1,4 @@
+import 'package:hamro_futsal/features/message/presentation/widgets/group_member_widgets.dart';
 import 'package:hamro_futsal/core/utils/bloc_safe_add.dart';
 import 'dart:async';
 
@@ -236,15 +237,26 @@ class _MessagesViewState extends State<_MessagesView>
           state.showingArchived ? state.conversations.length : 0,
       };
 
+  /// A double tap on "Create group" pushed two pages, each loading the
+  /// registered-users list.
+  bool _isOpeningCreateGroup = false;
+
   Future<void> _createGroup() async {
+    if (_isOpeningCreateGroup) return;
+    _isOpeningCreateGroup = true;
     final bloc = context.read<MessageBloc>();
-    final draft = await CreateGroupConversationPage.open(
-      context,
-      currentUserId: bloc.state.currentUserId,
-      participants: bloc.state.conversations.expand(
-        (conversation) => conversation.participants,
-      ),
-    );
+    final GroupConversationDraft? draft;
+    try {
+      draft = await CreateGroupConversationPage.open(
+        context,
+        currentUserId: bloc.state.currentUserId,
+        participants: bloc.state.conversations.expand(
+          (conversation) => conversation.participants,
+        ),
+      );
+    } finally {
+      _isOpeningCreateGroup = false;
+    }
     if (draft == null || !mounted) return;
     bloc.addIfOpen(
       CreateGroupConversationEvent(

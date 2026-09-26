@@ -13,6 +13,15 @@ String? templateDefaultFor(
 ) {
   if (templates.isEmpty) return null;
 
+  // The backend's slugs are the reliable match; everything below is a
+  // fallback for templates that predate them.
+  final String slug = _slugFor(field);
+  for (final PublicTemplateModel template in templates) {
+    if (template.slug.toLowerCase() != slug) continue;
+    final String content = _extractTemplateContent(template);
+    if (content.isNotEmpty) return content;
+  }
+
   final _TemplateFieldConfig config = switch (field) {
     VendorTemplateField.futsalDescription => const _TemplateFieldConfig(
       exactKeys: <String>['futsal_description', 'description'],
@@ -20,9 +29,10 @@ String? templateDefaultFor(
       primaryKeywords: <String>['futsal', 'description'],
       secondaryKeywords: <String>['about', 'venue'],
     ),
+    // Not plain "description": that is the venue's template.
     VendorTemplateField.courtDescription => const _TemplateFieldConfig(
-      exactKeys: <String>['description'],
-      preferredTitles: <String>['description'],
+      exactKeys: <String>['court_description'],
+      preferredTitles: <String>['court_description'],
       primaryKeywords: <String>['court', 'description'],
       secondaryKeywords: <String>['pitch', 'ground'],
     ),
@@ -76,6 +86,13 @@ String? templateDefaultFor(
 
   return null;
 }
+
+String _slugFor(VendorTemplateField field) => switch (field) {
+  VendorTemplateField.futsalDescription => 'venue-description',
+  VendorTemplateField.courtDescription => 'court-description',
+  VendorTemplateField.cancellationPolicy => 'refund-cancellation-policy',
+  VendorTemplateField.futsalRules => 'futsal-rules-and-regulations',
+};
 
 String _extractExactKeyContent(
   PublicTemplateModel template,
@@ -165,7 +182,7 @@ String _firstNonEmptyString(List<dynamic> values) {
 String _stringValue(dynamic value) => value?.toString() ?? '';
 
 String _normalize(String value) =>
-    value.trim().toLowerCase().replaceAll(' ', '_');
+    value.trim().toLowerCase().replaceAll(RegExp(r'[\s-]+'), '_');
 
 class _TemplateFieldConfig {
   const _TemplateFieldConfig({

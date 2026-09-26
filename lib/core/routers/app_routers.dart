@@ -112,10 +112,6 @@ class AppRouters {
   }) {
     startLocation = initialLocation;
 
-    // A cold start from a shared link arrives as the platform's initial route,
-    // which go_router would otherwise try to match before any of this app's
-    // paths — the "no routes for location" screen people were seeing. It is
-    // recognised here and opened as the venue-link route instead.
     final String platformRoute =
         WidgetsBinding.instance.platformDispatcher.defaultRouteName;
     final DeepLinkTarget? launchTarget = DeepLinkTarget.parseLocation(
@@ -132,19 +128,14 @@ class AppRouters {
       navigatorKey: RootNavigatorKey.key,
       initialLocation: effectiveInitialLocation,
       observers: observers,
-      // Every signed-in screen lives under /dashboard. Guarding the whole
-      // subtree here means a notification tap, a shared link or a stale
-      // location can never build a screen that would fire authenticated
-      // requests without a session — those come back 401 and nothing else.
+
       redirect: (BuildContext context, GoRouterState state) {
         final String location = state.location.split('?').first;
         if (!location.startsWith(AppRouterParams.dashboard.path)) return null;
         if (AppSettings().hasSession) return null;
         return AppRouterParams.login.path;
       },
-      // Nothing the app owns should end on go_router's default error screen:
-      // an unknown location that still parses as one of our links opens it,
-      // and anything else offers a way home.
+
       errorBuilder: (BuildContext context, GoRouterState state) {
         final DeepLinkTarget? target = DeepLinkTarget.parseLocation(
           state.location,
@@ -156,8 +147,6 @@ class AppRouters {
         };
       },
       routes: <RouteBase>[
-        // Shared links. `/` is here too: a bare-domain link used to fall
-        // through to the error screen.
         GoRoute(
           path: '/',
           redirect: (BuildContext context, GoRouterState state) =>
@@ -204,8 +193,6 @@ class AppRouters {
           name: AppRouterParams.createNewPassword.name,
           path: AppRouterParams.createNewPassword.path,
           builder: (context, state) {
-            // `extra` is an {email, otp} map from the OTP screen; the bare
-            // string and the query parameter are the direct-entry paths.
             final Object? extra = state.extra;
             final String email =
                 (extra is Map
@@ -217,9 +204,6 @@ class AppRouters {
                 '';
             final String? otp = extra is Map ? extra['otp'] as String? : null;
 
-            // A reset cannot be submitted without the address the OTP went to,
-            // so an entry with no email restarts the flow instead of showing a
-            // form that can only fail.
             if (email.trim().isEmpty) {
               return BlocProvider<AuthenticationBloc>(
                 create: (_) => AuthenticationBloc(
@@ -244,8 +228,6 @@ class AppRouters {
             create: (_) =>
                 AuthenticationBloc(AuthUseCase(AuthenticationRepositoryImpl())),
             child: OtpVerificationScreen(
-              // `extra` is a bare email string from the registration flow and
-              // an {email, purpose} map from the forgot-password flow.
               email:
                   _otpExtra(state, 'email') ?? state.queryParameters['email'],
               purpose: _otpExtra(state, 'purpose') ?? OtpPurpose.registration,
@@ -271,8 +253,9 @@ class AppRouters {
                     state.extra as PublicListingVenueModel;
                 return CustomTransitionPage<void>(
                   key: state.pageKey,
-                  transitionDuration: const Duration(milliseconds: 620),
-                  reverseTransitionDuration: const Duration(milliseconds: 420),
+
+                  transitionDuration: const Duration(milliseconds: 320),
+                  reverseTransitionDuration: const Duration(milliseconds: 260),
                   child: FutsalDetailsPageView(
                     publicVenue: publicListingVenueModel,
                   ),
@@ -283,34 +266,17 @@ class AppRouters {
                         Animation<double> secondaryAnimation,
                         Widget child,
                       ) {
-                        final Animation<double> primaryCurve = CurvedAnimation(
+                        final Animation<double> curve = CurvedAnimation(
                           parent: animation,
-                          curve: Curves.easeOutQuint,
+                          curve: Curves.easeOutCubic,
                           reverseCurve: Curves.easeInCubic,
                         );
-                        final Animation<double> contentCurve = CurvedAnimation(
-                          parent: animation,
-                          curve: const Interval(
-                            0.12,
-                            1,
-                            curve: Curves.easeOutCubic,
-                          ),
-                        );
-                        return FadeTransition(
-                          opacity: contentCurve,
-                          child: SlideTransition(
-                            position: Tween<Offset>(
-                              begin: const Offset(0, 0.045),
-                              end: Offset.zero,
-                            ).animate(contentCurve),
-                            child: ScaleTransition(
-                              scale: Tween<double>(
-                                begin: 0.985,
-                                end: 1,
-                              ).animate(primaryCurve),
-                              child: child,
-                            ),
-                          ),
+                        return SlideTransition(
+                          position: Tween<Offset>(
+                            begin: const Offset(0, 1),
+                            end: Offset.zero,
+                          ).animate(curve),
+                          child: child,
                         );
                       },
                 );
@@ -357,7 +323,8 @@ class AppRouters {
         GoRoute(
           name: AppRouterParams.helpFaq.name,
           path: AppRouterParams.helpFaq.path,
-          builder: (context, state) => const HelpFaqPage(),
+          builder: (context, state) =>
+              HelpFaqPage(isVendor: state.queryParameters['vendor'] == 'true'),
         ),
 
         GoRoute(
@@ -630,8 +597,6 @@ class AppRouters {
   }
 }
 
-/// The venue-link route's page: the slug comes from the path, the id from
-/// `?venue=` (`venue_id` is accepted too, since older links use it).
 Widget _buildVenueLinkPage(BuildContext context, GoRouterState state) {
   final String? slug = state.pathParameters['slug']?.trim();
   final int? id = int.tryParse(
@@ -644,8 +609,6 @@ Widget _buildVenueLinkPage(BuildContext context, GoRouterState state) {
   );
 }
 
-/// Shown for a location the app does not own. Unlike go_router's own error
-/// screen it says nothing about match phases and always offers a way out.
 class _UnknownLocationPage extends StatelessWidget {
   const _UnknownLocationPage();
 
@@ -731,10 +694,6 @@ class _MissingCourtDetailModel extends CourtDetailModel {
       );
 }
 
-/// Slot selection depends on a [CourtDetailModel] carried in route extras.
-/// Deep links, restored routes, or stale notification payloads may reach this
-/// named route without that object; show a recoverable page instead of letting
-/// a cast exception crash the app.
 class _MissingSlotsSelectionArgsPage extends StatelessWidget {
   const _MissingSlotsSelectionArgsPage();
 
@@ -791,9 +750,6 @@ class _MissingSlotsSelectionArgsPage extends StatelessWidget {
   }
 }
 
-/// Shown when the checkout route is reached without a booking draft — a
-/// restored deep link or a hot reload mid-funnel. There is nothing to check out
-/// from here, so the user is sent back to pick a slot again.
 class _MissingBookingCheckoutArgsPage extends StatelessWidget {
   const _MissingBookingCheckoutArgsPage();
 

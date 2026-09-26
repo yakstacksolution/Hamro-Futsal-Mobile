@@ -93,6 +93,7 @@ class RewardsSummaryModel extends Equatable {
     this.expiringPoints = 0,
     this.expiresAt,
     this.canGenerateCoupon,
+    this.pointsRequired,
     this.note = '',
   });
 
@@ -120,6 +121,11 @@ class RewardsSummaryModel extends Equatable {
   /// comparing [availablePoints] against [pointsPerCoupon].
   final bool? canGenerateCoupon;
 
+  /// Points the server says are still needed for the next coupon
+  /// (`points_required`). Null when not sent; [pointsToNextCoupon] then works
+  /// it out from the balance and [pointsPerCoupon].
+  final int? pointsRequired;
+
   /// Free-text programme note shown under the balance.
   final String note;
 
@@ -134,6 +140,9 @@ class RewardsSummaryModel extends Equatable {
 
   /// Points still needed for the next coupon; `0` once redeemable.
   int get pointsToNextCoupon {
+    if (canRedeem) return 0;
+    final int? fromServer = pointsRequired;
+    if (fromServer != null) return fromServer < 0 ? 0 : fromServer;
     if (pointsPerCoupon <= 0) return 0;
     final int remaining = pointsPerCoupon - (availablePoints % pointsPerCoupon);
     if (availablePoints >= pointsPerCoupon) return 0;
@@ -144,6 +153,15 @@ class RewardsSummaryModel extends Equatable {
   /// published but points exist, so the meter never looks broken.
   double get progressToNextCoupon {
     if (pointsPerCoupon <= 0) return availablePoints > 0 ? 1 : 0;
+    if (canRedeem) return 1;
+    // The server's own count wins, so the bar and the "N more points" caption
+    // can never disagree.
+    final int? fromServer = pointsRequired;
+    if (fromServer != null) {
+      return ((pointsPerCoupon - fromServer) / pointsPerCoupon)
+          .clamp(0, 1)
+          .toDouble();
+    }
     if (availablePoints >= pointsPerCoupon) return 1;
     return (availablePoints / pointsPerCoupon).clamp(0, 1).toDouble();
   }
@@ -168,10 +186,13 @@ class RewardsSummaryModel extends Equatable {
         ? <String, dynamic>{...root, ...Map<String, dynamic>.from(walletRaw)}
         : root;
 
+    // `points_required` is deliberately not here: `/customer/rewards` uses it
+    // for the points still missing (e.g. 30 of a 100 threshold), not the
+    // threshold itself — reading it as one made 70 points look redeemable.
     final int perCoupon = RewardParse.intOf(
       RewardParse.pick(map, <String>[
+        'coupon_threshold',
         'points_per_coupon',
-        'points_required',
         'required_points',
         'min_points',
         'minimum_points',
@@ -243,8 +264,17 @@ class RewardsSummaryModel extends Equatable {
           'eligible',
         ]),
       ),
+      pointsRequired: () {
+        final dynamic raw = RewardParse.pick(map, <String>[
+          'points_required',
+          'points_needed',
+          'points_to_next_coupon',
+        ]);
+        return raw == null ? null : RewardParse.intOf(raw);
+      }(),
+      // Not `message`: that is the envelope's status text, not a note.
       note: RewardParse.stringOf(
-        RewardParse.pick(map, <String>['note', 'description', 'message']),
+        RewardParse.pick(map, <String>['note', 'description']),
       ),
     );
   }
@@ -262,6 +292,7 @@ class RewardsSummaryModel extends Equatable {
     expiresAt,
     canGenerateCoupon,
     note,
+    pointsRequired,
   ];
 }
 

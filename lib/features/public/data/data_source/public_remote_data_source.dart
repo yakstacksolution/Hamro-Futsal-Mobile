@@ -32,6 +32,7 @@ abstract class PublicRemoteDataSource {
   Future<Result> toggleWishlist(int venueId);
   Future<Result> getFaqs();
   Future<Result> getHelps();
+  Future<Result> getYoutubeVideos();
 }
 
 final class PublicRemoteDataSourceImpl extends PublicRemoteDataSource {
@@ -123,4 +124,8 @@ final class PublicRemoteDataSourceImpl extends PublicRemoteDataSource {
   @override
   Future<Result> getHelps() async =>
       await Client.instance().getAuthManager().getHelps();
+
+  @override
+  Future<Result> getYoutubeVideos() async =>
+      await Client.instance().getAuthManager().getYoutubeVideos();
 }

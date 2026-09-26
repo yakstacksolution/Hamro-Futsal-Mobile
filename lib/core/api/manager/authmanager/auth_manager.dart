@@ -104,6 +104,14 @@ class AuthManager extends ServiceManager {
     );
   }
 
+  Future<Result> getMobileBanners() async {
+    return await _apiClient.getMobileBanners();
+  }
+
+  Future<Result> dismissMobileBanner(String bannerId) async {
+    return await _apiClient.dismissMobileBanner(bannerId: bannerId);
+  }
+
   /// Authenticated password change (Settings) — distinct from the
   /// forgot-password reset flow's `changePassword`.
   Future<Result> updatePassword(Map<String, dynamic> data) async {
@@ -152,6 +160,10 @@ class AuthManager extends ServiceManager {
 
   Future<Result> getHelps() async {
     return await _apiClient.getHelps();
+  }
+
+  Future<Result> getYoutubeVideos() async {
+    return await _apiClient.getYoutubeVideos();
   }
 
   Future<Result> getFeedbackTypes() async {

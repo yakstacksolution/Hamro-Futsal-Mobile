@@ -186,7 +186,10 @@ class RewardsBloc extends Bloc<RewardsEvent, RewardsState> {
                     currency: summary.currency,
                     expiringPoints: summary.expiringPoints,
                     expiresAt: summary.expiresAt,
+                    // Both are stale after spending points; the model works
+                    // them out from the new balance until the resync lands.
                     canGenerateCoupon: null,
+                    pointsRequired: null,
                     note: summary.note,
                   )
                 : summary,

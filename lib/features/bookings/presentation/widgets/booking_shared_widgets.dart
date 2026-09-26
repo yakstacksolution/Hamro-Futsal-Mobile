@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shimmer/shimmer.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/app_utils.dart';
@@ -187,121 +188,150 @@ class BookingInfoChip extends StatelessWidget {
   }
 }
 
-class BookingSkeletonLoader extends StatefulWidget {
-  const BookingSkeletonLoader({super.key});
+/// Loading placeholder for the booking lists: [BookingCard]-shaped skeletons
+/// with a shimmer sweeping across them, so the list keeps its shape and the
+/// real cards land where the placeholders were.
+class BookingSkeletonLoader extends StatelessWidget {
+  const BookingSkeletonLoader({super.key, this.showBookedBy = false});
 
-  @override
-  State<BookingSkeletonLoader> createState() => _BookingSkeletonLoaderState();
-}
-
-class _BookingSkeletonLoaderState extends State<BookingSkeletonLoader>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl;
-  late final Animation<double> _anim;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 900),
-    )..repeat(reverse: true);
-    _anim = Tween<double>(
-      begin: 0.4,
-      end: 1.0,
-    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
+  /// Mirrors [BookingCard.showBookedBy]: the vendor's cards carry an extra
+  /// "Booked by" row, and the skeleton should be the same height.
+  final bool showBookedBy;
 
   @override
   Widget build(BuildContext context) {
-    // FadeTransition, not an AnimatedBuilder around the list: the previous
-    // shape rebuilt four cards and their decorations on every one of the
-    // pulse's frames. Now the list is built once and only its opacity layer is
-    // re-composited — which matters because the status pager keeps the
-    // neighbouring pages' loaders alive while the user swipes.
-    return RepaintBoundary(
-      child: FadeTransition(
-        opacity: _anim,
+    return Semantics(
+      label: StringConstants.loadingBookings,
+      child: ExcludeSemantics(
         child: ListView.separated(
           physics: const NeverScrollableScrollPhysics(),
-          padding: AppUtils().getPadding(
-            symmetricHorizontal: AppDimens.paddingX16,
-            top: AppDimens.paddingX12,
+          // Same insets and spacing as the loaded list.
+          padding: const EdgeInsets.fromLTRB(
+            AppDimens.paddingX16,
+            AppDimens.paddingX8,
+            AppDimens.paddingX16,
+            AppDimens.paddingX16,
           ),
           itemCount: 4,
           separatorBuilder: (_, __) =>
-              const SizedBox(height: AppDimens.paddingX12),
-          itemBuilder: (_, __) => const _SkeletonCard(),
+              const SizedBox(height: AppDimens.paddingX10),
+          itemBuilder: (_, __) => _SkeletonCard(showBookedBy: showBookedBy),
         ),
       ),
     );
   }
 }
 
+/// One [BookingCard]-shaped placeholder. The card surface stays still and
+/// only the bones inside it shimmer, the way the real card's content would
+/// fill in.
 class _SkeletonCard extends StatelessWidget {
-  const _SkeletonCard();
+  const _SkeletonCard({required this.showBookedBy});
+
+  final bool showBookedBy;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 110,
+      padding: const EdgeInsets.all(AppDimens.paddingX14),
       decoration: BoxDecoration(
-        color: LightColor.inputFillColor,
+        color: LightColor.whiteColor,
         borderRadius: BorderRadius.circular(AppDimens.radiusX14),
+        border: Border.all(color: LightColor.dividerColor),
       ),
-      child: IntrinsicHeight(
-        child: Row(
-          children: [
-            Container(
-              width: 4,
-              decoration: BoxDecoration(
-                color: LightColor.dividerColor,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(AppDimens.radiusX14),
-                  bottomLeft: Radius.circular(AppDimens.radiusX14),
+      child: Shimmer.fromColors(
+        baseColor: LightColor.skeletonBaseColor,
+        highlightColor: LightColor.skeletonHighlightColor,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            // Header: status icon, title + subtitle, amount + status chip.
+            const Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                _Bone(width: 34, height: 34, radius: AppDimens.radiusX10),
+                SizedBox(width: AppDimens.paddingX10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      SizedBox(height: 2),
+                      _Bone(width: 150, height: 14),
+                      SizedBox(height: AppDimens.paddingX6),
+                      _Bone(width: 96, height: 11),
+                    ],
+                  ),
                 ),
-              ),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(AppDimens.paddingX14),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        _Bone(width: 140, height: 14),
-                        _Bone(
-                          width: 64,
-                          height: 20,
-                          radius: AppDimens.radiusX20,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: AppDimens.paddingX8),
-                    _Bone(width: 100, height: 11),
-                    const Spacer(),
-                    Row(
-                      children: [
-                        _Bone(width: 90, height: 11),
-                        const SizedBox(width: AppDimens.paddingX16),
-                        _Bone(width: 80, height: 11),
-                      ],
-                    ),
+                SizedBox(width: AppDimens.paddingX10),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: <Widget>[
+                    SizedBox(height: 2),
+                    _Bone(width: 68, height: 14),
+                    SizedBox(height: AppDimens.paddingX6),
+                    _Bone(width: 72, height: 20, radius: AppDimens.radiusX20),
                   ],
                 ),
-              ),
+              ],
             ),
+            // Divider, at the same spacing as DataCardDivider.
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: AppDimens.paddingX10),
+              child: _Bone(width: double.infinity, height: 1, radius: 0),
+            ),
+            if (showBookedBy) ...const <Widget>[
+              _SkeletonCell(valueWidth: 130),
+              SizedBox(height: AppDimens.paddingX10),
+            ],
+            // The 2×3 grid: date/time, reference/type, booked on/balance.
+            const _SkeletonGridRow(left: 84, right: 96),
+            const SizedBox(height: AppDimens.paddingX10),
+            const _SkeletonGridRow(left: 92, right: 64),
+            const SizedBox(height: AppDimens.paddingX10),
+            const _SkeletonGridRow(left: 110, right: 70),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _SkeletonGridRow extends StatelessWidget {
+  const _SkeletonGridRow({required this.left, required this.right});
+
+  final double left;
+  final double right;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Expanded(child: _SkeletonCell(valueWidth: left)),
+        const SizedBox(width: AppDimens.paddingX12),
+        Expanded(child: _SkeletonCell(valueWidth: right)),
+      ],
+    );
+  }
+}
+
+/// A label over a value, like [DataCardCell].
+class _SkeletonCell extends StatelessWidget {
+  const _SkeletonCell({required this.valueWidth});
+
+  final double valueWidth;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        const _Bone(width: 48, height: 9),
+        const SizedBox(height: AppDimens.paddingX6),
+        _Bone(width: valueWidth, height: 12),
+      ],
     );
   }
 }
@@ -318,7 +348,7 @@ class _Bone extends StatelessWidget {
       width: width,
       height: height,
       decoration: BoxDecoration(
-        color: LightColor.dividerColor,
+        color: LightColor.skeletonBaseColor,
         borderRadius: BorderRadius.circular(radius),
       ),
     );
@@ -430,6 +460,7 @@ class BookingCard extends StatelessWidget {
     super.key,
     required this.booking,
     this.showPlayer = false,
+    this.showBookedBy = false,
     this.onTap,
     this.footer,
   });
@@ -444,6 +475,11 @@ class BookingCard extends StatelessWidget {
 
   /// Vendor lists lead with the player rather than the venue.
   final bool showPlayer;
+
+  /// Names the customer who placed the booking on a card that leads with the
+  /// venue — the vendor's list. Redundant when [showPlayer] already titles the
+  /// card with them, and on a player's own list, where it is always them.
+  final bool showBookedBy;
   final VoidCallback? onTap;
 
   /// Optional trailing widget rendered at the bottom of the card (e.g. the
@@ -485,6 +521,11 @@ class BookingCard extends StatelessWidget {
           color: LightColor.purpleColor,
         ),
     ];
+
+    final String? bookedBy = !showPlayer && showBookedBy
+        ? booking.playerName?.trim()
+        : null;
+    final bool hasBookedBy = bookedBy != null && bookedBy.isNotEmpty;
 
     final String timeRange = booking.displayTimeRange;
     final double balanceDue = booking.balanceDue;
@@ -555,6 +596,7 @@ class BookingCard extends StatelessWidget {
       label: <String>[
         title,
         if (subtitle.isNotEmpty) subtitle,
+        if (hasBookedBy) '${StringConstants.bookedBy} $bookedBy',
         booking.status.value,
         if (booking.amount > 0) Money.npr(booking.amount),
         DateFmt.date(booking.date),
@@ -590,6 +632,17 @@ class BookingCard extends StatelessWidget {
               titleSize: kDataCardListTitleSize,
             ),
             const DataCardDivider(),
+            // Full width above the grid rather than a cell in it: the grid is
+            // paired facts that fill exactly, and a name can run long.
+            if (hasBookedBy) ...<Widget>[
+              DataCardCell(
+                label: StringConstants.bookedBy,
+                value: bookedBy,
+                maxLines: 1,
+                density: _density,
+              ),
+              const SizedBox(height: AppDimens.paddingX10),
+            ],
             DataCardGrid(cells: cells),
             if (badges.isNotEmpty) ...<Widget>[
               const SizedBox(height: AppDimens.paddingX10),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:hamro_futsal/core/helper/profile_refresh_signal.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/utils/app_utils.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
@@ -88,6 +89,9 @@ class RewardsView extends StatelessWidget {
           listener: (BuildContext context, RewardsState state) {
             if (state.generateStatus == RewardsStatus.success &&
                 state.generatedCoupon != null) {
+              // Redeeming spends points, so the profile (balance and all)
+              // is stale now; refresh it wherever it is on screen.
+              ProfileRefreshSignal.request();
               _showGeneratedCoupon(context, state.generatedCoupon!);
             } else if (state.generateStatus == RewardsStatus.failure) {
               AppUtils().showSnackBar(

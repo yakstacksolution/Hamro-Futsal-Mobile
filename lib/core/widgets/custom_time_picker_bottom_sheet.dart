@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
@@ -13,8 +12,6 @@ Future<TimeOfDay?> customCupertinoTimePicker(
   String title, {
   TimeOfDay? initialTime,
 }) async {
-  final completer = Completer<TimeOfDay?>();
-
   final now = TimeOfDay.now();
   TimeOfDay selectedTime = initialTime ?? now;
 
@@ -207,10 +204,7 @@ Future<TimeOfDay?> customCupertinoTimePicker(
                   //   top: AppDimens.marginX16,
                   //   bottom: AppDimens.marginX16,
                   // ),
-                  onPressed: () {
-                    Navigator.pop(context);
-                    completer.complete(selectedTime);
-                  },
+                  onPressed: () => Navigator.pop(context, selectedTime),
                 ),
               ],
             ),
@@ -218,7 +212,10 @@ Future<TimeOfDay?> customCupertinoTimePicker(
         },
       );
     },
-  ).then((_) => completer.future);
+  );
+  // The value comes back through the route: a Completer completed only by
+  // Select never resolved when the sheet was swiped down or tapped away, and
+  // the caller's await hung for good.
 }
 
 Align _minimizeIndicatorWidget() {

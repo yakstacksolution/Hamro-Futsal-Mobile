@@ -26,6 +26,24 @@ val keystoreProperties = Properties().apply {
 val hasReleaseSigning = keystorePropertiesFile.exists() &&
     keystoreProperties.getProperty("storeFile") != null
 
+// Google Maps key: `MAPS_API_KEY` in android/local.properties wins (a per-
+// developer override), otherwise GOOGLE_MAPS_API_KEY from the production env
+// file — the same file the Dart side bundles. iOS reads that file at launch.
+val googleMapsApiKey: String = run {
+    val localProperties = Properties().apply {
+        val file = rootProject.file("local.properties")
+        if (file.exists()) load(FileInputStream(file))
+    }
+    localProperties.getProperty("MAPS_API_KEY")?.takeIf { it.isNotBlank() }
+        ?: rootProject.file("../env_production.env").takeIf { it.exists() }
+            ?.readLines()
+            ?.map { it.trim() }
+            ?.firstOrNull { it.startsWith("GOOGLE_MAPS_API_KEY=") }
+            ?.substringAfter("=")
+            ?.trim()
+        ?: ""
+}
+
 android {
     namespace = "com.np.hamrofutsal"
     compileSdk = flutter.compileSdkVersion
@@ -45,6 +63,7 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        manifestPlaceholders["googleMapsApiKey"] = googleMapsApiKey
     }
 
     signingConfigs {

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/app_utils.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/utils/google_map_style.dart';
 import 'package:hamro_futsal/core/widgets/custom_app_bar.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 
@@ -35,17 +35,15 @@ class CourtLocationMapPage extends StatefulWidget {
 
 class _CourtLocationMapPageState extends State<CourtLocationMapPage>
     with WidgetsBindingObserver {
-  final MapController _mapController = MapController();
+  GoogleMapController? _mapController;
   bool _showMap = true;
   bool _handingOffToMaps = false;
 
   static const double _defaultZoom = 16;
-  // Web Mercator cannot project the geographic poles. Values beyond this
-  // latitude produce infinite pixel coordinates inside flutter_map.
+  // Web Mercator cannot project the geographic poles.
   static const double _mercatorLatitudeLimit = 85.05112878;
 
-  /// Guards against NaN/Infinity or out-of-range values reaching the map,
-  /// which throw inside flutter_map ("LatLng is not finite").
+  /// Guards against NaN/Infinity or out-of-range values reaching the map.
   bool get _hasValidPoint =>
       widget.latitude.isFinite &&
       widget.longitude.isFinite &&
@@ -55,7 +53,12 @@ class _CourtLocationMapPageState extends State<CourtLocationMapPage>
   LatLng get _point => LatLng(widget.latitude, widget.longitude);
 
   void _recenter() {
-    if (_showMap) _mapController.move(_point, _defaultZoom);
+    if (!_showMap) return;
+    _mapController?.animateCamera(
+      CameraUpdate.newCameraPosition(
+        CameraPosition(target: _point, zoom: _defaultZoom),
+      ),
+    );
   }
 
   @override
@@ -77,7 +80,7 @@ class _CourtLocationMapPageState extends State<CourtLocationMapPage>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _mapController.dispose();
+    _mapController?.dispose();
     super.dispose();
   }
 
@@ -89,9 +92,10 @@ class _CourtLocationMapPageState extends State<CourtLocationMapPage>
     if (_handingOffToMaps) return;
     setState(() {
       _handingOffToMaps = true;
-      // Disposing FlutterMap cancels outstanding tile requests and releases
-      // decoded tile images before Android backgrounds this activity.
+      // Tearing the map down releases its GL surface and tile memory before
+      // Android backgrounds this activity for the maps app.
       _showMap = false;
+      _mapController = null;
     });
     await WidgetsBinding.instance.endOfFrame;
     try {
@@ -180,52 +184,34 @@ class _CourtLocationMapPageState extends State<CourtLocationMapPage>
         children: <Widget>[
           Positioned.fill(
             child: _showMap
-                ? FlutterMap(
-                    mapController: _mapController,
-                    options: MapOptions(
-                      initialCenter: _point,
-                      initialZoom: _defaultZoom,
-                      minZoom: 3,
-                      maxZoom: 18,
-                      cameraConstraint: CameraConstraint.contain(
-                        bounds: LatLngBounds(
-                          const LatLng(-_mercatorLatitudeLimit, -180),
-                          const LatLng(_mercatorLatitudeLimit, 180),
-                        ),
-                      ),
-                      interactionOptions: const InteractionOptions(
-                        flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
-                      ),
+                ? GoogleMap(
+                    initialCameraPosition: CameraPosition(
+                      target: _point,
+                      zoom: _defaultZoom,
                     ),
-                    children: <Widget>[
-                      TileLayer(
-                        urlTemplate:
-                            'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                        userAgentPackageName: 'hamro_futsal',
-                        panBuffer: 0,
-                        keepBuffer: 0,
+                    minMaxZoomPreference: const MinMaxZoomPreference(3, 20),
+                    onMapCreated: (GoogleMapController controller) =>
+                        _mapController = controller,
+                    markers: <Marker>{
+                      venueMarker(
+                        const MarkerId('venue'),
+                        _point,
+                        title: widget.venueName,
                       ),
-                      MarkerLayer(
-                        markers: <Marker>[
-                          Marker(
-                            point: _point,
-                            width: AppDimens.sizeX48,
-                            height: AppDimens.sizeX48,
-                            alignment: Alignment.topCenter,
-                            child: const Icon(
-                              Icons.location_on,
-                              color: LightColor.secondaryColor,
-                              size: AppDimens.sizeX44,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const RichAttributionWidget(
-                        attributions: <SourceAttribution>[
-                          TextSourceAttribution('OpenStreetMap contributors'),
-                        ],
-                      ),
-                    ],
+                    },
+                    rotateGesturesEnabled: false,
+                    // The page has its own recentre button and directions.
+                    zoomControlsEnabled: false,
+                    myLocationButtonEnabled: false,
+                    mapToolbarEnabled: false,
+                    // Keeps Google's logo clear of the floating address card.
+                    padding: EdgeInsets.only(
+                      bottom:
+                          (addressText.isEmpty
+                              ? AppDimens.sizeX90
+                              : AppDimens.sizeX130) +
+                          bottomInset,
+                    ),
                   )
                 : ColoredBox(
                     color: LightColor.background,

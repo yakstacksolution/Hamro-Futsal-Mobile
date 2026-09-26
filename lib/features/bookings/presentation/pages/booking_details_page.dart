@@ -175,19 +175,21 @@ class _BookingDetailsView extends StatelessWidget {
     BookingModel booking,
   ) async {
     final BookingDetailsBloc bloc = context.read<BookingDetailsBloc>();
-    final BookingCompleteResult? result = await showBookingCompleteSheet(
-      context,
-      booking,
-    );
-    if (result == null || !context.mounted) return;
-    final bool ok = await completeBooking(booking.id, result: result);
-    if (!context.mounted) return;
-    AppUtils().showSnackBar(
-      context,
-      ok ? MsgType.success : MsgType.error,
-      ok ? 'Booking marked as completed.' : 'Could not complete the booking.',
-    );
-    if (ok) bloc.addIfOpen(FetchBookingDetailsEvent(booking.id));
+    await runBookingCompletionOnce(booking.id, () async {
+      final BookingCompleteResult? result = await showBookingCompleteSheet(
+        context,
+        booking,
+      );
+      if (result == null || !context.mounted) return;
+      final bool ok = await completeBooking(booking.id, result: result);
+      if (!context.mounted) return;
+      AppUtils().showSnackBar(
+        context,
+        ok ? MsgType.success : MsgType.error,
+        ok ? 'Booking marked as completed.' : 'Could not complete the booking.',
+      );
+      if (ok) bloc.addIfOpen(FetchBookingDetailsEvent(booking.id));
+    });
   }
 
   Future<void> _collectDue(BuildContext context, BookingModel booking) async {

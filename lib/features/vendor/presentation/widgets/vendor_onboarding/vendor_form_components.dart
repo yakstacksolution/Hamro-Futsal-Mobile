@@ -865,7 +865,7 @@ class VendorUploadSection extends StatelessWidget {
             children: <Widget>[
               AspectRatio(
                 aspectRatio: 16 / 9,
-                child: _UploadImageView(file: hero),
+                child: VendorUploadImageView(file: hero),
               ),
               if (onRemove != null)
                 Positioned(
@@ -932,7 +932,7 @@ class VendorUploadSection extends StatelessWidget {
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(AppDimens.radiusX12),
-                child: _UploadImageView(file: file),
+                child: VendorUploadImageView(file: file),
               ),
             ),
           ),
@@ -951,10 +951,18 @@ class VendorUploadSection extends StatelessWidget {
   }
 }
 
-class _UploadImageView extends StatelessWidget {
-  const _UploadImageView({required this.file});
+/// An uploaded image, remote or still on the device.
+class VendorUploadImageView extends StatelessWidget {
+  const VendorUploadImageView({
+    super.key,
+    required this.file,
+    this.fit = BoxFit.cover,
+  });
 
   final UploadRef file;
+
+  /// [BoxFit.contain] for anything that must stay whole, such as a QR code.
+  final BoxFit fit;
 
   String get _rawImageSource => (file.remoteUrl ?? '').trim();
 
@@ -980,13 +988,13 @@ class _UploadImageView extends StatelessWidget {
     return _isNetwork
         ? CustomImageView(
             url: _resolveMediaUrl(_rawImageSource),
-            fit: BoxFit.cover,
+            fit: fit,
             width: double.infinity,
             height: double.infinity,
           )
         : CustomImageView(
             file: File(_rawImageSource),
-            fit: BoxFit.cover,
+            fit: fit,
             width: double.infinity,
             height: double.infinity,
           );
@@ -1093,7 +1101,7 @@ class _DocumentGridTile extends StatelessWidget {
         fit: StackFit.expand,
         children: <Widget>[
           _hasImageContent
-              ? _UploadImageView(file: file)
+              ? VendorUploadImageView(file: file)
               : Container(
                   color: LightColor.background,
                   alignment: Alignment.center,
@@ -1381,7 +1389,7 @@ class VendorUploadItem extends StatelessWidget {
                   borderRadius: BorderRadius.circular(AppDimens.radiusX12),
                 ),
                 child: _hasImageContent
-                    ? _UploadImageView(file: file)
+                    ? VendorUploadImageView(file: file)
                     : Icon(
                         Icons.insert_drive_file_rounded,
                         color: LightColor.brandTextColor,

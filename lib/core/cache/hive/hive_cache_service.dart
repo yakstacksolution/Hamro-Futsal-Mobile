@@ -25,9 +25,6 @@ final class HiveCacheService {
       Hive.openBox(HiveBoxes.filter),
       Hive.openBox(HiveBoxes.chat),
       Hive.openBox(HiveBoxes.wishlist),
-      Hive.openBox(HiveBoxes.venueDetails),
-      Hive.openBox(HiveBoxes.bookingList),
-      Hive.openBox(HiveBoxes.bookingDetails),
     ]);
     _initialized = true;
   }
@@ -39,9 +36,6 @@ final class HiveCacheService {
       Hive.box(HiveBoxes.filter).clear(),
       Hive.box(HiveBoxes.chat).clear(),
       Hive.box(HiveBoxes.wishlist).clear(),
-      Hive.box(HiveBoxes.venueDetails).clear(),
-      Hive.box(HiveBoxes.bookingList).clear(),
-      Hive.box(HiveBoxes.bookingDetails).clear(),
     ]);
   }
 

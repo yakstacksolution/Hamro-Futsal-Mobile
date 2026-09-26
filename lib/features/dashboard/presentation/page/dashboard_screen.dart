@@ -7,6 +7,7 @@ import 'package:hamro_futsal/core/socket/reverb_connection.dart';
 import 'package:hamro_futsal/features/bookings/presentation/pages/bookings_page.dart';
 import 'package:hamro_futsal/features/dashboard/presentation/page/futsal_home_page.dart';
 import 'package:hamro_futsal/features/message/presentation/pages/messages_page.dart';
+import 'package:hamro_futsal/features/mobile_banner/presentation/widgets/mobile_banner_dialog.dart';
 import 'package:hamro_futsal/features/notifications/data/repositories/notification_repository_impl.dart';
 import 'package:hamro_futsal/features/notifications/domain/repository/notification_repository.dart';
 import 'package:hamro_futsal/features/wishlist/presentation/pages/wishlist_page.dart';
@@ -87,6 +88,9 @@ class _DashboardScreenState extends State<DashboardScreen>
     if (AppSettings().hasSession) {
       ReverbConnection.instance.connect();
       _refreshNotificationBadge();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) MobileBannerPresenter.showIfAny(context);
+      });
     }
     DeviceLocationHelper.instance.ensurePosition();
     _selectedNavIndexNotifier.addListener(_onNavIndexChanged);

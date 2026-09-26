@@ -276,12 +276,28 @@ CourtDraft _courtFromJson(Map<String, dynamic> json) {
     facilitiesRaw,
   );
 
-  final dynamic paymentQrMedia = json['payment_qr_media'] ?? json['payment_qr'];
-  final UploadRef? paymentQr = paymentQrMedia is Map
-      ? _uploadRefFromMap(Map<String, dynamic>.from(paymentQrMedia))
+  // `payment_qr_media_list` is the source of truth; the single
+  // `payment_qr_media` beside it is legacy and may point at an older library
+  // file, so it is only read when no list is sent at all.
+  final dynamic qrList = json['payment_qr_media_list'] ?? json['payment_qrs'];
+  final dynamic paymentQrMedia = qrList is List
+      ? qrList
+      : json['payment_qr_media'] ?? json['payment_qr'];
+  final List<UploadRef> paymentQrs = paymentQrMedia is List
+      ? paymentQrMedia
+            .whereType<Map>()
+            .map((Map item) => _uploadRefFromMap(_paymentQrMediaMap(item)))
+            .where((UploadRef qr) => qr.id != null)
+            .toList(growable: false)
+      : paymentQrMedia is Map
+      ? <UploadRef>[
+          _uploadRefFromMap(Map<String, dynamic>.from(paymentQrMedia)),
+        ]
       : (_asInt(json['payment_qr_id']) == null
-            ? null
-            : UploadRef(name: '', id: _asInt(json['payment_qr_id'])));
+            ? const <UploadRef>[]
+            : <UploadRef>[
+                UploadRef(name: '', id: _asInt(json['payment_qr_id'])),
+              ]);
 
   return CourtDraft(
     id: remoteId?.toString() ?? (rawIdString.isNotEmpty ? rawIdString : slug),
@@ -332,7 +348,7 @@ CourtDraft _courtFromJson(Map<String, dynamic> json) {
       json['advance_payment_type']?.toString(),
     ),
     advancePrice: _asDouble(json['advance_price'] ?? json['payment_percent']),
-    paymentQr: paymentQr,
+    paymentQrs: paymentQrs,
     amenities: amenityDetails.isNotEmpty
         ? amenityDetails.map((CourtTagDetail item) => item.id).toSet()
         : _idSetFromAny(amenitiesRaw),
@@ -601,6 +617,13 @@ bool _isMediaMap(Map<String, dynamic> map) {
       map.containsKey('full_url') ||
       map.containsKey('url') ||
       map.containsKey('file_url');
+}
+
+/// A QR row may be the media itself or a link row wrapping it under `media`;
+/// the media's own id is what `payment_qr_ids` must send back.
+Map<String, dynamic> _paymentQrMediaMap(Map item) {
+  final dynamic media = item['media'] ?? item['payment_qr_media'];
+  return Map<String, dynamic>.from(media is Map ? media : item);
 }
 
 UploadRef _uploadRefFromMap(Map<String, dynamic> map) {

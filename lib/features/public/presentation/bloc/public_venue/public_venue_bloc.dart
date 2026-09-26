@@ -251,17 +251,6 @@ class PublicVenueBloc extends Bloc<PublicVenueEvent, PublicVenueState> {
         deleteMissing: deleteMissingCacheItems,
       ),
     );
-    for (final PublicListingVenueModel venue in page.venues) {
-      final int? id = venue.id;
-      if (id == null) continue;
-      unawaited(
-        HiveCacheService.instance.syncItem(
-          boxName: HiveBoxes.venueDetails,
-          key: '${HiveCacheService.instance.userScope}:$id',
-          json: venue.toJson(),
-        ),
-      );
-    }
     return state.copyWith(
       status: PublicVenueStatus.success,
       venues: venues,

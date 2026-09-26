@@ -110,9 +110,7 @@ class _VenueCourtsListPageState extends State<VenueCourtsListPage> {
                   children: <Widget>[
                     _TopDashboardHeader(
                       stats: stats,
-                      onAddFutsal: () {
-                        context.pushNamed(AppRouterParams.vendorStepper.name);
-                      },
+                      onAddFutsal: () => _openVendorStepper(context),
                     ),
                     const SizedBox(height: AppDimens.paddingX10),
                     _VenueSearchField(controller: _searchController),
@@ -145,6 +143,20 @@ class _VenueCourtsListPageState extends State<VenueCourtsListPage> {
 /// second tap while the route is being pushed is ignored instead of stacking
 /// another editor on top.
 final Set<String> _openingCourtEditors = <String>{};
+
+/// Opens the vendor stepper and refreshes the list once it returns — Finish
+/// pops back here, so a new or edited venue shows up straight away.
+Future<void> _openVendorStepper(
+  BuildContext context, {
+  Map<String, String> queryParameters = const <String, String>{},
+}) async {
+  final VenueCourtBloc bloc = context.read<VenueCourtBloc>();
+  await context.pushNamed(
+    AppRouterParams.vendorStepper.name,
+    queryParameters: queryParameters,
+  );
+  if (!bloc.isClosed) bloc.add(const FetchVenueCourtEvent(silent: true));
+}
 
 Future<void> _launchCourtEditor(
   BuildContext context, {
@@ -229,10 +241,6 @@ class _VenueListSection extends StatelessWidget {
   final List<_FutsalEntry> entries;
   final bool isSearching;
 
-  void _openVendorStepper(BuildContext context) {
-    context.pushNamed(AppRouterParams.vendorStepper.name);
-  }
-
   @override
   Widget build(BuildContext context) {
     if (state.status == VenueCourtStatus.loading) {
@@ -312,8 +320,8 @@ class _VenueListSection extends StatelessWidget {
                       AppRouterParams.courtDetails.name,
                       extra: entry.toPublicVenue(),
                     ),
-              onEditVenue: () => context.pushNamed(
-                AppRouterParams.vendorStepper.name,
+              onEditVenue: () => _openVendorStepper(
+                context,
                 queryParameters: <String, String>{
                   // The slug is what loads the venue; the id only rides along
                   // so the update payload has it before the fetch lands.

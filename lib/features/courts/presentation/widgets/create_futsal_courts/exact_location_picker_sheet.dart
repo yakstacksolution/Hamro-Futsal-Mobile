@@ -2,7 +2,9 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/app_utils.dart';
@@ -14,7 +16,6 @@ import 'package:hamro_futsal/core/widgets/custom_text_field.dart';
 import 'package:hamro_futsal/core/widgets/loading_widget.dart';
 import 'package:hamro_futsal/features/courts/data/model/picked_location.dart';
 import 'package:http/http.dart' as http;
-import 'package:latlong2/latlong.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 class ExactLocationPickerSheet extends StatefulWidget {
@@ -38,7 +39,7 @@ class _ExactLocationPickerSheetState extends State<ExactLocationPickerSheet> {
   static const LatLng _defaultCenter = LatLng(27.7172, 85.3240);
 
   final TextEditingController _searchController = TextEditingController();
-  final MapController _mapController = MapController();
+  GoogleMapController? _mapController;
 
   Timer? _searchDebounce;
   LatLng? _selectedPoint;
@@ -64,6 +65,7 @@ class _ExactLocationPickerSheetState extends State<ExactLocationPickerSheet> {
   void dispose() {
     _searchDebounce?.cancel();
     _searchController.dispose();
+    _mapController?.dispose();
     super.dispose();
   }
 
@@ -172,7 +174,7 @@ class _ExactLocationPickerSheetState extends State<ExactLocationPickerSheet> {
       _results = <_LocationSearchResult>[];
     });
 
-    _mapController.move(point, 16);
+    _mapController?.animateCamera(CameraUpdate.newLatLngZoom(point, 16));
 
     if (label != null) return;
 
@@ -423,42 +425,35 @@ class _ExactLocationPickerSheetState extends State<ExactLocationPickerSheet> {
                         borderRadius: BorderRadius.circular(
                           AppDimens.radiusX22,
                         ),
-                        child: FlutterMap(
-                          mapController: _mapController,
-                          options: MapOptions(
-                            initialCenter: mapCenter,
-                            initialZoom: _selectedPoint == null ? 13.2 : 16,
-                            onTap: (_, point) => _selectPoint(point),
+                        child: GoogleMap(
+                          initialCameraPosition: CameraPosition(
+                            target: mapCenter,
+                            zoom: _selectedPoint == null ? 13.2 : 16,
                           ),
-                          children: <Widget>[
-                            TileLayer(
-                              urlTemplate:
-                                  'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                              userAgentPackageName: 'hamro_futsal',
-                            ),
+                          onMapCreated: (GoogleMapController controller) =>
+                              _mapController = controller,
+                          onTap: _selectPoint,
+                          markers: <Marker>{
                             if (_selectedPoint != null)
-                              MarkerLayer(
-                                markers: <Marker>[
-                                  Marker(
-                                    point: _selectedPoint!,
-                                    width: AppDimens.sizeX48,
-                                    height: AppDimens.sizeX48,
-                                    child: Icon(
-                                      Icons.location_on,
-                                      color: LightColor.redColor,
-                                      size: AppDimens.sizeX36,
-                                    ),
-                                  ),
-                                ],
+                              Marker(
+                                markerId: const MarkerId('picked'),
+                                position: _selectedPoint!,
                               ),
-                            const RichAttributionWidget(
-                              attributions: <SourceAttribution>[
-                                TextSourceAttribution(
-                                  'OpenStreetMap contributors',
+                          },
+                          // The map sits inside a scrolling sheet: claim every
+                          // gesture that starts on it, or the sheet steals the
+                          // pan and pinch.
+                          gestureRecognizers:
+                              <Factory<OneSequenceGestureRecognizer>>{
+                                Factory<OneSequenceGestureRecognizer>(
+                                  EagerGestureRecognizer.new,
                                 ),
-                              ],
-                            ),
-                          ],
+                              },
+                          zoomControlsEnabled: false,
+                          myLocationButtonEnabled: false,
+                          mapToolbarEnabled: false,
+                          rotateGesturesEnabled: false,
+                          tiltGesturesEnabled: false,
                         ),
                       ),
                     ),

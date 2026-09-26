@@ -4,6 +4,7 @@ import 'package:bloc/bloc.dart';
 import 'package:dartz/dartz.dart';
 import 'package:equatable/equatable.dart';
 import 'package:hamro_futsal/core/helper/exception_helper.dart';
+import 'package:hamro_futsal/core/helper/profile_refresh_signal.dart';
 import 'package:hamro_futsal/core/helper/wishlist_store.dart';
 import 'package:hamro_futsal/features/profile/data/model/profile_model.dart';
 import 'package:hamro_futsal/features/profile/domain/usecase/profile_usecase.dart';
@@ -19,9 +20,21 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     on<UpdateProfileEvent>(_onUpdateProfile);
     on<RequestVendorUpgradeEvent>(_onRequestVendorUpgrade);
     on<DeleteAccountEvent>(_onDeleteAccount);
+    ProfileRefreshSignal.requests.addListener(_onRefreshRequested);
   }
 
   final ProfileUseCase _profileUseCase;
+
+  void _onRefreshRequested() {
+    if (isClosed || state.status == ProfileStatus.loading) return;
+    add(const FetchProfileEvent());
+  }
+
+  @override
+  Future<void> close() {
+    ProfileRefreshSignal.requests.removeListener(_onRefreshRequested);
+    return super.close();
+  }
 
   FutureOr<void> _onDeleteAccount(
     DeleteAccountEvent event,

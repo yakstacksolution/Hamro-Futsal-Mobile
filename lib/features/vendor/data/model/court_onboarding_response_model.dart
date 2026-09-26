@@ -17,7 +17,7 @@ final class CourtOnboardingResponseModel {
     this.advancePaymentRequired,
     this.advancePaymentType,
     this.advancePrice,
-    this.paymentQr,
+    this.paymentQrs = const <UploadRef>[],
     this.slug,
     this.code,
     this.surfaceType,
@@ -53,7 +53,7 @@ final class CourtOnboardingResponseModel {
   final bool? advancePaymentRequired;
   final AdvancePaymentType? advancePaymentType;
   final double? advancePrice;
-  final UploadRef? paymentQr;
+  final List<UploadRef> paymentQrs;
   final String? slug;
   final String? code;
   final String? surfaceType;
@@ -112,9 +112,7 @@ final class CourtOnboardingResponseModel {
         data['advance_payment_type']?.toString(),
       ),
       advancePrice: _asDouble(data['advance_price']),
-      paymentQr: _uploadRefFromAny(
-        data['payment_qr_media'] ?? data['payment_qr'],
-      ),
+      paymentQrs: _paymentQrsFromAny(data),
       slug: _nonEmptyString(data['slug']),
       code: _nonEmptyString(data['code']),
       surfaceType: _nonEmptyString(data['surface_type']),
@@ -146,6 +144,9 @@ final class CourtOnboardingResponseModel {
       venueId: venueId,
       mainStep: mainStep,
       subStep: subStep,
+      // The Finish button trusts this flag for courts it has not fully
+      // loaded, so a save that completes the court has to carry it over.
+      isStepCompleted: isStepCompleted,
       name: name.isEmpty ? draft.name : name,
       basePrice: basePrice,
       description: description.isEmpty ? draft.description : description,
@@ -169,7 +170,7 @@ final class CourtOnboardingResponseModel {
       bookingPolicies: bookingPolicies,
       courtRules: courtRules,
       cancellationPolicy: cancellationPolicy,
-      paymentQr: paymentQr ?? draft.paymentQr,
+      paymentQrs: paymentQrs.isEmpty ? draft.paymentQrs : paymentQrs,
       amenities: amenities.isEmpty ? draft.amenities : amenities,
       facilities: facilities.isEmpty ? draft.facilities : facilities,
       amenityDetails: amenityDetails.isEmpty
@@ -306,6 +307,37 @@ Set<int> _idSetFromAny(Object? value) {
       .toSet();
 }
 
+/// The court's payment QRs.
+///
+/// `payment_qr_media_list` is the source of truth: the files the court keeps
+/// (copied into court storage, so their ids differ from the library's). The
+/// single `payment_qr_media` beside it is the legacy field and can point at an
+/// older library file, so it is only read when the list is absent altogether —
+/// an empty list means the court has no QRs, not "use the legacy one".
+List<UploadRef> _paymentQrsFromAny(Map<String, dynamic> data) {
+  for (final String key in const <String>[
+    'payment_qr_media_list',
+    'payment_qrs',
+  ]) {
+    if (data.containsKey(key) && data[key] is List) {
+      return _paymentQrListFrom(data[key] as List);
+    }
+  }
+  final Object? raw = data['payment_qr_media'] ?? data['payment_qr'];
+  if (raw is List) return _paymentQrListFrom(raw);
+  return <UploadRef>[?_uploadRefFromAny(raw)];
+}
+
+/// A row may wrap its file under `media`; the media id is the one to send.
+List<UploadRef> _paymentQrListFrom(List<dynamic> raw) {
+  return _uploadsFromAny(<Object?>[
+    for (final Object? item in raw)
+      item is Map && (item['media'] ?? item['payment_qr_media']) is Map
+          ? item['media'] ?? item['payment_qr_media']
+          : item,
+  ]);
+}
+
 List<UploadRef> _uploadsFromAny(Object? value) {
   if (value is! List) return const <UploadRef>[];
   return value
@@ -323,10 +355,22 @@ UploadRef? _uploadRefFromAny(Object? value) {
   return UploadRef(
     id: id,
     name: _asTrimmedString(map['name'] ?? map['file_name'] ?? map['title']),
-    remoteUrl: _nonEmptyString(
-      map['full_url'] ?? map['url'] ?? map['path'] ?? map['file_url'],
+    remoteUrl: _collapseUrlSlashes(
+      _nonEmptyString(
+        map['full_url'] ?? map['url'] ?? map['path'] ?? map['file_url'],
+      ),
     ),
   );
+}
+
+/// The API joins its host and storage path with a doubled slash
+/// (`…com//storage/…`); collapse it after the scheme.
+String? _collapseUrlSlashes(String? url) {
+  if (url == null) return null;
+  final int schemeEnd = url.indexOf('://');
+  if (schemeEnd < 0) return url;
+  return url.substring(0, schemeEnd + 3) +
+      url.substring(schemeEnd + 3).replaceAll(RegExp(r'/{2,}'), '/');
 }
 
 String? _nonEmptyString(Object? value) {
