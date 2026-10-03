@@ -1,0 +1,74 @@
+name: Windows build
+
+# `flutter build windows` only runs on Windows hosts, so the desktop build is
+# made here rather than on a developer's Mac. Run it from the Actions tab
+# (choose staging or production), or push to `build/windows` (builds staging)
+# or to staging / production (that branch's flavor). The result is a zip of
+# the Release folder — the .exe plus the DLLs and data/ it needs —
+# downloadable from the run's Artifacts.
+
+on:
+  workflow_dispatch:
+    inputs:
+      flavor:
+        description: "Environment to build against"
+        type: choice
+        options:
+          - staging
+          - production
+        default: staging
+  push:
+    branches:
+      - build/windows
+      - staging
+      - production
+
+concurrency:
+  group: windows-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-windows:
+    name: Build Windows
+    runs-on: windows-latest
+    timeout-minutes: 45
+    env:
+      # Manual runs pick the flavor; a push to production builds production,
+      # any other branch (staging, build/windows) builds staging.
+      FLAVOR: ${{ inputs.flavor || (github.ref_name == 'production' && 'production' || 'staging') }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.44.0"
+          channel: "stable"
+          cache: true
+
+      - name: Enable Windows desktop
+        run: flutter config --enable-windows-desktop
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build Windows release
+        run: flutter build windows --release --no-tree-shake-icons --dart-define=ENV=${{ env.FLAVOR }}
+
+      - name: Package release folder
+        shell: pwsh
+        run: |
+          $release = "build/windows/x64/runner/Release"
+          if (-not (Test-Path "$release/hamro_futsal.exe")) {
+            Write-Error "hamro_futsal.exe not found in $release"
+            exit 1
+          }
+          Compress-Archive -Path "$release/*" -DestinationPath "hamro_futsal-windows-$env:FLAVOR.zip"
+
+      - name: Upload build
+        uses: actions/upload-artifact@v4
+        with:
+          name: hamro_futsal-windows-${{ env.FLAVOR }}-${{ github.run_number }}
+          path: hamro_futsal-windows-${{ env.FLAVOR }}.zip
+          retention-days: 14
