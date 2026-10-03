@@ -8,7 +8,7 @@
 PRODUCT_NAME = hamro_futsal
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.yakstack.hamrofutsal
+PRODUCT_BUNDLE_IDENTIFIER = com.np.hamrofutsal
 
 // The copyright displayed in application information
 PRODUCT_COPYRIGHT = Copyright © 2026 Yak Stack Solution. All rights reserved.
