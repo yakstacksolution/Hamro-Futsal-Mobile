@@ -9,6 +9,8 @@ typedef ControllerCallback = void Function(AnimationController);
 
 enum DismissType { onTap, onSwipe, none }
 
+enum SnackBarPosition { top, bottomRight }
+
 final Map<Object, OverlayEntry> _activeEntries = {};
 
 void _removeOverlayEntry(OverlayEntry entry) {
@@ -39,6 +41,7 @@ void showTopSnackBar(
   SafeAreaValues safeAreaValues = const SafeAreaValues(),
   DismissType dismissType = DismissType.onTap,
   List<DismissDirection> dismissDirection = const [DismissDirection.up],
+  SnackBarPosition position = SnackBarPosition.top,
   Object? key,
 }) {
   final entryKey = key ?? UniqueKey();
@@ -70,6 +73,7 @@ void showTopSnackBar(
         safeAreaValues: safeAreaValues,
         dismissType: dismissType,
         dismissDirections: dismissDirection,
+        position: position,
         child: child,
       );
     },
@@ -91,6 +95,7 @@ class _TopSnackBar extends StatefulWidget {
     required this.reverseCurve,
     required this.safeAreaValues,
     required this.dismissDirections,
+    required this.position,
     this.onTap,
     this.persistent = false,
     this.onAnimationControllerInit,
@@ -111,6 +116,7 @@ class _TopSnackBar extends StatefulWidget {
   final SafeAreaValues safeAreaValues;
   final DismissType dismissType;
   final List<DismissDirection> dismissDirections;
+  final SnackBarPosition position;
 
   @override
   _TopSnackBarState createState() => _TopSnackBarState();
@@ -122,8 +128,6 @@ class _TopSnackBarState extends State<_TopSnackBar>
   late final AnimationController _animationController;
 
   Timer? _timer;
-
-  final _offsetTween = Tween(begin: const Offset(0, -1), end: Offset.zero);
 
   @override
   void initState() {
@@ -148,7 +152,10 @@ class _TopSnackBarState extends State<_TopSnackBar>
 
     widget.onAnimationControllerInit?.call(_animationController);
 
-    _offsetAnimation = _offsetTween.animate(
+    final Offset beginOffset = widget.position == SnackBarPosition.bottomRight
+        ? const Offset(0, 1)
+        : const Offset(0, -1);
+    _offsetAnimation = Tween(begin: beginOffset, end: Offset.zero).animate(
       CurvedAnimation(
         parent: _animationController,
         curve: widget.curve,
@@ -170,28 +177,51 @@ class _TopSnackBarState extends State<_TopSnackBar>
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      alignment: Alignment.topCenter,
-      children: <Widget>[
-        Positioned(
-          top: widget.padding.top,
-          left: widget.padding.left,
-          right: widget.padding.right,
-          child: SlideTransition(
-            position: _offsetAnimation,
-            child: SafeArea(
-              top: widget.safeAreaValues.top,
-              bottom: widget.safeAreaValues.bottom,
-              left: widget.safeAreaValues.left,
-              right: widget.safeAreaValues.right,
-              minimum: widget.safeAreaValues.minimum,
-              maintainBottomViewPadding:
-                  widget.safeAreaValues.maintainBottomViewPadding,
-              child: _buildDismissibleChild(),
-            ),
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        final Widget child = SlideTransition(
+          position: _offsetAnimation,
+          child: SafeArea(
+            top: widget.safeAreaValues.top,
+            bottom: widget.safeAreaValues.bottom,
+            left: widget.safeAreaValues.left,
+            right: widget.safeAreaValues.right,
+            minimum: widget.safeAreaValues.minimum,
+            maintainBottomViewPadding:
+                widget.safeAreaValues.maintainBottomViewPadding,
+            child: _buildDismissibleChild(),
           ),
-        ),
-      ],
+        );
+
+        if (widget.position == SnackBarPosition.bottomRight) {
+          final double availableWidth =
+              constraints.maxWidth - widget.padding.horizontal;
+          final double width = availableWidth.clamp(280.0, 420.0).toDouble();
+          return Stack(
+            alignment: Alignment.bottomRight,
+            children: <Widget>[
+              Positioned(
+                right: widget.padding.right,
+                bottom: widget.padding.bottom,
+                width: width,
+                child: child,
+              ),
+            ],
+          );
+        }
+
+        return Stack(
+          alignment: Alignment.topCenter,
+          children: <Widget>[
+            Positioned(
+              top: widget.padding.top,
+              left: widget.padding.left,
+              right: widget.padding.right,
+              child: child,
+            ),
+          ],
+        );
+      },
     );
   }
 

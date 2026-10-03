@@ -113,6 +113,10 @@ class FutsalTheme {
       dialogTheme: DialogThemeData(
         backgroundColor: colors.surfaceElevated,
         surfaceTintColor: Colors.transparent,
+        // Dialogs otherwise stretch to nearly the full window on tablet and
+        // desktop; phones are narrower than this already, so they are
+        // unchanged. A dialog that needs more room sets its own constraints.
+        constraints: const BoxConstraints(minWidth: 280, maxWidth: 480),
       ),
       bottomSheetTheme: BottomSheetThemeData(
         backgroundColor: colors.surfaceElevated,

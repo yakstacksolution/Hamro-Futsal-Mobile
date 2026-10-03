@@ -159,7 +159,11 @@ final class MessageRepositoryImpl extends MessageRepository {
                     : failure,
               );
             })
-            .whenComplete(() => _registeredUsersInFlight.remove(key));
+            // A block: `remove` returns this very future, which
+            // `whenComplete` would wait on — it would never complete.
+            .whenComplete(() {
+              _registeredUsersInFlight.remove(key);
+            });
   }
 
   static AppException _registeredUsersRateLimited(DateTime until) {

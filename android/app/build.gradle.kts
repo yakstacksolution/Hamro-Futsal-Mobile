@@ -44,6 +44,38 @@ val googleMapsApiKey: String = run {
         ?: ""
 }
 
+val prepareFirebaseConfig = tasks.register<Exec>("prepareFirebaseConfig") {
+    workingDir = rootProject.projectDir.parentFile
+    commandLine("dart", "tool/prepare_firebase_config.dart")
+    isIgnoreExitValue = true
+}
+
+tasks.register("validateFirebaseConfig") {
+    dependsOn(prepareFirebaseConfig)
+    val configFile = project.file("google-services.json")
+    inputs.file(configFile)
+    doLast {
+        if (!configFile.exists()) {
+            throw GradleException(
+                "Missing android/app/google-services.json. Run `dart tool/prepare_firebase_config.dart` " +
+                    "or provide FIREBASE_ANDROID_GOOGLE_SERVICES_JSON(_BASE64)."
+            )
+        }
+        val contents = configFile.readText()
+        val hasPlaceholder = contents.contains("REPLACE_WITH_")
+        val hasGoogleApiKey = Regex("AIza[0-9A-Za-z_-]{35}").containsMatchIn(contents)
+        if (hasPlaceholder || !hasGoogleApiKey) {
+            throw GradleException(
+                "android/app/google-services.json contains placeholder Firebase values. " +
+                    "Restore a real restricted Firebase config to secrets/android/google-services.json " +
+                    "or android/app/google-services.local.json, or provide " +
+                    "FIREBASE_ANDROID_GOOGLE_SERVICES_JSON(_BASE64) before building. " +
+                    "Never commit the real file."
+            )
+        }
+    }
+}
+
 android {
     namespace = "com.np.hamrofutsal"
     compileSdk = flutter.compileSdkVersion
@@ -94,6 +126,10 @@ android {
     buildFeatures {
         compose = true
     }
+}
+
+tasks.named("preBuild") {
+    dependsOn("validateFirebaseConfig")
 }
 
 flutter {

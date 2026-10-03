@@ -21,6 +21,8 @@ class _SettingsPreferenceKeys {
   static const darkMode = 'settings_dark_mode';
   static const appThemeMode = 'settings_app_theme_mode';
   static const appLanguage = 'settings_app_language';
+  static const vendorOperationalHome = 'settings_vendor_operational_home';
+  static const vendorOpsWeekStart = 'settings_vendor_ops_week_start';
 }
 
 class _AppUpdatePreferenceKeys {
@@ -150,6 +152,20 @@ class AppSettings {
       _preferences.setString(_SettingsPreferenceKeys.appLanguage, val);
   String get appLanguage =>
       _preferences.getString(_SettingsPreferenceKeys.appLanguage) ?? 'English';
+
+  set vendorOperationalHome(bool val) =>
+      _preferences.setBool(_SettingsPreferenceKeys.vendorOperationalHome, val);
+  bool get vendorOperationalHome =>
+      _preferences.getBool(_SettingsPreferenceKeys.vendorOperationalHome) ??
+      true;
+
+  /// Where the operational home's Week table begins: `sunday` or `today`.
+  /// Null until the vendor picks one.
+  set vendorOpsWeekStart(String val) =>
+      _preferences.setString(_SettingsPreferenceKeys.vendorOpsWeekStart, val);
+  String? get vendorOpsWeekStart => _initialized
+      ? _preferences.getString(_SettingsPreferenceKeys.vendorOpsWeekStart)
+      : null;
 
   // ---------------------------------------------------------------------------
   // In-app update bookkeeping. "Later" on an optional update snoozes *that

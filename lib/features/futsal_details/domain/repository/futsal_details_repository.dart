@@ -66,15 +66,15 @@ abstract class FutsalDetailsRepository {
     String? slotEndTime,
     List<String> recurringDates = const <String>[],
   });
-  Future<Either<AppException, BookingHoldModel>> createBookingHold({
-    required int? venueId,
-    required int? courtId,
-    required String bookingDate,
-    required String startTime,
-    required String endTime,
-    List<String> bookingDates,
+
+  /// Holds every slot in [holds] in one `POST /booking-holds`, sent as
+  /// `{"holds": [...]}`. The holds come back in the order sent.
+  Future<Either<AppException, List<BookingHoldModel>>> createBookingHolds({
+    required List<BookingHoldRequest> holds,
   });
-  Future<Either<AppException, Unit>> releaseBookingHold({
-    required String holdToken,
+
+  /// Releases the holds with [holdIds] in one `DELETE /booking-holds`.
+  Future<Either<AppException, Unit>> releaseBookingHolds({
+    required List<String> holdIds,
   });
 }

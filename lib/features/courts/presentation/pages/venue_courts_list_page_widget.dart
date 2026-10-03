@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:dartz/dartz.dart' hide State;
 import 'package:flutter/material.dart';
+import 'package:hamro_futsal/core/utils/responsive.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -103,26 +104,39 @@ class _VenueCourtsListPageState extends State<VenueCourtsListPage> {
                 );
               }
 
+              // Phone: full width. Tablet / desktop: one centred column, so
+              // the header, search and venue cards share their edges.
               return ColoredBox(
                 color: LightColor.background,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    _TopDashboardHeader(
-                      stats: stats,
-                      onAddFutsal: () => _openVendorStepper(context),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: context.isDesktop
+                          ? _kVenuesDesktopMaxWidth
+                          : context.isTablet
+                          ? _kVenuesTabletMaxWidth
+                          : double.infinity,
                     ),
-                    const SizedBox(height: AppDimens.paddingX10),
-                    _VenueSearchField(controller: _searchController),
-                    const SizedBox(height: AppDimens.paddingX6),
-                    Expanded(
-                      child: _VenueListSection(
-                        state: state,
-                        entries: filtered,
-                        isSearching: query.isNotEmpty,
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        _TopDashboardHeader(
+                          stats: stats,
+                          onAddFutsal: () => _openVendorStepper(context),
+                        ),
+                        const SizedBox(height: AppDimens.paddingX10),
+                        _VenueSearchField(controller: _searchController),
+                        const SizedBox(height: AppDimens.paddingX6),
+                        Expanded(
+                          child: _VenueListSection(
+                            state: state,
+                            entries: filtered,
+                            isSearching: query.isNotEmpty,
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               );
             },
@@ -138,6 +152,10 @@ class _VenueCourtsListPageState extends State<VenueCourtsListPage> {
     return left.title.toLowerCase().compareTo(right.title.toLowerCase());
   }
 }
+
+/// Widest the Your Venues page grows on a tablet and on desktop.
+const double _kVenuesTabletMaxWidth = 760;
+const double _kVenuesDesktopMaxWidth = 1200;
 
 /// Courts whose editor is currently opening, keyed by venue + court, so a
 /// second tap while the route is being pushed is ignored instead of stacking
@@ -292,26 +310,13 @@ class _VenueListSection extends StatelessWidget {
                 onTimeout: () => bloc.state,
               );
         },
-        child: ListView.separated(
-          physics: const BouncingScrollPhysics(),
-          padding: listPadding,
-          itemCount:
-              entries.length +
-              (state.isLoadingMore || state.loadMoreError != null ? 1 : 0),
-          separatorBuilder: (_, __) =>
-              const SizedBox(height: AppDimens.sizeX10),
-          itemBuilder: (BuildContext context, int index) {
-            if (index == entries.length) {
-              return _VenuePaginationFooter(
-                loading: state.isLoadingMore,
-                error: state.loadMoreError,
-                onRetry: () => context.read<VenueCourtBloc>().add(
-                  const FetchVenueCourtEvent(silent: true, loadMore: true),
-                ),
-              );
-            }
-            final _FutsalEntry entry = entries[index];
-            return _VenueCardV2(
+        child: LayoutBuilder(
+          builder: (BuildContext context, BoxConstraints constraints) {
+            // Desktop: venue cards two to a row, top-aligned — a venue's card
+            // grows with its courts, so equal heights would leave holes.
+            final int columns = context.isDesktop ? 2 : 1;
+            final int rows = (entries.length / columns).ceil();
+            Widget card(_FutsalEntry entry) => _VenueCardV2(
               entry: entry,
               onAddCourt: () => _launchCourtEditor(context, venueId: entry.id),
               onOpenDetails: entry.id == null
@@ -332,6 +337,42 @@ class _VenueListSection extends StatelessWidget {
                   'subStep': '1',
                 },
               ),
+            );
+            return ListView.separated(
+              physics: const BouncingScrollPhysics(),
+              padding: listPadding,
+              itemCount:
+                  rows +
+                  (state.isLoadingMore || state.loadMoreError != null ? 1 : 0),
+              separatorBuilder: (_, __) => SizedBox(
+                height: columns == 1 ? AppDimens.sizeX10 : AppDimens.sizeX16,
+              ),
+              itemBuilder: (BuildContext context, int index) {
+                if (index == rows) {
+                  return _VenuePaginationFooter(
+                    loading: state.isLoadingMore,
+                    error: state.loadMoreError,
+                    onRetry: () => context.read<VenueCourtBloc>().add(
+                      const FetchVenueCourtEvent(silent: true, loadMore: true),
+                    ),
+                  );
+                }
+                if (columns == 1) return card(entries[index]);
+                final int first = index * columns;
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    for (int c = 0; c < columns; c++) ...<Widget>[
+                      if (c > 0) const SizedBox(width: AppDimens.sizeX16),
+                      Expanded(
+                        child: first + c < entries.length
+                            ? card(entries[first + c])
+                            : const SizedBox.shrink(),
+                      ),
+                    ],
+                  ],
+                );
+              },
             );
           },
         ),

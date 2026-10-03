@@ -282,7 +282,7 @@ class AuthManager extends ServiceManager {
   Future<Result> completeBooking({
     required int bookingId,
     bool confirm = true,
-    String? paymentType,
+    List<Map<String, dynamic>>? payments,
     double? discount,
     double? partialAmount,
     List<Map<String, dynamic>>? extraItems,
@@ -290,7 +290,7 @@ class AuthManager extends ServiceManager {
     return await _apiClient.completeBooking(
       bookingId: bookingId,
       confirm: confirm,
-      paymentType: paymentType,
+      payments: payments,
       discount: discount,
       partialAmount: partialAmount,
       extraItems: extraItems,
@@ -568,16 +568,20 @@ class AuthManager extends ServiceManager {
     return await _apiClient.createBooking(data: data);
   }
 
+  Future<Result> createManualBooking(Map<String, dynamic> data) async {
+    return await _apiClient.createManualBooking(data: data);
+  }
+
   Future<Result> getRecurringAvailability(dynamic data) async {
     return await _apiClient.getRecurringAvailability(data: data);
   }
 
-  Future<Result> createBookingHold(dynamic data) async {
-    return await _apiClient.createBookingHold(data: data);
+  Future<Result> createBookingHolds(Map<String, dynamic> data) async {
+    return await _apiClient.createBookingHolds(data: data);
   }
 
-  Future<Result> releaseBookingHold(String holdToken) async {
-    return await _apiClient.releaseBookingHold(holdToken: holdToken);
+  Future<Result> releaseBookingHolds(List<String> holdIds) async {
+    return await _apiClient.releaseBookingHolds(holdIds: holdIds);
   }
 
   Future<Result> getActiveCoupons() async {
@@ -618,6 +622,22 @@ class AuthManager extends ServiceManager {
 
   Future<Result> getCourtDetails(int courtId) async {
     return await _apiClient.getCourtDetails(courtId: courtId);
+  }
+
+  Future<Result> getCourtAvailabilitySlots({
+    int? venueId,
+    int? courtId,
+    required String startDate,
+    String? endDate,
+    String type = 'week',
+  }) async {
+    return await _apiClient.getCourtAvailabilitySlots(
+      venueId: venueId,
+      courtId: courtId,
+      startDate: startDate,
+      endDate: endDate,
+      type: type,
+    );
   }
 
   Future<Result> getCourtSlots(int courtId) async {
@@ -696,6 +716,10 @@ class AuthManager extends ServiceManager {
     required Map<String, dynamic> query,
   }) async {
     return await _apiClient.getFutsalBookings(query: query);
+  }
+
+  Future<Result> getCandidates({required Map<String, dynamic> query}) async {
+    return await _apiClient.getCandidates(query: query);
   }
 
   Future<Result> getBookingOverview({Map<String, dynamic>? query}) async {

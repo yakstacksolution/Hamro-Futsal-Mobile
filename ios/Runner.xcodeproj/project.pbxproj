@@ -200,6 +200,7 @@
 			buildPhases = (
 				D803A10057D45FC23209123D /* [CP] Check Pods Manifest.lock */,
 				9740EEB61CF901F6004384FC /* Run Script */,
+				F1B2C3D4E5F60718293A4B5C /* Verify Firebase Config */,
 				97C146EA1CF9000F007C117D /* Sources */,
 				97C146EB1CF9000F007C117D /* Frameworks */,
 				97C146EC1CF9000F007C117D /* Resources */,
@@ -280,6 +281,21 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
+		F1B2C3D4E5F60718293A4B5C /* Verify Firebase Config */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "Verify Firebase Config";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "PLIST=\"${SRCROOT}/Runner/GoogleService-Info.plist\"\nif [ ! -f \"$PLIST\" ]; then\n  echo \"error: Missing $PLIST. Run 'make prepare-firebase' first.\"\n  exit 1\nfi\nKEY=$(/usr/libexec/PlistBuddy -c 'Print :API_KEY' \"$PLIST\" 2>/dev/null)\nif ! echo \"$KEY\" | grep -Eq '^AIza[0-9A-Za-z_-]{35}$'; then\n  echo \"error: GoogleService-Info.plist has an invalid API_KEY ('$KEY'). Firebase will crash at launch. Place the real plist in secrets/ios/GoogleService-Info.plist and run 'make prepare-firebase'.\"\n  exit 1\nfi\n";
+		};
 		1EB55F80DB4E83A49DF5ABBA /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;

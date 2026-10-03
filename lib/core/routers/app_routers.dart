@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hamro_futsal/core/api/api_client/booking_type_payload.dart';
 import 'package:hamro_futsal/core/helper/share_preferences.dart';
 import 'package:hamro_futsal/core/routers/app_router_params.dart';
+import 'package:hamro_futsal/core/routers/booking_details_route_args.dart';
 import 'package:hamro_futsal/core/routers/deep_link_target.dart';
 import 'package:hamro_futsal/core/routers/root_navigator_key.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
@@ -14,7 +15,6 @@ import 'package:hamro_futsal/core/widgets/custom_app_bar.dart';
 import 'package:hamro_futsal/core/widgets/custom_button.dart';
 import 'package:hamro_futsal/features/auth/data/repositories/authentication_repository_impl.dart';
 import 'package:hamro_futsal/features/booking_overview/presentation/pages/booking_overview_screen.dart';
-import 'package:hamro_futsal/features/bookings/data/model/booking_model.dart';
 import 'package:hamro_futsal/features/bookings/presentation/pages/booking_details_page.dart';
 import 'package:hamro_futsal/features/bookings/presentation/pages/manual_booking_page.dart';
 import 'package:hamro_futsal/features/change_password/data/repositories/change_password_repository_impl.dart';
@@ -424,10 +424,17 @@ class AppRouters {
         GoRoute(
           name: AppRouterParams.bookingDetails.name,
           path: AppRouterParams.bookingDetails.path,
-          builder: (context, state) => BookingDetailsPage(
-            booking: state.extra as BookingModel,
-            isFutsalView: state.queryParameters['futsal'] == 'true',
-          ),
+          builder: (context, state) {
+            final BookingDetailsRouteArgs args =
+                BookingDetailsRouteArgs.fromExtra(state.extra);
+            return BookingDetailsPage(
+              booking: args.booking,
+              isFutsalView:
+                  args.isFutsalView ??
+                  state.queryParameters['futsal'] == 'true',
+              onBookingUpdated: args.onBookingUpdated,
+            );
+          },
         ),
 
         GoRoute(
@@ -806,9 +813,6 @@ class _MissingBookingCheckoutArgsPage extends StatelessWidget {
   }
 }
 
-/// Reads [key] off the OTP route's `extra`, which is a bare email string from
-/// the registration flow and an `{email, purpose}` map from the
-/// forgot-password flow.
 String? _otpExtra(GoRouterState state, String key) {
   final Object? extra = state.extra;
   if (extra is Map) {

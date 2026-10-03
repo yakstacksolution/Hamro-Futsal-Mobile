@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:hamro_futsal/core/utils/responsive.dart';
+import 'package:hamro_futsal/features/opponent_match/presentation/widgets/opponent_common.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
@@ -18,10 +20,21 @@ import 'package:hamro_futsal/features/opponent_match/presentation/widgets/oppone
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 class OpponentMatchScreen extends StatelessWidget {
-  const OpponentMatchScreen({super.key});
+  const OpponentMatchScreen({super.key, this.bloc});
+
+  /// Supplied by widget tests; the app always builds its own.
+  @visibleForTesting
+  final OpponentMatchBloc? bloc;
 
   @override
   Widget build(BuildContext context) {
+    final OpponentMatchBloc? injected = bloc;
+    if (injected != null) {
+      return BlocProvider<OpponentMatchBloc>.value(
+        value: injected,
+        child: const _OpponentMatchView(),
+      );
+    }
     return BlocProvider(
       create: (_) =>
           OpponentMatchBloc(OpponentMatchUseCase(OpponentMatchRepositoryImpl()))
@@ -279,7 +292,9 @@ class _OpponentMatchViewState extends State<_OpponentMatchView>
       appBar: const CustomAppBar(title: StringConstants.opponentMatch),
       // Requests tab only: "Find an Opponent" starts a request, which is not
       // what the Teams tab is for — there the bottom bar below adds a team.
-      floatingActionButton: _tabCtrl.index != 0
+      // Tablet / desktop carry it in the page header instead, inside the
+      // content column rather than in the window's corner.
+      floatingActionButton: _tabCtrl.index != 0 || context.isTabletOrWider
           ? null
           : SizedBox(
               height: 44,
@@ -340,42 +355,99 @@ class _OpponentMatchViewState extends State<_OpponentMatchView>
             }
           },
           builder: (context, state) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: AppUtils().getPadding(
-                    symmetricHorizontal: AppDimens.paddingX20,
-                  ),
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 180),
-                    child: Text(
-                      _subtitle(state),
-                      key: ValueKey(_subtitle(state)),
-                      style: FutsalTheme.getTextTheme(context).bodyTextSmall
-                          ?.copyWith(color: LightColor.secondaryTextColor),
-                    ),
-                  ),
+            // Phone: full width. Tablet / desktop: one centred column, so the
+            // header, tabs, chips and cards share the same edges.
+            return Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: OpponentLayout.maxContentWidth(context),
                 ),
-                const SizedBox(height: AppDimens.paddingX12),
-                _tabBar(state),
-                const SizedBox(height: AppDimens.paddingX10),
-                Expanded(
-                  child: TabBarView(
-                    controller: _tabCtrl,
-                    physics: const BouncingScrollPhysics(),
-                    children: [
-                      _RequestsTabBody(
-                        state: state,
-                        filter: _requestFilter,
-                        onFilter: _setFilter,
-                        onCompleteDraft: _openDraft,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: AppUtils().getPadding(
+                        symmetricHorizontal: AppDimens.paddingX20,
                       ),
-                      _TeamsTabBody(state: state),
-                    ],
-                  ),
+                      child: Row(
+                        children: <Widget>[
+                          Expanded(
+                            child: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 180),
+                              // Left-aligned like the plain text it replaces.
+                              layoutBuilder:
+                                  (Widget? current, List<Widget> previous) =>
+                                      Stack(
+                                        alignment: Alignment.centerLeft,
+                                        children: <Widget>[
+                                          ...previous,
+                                          ?current,
+                                        ],
+                                      ),
+                              child: Text(
+                                _subtitle(state),
+                                key: ValueKey(_subtitle(state)),
+                                style: FutsalTheme.getTextTheme(context)
+                                    .bodyTextSmall
+                                    ?.copyWith(
+                                      color: LightColor.secondaryTextColor,
+                                    ),
+                              ),
+                            ),
+                          ),
+                          if (context.isTabletOrWider && _tabCtrl.index == 0)
+                            SizedBox(
+                              height: 40,
+                              child: FilledButton.icon(
+                                onPressed: _openCreateRequest,
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: LightColor.secondaryColor,
+                                  foregroundColor: LightColor.inverseTextColor,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(
+                                      AppDimens.radiusX10,
+                                    ),
+                                  ),
+                                ),
+                                icon: const Icon(Icons.add_rounded, size: 18),
+                                label: Text(
+                                  'Find an Opponent',
+                                  style: FutsalTheme.getTextTheme(context)
+                                      .bodyTextSmall
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.w700,
+                                        color: LightColor.inverseTextColor,
+                                      ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: AppDimens.paddingX12),
+                    _tabBar(state),
+                    const SizedBox(height: AppDimens.paddingX10),
+                    Expanded(
+                      child: TabBarView(
+                        controller: _tabCtrl,
+                        physics: const BouncingScrollPhysics(),
+                        children: [
+                          _RequestsTabBody(
+                            state: state,
+                            filter: _requestFilter,
+                            onFilter: _setFilter,
+                            onCompleteDraft: _openDraft,
+                          ),
+                          _TeamsTabBody(state: state),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             );
           },
         ),
@@ -415,12 +487,24 @@ class _NewTeamBottomBar extends StatelessWidget {
                 symmetricHorizontal: AppDimens.paddingX20,
                 symmetricVertical: AppDimens.paddingX12,
               ),
-              child: CustomButton(
-                text: StringConstants.newTeam,
-                icon: Icons.add_rounded,
-                minHeight: AppDimens.sizeX46,
-                borderRadius: AppDimens.radiusX12,
-                onPressed: onTap,
+              // Full width on a phone; a button-sized width, centred, on a
+              // tablet or desktop window. heightFactor 1: a bottom bar may be
+              // as tall as the screen, and a plain Center filled all of it,
+              // covering the team list.
+              child: Center(
+                heightFactor: 1,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: context.isTabletOrWider ? 420 : double.infinity,
+                  ),
+                  child: CustomButton(
+                    text: StringConstants.newTeam,
+                    icon: Icons.add_rounded,
+                    minHeight: AppDimens.sizeX46,
+                    borderRadius: AppDimens.radiusX12,
+                    onPressed: onTap,
+                  ),
+                ),
               ),
             ),
           ),

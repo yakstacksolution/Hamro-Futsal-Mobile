@@ -190,12 +190,27 @@ class _TransactionHistoryViewState extends State<_TransactionHistoryView> {
     );
   }
 
+  /// Readable width of the ledger column on wider screens.
+  static const double _tabletMaxWidth = 760;
+  static const double _desktopMaxWidth = 920;
+
   @override
   Widget build(BuildContext context) {
-    final double horizontal = context.responsive<double>(
+    final double gutter = context.responsive<double>(
       mobile: AppDimens.paddingX16,
       tablet: AppDimens.paddingX32,
     );
+    // Phone: the plain gutter. Tablet / desktop: whatever centres the summary,
+    // search, chips and ledger in one readable column — so an amount sits
+    // next to its description instead of a window-width away. Done as side
+    // padding so every sliver (the pinned search too) keeps working as is.
+    final double width = MediaQuery.sizeOf(context).width;
+    final double maxWidth = context.isDesktop
+        ? _desktopMaxWidth
+        : _tabletMaxWidth;
+    final double horizontal = context.isTabletOrWider
+        ? ((width - maxWidth) / 2).clamp(gutter, double.infinity)
+        : gutter;
 
     return Scaffold(
       backgroundColor: LightColor.background,

@@ -4,9 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hamro_futsal/core/routers/app_router_params.dart';
+import 'package:hamro_futsal/core/routers/booking_details_route_args.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/app_utils.dart';
+import 'package:hamro_futsal/core/utils/string_constants.dart';
+import 'package:hamro_futsal/core/utils/bloc_safe_add.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
 import 'package:hamro_futsal/core/widgets/data_card.dart';
 import 'package:hamro_futsal/core/widgets/loading_widget.dart';
@@ -247,12 +250,21 @@ class BookingStatusPage extends StatelessWidget {
                           )
                         : null,
                     onTap: () async {
+                      final BookingBloc bloc = context.read<BookingBloc>();
                       await context.pushNamed(
                         AppRouterParams.bookingDetails.name,
                         queryParameters: <String, String>{
                           'futsal': _isMine ? 'false' : 'true',
                         },
-                        extra: booking,
+                        extra: BookingDetailsRouteArgs(
+                          booking: booking,
+                          isFutsalView: !_isMine,
+                          onBookingUpdated: _isMine
+                              ? null
+                              : (BookingModel updated) => bloc.add(
+                                  FutsalBookingUpdatedEvent(updated),
+                                ),
+                        ),
                       );
                       // Refresh with the latest data on returning from details.
                       if (context.mounted) {
@@ -432,20 +444,35 @@ class _BookingCardActions extends StatelessWidget {
   }
 
   Future<void> _complete(BuildContext context) async {
+    // Captured before the sheet: the list must take the result even if this
+    // card has been rebuilt away by the time the request returns.
+    final BookingBloc bloc = context.read<BookingBloc>();
     await runBookingCompletionOnce(booking.id, () async {
       final BookingCompleteResult? result = await showBookingCompleteSheet(
         context,
         booking,
       );
       if (result == null || !context.mounted) return;
-      final bool ok = await completeBooking(booking.id, result: result);
+      final BookingCompletionResponse completion = await completeBooking(
+        booking.id,
+        result: result,
+      );
+      if (completion.success) {
+        // The response is the completed booking: show it at once — it leaves
+        // the Confirmed list and appears completed under All — then refetch.
+        bloc.addIfOpen(
+          FutsalBookingUpdatedEvent(completion.completedFrom(booking)),
+        );
+      }
       if (!context.mounted) return;
       AppUtils().showSnackBar(
         context,
-        ok ? MsgType.success : MsgType.error,
-        ok ? 'Booking marked as completed.' : 'Could not complete the booking.',
+        completion.success ? MsgType.success : MsgType.error,
+        completion.success
+            ? StringConstants.bookingConfirmedToCompleted
+            : StringConstants.couldNotCompleteBooking,
       );
-      if (ok) onChanged();
+      if (completion.success) onChanged();
     });
   }
 

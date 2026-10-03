@@ -170,7 +170,7 @@ void main() {
     expect(fetched.customDatePrices, isEmpty);
   });
 
-  test('slots keep the order the server sorted them in', () {
+  test('slots are listed in the order the response sends them', () {
     const String list = '''
 {"data":{"slots":[
   {"id":2,"label":"Second","sort_order":2,"is_active":true,
@@ -182,9 +182,10 @@ void main() {
 ]}}
 ''';
 
+    // Not reordered by `sort_order` or by time.
     expect(parse(list).map((SlotPricingDraft slot) => slot.label), <String>[
-      'First',
       'Second',
+      'First',
     ]);
   });
 }

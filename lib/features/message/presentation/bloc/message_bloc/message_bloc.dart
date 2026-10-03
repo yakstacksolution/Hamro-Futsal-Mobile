@@ -219,10 +219,15 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
     return byId.values.toList(growable: false);
   }
 
+  /// The chat most recently opened, set before [_onLoadChat]'s first await so
+  /// a [CloseChatEvent] for the chat it replaced can tell it is stale.
+  int? _openChatId;
+
   Future<void> _onLoadChat(
     LoadChatEvent event,
     Emitter<MessageState> emit,
   ) async {
+    _openChatId = event.conversationId;
     // Re-point the realtime streams at the opened conversation.
     _subscribe(event.conversationId);
     final List<ChatMessageModel> cachedMessages = await HiveCacheService
@@ -373,6 +378,11 @@ class MessageBloc extends Bloc<MessageEvent, MessageState> {
   }
 
   void _onCloseChat(CloseChatEvent event, Emitter<MessageState> emit) {
+    // A newer chat is open: closing this one must not tear down its streams.
+    if (event.conversationId != null && event.conversationId != _openChatId) {
+      return;
+    }
+    _openChatId = null;
     _unsubscribe();
     _markReadTimer?.cancel();
     emit(

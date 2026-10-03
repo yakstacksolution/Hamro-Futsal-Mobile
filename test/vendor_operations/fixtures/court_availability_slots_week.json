@@ -1,0 +1,39 @@
+{
+    "status": "success",
+    "message": "Court availability slots fetched successfully.",
+    "data": {
+        "venue_id": 2,
+        "court_id": 14,
+        "type": "week",
+        "start_date": "2026-09-27",
+        "end_date": "2026-10-03",
+        "date_count": 7,
+        "dates": ["2026-09-27", "2026-09-28", "2026-09-29", "2026-09-30", "2026-10-01", "2026-10-02", "2026-10-03"],
+        "court": {"id": 14, "venue_id": 2, "name": "Court 1", "slug": "court-1", "surface_type": null, "capacity": 10, "base_price": 1200, "feature_image": null},
+        "court_summary": {"court_id": 14, "court_name": "Court 1", "venue_name": "Dhanawantary Sports", "slot_duration_minutes": 60, "slot_duration_label": "1 h", "free_count": 12, "booked_count": 0, "total_count": 14, "booked_percent": 0, "next_booking": null},
+        "time_slot_count": 2,
+        "time_slots": [
+            {"key": "06:00:00|07:00:00", "start_time": "06:00:00", "end_time": "07:00:00", "label": "6:00 AM - 7:00 AM"},
+            {"key": "12:00:00|13:00:00", "start_time": "12:00:00", "end_time": "13:00:00", "label": "12:00 PM - 1:00 PM"}
+        ],
+        "days": [
+            {"date": "2026-09-27", "day": "Sun", "day_label": "Today", "slot_count": 2, "available_count": 0, "booked_count": 0, "unavailable_count": 2, "slots": [
+                {"key": "06:00:00|07:00:00", "court_id": 14, "date": "2026-09-27", "start_time": "06:00:00", "end_time": "07:00:00", "status": "unavailable", "reason": "past_slot_not_bookable", "is_available": false, "price": null, "price_breakdown": null, "held_by_me": false, "expires_at": null, "hold_token": null, "cell_type": "past", "cell_title": "Past", "cell_subtitle": null, "booking": null, "booking_detail": null},
+                {"key": "12:00:00|13:00:00", "court_id": 14, "date": "2026-09-27", "start_time": "12:00:00", "end_time": "13:00:00", "status": "unavailable", "reason": "past_slot_not_bookable", "is_available": false, "price": null, "price_breakdown": null, "held_by_me": false, "expires_at": null, "hold_token": null, "cell_type": "past", "cell_title": "Past", "cell_subtitle": null, "booking": null, "booking_detail": null}
+            ]},
+            {"date": "2026-09-28", "day": "Mon", "day_label": "Mon", "slot_count": 2, "available_count": 2, "booked_count": 0, "unavailable_count": 0, "slots": [
+                {"key": "06:00:00|07:00:00", "court_id": 14, "date": "2026-09-28", "start_time": "06:00:00", "end_time": "07:00:00", "status": "available", "reason": null, "is_available": true, "price": 1200, "price_breakdown": {"amount": 1200, "original_amount": 1200, "price_type": "base", "has_discount": false, "discount": null}, "held_by_me": false, "expires_at": null, "hold_token": null, "cell_type": "available", "cell_title": "Available", "cell_subtitle": "Rs 1200", "booking": null, "booking_detail": null},
+                {"key": "12:00:00|13:00:00", "court_id": 14, "date": "2026-09-28", "start_time": "12:00:00", "end_time": "13:00:00", "status": "available", "reason": null, "is_available": true, "price": 1200, "price_breakdown": {"amount": 1200, "original_amount": 1200, "price_type": "base", "has_discount": false, "discount": null}, "held_by_me": false, "expires_at": null, "hold_token": null, "cell_type": "available", "cell_title": "Available", "cell_subtitle": "Rs 1200", "booking": null, "booking_detail": null}
+            ]},
+            {"date": "2026-10-03", "day": "Sat", "day_label": "Sat", "slot_count": 2, "available_count": 2, "booked_count": 0, "unavailable_count": 0, "slots": [
+                {"key": "06:00:00|07:00:00", "court_id": 14, "date": "2026-10-03", "start_time": "06:00:00", "end_time": "07:00:00", "status": "available", "reason": null, "is_available": true, "price": 1200, "price_breakdown": {"amount": 1200, "original_amount": 1200, "price_type": "weekend", "has_discount": false, "discount": null}, "held_by_me": false, "expires_at": null, "hold_token": null, "cell_type": "available", "cell_title": "Available", "cell_subtitle": "Rs 1200", "booking": null, "booking_detail": null},
+                {"key": "12:00:00|13:00:00", "court_id": 14, "date": "2026-10-03", "start_time": "12:00:00", "end_time": "13:00:00", "status": "available", "reason": null, "is_available": true, "price": 1200, "price_breakdown": {"amount": 1200, "original_amount": 1200, "price_type": "base", "has_discount": false, "discount": null}, "held_by_me": false, "expires_at": null, "hold_token": null, "cell_type": "available", "cell_title": "Available", "cell_subtitle": "Rs 1200", "booking": null, "booking_detail": null}
+            ]}
+        ],
+        "grid": {
+            "06:00:00|07:00:00": {
+                "2026-09-28": {"key": "06:00:00|07:00:00", "court_id": 14, "date": "2026-09-28", "start_time": "06:00:00", "end_time": "07:00:00", "status": "available", "is_available": true, "price": 1200, "cell_type": "available"}
+            }
+        }
+    }
+}

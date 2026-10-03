@@ -12,6 +12,7 @@ import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/app_utils.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/utils/responsive.dart';
 import 'package:hamro_futsal/core/widgets/acknowledge_sheet.dart';
 import 'package:hamro_futsal/core/widgets/custom_app_bar.dart';
 import 'package:hamro_futsal/core/widgets/custom_button.dart';
@@ -65,7 +66,22 @@ extension _StepX on _Step {
     _Step.cost => 'Cost split',
     _Step.publish => 'Publish',
   };
+
+  /// One-line explanation under the title in the desktop step list.
+  String get hint => switch (this) {
+    _Step.match => 'Your team, format and level',
+    _Step.venue => 'Attach the court booking',
+    _Step.cost => 'Who pays what',
+    _Step.publish => 'Review and go live',
+  };
 }
+
+/// Tablet: one centred column for the tracker, form and actions.
+const double _kWizardColumnMaxWidth = 760;
+
+/// Desktop: the step list and the form side by side, up to this width.
+const double _kWizardTwoColumnMaxWidth = 1120;
+const double _kWizardStepListWidth = 280;
 
 /// Full-page wizard to compose and publish one opponent request.
 ///
@@ -1271,74 +1287,140 @@ class _CreateOpponentRequestPageState extends State<CreateOpponentRequestPage> {
                   ),
                 );
               }
+              // Only steps already satisfied can be jumped to, so the wizard
+              // can't be skipped forward.
+              void onStepTap(_Step step) {
+                if (step.index <= _step.index) _goTo(step);
+              }
+
+              final List<Widget> fields = switch (_step) {
+                _Step.match => _matchStep(state),
+                _Step.venue => _venueStep(),
+                _Step.cost => _costStep(),
+                _Step.publish => _publishStep(state),
+              };
+              final bool wide = context.isTabletOrWider;
+              final Widget form = Form(
+                key: _formKey,
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 180),
+                  child: ListView(
+                    key: ValueKey<_Step>(_step),
+                    physics: const BouncingScrollPhysics(),
+                    padding: AppUtils().getPadding(
+                      symmetricHorizontal: AppDimens.paddingX20,
+                      top: wide ? AppDimens.paddingX16 : AppDimens.paddingX6,
+                      bottom: AppDimens.paddingX28,
+                    ),
+                    // Tablet / desktop: each row at the column width, its
+                    // content left-aligned; the list still builds lazily.
+                    children: !wide
+                        ? fields
+                        : <Widget>[
+                            for (final Widget field in fields)
+                              Align(
+                                alignment: Alignment.topCenter,
+                                child: ConstrainedBox(
+                                  constraints: const BoxConstraints(
+                                    maxWidth: _kWizardColumnMaxWidth,
+                                  ),
+                                  child: SizedBox(
+                                    width: double.infinity,
+                                    child: field,
+                                  ),
+                                ),
+                              ),
+                          ],
+                  ),
+                ),
+              );
+
+              // Desktop: the steps down the left, the form and its actions on
+              // the right — the window-wide bottom bar is not used.
+              if (context.isDesktop) {
+                return Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      maxWidth: _kWizardTwoColumnMaxWidth,
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: <Widget>[
+                        SizedBox(
+                          width: _kWizardStepListWidth,
+                          child: _VerticalStepList(
+                            current: _step,
+                            isComplete: _stepComplete,
+                            onTap: onStepTap,
+                          ),
+                        ),
+                        VerticalDivider(
+                          width: 1,
+                          thickness: 1,
+                          color: LightColor.dividerColor,
+                        ),
+                        Expanded(
+                          child: Column(
+                            children: <Widget>[
+                              Expanded(child: form),
+                              _wizardActions(state, inline: true),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }
+
               return Column(
                 children: [
                   _StepTracker(
                     current: _step,
                     isComplete: _stepComplete,
-                    onTap: (step) {
-                      // Only steps already satisfied can be jumped to, so the
-                      // wizard can't be skipped forward.
-                      if (step.index <= _step.index) _goTo(step);
-                    },
+                    onTap: onStepTap,
                   ),
-                  Expanded(
-                    child: Form(
-                      key: _formKey,
-                      child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 180),
-                        child: ListView(
-                          key: ValueKey<_Step>(_step),
-                          physics: const BouncingScrollPhysics(),
-                          padding: AppUtils().getPadding(
-                            symmetricHorizontal: AppDimens.paddingX20,
-                            top: AppDimens.paddingX6,
-                            bottom: AppDimens.paddingX28,
-                          ),
-                          children: switch (_step) {
-                            _Step.match => _matchStep(state),
-                            _Step.venue => _venueStep(),
-                            _Step.cost => _costStep(),
-                            _Step.publish => _publishStep(state),
-                          },
-                        ),
-                      ),
-                    ),
-                  ),
+                  Expanded(child: form),
                 ],
               );
             },
           ),
         ),
-        bottomNavigationBar: BlocBuilder<OpponentMatchBloc, OpponentMatchState>(
-          buildWhen: (a, b) =>
-              a.matchStepStatus != b.matchStepStatus ||
-              a.venueStepStatus != b.venueStepStatus ||
-              a.costStepStatus != b.costStepStatus ||
-              a.publishStatus != b.publishStatus ||
-              a.draftStatus != b.draftStatus,
-          builder: (context, state) => SizedBox(
-            height: 120,
-            child: _BottomBar(
-              text: _step == _Step.publish ? 'Publish Request' : 'Continue',
-              icon: _step == _Step.publish
-                  ? Icons.campaign_rounded
-                  : Icons.arrow_forward_rounded,
-              onNext: _next,
-              onBack: _back,
-              backText: _step == _Step.match ? 'Cancel' : 'Back',
-              isBusy:
-                  state.isSavingMatchStep ||
-                  state.isSavingVenueStep ||
-                  state.isSavingCostStep ||
-                  state.isPublishing ||
-                  (widget.draft != null &&
-                      !_draftHydrated &&
-                      state.isLoadingDraft),
-            ),
-          ),
-        ),
+        // Desktop keeps the actions under the form instead.
+        bottomNavigationBar: context.isDesktop
+            ? null
+            : BlocBuilder<OpponentMatchBloc, OpponentMatchState>(
+                buildWhen: (a, b) =>
+                    a.matchStepStatus != b.matchStepStatus ||
+                    a.venueStepStatus != b.venueStepStatus ||
+                    a.costStepStatus != b.costStepStatus ||
+                    a.publishStatus != b.publishStatus ||
+                    a.draftStatus != b.draftStatus,
+                builder: (context, state) =>
+                    SizedBox(height: 120, child: _wizardActions(state)),
+              ),
       ),
+    );
+  }
+
+  /// Back + Continue / Publish. [inline]: under the form on desktop, rather
+  /// than a bar across the foot of the window.
+  Widget _wizardActions(OpponentMatchState state, {bool inline = false}) {
+    return _BottomBar(
+      inline: inline,
+      text: _step == _Step.publish ? 'Publish Request' : 'Continue',
+      icon: _step == _Step.publish
+          ? Icons.campaign_rounded
+          : Icons.arrow_forward_rounded,
+      onNext: _next,
+      onBack: _back,
+      backText: _step == _Step.match ? 'Cancel' : 'Back',
+      isBusy:
+          state.isSavingMatchStep ||
+          state.isSavingVenueStep ||
+          state.isSavingCostStep ||
+          state.isPublishing ||
+          (widget.draft != null && !_draftHydrated && state.isLoadingDraft),
     );
   }
 
@@ -2282,36 +2364,162 @@ class _StepTracker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final Widget row = Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        for (final step in _Step.values) ...<Widget>[
+          if (step.index > 0)
+            // Connector sits on the dot's centre line and fills in as the
+            // wizard advances, so progress reads at a glance.
+            _StepConnector(passed: step.index <= current.index),
+          Expanded(
+            child: InkWell(
+              // Forward steps aren't reachable yet; leaving them tappable
+              // produced a tap that silently did nothing.
+              onTap: step.index <= current.index ? () => onTap(step) : null,
+              borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+              child: _StepDot(
+                step: step,
+                current: current,
+                complete: step.index < current.index && isComplete(step),
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
     return Container(
       padding: AppUtils().getPadding(
         symmetricHorizontal: AppDimens.paddingX16,
         symmetricVertical: AppDimens.paddingX12,
       ),
       color: LightColor.cardColor,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          for (final step in _Step.values) ...<Widget>[
-            if (step.index > 0)
-              // Connector sits on the dot's centre line and fills in as the
-              // wizard advances, so progress reads at a glance.
-              _StepConnector(passed: step.index <= current.index),
-            Expanded(
-              child: InkWell(
-                // Forward steps aren't reachable yet; leaving them tappable
-                // produced a tap that silently did nothing.
-                onTap: step.index <= current.index ? () => onTap(step) : null,
-                borderRadius: BorderRadius.circular(AppDimens.radiusX8),
-                child: _StepDot(
-                  step: step,
-                  current: current,
-                  complete: step.index < current.index && isComplete(step),
+      // Tablet: the band spans the window, the steps keep to the form's
+      // column. heightFactor 1 keeps the band its natural height.
+      child: context.isTabletOrWider
+          ? Center(
+              heightFactor: 1,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(
+                  maxWidth: _kWizardColumnMaxWidth,
                 ),
+                child: row,
               ),
-            ),
-          ],
-        ],
+            )
+          : row,
+    );
+  }
+}
+
+/// Desktop: the wizard's steps as a vertical list beside the form — number or
+/// tick, title and a one-line hint. Steps already reached can be tapped.
+class _VerticalStepList extends StatelessWidget {
+  const _VerticalStepList({
+    required this.current,
+    required this.isComplete,
+    required this.onTap,
+  });
+
+  final _Step current;
+  final bool Function(_Step) isComplete;
+  final ValueChanged<_Step> onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(
+        AppDimens.paddingX20,
+        AppDimens.paddingX20,
+        AppDimens.paddingX16,
+        AppDimens.paddingX20,
       ),
+      children: <Widget>[
+        for (final _Step step in _Step.values)
+          Builder(
+            builder: (BuildContext context) {
+              final bool active = step == current;
+              final bool done = step.index < current.index && isComplete(step);
+              final bool reachable = step.index <= current.index;
+              final Color accent = active || done
+                  ? LightColor.secondaryColor
+                  : LightColor.hintTextColor;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: AppDimens.paddingX6),
+                child: Material(
+                  color: active
+                      ? LightColor.secondaryColor.withValues(alpha: 0.08)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+                    onTap: reachable ? () => onTap(step) : null,
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppDimens.paddingX12),
+                      child: Row(
+                        children: <Widget>[
+                          Container(
+                            width: AppDimens.sizeX28,
+                            height: AppDimens.sizeX28,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: active || done
+                                  ? LightColor.secondaryColor
+                                  : LightColor.background,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: accent),
+                            ),
+                            child: done
+                                ? Icon(
+                                    Icons.check_rounded,
+                                    size: 15,
+                                    color: LightColor.inverseTextColor,
+                                  )
+                                : Text(
+                                    '${step.index + 1}',
+                                    style: textTheme.bodyTextSmall?.copyWith(
+                                      fontWeight: FontWeight.w700,
+                                      color: active
+                                          ? LightColor.inverseTextColor
+                                          : LightColor.hintTextColor,
+                                    ),
+                                  ),
+                          ),
+                          const SizedBox(width: AppDimens.sizeX12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: <Widget>[
+                                Text(
+                                  step.title,
+                                  style: textTheme.bodyTextSmall?.copyWith(
+                                    color: active || done
+                                        ? LightColor.primaryTextColor
+                                        : LightColor.secondaryTextColor,
+                                    fontWeight: active
+                                        ? FontWeight.w700
+                                        : FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(height: AppDimens.sizeX2),
+                                Text(
+                                  step.hint,
+                                  style: textTheme.bodyMiniSubTitle?.copyWith(
+                                    color: LightColor.hintTextColor,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+      ],
     );
   }
 }
@@ -2438,7 +2646,11 @@ class _BottomBar extends StatelessWidget {
     required this.onBack,
     required this.backText,
     this.isBusy = false,
+    this.inline = false,
   });
+
+  /// Desktop: under the form, flat, without the bar's rounded top and shadow.
+  final bool inline;
 
   final String text;
   final IconData icon;
@@ -2450,6 +2662,67 @@ class _BottomBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final Widget buttons = Row(
+      children: <Widget>[
+        Expanded(
+          child: SizedBox(
+            height: AppDimens.sizeX54,
+            child: OutlinedButton(
+              onPressed: isBusy ? null : onBack,
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(color: LightColor.dividerColor),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+                ),
+              ),
+              child: Text(
+                backText,
+                style: FutsalTheme.getTextTheme(context).bodyTextSmall
+                    ?.copyWith(
+                      color: LightColor.secondaryTextColor,
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: AppDimens.paddingX12),
+        Expanded(
+          flex: 2,
+          child: SizedBox(
+            height: AppDimens.sizeX54,
+            child: CustomButton(
+              text: text,
+              icon: icon,
+              isLoading: isBusy,
+              onPressed: isBusy ? null : onNext,
+            ),
+          ),
+        ),
+      ],
+    );
+    if (inline) {
+      return Container(
+        padding: const EdgeInsets.fromLTRB(
+          AppDimens.paddingX20,
+          AppDimens.paddingX12,
+          AppDimens.paddingX20,
+          AppDimens.paddingX16,
+        ),
+        decoration: BoxDecoration(
+          color: LightColor.background,
+          border: Border(top: BorderSide(color: LightColor.dividerColor)),
+        ),
+        child: Align(
+          alignment: Alignment.topCenter,
+          heightFactor: 1,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: _kWizardColumnMaxWidth),
+            child: buttons,
+          ),
+        ),
+      );
+    }
     return Container(
       padding: AppUtils().getPadding(all: AppDimens.paddingX12),
       decoration: BoxDecoration(
@@ -2471,45 +2744,19 @@ class _BottomBar extends StatelessWidget {
       ),
       child: SafeArea(
         top: false,
-        child: Row(
-          children: <Widget>[
-            Expanded(
-              child: SizedBox(
-                height: AppDimens.sizeX54,
-                child: OutlinedButton(
-                  onPressed: isBusy ? null : onBack,
-                  style: OutlinedButton.styleFrom(
-                    side: BorderSide(color: LightColor.dividerColor),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppDimens.radiusX10),
-                    ),
+        // Tablet: the buttons keep to the form's column. heightFactor 1 — a
+        // bottom bar must not fill the height it is allowed.
+        child: context.isTabletOrWider
+            ? Center(
+                heightFactor: 1,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    maxWidth: _kWizardColumnMaxWidth,
                   ),
-                  child: Text(
-                    backText,
-                    style: FutsalTheme.getTextTheme(context).bodyTextSmall
-                        ?.copyWith(
-                          color: LightColor.secondaryTextColor,
-                          fontWeight: FontWeight.w700,
-                        ),
-                  ),
+                  child: buttons,
                 ),
-              ),
-            ),
-            const SizedBox(width: AppDimens.paddingX12),
-            Expanded(
-              flex: 2,
-              child: SizedBox(
-                height: AppDimens.sizeX54,
-                child: CustomButton(
-                  text: text,
-                  icon: icon,
-                  isLoading: isBusy,
-                  onPressed: isBusy ? null : onNext,
-                ),
-              ),
-            ),
-          ],
-        ),
+              )
+            : buttons,
       ),
     );
   }

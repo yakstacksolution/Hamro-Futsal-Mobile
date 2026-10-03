@@ -76,10 +76,7 @@ void main() {
       );
       // One more shimmering block per status tile: Pending, Approved,
       // Rejected. Paid is not a tile — those settlements are done with.
-      expect(
-        find.byType(Shimmer).evaluate().length - withoutSummary,
-        3,
-      );
+      expect(find.byType(Shimmer).evaluate().length - withoutSummary, 3);
     });
 
     testWidgets('a full run fits a short screen without overflowing', (

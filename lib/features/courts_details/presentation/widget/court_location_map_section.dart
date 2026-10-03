@@ -8,6 +8,7 @@ import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
 import 'package:hamro_futsal/core/utils/google_map_style.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
+import 'package:hamro_futsal/core/widgets/static_google_map.dart';
 
 class CourtLocationMapSection extends StatelessWidget {
   const CourtLocationMapSection({
@@ -157,26 +158,38 @@ class CourtLocationMapSection extends StatelessWidget {
                           // right cost for a preview inside a scrolling page.
                           // IgnorePointer keeps the platform view from taking
                           // the page's scroll; the tap opens the full map.
-                          child: IgnorePointer(
-                            child: GoogleMap(
-                              initialCameraPosition: CameraPosition(
-                                target: point,
-                                zoom: 15.5,
-                              ),
-                              liteModeEnabled: true,
-                              markers: <Marker>{
-                                venueMarker(const MarkerId('venue'), point),
-                              },
-                              zoomControlsEnabled: false,
-                              zoomGesturesEnabled: false,
-                              scrollGesturesEnabled: false,
-                              rotateGesturesEnabled: false,
-                              tiltGesturesEnabled: false,
-                              myLocationButtonEnabled: false,
-                              mapToolbarEnabled: false,
-                              compassEnabled: false,
-                            ),
-                          ),
+                          // macOS / desktop: the plugin has no map there, so
+                          // the same key draws a Static API image instead.
+                          child: !supportsNativeGoogleMap
+                              ? StaticGoogleMap(
+                                  latitude: latitude!,
+                                  longitude: longitude!,
+                                  zoom: 15,
+                                  placeholderColor: _mapBackgroundColor,
+                                )
+                              : IgnorePointer(
+                                  child: GoogleMap(
+                                    initialCameraPosition: CameraPosition(
+                                      target: point,
+                                      zoom: 15.5,
+                                    ),
+                                    liteModeEnabled: true,
+                                    markers: <Marker>{
+                                      venueMarker(
+                                        const MarkerId('venue'),
+                                        point,
+                                      ),
+                                    },
+                                    zoomControlsEnabled: false,
+                                    zoomGesturesEnabled: false,
+                                    scrollGesturesEnabled: false,
+                                    rotateGesturesEnabled: false,
+                                    tiltGesturesEnabled: false,
+                                    myLocationButtonEnabled: false,
+                                    mapToolbarEnabled: false,
+                                    compassEnabled: false,
+                                  ),
+                                ),
                         ),
                       ),
                     ),

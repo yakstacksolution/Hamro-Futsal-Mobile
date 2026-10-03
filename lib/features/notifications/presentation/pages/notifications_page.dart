@@ -1,8 +1,11 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/utils/app_utils.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/utils/responsive.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:hamro_futsal/core/widgets/custom_app_bar.dart';
 import 'package:hamro_futsal/features/notifications/data/model/notification_model.dart';
@@ -28,6 +31,20 @@ class NotificationsPage extends StatelessWidget {
   }
 }
 
+/// Tablet / desktop reading width of the feed.
+const double _kFeedMaxWidth = 760;
+
+/// Side padding that centres the feed at [_kFeedMaxWidth] on tablet and
+/// desktop while scroll views keep their scrollbar at the window edge; the
+/// phone's 20px gutter otherwise.
+double _feedGutter(BuildContext context) {
+  if (!context.isTabletOrWider) return AppDimens.paddingX20;
+  return math.max(
+    AppDimens.paddingX24,
+    (context.screenWidth - _kFeedMaxWidth) / 2,
+  );
+}
+
 class _NotificationsView extends StatelessWidget {
   const _NotificationsView();
 
@@ -51,7 +68,10 @@ class _NotificationsView extends StatelessWidget {
             buildWhen: (NotificationState p, NotificationState c) =>
                 p.unreadCount != c.unreadCount,
             builder: (BuildContext context, NotificationState state) {
-              if (state.unreadCount == 0) return const SizedBox.shrink();
+              // Tablet / desktop carry it in the feed's header instead.
+              if (state.unreadCount == 0 || context.isTabletOrWider) {
+                return const SizedBox.shrink();
+              }
               return Padding(
                 padding: const EdgeInsets.only(right: AppDimens.paddingX8),
                 child: Tooltip(
@@ -89,22 +109,55 @@ class _NotificationsView extends StatelessWidget {
             }
           },
           builder: (BuildContext context, NotificationState state) {
+            final Widget filterBar = NotificationFilterBar(
+              selectedFilter: state.filter,
+              unreadCount: state.unreadCount,
+              onChanged: (NotificationFilter filter) => context
+                  .read<NotificationBloc>()
+                  .add(ChangeNotificationFilterEvent(filter)),
+            );
+            final bool wide = context.isTabletOrWider;
+            final double side = _feedGutter(context);
             return Column(
               children: <Widget>[
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    AppDimens.paddingX20,
-                    AppDimens.paddingX10,
-                    AppDimens.paddingX20,
-                    AppDimens.paddingX14,
+                  padding: EdgeInsets.fromLTRB(
+                    side,
+                    wide ? AppDimens.paddingX20 : AppDimens.paddingX10,
+                    side,
+                    wide ? AppDimens.paddingX16 : AppDimens.paddingX14,
                   ),
-                  child: NotificationFilterBar(
-                    selectedFilter: state.filter,
-                    unreadCount: state.unreadCount,
-                    onChanged: (NotificationFilter filter) => context
-                        .read<NotificationBloc>()
-                        .add(ChangeNotificationFilterEvent(filter)),
-                  ),
+                  // Tablet / desktop: a compact switch on the left and the
+                  // mark-all action on the right, on the feed's edges.
+                  child: wide
+                      ? Row(
+                          children: <Widget>[
+                            SizedBox(width: 280, child: filterBar),
+                            const Spacer(),
+                            if (state.unreadCount > 0)
+                              TextButton.icon(
+                                key: const Key('mark-all-read-button'),
+                                onPressed: () => context
+                                    .read<NotificationBloc>()
+                                    .add(const MarkAllNotificationsReadEvent()),
+                                // No right inset: the label ends on the
+                                // cards' right edge.
+                                style: TextButton.styleFrom(
+                                  foregroundColor: LightColor.secondaryColor,
+                                  padding: const EdgeInsets.only(left: 8),
+                                ),
+                                icon: const Icon(
+                                  Icons.done_all_rounded,
+                                  size: AppDimens.sizeX18,
+                                ),
+                                label: const Text(
+                                  StringConstants.markAllAsRead,
+                                  style: TextStyle(fontWeight: FontWeight.w700),
+                                ),
+                              ),
+                          ],
+                        )
+                      : filterBar,
                 ),
                 Expanded(child: _buildBody(context, state)),
               ],
@@ -118,16 +171,19 @@ class _NotificationsView extends StatelessWidget {
   Widget _buildBody(BuildContext context, NotificationState state) {
     if (state.status == NotificationStatus.idle ||
         state.status == NotificationStatus.loading) {
-      return const NotificationSkeletonLoader();
+      return _centred(context, const NotificationSkeletonLoader());
     }
 
     if (state.status == NotificationStatus.failure &&
         state.notifications.isEmpty) {
-      return NotificationErrorView(
-        message:
-            state.errorMessage ?? StringConstants.couldNotLoadNotifications,
-        onRetry: () => context.read<NotificationBloc>().add(
-          const FetchNotificationsEvent(),
+      return _centred(
+        context,
+        NotificationErrorView(
+          message:
+              state.errorMessage ?? StringConstants.couldNotLoadNotifications,
+          onRetry: () => context.read<NotificationBloc>().add(
+            const FetchNotificationsEvent(),
+          ),
         ),
       );
     }
@@ -177,10 +233,10 @@ class _NotificationsView extends StatelessWidget {
         physics: const AlwaysScrollableScrollPhysics(
           parent: BouncingScrollPhysics(),
         ),
-        padding: const EdgeInsets.fromLTRB(
-          AppDimens.paddingX20,
+        padding: EdgeInsets.fromLTRB(
+          _feedGutter(context),
           0,
-          AppDimens.paddingX20,
+          _feedGutter(context),
           AppDimens.paddingX32,
         ),
         children: <Widget>[
@@ -197,6 +253,20 @@ class _NotificationsView extends StatelessWidget {
               notifications: earlier,
             ),
         ],
+      ),
+    );
+  }
+
+  /// Non-scrolling states sit in the feed's column on tablet / desktop.
+  Widget _centred(BuildContext context, Widget child) {
+    if (!context.isTabletOrWider) return child;
+    return Align(
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(
+          maxWidth: _kFeedMaxWidth + 2 * AppDimens.paddingX24,
+        ),
+        child: child,
       ),
     );
   }

@@ -115,14 +115,16 @@ void main() {
       await pump(tester, selected: false);
       final Rect plain = tester.getRect(find.byType(DataCard));
       final BoxDecoration plainBox =
-          tester.widget<AnimatedContainer>(find.byType(AnimatedContainer))
+          tester
+                  .widget<AnimatedContainer>(find.byType(AnimatedContainer))
                   .decoration!
               as BoxDecoration;
 
       await pump(tester, selected: true);
       final Rect chosen = tester.getRect(find.byType(DataCard));
       final BoxDecoration chosenBox =
-          tester.widget<AnimatedContainer>(find.byType(AnimatedContainer))
+          tester
+                  .widget<AnimatedContainer>(find.byType(AnimatedContainer))
                   .decoration!
               as BoxDecoration;
 

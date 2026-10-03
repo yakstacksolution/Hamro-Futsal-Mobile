@@ -1,5 +1,6 @@
 import 'package:hamro_futsal/core/utils/bloc_safe_add.dart';
 import 'package:flutter/material.dart';
+import 'package:hamro_futsal/features/opponent_match/presentation/widgets/opponent_common.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
@@ -151,28 +152,59 @@ class OpponentTeamsView extends StatelessWidget {
         // opens as one line per team and the captain picks which to work on.
         // A lone team has nothing to scroll past, so it stays open.
         final bool single = state.teams.length == 1;
-        return ListView.separated(
-          physics: const BouncingScrollPhysics(),
-          padding: AppUtils().getPadding(
-            symmetricHorizontal: AppDimens.paddingX20,
-            top: AppDimens.paddingX6,
-            bottom: AppDimens.paddingX20,
-          ),
-          itemCount: state.teams.length,
-          separatorBuilder: (_, __) =>
-              const SizedBox(height: AppDimens.paddingX12),
-          itemBuilder: (context, i) {
-            final team = state.teams[i];
-            return OpponentTeamCard(
-              key: ValueKey(team.id),
-              team: team,
-              initiallyExpanded: single,
-              onAddPlayer: () => _openAddPlayer(context, team),
-              onDelPlayer: (memberId) =>
-                  _confirmRemoveMember(context, team, memberId),
-              onEditPlayer: (player) => _openEditPlayer(context, team, player),
-              onEditTeam: () => _openEditTeam(context, team),
-              onDeleteTeam: () => _confirmDeleteTeam(context, team),
+        return LayoutBuilder(
+          builder: (BuildContext context, BoxConstraints constraints) {
+            final EdgeInsets padding = AppUtils().getPadding(
+              symmetricHorizontal: AppDimens.paddingX20,
+              top: AppDimens.paddingX6,
+              bottom: AppDimens.paddingX20,
+            );
+            // Phone: one team per row. Tablet / desktop: rows of [columns],
+            // aligned at the top — opening a roster grows only that card.
+            final int columns = OpponentLayout.gridColumns(
+              context,
+              constraints.maxWidth - padding.horizontal,
+            );
+            final int rows = (state.teams.length / columns).ceil();
+            Widget teamCard(int i) {
+              final team = state.teams[i];
+              return OpponentTeamCard(
+                key: ValueKey(team.id),
+                team: team,
+                initiallyExpanded: single,
+                onAddPlayer: () => _openAddPlayer(context, team),
+                onDelPlayer: (memberId) =>
+                    _confirmRemoveMember(context, team, memberId),
+                onEditPlayer: (player) =>
+                    _openEditPlayer(context, team, player),
+                onEditTeam: () => _openEditTeam(context, team),
+                onDeleteTeam: () => _confirmDeleteTeam(context, team),
+              );
+            }
+
+            return ListView.separated(
+              physics: const BouncingScrollPhysics(),
+              padding: padding,
+              itemCount: rows,
+              separatorBuilder: (_, __) => SizedBox(
+                height: columns == 1
+                    ? AppDimens.paddingX12
+                    : OpponentLayout.gap,
+              ),
+              itemBuilder: (context, row) {
+                if (columns == 1) return teamCard(row);
+                return OpponentGridRow(
+                  columns: columns,
+                  children: <Widget>[
+                    for (
+                      int i = row * columns;
+                      i < state.teams.length && i < (row + 1) * columns;
+                      i++
+                    )
+                      teamCard(i),
+                  ],
+                );
+              },
             );
           },
         );

@@ -79,44 +79,37 @@ void main() {
       expect(shortcut.top, greaterThan(stats.bottom));
     });
 
-    testWidgets('desktop moves the shortcuts into a side column', (
+    testWidgets('desktop puts the shortcuts beside the activity', (
       WidgetTester tester,
     ) async {
       await _pumpAccount(tester, _desktopWindow);
 
       expect(tester.takeException(), isNull);
       final Rect balance = tester.getRect(find.byType(AccountBalanceCard));
+      final Rect stats = tester.getRect(find.byType(AccountStatsRow));
       final Rect shortcut = tester.getRect(find.byType(AccountNavTile).first);
 
-      // Beside the main column, not below it.
-      expect(shortcut.left, greaterThan(balance.right));
-      expect(shortcut.top, lessThan(balance.bottom));
-      // And it is the narrow rail, not half the window.
+      // Below the totals, in the right-hand rail.
+      expect(shortcut.top, greaterThan(stats.bottom));
+      expect(shortcut.right, closeTo(balance.right, 2));
       expect(
         shortcut.width,
         lessThanOrEqualTo(AppDimens.accountShortcutsColumnWidth),
       );
     });
 
-    testWidgets('desktop balance card does not span the whole window', (
+    testWidgets('desktop content is centred at the dashboard width', (
       WidgetTester tester,
     ) async {
       await _pumpAccount(tester, _desktopWindow);
 
-      final double balanceWidth = tester
-          .getSize(find.byType(AccountBalanceCard))
-          .width;
-      // Window minus the shortcuts rail, its gap and the page insets.
-      expect(
-        balanceWidth,
-        closeTo(
-          _desktopWindow.width -
-              AppDimens.accountShortcutsColumnWidth -
-              AppDimens.paddingX20 -
-              AppDimens.paddingX32 * 2,
-          2,
-        ),
-      );
+      final Rect balance = tester.getRect(find.byType(AccountBalanceCard));
+      final Rect stats = tester.getRect(find.byType(AccountStatsRow));
+      expect(balance.width, closeTo(AppDimens.accountDashboardMaxWidth, 2));
+      expect(balance.center.dx, closeTo(_desktopWindow.width / 2, 2));
+      // Hero and totals share both edges.
+      expect(stats.left, closeTo(balance.left, 1));
+      expect(stats.right, closeTo(balance.right, 1));
     });
 
     testWidgets('the three stat tiles stay on one row at every width', (

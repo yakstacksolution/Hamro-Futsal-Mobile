@@ -13,6 +13,7 @@ import 'package:hamro_futsal/core/utils/custom_image_view.dart';
 import 'package:hamro_futsal/core/utils/currency.dart';
 import 'package:hamro_futsal/core/utils/date_format.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/utils/responsive.dart';
 import 'package:hamro_futsal/core/widgets/custom_app_bar.dart';
 import 'package:hamro_futsal/core/widgets/data_card.dart';
 import 'package:hamro_futsal/core/widgets/custom_bottom_sheet.dart';
@@ -23,6 +24,7 @@ import 'package:hamro_futsal/features/bookings/data/model/booking_model.dart';
 import 'package:hamro_futsal/features/bookings/data/repositories/booking_repository_impl.dart';
 import 'package:hamro_futsal/features/bookings/domain/repository/booking_repository.dart';
 import 'package:hamro_futsal/features/bookings/domain/usecase/get_bookings_use_case.dart';
+import 'package:hamro_futsal/features/bookings/presentation/bloc/booking_bloc/booking_bloc.dart';
 import 'package:hamro_futsal/features/bookings/presentation/bloc/booking_details_bloc/booking_details_bloc.dart';
 import 'package:hamro_futsal/features/bookings/presentation/widgets/booking_details_widgets.dart';
 import 'package:hamro_futsal/features/bookings/presentation/widgets/booking_products_sheet.dart';
@@ -44,6 +46,7 @@ class BookingDetailsPage extends StatelessWidget {
     this.onChatCustomer,
     this.onChatVenue,
     this.onCancelBooking,
+    this.onBookingUpdated,
   });
 
   final BookingModel booking;
@@ -54,6 +57,7 @@ class BookingDetailsPage extends StatelessWidget {
   final VoidCallback? onChatCustomer;
   final VoidCallback? onChatVenue;
   final VoidCallback? onCancelBooking;
+  final ValueChanged<BookingModel>? onBookingUpdated;
 
   @override
   Widget build(BuildContext context) {
@@ -77,6 +81,7 @@ class BookingDetailsPage extends StatelessWidget {
         onChatCustomer: onChatCustomer,
         onChatVenue: onChatVenue,
         onCancelBooking: onCancelBooking,
+        onBookingUpdated: onBookingUpdated,
       ),
     );
   }
@@ -90,6 +95,7 @@ class _BookingDetailsView extends StatelessWidget {
     this.onChatCustomer,
     this.onChatVenue,
     this.onCancelBooking,
+    this.onBookingUpdated,
   });
 
   final bool isFutsalView;
@@ -98,6 +104,7 @@ class _BookingDetailsView extends StatelessWidget {
   final VoidCallback? onChatCustomer;
   final VoidCallback? onChatVenue;
   final VoidCallback? onCancelBooking;
+  final ValueChanged<BookingModel>? onBookingUpdated;
 
   Future<void> _confirmAndCancel(BuildContext context) async {
     final BookingDetailsBloc bloc = context.read<BookingDetailsBloc>();
@@ -174,22 +181,52 @@ class _BookingDetailsView extends StatelessWidget {
     BuildContext context,
     BookingModel booking,
   ) async {
+    // Everything the result is handed to is captured up front: once the
+    // request returns, the state must be updated even if this context has
+    // been rebuilt away meanwhile.
     final BookingDetailsBloc bloc = context.read<BookingDetailsBloc>();
+    final BookingBloc? listBloc = _bookingBlocOf(context);
     await runBookingCompletionOnce(booking.id, () async {
       final BookingCompleteResult? result = await showBookingCompleteSheet(
         context,
         booking,
       );
       if (result == null || !context.mounted) return;
-      final bool ok = await completeBooking(booking.id, result: result);
+      final BookingCompletionResponse completion = await completeBooking(
+        booking.id,
+        result: result,
+      );
+      if (completion.success) {
+        final BookingModel completed = completion.completedFrom(booking);
+        bloc
+          ..addIfOpen(BookingCompletedEvent(booking: completed))
+          ..addIfOpen(FetchBookingDetailsEvent(booking.id));
+        _notifyBookingUpdated(listBloc, completed);
+      }
       if (!context.mounted) return;
       AppUtils().showSnackBar(
         context,
-        ok ? MsgType.success : MsgType.error,
-        ok ? 'Booking marked as completed.' : 'Could not complete the booking.',
+        completion.success ? MsgType.success : MsgType.error,
+        completion.success
+            ? StringConstants.bookingConfirmedToCompleted
+            : StringConstants.couldNotCompleteBooking,
       );
-      if (ok) bloc.addIfOpen(FetchBookingDetailsEvent(booking.id));
     });
+  }
+
+  /// The bookings list underneath, if this page was opened over one.
+  BookingBloc? _bookingBlocOf(BuildContext context) {
+    try {
+      return context.read<BookingBloc>();
+    } catch (_) {
+      // Some entry points open details without the bookings list underneath.
+      return null;
+    }
+  }
+
+  void _notifyBookingUpdated(BookingBloc? listBloc, BookingModel booking) {
+    listBloc?.addIfOpen(FutsalBookingUpdatedEvent(booking));
+    onBookingUpdated?.call(booking);
   }
 
   Future<void> _collectDue(BuildContext context, BookingModel booking) async {
@@ -513,14 +550,9 @@ class _BookingDetailsView extends StatelessWidget {
                     ),
                   ),
                 Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(
-                      BookingDetailsSpacing.page,
-                      12,
-                      BookingDetailsSpacing.page,
-                      28,
-                    ),
-                    children: [
+                  child: _DetailsBody(
+                    // Booking, people, review and products.
+                    main: <Widget>[
                       _BookingSummary(
                         booking: booking,
                         isFutsalView: isFutsalView,
@@ -582,7 +614,9 @@ class _BookingDetailsView extends StatelessWidget {
                               .add(FetchBookingDetailsEvent(booking.id)),
                         ),
                       ],
-                      const _SectionGap(),
+                    ],
+                    // Money: the summary and the payment proof.
+                    side: <Widget>[
                       const BookingSectionHeader(title: 'Payment summary'),
                       const _HeaderGap(),
                       _PaymentCard(booking: booking),
@@ -981,6 +1015,102 @@ class _RejectBookingSheetState extends State<_RejectBookingSheet> {
 }
 
 /// Fixed vertical rhythm helpers so every section is spaced identically.
+/// Lays the details page out for the screen it is on.
+///
+/// * Phone: one list, [main] then [side] — exactly the original page.
+/// * Tablet: the same single column, centred at a readable width.
+/// * Desktop: two columns — the booking on the left, its payment on the
+///   right — so the money sits beside the booking instead of a long scroll
+///   below it.
+class _DetailsBody extends StatelessWidget {
+  const _DetailsBody({required this.main, required this.side});
+
+  final List<Widget> main;
+
+  /// Starts with its section header — no leading gap — so it can head the
+  /// right-hand column; the single-column layouts put a gap before it.
+  final List<Widget> side;
+
+  static const EdgeInsets _phonePadding = EdgeInsets.fromLTRB(
+    BookingDetailsSpacing.page,
+    12,
+    BookingDetailsSpacing.page,
+    28,
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    if (!context.isTabletOrWider) {
+      return ListView(
+        padding: _phonePadding,
+        children: <Widget>[...main, const _SectionGap(), ...side],
+      );
+    }
+
+    final double gutter = context.responsive<double>(
+      mobile: BookingDetailsSpacing.page,
+      tablet: 24,
+      desktop: 28,
+      large: 32,
+    );
+    final EdgeInsets padding = EdgeInsets.fromLTRB(gutter, 20, gutter, 32);
+
+    if (!context.isDesktop) {
+      // Each section is centred at the column width on its own, so the list
+      // still builds lazily, as on a phone.
+      return ListView(
+        padding: padding,
+        children: <Widget>[
+          for (final Widget section in <Widget>[
+            ...main,
+            const _SectionGap(),
+            ...side,
+          ])
+            Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(
+                  maxWidth: kBookingDetailsSingleColumnMaxWidth,
+                ),
+                child: section,
+              ),
+            ),
+        ],
+      );
+    }
+
+    return SingleChildScrollView(
+      padding: padding,
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(
+            maxWidth: kBookingDetailsTwoColumnMaxWidth,
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Expanded(
+                flex: 3,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: main,
+                ),
+              ),
+              SizedBox(width: gutter),
+              Expanded(
+                flex: 2,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: side,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _SectionGap extends StatelessWidget {
   const _SectionGap();
 
@@ -1015,6 +1145,7 @@ class _BookingDecisionBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BookingActionBar(
+      alignToDetailsContent: true,
       child: Row(
         children: [
           Expanded(
@@ -1057,6 +1188,7 @@ class _CancelBookingBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BookingActionBar(
+      alignToDetailsContent: true,
       child: CustomButton(
         key: const Key('cancel-booking-button'),
         text: StringConstants.cancelBooking,
@@ -1087,6 +1219,7 @@ class _ConfirmedActionsBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final FutsalTextTheme textTheme = FutsalTheme.getTextTheme(context);
     return BookingActionBar(
+      alignToDetailsContent: true,
       child: Row(
         children: [
           if (amountToCollect > 0) ...[
@@ -1140,6 +1273,7 @@ class _CollectDueActionBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final FutsalTextTheme textTheme = FutsalTheme.getTextTheme(context);
     return BookingActionBar(
+      alignToDetailsContent: true,
       child: Row(
         children: <Widget>[
           Expanded(
@@ -1333,6 +1467,9 @@ class _CustomerCard extends StatelessWidget {
   final BookingModel booking;
   final VoidCallback? onChat;
 
+  /// A manual (walk-in) booking's customer has no app account, so there is
+  /// no one to message: the card shows who they are and nothing more.
+
   @override
   Widget build(BuildContext context) {
     final FutsalTextTheme textTheme = FutsalTheme.getTextTheme(context);
@@ -1376,12 +1513,14 @@ class _CustomerCard extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(width: 12),
-          _BookingChatButton(
-            buttonKey: const Key('chat-customer-button'),
-            tooltip: StringConstants.chatWithCustomer,
-            onTap: onChat,
-          ),
+          if (!booking.isManual) ...[
+            const SizedBox(width: 12),
+            _BookingChatButton(
+              buttonKey: const Key('chat-customer-button'),
+              tooltip: StringConstants.chatWithCustomer,
+              onTap: onChat,
+            ),
+          ],
         ],
       ),
     );
@@ -1621,30 +1760,286 @@ class _PaymentCard extends StatelessWidget {
               color: LightColor.warningColor,
             ),
           ],
-          if (booking.payment?.method?.trim().isNotEmpty == true) ...[
+          if (booking.payments.isNotEmpty ||
+              booking.paymentBreakdown.isNotEmpty) ...[
             const _CardDivider(),
-            Row(
-              children: [
-                Icon(
-                  Icons.credit_card_rounded,
-                  size: AppDimens.sizeX14,
-                  color: LightColor.iconGrey,
+            _PaymentsSection(booking: booking),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// How the booking was paid: the total per payment type (cash, online), then
+/// every payment recorded against it — its type, when, any note, whether it
+/// is verified, and how much.
+class _PaymentsSection extends StatelessWidget {
+  const _PaymentsSection({required this.booking});
+
+  final BookingModel booking;
+
+  /// Type → amount and count: the server's `payment_breakdown`, else summed
+  /// from the payments themselves.
+  List<({String type, double amount, int count})> get _byType {
+    if (booking.paymentBreakdown.isNotEmpty) {
+      return <({String type, double amount, int count})>[
+        for (final BookingPaymentBreakdownModel b in booking.paymentBreakdown)
+          if (b.amount > 0)
+            (type: _typeOf(b.type, b.method), amount: b.amount, count: b.count),
+      ];
+    }
+    final Map<String, ({double amount, int count})> sums =
+        <String, ({double amount, int count})>{};
+    for (final BookingPaymentModel p in booking.payments) {
+      final String type = _typeOf(p.type, p.method);
+      final ({double amount, int count}) was =
+          sums[type] ?? (amount: 0, count: 0);
+      sums[type] = (amount: was.amount + p.amount, count: was.count + 1);
+    }
+    return <({String type, double amount, int count})>[
+      for (final MapEntry<String, ({double amount, int count})> e
+          in sums.entries)
+        (type: e.key, amount: e.value.amount, count: e.value.count),
+    ];
+  }
+
+  static String _typeOf(String? type, String? method) {
+    final String t = (type ?? method ?? '').trim();
+    return t.isEmpty ? 'other' : t.toLowerCase();
+  }
+
+  static IconData iconOf(String type) => switch (type) {
+    'cash' => Icons.payments_rounded,
+    'online' ||
+    'esewa' ||
+    'khalti' ||
+    'fonepay' => Icons.account_balance_wallet_rounded,
+    'qr' => Icons.qr_code_2_rounded,
+    'bank' || 'bank_transfer' => Icons.account_balance_rounded,
+    'card' => Icons.credit_card_rounded,
+    _ => Icons.receipt_long_rounded,
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final FutsalTextTheme textTheme = FutsalTheme.getTextTheme(context);
+    final List<({String type, double amount, int count})> byType = _byType;
+    final List<BookingPaymentModel> payments = booking.payments;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        Row(
+          children: <Widget>[
+            Text(
+              'Payments',
+              style: textTheme.bodyTextSmall?.copyWith(
+                color: LightColor.primaryTextColor,
+                fontSize: DataCardDensity.detail.labelSize + 1,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const Spacer(),
+            if (payments.isNotEmpty)
+              Text(
+                '${payments.length} '
+                '${payments.length == 1 ? 'payment' : 'payments'}',
+                style: textTheme.bodyTextSmall?.copyWith(
+                  color: LightColor.hintTextColor,
+                  fontSize: DataCardDensity.detail.labelSize,
+                  fontWeight: FontWeight.w500,
                 ),
-                const SizedBox(width: 6),
+              ),
+          ],
+        ),
+        if (byType.isNotEmpty) ...<Widget>[
+          const SizedBox(height: 10),
+          // One tile per type: what was taken in cash, what online.
+          Row(
+            children: <Widget>[
+              for (int i = 0; i < byType.length; i++) ...<Widget>[
+                if (i > 0) const SizedBox(width: 8),
+                Expanded(
+                  child: _PaymentTypeTile(
+                    type: byType[i].type,
+                    amount: byType[i].amount,
+                    count: byType[i].count,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ],
+        if (payments.isNotEmpty) ...<Widget>[
+          const SizedBox(height: 12),
+          for (int i = 0; i < payments.length; i++) ...<Widget>[
+            if (i > 0)
+              Divider(
+                height: 17,
+                thickness: 1,
+                indent: 42,
+                color: LightColor.dividerColor.withValues(alpha: 0.6),
+              ),
+            _PaymentLine(payment: payments[i]),
+          ],
+        ],
+      ],
+    );
+  }
+}
+
+/// A payment type's share of what was paid.
+class _PaymentTypeTile extends StatelessWidget {
+  const _PaymentTypeTile({
+    required this.type,
+    required this.amount,
+    required this.count,
+  });
+
+  final String type;
+  final double amount;
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final FutsalTextTheme textTheme = FutsalTheme.getTextTheme(context);
+    final Color accent = LightColor.secondaryColor;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(10, 9, 10, 9),
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: accent.withValues(alpha: 0.18)),
+      ),
+      child: Row(
+        children: <Widget>[
+          Icon(
+            _PaymentsSection.iconOf(type),
+            size: AppDimens.sizeX16,
+            color: LightColor.brandTextColor,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
                 Text(
-                  'Paid via ${bookingTitleCase(booking.payment!.method!)}',
+                  count > 1
+                      ? '${bookingTitleCase(type)} · $count'
+                      : bookingTitleCase(type),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: textTheme.bodyTextSmall?.copyWith(
-                    color: LightColor.hintTextColor,
+                    color: LightColor.secondaryTextColor,
                     fontSize: DataCardDensity.detail.labelSize,
-                    fontWeight: FontWeight.w500,
-                    height: 1.3,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 1),
+                Text(
+                  bookingCurrency(amount),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: textTheme.bodyTextSmall?.copyWith(
+                    color: LightColor.primaryTextColor,
+                    fontSize: DataCardDensity.detail.valueSize,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
               ],
             ),
-          ],
+          ),
         ],
       ),
+    );
+  }
+}
+
+/// One recorded payment: type and amount, when, its note, and its
+/// verification.
+class _PaymentLine extends StatelessWidget {
+  const _PaymentLine({required this.payment});
+
+  final BookingPaymentModel payment;
+
+  @override
+  Widget build(BuildContext context) {
+    final FutsalTextTheme textTheme = FutsalTheme.getTextTheme(context);
+    final String type = _PaymentsSection._typeOf(payment.type, payment.method);
+    final String? verification = payment.verificationStatus?.trim();
+    final String? note = payment.note?.trim();
+    final DateTime? at = payment.createdAt;
+    final TextStyle? meta = textTheme.bodyTextSmall?.copyWith(
+      color: LightColor.hintTextColor,
+      fontSize: DataCardDensity.detail.labelSize - 0.5,
+      fontWeight: FontWeight.w500,
+      height: 1.3,
+    );
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: LightColor.sunkenColor,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(
+            _PaymentsSection.iconOf(type),
+            size: AppDimens.sizeX16,
+            color: LightColor.secondaryTextColor,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                bookingTitleCase(type),
+                style: textTheme.bodyTextSmall?.copyWith(
+                  color: LightColor.primaryTextColor,
+                  fontSize: DataCardDensity.detail.valueSize,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              if (at != null) Text(DateFmt.dateTime(at), style: meta),
+              if (note != null && note.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Text(
+                    note,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: meta?.copyWith(fontStyle: FontStyle.italic),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 8),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: <Widget>[
+            Text(
+              bookingCurrency(payment.amount),
+              style: textTheme.bodyTextSmall?.copyWith(
+                color: LightColor.primaryTextColor,
+                fontSize: DataCardDensity.detail.valueSize,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            if (verification != null && verification.isNotEmpty) ...<Widget>[
+              const SizedBox(height: 4),
+              BookingStatusPill(
+                label: bookingTitleCase(verification),
+                color: bookingVerificationColor(verification),
+              ),
+            ],
+          ],
+        ),
+      ],
     );
   }
 }

@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:dartz/dartz.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -85,7 +88,11 @@ void main() {
     expect(find.text('NPR 1,080'), findsOneWidget);
     expect(find.text('Partial'), findsOneWidget);
     expect(find.text('Balance due later'), findsOneWidget);
-    expect(find.text('Paid via Cash'), findsOneWidget);
+    // How it was paid: the type, and the payment itself.
+    expect(find.text('Payments'), findsOneWidget);
+    expect(find.text('1 payment'), findsOneWidget);
+    expect(find.text('Cash'), findsNWidgets(2)); // type tile + payment line
+    expect(find.text('Pending'), findsWidgets);
 
     await tester.tap(find.byKey(const Key('cancel-booking-button')));
     await tester.tap(find.byKey(const Key('chat-venue-button')));
@@ -105,6 +112,52 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
 
     expect(find.text('Payment proof'), findsOneWidget);
+  });
+
+  testWidgets('payment summary lists each payment type and payment', (
+    WidgetTester tester,
+  ) async {
+    // The live `GET /bookings/565`: 600 in cash and 200 online.
+    final BookingModel booking = BookingModel.fromResponse(
+      jsonDecode(
+        File(
+          'test/fixtures/booking_details_565_response.json',
+        ).readAsStringSync(),
+      ),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: BookingDetailsPage(
+          booking: booking,
+          isFutsalView: true,
+          repository: _FakeBookingRepository(booking),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    // A manual (walk-in) booking: the customer shows, with no chat button —
+    // they have no app account to message.
+    expect(booking.isManual, isTrue);
+    expect(find.text('9856325355'), findsOneWidget);
+    expect(find.byKey(const Key('chat-customer-button')), findsNothing);
+    await tester.scrollUntilVisible(
+      find.text('Payments'),
+      260,
+      scrollable: find.byType(Scrollable).last,
+    );
+
+    expect(find.text('2 payments'), findsOneWidget);
+    expect(find.text('Paid via Cash'), findsNothing);
+    // Type tiles, then one line per payment: each type twice.
+    expect(find.text('Cash'), findsNWidgets(2));
+    expect(find.text('Online'), findsNWidgets(2));
+    expect(find.text('NPR 600'), findsWidgets);
+    expect(find.text('NPR 200'), findsNWidgets(2));
+    expect(find.text('Verified'), findsWidgets);
+    expect(find.text('Oct 01, 2026 · 10:10 PM'), findsNWidgets(2));
+    expect(find.text('NPR 800'), findsOneWidget); // paid
+    expect(find.text('NPR 400'), findsWidgets); // balance due
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('shows accept and reject actions for a pending futsal booking', (

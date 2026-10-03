@@ -20,6 +20,7 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
     on<FetchFutsalBookingsEvent>(_onFetchFutsalBookings);
     on<ApplyMyBookingsFiltersEvent>(_onApplyMyFilters);
     on<ApplyFutsalBookingsFiltersEvent>(_onApplyFutsalFilters);
+    on<FutsalBookingUpdatedEvent>(_onFutsalBookingUpdated);
   }
 
   final GetBookingsUseCase _useCase;
@@ -29,6 +30,13 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
 
   /// Requests currently out, keyed by list + status + page.
   final Set<String> _inFlight = <String>{};
+
+  /// Explicit refetches (forced, not a page landing) that arrived while the
+  /// same request was out. The one out may have left before the change being
+  /// refreshed for — a booking just completed — so its answer can be stale:
+  /// these go out once more after it. Landings stay dropped, so swiping back
+  /// and forth never stacks requests.
+  final Set<String> _refetchAfterInFlight = <String>{};
 
   FutureOr<void> _onFetchMyBookings(
     FetchMyBookingsEvent event,
@@ -131,6 +139,37 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
     selected: state.futsalSelectedFilter,
   );
 
+  void _onFutsalBookingUpdated(
+    FutsalBookingUpdatedEvent event,
+    Emitter<BookingState> emit,
+  ) {
+    final Map<BookingStatusFilter, BookingListSlice> next =
+        <BookingStatusFilter, BookingListSlice>{};
+    final BookingStatusFilter bookingFilter = BookingStatusFilter.of(
+      event.booking.status,
+    );
+
+    for (final MapEntry<BookingStatusFilter, BookingListSlice> entry
+        in state.futsalLists.entries) {
+      final BookingStatusFilter filter = entry.key;
+      final BookingListSlice slice = entry.value;
+      final bool belongs =
+          filter == BookingStatusFilter.all || filter == bookingFilter;
+      final bool existed = slice.bookings.any(
+        (BookingModel booking) => booking.id == event.booking.id,
+      );
+      final List<BookingModel> rows = slice.bookings
+          .where((BookingModel booking) => booking.id != event.booking.id)
+          .toList(growable: true);
+      if (belongs && (existed || filter == BookingStatusFilter.all)) {
+        rows.insert(0, event.booking);
+      }
+      next[filter] = slice.copyWith(bookings: rows, clearError: true);
+    }
+
+    emit(state.copyWith(futsalLists: next, refreshTick: state.refreshTick + 1));
+  }
+
   /// Stores a new window/order and starts the list again from page 1.
   ///
   /// The cached slices go with it: every one of them holds rows fetched under
@@ -203,7 +242,10 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
     // — the last one to answer would otherwise decide what is on screen.
     final int page = loadMore ? slice.currentPage + 1 : 1;
     final String key = '$kind:${target.name}:$page';
-    if (_inFlight.contains(key)) return;
+    if (_inFlight.contains(key)) {
+      if (force && !select && !loadMore) _refetchAfterInFlight.add(key);
+      return;
+    }
     if (loadMore) {
       emit(
         writeSlice(
@@ -317,6 +359,25 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
         );
       },
     );
+
+    if (_refetchAfterInFlight.remove(key)) {
+      await _fetch(
+        emit: emit,
+        kind: kind,
+        filter: target,
+        select: false,
+        force: true,
+        silent: true,
+        loadMore: false,
+        selected: selected,
+        sliceOf: sliceOf,
+        selectFilter: selectFilter,
+        writeSlice: writeSlice,
+        dateFilter: dateFilter,
+        order: order,
+        request: request,
+      );
+    }
   }
 
   List<BookingModel> _mergeBookings(

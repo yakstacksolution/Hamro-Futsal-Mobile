@@ -2,6 +2,7 @@ import 'package:hamro_futsal/core/utils/bloc_safe_add.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:hamro_futsal/core/utils/responsive.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
@@ -243,8 +244,12 @@ class _OpponentRequestsViewState extends State<OpponentRequestsView> {
                 controller: _chipCtrl,
                 scrollDirection: Axis.horizontal,
                 physics: const BouncingScrollPhysics(),
+                // Tablet / desktop: the cards' 20px inset, so the chips start
+                // on the same edge as the cards below them.
                 padding: AppUtils().getPadding(
-                  symmetricHorizontal: AppDimens.paddingX16,
+                  symmetricHorizontal: context.isTabletOrWider
+                      ? AppDimens.paddingX20
+                      : AppDimens.paddingX16,
                 ),
                 itemCount: RequestFilter.values.length,
                 separatorBuilder: (_, __) =>
@@ -320,25 +325,26 @@ class _OpponentRequestsViewState extends State<OpponentRequestsView> {
                 }
                 return false;
               },
-              child: ListView.separated(
-                // Each page keeps its own scroll offset while the pager moves
-                // between them.
-                key: PageStorageKey<RequestFilter>(pageFilter),
-                physics: const BouncingScrollPhysics(),
-                padding: AppUtils().getPadding(
-                  symmetricHorizontal: AppDimens.paddingX20,
-                  top: AppDimens.paddingX2,
-                  bottom: AppDimens.paddingX50,
-                ),
-                itemCount: requests.length + (hasFooter ? 1 : 0),
-                separatorBuilder: (_, __) =>
-                    const SizedBox(height: AppDimens.paddingX12),
-                itemBuilder: (_, i) {
-                  if (i >= requests.length) {
-                    return _LoadMoreFooter(loading: loadingMore);
-                  }
-                  final request = requests[i];
-                  return OpponentRequestCard(
+              child: LayoutBuilder(
+                builder: (BuildContext context, BoxConstraints constraints) {
+                  final EdgeInsets padding = AppUtils().getPadding(
+                    symmetricHorizontal: AppDimens.paddingX20,
+                    top: AppDimens.paddingX2,
+                    bottom: AppDimens.paddingX50,
+                  );
+                  // Phone: one card per row. Tablet / desktop: rows of
+                  // [columns] cards, still built lazily row by row.
+                  final int columns = OpponentLayout.gridColumns(
+                    context,
+                    constraints.maxWidth - padding.horizontal,
+                    // A request card reads well at phone width: two across
+                    // on a tablet, three on desktop.
+                    minCardWidth: OpponentLayout.requestCardMinWidth,
+                  );
+                  final int rows = (requests.length / columns).ceil();
+                  Widget card(
+                    OpponentRequestModel request,
+                  ) => OpponentRequestCard(
                     key: ValueKey(request.id),
                     request: request,
                     settled: pageFilter == RequestFilter.settled,
@@ -370,6 +376,37 @@ class _OpponentRequestsViewState extends State<OpponentRequestsView> {
                         force: true,
                       ),
                     ),
+                  );
+                  return ListView.separated(
+                    // Each page keeps its own scroll offset while the pager
+                    // moves between them.
+                    key: PageStorageKey<RequestFilter>(pageFilter),
+                    physics: const BouncingScrollPhysics(),
+                    padding: padding,
+                    itemCount: rows + (hasFooter ? 1 : 0),
+                    separatorBuilder: (_, __) => SizedBox(
+                      height: columns == 1
+                          ? AppDimens.paddingX12
+                          : OpponentLayout.gap,
+                    ),
+                    itemBuilder: (_, int row) {
+                      if (row >= rows) {
+                        return _LoadMoreFooter(loading: loadingMore);
+                      }
+                      if (columns == 1) return card(requests[row]);
+                      return OpponentGridRow(
+                        columns: columns,
+                        equalHeight: true,
+                        children: <Widget>[
+                          for (
+                            int i = row * columns;
+                            i < requests.length && i < (row + 1) * columns;
+                            i++
+                          )
+                            card(requests[i]),
+                        ],
+                      );
+                    },
                   );
                 },
               ),
@@ -748,330 +785,360 @@ class _OpponentRequestCardState extends State<OpponentRequestCard> {
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            // A grid row stretches its cards to the tallest one; the actions
+            // then stay on the bottom edge, level across the row. A lone
+            // card (phone) has no spare height, so nothing moves.
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          LightColor.secondaryColor.withValues(alpha: 0.18),
-                          LightColor.secondaryColor.withValues(alpha: 0.06),
-                        ],
-                      ),
-                      borderRadius: BorderRadius.circular(AppDimens.radiusX12),
-                      border: Border.all(
-                        color: LightColor.secondaryColor.withValues(
-                          alpha: 0.12,
-                        ),
-                      ),
-                    ),
-                    child: Text(
-                      request.initials,
-                      style: textTheme.bodyTextMedium?.copyWith(
-                        color: LightColor.secondaryColor,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: AppDimens.paddingX12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          request.team,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: textTheme.bodyTextMedium?.copyWith(
-                            fontWeight: emphasised
-                                ? FontWeight.w700
-                                : FontWeight.w600,
-                            color: LightColor.primaryTextColor,
+                  Row(
+                    children: [
+                      Container(
+                        width: 44,
+                        height: 44,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              LightColor.secondaryColor.withValues(alpha: 0.18),
+                              LightColor.secondaryColor.withValues(alpha: 0.06),
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(
+                            AppDimens.radiusX12,
+                          ),
+                          border: Border.all(
+                            color: LightColor.secondaryColor.withValues(
+                              alpha: 0.12,
+                            ),
                           ),
                         ),
-                        const SizedBox(height: 2),
-                        Row(
+                        child: Text(
+                          request.initials,
+                          style: textTheme.bodyTextMedium?.copyWith(
+                            color: LightColor.secondaryColor,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: AppDimens.paddingX12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Icon(
-                              Icons.access_time_rounded,
-                              size: 9,
-                              color: LightColor.hintTextColor,
-                            ),
-                            const SizedBox(width: AppDimens.paddingX4),
-                            Flexible(
-                              child: Text(
-                                '${OpponentFmt.friendlyDateTime(request.dateTime)} · ${request.summary}',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: textTheme.bodyTextSmall?.copyWith(
-                                  color: LightColor.hintTextColor,
-                                  fontSize: AppDimens.fontBodySubTitle,
-                                  fontWeight: FontWeight.w500,
-                                ),
+                            Text(
+                              request.team,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: textTheme.bodyTextMedium?.copyWith(
+                                fontWeight: emphasised
+                                    ? FontWeight.w700
+                                    : FontWeight.w600,
+                                color: LightColor.primaryTextColor,
                               ),
+                            ),
+                            const SizedBox(height: 2),
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.access_time_rounded,
+                                  size: 9,
+                                  color: LightColor.hintTextColor,
+                                ),
+                                const SizedBox(width: AppDimens.paddingX4),
+                                Flexible(
+                                  child: Text(
+                                    '${OpponentFmt.friendlyDateTime(request.dateTime)} · ${request.summary}',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: textTheme.bodyTextSmall?.copyWith(
+                                      color: LightColor.hintTextColor,
+                                      fontSize: AppDimens.fontBodySubTitle,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: AppDimens.paddingX8),
-                  if (widget.onMessage != null) ...[
-                    _MessageIconButton(onTap: widget.onMessage!),
-                    const SizedBox(width: AppDimens.paddingX6),
-                  ],
-                  OpponentStatusBadge(
-                    status: request.status,
-                    label: request.statusBadgeLabel,
-                  ),
-                ],
-              ),
-              if (showCountdown) ...[
-                const SizedBox(height: AppDimens.paddingX10),
-                OpponentCountdownPill(
-                  value: OpponentFmt.countdown(_remaining),
-                  urgent: urgent,
-                ),
-              ],
-              const SizedBox(height: AppDimens.paddingX12),
-              // A draft may not have reached the venue step yet, so the slot
-              // and venue rows carry a "still to do" placeholder instead of
-              // rendering blank.
-              _InfoMini(
-                icon: Icons.event_outlined,
-                label: request.slot.isNotEmpty
-                    ? request.slot
-                    : 'Kick-off time not set yet',
-              ),
-              const SizedBox(height: AppDimens.paddingX6),
-              _InfoMini(
-                icon: Icons.location_on_outlined,
-                label: request.venue.isNotEmpty
-                    ? request.venue
-                    : 'Venue not chosen yet',
-              ),
-              const SizedBox(height: AppDimens.paddingX6),
-              _InfoMini(
-                icon: Icons.payments_outlined,
-                label: priceText,
-                emphasised: true,
-              ),
-              if (_isMine(request) &&
-                  !isDraft &&
-                  request.invitationCount > 0) ...[
-                const SizedBox(height: AppDimens.paddingX6),
-                _InfoMini(
-                  icon: Icons.groups_2_outlined,
-                  label: request.isMatchConfirmed
-                      ? 'Opponent: ${request.selectedInvitation?.teamName ?? request.acceptedByTeamName}'
-                      : '${request.invitationCount} '
-                            '${request.invitationCount == 1 ? 'team wants' : 'teams want'} '
-                            'to play — pick one',
-                  emphasised: true,
-                ),
-              ],
-              const SizedBox(height: AppDimens.paddingX12),
-              if (isDraft) ...[
-                Divider(
-                  height: 1,
-                  thickness: 1,
-                  color: LightColor.dividerColor,
-                ),
-                _FooterNote(
-                  icon: Icons.edit_note_rounded,
-                  label: _draftProgressLabel(request),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: AppDimens.paddingX6),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        flex: 2,
-                        child: _ActionButton(
-                          icon: Icons.edit_note_rounded,
-                          label: StringConstants.completeSetup,
-                          foreground: LightColor.inverseTextColor,
-                          background: LightColor.secondaryColor,
-                          glow: true,
-                          onTap: widget.onComplete,
-                        ),
                       ),
                       const SizedBox(width: AppDimens.paddingX8),
-                      Expanded(
-                        child: _ActionButton(
-                          icon: Icons.delete_outline_rounded,
-                          label: StringConstants.remove,
-                          foreground: LightColor.redColor,
-                          background: LightColor.redLightColor,
-                          onTap: () => _confirmDelete(context),
-                        ),
+                      if (widget.onMessage != null) ...[
+                        _MessageIconButton(onTap: widget.onMessage!),
+                        const SizedBox(width: AppDimens.paddingX6),
+                      ],
+                      OpponentStatusBadge(
+                        status: request.status,
+                        label: request.statusBadgeLabel,
                       ),
                     ],
                   ),
-                ),
-              ] else if (request.status.isAwaitingApproval) ...[
-                Divider(
-                  height: 1,
-                  thickness: 1,
-                  color: LightColor.dividerColor,
-                ),
-                _FooterNote(
-                  icon: Icons.hourglass_top_rounded,
-                  label:
-                      'Submitted — waiting for approval before teams can see '
-                      'it.',
-                  color: LightColor.warningColor,
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: AppDimens.paddingX6),
-                  child: _ActionButton(
-                    icon: Icons.delete_outline_rounded,
-                    label: StringConstants.remove,
-                    foreground: LightColor.redColor,
-                    background: LightColor.redLightColor,
-                    onTap: () => _confirmDelete(context),
-                  ),
-                ),
-              ] else if (widget.settled) ...[
-                // Nothing left to decide on a settled row — the only thing the
-                // card can still do is open the match.
-                Padding(
-                  padding: const EdgeInsets.only(bottom: AppDimens.paddingX6),
-                  child: _ActionButton(
-                    icon: Icons.emoji_events_outlined,
-                    label: 'View Match Details',
-                    foreground: LightColor.inverseTextColor,
-                    background: LightColor.secondaryColor,
-                    glow: true,
-                    onTap: widget.onMatchDetails,
-                  ),
-                ),
-              ] else if (isExpired) ...[
-                Divider(
-                  height: 1,
-                  thickness: 1,
-                  color: LightColor.dividerColor,
-                ),
-                const _FooterNote(
-                  icon: Icons.hourglass_disabled_rounded,
-                  label: StringConstants.closedAcceptWindowExpired,
-                ),
-              ] else if (request.isMatchConfirmed)
-                // Match created & venue linked — both teams open the same
-                // confirmed-match view (fixture, venue, chat room).
-                Padding(
-                  padding: const EdgeInsets.only(bottom: AppDimens.paddingX6),
-                  child: _ActionButton(
-                    icon: Icons.emoji_events_outlined,
-                    label: 'View Match Details',
-                    foreground: LightColor.inverseTextColor,
-                    background: LightColor.secondaryColor,
-                    glow: true,
-                    onTap: widget.onMatchDetails,
-                  ),
-                )
-              else if (request.status == RequestStatus.invitationSent) ...[
-                if (_isMine(request))
-                  // A team accepted: review the invitation(s) and select the
-                  // opponent.
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: AppDimens.paddingX6),
-                    child: _ActionButton(
-                      icon: Icons.mark_email_unread_outlined,
-                      label: _invitationsLabel(request),
-                      foreground: LightColor.inverseTextColor,
-                      background: LightColor.secondaryColor,
-                      glow: true,
-                      onTap: widget.onInvitations,
+                  if (showCountdown) ...[
+                    const SizedBox(height: AppDimens.paddingX10),
+                    OpponentCountdownPill(
+                      value: OpponentFmt.countdown(_remaining),
+                      urgent: urgent,
                     ),
-                  )
-                else ...[
-                  Divider(
-                    height: 1,
-                    thickness: 1,
-                    color: LightColor.dividerColor,
+                  ],
+                  const SizedBox(height: AppDimens.paddingX12),
+                  // A draft may not have reached the venue step yet, so the slot
+                  // and venue rows carry a "still to do" placeholder instead of
+                  // rendering blank.
+                  _InfoMini(
+                    icon: Icons.event_outlined,
+                    label: request.slot.isNotEmpty
+                        ? request.slot
+                        : 'Kick-off time not set yet',
                   ),
-                  const _FooterNote(
-                    icon: Icons.hourglass_top_rounded,
-                    label:
-                        'Acceptance sent — waiting for the requester to '
-                        'pick an opponent',
-                    color: LightColor.secondaryColor,
+                  const SizedBox(height: AppDimens.paddingX6),
+                  _InfoMini(
+                    icon: Icons.location_on_outlined,
+                    label: request.venue.isNotEmpty
+                        ? request.venue
+                        : 'Venue not chosen yet',
                   ),
+                  const SizedBox(height: AppDimens.paddingX6),
+                  _InfoMini(
+                    icon: Icons.payments_outlined,
+                    label: priceText,
+                    emphasised: true,
+                  ),
+                  if (_isMine(request) &&
+                      !isDraft &&
+                      request.invitationCount > 0) ...[
+                    const SizedBox(height: AppDimens.paddingX6),
+                    _InfoMini(
+                      icon: Icons.groups_2_outlined,
+                      label: request.isMatchConfirmed
+                          ? 'Opponent: ${request.selectedInvitation?.teamName ?? request.acceptedByTeamName}'
+                          : '${request.invitationCount} '
+                                '${request.invitationCount == 1 ? 'team wants' : 'teams want'} '
+                                'to play — pick one',
+                      emphasised: true,
+                    ),
+                  ],
                 ],
-              ] else if (request.status.isOpen)
-                // Accept → choose my team and send the acceptance. There is no
-                // decline: a request the user does not want is simply left
-                // alone, and its countdown closes it if nobody replies.
-                Padding(
-                  padding: const EdgeInsets.only(bottom: AppDimens.paddingX6),
-                  child: _ActionButton(
-                    icon: Icons.handshake_outlined,
-                    label: 'Accept Request',
-                    foreground: LightColor.inverseTextColor,
-                    background: LightColor.secondaryColor,
-                    glow: true,
-                    onTap: widget.onAccept,
-                  ),
-                )
-              else if (request.status == RequestStatus.sent)
-                // My published request: visible to eligible teams. Review the
-                // invitations as they arrive; removable until one is picked.
-                Padding(
-                  padding: const EdgeInsets.only(bottom: AppDimens.paddingX6),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        flex: 2,
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const SizedBox(height: AppDimens.paddingX12),
+                  if (isDraft) ...[
+                    Divider(
+                      height: 1,
+                      thickness: 1,
+                      color: LightColor.dividerColor,
+                    ),
+                    _FooterNote(
+                      icon: Icons.edit_note_rounded,
+                      label: _draftProgressLabel(request),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(
+                        bottom: AppDimens.paddingX6,
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            flex: 2,
+                            child: _ActionButton(
+                              icon: Icons.edit_note_rounded,
+                              label: StringConstants.completeSetup,
+                              foreground: LightColor.inverseTextColor,
+                              background: LightColor.secondaryColor,
+                              glow: true,
+                              onTap: widget.onComplete,
+                            ),
+                          ),
+                          const SizedBox(width: AppDimens.paddingX8),
+                          Expanded(
+                            child: _ActionButton(
+                              icon: Icons.delete_outline_rounded,
+                              label: StringConstants.remove,
+                              foreground: LightColor.redColor,
+                              background: LightColor.redLightColor,
+                              onTap: () => _confirmDelete(context),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ] else if (request.status.isAwaitingApproval) ...[
+                    Divider(
+                      height: 1,
+                      thickness: 1,
+                      color: LightColor.dividerColor,
+                    ),
+                    _FooterNote(
+                      icon: Icons.hourglass_top_rounded,
+                      label:
+                          'Submitted — waiting for approval before teams can see '
+                          'it.',
+                      color: LightColor.warningColor,
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(
+                        bottom: AppDimens.paddingX6,
+                      ),
+                      child: _ActionButton(
+                        icon: Icons.delete_outline_rounded,
+                        label: StringConstants.remove,
+                        foreground: LightColor.redColor,
+                        background: LightColor.redLightColor,
+                        onTap: () => _confirmDelete(context),
+                      ),
+                    ),
+                  ] else if (widget.settled) ...[
+                    // Nothing left to decide on a settled row — the only thing the
+                    // card can still do is open the match.
+                    Padding(
+                      padding: const EdgeInsets.only(
+                        bottom: AppDimens.paddingX6,
+                      ),
+                      child: _ActionButton(
+                        icon: Icons.emoji_events_outlined,
+                        label: 'View Match Details',
+                        foreground: LightColor.inverseTextColor,
+                        background: LightColor.secondaryColor,
+                        glow: true,
+                        onTap: widget.onMatchDetails,
+                      ),
+                    ),
+                  ] else if (isExpired) ...[
+                    Divider(
+                      height: 1,
+                      thickness: 1,
+                      color: LightColor.dividerColor,
+                    ),
+                    const _FooterNote(
+                      icon: Icons.hourglass_disabled_rounded,
+                      label: StringConstants.closedAcceptWindowExpired,
+                    ),
+                  ] else if (request.isMatchConfirmed)
+                    // Match created & venue linked — both teams open the same
+                    // confirmed-match view (fixture, venue, chat room).
+                    Padding(
+                      padding: const EdgeInsets.only(
+                        bottom: AppDimens.paddingX6,
+                      ),
+                      child: _ActionButton(
+                        icon: Icons.emoji_events_outlined,
+                        label: 'View Match Details',
+                        foreground: LightColor.inverseTextColor,
+                        background: LightColor.secondaryColor,
+                        glow: true,
+                        onTap: widget.onMatchDetails,
+                      ),
+                    )
+                  else if (request.status == RequestStatus.invitationSent) ...[
+                    if (_isMine(request))
+                      // A team accepted: review the invitation(s) and select the
+                      // opponent.
+                      Padding(
+                        padding: const EdgeInsets.only(
+                          bottom: AppDimens.paddingX6,
+                        ),
                         child: _ActionButton(
                           icon: Icons.mark_email_unread_outlined,
                           label: _invitationsLabel(request),
-                          foreground: request.invitationCount == 0
-                              ? LightColor.secondaryColor
-                              : LightColor.inverseTextColor,
-                          background: request.invitationCount == 0
-                              ? LightColor.secondaryColor.withValues(
-                                  alpha: 0.10,
-                                )
-                              : LightColor.secondaryColor,
-                          glow: request.invitationCount > 0,
+                          foreground: LightColor.inverseTextColor,
+                          background: LightColor.secondaryColor,
+                          glow: true,
                           onTap: widget.onInvitations,
                         ),
+                      )
+                    else ...[
+                      Divider(
+                        height: 1,
+                        thickness: 1,
+                        color: LightColor.dividerColor,
                       ),
-                      const SizedBox(width: AppDimens.paddingX8),
-                      Expanded(
-                        child: _ActionButton(
-                          icon: Icons.delete_outline_rounded,
-                          label: StringConstants.remove,
-                          foreground: LightColor.redColor,
-                          background: LightColor.redLightColor,
-                          onTap: () => _confirmDelete(context),
-                        ),
+                      const _FooterNote(
+                        icon: Icons.hourglass_top_rounded,
+                        label:
+                            'Acceptance sent — waiting for the requester to '
+                            'pick an opponent',
+                        color: LightColor.secondaryColor,
                       ),
                     ],
-                  ),
-                )
-              else ...[
-                Divider(
-                  height: 1,
-                  thickness: 1,
-                  color: LightColor.dividerColor,
-                ),
-                _FooterNote(
-                  icon: switch (request.status) {
-                    RequestStatus.accepted => Icons.check_circle_rounded,
-                    RequestStatus.rejected => Icons.cancel_outlined,
-                    _ => Icons.outgoing_mail,
-                  },
-                  label: request.status.label,
-                ),
-              ],
+                  ] else if (request.status.isOpen)
+                    // Accept → choose my team and send the acceptance. There is no
+                    // decline: a request the user does not want is simply left
+                    // alone, and its countdown closes it if nobody replies.
+                    Padding(
+                      padding: const EdgeInsets.only(
+                        bottom: AppDimens.paddingX6,
+                      ),
+                      child: _ActionButton(
+                        icon: Icons.handshake_outlined,
+                        label: 'Accept Request',
+                        foreground: LightColor.inverseTextColor,
+                        background: LightColor.secondaryColor,
+                        glow: true,
+                        onTap: widget.onAccept,
+                      ),
+                    )
+                  else if (request.status == RequestStatus.sent)
+                    // My published request: visible to eligible teams. Review the
+                    // invitations as they arrive; removable until one is picked.
+                    Padding(
+                      padding: const EdgeInsets.only(
+                        bottom: AppDimens.paddingX6,
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            flex: 2,
+                            child: _ActionButton(
+                              icon: Icons.mark_email_unread_outlined,
+                              label: _invitationsLabel(request),
+                              foreground: request.invitationCount == 0
+                                  ? LightColor.secondaryColor
+                                  : LightColor.inverseTextColor,
+                              background: request.invitationCount == 0
+                                  ? LightColor.secondaryColor.withValues(
+                                      alpha: 0.10,
+                                    )
+                                  : LightColor.secondaryColor,
+                              glow: request.invitationCount > 0,
+                              onTap: widget.onInvitations,
+                            ),
+                          ),
+                          const SizedBox(width: AppDimens.paddingX8),
+                          Expanded(
+                            child: _ActionButton(
+                              icon: Icons.delete_outline_rounded,
+                              label: StringConstants.remove,
+                              foreground: LightColor.redColor,
+                              background: LightColor.redLightColor,
+                              onTap: () => _confirmDelete(context),
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  else ...[
+                    Divider(
+                      height: 1,
+                      thickness: 1,
+                      color: LightColor.dividerColor,
+                    ),
+                    _FooterNote(
+                      icon: switch (request.status) {
+                        RequestStatus.accepted => Icons.check_circle_rounded,
+                        RequestStatus.rejected => Icons.cancel_outlined,
+                        _ => Icons.outgoing_mail,
+                      },
+                      label: request.status.label,
+                    ),
+                  ],
+                ],
+              ),
             ],
           ),
         ),

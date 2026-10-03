@@ -88,14 +88,23 @@ class _RewardHistoryPageState extends State<RewardHistoryPage> {
         child: BlocBuilder<RewardsBloc, RewardsState>(
           builder: (BuildContext context, RewardsState state) {
             if (state.isHistoryInitialLoading) {
-              return Padding(
-                padding: EdgeInsets.fromLTRB(
-                  horizontal,
-                  AppDimens.paddingX16,
-                  horizontal,
-                  0,
+              return Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    maxWidth: AppDimens.rewardsColumnMaxWidth,
+                  ),
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      horizontal,
+                      AppDimens.paddingX16,
+                      horizontal,
+                      0,
+                    ),
+                    child: const RewardHistoryLoadingList(
+                      wrapWithShimmer: true,
+                    ),
+                  ),
                 ),
-                child: const RewardHistoryLoadingList(wrapWithShimmer: true),
               );
             }
 
@@ -129,34 +138,44 @@ class _RewardHistoryPageState extends State<RewardHistoryPage> {
                       next.historyStatus != RewardsStatus.loading,
                 );
               },
-              child: ListView.separated(
-                controller: _scrollController,
-                physics: const AlwaysScrollableScrollPhysics(
-                  parent: BouncingScrollPhysics(),
-                ),
-                padding: EdgeInsets.fromLTRB(
-                  horizontal,
-                  AppDimens.paddingX16,
-                  horizontal,
-                  AppDimens.paddingX32,
-                ),
-                itemCount: state.history.length + 1,
-                separatorBuilder: (_, _) =>
-                    const SizedBox(height: AppDimens.paddingX10),
-                itemBuilder: (BuildContext context, int index) {
-                  if (index == state.history.length) {
-                    return _ListFooter(state: state);
-                  }
-                  final RewardHistoryEntryModel entry = state.history[index];
-                  return Container(
-                    decoration: BoxDecoration(
-                      color: LightColor.cardColor,
-                      borderRadius: BorderRadius.circular(AppDimens.radiusX12),
-                      border: Border.all(color: LightColor.dividerColor),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    maxWidth: AppDimens.rewardsColumnMaxWidth,
+                  ),
+                  child: ListView.separated(
+                    controller: _scrollController,
+                    physics: const AlwaysScrollableScrollPhysics(
+                      parent: BouncingScrollPhysics(),
                     ),
-                    child: RewardHistoryTile(entry: entry),
-                  );
-                },
+                    padding: EdgeInsets.fromLTRB(
+                      horizontal,
+                      AppDimens.paddingX16,
+                      horizontal,
+                      AppDimens.paddingX32,
+                    ),
+                    itemCount: state.history.length + 1,
+                    separatorBuilder: (_, _) =>
+                        const SizedBox(height: AppDimens.paddingX10),
+                    itemBuilder: (BuildContext context, int index) {
+                      if (index == state.history.length) {
+                        return _ListFooter(state: state);
+                      }
+                      final RewardHistoryEntryModel entry =
+                          state.history[index];
+                      return Container(
+                        decoration: BoxDecoration(
+                          color: LightColor.cardColor,
+                          borderRadius: BorderRadius.circular(
+                            AppDimens.radiusX12,
+                          ),
+                          border: Border.all(color: LightColor.dividerColor),
+                        ),
+                        child: RewardHistoryTile(entry: entry),
+                      );
+                    },
+                  ),
+                ),
               ),
             );
           },

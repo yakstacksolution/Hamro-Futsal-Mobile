@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
@@ -147,10 +149,86 @@ class AccountView extends StatelessWidget {
         );
 
         final bool desktop = context.isDesktop;
-        final double horizontal = context.responsive<double>(
-          mobile: AppDimens.paddingX20,
-          tablet: AppDimens.paddingX32,
-        );
+        final bool wide = context.isTabletOrWider;
+
+        final List<Widget> children;
+        if (!wide) {
+          children = <Widget>[
+            balance,
+            const SizedBox(height: AppDimens.paddingX12),
+            AccountStatsRow(summary: summary),
+            const SizedBox(height: AppDimens.paddingX16),
+            shortcuts,
+            const SizedBox(height: AppDimens.paddingX20),
+            activityHeader,
+            const SizedBox(height: AppDimens.paddingX10),
+            activity,
+          ];
+        } else {
+          final Widget wideBalance = AccountBalanceCard(
+            wide: true,
+            commissionPayable: summary.totalCommission,
+            availableBalance: summary.availableBalance,
+            totalEarned: summary.totalEarned,
+            pendingClearance: summary.pendingClearance,
+            onRequestSettlement: canSettle
+                ? () => openSettlementSheet(context)
+                : null,
+            disabledReason: canSettle ? null : settlementBlockedReason(state),
+          );
+          children = <Widget>[
+            // Hero and totals share the content edges.
+            wideBalance,
+            // Clears the hero's drop shadow.
+            const SizedBox(height: AppDimens.paddingX16),
+            AccountStatsRow(summary: summary),
+            const SizedBox(height: AppDimens.paddingX24),
+            if (desktop) ...<Widget>[
+              // Activity beside the shortcuts rail: both headings on one
+              // line, both columns starting on the same top edge.
+              Row(
+                children: <Widget>[
+                  Expanded(child: activityHeader),
+                  const SizedBox(width: AppDimens.paddingX24),
+                  const SizedBox(
+                    width: AppDimens.accountShortcutsColumnWidth,
+                    child: _SectionHeading('Manage'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppDimens.paddingX10),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Expanded(child: activity),
+                  const SizedBox(width: AppDimens.paddingX24),
+                  SizedBox(
+                    width: AppDimens.accountShortcutsColumnWidth,
+                    child: shortcuts,
+                  ),
+                ],
+              ),
+            ] else ...<Widget>[
+              const _SectionHeading('Manage'),
+              const SizedBox(height: AppDimens.paddingX10),
+              shortcuts,
+              const SizedBox(height: AppDimens.paddingX24),
+              activityHeader,
+              const SizedBox(height: AppDimens.paddingX10),
+              activity,
+            ],
+          ];
+        }
+
+        // Tablet / desktop: centred at a fixed reading width, the scrollbar
+        // staying at the window edge.
+        final double width = context.screenWidth;
+        final double maxWidth = desktop
+            ? AppDimens.accountDashboardMaxWidth
+            : AppDimens.accountListMaxWidth;
+        final double horizontal = !wide
+            ? AppDimens.paddingX20
+            : math.max(AppDimens.paddingX24, (width - maxWidth) / 2);
 
         return RefreshIndicator(
           color: LightColor.brandTextColor,
@@ -163,48 +241,11 @@ class AccountView extends StatelessWidget {
             ),
             padding: EdgeInsets.fromLTRB(
               horizontal,
-              AppDimens.paddingX16,
+              wide ? AppDimens.paddingX24 : AppDimens.paddingX16,
               horizontal,
               AppDimens.paddingX50,
             ),
-            children: desktop
-                ? <Widget>[
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: <Widget>[
-                              balance,
-                              const SizedBox(height: AppDimens.paddingX12),
-                              AccountStatsRow(summary: summary),
-                              const SizedBox(height: AppDimens.paddingX20),
-                              activityHeader,
-                              const SizedBox(height: AppDimens.paddingX10),
-                              activity,
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: AppDimens.paddingX20),
-                        SizedBox(
-                          width: AppDimens.accountShortcutsColumnWidth,
-                          child: shortcuts,
-                        ),
-                      ],
-                    ),
-                  ]
-                : <Widget>[
-                    balance,
-                    const SizedBox(height: AppDimens.paddingX12),
-                    AccountStatsRow(summary: summary),
-                    const SizedBox(height: AppDimens.paddingX16),
-                    shortcuts,
-                    const SizedBox(height: AppDimens.paddingX20),
-                    activityHeader,
-                    const SizedBox(height: AppDimens.paddingX10),
-                    activity,
-                  ],
+            children: children,
           ),
         );
       },
@@ -332,6 +373,29 @@ class _ShortcutsCard extends StatelessWidget {
               tiles[i],
             ],
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A section heading matching [_RecentActivityHeader]'s title, so headings
+/// placed side by side share a baseline.
+class _SectionHeading extends StatelessWidget {
+  const _SectionHeading(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      // The activity header's "View all" adds 4px above and below.
+      padding: const EdgeInsets.symmetric(vertical: AppDimens.paddingX4),
+      child: Text(
+        text,
+        style: FutsalTheme.getTextTheme(context).bodyTextMedium?.copyWith(
+          color: LightColor.primaryTextColor,
+          fontWeight: FontWeight.w700,
         ),
       ),
     );

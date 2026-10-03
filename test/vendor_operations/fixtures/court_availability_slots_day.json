@@ -1,0 +1,824 @@
+{
+  "status": "success",
+  "message": "Court availability slots fetched successfully.",
+  "data": {
+    "type": "day",
+    "date": "2026-09-28",
+    "start_date": "2026-09-28",
+    "end_date": "2026-09-28",
+    "venue_count": 3,
+    "court_count": 4,
+    "free_count": 2,
+    "booked_count": 0,
+    "unavailable_count": 5,
+    "venues": [
+      {
+        "id": 1,
+        "name": "Dhananjay sport",
+        "courts": [
+          {
+            "id": 6,
+            "venue_id": 1,
+            "name": "Shidartha",
+            "slug": "shidartha",
+            "surface_type": null,
+            "capacity": 10,
+            "base_price": 1200,
+            "feature_image": null,
+            "slot_duration_minutes": 60,
+            "slot_duration_label": "1 h",
+            "slot_count": 3,
+            "free_count": 2,
+            "booked_count": 0,
+            "unavailable_count": 1,
+            "booked_percent": 0,
+            "time_slots": [
+              {
+                "key": "06:00:00|07:00:00",
+                "start_time": "06:00:00",
+                "end_time": "07:00:00",
+                "label": ""
+              },
+              {
+                "key": "20:33:00|21:33:00",
+                "start_time": "20:33:00",
+                "end_time": "21:33:00",
+                "label": ""
+              },
+              {
+                "key": "22:34:00|23:33:00",
+                "start_time": "22:34:00",
+                "end_time": "23:33:00",
+                "label": ""
+              }
+            ],
+            "slots": [
+              {
+                "key": "06:00:00|07:00:00",
+                "venue_id": 1,
+                "court_id": 6,
+                "date": "2026-09-28",
+                "start_time": "06:00:00",
+                "end_time": "07:00:00",
+                "label": "",
+                "status": "unavailable",
+                "reason": "past_slot_not_bookable",
+                "is_available": false,
+                "price": null,
+                "price_breakdown": null,
+                "held_by_me": false,
+                "expires_at": null,
+                "hold_token": null,
+                "cell_type": "past",
+                "cell_title": "Past",
+                "cell_subtitle": null,
+                "booking": null,
+                "booking_detail": null
+              },
+              {
+                "key": "20:33:00|21:33:00",
+                "venue_id": 1,
+                "court_id": 6,
+                "date": "2026-09-28",
+                "start_time": "20:33:00",
+                "end_time": "21:33:00",
+                "label": "",
+                "status": "available",
+                "reason": null,
+                "is_available": true,
+                "price": 1200,
+                "price_breakdown": {
+                  "amount": 1200,
+                  "original_amount": 1200,
+                  "price_type": "base",
+                  "has_discount": false,
+                  "discount": null
+                },
+                "held_by_me": false,
+                "expires_at": null,
+                "hold_token": null,
+                "cell_type": "available",
+                "cell_title": "Available",
+                "cell_subtitle": "Rs 1200",
+                "booking": null,
+                "booking_detail": null
+              },
+              {
+                "key": "22:34:00|23:33:00",
+                "venue_id": 1,
+                "court_id": 6,
+                "date": "2026-09-28",
+                "start_time": "22:34:00",
+                "end_time": "23:33:00",
+                "label": "",
+                "status": "available",
+                "reason": null,
+                "is_available": true,
+                "price": 1200,
+                "price_breakdown": {
+                  "amount": 1200,
+                  "original_amount": 1200,
+                  "price_type": "base",
+                  "has_discount": false,
+                  "discount": null
+                },
+                "held_by_me": false,
+                "expires_at": null,
+                "hold_token": null,
+                "cell_type": "available",
+                "cell_title": "Available",
+                "cell_subtitle": "Rs 1200",
+                "booking": null,
+                "booking_detail": null
+              }
+            ],
+            "date_count": 1,
+            "days": [
+              {
+                "date": "2026-09-28",
+                "day": "Mon",
+                "day_label": "Mon",
+                "slot_count": 3,
+                "available_count": 2,
+                "booked_count": 0,
+                "unavailable_count": 1,
+                "slots": [
+                  {
+                    "key": "06:00:00|07:00:00",
+                    "venue_id": 1,
+                    "court_id": 6,
+                    "date": "2026-09-28",
+                    "start_time": "06:00:00",
+                    "end_time": "07:00:00",
+                    "label": "",
+                    "status": "unavailable",
+                    "reason": "past_slot_not_bookable",
+                    "is_available": false,
+                    "price": null,
+                    "price_breakdown": null,
+                    "held_by_me": false,
+                    "expires_at": null,
+                    "hold_token": null,
+                    "cell_type": "past",
+                    "cell_title": "Past",
+                    "cell_subtitle": null,
+                    "booking": null,
+                    "booking_detail": null
+                  },
+                  {
+                    "key": "20:33:00|21:33:00",
+                    "venue_id": 1,
+                    "court_id": 6,
+                    "date": "2026-09-28",
+                    "start_time": "20:33:00",
+                    "end_time": "21:33:00",
+                    "label": "",
+                    "status": "available",
+                    "reason": null,
+                    "is_available": true,
+                    "price": 1200,
+                    "price_breakdown": {
+                      "amount": 1200,
+                      "original_amount": 1200,
+                      "price_type": "base",
+                      "has_discount": false,
+                      "discount": null
+                    },
+                    "held_by_me": false,
+                    "expires_at": null,
+                    "hold_token": null,
+                    "cell_type": "available",
+                    "cell_title": "Available",
+                    "cell_subtitle": "Rs 1200",
+                    "booking": null,
+                    "booking_detail": null
+                  },
+                  {
+                    "key": "22:34:00|23:33:00",
+                    "venue_id": 1,
+                    "court_id": 6,
+                    "date": "2026-09-28",
+                    "start_time": "22:34:00",
+                    "end_time": "23:33:00",
+                    "label": "",
+                    "status": "available",
+                    "reason": null,
+                    "is_available": true,
+                    "price": 1200,
+                    "price_breakdown": {
+                      "amount": 1200,
+                      "original_amount": 1200,
+                      "price_type": "base",
+                      "has_discount": false,
+                      "discount": null
+                    },
+                    "held_by_me": false,
+                    "expires_at": null,
+                    "hold_token": null,
+                    "cell_type": "available",
+                    "cell_title": "Available",
+                    "cell_subtitle": "Rs 1200",
+                    "booking": null,
+                    "booking_detail": null
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "slug": "dhananjay-sport",
+        "address": "Kathmandu",
+        "timezone": "Asia/Kathmandu",
+        "feature_image": null,
+        "court_count": 1,
+        "free_count": 2,
+        "booked_count": 0,
+        "unavailable_count": 1,
+        "vendor_id": 4
+      },
+      {
+        "id": 2,
+        "name": "Dhanawantary Sports",
+        "courts": [
+          {
+            "id": 14,
+            "venue_id": 2,
+            "name": "Court 1",
+            "slug": "court-1",
+            "surface_type": null,
+            "capacity": 10,
+            "base_price": 1200,
+            "feature_image": null,
+            "slot_duration_minutes": 60,
+            "slot_duration_label": "1 h",
+            "slot_count": 2,
+            "free_count": 0,
+            "booked_count": 0,
+            "unavailable_count": 2,
+            "booked_percent": 0,
+            "time_slots": [
+              {
+                "key": "06:00:00|07:00:00",
+                "start_time": "06:00:00",
+                "end_time": "07:00:00",
+                "label": ""
+              },
+              {
+                "key": "12:00:00|13:00:00",
+                "start_time": "12:00:00",
+                "end_time": "13:00:00",
+                "label": ""
+              }
+            ],
+            "slots": [
+              {
+                "key": "06:00:00|07:00:00",
+                "venue_id": 2,
+                "court_id": 14,
+                "date": "2026-09-28",
+                "start_time": "06:00:00",
+                "end_time": "07:00:00",
+                "label": "",
+                "status": "unavailable",
+                "reason": "past_slot_not_bookable",
+                "is_available": false,
+                "price": null,
+                "price_breakdown": null,
+                "held_by_me": false,
+                "expires_at": null,
+                "hold_token": null,
+                "cell_type": "past",
+                "cell_title": "Past",
+                "cell_subtitle": null,
+                "booking": null,
+                "booking_detail": null
+              },
+              {
+                "key": "12:00:00|13:00:00",
+                "venue_id": 2,
+                "court_id": 14,
+                "date": "2026-09-28",
+                "start_time": "12:00:00",
+                "end_time": "13:00:00",
+                "label": "",
+                "status": "unavailable",
+                "reason": "past_slot_not_bookable",
+                "is_available": false,
+                "price": null,
+                "price_breakdown": null,
+                "held_by_me": false,
+                "expires_at": null,
+                "hold_token": null,
+                "cell_type": "past",
+                "cell_title": "Past",
+                "cell_subtitle": null,
+                "booking": null,
+                "booking_detail": null
+              }
+            ],
+            "date_count": 1,
+            "days": [
+              {
+                "date": "2026-09-28",
+                "day": "Mon",
+                "day_label": "Mon",
+                "slot_count": 2,
+                "available_count": 0,
+                "booked_count": 0,
+                "unavailable_count": 2,
+                "slots": [
+                  {
+                    "key": "06:00:00|07:00:00",
+                    "venue_id": 2,
+                    "court_id": 14,
+                    "date": "2026-09-28",
+                    "start_time": "06:00:00",
+                    "end_time": "07:00:00",
+                    "label": "",
+                    "status": "unavailable",
+                    "reason": "past_slot_not_bookable",
+                    "is_available": false,
+                    "price": null,
+                    "price_breakdown": null,
+                    "held_by_me": false,
+                    "expires_at": null,
+                    "hold_token": null,
+                    "cell_type": "past",
+                    "cell_title": "Past",
+                    "cell_subtitle": null,
+                    "booking": null,
+                    "booking_detail": null
+                  },
+                  {
+                    "key": "12:00:00|13:00:00",
+                    "venue_id": 2,
+                    "court_id": 14,
+                    "date": "2026-09-28",
+                    "start_time": "12:00:00",
+                    "end_time": "13:00:00",
+                    "label": "",
+                    "status": "unavailable",
+                    "reason": "past_slot_not_bookable",
+                    "is_available": false,
+                    "price": null,
+                    "price_breakdown": null,
+                    "held_by_me": false,
+                    "expires_at": null,
+                    "hold_token": null,
+                    "cell_type": "past",
+                    "cell_title": "Past",
+                    "cell_subtitle": null,
+                    "booking": null,
+                    "booking_detail": null
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": 33,
+            "venue_id": 2,
+            "name": "Court 1",
+            "slug": "court-1",
+            "surface_type": null,
+            "capacity": 10,
+            "base_price": 250,
+            "feature_image": null,
+            "slot_duration_minutes": 60,
+            "slot_duration_label": "1 h",
+            "slot_count": 0,
+            "free_count": 0,
+            "booked_count": 0,
+            "unavailable_count": 0,
+            "booked_percent": 0,
+            "time_slots": [],
+            "slots": [],
+            "date_count": 1,
+            "days": [
+              {
+                "date": "2026-09-28",
+                "day": "Mon",
+                "day_label": "Mon",
+                "slot_count": 0,
+                "available_count": 0,
+                "booked_count": 0,
+                "unavailable_count": 0,
+                "slots": []
+              }
+            ]
+          }
+        ],
+        "slug": "dhanawantary-sports",
+        "address": "Kathmandu",
+        "timezone": "Asia/Kathmandu",
+        "feature_image": null,
+        "court_count": 2,
+        "free_count": 0,
+        "booked_count": 0,
+        "unavailable_count": 2,
+        "vendor_id": 4
+      },
+      {
+        "id": 34,
+        "name": "Goal zone futsal",
+        "courts": [
+          {
+            "id": 35,
+            "venue_id": 34,
+            "name": "Court A",
+            "slug": "court-a",
+            "surface_type": null,
+            "capacity": 10,
+            "base_price": 1150,
+            "feature_image": null,
+            "slot_duration_minutes": 60,
+            "slot_duration_label": "1 h",
+            "slot_count": 2,
+            "free_count": 0,
+            "booked_count": 0,
+            "unavailable_count": 2,
+            "booked_percent": 0,
+            "time_slots": [
+              {
+                "key": "16:00:00|17:00:00",
+                "start_time": "16:00:00",
+                "end_time": "17:00:00",
+                "label": ""
+              },
+              {
+                "key": "17:00:00|18:00:00",
+                "start_time": "17:00:00",
+                "end_time": "18:00:00",
+                "label": ""
+              }
+            ],
+            "slots": [
+              {
+                "key": "16:00:00|17:00:00",
+                "venue_id": 34,
+                "court_id": 35,
+                "date": "2026-09-28",
+                "start_time": "16:00:00",
+                "end_time": "17:00:00",
+                "label": "",
+                "status": "unavailable",
+                "reason": "past_slot_not_bookable",
+                "is_available": false,
+                "price": null,
+                "price_breakdown": null,
+                "held_by_me": false,
+                "expires_at": null,
+                "hold_token": null,
+                "cell_type": "past",
+                "cell_title": "Past",
+                "cell_subtitle": null,
+                "booking": null,
+                "booking_detail": null
+              },
+              {
+                "key": "17:00:00|18:00:00",
+                "venue_id": 34,
+                "court_id": 35,
+                "date": "2026-09-28",
+                "start_time": "17:00:00",
+                "end_time": "18:00:00",
+                "label": "",
+                "status": "unavailable",
+                "reason": "past_slot_not_bookable",
+                "is_available": false,
+                "price": null,
+                "price_breakdown": null,
+                "held_by_me": false,
+                "expires_at": null,
+                "hold_token": null,
+                "cell_type": "past",
+                "cell_title": "Test Customer",
+                "cell_subtitle": "Pending",
+                "booking": {
+                  "id": 408,
+                  "booking_code": "BK-TEST0001",
+                  "booking_status": "pending",
+                  "booking_status_label": "Pending",
+                  "payment_status": "partial",
+                  "payment_status_label": "Partly paid",
+                  "booking_type": "regular",
+                  "booking_type_label": "Regular",
+                  "customer_name": "Test Customer",
+                  "customer_phone": "9800000000",
+                  "customer_email": "customer@example.com",
+                  "booking_date": "2026-09-28",
+                  "start_time": "17:00:00",
+                  "end_time": "18:00:00",
+                  "slot_count": 1,
+                  "total_amount": 1150,
+                  "paid_amount": 0,
+                  "balance_due": 1150,
+                  "notes": null,
+                  "venue": {
+                    "id": 34,
+                    "name": "Goal zone futsal"
+                  },
+                  "court": {
+                    "id": 35,
+                    "name": "Court A"
+                  },
+                  "user": {
+                    "id": 4,
+                    "name": "Test Customer",
+                    "phone": "9800000000",
+                    "email": "customer@example.com"
+                  },
+                  "slots": [
+                    {
+                      "id": 409,
+                      "date": "2026-09-28",
+                      "start_time": "17:00:00",
+                      "end_time": "18:00:00",
+                      "label": "5:00 PM - 6:00 PM",
+                      "price": 1150,
+                      "status": "active"
+                    }
+                  ],
+                  "payments": [
+                    {
+                      "id": 439,
+                      "payment_method": "cash",
+                      "payment_method_label": "Cash",
+                      "payment_type": "cash",
+                      "amount": 575,
+                      "status": "pending",
+                      "verification_status": "pending",
+                      "transaction_reference": null,
+                      "paid_at": null,
+                      "paid_date_label": null,
+                      "payment_note": null,
+                      "payment_proof_url": null
+                    }
+                  ]
+                },
+                "booking_detail": {
+                  "id": 408,
+                  "booking_code": "BK-TEST0001",
+                  "booking_status": "pending",
+                  "booking_status_label": "Pending",
+                  "payment_status": "partial",
+                  "payment_status_label": "Partly paid",
+                  "booking_type": "regular",
+                  "booking_type_label": "Regular",
+                  "customer_name": "Test Customer",
+                  "customer_phone": "9800000000",
+                  "customer_email": "customer@example.com",
+                  "booking_date": "2026-09-28",
+                  "start_time": "17:00:00",
+                  "end_time": "18:00:00",
+                  "slot_count": 1,
+                  "total_amount": 1150,
+                  "paid_amount": 0,
+                  "balance_due": 1150,
+                  "notes": null,
+                  "venue": {
+                    "id": 34,
+                    "name": "Goal zone futsal"
+                  },
+                  "court": {
+                    "id": 35,
+                    "name": "Court A"
+                  },
+                  "user": {
+                    "id": 4,
+                    "name": "Test Customer",
+                    "phone": "9800000000",
+                    "email": "customer@example.com"
+                  },
+                  "slots": [
+                    {
+                      "id": 409,
+                      "date": "2026-09-28",
+                      "start_time": "17:00:00",
+                      "end_time": "18:00:00",
+                      "label": "5:00 PM - 6:00 PM",
+                      "price": 1150,
+                      "status": "active"
+                    }
+                  ],
+                  "payments": [
+                    {
+                      "id": 439,
+                      "payment_method": "cash",
+                      "payment_method_label": "Cash",
+                      "payment_type": "cash",
+                      "amount": 575,
+                      "status": "pending",
+                      "verification_status": "pending",
+                      "transaction_reference": null,
+                      "paid_at": null,
+                      "paid_date_label": null,
+                      "payment_note": null,
+                      "payment_proof_url": null
+                    }
+                  ]
+                }
+              }
+            ],
+            "date_count": 1,
+            "days": [
+              {
+                "date": "2026-09-28",
+                "day": "Mon",
+                "day_label": "Mon",
+                "slot_count": 2,
+                "available_count": 0,
+                "booked_count": 0,
+                "unavailable_count": 2,
+                "slots": [
+                  {
+                    "key": "16:00:00|17:00:00",
+                    "venue_id": 34,
+                    "court_id": 35,
+                    "date": "2026-09-28",
+                    "start_time": "16:00:00",
+                    "end_time": "17:00:00",
+                    "label": "",
+                    "status": "unavailable",
+                    "reason": "past_slot_not_bookable",
+                    "is_available": false,
+                    "price": null,
+                    "price_breakdown": null,
+                    "held_by_me": false,
+                    "expires_at": null,
+                    "hold_token": null,
+                    "cell_type": "past",
+                    "cell_title": "Past",
+                    "cell_subtitle": null,
+                    "booking": null,
+                    "booking_detail": null
+                  },
+                  {
+                    "key": "17:00:00|18:00:00",
+                    "venue_id": 34,
+                    "court_id": 35,
+                    "date": "2026-09-28",
+                    "start_time": "17:00:00",
+                    "end_time": "18:00:00",
+                    "label": "",
+                    "status": "unavailable",
+                    "reason": "past_slot_not_bookable",
+                    "is_available": false,
+                    "price": null,
+                    "price_breakdown": null,
+                    "held_by_me": false,
+                    "expires_at": null,
+                    "hold_token": null,
+                    "cell_type": "past",
+                    "cell_title": "Test Customer",
+                    "cell_subtitle": "Pending",
+                    "booking": {
+                      "id": 408,
+                      "booking_code": "BK-TEST0001",
+                      "booking_status": "pending",
+                      "booking_status_label": "Pending",
+                      "payment_status": "partial",
+                      "payment_status_label": "Partly paid",
+                      "booking_type": "regular",
+                      "booking_type_label": "Regular",
+                      "customer_name": "Test Customer",
+                      "customer_phone": "9800000000",
+                      "customer_email": "customer@example.com",
+                      "booking_date": "2026-09-28",
+                      "start_time": "17:00:00",
+                      "end_time": "18:00:00",
+                      "slot_count": 1,
+                      "total_amount": 1150,
+                      "paid_amount": 0,
+                      "balance_due": 1150,
+                      "notes": null,
+                      "venue": {
+                        "id": 34,
+                        "name": "Goal zone futsal"
+                      },
+                      "court": {
+                        "id": 35,
+                        "name": "Court A"
+                      },
+                      "user": {
+                        "id": 4,
+                        "name": "Test Customer",
+                        "phone": "9800000000",
+                        "email": "customer@example.com"
+                      },
+                      "slots": [
+                        {
+                          "id": 409,
+                          "date": "2026-09-28",
+                          "start_time": "17:00:00",
+                          "end_time": "18:00:00",
+                          "label": "5:00 PM - 6:00 PM",
+                          "price": 1150,
+                          "status": "active"
+                        }
+                      ],
+                      "payments": [
+                        {
+                          "id": 439,
+                          "payment_method": "cash",
+                          "payment_method_label": "Cash",
+                          "payment_type": "cash",
+                          "amount": 575,
+                          "status": "pending",
+                          "verification_status": "pending",
+                          "transaction_reference": null,
+                          "paid_at": null,
+                          "paid_date_label": null,
+                          "payment_note": null,
+                          "payment_proof_url": null
+                        }
+                      ]
+                    },
+                    "booking_detail": {
+                      "id": 408,
+                      "booking_code": "BK-TEST0001",
+                      "booking_status": "pending",
+                      "booking_status_label": "Pending",
+                      "payment_status": "partial",
+                      "payment_status_label": "Partly paid",
+                      "booking_type": "regular",
+                      "booking_type_label": "Regular",
+                      "customer_name": "Test Customer",
+                      "customer_phone": "9800000000",
+                      "customer_email": "customer@example.com",
+                      "booking_date": "2026-09-28",
+                      "start_time": "17:00:00",
+                      "end_time": "18:00:00",
+                      "slot_count": 1,
+                      "total_amount": 1150,
+                      "paid_amount": 0,
+                      "balance_due": 1150,
+                      "notes": null,
+                      "venue": {
+                        "id": 34,
+                        "name": "Goal zone futsal"
+                      },
+                      "court": {
+                        "id": 35,
+                        "name": "Court A"
+                      },
+                      "user": {
+                        "id": 4,
+                        "name": "Test Customer",
+                        "phone": "9800000000",
+                        "email": "customer@example.com"
+                      },
+                      "slots": [
+                        {
+                          "id": 409,
+                          "date": "2026-09-28",
+                          "start_time": "17:00:00",
+                          "end_time": "18:00:00",
+                          "label": "5:00 PM - 6:00 PM",
+                          "price": 1150,
+                          "status": "active"
+                        }
+                      ],
+                      "payments": [
+                        {
+                          "id": 439,
+                          "payment_method": "cash",
+                          "payment_method_label": "Cash",
+                          "payment_type": "cash",
+                          "amount": 575,
+                          "status": "pending",
+                          "verification_status": "pending",
+                          "transaction_reference": null,
+                          "paid_at": null,
+                          "paid_date_label": null,
+                          "payment_note": null,
+                          "payment_proof_url": null
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "slug": "goal-zone-futsal",
+        "address": "Kathmandu",
+        "timezone": "Asia/Kathmandu",
+        "feature_image": null,
+        "court_count": 1,
+        "free_count": 0,
+        "booked_count": 0,
+        "unavailable_count": 2,
+        "vendor_id": 4
+      }
+    ],
+    "date_count": 1,
+    "dates": [
+      "2026-09-28"
+    ],
+    "socket_channels": [
+      "private-vendor.4.booking.2026-09-28"
+    ]
+  }
+}

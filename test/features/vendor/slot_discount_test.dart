@@ -131,15 +131,14 @@ void main() {
     });
 
     test('a slot the server already discounts opens with the switch on', () {
-      final SlotPricingDraft restored = SlotPricingDraft.fromJson(
-        <String, dynamic>{
-          'id': '77',
-          'hasDiscount': true,
-          'discountPrice': 300,
-          'discountType': 'flat',
-          'discountStartsAt': '2026-09-14 06:00:00',
-        },
-      );
+      final SlotPricingDraft restored =
+          SlotPricingDraft.fromJson(<String, dynamic>{
+            'id': '77',
+            'hasDiscount': true,
+            'discountPrice': 300,
+            'discountType': 'flat',
+            'discountStartsAt': '2026-09-14 06:00:00',
+          });
       expect(restored.hasDiscount, isTrue);
       expect(restored.discountStartsAt, DateTime(2026, 9, 14, 6));
     });

@@ -6,6 +6,7 @@ import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/app_utils.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/utils/responsive.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:hamro_futsal/core/widgets/custom_app_bar.dart';
 import 'package:hamro_futsal/core/widgets/custom_button.dart';
@@ -168,8 +169,126 @@ class _FeedbackPageState extends State<FeedbackPage> {
     );
   }
 
+  Widget _buildFormCard({
+    List<Widget> trailing = const <Widget>[],
+  }) => _FormCard(
+    children: <Widget>[
+      const _SectionLabel(
+        icon: Icons.category_outlined,
+        label: StringConstants.feedbackCategory,
+      ),
+      const SizedBox(height: AppDimens.paddingX10),
+      _FeedbackOptionsBlock(
+        isLoading: _isLoadingOptions,
+        errorText: _optionsError,
+        onRetry: () => _loadFeedbackOptions(forceRefresh: true),
+        child: _AudienceSegments(
+          options: _catalog?.categories ?? const <FeedbackOptionModel>[],
+          value: _selectedCategory,
+          onChanged: (FeedbackOptionModel value) =>
+              setState(() => _selectedCategory = value),
+        ),
+      ),
+      const _SectionDivider(),
+      const _SectionLabel(
+        icon: Icons.sell_outlined,
+        label: StringConstants.feedbackType,
+      ),
+      const SizedBox(height: AppDimens.paddingX10),
+      _FeedbackOptionsBlock(
+        isLoading: _isLoadingOptions,
+        errorText: _optionsError,
+        onRetry: () => _loadFeedbackOptions(forceRefresh: true),
+        child: _MoodChips(
+          options: _catalog?.types ?? const <FeedbackOptionModel>[],
+          value: _selectedType,
+          onChanged: (FeedbackOptionModel value) => setState(() {
+            _selectedType = value;
+            _selectedCategory = _resolveCategorySelection(
+              _catalog ??
+                  const FeedbackCatalog(
+                    types: <FeedbackOptionModel>[],
+                    categories: <FeedbackOptionModel>[],
+                  ),
+              value,
+            );
+          }),
+        ),
+      ),
+      const _SectionDivider(),
+      const _SectionLabel(
+        icon: Icons.star_outline_rounded,
+        label: 'How was your experience?',
+      ),
+      const SizedBox(height: AppDimens.paddingX10),
+      _RatingBlock(
+        rating: _rating,
+        onChanged: (rating) {
+          HapticFeedback.selectionClick();
+          setState(() => _rating = rating);
+        },
+      ),
+      const _SectionDivider(),
+      const _SectionLabel(
+        icon: Icons.chat_bubble_outline_rounded,
+        label: StringConstants.feedbackMessage,
+      ),
+      const SizedBox(height: AppDimens.paddingX10),
+      CustomTextField(
+        labelText: StringConstants.feedbackMessage,
+        hintText:
+            'What worked well? What should we improve? The more detail, the better.',
+        maxLines: 6,
+        minLines: 4,
+        controller: _messageController,
+        textCapitalization: TextCapitalization.sentences,
+        ensureVisibleOnFocus: true,
+        onChanged: (value) =>
+            setState(() => _messageLength = value.trim().length),
+        inputFormatters: [LengthLimitingTextInputFormatter(_kMaxMessageLength)],
+        validator: (value) {
+          final text = (value ?? '').trim();
+          if (text.isEmpty) return 'Please add a short message.';
+          if (text.length < _kMinMessageLength) {
+            return 'Please provide a little more detail.';
+          }
+          return null;
+        },
+      ),
+      const SizedBox(height: AppDimens.paddingX6),
+      _MessageCounter(length: _messageLength),
+      const SizedBox(height: AppDimens.paddingX14),
+      CustomTextField(
+        labelText: StringConstants.feedbackContact,
+        hintText: 'Phone number or email',
+        icon: Icons.alternate_email_rounded,
+        controller: _contactController,
+        isRequired: false,
+        keyboardType: TextInputType.emailAddress,
+        ensureVisibleOnFocus: true,
+        validator: (value) {
+          final text = (value ?? '').trim();
+          if (text.isEmpty) return null;
+          if (text.length < 5) {
+            return 'Please enter a valid contact.';
+          }
+          return null;
+        },
+      ),
+      ...trailing,
+    ],
+  );
+
+  Widget _submitButton() => CustomButton(
+    text: StringConstants.submitFeedback,
+    icon: Icons.send_rounded,
+    isLoading: _isSubmitting,
+    onPressed: _submit,
+  );
+
   @override
   Widget build(BuildContext context) {
+    if (context.isTabletOrWider) return _buildWide(context);
     return Scaffold(
       backgroundColor: LightColor.background,
       appBar: CustomAppBar(
@@ -206,117 +325,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
               children: <Widget>[
                 const _HeroPanel(),
                 const SizedBox(height: AppDimens.paddingX16),
-                _FormCard(
-                  children: <Widget>[
-                    const _SectionLabel(
-                      icon: Icons.category_outlined,
-                      label: StringConstants.feedbackCategory,
-                    ),
-                    const SizedBox(height: AppDimens.paddingX10),
-                    _FeedbackOptionsBlock(
-                      isLoading: _isLoadingOptions,
-                      errorText: _optionsError,
-                      onRetry: () => _loadFeedbackOptions(forceRefresh: true),
-                      child: _AudienceSegments(
-                        options:
-                            _catalog?.categories ??
-                            const <FeedbackOptionModel>[],
-                        value: _selectedCategory,
-                        onChanged: (FeedbackOptionModel value) =>
-                            setState(() => _selectedCategory = value),
-                      ),
-                    ),
-                    const _SectionDivider(),
-                    const _SectionLabel(
-                      icon: Icons.sell_outlined,
-                      label: StringConstants.feedbackType,
-                    ),
-                    const SizedBox(height: AppDimens.paddingX10),
-                    _FeedbackOptionsBlock(
-                      isLoading: _isLoadingOptions,
-                      errorText: _optionsError,
-                      onRetry: () => _loadFeedbackOptions(forceRefresh: true),
-                      child: _MoodChips(
-                        options:
-                            _catalog?.types ?? const <FeedbackOptionModel>[],
-                        value: _selectedType,
-                        onChanged: (FeedbackOptionModel value) => setState(() {
-                          _selectedType = value;
-                          _selectedCategory = _resolveCategorySelection(
-                            _catalog ??
-                                const FeedbackCatalog(
-                                  types: <FeedbackOptionModel>[],
-                                  categories: <FeedbackOptionModel>[],
-                                ),
-                            value,
-                          );
-                        }),
-                      ),
-                    ),
-                    const _SectionDivider(),
-                    const _SectionLabel(
-                      icon: Icons.star_outline_rounded,
-                      label: 'How was your experience?',
-                    ),
-                    const SizedBox(height: AppDimens.paddingX10),
-                    _RatingBlock(
-                      rating: _rating,
-                      onChanged: (rating) {
-                        HapticFeedback.selectionClick();
-                        setState(() => _rating = rating);
-                      },
-                    ),
-                    const _SectionDivider(),
-                    const _SectionLabel(
-                      icon: Icons.chat_bubble_outline_rounded,
-                      label: StringConstants.feedbackMessage,
-                    ),
-                    const SizedBox(height: AppDimens.paddingX10),
-                    CustomTextField(
-                      labelText: StringConstants.feedbackMessage,
-                      hintText:
-                          'What worked well? What should we improve? The more detail, the better.',
-                      maxLines: 6,
-                      minLines: 4,
-                      controller: _messageController,
-                      textCapitalization: TextCapitalization.sentences,
-                      ensureVisibleOnFocus: true,
-                      onChanged: (value) =>
-                          setState(() => _messageLength = value.trim().length),
-                      inputFormatters: [
-                        LengthLimitingTextInputFormatter(_kMaxMessageLength),
-                      ],
-                      validator: (value) {
-                        final text = (value ?? '').trim();
-                        if (text.isEmpty) return 'Please add a short message.';
-                        if (text.length < _kMinMessageLength) {
-                          return 'Please provide a little more detail.';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: AppDimens.paddingX6),
-                    _MessageCounter(length: _messageLength),
-                    const SizedBox(height: AppDimens.paddingX14),
-                    CustomTextField(
-                      labelText: StringConstants.feedbackContact,
-                      hintText: 'Phone number or email',
-                      icon: Icons.alternate_email_rounded,
-                      controller: _contactController,
-                      isRequired: false,
-                      keyboardType: TextInputType.emailAddress,
-                      ensureVisibleOnFocus: true,
-                      validator: (value) {
-                        final text = (value ?? '').trim();
-                        if (text.isEmpty) return null;
-                        if (text.length < 5) {
-                          return 'Please enter a valid contact.';
-                        }
-                        return null;
-                      },
-                    ),
-                  ],
-                ),
+                _buildFormCard(),
                 const SizedBox(height: AppDimens.paddingX14),
                 const _PrivacyNote(),
               ],
@@ -340,11 +349,91 @@ class _FeedbackPageState extends State<FeedbackPage> {
               top: BorderSide(color: LightColor.dividerColor, width: 1),
             ),
           ),
-          child: CustomButton(
-            text: StringConstants.submitFeedback,
-            icon: Icons.send_rounded,
-            isLoading: _isSubmitting,
-            onPressed: _submit,
+          child: _submitButton(),
+        ),
+      ),
+    );
+  }
+
+  /// Tablet / desktop: the form centred at a readable width with Submit at
+  /// the end of the form card instead of a window-wide bottom bar; desktop
+  /// puts the intro and privacy note in a column beside the form.
+  Widget _buildWide(BuildContext context) {
+    final bool desktop = context.isDesktop;
+    final Widget form = _buildFormCard(
+      trailing: <Widget>[
+        const SizedBox(height: AppDimens.paddingX20),
+        Align(
+          alignment: Alignment.centerRight,
+          child: SizedBox(width: 220, child: _submitButton()),
+        ),
+      ],
+    );
+    return Scaffold(
+      backgroundColor: LightColor.background,
+      appBar: CustomAppBar(
+        title: StringConstants.feedback,
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => context.pushNamed(AppRouterParams.myFeedback.name),
+            child: Text(
+              'My Feedback',
+              style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
+                color: LightColor.secondaryColor,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
+      body: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          padding: const EdgeInsets.fromLTRB(
+            AppDimens.paddingX24,
+            AppDimens.paddingX24,
+            AppDimens.paddingX24,
+            AppDimens.paddingX40,
+          ),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: desktop ? 1080 : 720),
+              child: Form(
+                key: _formKey,
+                child: desktop
+                    ? Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          const Expanded(
+                            flex: 4,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: <Widget>[
+                                _HeroPanel(),
+                                SizedBox(height: AppDimens.paddingX14),
+                                _PrivacyNote(),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: AppDimens.paddingX24),
+                          Expanded(flex: 6, child: form),
+                        ],
+                      )
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: <Widget>[
+                          const _HeroPanel(),
+                          const SizedBox(height: AppDimens.paddingX16),
+                          form,
+                          const SizedBox(height: AppDimens.paddingX14),
+                          const _PrivacyNote(),
+                        ],
+                      ),
+              ),
+            ),
           ),
         ),
       ),

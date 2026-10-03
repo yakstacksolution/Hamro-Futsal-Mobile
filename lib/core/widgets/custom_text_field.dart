@@ -33,6 +33,7 @@ class CustomTextField extends StatefulWidget {
     this.isRequired = true,
     this.ensureVisibleOnFocus = false,
     this.inputFormatters,
+    this.autofillHints,
   });
 
   final String labelText;
@@ -61,6 +62,10 @@ class CustomTextField extends StatefulWidget {
   final ValueChanged<String>? onSubmitted;
   final bool? isRequired;
   final List<TextInputFormatter>? inputFormatters;
+
+  /// Lets the platform offer saved values (a phone number, a name) — wrap
+  /// related fields in an [AutofillGroup].
+  final Iterable<String>? autofillHints;
 
   /// When true, the field scrolls itself into view inside the nearest
   /// [Scrollable] as soon as it gains focus (so it stays above the keyboard).
@@ -146,6 +151,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
       validator: widget.validator,
       autovalidateMode: widget.autovalidateMode,
       inputFormatters: widget.inputFormatters,
+      autofillHints: widget.autofillHints,
       cursorColor: LightColor.primaryTextColor,
       cursorHeight: AppDimens.sizeX16,
       cursorWidth: 1.2,

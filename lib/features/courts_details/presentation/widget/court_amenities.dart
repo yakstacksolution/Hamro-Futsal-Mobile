@@ -3,6 +3,7 @@ import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/custom_image_view.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/utils/responsive.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 class CourtAmenitiesSection extends StatelessWidget {
@@ -291,8 +292,12 @@ class _FeaturesGridState extends State<_FeaturesGrid> {
               : LayoutBuilder(
                   key: ValueKey(_selectedCategory),
                   builder: (BuildContext context, BoxConstraints constraints) {
+                    // Two per row on a phone, three on tablet and desktop.
+                    final int columns = context.isTabletOrWider ? 3 : 2;
                     final double tileWidth =
-                        (constraints.maxWidth - AppDimens.sizeX8) / 2;
+                        (constraints.maxWidth -
+                            AppDimens.sizeX8 * (columns - 1)) /
+                        columns;
                     return Wrap(
                       spacing: AppDimens.sizeX8,
                       runSpacing: AppDimens.sizeX8,

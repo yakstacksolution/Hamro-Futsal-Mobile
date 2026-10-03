@@ -1,5 +1,7 @@
 import 'package:hamro_futsal/core/utils/bloc_safe_add.dart';
 import 'package:flutter/material.dart';
+import 'package:hamro_futsal/core/utils/responsive.dart';
+import 'package:hamro_futsal/features/expenses/domain/repository/expenses_repository.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
@@ -18,20 +20,25 @@ import 'package:hamro_futsal/features/expenses/presentation/utils/expense_ui_uti
 import 'package:hamro_futsal/features/expenses/presentation/widgets/expense_date_range_sheet.dart';
 import 'package:hamro_futsal/features/expenses/presentation/widgets/expense_details_sheet.dart';
 import 'package:hamro_futsal/features/expenses/presentation/widgets/expense_filter_widgets.dart';
+import 'package:hamro_futsal/features/expenses/presentation/widgets/expense_dashboard.dart';
 import 'package:hamro_futsal/features/expenses/presentation/widgets/expense_tabs.dart';
 import 'package:hamro_futsal/features/expenses/presentation/widgets/expenses_page_loading_widget.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 class ExpensesScreen extends StatelessWidget {
-  const ExpensesScreen({super.key});
+  const ExpensesScreen({super.key, this.repository});
+
+  /// Injected in tests; the app uses the live repository.
+  final ExpensesRepository? repository;
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => ExpensesBloc(ExpensesUseCase(ExpensesRepositoryImpl()))
-        ..add(const LoadVenueCourtsEvent())
-        ..add(const LoadExpenseCategoriesEvent())
-        ..add(const LoadExpensesEvent()),
+      create: (_) =>
+          ExpensesBloc(ExpensesUseCase(repository ?? ExpensesRepositoryImpl()))
+            ..add(const LoadVenueCourtsEvent())
+            ..add(const LoadExpenseCategoriesEvent())
+            ..add(const LoadExpensesEvent()),
       child: const _ExpensesView(),
     );
   }
@@ -148,25 +155,29 @@ class _ExpensesViewState extends State<_ExpensesView>
       backgroundColor: LightColor.background,
       appBar: const CustomAppBar(title: StringConstants.expenses),
 
-      floatingActionButton: SizedBox(
-        height: 44,
-        child: FloatingActionButton.extended(
-          onPressed: _openCreate,
-          backgroundColor: LightColor.secondaryColor,
-          foregroundColor: LightColor.inverseTextColor,
-          elevation: 0,
-          extendedPadding: const EdgeInsets.symmetric(horizontal: 16),
-          shape: const StadiumBorder(),
-          icon: const Icon(Icons.add_rounded, size: 18),
-          label: Text(
-            StringConstants.newExpense,
-            style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
-              fontWeight: FontWeight.w700,
-              color: LightColor.inverseTextColor,
+      // Tablet / desktop carry "New expense" in the dashboard header.
+      floatingActionButton: context.isTabletOrWider
+          ? null
+          : SizedBox(
+              height: 44,
+              child: FloatingActionButton.extended(
+                onPressed: _openCreate,
+                backgroundColor: LightColor.secondaryColor,
+                foregroundColor: LightColor.inverseTextColor,
+                elevation: 0,
+                extendedPadding: const EdgeInsets.symmetric(horizontal: 16),
+                shape: const StadiumBorder(),
+                icon: const Icon(Icons.add_rounded, size: 18),
+                label: Text(
+                  StringConstants.newExpense,
+                  style: FutsalTheme.getTextTheme(context).bodyTextSmall
+                      ?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: LightColor.inverseTextColor,
+                      ),
+                ),
+              ),
             ),
-          ),
-        ),
-      ),
       body: SafeArea(
         top: false,
         child: BlocConsumer<ExpensesBloc, ExpensesState>(
@@ -216,50 +227,65 @@ class _ExpensesViewState extends State<_ExpensesView>
     final hasFilters =
         _categoryFilter != null || _venueId != null || _paymentMethod != null;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Padding(
-          padding: AppUtils().getPadding(
-            symmetricHorizontal: AppDimens.paddingX20,
-            top: AppDimens.paddingX4,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              ExpenseContextLine(
-                range: range,
-                count: report.summary.entries,
-                total: report.summary.totalSpend,
-              ),
-              const SizedBox(height: AppDimens.paddingX12),
-              ExpenseFilterDropdownRow(
-                period: _period,
-                customRange: _customRange,
-                onPeriod: (p) {
-                  if (p == ExpensePeriod.custom) {
-                    _pickRange();
-                  } else {
-                    setState(() => _period = p);
+    final String? categoryLabel = _categoryFilter == null
+        ? null
+        : state.categories
+              .where((c) => c.id == _categoryFilter)
+              .firstOrNull
+              ?.name;
+
+    // Tablet / desktop: one scrolling dashboard instead of the phone's tabs.
+    if (context.isTabletOrWider) {
+      return ExpenseDashboard(
+        report: report,
+        records: records,
+        venues: state.venues,
+        courts: state.courts,
+        isRefreshing: state.refreshing,
+        contextLine: ExpenseContextLine(
+          range: range,
+          count: report.summary.entries,
+          total: report.summary.totalSpend,
+        ),
+        filters: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Align(
+              alignment: Alignment.centerLeft,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 560),
+                child: ExpenseFilterDropdownRow(
+                  period: _period,
+                  customRange: _customRange,
+                  onPeriod: (p) {
+                    if (p == ExpensePeriod.custom) {
+                      _pickRange();
+                    } else {
+                      setState(() => _period = p);
+                      _applyFilter();
+                    }
+                  },
+                  onEditCustom: _pickRange,
+                  paymentMethod: _paymentMethod,
+                  onPaymentMethod: (m) {
+                    setState(() => _paymentMethod = m);
                     _applyFilter();
-                  }
-                },
-                onEditCustom: _pickRange,
-                paymentMethod: _paymentMethod,
-                onPaymentMethod: (m) {
-                  setState(() => _paymentMethod = m);
-                  _applyFilter();
-                },
+                  },
+                ),
               ),
-              const SizedBox(height: AppDimens.paddingX10),
-              ExpenseVenueFilter(
-                venues: state.venues,
-                selectedId: _venueId,
-                onChange: (id) {
-                  setState(() => _venueId = id);
-                  _applyFilter();
-                },
-              ),
+            ),
+            const SizedBox(height: AppDimens.paddingX10),
+            ExpenseVenueFilter(
+              venues: state.venues,
+              selectedId: _venueId,
+              onChange: (id) {
+                setState(() => _venueId = id);
+                _applyFilter();
+              },
+            ),
+            // The category row hides itself when there are none; its gap goes
+            // with it so the filter bar has no empty band at the bottom.
+            if (state.categories.isNotEmpty) ...<Widget>[
               const SizedBox(height: AppDimens.paddingX10),
               ExpenseCategoryFilterRow(
                 categories: state.categories,
@@ -270,98 +296,212 @@ class _ExpensesViewState extends State<_ExpensesView>
                 },
               ),
             ],
-          ),
-        ),
-        const SizedBox(height: AppDimens.paddingX8),
-        // Slim refresh bar — fades in during a silent filter refetch so the
-        // chips and current data stay put instead of flashing a full loader.
-        SizedBox(
-          height: 2,
-          child: AnimatedOpacity(
-            opacity: state.refreshing ? 1 : 0,
-            duration: const Duration(milliseconds: 200),
-            child: const LinearProgressIndicator(
-              minHeight: 2,
-              backgroundColor: Colors.transparent,
-              valueColor: AlwaysStoppedAnimation(LightColor.secondaryColor),
-            ),
-          ),
-        ),
-        TabBar(
-          controller: _tabController,
-          labelColor: LightColor.secondaryColor,
-          unselectedLabelColor: LightColor.secondaryTextColor,
-          indicatorColor: LightColor.secondaryColor,
-          indicatorSize: TabBarIndicatorSize.label,
-          dividerColor: LightColor.dividerColor,
-          labelStyle: FutsalTheme.getTextTheme(
-            context,
-          ).bodyTextSmall?.copyWith(fontWeight: FontWeight.w700),
-          unselectedLabelStyle: FutsalTheme.getTextTheme(
-            context,
-          ).bodyTextSmall?.copyWith(fontWeight: FontWeight.w500),
-          tabs: const [
-            Tab(text: StringConstants.overview, height: 40),
-            Tab(text: StringConstants.analytics, height: 40),
-            Tab(text: StringConstants.records, height: 40),
           ],
         ),
-        const SizedBox(height: AppDimens.paddingX12),
-        Expanded(
-          child: TabBarView(
-            controller: _tabController,
-            children: [
-              // Each tab cross-fades when fresh data lands (keyed on
-              // reportVersion), so switching filters glides instead of jumping.
-              _fadeOnRefresh(
-                key: ValueKey('overview-${state.reportVersion}'),
-                child: ExpenseOverviewTab(report: report),
-              ),
-              _fadeOnRefresh(
-                key: ValueKey('analytics-${state.reportVersion}'),
-                child: ExpenseAnalyticsTab(
-                  report: report,
-                  selectedCategory: _categoryFilter,
-                  onSelectCategory: (c) {
-                    setState(() => _categoryFilter = c);
-                    _applyFilter();
-                  },
-                ),
-              ),
-              _fadeOnRefresh(
-                // Also re-keyed on the client-side category filter.
-                key: ValueKey(
-                  'records-${state.reportVersion}-$_categoryFilter',
-                ),
-                child: ExpenseRecordsTab(
-                  expenses: records,
-                  venues: state.venues,
-                  courts: state.courts,
-                  categoryLabel: _categoryFilter == null
-                      ? null
-                      : state.categories
-                            .where((c) => c.id == _categoryFilter)
-                            .firstOrNull
-                            ?.name,
-                  hasFilters: hasFilters,
-                  onTap: _showExpenseDetails,
-                  onAdd: _openCreate,
-                  onClearFilters: () {
-                    setState(() {
-                      _categoryFilter = null;
-                      _venueId = null;
-                      _paymentMethod = null;
-                    });
-                    _applyFilter();
-                  },
-                ),
-              ),
-            ],
-          ),
+        selectedCategory: _categoryFilter,
+        onSelectCategory: (c) {
+          setState(() => _categoryFilter = c);
+          _applyFilter();
+        },
+        categoryLabel: categoryLabel,
+        hasFilters: hasFilters,
+        onAdd: _openCreate,
+        onTapRecord: _showExpenseDetails,
+        onClearFilters: () {
+          setState(() {
+            _categoryFilter = null;
+            _venueId = null;
+            _paymentMethod = null;
+          });
+          _applyFilter();
+        },
+      );
+    }
+
+    // Tablet / desktop: one centred dashboard column, so the filters, tabs and
+    // cards share their edges instead of spanning the whole window.
+    final bool wide = context.isTabletOrWider;
+    return Center(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: wide ? _dashboardMaxWidth : double.infinity,
         ),
-      ],
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: AppUtils().getPadding(
+                symmetricHorizontal: AppDimens.paddingX20,
+                top: AppDimens.paddingX4,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  ExpenseContextLine(
+                    range: range,
+                    count: report.summary.entries,
+                    total: report.summary.totalSpend,
+                  ),
+                  const SizedBox(height: AppDimens.paddingX12),
+                  // Two dropdowns read as controls, not as 700px bars.
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxWidth: wide ? 560 : double.infinity,
+                      ),
+                      child: ExpenseFilterDropdownRow(
+                        period: _period,
+                        customRange: _customRange,
+                        onPeriod: (p) {
+                          if (p == ExpensePeriod.custom) {
+                            _pickRange();
+                          } else {
+                            setState(() => _period = p);
+                            _applyFilter();
+                          }
+                        },
+                        onEditCustom: _pickRange,
+                        paymentMethod: _paymentMethod,
+                        onPaymentMethod: (m) {
+                          setState(() => _paymentMethod = m);
+                          _applyFilter();
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppDimens.paddingX10),
+                  ExpenseVenueFilter(
+                    venues: state.venues,
+                    selectedId: _venueId,
+                    onChange: (id) {
+                      setState(() => _venueId = id);
+                      _applyFilter();
+                    },
+                  ),
+                  const SizedBox(height: AppDimens.paddingX10),
+                  ExpenseCategoryFilterRow(
+                    categories: state.categories,
+                    selected: _categoryFilter,
+                    onChange: (c) {
+                      setState(() => _categoryFilter = c);
+                      _applyFilter();
+                    },
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppDimens.paddingX8),
+            // Slim refresh bar — fades in during a silent filter refetch so the
+            // chips and current data stay put instead of flashing a full loader.
+            SizedBox(
+              height: 2,
+              child: AnimatedOpacity(
+                opacity: state.refreshing ? 1 : 0,
+                duration: const Duration(milliseconds: 200),
+                child: const LinearProgressIndicator(
+                  minHeight: 2,
+                  backgroundColor: Colors.transparent,
+                  valueColor: AlwaysStoppedAnimation(LightColor.secondaryColor),
+                ),
+              ),
+            ),
+            // Tablet / desktop: indented to the content, so the labels, the indicator
+            // and the divider line share the cards' edges.
+            Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: wide ? AppDimens.paddingX20 : 0,
+              ),
+              child: TabBar(
+                controller: _tabController,
+                // Tablet / desktop: tabs together at the start, in line with the
+                // content, instead of a third of the window apart.
+                isScrollable: wide,
+                tabAlignment: wide ? TabAlignment.start : null,
+                // The first label starts at the content's edge; the gap goes between
+                // tabs instead.
+                labelPadding: wide
+                    ? const EdgeInsets.only(right: AppDimens.paddingX32)
+                    : null,
+                labelColor: LightColor.secondaryColor,
+                unselectedLabelColor: LightColor.secondaryTextColor,
+                indicatorColor: LightColor.secondaryColor,
+                indicatorSize: TabBarIndicatorSize.label,
+                dividerColor: LightColor.dividerColor,
+                labelStyle: FutsalTheme.getTextTheme(
+                  context,
+                ).bodyTextSmall?.copyWith(fontWeight: FontWeight.w700),
+                unselectedLabelStyle: FutsalTheme.getTextTheme(
+                  context,
+                ).bodyTextSmall?.copyWith(fontWeight: FontWeight.w500),
+                tabs: const [
+                  Tab(text: StringConstants.overview, height: 40),
+                  Tab(text: StringConstants.analytics, height: 40),
+                  Tab(text: StringConstants.records, height: 40),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppDimens.paddingX12),
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  // Each tab cross-fades when fresh data lands (keyed on
+                  // reportVersion), so switching filters glides instead of jumping.
+                  _fadeOnRefresh(
+                    key: ValueKey('overview-${state.reportVersion}'),
+                    child: ExpenseOverviewTab(report: report),
+                  ),
+                  _fadeOnRefresh(
+                    key: ValueKey('analytics-${state.reportVersion}'),
+                    child: ExpenseAnalyticsTab(
+                      report: report,
+                      selectedCategory: _categoryFilter,
+                      onSelectCategory: (c) {
+                        setState(() => _categoryFilter = c);
+                        _applyFilter();
+                      },
+                    ),
+                  ),
+                  _fadeOnRefresh(
+                    // Also re-keyed on the client-side category filter.
+                    key: ValueKey(
+                      'records-${state.reportVersion}-$_categoryFilter',
+                    ),
+                    child: ExpenseRecordsTab(
+                      expenses: records,
+                      venues: state.venues,
+                      courts: state.courts,
+                      categoryLabel: _categoryFilter == null
+                          ? null
+                          : state.categories
+                                .where((c) => c.id == _categoryFilter)
+                                .firstOrNull
+                                ?.name,
+                      hasFilters: hasFilters,
+                      onTap: _showExpenseDetails,
+                      onAdd: _openCreate,
+                      onClearFilters: () {
+                        setState(() {
+                          _categoryFilter = null;
+                          _venueId = null;
+                          _paymentMethod = null;
+                        });
+                        _applyFilter();
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
+
+  /// Widest the expenses dashboard grows before centring in the window.
+  static const double _dashboardMaxWidth = 1280;
 
   /// Cross-fades [child] whenever its [key] changes (i.e. when a new report
   /// arrives or the category filter changes), with a slight upward drift for

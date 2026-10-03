@@ -6,6 +6,7 @@ import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/app_utils.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/utils/responsive.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:hamro_futsal/core/widgets/custom_app_bar.dart';
 import 'package:hamro_futsal/core/widgets/custom_button.dart';
@@ -140,17 +141,221 @@ class _OpponentInvitationsPageState extends State<OpponentInvitationsPage> {
               request,
             );
 
+            final List<Widget> intro = <Widget>[
+              OpponentGuidanceCard(
+                icon: Icons.mark_email_unread_outlined,
+                title: invitations.isEmpty
+                    ? 'Waiting for invitations'
+                    : 'Select one opponent',
+                message: invitations.isEmpty
+                    ? 'Your request is visible to all eligible teams. '
+                          'As soon as a team accepts, its invitation '
+                          'appears here.'
+                    : 'Message a captain to agree the details, then '
+                          'confirm the team you trust. You can wait '
+                          'for more acceptances first — the '
+                          'remaining invitations are rejected '
+                          'automatically once you confirm one.',
+              ),
+              const SizedBox(height: AppDimens.paddingX16),
+              _RequestStrip(request: request),
+              const SizedBox(height: AppDimens.paddingX18),
+            ];
+            final Widget header = request.isMatchConfirmed
+                ? _ConfirmedBanner(
+                    request: request,
+                    onOpen: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => BlocProvider.value(
+                          value: context.read<OpponentMatchBloc>(),
+                          child: OpponentMatchDetailsPage(
+                            requestId: request.id,
+                          ),
+                        ),
+                      ),
+                    ),
+                  )
+                : OpponentSectionLabel(
+                    invitations.isEmpty
+                        ? 'No invitations yet'
+                        : '${invitations.length} '
+                              '${invitations.length == 1 ? 'invitation' : 'invitations'} received',
+                  );
+
+            Widget card(OpponentInvitationModel invitation) => _InvitationCard(
+              invitation: invitation,
+              request: request,
+              selected: invitation.id == selected?.id,
+              selectable:
+                  !request.isMatchConfirmed &&
+                  invitation.status == InvitationStatus.pending,
+              onSelect: () => setState(() => _selectedId = invitation.id),
+              onMessage: invitation.captainUserId > 0
+                  ? () => ChatLauncher.startDirectUser(
+                      context,
+                      userId: invitation.captainUserId,
+                    )
+                  : null,
+            );
+
+            /// The invitations, or what stands in for them. [columns] > 1
+            /// lays the cards out in rows (desktop).
+            List<Widget> invitationList({int columns = 1}) {
+              if (invitations.isEmpty &&
+                  state.isLoadingInvitations(request.id)) {
+                return const <Widget>[_InvitationsLoading()];
+              }
+              if (invitations.isEmpty &&
+                  state.invitationErrorFor(request.id) != null) {
+                return <Widget>[
+                  _InvitationsError(
+                    message: state.invitationErrorFor(request.id)!,
+                    onRetry: _reload,
+                  ),
+                ];
+              }
+              if (invitations.isEmpty) return const <Widget>[_WaitingCard()];
+              return <Widget>[
+                // Rows are already on screen, so a refetch reports itself
+                // here instead of replacing them.
+                if (state.isLoadingInvitations(request.id))
+                  const _RefreshingStrip(),
+                if (columns == 1)
+                  ...invitations.map(
+                    (invitation) => Padding(
+                      padding: AppUtils().getPadding(
+                        bottom: AppDimens.paddingX12,
+                      ),
+                      child: card(invitation),
+                    ),
+                  )
+                else
+                  for (int r = 0; r < invitations.length; r += columns)
+                    Padding(
+                      padding: const EdgeInsets.only(
+                        bottom: OpponentLayout.gap,
+                      ),
+                      child: OpponentGridRow(
+                        columns: columns,
+                        equalHeight: true,
+                        children: <Widget>[
+                          for (
+                            int i = r;
+                            i < invitations.length && i < r + columns;
+                            i++
+                          )
+                            card(invitations[i]),
+                        ],
+                      ),
+                    ),
+              ];
+            }
+
+            // Once one of the invitations is `selected` the choice is made
+            // and cannot be remade, so the footer goes away — the request's
+            // own status can lag a beat behind that, which is why the
+            // invitation is what gates it rather than [isMatchConfirmed].
+            final bool showFooter =
+                !request.isMatchConfirmed &&
+                request.selectedInvitation == null &&
+                invitations.isNotEmpty;
+            _SelectFooter footer({bool inline = false}) => _SelectFooter(
+              inline: inline,
+              enabled: selected != null && !state.isSelectingOpponent,
+              busy: state.isSelectingOpponent,
+              othersCount: request.pendingInvitations
+                  .where((i) => i.id != selected?.id)
+                  .length,
+              onConfirm: selected == null || state.isSelectingOpponent
+                  ? null
+                  : () => _confirmOpponent(request, selected),
+            );
+
+            Future<void> onRefresh() async {
+              _reload();
+              context.read<OpponentMatchBloc>().add(
+                const LoadOpponentRequestsEvent(),
+              );
+            }
+
+            // Desktop: the request and the confirm action on the left, the
+            // invitations to choose from on the right.
+            if (context.isDesktop) {
+              return LayoutBuilder(
+                builder: (BuildContext context, BoxConstraints constraints) {
+                  const double side = 380;
+                  const double pad = AppDimens.paddingX24;
+                  final double listWidth =
+                      (constraints.maxWidth.clamp(0, _twoColumnMaxWidth) -
+                              pad * 2 -
+                              side -
+                              pad)
+                          .toDouble();
+                  final int columns = OpponentLayout.gridColumns(
+                    context,
+                    listWidth,
+                    minCardWidth: 340,
+                  );
+                  return RefreshIndicator(
+                    color: LightColor.secondaryColor,
+                    onRefresh: onRefresh,
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(
+                        parent: BouncingScrollPhysics(),
+                      ),
+                      padding: const EdgeInsets.fromLTRB(pad, 16, pad, 32),
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(
+                            maxWidth: _twoColumnMaxWidth - pad * 2,
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: <Widget>[
+                              SizedBox(
+                                width: side,
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: <Widget>[
+                                    ...intro,
+                                    if (showFooter) footer(inline: true),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: pad),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: <Widget>[
+                                    header,
+                                    ...invitationList(columns: columns),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              );
+            }
+
+            final bool tablet = context.isTabletOrWider;
+            final List<Widget> rows = <Widget>[
+              ...intro,
+              header,
+              ...invitationList(),
+            ];
             return Column(
               children: <Widget>[
                 Expanded(
                   child: RefreshIndicator(
                     color: LightColor.secondaryColor,
-                    onRefresh: () async {
-                      _reload();
-                      context.read<OpponentMatchBloc>().add(
-                        const LoadOpponentRequestsEvent(),
-                      );
-                    },
+                    onRefresh: onRefresh,
                     child: ListView(
                       physics: const BouncingScrollPhysics(),
                       padding: AppUtils().getPadding(
@@ -158,108 +363,29 @@ class _OpponentInvitationsPageState extends State<OpponentInvitationsPage> {
                         top: AppDimens.paddingX12,
                         bottom: AppDimens.paddingX24,
                       ),
-                      children: <Widget>[
-                        OpponentGuidanceCard(
-                          icon: Icons.mark_email_unread_outlined,
-                          title: invitations.isEmpty
-                              ? 'Waiting for invitations'
-                              : 'Select one opponent',
-                          message: invitations.isEmpty
-                              ? 'Your request is visible to all eligible teams. '
-                                    'As soon as a team accepts, its invitation '
-                                    'appears here.'
-                              : 'Message a captain to agree the details, then '
-                                    'confirm the team you trust. You can wait '
-                                    'for more acceptances first — the '
-                                    'remaining invitations are rejected '
-                                    'automatically once you confirm one.',
-                        ),
-                        const SizedBox(height: AppDimens.paddingX16),
-                        _RequestStrip(request: request),
-                        const SizedBox(height: AppDimens.paddingX18),
-                        if (request.isMatchConfirmed)
-                          _ConfirmedBanner(
-                            request: request,
-                            onOpen: () => Navigator.of(context).push(
-                              MaterialPageRoute<void>(
-                                builder: (_) => BlocProvider.value(
-                                  value: context.read<OpponentMatchBloc>(),
-                                  child: OpponentMatchDetailsPage(
-                                    requestId: request.id,
+                      // Tablet: each row centred at the column width, its
+                      // content still left-aligned; the list stays lazy.
+                      children: !tablet
+                          ? rows
+                          : <Widget>[
+                              for (final Widget row in rows)
+                                Align(
+                                  alignment: Alignment.topCenter,
+                                  child: ConstrainedBox(
+                                    constraints: const BoxConstraints(
+                                      maxWidth: _singleColumnMaxWidth,
+                                    ),
+                                    child: SizedBox(
+                                      width: double.infinity,
+                                      child: row,
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ),
-                          )
-                        else
-                          OpponentSectionLabel(
-                            invitations.isEmpty
-                                ? 'No invitations yet'
-                                : '${invitations.length} '
-                                      '${invitations.length == 1 ? 'invitation' : 'invitations'} received',
-                          ),
-                        if (invitations.isEmpty &&
-                            state.isLoadingInvitations(request.id))
-                          const _InvitationsLoading()
-                        else if (invitations.isEmpty &&
-                            state.invitationErrorFor(request.id) != null)
-                          _InvitationsError(
-                            message: state.invitationErrorFor(request.id)!,
-                            onRetry: _reload,
-                          )
-                        else if (invitations.isEmpty)
-                          const _WaitingCard()
-                        else ...<Widget>[
-                          // Rows are already on screen, so a refetch reports
-                          // itself here instead of replacing them.
-                          if (state.isLoadingInvitations(request.id))
-                            const _RefreshingStrip(),
-                          ...invitations.map(
-                            (invitation) => Padding(
-                              padding: AppUtils().getPadding(
-                                bottom: AppDimens.paddingX12,
-                              ),
-                              child: _InvitationCard(
-                                invitation: invitation,
-                                request: request,
-                                selected: invitation.id == selected?.id,
-                                selectable:
-                                    !request.isMatchConfirmed &&
-                                    invitation.status ==
-                                        InvitationStatus.pending,
-                                onSelect: () =>
-                                    setState(() => _selectedId = invitation.id),
-                                onMessage: invitation.captainUserId > 0
-                                    ? () => ChatLauncher.startDirectUser(
-                                        context,
-                                        userId: invitation.captainUserId,
-                                      )
-                                    : null,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
+                            ],
                     ),
                   ),
                 ),
-                // Once one of the invitations is `selected` the choice is made
-                // and cannot be remade, so the footer goes away — the request's
-                // own status can lag a beat behind that, which is why the
-                // invitation is what gates it rather than [isMatchConfirmed].
-                if (!request.isMatchConfirmed &&
-                    request.selectedInvitation == null &&
-                    invitations.isNotEmpty)
-                  _SelectFooter(
-                    enabled: selected != null && !state.isSelectingOpponent,
-                    busy: state.isSelectingOpponent,
-                    othersCount: request.pendingInvitations
-                        .where((i) => i.id != selected?.id)
-                        .length,
-                    onConfirm: selected == null || state.isSelectingOpponent
-                        ? null
-                        : () => _confirmOpponent(request, selected),
-                  ),
+                if (showFooter) footer(),
               ],
             );
           },
@@ -267,6 +393,9 @@ class _OpponentInvitationsPageState extends State<OpponentInvitationsPage> {
       ),
     );
   }
+
+  static const double _singleColumnMaxWidth = 760;
+  static const double _twoColumnMaxWidth = 1200;
 
   /// The card currently marked for confirmation: the requester's tap, the
   /// server's selection, or — with a single invitation — that one.
@@ -869,11 +998,16 @@ class _ConfirmedBanner extends StatelessWidget {
 
 class _SelectFooter extends StatelessWidget {
   const _SelectFooter({
+    this.inline = false,
     required this.enabled,
     required this.busy,
     required this.othersCount,
     required this.onConfirm,
   });
+
+  /// Desktop: a card in the left column rather than a bar across the foot
+  /// of the window.
+  final bool inline;
 
   final bool enabled;
 
@@ -886,48 +1020,63 @@ class _SelectFooter extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
+    final Widget content = Column(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        if (othersCount > 0)
+          Padding(
+            padding: AppUtils().getPadding(bottom: AppDimens.paddingX8),
+            child: Text(
+              'Confirming rejects the other $othersCount '
+              '${othersCount == 1 ? 'invitation' : 'invitations'} '
+              'automatically.',
+              textAlign: TextAlign.center,
+              style: textTheme.bodyMiniSubTitle?.copyWith(
+                color: LightColor.secondaryTextColor,
+              ),
+            ),
+          ),
+        SizedBox(
+          height: AppDimens.sizeX54,
+          width: double.infinity,
+          child: CustomButton(
+            text: 'Select This Opponent',
+            icon: Icons.handshake_outlined,
+            isLoading: busy,
+            onPressed: enabled ? onConfirm : null,
+          ),
+        ),
+      ],
+    );
     return Container(
       padding: AppUtils().getPadding(all: AppDimens.paddingX16),
       decoration: BoxDecoration(
         color: LightColor.cardColor,
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(AppDimens.radiusX20),
-          topRight: Radius.circular(AppDimens.radiusX20),
-        ),
+        borderRadius: inline
+            ? BorderRadius.circular(AppDimens.radiusX14)
+            : const BorderRadius.only(
+                topLeft: Radius.circular(AppDimens.radiusX20),
+                topRight: Radius.circular(AppDimens.radiusX20),
+              ),
         border: Border.all(
           color: LightColor.dividerColor.withValues(alpha: 0.7),
         ),
       ),
-      child: SafeArea(
-        top: false,
-        child: Column(
-          children: <Widget>[
-            if (othersCount > 0)
-              Padding(
-                padding: AppUtils().getPadding(bottom: AppDimens.paddingX8),
-                child: Text(
-                  'Confirming rejects the other $othersCount '
-                  '${othersCount == 1 ? 'invitation' : 'invitations'} '
-                  'automatically.',
-                  textAlign: TextAlign.center,
-                  style: textTheme.bodyMiniSubTitle?.copyWith(
-                    color: LightColor.secondaryTextColor,
-                  ),
+      child: inline
+          ? content
+          : SafeArea(
+              top: false,
+              // Tablet: the bar spans the window but its content keeps to
+              // the page column. heightFactor 1 — a bottom bar must not fill
+              // the height it is allowed.
+              child: Center(
+                heightFactor: 1,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 720),
+                  child: content,
                 ),
               ),
-            SizedBox(
-              height: AppDimens.sizeX54,
-              width: double.infinity,
-              child: CustomButton(
-                text: 'Select This Opponent',
-                icon: Icons.handshake_outlined,
-                isLoading: busy,
-                onPressed: enabled ? onConfirm : null,
-              ),
             ),
-          ],
-        ),
-      ),
     );
   }
 }

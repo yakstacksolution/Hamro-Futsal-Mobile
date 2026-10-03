@@ -26,6 +26,7 @@ class AccountBalanceCard extends StatelessWidget {
     this.totalEarned = 0,
     this.onRequestSettlement,
     this.disabledReason,
+    this.wide = false,
   });
 
   /// The amount a settlement pays — commission retained by the platform.
@@ -38,9 +39,123 @@ class AccountBalanceCard extends StatelessWidget {
   final VoidCallback? onRequestSettlement;
   final String? disabledReason;
 
+  /// Tablet / desktop: the amounts on the left and the CTA as a fixed-width
+  /// button on the right, instead of a button stretched across the window.
+  final bool wide;
+
   @override
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
+    final List<Widget> info = [
+      Row(
+        children: [
+          Icon(
+            Icons.percent_rounded,
+            size: AppDimens.sizeX16,
+            color: LightColor.onBrandSurface.withValues(alpha: 0.85),
+          ),
+          const SizedBox(width: AppDimens.paddingX6),
+          Text(
+            StringConstants.commissionPayable,
+            style: textTheme.bodyTextSmall?.copyWith(
+              color: LightColor.onBrandSurface.withValues(alpha: 0.85),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+      const SizedBox(height: AppDimens.paddingX10),
+      Text(
+        AccountFmt.npr(commissionPayable),
+        style: textTheme.headingLarge?.copyWith(
+          color: LightColor.onBrandSurface,
+          fontWeight: FontWeight.w800,
+          letterSpacing: -0.5,
+        ),
+      ),
+      const SizedBox(height: AppDimens.paddingX6),
+      Text(
+        // Where the commission came from, kept subordinate to it.
+        [
+          '${StringConstants.totalEarned} ${AccountFmt.npr(totalEarned)}',
+          '${StringConstants.availableBalance} ${AccountFmt.npr(availableBalance)}',
+        ].join('  ·  '),
+        style: textTheme.bodyTextSmall?.copyWith(
+          color: LightColor.onBrandSurface.withValues(alpha: 0.75),
+          fontSize: AppDimens.fontBodySubTitle,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+      if (pendingClearance > 0) ...[
+        const SizedBox(height: AppDimens.paddingX4),
+        Row(
+          children: [
+            Icon(
+              Icons.hourglass_top_rounded,
+              size: 12,
+              color: LightColor.onBrandSurface.withValues(alpha: 0.7),
+            ),
+            const SizedBox(width: AppDimens.paddingX4),
+            Text(
+              '${AccountFmt.npr(pendingClearance)} ${StringConstants.pendingClearance.toLowerCase()}',
+              style: textTheme.bodyTextSmall?.copyWith(
+                color: LightColor.onBrandSurface.withValues(alpha: 0.7),
+                fontSize: AppDimens.fontBodySubTitle,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ],
+    ];
+    final List<Widget> cta = [
+      SizedBox(
+        width: double.infinity,
+        child: Material(
+          color: onRequestSettlement != null
+              ? LightColor.onBrandSurface
+              : LightColor.onBrandSurface.withValues(alpha: 0.35),
+          borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+          child: InkWell(
+            onTap: onRequestSettlement,
+            borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+            child: Container(
+              height: AppDimens.sizeX40,
+              alignment: Alignment.center,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.upload_rounded,
+                    size: AppDimens.sizeX16,
+                    color: LightColor.secondaryColor,
+                  ),
+                  const SizedBox(width: AppDimens.paddingX6),
+                  Text(
+                    StringConstants.payCommission,
+                    style: textTheme.bodyTextSmall?.copyWith(
+                      color: LightColor.secondaryColor,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+      if (onRequestSettlement == null &&
+          (disabledReason?.isNotEmpty ?? false)) ...[
+        const SizedBox(height: AppDimens.paddingX8),
+        Text(
+          disabledReason!,
+          style: textTheme.bodyTextSmall?.copyWith(
+            color: LightColor.onBrandSurface.withValues(alpha: 0.75),
+            fontSize: AppDimens.fontBodySubTitle,
+          ),
+        ),
+      ],
+    ];
     return Container(
       padding: const EdgeInsets.all(AppDimens.paddingX20),
       decoration: BoxDecoration(
@@ -58,118 +173,34 @@ class AccountBalanceCard extends StatelessWidget {
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                Icons.percent_rounded,
-                size: AppDimens.sizeX16,
-                color: LightColor.onBrandSurface.withValues(alpha: 0.85),
-              ),
-              const SizedBox(width: AppDimens.paddingX6),
-              Text(
-                StringConstants.commissionPayable,
-                style: textTheme.bodyTextSmall?.copyWith(
-                  color: LightColor.onBrandSurface.withValues(alpha: 0.85),
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppDimens.paddingX10),
-          Text(
-            AccountFmt.npr(commissionPayable),
-            style: textTheme.headingLarge?.copyWith(
-              color: LightColor.onBrandSurface,
-              fontWeight: FontWeight.w800,
-              letterSpacing: -0.5,
-            ),
-          ),
-          const SizedBox(height: AppDimens.paddingX6),
-          Text(
-            // Where the commission came from, kept subordinate to it.
-            [
-              '${StringConstants.totalEarned} ${AccountFmt.npr(totalEarned)}',
-              '${StringConstants.availableBalance} ${AccountFmt.npr(availableBalance)}',
-            ].join('  ·  '),
-            style: textTheme.bodyTextSmall?.copyWith(
-              color: LightColor.onBrandSurface.withValues(alpha: 0.75),
-              fontSize: AppDimens.fontBodySubTitle,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          if (pendingClearance > 0) ...[
-            const SizedBox(height: AppDimens.paddingX4),
-            Row(
+      child: wide
+          ? Row(
               children: [
-                Icon(
-                  Icons.hourglass_top_rounded,
-                  size: 12,
-                  color: LightColor.onBrandSurface.withValues(alpha: 0.7),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: info,
+                  ),
                 ),
-                const SizedBox(width: AppDimens.paddingX4),
-                Text(
-                  '${AccountFmt.npr(pendingClearance)} ${StringConstants.pendingClearance.toLowerCase()}',
-                  style: textTheme.bodyTextSmall?.copyWith(
-                    color: LightColor.onBrandSurface.withValues(alpha: 0.7),
-                    fontSize: AppDimens.fontBodySubTitle,
-                    fontWeight: FontWeight.w500,
+                const SizedBox(width: AppDimens.paddingX24),
+                SizedBox(
+                  width: 240,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: cta,
                   ),
                 ),
               ],
+            )
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ...info,
+                const SizedBox(height: AppDimens.paddingX16),
+                ...cta,
+              ],
             ),
-          ],
-          const SizedBox(height: AppDimens.paddingX16),
-          SizedBox(
-            width: double.infinity,
-            child: Material(
-              color: onRequestSettlement != null
-                  ? LightColor.onBrandSurface
-                  : LightColor.onBrandSurface.withValues(alpha: 0.35),
-              borderRadius: BorderRadius.circular(AppDimens.radiusX10),
-              child: InkWell(
-                onTap: onRequestSettlement,
-                borderRadius: BorderRadius.circular(AppDimens.radiusX10),
-                child: Container(
-                  height: AppDimens.sizeX40,
-                  alignment: Alignment.center,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.upload_rounded,
-                        size: AppDimens.sizeX16,
-                        color: LightColor.secondaryColor,
-                      ),
-                      const SizedBox(width: AppDimens.paddingX6),
-                      Text(
-                        StringConstants.payCommission,
-                        style: textTheme.bodyTextSmall?.copyWith(
-                          color: LightColor.secondaryColor,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-          if (onRequestSettlement == null &&
-              (disabledReason?.isNotEmpty ?? false)) ...[
-            const SizedBox(height: AppDimens.paddingX8),
-            Text(
-              disabledReason!,
-              style: textTheme.bodyTextSmall?.copyWith(
-                color: LightColor.onBrandSurface.withValues(alpha: 0.75),
-                fontSize: AppDimens.fontBodySubTitle,
-              ),
-            ),
-          ],
-        ],
-      ),
     );
   }
 }

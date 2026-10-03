@@ -1,5 +1,6 @@
 import 'package:hamro_futsal/core/utils/currency.dart';
 import 'package:flutter/material.dart';
+import 'package:hamro_futsal/core/utils/responsive.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_text.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
@@ -404,9 +405,17 @@ class BookingErrorBanner extends StatelessWidget {
 
 /// Sticky action bar shared by the accept/reject, cancel and complete footers.
 class BookingActionBar extends StatelessWidget {
-  const BookingActionBar({super.key, required this.child});
+  const BookingActionBar({
+    super.key,
+    required this.child,
+    this.alignToDetailsContent = false,
+  });
 
   final Widget child;
+
+  /// On tablet / desktop, keeps the buttons within the booking details page's
+  /// content width, at its right edge, instead of across the whole window.
+  final bool alignToDetailsContent;
 
   @override
   Widget build(BuildContext context) {
@@ -430,12 +439,42 @@ class BookingActionBar extends StatelessWidget {
               ),
             ),
           ),
-          child: child,
+          // Phone: full width. Tablet / desktop: the bar still spans the
+          // window, but its buttons line up with the page's content and keep
+          // to a button-sized width at its right edge.
+          child: !alignToDetailsContent || !context.isTabletOrWider
+              ? child
+              // heightFactor 1 on both: this is a bottom bar, which may be as
+              // tall as the screen — without it the bar filled the page.
+              : Center(
+                  heightFactor: 1,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: context.isDesktop
+                          ? kBookingDetailsTwoColumnMaxWidth
+                          : kBookingDetailsSingleColumnMaxWidth,
+                    ),
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      heightFactor: 1,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 520),
+                        child: child,
+                      ),
+                    ),
+                  ),
+                ),
         ),
       ),
     );
   }
 }
+
+/// Booking details content width on tablet: one centred column.
+const double kBookingDetailsSingleColumnMaxWidth = 760;
+
+/// Booking details content width on desktop: booking and payment side by side.
+const double kBookingDetailsTwoColumnMaxWidth = 1200;
 
 /// Inserts hairline dividers between list rows.
 List<Widget> bookingRowsWithDividers(List<Widget> rows) {

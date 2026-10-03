@@ -45,8 +45,13 @@ app.*.map.json
 /android/app/release
 
 # Secrets / environment
-.env
 .env.*
+secrets/
+
+# Real Firebase app config is generated from secure local/CI secrets. Keep only
+# placeholders/templates in git.
+android/app/google-services.local.json
+ios/Runner/GoogleService-Info.local.plist
 
 # Android signing
 *.jks

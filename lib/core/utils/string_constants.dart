@@ -18,6 +18,10 @@ final class StringConstants {
   static const String paymentNote = 'Payment note';
   static const String rejectionReason = 'Reason';
   static const String enterValidAmount = 'Enter a valid amount';
+  static const String bookingConfirmedToCompleted =
+      'Booking status changed from Confirmed to Completed.';
+  static const String couldNotCompleteBooking =
+      'Could not complete the booking. Please try again.';
   static const String bookingAcceptedSuccessfully =
       'Booking accepted successfully.';
   static const String bookingRejectedSuccessfully =

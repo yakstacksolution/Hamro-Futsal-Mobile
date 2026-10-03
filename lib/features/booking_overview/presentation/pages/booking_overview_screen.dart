@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hamro_futsal/features/booking_overview/domain/repository/booking_overview_repository.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
@@ -12,17 +13,21 @@ import 'package:hamro_futsal/features/booking_overview/presentation/bloc/booking
 import 'package:hamro_futsal/features/booking_overview/presentation/models/booking_analytics.dart';
 import 'package:hamro_futsal/features/booking_overview/presentation/widgets/booking_overview_common.dart';
 import 'package:hamro_futsal/features/booking_overview/presentation/widgets/booking_overview_filter_widgets.dart';
+import 'package:hamro_futsal/features/booking_overview/presentation/widgets/booking_overview_dashboard.dart';
 import 'package:hamro_futsal/features/booking_overview/presentation/widgets/booking_overview_tabs.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 class BookingOverviewScreen extends StatelessWidget {
-  const BookingOverviewScreen({super.key});
+  const BookingOverviewScreen({super.key, this.repository});
+
+  /// Injected in tests; the app uses the live repository.
+  final BookingOverviewRepository? repository;
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => BookingOverviewBloc(
-        BookingOverviewUseCase(BookingOverviewRepositoryImpl()),
+        BookingOverviewUseCase(repository ?? BookingOverviewRepositoryImpl()),
         // Initial window matches the default selected chip (Week).
       )..add(const LoadBookingOverviewEvent(dateFilter: 'week')),
       child: const _BookingOverviewView(),
@@ -165,98 +170,167 @@ class _BookingOverviewViewState extends State<_BookingOverviewView>
       range: range,
     );
 
-    // Full width on every size: this is a dashboard of cards and charts, and
-    // capping it left large empty margins rather than denser information.
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        // Shared filters — pinned above the tabs so they apply everywhere.
-        Padding(
-          padding: EdgeInsets.only(
-            left: context.responsive<double>(
-              mobile: AppDimens.paddingX20,
-              tablet: AppDimens.paddingX32,
-            ),
-            right: context.responsive<double>(
-              mobile: AppDimens.paddingX20,
-              tablet: AppDimens.paddingX32,
-            ),
-            top: AppDimens.paddingX4,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              BookingContextLine(
-                range: range,
-                count: analytics.totalBookings,
-                revenue: analytics.revenue,
-                summaryLine: analytics.summaryLine,
-              ),
-              const SizedBox(height: AppDimens.paddingX12),
-              BookingPeriodChips(
-                period: _period,
-                customRange: _customRange,
-                onPeriod: (p) {
-                  if (p == BookingPeriod.custom) {
-                    _pickRange();
-                  } else {
-                    setState(() => _period = p);
-                    _reload();
-                  }
-                },
-                onEditCustom: _pickRange,
-              ),
-              const SizedBox(height: AppDimens.paddingX10),
-              BookingVenueFilter(
-                venues: overview.availableVenues,
-                selectedId: _futsalId,
-                onChange: (id) {
-                  setState(() => _futsalId = id);
-                  _reload();
-                },
-              ),
-              // Keep the current dashboard visible while a filter refreshes.
-              // The refresh indicator intentionally has zero thickness.
-              if (isLoading) const SizedBox.shrink(),
-            ],
-          ),
+    // Tablet / desktop: one scrolling dashboard instead of the phone's tabs.
+    if (context.isTabletOrWider) {
+      return BookingOverviewDashboard(
+        analytics: analytics,
+        isLoading: isLoading,
+        contextLine: BookingContextLine(
+          range: range,
+          count: analytics.totalBookings,
+          revenue: analytics.revenue,
+          summaryLine: analytics.summaryLine,
         ),
-        const SizedBox(height: AppDimens.paddingX8),
-        TabBar(
-          controller: _tabController,
-          labelColor: LightColor.secondaryColor,
-          unselectedLabelColor: LightColor.secondaryTextColor,
-          indicatorColor: LightColor.secondaryColor,
-          indicatorSize: TabBarIndicatorSize.label,
-          dividerColor: LightColor.dividerColor,
-          labelStyle: FutsalTheme.getTextTheme(
-            context,
-          ).bodyTextSmall?.copyWith(fontWeight: FontWeight.w700),
-          unselectedLabelStyle: FutsalTheme.getTextTheme(
-            context,
-          ).bodyTextSmall?.copyWith(fontWeight: FontWeight.w500),
-          tabs: const [
-            Tab(text: StringConstants.overview, height: 40),
-            Tab(text: StringConstants.analytics, height: 40),
-            Tab(text: StringConstants.rankings, height: 40),
+        filters: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            BookingPeriodChips(
+              period: _period,
+              customRange: _customRange,
+              onPeriod: (p) {
+                if (p == BookingPeriod.custom) {
+                  _pickRange();
+                } else {
+                  setState(() => _period = p);
+                  _reload();
+                }
+              },
+              onEditCustom: _pickRange,
+            ),
+            const SizedBox(height: AppDimens.paddingX10),
+            BookingVenueFilter(
+              venues: overview.availableVenues,
+              selectedId: _futsalId,
+              onChange: (id) {
+                setState(() => _futsalId = id);
+                _reload();
+              },
+            ),
           ],
         ),
-        // Breathing room between the tab bar and tab content.
-        const SizedBox(height: AppDimens.paddingX12),
-        Expanded(
-          child: TabBarView(
-            controller: _tabController,
-            children: [
-              BookingOverviewTab(analytics: analytics),
-              BookingAnalyticsTab(analytics: analytics),
-              BookingRankingsTab(analytics: analytics),
-            ],
-          ),
+      );
+    }
+
+    // Phone: filters above three tabs.
+    final bool wide = context.isTabletOrWider;
+    final double inset = context.responsive<double>(
+      mobile: AppDimens.paddingX20,
+      tablet: AppDimens.paddingX32,
+    );
+    return Center(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: wide ? kDashboardMaxWidth : double.infinity,
         ),
-      ],
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Shared filters — pinned above the tabs so they apply everywhere.
+            Padding(
+              padding: EdgeInsets.only(
+                left: context.responsive<double>(
+                  mobile: AppDimens.paddingX20,
+                  tablet: AppDimens.paddingX32,
+                ),
+                right: context.responsive<double>(
+                  mobile: AppDimens.paddingX20,
+                  tablet: AppDimens.paddingX32,
+                ),
+                top: AppDimens.paddingX4,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  BookingContextLine(
+                    range: range,
+                    count: analytics.totalBookings,
+                    revenue: analytics.revenue,
+                    summaryLine: analytics.summaryLine,
+                  ),
+                  const SizedBox(height: AppDimens.paddingX12),
+                  BookingPeriodChips(
+                    period: _period,
+                    customRange: _customRange,
+                    onPeriod: (p) {
+                      if (p == BookingPeriod.custom) {
+                        _pickRange();
+                      } else {
+                        setState(() => _period = p);
+                        _reload();
+                      }
+                    },
+                    onEditCustom: _pickRange,
+                  ),
+                  const SizedBox(height: AppDimens.paddingX10),
+                  BookingVenueFilter(
+                    venues: overview.availableVenues,
+                    selectedId: _futsalId,
+                    onChange: (id) {
+                      setState(() => _futsalId = id);
+                      _reload();
+                    },
+                  ),
+                  // Keep the current dashboard visible while a filter refreshes.
+                  // The refresh indicator intentionally has zero thickness.
+                  if (isLoading) const SizedBox.shrink(),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppDimens.paddingX8),
+            // Tablet / desktop: indented to the content, so the labels, the indicator
+            // and the divider line share the cards' edges.
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: wide ? inset : 0),
+              child: TabBar(
+                controller: _tabController,
+                // Tablet / desktop: tabs together at the start, in line with the
+                // content, instead of a third of the window apart.
+                isScrollable: wide,
+                tabAlignment: wide ? TabAlignment.start : null,
+                // The first label starts at the content's edge; the gap goes between
+                // tabs instead.
+                labelPadding: wide
+                    ? const EdgeInsets.only(right: AppDimens.paddingX32)
+                    : null,
+                labelColor: LightColor.secondaryColor,
+                unselectedLabelColor: LightColor.secondaryTextColor,
+                indicatorColor: LightColor.secondaryColor,
+                indicatorSize: TabBarIndicatorSize.label,
+                dividerColor: LightColor.dividerColor,
+                labelStyle: FutsalTheme.getTextTheme(
+                  context,
+                ).bodyTextSmall?.copyWith(fontWeight: FontWeight.w700),
+                unselectedLabelStyle: FutsalTheme.getTextTheme(
+                  context,
+                ).bodyTextSmall?.copyWith(fontWeight: FontWeight.w500),
+                tabs: const [
+                  Tab(text: StringConstants.overview, height: 40),
+                  Tab(text: StringConstants.analytics, height: 40),
+                  Tab(text: StringConstants.rankings, height: 40),
+                ],
+              ),
+            ),
+            // Breathing room between the tab bar and tab content.
+            const SizedBox(height: AppDimens.paddingX12),
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  BookingOverviewTab(analytics: analytics),
+                  BookingAnalyticsTab(analytics: analytics),
+                  BookingRankingsTab(analytics: analytics),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
+
+/// Widest the overview dashboard grows before centring in the window.
+const double kDashboardMaxWidth = 1280;
 
 class _LoadError extends StatelessWidget {
   const _LoadError({required this.message, required this.onRetry});

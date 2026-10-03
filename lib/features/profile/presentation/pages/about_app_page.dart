@@ -4,6 +4,8 @@ import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/app_utils.dart';
 import 'package:hamro_futsal/core/utils/custom_image_view.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/utils/responsive.dart';
+import 'package:hamro_futsal/core/widgets/dashboard_layout.dart';
 import 'package:hamro_futsal/core/utils/image_constants.dart';
 import 'package:hamro_futsal/core/widgets/custom_app_bar.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -40,6 +42,7 @@ class _AboutAppPageState extends State<AboutAppPage> {
                 ? 'Loading version…'
                 : '${info.version} (${info.buildNumber})';
 
+            if (context.isTabletOrWider) return _WideAbout(version: version);
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -75,6 +78,81 @@ class _AboutAppPageState extends State<AboutAppPage> {
           },
         ),
       ),
+    );
+  }
+}
+
+/// Tablet / desktop About: one centred column whose sections share edges —
+/// the subtitle sits inside it, paired cards and the feature cards are laid
+/// out as equal-height rows (four across on desktop, two on tablet).
+class _WideAbout extends StatelessWidget {
+  const _WideAbout({required this.version});
+
+  final String version;
+
+  @override
+  Widget build(BuildContext context) {
+    final bool desktop = context.isDesktop;
+    const Widget gap = SizedBox(height: AppDimens.paddingX24);
+    const List<_AboutFeature> features = _FeatureGrid.features;
+    const double spacing = AppDimens.paddingX16;
+    final int perRow = desktop ? 4 : 2;
+
+    return ListView(
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(
+        AppDimens.paddingX24,
+        AppDimens.paddingX20,
+        AppDimens.paddingX24,
+        AppDimens.paddingX40,
+      ),
+      children: <Widget>[
+        Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: desktop ? 1080 : 760),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                Text(
+                  'Hamro Futsal · v$version',
+                  style: FutsalTheme.getTextTheme(context).bodyTextSmall
+                      ?.copyWith(color: LightColor.secondaryTextColor),
+                ),
+                const SizedBox(height: AppDimens.paddingX12),
+                _HeroCard(version: version),
+                gap,
+                DashboardPair(
+                  stacked: !desktop,
+                  gap: spacing,
+                  leftLabel: 'Made by',
+                  left: const _ProductOfCard(),
+                  rightLabel: 'Our mission',
+                  right: const _MissionCard(),
+                ),
+                gap,
+                const DashboardSectionLabel('What we offer'),
+                for (int i = 0; i < features.length; i += perRow) ...<Widget>[
+                  if (i > 0) const SizedBox(height: spacing),
+                  DashboardEqualHeightRow(
+                    gap: spacing,
+                    flexes: List<int>.filled(
+                      (features.length - i).clamp(0, perRow),
+                      1,
+                    ),
+                    children: features.sublist(
+                      i,
+                      (i + perRow).clamp(0, features.length),
+                    ),
+                  ),
+                ],
+                gap,
+                const DashboardSectionLabel('Why we built this'),
+                const _InfoCard(),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -286,7 +364,7 @@ class _MissionCard extends StatelessWidget {
 class _FeatureGrid extends StatelessWidget {
   const _FeatureGrid();
 
-  static const List<_AboutFeature> _features = <_AboutFeature>[
+  static const List<_AboutFeature> features = <_AboutFeature>[
     _AboutFeature(
       icon: Icons.calendar_month_rounded,
       title: StringConstants.fastBooking,
@@ -319,7 +397,7 @@ class _FeatureGrid extends StatelessWidget {
         return Wrap(
           spacing: spacing,
           runSpacing: spacing,
-          children: _features
+          children: features
               .map((feature) => SizedBox(width: itemWidth, child: feature))
               .toList(),
         );

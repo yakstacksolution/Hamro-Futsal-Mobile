@@ -40,10 +40,11 @@ Future<void> _pumpBar(
 }
 
 void main() {
+  // Phones split the bar evenly; tablets and desktops use compact actions
+  // (covered below).
   for (final (String label, Size size) in <(String, Size)>[
     ('320pt', Size(320, 568)),
     ('411pt', Size(411, 891)),
-    ('tablet', Size(800, 1280)),
   ]) {
     testWidgets('$label gives Back and Next the same width', (
       WidgetTester tester,
@@ -72,7 +73,13 @@ void main() {
         reason: 'Back and Next should split the bar evenly at $label',
       );
     });
+  }
 
+  for (final (String label, Size size) in <(String, Size)>[
+    ('320pt', Size(320, 568)),
+    ('411pt', Size(411, 891)),
+    ('tablet', Size(800, 1280)),
+  ]) {
     testWidgets('$label keeps both buttons the same height', (
       WidgetTester tester,
     ) async {
@@ -126,5 +133,30 @@ void main() {
     expect(find.text(StringConstants.back), findsNothing);
     // Next spans the bar, minus its padding — nothing shares the row.
     expect(tester.getSize(find.byType(CustomButton)).width, greaterThan(360));
+  });
+
+  testWidgets('tablet keeps compact actions at the form column\'s right edge', (
+    WidgetTester tester,
+  ) async {
+    const Size tablet = Size(800, 1280);
+    await _pumpBar(tester, size: tablet);
+
+    expect(tester.takeException(), isNull);
+    final Rect back = tester.getRect(
+      find.ancestor(
+        of: find.text(StringConstants.back),
+        matching: find.byType(Ink),
+      ),
+    );
+    final Rect next = tester.getRect(find.byType(CustomButton));
+
+    // Not stretched across the bar.
+    expect(back.width, lessThan(tablet.width / 3));
+    expect(next.width, lessThan(tablet.width / 3));
+    // Next is the primary action: wider than Back, and on its right.
+    expect(next.width, greaterThan(back.width));
+    expect(next.left, greaterThan(back.right));
+    // Right edge of the 760 form column, centred in the bar.
+    expect(next.right, closeTo((tablet.width + 760) / 2, 2));
   });
 }

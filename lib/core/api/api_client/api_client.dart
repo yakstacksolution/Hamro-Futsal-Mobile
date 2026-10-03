@@ -273,7 +273,7 @@ class ApiClient {
   Future<Result> completeBooking({
     required int bookingId,
     bool confirm = true,
-    String? paymentType,
+    List<Map<String, dynamic>>? payments,
     double? discount,
     double? partialAmount,
     List<Map<String, dynamic>>? extraItems,
@@ -281,7 +281,10 @@ class ApiClient {
     final Map<String, dynamic> data = <String, dynamic>{
       // Required by the API — the request is rejected with 422 without it.
       'confirm': confirm,
-      if (paymentType != null) 'payment_type': paymentType,
+      // How it was paid is this list alone — no top-level `payment_type`.
+      // Each type with what it paid — as the manual booking sends it:
+      // `[{"payment_type": "cash", "value": 600}, …]`.
+      if (payments != null && payments.isNotEmpty) 'payment': payments,
       'discount': discount ?? 0,
       if (partialAmount != null) 'partial_amount': partialAmount,
       if (extraItems != null && extraItems.isNotEmpty)
@@ -619,16 +622,20 @@ class ApiClient {
     return _post(url: '$_baseUrl/bookings', data: data);
   }
 
+  Future<Result> createManualBooking({required Map<String, dynamic> data}) {
+    return _post(url: '$_baseUrl/futsal-bookings/manual', data: data);
+  }
+
   Future<Result> getRecurringAvailability({required dynamic data}) {
     return _post(url: '$_baseUrl/bookings/recurring-availability', data: data);
   }
 
-  Future<Result> createBookingHold({required dynamic data}) {
+  Future<Result> createBookingHolds({required Map<String, dynamic> data}) {
     return _post(url: '$_baseUrl/booking-holds', data: data);
   }
 
-  Future<Result> releaseBookingHold({required String holdToken}) {
-    return _delete(url: '$_baseUrl/booking-holds/$holdToken');
+  Future<Result> releaseBookingHolds({required List<String> holdIds}) {
+    return _delete(url: '$_baseUrl/booking-holds', data: holdIds);
   }
 
   Future<Result> getActiveCoupons() {
@@ -657,9 +664,6 @@ class ApiClient {
     );
   }
 
-  /// [purpose] tells the server which shape of the venue list is wanted —
-  /// `booking` for a form that has to take a booking, `my_venues` for the
-  /// vendor's own portfolio. See `VenueCourtPurpose`.
   Future<Result> getVenueCourt({
     required int page,
     required int perPage,
@@ -681,6 +685,27 @@ class ApiClient {
 
   Future<Result> getCourtDetails({required int courtId}) {
     return _get(url: '$_baseUrl/auth/court/$courtId');
+  }
+
+  /// One court's slots with their status for every day from [startDate] to
+  /// [endDate] (`yyyy-MM-dd`, inclusive) — the vendor Week table.
+  Future<Result> getCourtAvailabilitySlots({
+    int? venueId,
+    int? courtId,
+    required String startDate,
+    String? endDate,
+    String type = 'week',
+  }) {
+    return _get(
+      url: '$_baseUrl/court-availability-slots',
+      query: <String, dynamic>{
+        if (venueId != null) 'venue_id': venueId,
+        if (courtId != null) 'court_id': courtId,
+        'start_date': startDate,
+        if (endDate != null) 'end_date': endDate,
+        'type': type,
+      },
+    );
   }
 
   Future<Result> getCourtSlots({required int courtId}) {
@@ -789,6 +814,10 @@ class ApiClient {
   /// Same payload as [getMyBookings].
   Future<Result> getFutsalBookings({required Map<String, dynamic> query}) {
     return _get(url: '$_baseUrl/futsal-bookings', query: query);
+  }
+
+  Future<Result> getCandidates({required Map<String, dynamic> query}) {
+    return _get(url: '$_baseUrl/auth/candidates', query: query);
   }
 
   /// Aggregated booking analytics. All filter params are optional — omit the

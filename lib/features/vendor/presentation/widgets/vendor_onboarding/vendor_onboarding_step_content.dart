@@ -11,6 +11,7 @@ import 'package:hamro_futsal/features/vendor/presentation/widgets/vendor_onboard
 import 'package:hamro_futsal/features/vendor/presentation/widgets/vendor_onboarding/sections/futsal_information_section.dart';
 import 'package:hamro_futsal/features/vendor/presentation/widgets/vendor_onboarding/sections/futsal_policy_section.dart';
 import 'package:hamro_futsal/features/vendor/presentation/widgets/vendor_onboarding/vendor_form_components.dart';
+import 'package:hamro_futsal/features/vendor/presentation/widgets/vendor_onboarding/vendor_step_rail.dart';
 import 'package:hamro_futsal/features/vendor/presentation/widgets/vendor_onboarding/vendor_unified_stepper.dart';
 
 class VendorOnboardingStepContent extends StatelessWidget {
@@ -22,6 +23,7 @@ class VendorOnboardingStepContent extends StatelessWidget {
     this.court,
     this.errorSpacing = AppDimens.sizeX14,
     this.contentSpacing = AppDimens.sizeX14,
+    this.showStepper = true,
   });
 
   final String title;
@@ -31,29 +33,35 @@ class VendorOnboardingStepContent extends StatelessWidget {
   final double errorSpacing;
   final double contentSpacing;
 
+  /// False when the steps are shown in a [VendorOnboardingStepRail] beside
+  /// the form instead (desktop).
+  final bool showStepper;
+
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        VendorUnifiedStepper(
-          title: title,
-          sections: cubit.activeSections,
-          activeSectionIndex: cubit.currentSectionIndex,
-          statusForSection: _sectionStatus,
-          onSectionSelected: cubit.selectSection,
-          substeps: cubit.activeSubsteps,
-          activeSubstepIndex: cubit.currentSubstepIndex,
-          statusForSubstep: _substepStatus,
-          onSubstepSelected: cubit.selectSubstep,
-        ),
+        if (showStepper)
+          VendorUnifiedStepper(
+            title: title,
+            sections: cubit.activeSections,
+            activeSectionIndex: cubit.currentSectionIndex,
+            statusForSection: _sectionStatus,
+            onSectionSelected: cubit.selectSection,
+            substeps: cubit.activeSubsteps,
+            activeSubstepIndex: cubit.currentSubstepIndex,
+            statusForSubstep: _substepStatus,
+            onSubstepSelected: cubit.selectSubstep,
+          ),
         if (state.errorMessage != null &&
             state.errorMessage!.isNotEmpty &&
             state.errorOrigin != VendorErrorOrigin.api) ...<Widget>[
-          SizedBox(height: errorSpacing),
+          if (showStepper) SizedBox(height: errorSpacing),
           VendorErrorBanner(message: state.errorMessage!),
         ],
-        SizedBox(height: contentSpacing),
+        if (showStepper || state.errorMessage?.isNotEmpty == true)
+          SizedBox(height: contentSpacing),
         RepaintBoundary(
           child: VendorOnboardingSectionContent(
             cubit: cubit,
@@ -87,6 +95,40 @@ class VendorOnboardingStepContent extends StatelessWidget {
       activeCourtId,
       cubit.currentSectionIndex,
       subsectionIndex,
+    );
+  }
+}
+
+/// The desktop step rail for the onboarding's current category, with the
+/// same statuses and navigation as [VendorOnboardingStepContent]'s stepper.
+class VendorOnboardingStepRail extends StatelessWidget {
+  const VendorOnboardingStepRail({
+    super.key,
+    required this.title,
+    required this.cubit,
+    required this.state,
+  });
+
+  final String title;
+  final VendorOnboardingCubit cubit;
+  final VendorOnboardingState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final VendorOnboardingStepContent statuses = VendorOnboardingStepContent(
+      title: title,
+      cubit: cubit,
+      state: state,
+    );
+    return VendorStepRail(
+      title: title,
+      sections: cubit.activeSections,
+      activeSectionIndex: cubit.currentSectionIndex,
+      activeSubstepIndex: cubit.currentSubstepIndex,
+      statusForSection: statuses._sectionStatus,
+      statusForSubstep: statuses._substepStatus,
+      onSectionSelected: cubit.selectSection,
+      onSubstepSelected: cubit.selectSubstep,
     );
   }
 }

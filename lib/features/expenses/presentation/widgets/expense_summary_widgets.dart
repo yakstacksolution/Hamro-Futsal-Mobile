@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hamro_futsal/core/utils/responsive.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
@@ -142,9 +143,12 @@ class ExpenseTrendPill extends StatelessWidget {
 }
 
 class ExpenseKpiGrid extends StatelessWidget {
-  const ExpenseKpiGrid({super.key, required this.report});
+  const ExpenseKpiGrid({super.key, required this.report, this.columns});
 
   final ExpenseReport report;
+
+  /// Tiles per row; by default four on desktop and two otherwise.
+  final int? columns;
 
   @override
   Widget build(BuildContext context) {
@@ -206,7 +210,8 @@ class ExpenseKpiGrid extends StatelessWidget {
       padding: EdgeInsets.zero,
       itemCount: items.length,
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
+        // All four figures in one row on desktop; two by two otherwise.
+        crossAxisCount: columns ?? (context.isDesktop ? 4 : 2),
         crossAxisSpacing: AppDimens.paddingX10,
         mainAxisSpacing: AppDimens.paddingX10,
         mainAxisExtent: tileExtent,

@@ -9,6 +9,7 @@ import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/app_utils.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/utils/responsive.dart';
 import 'package:hamro_futsal/core/widgets/custom_button.dart';
 import 'package:hamro_futsal/core/widgets/custom_confirm_dialog.dart';
 import 'package:hamro_futsal/core/widgets/loading_widget.dart';
@@ -65,6 +66,19 @@ class _MessagesViewState extends State<_MessagesView>
   Timer? _presenceRefreshTimer;
   bool _appActive = true;
   bool? _reportedOnline;
+
+  /// Split view (desktop): the conversation open beside the list.
+  ConversationModel? _selected;
+
+  /// Whether the last layout had room for the split view. Read by the tap
+  /// handlers to open a chat in the pane instead of pushing a route.
+  bool _split = false;
+
+  /// Content width from which the list and the open chat sit side by side.
+  static const double _splitFrom = 820;
+
+  /// Tablet single-column width, so rows do not stretch across the screen.
+  static const double _singleColumnMaxWidth = 760;
 
   @override
   void initState() {
@@ -280,6 +294,12 @@ class _MessagesViewState extends State<_MessagesView>
   }
 
   void _openChat(ConversationModel conversation) {
+    if (_split) {
+      if (_selected?.id != conversation.id) {
+        setState(() => _selected = conversation);
+      }
+      return;
+    }
     final bloc = context.read<MessageBloc>();
     Navigator.of(context).push(
       MaterialPageRoute<void>(
@@ -334,6 +354,10 @@ class _MessagesViewState extends State<_MessagesView>
         final created = state.createdGroup;
         if (created != null) {
           bloc.addIfOpen(const ClearCreatedGroupEvent());
+          if (_split) {
+            setState(() => _selected = created);
+            return;
+          }
           Navigator.of(context).push(
             MaterialPageRoute<void>(
               builder: (_) => BlocProvider.value(
@@ -361,34 +385,85 @@ class _MessagesViewState extends State<_MessagesView>
       builder: (context, state) {
         final items = _visible(state);
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _Header(
-              conversationCount: state.conversations.length,
-              unreadTotal: state.unreadTotal,
-              showCreateGroup: !state.showingArchived,
-              isCreatingGroup: state.groupCreating,
-              onCreateGroup: _createGroup,
-            ),
-            const SizedBox(height: AppDimens.paddingX16),
-            Padding(
-              padding: AppUtils().getPadding(
-                symmetricHorizontal: AppDimens.paddingX20,
-              ),
-              child: MessageSearchField(
-                controller: _searchCtrl,
-                onChanged: _onSearchChanged,
-                onClear: _clearSearch,
-              ),
-            ),
-            const SizedBox(height: AppDimens.paddingX14),
-            _filterRow(state),
-            const SizedBox(height: AppDimens.paddingX10),
-            Expanded(child: _body(state, items)),
-          ],
+        return LayoutBuilder(
+          builder: (BuildContext context, BoxConstraints constraints) {
+            _split = context.isDesktop && constraints.maxWidth >= _splitFrom;
+            final Widget list = _inbox(state, items);
+            // Phone: exactly the original page.
+            if (!context.isTabletOrWider) return list;
+            if (!_split) {
+              return Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    maxWidth: _singleColumnMaxWidth,
+                  ),
+                  child: list,
+                ),
+              );
+            }
+            final ConversationModel? selected = _selected;
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                SizedBox(
+                  width: (constraints.maxWidth * 0.34).clamp(320, 400),
+                  child: list,
+                ),
+                VerticalDivider(
+                  width: 1,
+                  thickness: 1,
+                  color: LightColor.dividerColor,
+                ),
+                Expanded(
+                  child: selected == null
+                      ? const _NoChatSelected()
+                      // Keyed by conversation so switching threads builds a
+                      // fresh chat (its own scroll, composer and streams).
+                      : KeyedSubtree(
+                          key: ValueKey<int>(selected.id),
+                          child: ChatPage(
+                            conversation: selected,
+                            embedded: true,
+                            onClose: () => setState(() => _selected = null),
+                          ),
+                        ),
+                ),
+              ],
+            );
+          },
         );
       },
+    );
+  }
+
+  /// The inbox column: header, search, filters and the conversation list.
+  Widget _inbox(MessageState state, List<ConversationModel> items) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _Header(
+          conversationCount: state.conversations.length,
+          unreadTotal: state.unreadTotal,
+          showCreateGroup: !state.showingArchived,
+          isCreatingGroup: state.groupCreating,
+          onCreateGroup: _createGroup,
+        ),
+        const SizedBox(height: AppDimens.paddingX16),
+        Padding(
+          padding: AppUtils().getPadding(
+            symmetricHorizontal: AppDimens.paddingX20,
+          ),
+          child: MessageSearchField(
+            controller: _searchCtrl,
+            onChanged: _onSearchChanged,
+            onClear: _clearSearch,
+          ),
+        ),
+        const SizedBox(height: AppDimens.paddingX14),
+        _filterRow(state),
+        const SizedBox(height: AppDimens.paddingX10),
+        Expanded(child: _body(state, items)),
+      ],
     );
   }
 
@@ -508,6 +583,7 @@ class _MessagesViewState extends State<_MessagesView>
               conversation: conversation,
               currentUserId: state.currentUserId,
               onTap: () => _openChat(conversation),
+              selected: _split && conversation.id == _selected?.id,
               onAcceptInvitation: () =>
                   _respondToInvitation(conversation, accept: true),
               onDeclineInvitation: () =>
@@ -566,6 +642,59 @@ class _MessagesViewState extends State<_MessagesView>
             onTap: () => _selectFilter(filter),
           );
         },
+      ),
+    );
+  }
+}
+
+/// The split view's chat pane before a conversation is picked.
+class _NoChatSelected extends StatelessWidget {
+  const _NoChatSelected();
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    return ColoredBox(
+      color: LightColor.background,
+      child: Center(
+        child: Padding(
+          padding: AppUtils().getPadding(all: AppDimens.paddingX32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Container(
+                width: 64,
+                height: 64,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: LightColor.secondaryColor.withValues(alpha: 0.10),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.forum_outlined,
+                  size: 28,
+                  color: LightColor.secondaryColor,
+                ),
+              ),
+              const SizedBox(height: AppDimens.paddingX16),
+              Text(
+                'Select a conversation',
+                style: textTheme.bodyTextLarge?.copyWith(
+                  color: LightColor.primaryTextColor,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: AppDimens.paddingX6),
+              Text(
+                'Pick a chat from the list to read and reply here.',
+                textAlign: TextAlign.center,
+                style: textTheme.bodyTextSmall?.copyWith(
+                  color: LightColor.secondaryTextColor,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -638,11 +767,21 @@ class _Header extends StatelessWidget {
     final textTheme = FutsalTheme.getTextTheme(context);
 
     return Padding(
-      padding: AppUtils().getPadding(
-        left: AppDimens.paddingX20,
-        right: AppDimens.paddingX10,
-        top: AppDimens.paddingX24,
-      ),
+      // getPadding scales `left`/`top` to the screen width (the search field
+      // below uses the unscaled symmetric form), so on a wide window the title
+      // drifted right of the search box. Wider screens use the plain values.
+      padding: context.isTabletOrWider
+          ? const EdgeInsets.fromLTRB(
+              AppDimens.paddingX20,
+              AppDimens.paddingX24,
+              AppDimens.paddingX10,
+              0,
+            )
+          : AppUtils().getPadding(
+              left: AppDimens.paddingX20,
+              right: AppDimens.paddingX10,
+              top: AppDimens.paddingX24,
+            ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [

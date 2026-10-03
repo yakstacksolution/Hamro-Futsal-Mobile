@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:hamro_futsal/features/media/utils/media_file_picker.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/utils/custom_image_view.dart';
@@ -126,7 +127,9 @@ class _VendorMediaLibrarySheetState extends State<VendorMediaLibrarySheet> {
                         _visibleDocumentExtensions(allowed).toList(),
                         allowMultiple: true,
                       ),
-                onAddFromCamera: _visibleImageExtensions(allowed).isEmpty
+                onAddFromCamera:
+                    _visibleImageExtensions(allowed).isEmpty ||
+                        !supportsCameraCapture
                     ? null
                     : _handleCameraCapture,
                 isAddingImages: _isAdding,
@@ -416,15 +419,18 @@ class _CompactActionRow extends StatelessWidget {
             onTap: onAddImages,
           ),
         ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _SmallActionButton(
-            label: StringConstants.camera,
-            icon: Icons.camera_alt_outlined,
-            isLoading: isCapturing,
-            onTap: onAddFromCamera,
+        // No Camera button where there is no camera to open (desktop).
+        if (onAddFromCamera != null) ...<Widget>[
+          const SizedBox(width: 8),
+          Expanded(
+            child: _SmallActionButton(
+              label: StringConstants.camera,
+              icon: Icons.camera_alt_outlined,
+              isLoading: isCapturing,
+              onTap: onAddFromCamera,
+            ),
           ),
-        ),
+        ],
         const SizedBox(width: 8),
         Expanded(
           child: _SmallActionButton(

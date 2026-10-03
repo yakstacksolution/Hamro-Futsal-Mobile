@@ -1232,8 +1232,9 @@ class _SlotPricingViewState extends State<_SlotPricingView> {
   /// own switch, not a leftover amount.
   String _pricingSummary(SlotPricingDraft slot) {
     final List<String> parts = <String>[];
-    if (slot.price != null) {
-      parts.add('Base ${Money.npr(slot.price!)}');
+    final double? basePrice = slot.price ?? widget.court.basePrice;
+    if (basePrice != null) {
+      parts.add('Base ${Money.npr(basePrice)}');
     }
     if (slot.weekendPrice != null) {
       parts.add('Weekend ${Money.npr(slot.weekendPrice!)}');
@@ -1333,7 +1334,9 @@ class _SlotPricingSheetState extends State<_SlotPricingSheet> {
   @override
   void initState() {
     super.initState();
-    _slot = widget.slot;
+    _slot = widget.slot.price == null && widget.court.basePrice != null
+        ? widget.slot.copyWith(price: widget.court.basePrice)
+        : widget.slot;
   }
 
   void _update(SlotPricingDraft next) {
@@ -1531,6 +1534,17 @@ class _SlotPricingSheetState extends State<_SlotPricingSheet> {
                   style: textTheme.bodySubTitle?.copyWith(
                     color: LightColor.secondaryTextColor,
                     fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: AppDimens.sizeX16),
+                _MoneyField(
+                  label: StringConstants.basePrice,
+                  value: _slot.price,
+                  onChanged: (String value) => _update(
+                    _slot.copyWith(
+                      price: parseDouble(value),
+                      clearPrice: value.trim().isEmpty,
+                    ),
                   ),
                 ),
                 const SizedBox(height: AppDimens.sizeX16),

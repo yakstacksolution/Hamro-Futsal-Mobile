@@ -1,0 +1,111 @@
+{
+    "status": "success",
+    "message": "Booking fetched successfully.",
+    "data": {
+        "id": 565,
+        "user_id": null,
+        "venue_id": 1,
+        "vendor_id": 4,
+        "booking_code": "BK-WETRLQYG",
+        "booking_type": "manual",
+        "series_parent_id": 565,
+        "is_recurring": false,
+        "is_series_anchor": true,
+        "recurrence_type": null,
+        "recurrence_start_date": null,
+        "recurrence_end_date": null,
+        "booking_date": "2026-10-05",
+        "start_time": "18:00:00",
+        "end_time": "19:00:00",
+        "slot_count": 1,
+        "price_per_slot": 1200,
+        "subtotal": 1200,
+        "discount_amount": 0,
+        "completion_discount": 0,
+        "tax_amount": 0,
+        "extra_amount": 0,
+        "advance_amount": 600,
+        "partial_amount": 0,
+        "payable_now": 600,
+        "balance_due_later": 600,
+        "total_amount": 1200,
+        "payment_status": "partial",
+        "booking_status": "confirmed",
+        "cancellation_reason": null,
+        "status": "confirmed",
+        "can_review": false,
+        "review_submitted": false,
+        "notes": null,
+        "customer_name": "Binod",
+        "customer_phone": "9856325355",
+        "customer_email": null,
+        "created_at": "2026-10-01 22:10:06",
+        "venue": {
+            "id": 1,
+            "name": "Dhananjay sport"
+        },
+        "court": {
+            "id": 6,
+            "name": "Shidartha"
+        },
+        "coupon": null,
+        "payments": [
+            {
+                "id": 665,
+                "payment_method": "cash",
+                "payment_type": "cash",
+                "amount": 600,
+                "status": "success",
+                "verification_status": "verified",
+                "payment_proof": null,
+                "payment_proof_url": null,
+                "has_payment_proof": false,
+                "payment_note": null,
+                "created_at": "2026-10-01 22:10:06"
+            },
+            {
+                "id": 666,
+                "payment_method": "online",
+                "payment_type": "online",
+                "amount": 200,
+                "status": "success",
+                "verification_status": "verified",
+                "payment_proof": null,
+                "payment_proof_url": null,
+                "has_payment_proof": false,
+                "payment_note": null,
+                "created_at": "2026-10-01 22:10:06"
+            }
+        ],
+        "paid_amount": 800,
+        "cash_paid_amount": 600,
+        "online_paid_amount": 200,
+        "payment_breakdown": [
+            {
+                "payment_method": "cash",
+                "payment_type": "cash",
+                "amount": 600,
+                "count": 1
+            },
+            {
+                "payment_method": "online",
+                "payment_type": "online",
+                "amount": 200,
+                "count": 1
+            }
+        ],
+        "balance_due": 400,
+        "review": null,
+        "booking_slots": [
+            {
+                "id": 568,
+                "slot_date": "2026-10-05",
+                "slot_start": "18:00:00",
+                "slot_end": "19:00:00",
+                "slot_price": 1200,
+                "status": "confirmed"
+            }
+        ],
+        "extra_items": []
+    }
+}

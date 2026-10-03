@@ -33,11 +33,22 @@ final class AppUtils {
     return 'Good evening';
   }
 
+  /// Phones scale the 375×812 design to the screen. From tablet width up the
+  /// design values are used as they are: scaling by width there turned a 12px
+  /// padding into ~48px on a desktop window (×4 at 1500px), which pushed
+  /// content off its card edges and out of line across the app.
+  bool get _usesDesignScale => width < _tabletWidth;
+
+  /// Matches `AppBreakpoints.tablet`.
+  static const double _tabletWidth = 600;
+
   double getHorizontalSize(double px) {
+    if (!_usesDesignScale) return px;
     return (px * width) / _designWidth;
   }
 
   double getVerticalSize(double px) {
+    if (!_usesDesignScale) return px;
     return (px * _availableHeight) / (_designHeight - _designStatusBarHeight);
   }
 
@@ -136,15 +147,34 @@ final class AppUtils {
 
     // Create a unique key based on message content to prevent duplicates
     final messageKey = key ?? '${msgType.name}_${message.hashCode}';
+    final bool wideToast = MediaQuery.sizeOf(context).width >= _tabletWidth;
+    final Widget snackBar = msgType == MsgType.error
+        ? CustomSnackBar.error(message: message)
+        : msgType == MsgType.success
+        ? CustomSnackBar.success(message: message)
+        : CustomSnackBar.info(message: message);
 
     showTopSnackBar(
       overlay,
-      msgType == MsgType.error
-          ? CustomSnackBar.error(message: message)
-          : msgType == MsgType.success
-          ? CustomSnackBar.success(message: message)
-          : CustomSnackBar.info(message: message),
+      snackBar,
       key: messageKey,
+      position: wideToast ? SnackBarPosition.bottomRight : SnackBarPosition.top,
+      padding: wideToast
+          ? const EdgeInsets.only(right: 24, bottom: 24)
+          : const EdgeInsets.all(16),
+      safeAreaValues: wideToast
+          ? const SafeAreaValues(top: false, left: false)
+          : const SafeAreaValues(),
+      dismissDirection: wideToast
+          ? const <DismissDirection>[DismissDirection.down]
+          : const <DismissDirection>[DismissDirection.up],
+      curve: wideToast ? Curves.easeOutCubic : Curves.elasticOut,
+      animationDuration: wideToast
+          ? const Duration(milliseconds: 260)
+          : const Duration(milliseconds: 1000),
+      reverseAnimationDuration: wideToast
+          ? const Duration(milliseconds: 200)
+          : const Duration(milliseconds: 550),
     );
   }
 

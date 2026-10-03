@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:hamro_futsal/features/media/utils/media_file_picker.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
@@ -159,7 +160,8 @@ class _VendorMediaLibrarySheetState extends State<MediaLibrarySheet> {
                                   allowMultiple: true,
                                 ),
                           onAddFromCamera:
-                              _visibleImageExtensions(allowed).isEmpty
+                              _visibleImageExtensions(allowed).isEmpty ||
+                                  !supportsCameraCapture
                               ? null
                               : _handleAddImageFromCamera,
                           isAddingImages: _isAdding,
@@ -1156,58 +1158,69 @@ class _AddMediaMenuButton extends StatelessWidget {
         WidgetsBinding.instance.addPostFrameCallback((_) => callback());
       },
       itemBuilder: (BuildContext context) {
-        return _AddSource.values.map((_AddSource source) {
-          final bool enabled = _callbackFor(source) != null;
-          return PopupMenuItem<_AddSource>(
-            value: source,
-            enabled: enabled,
-            child: Row(
-              children: <Widget>[
-                Container(
-                  width: AppDimens.sizeX36,
-                  height: AppDimens.sizeX36,
-                  decoration: BoxDecoration(
-                    color: LightColor.dividerColor,
-                    borderRadius: BorderRadius.circular(AppDimens.radiusX6),
-                  ),
-                  child: Icon(
-                    source.icon,
-                    size: AppDimens.sizeX18,
-                    color: enabled
-                        ? LightColor.secondaryColor
-                        : LightColor.secondaryTextColor,
-                  ),
-                ),
-                const SizedBox(width: AppDimens.sizeX12),
-                Flexible(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Text(
-                        source.label,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: FutsalTheme.getTextTheme(context).bodyTextSmall
-                            ?.copyWith(
-                              color: enabled
-                                  ? LightColor.primaryTextColor
-                                  : LightColor.secondaryTextColor,
-                            ),
+        // No Camera row where there is no camera to open (desktop).
+        return _AddSource.values
+            .where(
+              (_AddSource source) =>
+                  source != _AddSource.camera || onAddFromCamera != null,
+            )
+            .map((_AddSource source) {
+              final bool enabled = _callbackFor(source) != null;
+              return PopupMenuItem<_AddSource>(
+                value: source,
+                enabled: enabled,
+                child: Row(
+                  children: <Widget>[
+                    Container(
+                      width: AppDimens.sizeX36,
+                      height: AppDimens.sizeX36,
+                      decoration: BoxDecoration(
+                        color: LightColor.dividerColor,
+                        borderRadius: BorderRadius.circular(AppDimens.radiusX6),
                       ),
-                      Text(
-                        source.description,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: FutsalTheme.getTextTheme(context).bodySubTitle
-                            ?.copyWith(color: LightColor.secondaryTextColor),
+                      child: Icon(
+                        source.icon,
+                        size: AppDimens.sizeX18,
+                        color: enabled
+                            ? LightColor.secondaryColor
+                            : LightColor.secondaryTextColor,
                       ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(width: AppDimens.sizeX12),
+                    Flexible(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          Text(
+                            source.label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: FutsalTheme.getTextTheme(context)
+                                .bodyTextSmall
+                                ?.copyWith(
+                                  color: enabled
+                                      ? LightColor.primaryTextColor
+                                      : LightColor.secondaryTextColor,
+                                ),
+                          ),
+                          Text(
+                            source.description,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: FutsalTheme.getTextTheme(context)
+                                .bodySubTitle
+                                ?.copyWith(
+                                  color: LightColor.secondaryTextColor,
+                                ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          );
-        }).toList();
+              );
+            })
+            .toList();
       },
       child: CustomPaint(
         foregroundPainter: _DashedRRectPainter(

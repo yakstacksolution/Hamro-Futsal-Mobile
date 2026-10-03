@@ -11,6 +11,8 @@ import UIKit
     // Must run before any GoogleMap is created.
     if let key = GoogleMapsKey.read() {
       GMSServices.provideAPIKey(key)
+    } else {
+      NSLog("Google Maps API key not found. Check bundled env files or GMSApiKey in Info.plist.")
     }
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
@@ -24,18 +26,40 @@ import UIKit
 /// file the Dart side and the Android build read, so the key lives in one place.
 enum GoogleMapsKey {
   static func read() -> String? {
+    if let key = Bundle.main.object(forInfoDictionaryKey: "GMSApiKey") as? String {
+      let trimmed = key.trimmingCharacters(in: .whitespacesAndNewlines)
+      if !trimmed.isEmpty { return trimmed }
+    }
+
     for asset in ["env_production.env", "env_staging.env"] {
-      let key = FlutterDartProject.lookupKey(forAsset: asset)
-      guard
-        let path = Bundle.main.path(forResource: key, ofType: nil),
-        let contents = try? String(contentsOfFile: path, encoding: .utf8)
-      else { continue }
+      guard let contents = readFlutterAsset(asset) else { continue }
       for line in contents.split(whereSeparator: \.isNewline) {
         let trimmed = line.trimmingCharacters(in: .whitespaces)
         guard trimmed.hasPrefix("GOOGLE_MAPS_API_KEY=") else { continue }
         let value = trimmed.dropFirst("GOOGLE_MAPS_API_KEY=".count)
           .trimmingCharacters(in: .whitespaces)
         if !value.isEmpty { return value }
+      }
+    }
+    return nil
+  }
+
+  private static func readFlutterAsset(_ asset: String) -> String? {
+    let flutterAssetKey = FlutterDartProject.lookupKey(forAsset: asset)
+    let resourcePath = Bundle.main.resourcePath
+
+    let candidatePaths = [
+      Bundle.main.path(forResource: flutterAssetKey, ofType: nil),
+      Bundle.main.path(forResource: asset, ofType: nil),
+      resourcePath.map { "\($0)/Frameworks/App.framework/flutter_assets/\(flutterAssetKey)" },
+      resourcePath.map { "\($0)/Frameworks/App.framework/flutter_assets/\(asset)" },
+      resourcePath.map { "\($0)/flutter_assets/\(flutterAssetKey)" },
+      resourcePath.map { "\($0)/flutter_assets/\(asset)" },
+    ].compactMap { $0 }
+
+    for path in candidatePaths {
+      if let contents = try? String(contentsOfFile: path, encoding: .utf8) {
+        return contents
       }
     }
     return nil
@@ -156,6 +180,7 @@ final class NativeSplashViewController: UIViewController {
   private let cardView = UIView()
   private var glowFloatViews: [UIView] = []
   private var dotViews: [UIView] = []
+  private var glowSizeConstraints: [(NSLayoutConstraint, CGFloat)] = []
 
   init(onFinish: @escaping () -> Void) {
     self.onFinish = onFinish
@@ -189,8 +214,6 @@ final class NativeSplashViewController: UIViewController {
   // MARK: - Backdrop
 
   private func setupBackdrop() {
-    let width = view.widthAnchor
-
     let glow1 = GlowView(color: SplashPalette.secondaryLight.withAlphaComponent(0.16))
     let glow2 = GlowView(color: SplashPalette.primarySoft.withAlphaComponent(0.42))
     let glow3 = GlowView(color: UIColor(white: 1, alpha: 0.07))
@@ -207,24 +230,28 @@ final class NativeSplashViewController: UIViewController {
     let g2y = glow2.topAnchor.constraint(equalTo: view.topAnchor)
     let g3x = glow3.trailingAnchor.constraint(equalTo: view.trailingAnchor)
     let g3y = glow3.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+    let g1w = glow1.widthAnchor.constraint(equalToConstant: 0)
+    let g2w = glow2.widthAnchor.constraint(equalToConstant: 0)
+    let g3w = glow3.widthAnchor.constraint(equalToConstant: 0)
 
     NSLayoutConstraint.activate([
       // TopEnd, size 0.62w, offset (+0.08w, -0.12w)
-      glow1.widthAnchor.constraint(equalTo: width, multiplier: 0.62),
+      g1w,
       glow1.heightAnchor.constraint(equalTo: glow1.widthAnchor),
       g1x, g1y,
 
       // TopStart, size 0.5w, offset (-0.18w, +0.22h)
-      glow2.widthAnchor.constraint(equalTo: width, multiplier: 0.5),
+      g2w,
       glow2.heightAnchor.constraint(equalTo: glow2.widthAnchor),
       g2x, g2y,
 
       // BottomEnd, size 0.68w, offset (+0.02w, +0.2w)
-      glow3.widthAnchor.constraint(equalTo: width, multiplier: 0.68),
+      g3w,
       glow3.heightAnchor.constraint(equalTo: glow3.widthAnchor),
       g3x, g3y,
     ])
 
+    glowSizeConstraints = [(g1w, 0.62), (g2w, 0.5), (g3w, 0.68)]
     glowOffsets = [
       (g1x, { w, _ in w * 0.08 }), (g1y, { w, _ in -w * 0.12 }),
       (g2x, { w, _ in -w * 0.18 }), (g2y, { _, h in h * 0.22 }),
@@ -251,8 +278,12 @@ final class NativeSplashViewController: UIViewController {
     super.viewDidLayoutSubviews()
     let w = view.bounds.width
     let h = view.bounds.height
+    let visualWidth = min(w, 520)
+    for (constraint, multiplier) in glowSizeConstraints {
+      constraint.constant = visualWidth * multiplier
+    }
     for (constraint, offset) in glowOffsets {
-      constraint.constant = offset(w, h)
+      constraint.constant = offset(visualWidth, h)
     }
   }
 
@@ -265,8 +296,10 @@ final class NativeSplashViewController: UIViewController {
     column.translatesAutoresizingMaskIntoConstraints = false
     view.addSubview(column)
     NSLayoutConstraint.activate([
-      column.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 24),
-      column.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -24),
+      column.centerXAnchor.constraint(equalTo: view.safeAreaLayoutGuide.centerXAnchor),
+      column.widthAnchor.constraint(lessThanOrEqualToConstant: 420),
+      column.leadingAnchor.constraint(greaterThanOrEqualTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 24),
+      column.trailingAnchor.constraint(lessThanOrEqualTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -24),
       column.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
       column.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
     ])

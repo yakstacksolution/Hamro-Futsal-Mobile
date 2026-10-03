@@ -99,10 +99,7 @@ void main() {
     });
 
     testWidgets('a vendor list leads with the player instead', (tester) async {
-      await _pump(
-        tester,
-        BookingCard(booking: _booking(), showPlayer: true),
-      );
+      await _pump(tester, BookingCard(booking: _booking(), showPlayer: true));
       final String text = _text(tester);
 
       expect(text, contains('Ram Thapa'));
@@ -113,10 +110,7 @@ void main() {
     });
 
     testWidgets('a missing field takes its row away', (tester) async {
-      await _pump(
-        tester,
-        BookingCard(booking: _booking(ref: '', amount: 0)),
-      );
+      await _pump(tester, BookingCard(booking: _booking(ref: '', amount: 0)));
       expect(find.text('REFERENCE'), findsNothing);
       expect(_text(tester), isNot(contains('NPR')));
       // The status chip still identifies the row.
@@ -275,9 +269,7 @@ void main() {
       // rather than stretching across the card.
       await _pump(
         tester,
-        BookingCard(
-          booking: _booking(createdAt: null, type: null, amount: 0),
-        ),
+        BookingCard(booking: _booking(createdAt: null, type: null, amount: 0)),
       );
       final List<Rect> cells = tester
           .widgetList<DataCardCell>(find.byType(DataCardCell))

@@ -76,6 +76,84 @@ class RewardsView extends StatelessWidget {
     context.read<RewardsBloc>().add(const ClearGeneratedRewardCouponEvent());
   }
 
+  Widget _historyPreview(
+    BuildContext context, {
+    required RewardsState state,
+    required List<RewardHistoryEntryModel> recent,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        RewardSectionHeader(
+          title: StringConstants.recentRewardActivity,
+          actionLabel: state.history.length > recent.length
+              ? StringConstants.viewAllRewardHistory
+              : null,
+          onAction: () => _openHistory(context),
+        ),
+        const SizedBox(height: AppDimens.paddingX10),
+        _RecentHistory(state: state, entries: recent),
+      ],
+    );
+  }
+
+  Widget _rewardsContent(
+    BuildContext context, {
+    required RewardsState state,
+    required RewardsSummaryModel summary,
+    required List<RewardHistoryEntryModel> recent,
+  }) {
+    final List<Widget> primary = <Widget>[
+      RewardBalanceCard(
+        summary: summary,
+        isRedeeming: state.isGenerating,
+        onRedeem: () =>
+            context.read<RewardsBloc>().add(const GenerateRewardCouponEvent()),
+      ),
+      const SizedBox(height: AppDimens.paddingX12),
+      RewardStatsRow(summary: summary),
+      const SizedBox(height: AppDimens.paddingX12),
+      RewardExpiryNotice(summary: summary),
+    ];
+
+    final List<Widget> secondary = <Widget>[
+      RewardHowItWorksCard(summary: summary),
+      const SizedBox(height: AppDimens.paddingX20),
+      _historyPreview(context, state: state, recent: recent),
+    ];
+
+    if (!context.isDesktop) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          ...primary,
+          const SizedBox(height: AppDimens.paddingX4),
+          ...secondary,
+        ],
+      );
+    }
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        SizedBox(
+          width: AppDimens.rewardsSideColumnWidth,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: primary,
+          ),
+        ),
+        const SizedBox(width: AppDimens.paddingX24),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: secondary,
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -122,49 +200,40 @@ class RewardsView extends StatelessWidget {
                 .take(_kRecentHistoryCount)
                 .toList(growable: false);
 
-            final double horizontal = context.responsive<double>(
-              mobile: AppDimens.paddingX20,
-              tablet: AppDimens.paddingX32,
-            );
-
             return RefreshIndicator(
               color: LightColor.brandTextColor,
               onRefresh: () => _refresh(context),
-              child: ListView(
+              child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(
                   parent: BouncingScrollPhysics(),
                 ),
                 padding: EdgeInsets.fromLTRB(
-                  horizontal,
+                  context.responsive<double>(
+                    mobile: AppDimens.paddingX20,
+                    tablet: AppDimens.paddingX32,
+                  ),
                   AppDimens.paddingX16,
-                  horizontal,
+                  context.responsive<double>(
+                    mobile: AppDimens.paddingX20,
+                    tablet: AppDimens.paddingX32,
+                  ),
                   AppDimens.paddingX40,
                 ),
-                children: <Widget>[
-                  RewardBalanceCard(
-                    summary: summary,
-                    isRedeeming: state.isGenerating,
-                    onRedeem: () => context.read<RewardsBloc>().add(
-                      const GenerateRewardCouponEvent(),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: context.isDesktop
+                          ? AppDimens.rewardsShellMaxWidth
+                          : AppDimens.rewardsColumnMaxWidth,
+                    ),
+                    child: _rewardsContent(
+                      context,
+                      state: state,
+                      summary: summary,
+                      recent: recent,
                     ),
                   ),
-                  const SizedBox(height: AppDimens.paddingX12),
-                  RewardStatsRow(summary: summary),
-                  const SizedBox(height: AppDimens.paddingX12),
-                  RewardExpiryNotice(summary: summary),
-                  const SizedBox(height: AppDimens.paddingX4),
-                  RewardHowItWorksCard(summary: summary),
-                  const SizedBox(height: AppDimens.paddingX20),
-                  RewardSectionHeader(
-                    title: StringConstants.recentRewardActivity,
-                    actionLabel: state.history.length > recent.length
-                        ? StringConstants.viewAllRewardHistory
-                        : null,
-                    onAction: () => _openHistory(context),
-                  ),
-                  const SizedBox(height: AppDimens.paddingX10),
-                  _RecentHistory(state: state, entries: recent),
-                ],
+                ),
               ),
             );
           },

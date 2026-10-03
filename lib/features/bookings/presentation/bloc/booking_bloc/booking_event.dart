@@ -113,3 +113,13 @@ class ApplyFutsalBookingsFiltersEvent extends BookingEvent {
   @override
   List<Object?> get props => <Object?>[dateFilter, order];
 }
+
+/// Writes a booking returned by an action endpoint into cached futsal slices.
+class FutsalBookingUpdatedEvent extends BookingEvent {
+  const FutsalBookingUpdatedEvent(this.booking);
+
+  final BookingModel booking;
+
+  @override
+  List<Object?> get props => <Object?>[booking];
+}

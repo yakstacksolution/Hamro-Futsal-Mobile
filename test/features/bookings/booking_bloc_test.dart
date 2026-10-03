@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hamro_futsal/features/bookings/domain/model/booking_list_query.dart';
@@ -364,6 +366,154 @@ void main() {
       },
     );
   });
+
+  group('completing a booking', () {
+    BookingModel completeResponse() => BookingModel.fromResponse(
+      jsonDecode(
+        File('test/fixtures/booking_complete_response.json').readAsStringSync(),
+      ),
+    );
+
+    test('the complete response parses as the settled booking', () {
+      final BookingModel b = completeResponse();
+      expect(b.id, 561);
+      expect(b.status, BookingStatus.completed);
+      expect(b.paymentStatus, 'paid');
+      expect(b.paidAmount, 2500);
+      expect(b.cashPaidAmount, 2000);
+      expect(b.balanceDue, 0);
+      expect(b.amountDueForCollection, 0);
+      expect(b.payments, hasLength(3));
+      expect(b.payments.last.note, 'Captured on booking completion.');
+      expect(b.bookingSlots.single.status, 'completed');
+    });
+
+    test('the returned booking leaves Confirmed and shows under All', () async {
+      final BookingModel confirmed = completeResponse().copyWith(
+        status: BookingStatus.confirmed,
+      );
+      final _FakeBookingRepository repository = _FakeBookingRepository(
+        booking: confirmed,
+      );
+      final BookingBloc bloc = BookingBloc(GetBookingsUseCase(repository));
+      addTearDown(bloc.close);
+
+      for (final BookingStatusFilter filter in <BookingStatusFilter>[
+        BookingStatusFilter.all,
+        BookingStatusFilter.confirmed,
+      ]) {
+        final int tick = bloc.state.refreshTick;
+        bloc.add(FetchFutsalBookingsEvent(filter: filter, force: true));
+        await bloc.stream.firstWhere((BookingState s) => s.refreshTick > tick);
+      }
+
+      bloc.add(FutsalBookingUpdatedEvent(completeResponse()));
+      final BookingState state = await bloc.stream.first;
+
+      expect(
+        state.futsalSlice(BookingStatusFilter.confirmed).bookings,
+        isEmpty,
+      );
+      final BookingModel shown = state
+          .futsalSlice(BookingStatusFilter.all)
+          .bookings
+          .single;
+      expect(shown.status, BookingStatus.completed);
+      expect(shown.paidAmount, 2500);
+    });
+
+    test(
+      'a refetch asked for while one is out goes out again after it',
+      () async {
+        final _FakeBookingRepository repository = _FakeBookingRepository();
+        final BookingBloc bloc = BookingBloc(GetBookingsUseCase(repository));
+        addTearDown(bloc.close);
+
+        // A refetch is out (it left before the booking was completed)...
+        repository.futsalGate = Completer<void>();
+        bloc.add(
+          const FetchFutsalBookingsEvent(
+            filter: BookingStatusFilter.confirmed,
+            force: true,
+            silent: true,
+          ),
+        );
+        await Future<void>.delayed(Duration.zero);
+        // ...when the completed card asks for one.
+        bloc.add(
+          const FetchFutsalBookingsEvent(
+            filter: BookingStatusFilter.confirmed,
+            force: true,
+            silent: true,
+          ),
+        );
+        await Future<void>.delayed(Duration.zero);
+        expect(repository.futsalBookingsCalls, 1);
+
+        // The server now has it completed; the stale answer must not be last.
+        repository.booking = repository.booking.copyWith(
+          status: BookingStatus.completed,
+        );
+        repository.futsalGate!.complete();
+        await bloc.stream.firstWhere((BookingState s) => s.refreshTick >= 2);
+
+        expect(repository.futsalBookingsCalls, 2);
+        expect(
+          bloc.state
+              .futsalSlice(BookingStatusFilter.confirmed)
+              .bookings
+              .single
+              .status,
+          BookingStatus.completed,
+        );
+      },
+    );
+
+    test('details keep the completed status over a stale read', () async {
+      final BookingModel confirmed = completeResponse().copyWith(
+        status: BookingStatus.confirmed,
+      );
+      // The details endpoint still answers with the booking confirmed.
+      final _FakeBookingRepository repository = _FakeBookingRepository(
+        booking: confirmed,
+      );
+      final BookingDetailsBloc bloc = BookingDetailsBloc(
+        GetBookingsUseCase(repository),
+        initialBooking: confirmed,
+        isFutsalView: true,
+      );
+      addTearDown(bloc.close);
+
+      bloc.add(BookingCompletedEvent(booking: completeResponse()));
+      await bloc.stream.first;
+      expect(bloc.state.booking.status, BookingStatus.completed);
+      expect(bloc.state.booking.paidAmount, 2500);
+
+      bloc.add(FetchBookingDetailsEvent(confirmed.id));
+      await bloc.stream.firstWhere(
+        (BookingDetailsState s) => s.status == BookingDetailsStatus.success,
+      );
+      expect(bloc.state.booking.status, BookingStatus.completed);
+    });
+
+    test(
+      'a response naming another booking still completes this one',
+      () async {
+        final _FakeBookingRepository repository = _FakeBookingRepository();
+        final BookingDetailsBloc bloc = BookingDetailsBloc(
+          GetBookingsUseCase(repository),
+          initialBooking: repository.booking,
+          isFutsalView: true,
+        );
+        addTearDown(bloc.close);
+
+        bloc.add(BookingCompletedEvent(booking: completeResponse()));
+        await bloc.stream.first;
+        expect(bloc.state.booking.id, repository.booking.id);
+        expect(bloc.state.booking.status, BookingStatus.completed);
+      },
+    );
+  });
 }
 
 final class _FakeBookingRepository implements BookingRepository {
@@ -405,12 +555,13 @@ final class _FakeBookingRepository implements BookingRepository {
   int futsalBookingsCalls = 0;
   final List<String?> myStatuses = <String?>[];
   Completer<void>? myGate;
+  Completer<void>? futsalGate;
   final List<String?> futsalStatuses = <String?>[];
   int verifyPaymentCalls = 0;
   int acceptBookingCalls = 0;
   int rejectBookingCalls = 0;
 
-  final BookingModel booking;
+  BookingModel booking;
 
   @override
   Future<Either<AppException, PaginatedBookings>> getMyBookings(
@@ -446,6 +597,7 @@ final class _FakeBookingRepository implements BookingRepository {
   ) async {
     futsalBookingsCalls++;
     futsalStatuses.add(query.status);
+    if (futsalGate != null) await futsalGate!.future;
     final AppException? error = futsalError;
     return error == null
         ? right(

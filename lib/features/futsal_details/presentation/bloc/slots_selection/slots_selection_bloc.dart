@@ -432,7 +432,8 @@ class SlotsSelectionBloc
       (RecurringAvailabilityModel result) => emit(
         state.copyWith(
           recurringCheckStatus: RecurringCheckStatus.success,
-          recurringAvailability: result,
+          // Cover every requested date, not just the ones the server echoed.
+          recurringAvailability: result.reconciledWith(current.sessionDates),
           clearRecurringError: true,
         ),
       ),

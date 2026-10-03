@@ -57,6 +57,13 @@ jobs:
       - name: 📦 Install dependencies
         run: flutter pub get
 
+      - name: 🔐 Prepare app Firebase config
+        env:
+          FIREBASE_ANDROID_GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.FIREBASE_ANDROID_GOOGLE_SERVICES_JSON_BASE64 }}
+        run: |
+          dart tool/prepare_firebase_config.dart
+          dart tool/firebase_config_check.dart android/app/google-services.json
+
       # The action reports a bare "have you run firebase login?" for every
       # credential problem, so validate the secret here where the error can name
       # the actual cause. Accepts the service account JSON either raw or base64.

@@ -22,6 +22,7 @@ class BookingDetailsBloc
     on<RejectPaymentEvent>(_onRejectPayment);
     on<AcceptBookingEvent>(_onAcceptBooking);
     on<RejectBookingEvent>(_onRejectBooking);
+    on<BookingCompletedEvent>(_onCompleted);
     on<CheckBookingReviewEvent>(_onCheckReview);
     on<SubmitBookingReviewEvent>(_onSubmitReview);
   }
@@ -32,15 +33,17 @@ class BookingDetailsBloc
   /// it, so the cancel-boundary API is not called there.
   final bool isFutsalView;
 
+  /// Set once the complete request succeeds here. Completing is final, so a
+  /// details read that still reports the booking as pending/confirmed (stale,
+  /// or racing the update) must not undo it.
+  bool _completedHere = false;
+
   FutureOr<void> _onFetch(
     FetchBookingDetailsEvent event,
     Emitter<BookingDetailsState> emit,
   ) async {
     emit(
-      state.copyWith(
-        status: BookingDetailsStatus.loading,
-        clearError: true,
-      ),
+      state.copyWith(status: BookingDetailsStatus.loading, clearError: true),
     );
 
     final result = await _useCase.getBookingDetails(event.bookingId);
@@ -52,14 +55,12 @@ class BookingDetailsBloc
         ),
       ),
       (booking) {
-        final BookingModel fresh = booking.copyWith(
-          playerId: booking.playerId ?? state.booking.playerId,
-          playerName: booking.playerName ?? state.booking.playerName,
-          playerPhone: booking.playerPhone ?? state.booking.playerPhone,
-          playerEmail: booking.playerEmail ?? state.booking.playerEmail,
-          venueId: booking.venueId ?? state.booking.venueId,
-          vendorId: booking.vendorId ?? state.booking.vendorId,
-        );
+        BookingModel fresh = _preserveKnownIdentity(booking);
+        if (_completedHere &&
+            (fresh.status == BookingStatus.pending ||
+                fresh.status == BookingStatus.confirmed)) {
+          fresh = fresh.copyWith(status: BookingStatus.completed);
+        }
         emit(
           state.copyWith(
             status: BookingDetailsStatus.success,
@@ -386,6 +387,35 @@ class BookingDetailsBloc
           clearError: true,
         ),
       ),
+    );
+  }
+
+  void _onCompleted(
+    BookingCompletedEvent event,
+    Emitter<BookingDetailsState> emit,
+  ) {
+    _completedHere = true;
+    // The complete response may carry a booking that is not this one (or none
+    // parsed, id 0) — then mark the booking on screen as completed instead.
+    final BookingModel completed = event.booking.id == state.booking.id
+        ? _preserveKnownIdentity(event.booking)
+        : state.booking;
+    emit(
+      state.copyWith(
+        booking: completed.copyWith(status: BookingStatus.completed),
+        clearError: true,
+      ),
+    );
+  }
+
+  BookingModel _preserveKnownIdentity(BookingModel booking) {
+    return booking.copyWith(
+      playerId: booking.playerId ?? state.booking.playerId,
+      playerName: booking.playerName ?? state.booking.playerName,
+      playerPhone: booking.playerPhone ?? state.booking.playerPhone,
+      playerEmail: booking.playerEmail ?? state.booking.playerEmail,
+      venueId: booking.venueId ?? state.booking.venueId,
+      vendorId: booking.vendorId ?? state.booking.vendorId,
     );
   }
 }

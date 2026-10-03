@@ -536,58 +536,85 @@ class BookingCard extends StatelessWidget {
     // booking's identity, then its money — and the count stays even so no row
     // is left half empty. The court and phone live on the subtitle above
     // rather than taking cells here.
-    final List<Widget> cells = <Widget>[
-      DataCardCell(
-        label: StringConstants.date,
-        value: DateFmt.date(booking.date),
-        density: _density,
-      ),
-      if (timeRange.isNotEmpty)
+    //
+    // Each cell carries a flex weight for the wide (tablet / desktop) layout,
+    // where the same facts sit in one row: ranges and timestamps get more room.
+    final List<(Widget, int)> facts = <(Widget, int)>[
+      (
         DataCardCell(
-          label: StringConstants.time,
-          value: timeRange,
+          label: StringConstants.date,
+          value: DateFmt.date(booking.date),
           density: _density,
         ),
+        2,
+      ),
+      if (timeRange.isNotEmpty)
+        (
+          DataCardCell(
+            label: StringConstants.time,
+            value: timeRange,
+            density: _density,
+          ),
+          3,
+        ),
       if (booking.bookingRef.isNotEmpty)
-        DataCardCell(
-          label: StringConstants.reference,
-          value: booking.bookingRef,
-          density: _density,
+        (
+          DataCardCell(
+            label: StringConstants.reference,
+            value: booking.bookingRef,
+            density: _density,
+          ),
+          2,
         ),
       // `regular`, `manual`, `online` — how the booking was taken. Paired with
       // the reference because both answer "which booking is this".
       if (bookingType != null && bookingType.isNotEmpty)
-        DataCardCell(
-          label: StringConstants.type,
-          value: bookingType,
-          valueColor: manual ? LightColor.warningColor : null,
-          density: _density,
+        (
+          DataCardCell(
+            label: StringConstants.type,
+            value: bookingType,
+            valueColor: manual ? LightColor.warningColor : null,
+            density: _density,
+          ),
+          2,
         ),
       // When the booking was placed, as opposed to the slot it is for — the
       // two are often weeks apart, so the card names both rather than showing
       // one date and leaving the reader to guess which.
       if (booking.createdAt != null)
-        DataCardCell(
-          label: StringConstants.bookedOn,
-          value: DateFmt.dateTime(booking.createdAt!),
-          density: _density,
+        (
+          DataCardCell(
+            label: StringConstants.bookedOn,
+            value: DateFmt.dateTime(booking.createdAt!),
+            density: _density,
+          ),
+          3,
         ),
       // What is still owed, or what has been paid when nothing is — the money
       // question a reader has either way, and it completes the last pair.
       if (balanceDue > 0)
-        DataCardCell(
-          label: StringConstants.balanceDue,
-          value: Money.npr(balanceDue),
-          valueColor: LightColor.warningColor,
-          density: _density,
+        (
+          DataCardCell(
+            label: StringConstants.balanceDue,
+            value: Money.npr(balanceDue),
+            valueColor: LightColor.warningColor,
+            density: _density,
+          ),
+          2,
         )
       else if (booking.paidAmount > 0)
-        DataCardCell(
-          label: StringConstants.paid,
-          value: Money.npr(booking.paidAmount),
-          valueColor: LightColor.brandTextColor,
-          density: _density,
+        (
+          DataCardCell(
+            label: StringConstants.paid,
+            value: Money.npr(booking.paidAmount),
+            valueColor: LightColor.brandTextColor,
+            density: _density,
+          ),
+          2,
         ),
+    ];
+    final List<Widget> cells = <Widget>[
+      for (final (Widget cell, int _) in facts) cell,
     ];
 
     return Semantics(
@@ -610,57 +637,157 @@ class BookingCard extends StatelessWidget {
       ].join(', '),
       child: DataCard(
         onTap: onTap,
-        child: Column(
-          // Shrink-wraps: a card is as tall as its content, wherever it is
-          // put — a list item, a Column, an Align.
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            DataCardHeader(
-              icon: showPlayer ? Icons.person_rounded : Icons.stadium_rounded,
-              iconColor: statusColor,
+        child: LayoutBuilder(
+          builder: (BuildContext context, BoxConstraints constraints) {
+            // Tablet / desktop: a card this wide reads better as one short
+            // row of facts than as a tall 2×2 grid spread across the screen.
+            // Phone cards never reach this width, so they are unchanged.
+            if (constraints.maxWidth >= _wideFrom) {
+              return _wideLayout(
+                title: title,
+                subtitle: <String>[
+                  if (subtitle.isNotEmpty) subtitle,
+                  if (hasBookedBy) '${StringConstants.bookedBy} $bookedBy',
+                ].join('  ·  '),
+                statusColor: statusColor,
+                facts: facts,
+                badges: badges,
+              );
+            }
+            return _compactLayout(
               title: title,
               subtitle: subtitle,
-              amount: booking.amount > 0 ? Money.npr(booking.amount) : null,
-              chipLabel: booking.status.value,
-              chipColor: statusColor,
-              titleMaxLines: 1,
-              density: _density,
-              // The venue name and the figure lead the card without heading
-              // it: on a list the card is scanned whole, and a full step up
-              // made the top of every card shout.
-              titleSize: kDataCardListTitleSize,
-            ),
-            const DataCardDivider(),
-            // Full width above the grid rather than a cell in it: the grid is
-            // paired facts that fill exactly, and a name can run long.
-            if (hasBookedBy) ...<Widget>[
-              DataCardCell(
-                label: StringConstants.bookedBy,
-                value: bookedBy,
-                maxLines: 1,
-                density: _density,
-              ),
-              const SizedBox(height: AppDimens.paddingX10),
-            ],
-            DataCardGrid(cells: cells),
-            if (badges.isNotEmpty) ...<Widget>[
-              const SizedBox(height: AppDimens.paddingX10),
-              Wrap(
-                spacing: AppDimens.paddingX6,
-                runSpacing: AppDimens.paddingX4,
-                children: badges,
-              ),
-            ],
-            if (footer != null) ...<Widget>[
-              const DataCardDivider(),
-              // Full width, not aligned: the actions are a row of equal-width
-              // buttons and they are meant to span the card.
-              footer!,
+              statusColor: statusColor,
+              bookedBy: hasBookedBy ? bookedBy : null,
+              cells: cells,
+              badges: badges,
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  /// Width of the card's content from which the wide layout is used.
+  static const double _wideFrom = 720;
+
+  Widget _header({
+    required String title,
+    required String subtitle,
+    required Color statusColor,
+  }) => DataCardHeader(
+    icon: showPlayer ? Icons.person_rounded : Icons.stadium_rounded,
+    iconColor: statusColor,
+    title: title,
+    subtitle: subtitle,
+    amount: booking.amount > 0 ? Money.npr(booking.amount) : null,
+    chipLabel: booking.status.value,
+    chipColor: statusColor,
+    titleMaxLines: 1,
+    density: _density,
+    // The venue name and the figure lead the card without heading it: on a
+    // list the card is scanned whole, and a full step up made the top of
+    // every card shout.
+    titleSize: kDataCardListTitleSize,
+  );
+
+  /// Tablet / desktop: the header (with who booked it on the subtitle), the
+  /// facts side by side in one row, and the actions at the right.
+  Widget _wideLayout({
+    required String title,
+    required String subtitle,
+    required Color statusColor,
+    required List<(Widget, int)> facts,
+    required List<Widget> badges,
+  }) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        _header(title: title, subtitle: subtitle, statusColor: statusColor),
+        const DataCardDivider(),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            for (int i = 0; i < facts.length; i++) ...<Widget>[
+              if (i > 0) const SizedBox(width: AppDimens.paddingX16),
+              Expanded(flex: facts[i].$2, child: facts[i].$1),
             ],
           ],
         ),
-      ),
+        if (badges.isNotEmpty || footer != null) ...<Widget>[
+          const SizedBox(height: AppDimens.paddingX12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: <Widget>[
+              Expanded(
+                child: Wrap(
+                  spacing: AppDimens.paddingX6,
+                  runSpacing: AppDimens.paddingX4,
+                  children: badges,
+                ),
+              ),
+              if (footer != null) ...<Widget>[
+                const SizedBox(width: AppDimens.paddingX12),
+                // The equal-width action buttons, kept to a sensible size at
+                // the right instead of stretching across a wide card.
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 420),
+                  child: footer!,
+                ),
+              ],
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+
+  /// Phone: the original stacked card.
+  Widget _compactLayout({
+    required String title,
+    required String subtitle,
+    required Color statusColor,
+    required String? bookedBy,
+    required List<Widget> cells,
+    required List<Widget> badges,
+  }) {
+    final bool hasBookedBy = bookedBy != null;
+    return Column(
+      // Shrink-wraps: a card is as tall as its content, wherever it is
+      // put — a list item, a Column, an Align.
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        _header(title: title, subtitle: subtitle, statusColor: statusColor),
+        const DataCardDivider(),
+        // Full width above the grid rather than a cell in it: the grid is
+        // paired facts that fill exactly, and a name can run long.
+        if (hasBookedBy) ...<Widget>[
+          DataCardCell(
+            label: StringConstants.bookedBy,
+            value: bookedBy,
+            maxLines: 1,
+            density: _density,
+          ),
+          const SizedBox(height: AppDimens.paddingX10),
+        ],
+        DataCardGrid(cells: cells),
+        if (badges.isNotEmpty) ...<Widget>[
+          const SizedBox(height: AppDimens.paddingX10),
+          Wrap(
+            spacing: AppDimens.paddingX6,
+            runSpacing: AppDimens.paddingX4,
+            children: badges,
+          ),
+        ],
+        if (footer != null) ...<Widget>[
+          const DataCardDivider(),
+          // Full width, not aligned: the actions are a row of equal-width
+          // buttons and they are meant to span the card.
+          footer!,
+        ],
+      ],
     );
   }
 

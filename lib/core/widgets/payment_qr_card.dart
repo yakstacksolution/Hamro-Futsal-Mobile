@@ -3,6 +3,7 @@ import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/app_utils.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/utils/responsive.dart';
 import 'package:hamro_futsal/core/utils/custom_image_view.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:hamro_futsal/core/widgets/attachment_viewer.dart';
@@ -315,11 +316,23 @@ class _PaymentQrCardState extends State<PaymentQrCard> {
             ],
           ),
           const SizedBox(height: AppDimens.sizeX8),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(AppDimens.radiusX12),
-            child: ColoredBox(
-              color: LightColor.qrSurface,
-              child: AspectRatio(aspectRatio: 1, child: _qrViewport(context)),
+          // A square as wide as the card is right on a phone; on a tablet or
+          // desktop column it grew to ~700px, so it is capped and centred.
+          Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: context.isTabletOrWider ? 320 : double.infinity,
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(AppDimens.radiusX12),
+                child: ColoredBox(
+                  color: LightColor.qrSurface,
+                  child: AspectRatio(
+                    aspectRatio: 1,
+                    child: _qrViewport(context),
+                  ),
+                ),
+              ),
             ),
           ),
           if (_images.length > 1) _pageIndicator(context),

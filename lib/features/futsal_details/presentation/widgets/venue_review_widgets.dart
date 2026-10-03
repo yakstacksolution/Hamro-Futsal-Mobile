@@ -27,57 +27,75 @@ class VenueRatingSummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
-    return Container(
-      padding: const EdgeInsets.all(AppDimens.paddingX16),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: <Color>[LightColor.secondaryColor, LightColor.primaryDark],
-        ),
-        borderRadius: BorderRadius.circular(AppDimens.radiusX10),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: <Widget>[
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              Text(
-                rating.toStringAsFixed(1),
-                style: textTheme.headingLarge?.copyWith(
-                  color: LightColor.onBrandSurface,
-                  fontWeight: FontWeight.w900,
-                ),
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        final bool stacked = constraints.maxWidth < 380;
+        final Widget score = Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Text(
+              rating.toStringAsFixed(1),
+              style: textTheme.headingLarge?.copyWith(
+                color: LightColor.onBrandSurface,
+                fontWeight: FontWeight.w900,
               ),
-              const SizedBox(height: AppDimens.sizeX4),
-              _Stars(rating: rating, color: LightColor.onBrandSurface),
-              const SizedBox(height: AppDimens.sizeX4),
-              Text(
-                reviewCount == 1 ? '1 review' : '$reviewCount reviews',
-                style: textTheme.bodyTextSmall?.copyWith(
-                  color: LightColor.onBrandSurface.withValues(alpha: 0.75),
-                  fontWeight: FontWeight.w500,
-                ),
+            ),
+            const SizedBox(height: AppDimens.sizeX4),
+            _Stars(rating: rating, color: LightColor.onBrandSurface),
+            const SizedBox(height: AppDimens.sizeX4),
+            Text(
+              reviewCount == 1 ? '1 review' : '$reviewCount reviews',
+              style: textTheme.bodyTextSmall?.copyWith(
+                color: LightColor.onBrandSurface.withValues(alpha: 0.75),
+                fontWeight: FontWeight.w500,
               ),
-            ],
-          ),
-          const SizedBox(width: AppDimens.sizeX22),
-          Expanded(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                for (int star = 5; star >= 1; star--)
-                  _RatingBar(
-                    label: '$star',
-                    value: breakdown.fractionFor(star),
-                    count: breakdown.counts[star] ?? 0,
-                  ),
+            ),
+          ],
+        );
+        final Widget bars = Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            for (int star = 5; star >= 1; star--)
+              _RatingBar(
+                label: '$star',
+                value: breakdown.fractionFor(star),
+                count: breakdown.counts[star] ?? 0,
+              ),
+          ],
+        );
+
+        return Container(
+          padding: const EdgeInsets.all(AppDimens.paddingX16),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: <Color>[
+                LightColor.secondaryColor,
+                LightColor.primaryDark,
               ],
             ),
+            borderRadius: BorderRadius.circular(AppDimens.radiusX10),
           ),
-        ],
-      ),
+          child: stacked
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: <Widget>[
+                    Center(child: score),
+                    const SizedBox(height: AppDimens.sizeX18),
+                    bars,
+                  ],
+                )
+              : Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: <Widget>[
+                    score,
+                    const SizedBox(width: AppDimens.sizeX22),
+                    Expanded(child: bars),
+                  ],
+                ),
+        );
+      },
     );
   }
 }

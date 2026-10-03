@@ -1,8 +1,51 @@
 import 'package:hamro_futsal/features/futsal_details/data/model/booking_quote_model.dart';
 
-/// Result of `POST /booking-holds`. Mirrors the `data.hold` object the server
-/// returns and carries the `hold_token` used to release the hold later with
-/// `DELETE /booking-holds/{token}`, plus the server `quote` (pricing).
+/// One slot to hold — an item of the `POST /booking-holds` `holds` list.
+/// Every session is its own item, with its own `booking_date`.
+class BookingHoldRequest {
+  const BookingHoldRequest({
+    required this.venueId,
+    required this.courtId,
+    required this.bookingDate,
+    required this.startTime,
+    required this.endTime,
+  });
+
+  final int? venueId;
+  final int? courtId;
+  final String bookingDate;
+  final String startTime;
+  final String endTime;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+    'venue_id': venueId,
+    'court_id': courtId,
+    'booking_date': bookingDate,
+    'start_time': apiHourMinute(startTime),
+    'end_time': apiHourMinute(endTime),
+  };
+
+  /// [time] as the API's `H:i` — `18:00` — whether it came as `18:00:00`
+  /// (slot responses), `18:00`, `6:00 PM` or a range like `6:00 PM - 7:00 PM`
+  /// (its start is used). Anything else is sent as is, for the server to name.
+  static String apiHourMinute(String time) {
+    final RegExpMatch? m = RegExp(
+      r'(\d{1,2}):(\d{2})(?::\d{2})?\s*([AaPp][Mm])?',
+    ).firstMatch(time.trim());
+    if (m == null) return time.trim();
+    int hour = int.parse(m.group(1)!);
+    final String? meridiem = m.group(3)?.toLowerCase();
+    if (meridiem == 'pm' && hour < 12) hour += 12;
+    if (meridiem == 'am' && hour == 12) hour = 0;
+    // `H:i` has no `24:00`; a range ending at midnight ends at `23:59`.
+    if (hour >= 24) return '23:59';
+    return '${hour.toString().padLeft(2, '0')}:${m.group(2)}';
+  }
+}
+
+/// One hold from `POST /booking-holds`. Mirrors a `hold` object the server
+/// returns — its [id] releases it later with `DELETE /booking-holds` — plus
+/// the server `quote` (pricing).
 class BookingHoldModel {
   const BookingHoldModel({
     this.id,
@@ -77,8 +120,51 @@ class BookingHoldModel {
 
   bool get hasToken => (holdToken ?? '').isNotEmpty;
 
+  /// What `DELETE /booking-holds` takes to release this hold.
+  bool get hasId => (id ?? '').isNotEmpty;
+
   DateTime? get expiresAtDateTime =>
       expiresAt == null ? null : DateTime.tryParse(expiresAt!);
+
+  /// Every hold in a `POST /booking-holds` answer, in the order sent:
+  /// `data` as a list of `{hold, quote}`, `data.holds` as a list, or a single
+  /// `data.hold` (with its `quote`).
+  ///
+  /// A recurring booking holds one slot per date, and the server prices the
+  /// whole booking once: `data.quote` sits beside the `holds` list rather than
+  /// inside each hold. That shared quote is given to every hold that has none
+  /// of its own — without it the checkout never got a price and showed
+  /// "Calculating price…" forever.
+  static List<BookingHoldModel> listFromResponse(dynamic payload) {
+    dynamic data = payload;
+    Map<dynamic, dynamic>? sharedQuote;
+    for (int depth = 0; depth < 5 && data is Map; depth++) {
+      final Map<dynamic, dynamic> map = data;
+      if (map['quote'] is Map) sharedQuote = map['quote'] as Map;
+      if (map['holds'] is List) {
+        data = map['holds'];
+        break;
+      }
+      if (map['hold'] is List) {
+        data = map['hold'];
+        break;
+      }
+      if (map['hold'] != null || map['hold_token'] != null) break;
+      data = map['data'];
+    }
+    if (data is List) {
+      return <BookingHoldModel>[
+        for (final dynamic item in data)
+          if (item is Map)
+            BookingHoldModel.fromResponse(
+              sharedQuote != null && item['quote'] is! Map
+                  ? <dynamic, dynamic>{...item, 'quote': sharedQuote}
+                  : item,
+            ),
+      ];
+    }
+    return <BookingHoldModel>[BookingHoldModel.fromResponse(payload)];
+  }
 
   factory BookingHoldModel.fromResponse(dynamic payload) {
     // The hold fields live under `data.hold` (newer shape) or directly under

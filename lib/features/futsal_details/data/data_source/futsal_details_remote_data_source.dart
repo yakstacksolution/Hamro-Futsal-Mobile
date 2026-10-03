@@ -31,8 +31,12 @@ abstract class FutsalDetailsRemoteDataSource {
   Future<Result> getCourtPaymentQr({required int courtId});
   Future<Result> createBooking(CreateBookingRequest request);
   Future<Result> getRecurringAvailability({required Map<String, dynamic> data});
-  Future<Result> createBookingHold({required Map<String, dynamic> data});
-  Future<Result> releaseBookingHold({required String holdToken});
+
+  /// `POST /booking-holds` with `{"holds": [...]}`, one object per slot.
+  Future<Result> createBookingHolds({required Map<String, dynamic> data});
+
+  /// `DELETE /booking-holds` with a list of hold ids.
+  Future<Result> releaseBookingHolds({required List<String> holdIds});
 }
 
 final class FutsalDetailsRemoteDataSourceImpl
@@ -130,11 +134,11 @@ final class FutsalDetailsRemoteDataSourceImpl
       await Client.instance().getAuthManager().getRecurringAvailability(data);
 
   @override
-  Future<Result> createBookingHold({
+  Future<Result> createBookingHolds({
     required Map<String, dynamic> data,
-  }) async => await Client.instance().getAuthManager().createBookingHold(data);
+  }) async => await Client.instance().getAuthManager().createBookingHolds(data);
 
   @override
-  Future<Result> releaseBookingHold({required String holdToken}) async =>
-      await Client.instance().getAuthManager().releaseBookingHold(holdToken);
+  Future<Result> releaseBookingHolds({required List<String> holdIds}) async =>
+      await Client.instance().getAuthManager().releaseBookingHolds(holdIds);
 }

@@ -1,3 +1,6 @@
+import 'dart:convert';
+
+import 'package:flutter/foundation.dart';
 import 'package:dartz/dartz.dart';
 import 'package:hamro_futsal/core/api/api_client/booking_type_payload.dart';
 import 'package:hamro_futsal/core/helper/exception_helper.dart';
@@ -280,6 +283,9 @@ final class FutsalDetailsRepositoryImpl extends FutsalDetailsRepository {
       return left(ResponseHelper.error(response));
     }
 
+    if (kDebugMode) {
+      debugPrint('[RecurringAvailability] ${jsonEncode(response.getValue())}');
+    }
     try {
       return right(
         RecurringAvailabilityModel.fromResponse(response.getValue()),
@@ -295,22 +301,14 @@ final class FutsalDetailsRepositoryImpl extends FutsalDetailsRepository {
   }
 
   @override
-  Future<Either<AppException, BookingHoldModel>> createBookingHold({
-    required int? venueId,
-    required int? courtId,
-    required String bookingDate,
-    required String startTime,
-    required String endTime,
-    List<String> bookingDates = const <String>[],
+  Future<Either<AppException, List<BookingHoldModel>>> createBookingHolds({
+    required List<BookingHoldRequest> holds,
   }) async {
-    final response = await _remoteDataSource.createBookingHold(
+    final response = await _remoteDataSource.createBookingHolds(
       data: <String, dynamic>{
-        'venue_id': venueId,
-        'court_id': courtId,
-        'booking_date': bookingDate,
-        'start_time': startTime,
-        'end_time': endTime,
-        'booking_dates': bookingDates,
+        'holds': <Map<String, dynamic>>[
+          for (final BookingHoldRequest h in holds) h.toJson(),
+        ],
       },
     );
     if (response.isError()) {
@@ -318,7 +316,7 @@ final class FutsalDetailsRepositoryImpl extends FutsalDetailsRepository {
     }
 
     try {
-      return right(BookingHoldModel.fromResponse(response.getValue()));
+      return right(BookingHoldModel.listFromResponse(response.getValue()));
     } catch (_) {
       return left(
         DefaultException(
@@ -330,11 +328,12 @@ final class FutsalDetailsRepositoryImpl extends FutsalDetailsRepository {
   }
 
   @override
-  Future<Either<AppException, Unit>> releaseBookingHold({
-    required String holdToken,
+  Future<Either<AppException, Unit>> releaseBookingHolds({
+    required List<String> holdIds,
   }) async {
-    final response = await _remoteDataSource.releaseBookingHold(
-      holdToken: holdToken,
+    if (holdIds.isEmpty) return right(unit);
+    final response = await _remoteDataSource.releaseBookingHolds(
+      holdIds: holdIds,
     );
     if (response.isError()) {
       return left(ResponseHelper.error(response));

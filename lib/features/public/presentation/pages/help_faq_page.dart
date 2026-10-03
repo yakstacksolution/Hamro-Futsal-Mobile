@@ -7,12 +7,14 @@ import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/app_utils.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/utils/responsive.dart';
 import 'package:hamro_futsal/core/widgets/custom_app_bar.dart';
 import 'package:hamro_futsal/core/widgets/custom_html_viewer.dart';
 import 'package:hamro_futsal/core/widgets/loading_widget.dart';
 import 'package:hamro_futsal/features/public/data/model/public_faq_model.dart';
 import 'package:hamro_futsal/features/public/data/model/public_help_model.dart';
 import 'package:hamro_futsal/features/public/data/repositories/public_repository_impl.dart';
+import 'package:hamro_futsal/features/public/domain/repository/public_repository.dart';
 import 'package:hamro_futsal/features/public/domain/usecase/get_faqs_use_case.dart';
 import 'package:hamro_futsal/features/public/domain/usecase/get_helps_use_case.dart';
 import 'package:hamro_futsal/features/public/domain/usecase/get_youtube_videos_use_case.dart';
@@ -21,15 +23,20 @@ import 'package:hamro_futsal/features/public/presentation/widgets/help_videos_ta
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 class HelpFaqPage extends StatelessWidget {
-  const HelpFaqPage({super.key, this.isVendor = false});
+  const HelpFaqPage({super.key, this.isVendor = false, this.repository});
 
   final bool isVendor;
+
+  /// Overrides the data source; tests only.
+  @visibleForTesting
+  final PublicRepository? repository;
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider<SupportBloc>(
       create: (_) {
-        final PublicRepositoryImpl repository = PublicRepositoryImpl();
+        final PublicRepository repository =
+            this.repository ?? PublicRepositoryImpl();
         return SupportBloc(
             GetFaqsUseCase(repository),
             GetHelpsUseCase(repository),
@@ -52,6 +59,14 @@ class _HelpFaqView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
+    // Tablet / desktop: a help-centre layout instead of the phone's tabs.
+    if (context.isTabletOrWider) {
+      return Scaffold(
+        backgroundColor: LightColor.background,
+        appBar: const CustomAppBar(title: StringConstants.helpAndFaq),
+        body: SafeArea(top: false, child: _HelpCenterWide(isVendor: isVendor)),
+      );
+    }
     return DefaultTabController(
       length: 3,
       child: Scaffold(
@@ -723,5 +738,441 @@ class _SupportMessage extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+enum _HelpSection { faqs, guides, videos }
+
+/// Tablet / desktop Help & FAQ: a standard help centre — a header with search,
+/// the sections in a sidebar (desktop) or a segmented switcher (tablet), the
+/// contact channels in their own card, and the selected section's content in
+/// a readable column.
+class _HelpCenterWide extends StatefulWidget {
+  const _HelpCenterWide({required this.isVendor});
+
+  final bool isVendor;
+
+  @override
+  State<_HelpCenterWide> createState() => _HelpCenterWideState();
+}
+
+class _HelpCenterWideState extends State<_HelpCenterWide> {
+  final TextEditingController _search = TextEditingController();
+  _HelpSection _section = _HelpSection.faqs;
+
+  static const double _maxWidth = 1200;
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  String get _query => _search.text.trim().toLowerCase();
+
+  String _label(_HelpSection s) => switch (s) {
+    _HelpSection.faqs => StringConstants.faqs,
+    _HelpSection.guides => 'Help guides',
+    _HelpSection.videos => StringConstants.videos,
+  };
+
+  IconData _icon(_HelpSection s) => switch (s) {
+    _HelpSection.faqs => Icons.quiz_outlined,
+    _HelpSection.guides => Icons.menu_book_outlined,
+    _HelpSection.videos => Icons.play_circle_outline_rounded,
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<SupportBloc, SupportState>(
+      builder: (BuildContext context, SupportState state) {
+        final List<_SocialChannel> socials = _socialChannelsFromHelps(
+          state.helps,
+        );
+        final List<PublicHelpModel> guides = state.helps
+            .where((PublicHelpModel h) => !_isSocialHelp(h))
+            .toList(growable: false);
+        final String q = _query;
+        final List<PublicFaqModel> faqs = q.isEmpty
+            ? state.faqs
+            : state.faqs
+                  .where(
+                    (PublicFaqModel f) =>
+                        f.question.toLowerCase().contains(q) ||
+                        f.answer.toLowerCase().contains(q),
+                  )
+                  .toList(growable: false);
+        final List<PublicHelpModel> shownGuides = q.isEmpty
+            ? guides
+            : guides
+                  .where(
+                    (PublicHelpModel h) => h.title.toLowerCase().contains(q),
+                  )
+                  .toList(growable: false);
+        final Map<_HelpSection, int> counts = <_HelpSection, int>{
+          _HelpSection.faqs: state.faqs.length,
+          _HelpSection.guides: guides.length,
+          _HelpSection.videos: state.videos.length,
+        };
+
+        final bool desktop = context.isDesktop;
+        // Desktop shows the contact links in their own card, so a guides
+        // section holding nothing else is left out of the navigation.
+        final List<_HelpSection> sections = <_HelpSection>[
+          for (final _HelpSection s in _HelpSection.values)
+            if (!(desktop && s == _HelpSection.guides && guides.isEmpty)) s,
+        ];
+        if (!sections.contains(_section)) _section = _HelpSection.faqs;
+        final Widget content = _sectionContent(
+          context,
+          state,
+          faqs: faqs,
+          guides: shownGuides,
+          socials: desktop ? const <_SocialChannel>[] : socials,
+        );
+
+        return Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: _maxWidth),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppDimens.paddingX24,
+                AppDimens.paddingX20,
+                AppDimens.paddingX24,
+                0,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  _header(context),
+                  const SizedBox(height: AppDimens.paddingX20),
+                  if (!desktop) ...<Widget>[
+                    _segmented(counts),
+                    const SizedBox(height: AppDimens.paddingX16),
+                  ],
+                  Expanded(
+                    child: desktop
+                        ? Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: <Widget>[
+                              SizedBox(
+                                width: 280,
+                                child: ListView(
+                                  padding: const EdgeInsets.only(
+                                    bottom: AppDimens.paddingX24,
+                                  ),
+                                  children: <Widget>[
+                                    _sidebar(counts, sections),
+                                    if (socials.isNotEmpty) ...<Widget>[
+                                      const SizedBox(
+                                        height: AppDimens.paddingX16,
+                                      ),
+                                      _SocialConnectSection(channels: socials),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: AppDimens.paddingX24),
+                              Expanded(child: content),
+                            ],
+                          )
+                        : content,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _header(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: <Widget>[
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                'Help center',
+                style: textTheme.headingSmall?.copyWith(
+                  color: LightColor.primaryTextColor,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: AppDimens.paddingX4),
+              Text(
+                'Answers, guides and videos for using Hamro Futsal.',
+                style: textTheme.bodyTextSmall?.copyWith(
+                  color: LightColor.secondaryTextColor,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: AppDimens.paddingX16),
+        SizedBox(
+          width: 360,
+          height: 44,
+          child: TextField(
+            controller: _search,
+            onChanged: (_) => setState(() {}),
+            style: textTheme.bodyTextSmall?.copyWith(
+              color: LightColor.primaryTextColor,
+            ),
+            decoration: InputDecoration(
+              hintText: 'Search FAQs and guides',
+              hintStyle: textTheme.bodyTextSmall?.copyWith(
+                color: LightColor.hintTextColor,
+              ),
+              prefixIcon: Icon(
+                Icons.search_rounded,
+                size: AppDimens.sizeX20,
+                color: LightColor.hintTextColor,
+              ),
+              suffixIcon: _search.text.isEmpty
+                  ? null
+                  : IconButton(
+                      tooltip: 'Clear search',
+                      icon: Icon(
+                        Icons.close_rounded,
+                        size: AppDimens.sizeX18,
+                        color: LightColor.hintTextColor,
+                      ),
+                      onPressed: () => setState(_search.clear),
+                    ),
+              filled: true,
+              fillColor: LightColor.cardColor,
+              contentPadding: EdgeInsets.zero,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+                borderSide: BorderSide(color: LightColor.dividerColor),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+                borderSide: BorderSide(color: LightColor.dividerColor),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Desktop: the sections as a vertical navigation card.
+  Widget _sidebar(Map<_HelpSection, int> counts, List<_HelpSection> sections) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    return Container(
+      padding: const EdgeInsets.all(AppDimens.paddingX8),
+      decoration: BoxDecoration(
+        color: LightColor.cardColor,
+        borderRadius: BorderRadius.circular(AppDimens.radiusX12),
+        border: Border.all(color: LightColor.dividerColor),
+      ),
+      child: Column(
+        children: <Widget>[
+          for (final _HelpSection s in sections)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 2),
+              child: Material(
+                color: s == _section
+                    ? LightColor.secondaryColor.withValues(alpha: 0.10)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+                  onTap: () => setState(() => _section = s),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppDimens.paddingX12,
+                      vertical: AppDimens.paddingX12,
+                    ),
+                    child: Row(
+                      children: <Widget>[
+                        Icon(
+                          _icon(s),
+                          size: AppDimens.sizeX20,
+                          color: s == _section
+                              ? LightColor.secondaryColor
+                              : LightColor.secondaryTextColor,
+                        ),
+                        const SizedBox(width: AppDimens.paddingX12),
+                        Expanded(
+                          child: Text(
+                            _label(s),
+                            style: textTheme.bodyTextSmall?.copyWith(
+                              color: s == _section
+                                  ? LightColor.primaryTextColor
+                                  : LightColor.secondaryTextColor,
+                              fontWeight: s == _section
+                                  ? FontWeight.w700
+                                  : FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                        Container(
+                          constraints: const BoxConstraints(minWidth: 26),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppDimens.paddingX8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: s == _section
+                                ? LightColor.secondaryColor
+                                : LightColor.inputFillColor,
+                            borderRadius: BorderRadius.circular(
+                              AppDimens.radiusX20,
+                            ),
+                          ),
+                          child: Text(
+                            '${counts[s]}',
+                            textAlign: TextAlign.center,
+                            style: textTheme.bodyTextSmall?.copyWith(
+                              fontSize: 12,
+                              color: s == _section
+                                  ? LightColor.inverseTextColor
+                                  : LightColor.secondaryTextColor,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// Tablet: the sections as a segmented control above the content.
+  Widget _segmented(Map<_HelpSection, int> counts) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        height: 42,
+        padding: const EdgeInsets.all(3),
+        decoration: BoxDecoration(
+          color: LightColor.cardColor,
+          borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+          border: Border.all(color: LightColor.dividerColor),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            for (final _HelpSection s in _HelpSection.values)
+              GestureDetector(
+                onTap: () => setState(() => _section = s),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppDimens.paddingX16,
+                  ),
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: s == _section
+                        ? LightColor.secondaryColor
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+                  ),
+                  child: Text(
+                    '${_label(s)}  ${counts[s]}',
+                    style: textTheme.bodyTextSmall?.copyWith(
+                      color: s == _section
+                          ? LightColor.inverseTextColor
+                          : LightColor.secondaryTextColor,
+                      fontWeight: s == _section
+                          ? FontWeight.w700
+                          : FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _sectionContent(
+    BuildContext context,
+    SupportState state, {
+    required List<PublicFaqModel> faqs,
+    required List<PublicHelpModel> guides,
+    required List<_SocialChannel> socials,
+  }) {
+    Widget list(List<Widget> items) => ListView.separated(
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.only(bottom: AppDimens.paddingX24),
+      itemCount: items.length,
+      separatorBuilder: (_, __) => const SizedBox(height: AppDimens.paddingX10),
+      itemBuilder: (_, int i) => items[i],
+    );
+    Widget noMatch() => _SupportMessage(
+      icon: Icons.search_off_rounded,
+      title: 'No results for "${_search.text.trim()}"',
+      message: 'Try a different word, or browse the other sections.',
+    );
+
+    switch (_section) {
+      case _HelpSection.faqs:
+        return _SupportTab(
+          status: state.faqsStatus,
+          isEmpty: state.faqs.isEmpty,
+          errorMessage: state.faqsError ?? 'Could not load FAQs.',
+          emptyTitle: 'No FAQs yet',
+          emptyMessage: 'Frequently asked questions will appear here.',
+          onRetry: () =>
+              context.read<SupportBloc>().add(const FetchFaqsEvent()),
+          child: faqs.isEmpty
+              ? noMatch()
+              : list(<Widget>[for (final f in faqs) _FaqTile(faq: f)]),
+        );
+      case _HelpSection.guides:
+        final bool hasAny = guides.isNotEmpty || socials.isNotEmpty;
+        return _SupportTab(
+          status: state.helpsStatus,
+          isEmpty: state.helps.isEmpty,
+          errorMessage: state.helpsError ?? 'Could not load help topics.',
+          emptyTitle: 'No help topics yet',
+          emptyMessage: 'Help and how-to guides will appear here.',
+          onRetry: () =>
+              context.read<SupportBloc>().add(const FetchHelpsEvent()),
+          child: !hasAny && _query.isNotEmpty
+              ? noMatch()
+              : list(<Widget>[
+                  if (socials.isNotEmpty)
+                    _SocialConnectSection(channels: socials),
+                  for (final h in guides) _HelpTile(help: h),
+                ]),
+        );
+      case _HelpSection.videos:
+        return _SupportTab(
+          status: state.videosStatus,
+          isEmpty: state.videos.isEmpty,
+          errorMessage: state.videosError ?? StringConstants.couldNotLoadVideos,
+          emptyTitle: StringConstants.noVideosYet,
+          emptyMessage: StringConstants.noVideosYetMessage,
+          onRetry: () =>
+              context.read<SupportBloc>().add(const FetchVideosEvent()),
+          child: HelpVideosTab(
+            isVendor: widget.isVendor,
+            videos: state.videos,
+            onRefresh: () {
+              final Completer<void> done = Completer<void>();
+              context.read<SupportBloc>().add(
+                FetchVideosEvent(isRefresh: true, completer: done),
+              );
+              return done.future;
+            },
+          ),
+        );
+    }
   }
 }

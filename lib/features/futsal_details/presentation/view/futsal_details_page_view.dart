@@ -242,7 +242,8 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
     );
   }
 
-  Widget _buildHostedBySection() {
+  /// [inPanel] lays the host out for the desktop booking panel.
+  Widget _buildHostedBySection({bool inPanel = false}) {
     final HostedByBloc? bloc = _hostedByBloc;
 
     if (bloc == null) {
@@ -254,6 +255,7 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
           responseRate: _court.responseRate,
           rating: rating,
           reviewCount: reviewCount,
+          inPanel: inPanel,
         ),
       );
     }
@@ -264,7 +266,7 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
         switch (state.status) {
           case HostedByStatus.idle:
           case HostedByStatus.loading:
-            return const HostedBySectionLoading();
+            return HostedBySectionLoading(inPanel: inPanel);
           case HostedByStatus.failure:
             return const SizedBox.shrink();
           case HostedByStatus.success:
@@ -282,6 +284,7 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
                 hostedVenues: hostedBy.venueCount ?? 0,
                 rating: rating,
                 reviewCount: reviewCount,
+                inPanel: inPanel,
                 onMessage: hostUserId == null
                     ? null
                     : () => ChatLauncher.startDirect(
@@ -534,11 +537,57 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
               ),
               const SizedBox(height: AppDimens.sizeX20),
               Divider(height: 1, color: LightColor.dividerColor),
-              _buildHostedBySection(),
+              const SizedBox(height: AppDimens.sizeX20),
+              _buildHostedBySection(inPanel: true),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildResponsiveBody(BuildContext context) {
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        final double width = constraints.maxWidth;
+        final bool twoColumn =
+            width >=
+            AppDimens.venueContentMaxWidth +
+                AppDimens.venueBookingPanelWidth +
+                (AppDimens.venueDesktopGap * 2);
+
+        if (twoColumn) {
+          return Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                maxWidth: AppDimens.venueDesktopShellMaxWidth,
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Expanded(child: _buildScrollBody(context, twoColumn: true)),
+                  const SizedBox(width: AppDimens.venueDesktopGap),
+                  _buildBookingSidePanel(context),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return Stack(
+          children: <Widget>[
+            _buildScrollBody(context, twoColumn: false),
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              // The slide-in repaints every frame for 600ms, while the route
+              // transition is still running; keep that off the rest of the page.
+              child: RepaintBoundary(child: _buildBottomBar()),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -640,30 +689,7 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
           body: SafeArea(
             top: false,
             bottom: false,
-            // Desktop: content scrolls beside a booking card that stays put.
-            // Narrower: the original stack with the floating bottom bar.
-            child: context.isDesktop
-                ? Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Expanded(child: _buildScrollBody(context)),
-                      _buildBookingSidePanel(context),
-                    ],
-                  )
-                : Stack(
-                    children: [
-                      _buildScrollBody(context),
-                      Positioned(
-                        bottom: 0,
-                        left: 0,
-                        right: 0,
-                        // The slide-in repaints every frame for 600ms, while
-                        // the route transition is still running; keep that
-                        // off the rest of the page.
-                        child: RepaintBoundary(child: _buildBottomBar()),
-                      ),
-                    ],
-                  ),
+            child: _buildResponsiveBody(context),
           ),
         ),
       ),
@@ -702,11 +728,11 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
     ].join('\n');
   }
 
-  Widget _buildScrollBody(BuildContext context) {
-    final bool desktop = context.isDesktop;
-    final double overlap = desktop ? 0 : AppDimens.sizeX24;
+  Widget _buildScrollBody(BuildContext context, {required bool twoColumn}) {
+    final bool tabletOrWider = context.isTabletOrWider;
+    final double overlap = twoColumn ? 0 : AppDimens.sizeX24;
     final List<Widget Function()> sectionBuilders = <Widget Function()>[
-      if (!desktop) () => _buildHostedBySection(),
+      if (!twoColumn) () => _buildHostedBySection(),
       () => _buildDescriptionSection(),
       () => _buildAmenitiesSection(),
       () => CourtLocationMapSection(
@@ -721,87 +747,121 @@ class _FutsalDetailsPageViewState extends State<FutsalDetailsPageView>
       () => _buildRulesSection(),
       () => _buildReviewsSection(),
     ];
-    return CustomScrollView(
-      physics: const BouncingScrollPhysics(),
-      slivers: [
-        // Each sliver gets its own layer. SliverToBoxAdapter adds no repaint
-        // boundary, so without these every scroll frame re-recorded the whole
-        // page — gallery, map and all — instead of just moving layers.
-        SliverToBoxAdapter(
-          child: RepaintBoundary(
-            child: DetailsImageGallery(
-              images: _court.images,
-              venueId: widget.publicVenue?.id,
-              shareText: _shareMessage,
-              shareLink: _shareLink,
-              shareSubject: _court.name,
-            ),
-          ),
+    final EdgeInsets horizontalPadding = tabletOrWider && !twoColumn
+        ? const EdgeInsets.symmetric(horizontal: AppDimens.paddingX24)
+        : EdgeInsets.zero;
+    return Center(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: twoColumn
+              ? AppDimens.venueContentMaxWidth
+              : tabletOrWider
+              ? AppDimens.venueContentMaxWidth
+              : double.infinity,
         ),
-        // The sheet overlaps the hero by [overlap]. A transform is paint-only,
-        // so every sliver below shifts by the same amount to keep the gaps.
-        SliverToBoxAdapter(
-          child: Transform.translate(
-            offset: Offset(0, -overlap),
-            child: Container(
-              decoration: BoxDecoration(
-                color: LightColor.background,
-                borderRadius: BorderRadius.vertical(
-                  top: Radius.circular(AppDimens.radiusX28),
+        child: Padding(
+          padding: horizontalPadding,
+          child: CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              // Each sliver gets its own layer. SliverToBoxAdapter adds no
+              // repaint boundary, so without these every scroll frame
+              // re-recorded the whole page — gallery, map and all — instead of
+              // just moving layers.
+              SliverToBoxAdapter(
+                child: RepaintBoundary(
+                  child: ClipRRect(
+                    borderRadius: tabletOrWider
+                        ? BorderRadius.only(
+                            bottomLeft: Radius.circular(
+                              twoColumn ? 0 : AppDimens.radiusX18,
+                            ),
+                            bottomRight: Radius.circular(
+                              twoColumn ? 0 : AppDimens.radiusX18,
+                            ),
+                          )
+                        : BorderRadius.zero,
+                    child: DetailsImageGallery(
+                      images: _court.images,
+                      venueId: widget.publicVenue?.id,
+                      shareText: _shareMessage,
+                      shareLink: _shareLink,
+                      shareSubject: _court.name,
+                    ),
+                  ),
                 ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  if (!desktop)
-                    Center(
-                      child: Container(
-                        margin: const EdgeInsets.only(
-                          top: AppDimens.marginX12,
-                          bottom: AppDimens.marginX4,
-                        ),
-                        width: AppDimens.sizeX40,
-                        height: AppDimens.sizeX4,
-                        decoration: BoxDecoration(
-                          color: LightColor.dividerColor,
-                          borderRadius: BorderRadius.circular(
-                            AppDimens.radiusX50,
-                          ),
+              // The sheet overlaps the hero by [overlap]. A transform is
+              // paint-only, so every sliver below shifts by the same amount to
+              // keep the gaps.
+              SliverToBoxAdapter(
+                child: Transform.translate(
+                  offset: Offset(0, -overlap),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: LightColor.background,
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(
+                          twoColumn ? 0 : AppDimens.radiusX28,
                         ),
                       ),
                     ),
-                  CourtIntroWidget(court: _court),
-                ],
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        if (!twoColumn)
+                          Center(
+                            child: Container(
+                              margin: const EdgeInsets.only(
+                                top: AppDimens.marginX12,
+                                bottom: AppDimens.marginX4,
+                              ),
+                              width: AppDimens.sizeX40,
+                              height: AppDimens.sizeX4,
+                              decoration: BoxDecoration(
+                                color: LightColor.dividerColor,
+                                borderRadius: BorderRadius.circular(
+                                  AppDimens.radiusX50,
+                                ),
+                              ),
+                            ),
+                          ),
+                        CourtIntroWidget(court: _court),
+                      ],
+                    ),
+                  ),
+                ),
               ),
-            ),
-          ),
-        ),
-        // Built lazily: the map, the three HTML sections and the reviews used
-        // to sit in one Column and were all laid out while the page was still
-        // opening, although most of them start well below the fold. Each keeps
-        // its own layer, since sections load (and shimmer) independently.
-        SliverList(
-          delegate: SliverChildBuilderDelegate(
-            (BuildContext context, int index) => RepaintBoundary(
-              child: Transform.translate(
-                offset: Offset(0, -overlap),
-                child: sectionBuilders[index](),
+              // Built lazily: the map, the three HTML sections and the reviews
+              // used to sit in one Column and were all laid out while the page
+              // was still opening, although most of them start well below the
+              // fold. Each keeps its own layer, since sections load (and
+              // shimmer) independently.
+              SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (BuildContext context, int index) => RepaintBoundary(
+                    child: Transform.translate(
+                      offset: Offset(0, -overlap),
+                      child: sectionBuilders[index](),
+                    ),
+                  ),
+                  childCount: sectionBuilders.length,
+                ),
               ),
-            ),
-            childCount: sectionBuilders.length,
+              SliverToBoxAdapter(
+                child: SizedBox(
+                  height:
+                      (twoColumn
+                          ? AppDimens.sizeX32
+                          : MediaQuery.paddingOf(context).bottom +
+                                AppDimens.sizeX100) -
+                      overlap,
+                ),
+              ),
+            ],
           ),
         ),
-        SliverToBoxAdapter(
-          child: SizedBox(
-            height:
-                (desktop
-                    ? AppDimens.sizeX32
-                    : MediaQuery.paddingOf(context).bottom +
-                          AppDimens.sizeX100) -
-                overlap,
-          ),
-        ),
-      ],
+      ),
     );
   }
 }

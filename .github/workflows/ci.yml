@@ -30,6 +30,9 @@ jobs:
           channel: "stable"
           cache: true
 
+      - name: Secret scan
+        run: dart run tool/secret_scan.dart
+
       - name: Install dependencies
         run: flutter pub get
 

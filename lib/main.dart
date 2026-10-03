@@ -28,11 +28,12 @@ import 'package:hamro_futsal/features/app_update/data/repositories/app_update_re
 import 'package:hamro_futsal/features/app_update/domain/usecase/check_app_update_use_case.dart';
 import 'package:hamro_futsal/features/app_update/presentation/bloc/app_update_bloc.dart';
 import 'package:hamro_futsal/features/app_update/presentation/widgets/app_update_gate.dart';
+import 'package:hamro_futsal/firebase_options.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 // ignore: unnecessary_nullable_for_final_variable_declarations
-const AppFlavor kAppFlavor = AppFlavor.staging;
+const AppFlavor kAppFlavor = AppFlavor.production;
 
 void main() async {
   final WidgetsBinding widgetsBinding =
@@ -52,7 +53,9 @@ void main() async {
 
   bool firebaseReady = false;
   try {
-    await Firebase.initializeApp();
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
     firebaseReady = true;
   } catch (error, stack) {
     debugPrint('Firebase initialization failed: $error\n$stack');

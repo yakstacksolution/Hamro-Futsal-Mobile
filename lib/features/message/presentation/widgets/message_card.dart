@@ -16,6 +16,7 @@ class MessageCard extends StatelessWidget {
     this.onAcceptInvitation,
     this.onDeclineInvitation,
     this.invitationBusy = false,
+    this.selected = false,
   });
 
   final ConversationModel conversation;
@@ -30,6 +31,9 @@ class MessageCard extends StatelessWidget {
   /// A response is in flight — the buttons go quiet so one tap cannot be
   /// filed twice.
   final bool invitationBusy;
+
+  /// The conversation open beside the list in the split view.
+  final bool selected;
 
   @override
   Widget build(BuildContext context) {
@@ -50,10 +54,14 @@ class MessageCard extends StatelessWidget {
         onTap: pendingInvite ? null : onTap,
         child: Container(
           decoration: BoxDecoration(
-            color: LightColor.cardColor,
+            color: selected
+                ? LightColor.secondaryColor.withValues(alpha: 0.10)
+                : LightColor.cardColor,
             borderRadius: BorderRadius.circular(AppDimens.radiusX10),
             border: Border.all(
-              color: pendingInvite
+              color: selected
+                  ? LightColor.secondaryColor.withValues(alpha: 0.55)
+                  : pendingInvite
                   ? LightColor.secondaryColor.withValues(alpha: 0.45)
                   : isUnread
                   ? LightColor.secondaryColor.withValues(alpha: 0.18)

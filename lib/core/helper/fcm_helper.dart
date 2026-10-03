@@ -11,6 +11,7 @@ import 'package:hamro_futsal/core/api/api_client/result.dart';
 import 'package:hamro_futsal/core/api/manager/authmanager/auth_manager.dart';
 import 'package:hamro_futsal/core/helper/share_preferences.dart';
 import 'package:hamro_futsal/core/routers/notification_redirection.dart';
+import 'package:hamro_futsal/firebase_options.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 const AndroidNotificationChannel _notificationChannel =
@@ -24,7 +25,7 @@ const AndroidNotificationChannel _notificationChannel =
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   debugPrint('FCM background message: ${message.messageId}');
 
   if (message.notification != null ||
@@ -37,6 +38,7 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
     settings: const InitializationSettings(
       android: AndroidInitializationSettings('mipmap/launcher_icon'),
       iOS: DarwinInitializationSettings(),
+      macOS: DarwinInitializationSettings(),
     ),
   );
   await localNotifications
@@ -58,6 +60,11 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
         icon: 'mipmap/launcher_icon',
       ),
       iOS: const DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+      ),
+      macOS: const DarwinNotificationDetails(
         presentAlert: true,
         presentBadge: true,
         presentSound: true,
@@ -101,7 +108,37 @@ class FcmHelper {
 
   factory FcmHelper() => _instance;
 
-  final FirebaseMessaging _messaging = FirebaseMessaging.instance;
+  /// Read lazily: on Windows / Linux Firebase is never initialised, and
+  /// touching `FirebaseMessaging.instance` there throws — which used to break
+  /// login, since every login path builds this helper to sync the token.
+  FirebaseMessaging get _messaging => FirebaseMessaging.instance;
+
+  /// Firebase Messaging runs on Android, iOS and macOS only (Windows and
+  /// Linux have no implementation), and only once Firebase is initialised.
+  static bool get isPushSupported {
+    if (kIsWeb) return false;
+    if (!(Platform.isAndroid || Platform.isIOS || Platform.isMacOS)) {
+      return false;
+    }
+    return Firebase.apps.isNotEmpty;
+  }
+
+  bool _loggedUnsupported = false;
+
+  /// True when push can run here; says once why not when it cannot.
+  bool _pushAvailable() {
+    if (isPushSupported) return true;
+    if (!_loggedUnsupported) {
+      _loggedUnsupported = true;
+      debugPrint(
+        'FCM: push notifications are not available on '
+        '${kIsWeb ? 'web' : Platform.operatingSystem} '
+        '(Firebase Messaging supports Android, iOS and macOS).',
+      );
+    }
+    return false;
+  }
+
   final DeviceInfoPlugin _deviceInfo = DeviceInfoPlugin();
   final FlutterLocalNotificationsPlugin _localNotifications =
       FlutterLocalNotificationsPlugin();
@@ -124,7 +161,7 @@ class FcmHelper {
   bool _launchNotificationHandled = false;
 
   Future<void> init() async {
-    if (_initialized) return;
+    if (_initialized || !_pushAvailable()) return;
 
     _nativeNavigationChannel.setMethodCallHandler((call) async {
       if (call.method == 'notificationTap') {
@@ -134,19 +171,37 @@ class FcmHelper {
 
     try {
       await _initializeLocalNotifications();
+    } catch (error, stackTrace) {
+      debugPrint('Local notifications setup failed: $error\n$stackTrace');
+    }
+
+    // A refusal is the user's (or the system's) answer, not a failure: macOS
+    // reports notifications switched off for the app in System Settings as an
+    // error ("Notifications are not allowed for this application"). Say so in
+    // one line and carry on — the rest of the setup does not depend on it.
+    try {
       final settings = await _messaging.requestPermission(
         alert: true,
         badge: true,
         sound: true,
       );
       debugPrint('FCM permission: ${settings.authorizationStatus.name}');
+    } catch (error) {
+      debugPrint(
+        'FCM permission not granted: $error'
+        '${Platform.isMacOS ? ' — allow it in System Settings → '
+                  'Notifications → hamro_futsal.' : ''}',
+      );
+    }
+
+    try {
       await _messaging.setForegroundNotificationPresentationOptions(
         alert: true,
         badge: true,
         sound: true,
       );
-    } catch (error, stackTrace) {
-      debugPrint('FCM initialization failed: $error\n$stackTrace');
+    } catch (error) {
+      debugPrint('FCM presentation options failed: $error');
     }
 
     _tokenRefreshSub = _messaging.onTokenRefresh.listen(
@@ -201,6 +256,11 @@ class FcmHelper {
     const initializationSettings = InitializationSettings(
       android: AndroidInitializationSettings('mipmap/launcher_icon'),
       iOS: DarwinInitializationSettings(
+        requestAlertPermission: false,
+        requestBadgePermission: false,
+        requestSoundPermission: false,
+      ),
+      macOS: DarwinInitializationSettings(
         requestAlertPermission: false,
         requestBadgePermission: false,
         requestSoundPermission: false,
@@ -293,11 +353,50 @@ class FcmHelper {
     _handleNotificationData(data);
   }
 
+  /// Whether this platform can produce an FCM token right now.
+  ///
+  /// * iOS / macOS: FCM needs the device's APNs token first, and asking before
+  ///   it arrives throws `apns-token-not-set`. It is waited for briefly; if it
+  ///   never comes (a macOS build without the Push Notifications capability,
+  ///   or a simulator), the sync is skipped quietly — [onTokenRefresh] still
+  ///   registers the token if APNs delivers one later.
+  Future<bool> _canGetToken() async {
+    if (!Platform.isIOS && !Platform.isMacOS) return true;
+    for (int attempt = 0; attempt < _apnsAttempts; attempt++) {
+      try {
+        final String? apns = await _messaging.getAPNSToken();
+        if (apns != null && apns.isNotEmpty) return true;
+      } catch (_) {
+        // Not ready yet; try again below.
+      }
+      await Future<void>.delayed(_apnsRetryDelay);
+    }
+    if (!_loggedMissingApns) {
+      _loggedMissingApns = true;
+      debugPrint(
+        'FCM: no APNs token yet, so the push token is not registered. Check '
+        'that notifications are allowed for the app and that the build is '
+        'signed with the Push Notifications capability (aps-environment).',
+      );
+    }
+    return false;
+  }
+
+  static const int _apnsAttempts = 5;
+  static const Duration _apnsRetryDelay = Duration(seconds: 2);
+  bool _loggedMissingApns = false;
+
   Future<void> syncTokenAfterLogin() async {
-    if (!_isLoggedIn) return;
+    if (!_isLoggedIn || !_pushAvailable()) return;
+    if (!await _canGetToken()) return;
     try {
       final String? token = await _messaging.getToken();
       if (token == null || token.trim().isEmpty) return;
+      // Debug only: paste it into Firebase console → Messaging → "Send test
+      // message" to check delivery to this device, backend aside.
+      if (kDebugMode) {
+        debugPrint('FCM token (${Platform.operatingSystem}): $token');
+      }
       await _pushToken(token);
     } catch (error, stackTrace) {
       debugPrint('FCM token sync failed: $error\n$stackTrace');
@@ -335,7 +434,14 @@ class FcmHelper {
         _lastPushedToken = token;
         debugPrint('FCM token registered with the backend.');
       } else {
-        debugPrint('FCM token registration was rejected by the backend.');
+        // The backend's reason (e.g. a `platform` it does not accept) is the
+        // one thing needed to fix a rejected registration.
+        final Object? error = result.isError() ? result.getErrorMsg() : null;
+        debugPrint(
+          'FCM token registration was rejected by the backend'
+          '${error is DataError ? ' (${error.errorCode}): ${error.message} ${error.data ?? ''}' : '.'}'
+          ' — payload platform: ${payload['platform']}',
+        );
       }
     } catch (error, stackTrace) {
       debugPrint('FCM token registration failed: $error\n$stackTrace');
@@ -372,6 +478,21 @@ class FcmHelper {
           platform: 'ios',
           id: info.identifierForVendor ?? info.name,
           name: info.name,
+        );
+      }
+      if (Platform.isMacOS) {
+        // A stable id per Mac, so two Macs on one account each keep their
+        // own token instead of sharing (and overwriting) 'unknown'.
+        final MacOsDeviceInfo info = await _deviceInfo.macOsInfo;
+        final String name = info.computerName.trim().isNotEmpty
+            ? info.computerName.trim()
+            : info.modelName;
+        return _DeviceIdentity(
+          platform: 'macos',
+          id: info.systemGUID?.trim().isNotEmpty == true
+              ? info.systemGUID!.trim()
+              : '${info.model}-${info.hostName}',
+          name: name.isEmpty ? 'Mac' : name,
         );
       }
     } catch (_) {}

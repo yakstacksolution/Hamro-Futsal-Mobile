@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'dart:io' show Platform;
 
 import 'package:flutter/material.dart';
@@ -155,7 +157,9 @@ class _AuthScreenState extends State<AuthScreen> {
         return;
       }
       AppSettings().token = session!;
-      await FcmHelper().syncTokenAfterLogin();
+      // In the background, like the other sign-in paths: on macOS it may wait
+      // for an APNs token that never comes, and home must not wait with it.
+      unawaited(FcmHelper().syncTokenAfterLogin());
       if (!mounted) return;
       _goToHomeAfterLogin();
     }

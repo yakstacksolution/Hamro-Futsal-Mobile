@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
@@ -89,8 +91,12 @@ class _DetailsContent extends StatelessWidget {
     final Color accent =
         _parseHexColor(item.typeColorHex) ?? LightColor.secondaryColor;
 
+    // Tablet / desktop: a centred, readable column (scrollbar stays at the
+    // window edge); phones keep the 20px gutters.
+    final double width = MediaQuery.sizeOf(context).width;
+    final double side = width >= 600 ? math.max(24, (width - 760) / 2) : 20;
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+      padding: EdgeInsets.fromLTRB(side, width >= 600 ? 24 : 16, side, 28),
       children: <Widget>[
         Container(
           padding: const EdgeInsets.all(AppDimens.paddingX18),

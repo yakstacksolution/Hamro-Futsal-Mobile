@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/utils/responsive.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:hamro_futsal/core/widgets/custom_menu_item.dart';
 import 'package:hamro_futsal/features/notifications/data/model/notification_model.dart';
@@ -153,8 +154,9 @@ class NotificationSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         Padding(
-          padding: const EdgeInsets.only(
-            left: AppDimens.paddingX2,
+          // Tablet / desktop: flush with the card and the header above.
+          padding: EdgeInsets.only(
+            left: context.isTabletOrWider ? 0 : AppDimens.paddingX2,
             bottom: AppDimens.paddingX8,
           ),
           child: Row(

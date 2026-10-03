@@ -4,22 +4,31 @@ import 'package:shimmer/shimmer.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 
 class HostedBySectionLoading extends StatelessWidget {
-  const HostedBySectionLoading({super.key});
+  const HostedBySectionLoading({super.key, this.inPanel = false});
+
+  /// Flat, unpadded, for the desktop booking panel (which is already the card).
+  final bool inPanel;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(
-        left: AppDimens.paddingX20,
-        top: AppDimens.paddingX12,
-        right: AppDimens.paddingX20,
-      ),
+      padding: inPanel
+          ? EdgeInsets.zero
+          : const EdgeInsets.only(
+              left: AppDimens.paddingX20,
+              top: AppDimens.paddingX12,
+              right: AppDimens.paddingX20,
+            ),
       child: Container(
-        padding: const EdgeInsets.all(AppDimens.paddingX16),
-        decoration: BoxDecoration(
-          color: LightColor.skeletonBaseColor,
-          borderRadius: BorderRadius.circular(AppDimens.radiusX10),
-        ),
+        padding: inPanel
+            ? EdgeInsets.zero
+            : const EdgeInsets.all(AppDimens.paddingX16),
+        decoration: inPanel
+            ? null
+            : BoxDecoration(
+                color: LightColor.skeletonBaseColor,
+                borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+              ),
         child: Shimmer.fromColors(
           baseColor: LightColor.skeletonBaseColor,
           highlightColor: LightColor.skeletonHighlightColor,

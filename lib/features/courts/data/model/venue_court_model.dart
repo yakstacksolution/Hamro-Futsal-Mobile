@@ -713,8 +713,8 @@ List<SlotPricingDraft> _slotsFromResponse(dynamic schedules, dynamic pricings) {
           );
         })
         .where((SlotPricingDraft slot) => slot.id.isNotEmpty)
-        .toList(growable: false)
-      ..sort(_bySortOrder);
+        // Listed in the order the server sends them.
+        .toList(growable: false);
   }
 
   // Legacy / pricing-only shape: structure and pricing live in the same map.
@@ -726,16 +726,8 @@ List<SlotPricingDraft> _slotsFromResponse(dynamic schedules, dynamic pricings) {
           Map<String, dynamic>.from(item),
         ),
       )
-      .toList(growable: false)
-    ..sort(_bySortOrder);
-}
-
-/// The server's `sort_order` decides the list; slots without one keep the
-/// order they arrived in, after the sorted ones.
-int _bySortOrder(SlotPricingDraft left, SlotPricingDraft right) {
-  final int a = left.sortOrder ?? 1 << 30;
-  final int b = right.sortOrder ?? 1 << 30;
-  return a.compareTo(b);
+      // Listed in the order the server sends them.
+      .toList(growable: false);
 }
 
 SlotPricingDraft _slotFromMaps(

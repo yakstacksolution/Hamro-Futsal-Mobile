@@ -39,10 +39,7 @@ void main() {
       // matching the real card's header, hairline, two figure rows and a
       // 36pt button. If either side is restyled, this is the tripwire.
       await _pump(tester, const AccountVenueListLoading(itemCount: 1));
-      expect(
-        tester.getSize(find.byType(AccountVenueListLoading)).height,
-        150,
-      );
+      expect(tester.getSize(find.byType(AccountVenueListLoading)).height, 150);
     });
 
     testWidgets('it shimmers', (tester) async {

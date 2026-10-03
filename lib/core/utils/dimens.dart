@@ -217,6 +217,10 @@ class AppDimens {
   /// Profile details: the summary card becomes a side column on desktop.
   static const double profileSummaryColumnWidth = 320;
 
+  /// Settings: centred single column on tablet, two section columns on desktop.
+  static const double settingsColumnMaxWidth = 720;
+  static const double settingsShellMaxWidth = 1120;
+
   /// In-app update surfaces. All three are centred once the window is wider —
   /// a full-bleed update wall or sheet on a tablet stretches the copy far past
   /// a comfortable measure. The sheet is the widest because it carries two
@@ -248,13 +252,26 @@ class AppDimens {
   /// [courtSlotCardMinWidth].
   static const double slotsSelectionMaxWidth = 1200;
   static const double slotsSelectionColumnMaxWidth = 720;
-  static const double courtSlotCardMinWidth = 320;
+  static const double slotsSelectionWideMaxWidth = 1320;
+  static const double slotsSelectionSideWidth = 400;
+  static const double slotsSelectionCheckoutWidth = 300;
+  // Wide enough for the name, all three tags (format, players, status) and
+  // the price on one card; at 320 two cards squeezed onto a tablet row and
+  // clipped the status tag ("Bo…"). Two per row now start at ~800px.
+  static const double courtSlotCardMinWidth = 390;
 
   /// Finance & payouts: shortcuts move into a side column on desktop, and the
   /// detail lists (statement, settlements, breakdown) stay readable rather
   /// than stretching a one-line row across the window.
   static const double accountShortcutsColumnWidth = 340;
   static const double accountListMaxWidth = 900;
+  static const double accountDashboardMaxWidth = 1200;
+
+  /// Rewards: tablet keeps a readable single column; desktop becomes a
+  /// two-column wallet/activity workspace.
+  static const double rewardsColumnMaxWidth = 720;
+  static const double rewardsShellMaxWidth = 1160;
+  static const double rewardsSideColumnWidth = 430;
 
   /// Smallest comfortable KPI tile; the snapshot grid derives its column count
   /// from this rather than being fixed at two.
@@ -264,6 +281,11 @@ class AppDimens {
   /// width on desktop, and the hero gallery's ceiling once it becomes 16:9.
   static const double venueContentMaxWidth = 800;
   static const double venueBookingPanelWidth = 360;
+  static const double venueDesktopGap = 24;
+  static const double venueDesktopShellMaxWidth = 1184;
+  static const double venueReviewsListMaxWidth = 640;
+  static const double venueReviewsSummaryWidth = 340;
+  static const double venueReviewsShellMaxWidth = 1068;
   static const double venueHeroMaxHeight = 460;
   static const double venueThumbnailSize = 72;
 

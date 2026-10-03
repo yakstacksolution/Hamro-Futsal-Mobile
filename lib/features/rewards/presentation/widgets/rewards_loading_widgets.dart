@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/utils/responsive.dart';
 import 'package:shimmer/shimmer.dart';
 
 /// Skeleton for the rewards page while the wallet loads for the first time.
@@ -9,32 +10,85 @@ class RewardsLoadingView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const SingleChildScrollView(
+    final bool desktop = context.isDesktop;
+    return SingleChildScrollView(
       physics: NeverScrollableScrollPhysics(),
       padding: EdgeInsets.fromLTRB(
-        AppDimens.paddingX20,
+        context.isTabletOrWider ? AppDimens.paddingX32 : AppDimens.paddingX20,
         AppDimens.paddingX16,
-        AppDimens.paddingX20,
+        context.isTabletOrWider ? AppDimens.paddingX32 : AppDimens.paddingX20,
         AppDimens.paddingX50,
       ),
-      child: RewardShimmer(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            _Block(height: 190, radius: AppDimens.radiusX16),
-            SizedBox(height: AppDimens.paddingX12),
-            Row(
-              children: <Widget>[
-                Expanded(child: _Block(height: 92)),
-                SizedBox(width: AppDimens.paddingX10),
-                Expanded(child: _Block(height: 92)),
-              ],
-            ),
-            SizedBox(height: AppDimens.paddingX20),
-            _Block(height: 18, width: 140, radius: AppDimens.radiusX4),
-            SizedBox(height: AppDimens.paddingX10),
-            RewardHistoryLoadingList(itemCount: 4),
-          ],
+      child: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: desktop
+                ? AppDimens.rewardsShellMaxWidth
+                : AppDimens.rewardsColumnMaxWidth,
+          ),
+          child: RewardShimmer(
+            child: desktop
+                ? Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const <Widget>[
+                      SizedBox(
+                        width: AppDimens.rewardsSideColumnWidth,
+                        child: Column(
+                          children: <Widget>[
+                            _Block(height: 220, radius: AppDimens.radiusX16),
+                            SizedBox(height: AppDimens.paddingX12),
+                            Row(
+                              children: <Widget>[
+                                Expanded(child: _Block(height: 92)),
+                                SizedBox(width: AppDimens.paddingX10),
+                                Expanded(child: _Block(height: 92)),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(width: AppDimens.paddingX24),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            _Block(height: 160),
+                            SizedBox(height: AppDimens.paddingX20),
+                            _Block(
+                              height: 18,
+                              width: 140,
+                              radius: AppDimens.radiusX4,
+                            ),
+                            SizedBox(height: AppDimens.paddingX10),
+                            RewardHistoryLoadingList(itemCount: 4),
+                          ],
+                        ),
+                      ),
+                    ],
+                  )
+                : const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      _Block(height: 190, radius: AppDimens.radiusX16),
+                      SizedBox(height: AppDimens.paddingX12),
+                      Row(
+                        children: <Widget>[
+                          Expanded(child: _Block(height: 92)),
+                          SizedBox(width: AppDimens.paddingX10),
+                          Expanded(child: _Block(height: 92)),
+                        ],
+                      ),
+                      SizedBox(height: AppDimens.paddingX20),
+                      _Block(
+                        height: 18,
+                        width: 140,
+                        radius: AppDimens.radiusX4,
+                      ),
+                      SizedBox(height: AppDimens.paddingX10),
+                      RewardHistoryLoadingList(itemCount: 4),
+                    ],
+                  ),
+          ),
         ),
       ),
     );

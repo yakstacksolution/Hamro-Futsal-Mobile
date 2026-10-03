@@ -79,10 +79,7 @@ void main() {
       expect(credit.reference, 'BK-TRJSQE1T');
       expect(credit.venueName, 'Dhanawantary Sports');
       expect(credit.date, DateTime.parse('2026-09-14 06:00:00').toLocal());
-      expect(
-        credit.createdAt,
-        DateTime.parse('2026-09-12 19:57:03').toLocal(),
-      );
+      expect(credit.createdAt, DateTime.parse('2026-09-12 19:57:03').toLocal());
       expect(credit.recordedApartFromDate, isTrue);
 
       final debit = page.items.last;
@@ -92,19 +89,23 @@ void main() {
     });
 
     test('a fractional commission keeps its paisa', () {
-      final page = AccountActivityPageModel.fromResponse(<String, dynamic>{
-        'data': <String, dynamic>{
-          'items': <Map<String, dynamic>>[
-            _row(
-              type: 'platform_commission',
-              title: 'Platform commission',
-              reference: 'BK-BFLEUQZX',
-              amount: 7.5,
-              direction: 'debit',
-            ),
-          ],
+      final page = AccountActivityPageModel.fromResponse(
+        <String, dynamic>{
+          'data': <String, dynamic>{
+            'items': <Map<String, dynamic>>[
+              _row(
+                type: 'platform_commission',
+                title: 'Platform commission',
+                reference: 'BK-BFLEUQZX',
+                amount: 7.5,
+                direction: 'debit',
+              ),
+            ],
+          },
         },
-      }, requestedPage: 1, requestedPerPage: 10);
+        requestedPage: 1,
+        requestedPerPage: 10,
+      );
 
       expect(page.items.single.amount, 7.5);
     });

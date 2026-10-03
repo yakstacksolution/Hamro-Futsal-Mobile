@@ -7,6 +7,7 @@ import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/app_utils.dart';
 import 'package:hamro_futsal/core/utils/custom_image_view.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/utils/responsive.dart';
 import 'package:hamro_futsal/core/widgets/custom_bottom_sheet.dart';
 import 'package:hamro_futsal/core/widgets/custom_button.dart';
 import 'package:hamro_futsal/core/widgets/loading_widget.dart';
@@ -23,6 +24,18 @@ import 'package:hamro_futsal/core/utils/string_constants.dart';
 /// Space above and below the app-version line, so it sits centred in its own
 /// gap instead of hanging off the last section.
 const double _kVersionGap = AppDimens.paddingX22;
+
+/// Tablet: one centred column at this width.
+const double _kSingleColumnMaxWidth = 720;
+
+/// Desktop: the profile card and the menu side by side, up to this width.
+const double _kTwoColumnMaxWidth = 1120;
+
+/// Content width from which the two-column layout is used.
+const double _kTwoColumnFrom = 860;
+
+/// Desktop: width of the profile card's column.
+const double _kSideColumnWidth = 320;
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -221,100 +234,180 @@ class _ProfilePageState extends State<ProfilePage> {
                 : () => _showVendorRequestSheet(profile.data),
           ),
         ];
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _pageHeader(context),
-            const SizedBox(height: AppDimens.paddingX12),
-            Expanded(
-              child: RefreshIndicator(
-                onRefresh: _refreshProfile,
-                color: LightColor.secondaryColor,
-                child: ListView(
-                  // Always scrollable, so a pull works even when the profile
-                  // fits on screen.
-                  physics: const AlwaysScrollableScrollPhysics(
-                    parent: BouncingScrollPhysics(),
-                  ),
-                  // The bar the list scrolls under, measured rather than a fixed
-                  // 150 (that left a dead half-screen below the version line),
-                  // plus `_kVersionGap` so the version text is framed by the
-                  // same space above and below it.
-                  padding: EdgeInsets.only(
-                    bottom:
-                        CustomBottomNavigationBar.heightOf(context) +
-                        _kVersionGap,
-                  ),
-                  children: [
-                    _ProfileRow(
-                      profile: profile,
-                      profileImage: state.profileImage,
-                      isLoading: isLoading,
-                      onTap: profile == null
-                          ? null
-                          : () => Navigator.of(context).push(
-                              MaterialPageRoute<void>(
-                                builder: (_) => BlocProvider<ProfileBloc>.value(
-                                  value: context.read<ProfileBloc>(),
-                                  child: ProfileDetailsPage(user: profile.data),
-                                ),
+        void openDetails() => Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => BlocProvider<ProfileBloc>.value(
+              value: context.read<ProfileBloc>(),
+              child: ProfileDetailsPage(user: profile!.data),
+            ),
+          ),
+        );
+
+        final List<Widget> menu = <Widget>[
+          _SectionGroup(label: StringConstants.general, items: _generalItems),
+          const SizedBox(height: AppDimens.paddingX20),
+          _SectionGroup(
+            label: StringConstants.vendor,
+            items: isVendor
+                ? _vendorItems(profile?.data)
+                : candidateVendorItems,
+          ),
+          const SizedBox(height: AppDimens.paddingX20),
+          _SectionGroup(label: StringConstants.support, items: _supportItems),
+        ];
+        final Widget account = _SectionGroup(
+          label: StringConstants.account,
+          items: [
+            _ProfileItem(
+              title: _isLoggingOut ? 'Logging out…' : 'Log out',
+              icon: Icons.logout_rounded,
+              destructive: true,
+              loading: _isLoggingOut,
+              onTap: _isLoggingOut ? () {} : _handleLogout,
+            ),
+          ],
+        );
+
+        return LayoutBuilder(
+          builder: (BuildContext context, BoxConstraints constraints) {
+            final bool wide = context.isTabletOrWider;
+            final bool twoColumns =
+                wide && constraints.maxWidth >= _kTwoColumnFrom;
+            final double maxWidth = twoColumns
+                ? _kTwoColumnMaxWidth
+                : _kSingleColumnMaxWidth;
+
+            // Phone: exactly the original list. Tablet: the same rows, each
+            // centred at the column width (the list still builds lazily).
+            final List<Widget> singleColumn = <Widget>[
+              _ProfileRow(
+                profile: profile,
+                profileImage: state.profileImage,
+                isLoading: isLoading,
+                onTap: profile == null ? null : openDetails,
+              ),
+              // if (profile != null && isVendor) ...[
+              //   _VendorStatusCard(user: profile.data),
+              //   const SizedBox(height: AppDimens.paddingX20),
+              // ],
+              const SizedBox(height: AppDimens.paddingX20),
+              ...menu,
+              const SizedBox(height: AppDimens.paddingX20),
+              account,
+              const SizedBox(height: _kVersionGap),
+              _appVersion(context),
+            ];
+
+            final List<Widget> children;
+            if (!wide) {
+              children = singleColumn;
+            } else if (!twoColumns) {
+              children = <Widget>[
+                for (final Widget row in singleColumn) _centred(row, maxWidth),
+              ];
+            } else {
+              children = <Widget>[
+                _centred(
+                  Padding(
+                    padding: const EdgeInsets.only(top: AppDimens.paddingX8),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        SizedBox(
+                          width: _kSideColumnWidth,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: <Widget>[
+                              _ProfileSideCard(
+                                profile: profile,
+                                profileImage: state.profileImage,
+                                isLoading: isLoading,
+                                onView: profile == null ? null : openDetails,
                               ),
-                            ),
-                    ),
-                    // if (profile != null && isVendor) ...[
-                    //   _VendorStatusCard(user: profile.data),
-                    //   const SizedBox(height: AppDimens.paddingX20),
-                    // ],
-                    const SizedBox(height: AppDimens.paddingX20),
-                    _SectionGroup(
-                      label: StringConstants.general,
-                      items: _generalItems,
-                    ),
-                    const SizedBox(height: AppDimens.paddingX20),
-                    _SectionGroup(
-                      label: StringConstants.vendor,
-                      items: isVendor
-                          ? _vendorItems(profile?.data)
-                          : candidateVendorItems,
-                    ),
-                    const SizedBox(height: AppDimens.paddingX20),
-                    _SectionGroup(
-                      label: StringConstants.support,
-                      items: _supportItems,
-                    ),
-                    const SizedBox(height: AppDimens.paddingX20),
-                    _SectionGroup(
-                      label: StringConstants.account,
-                      items: [
-                        _ProfileItem(
-                          title: _isLoggingOut ? 'Logging out…' : 'Log out',
-                          icon: Icons.logout_rounded,
-                          destructive: true,
-                          loading: _isLoggingOut,
-                          onTap: _isLoggingOut ? () {} : _handleLogout,
+                              const SizedBox(height: AppDimens.paddingX20),
+                              account,
+                              const SizedBox(height: _kVersionGap),
+                              _appVersion(context),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: AppDimens.paddingX8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: menu,
+                          ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: _kVersionGap),
-                    _appVersion(context),
-                  ],
+                  ),
+                  maxWidth,
                 ),
-              ),
-            ),
-          ],
+              ];
+            }
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                wide
+                    ? _centred(_pageHeader(context), maxWidth)
+                    : _pageHeader(context),
+                const SizedBox(height: AppDimens.paddingX12),
+                Expanded(
+                  child: RefreshIndicator(
+                    onRefresh: _refreshProfile,
+                    color: LightColor.secondaryColor,
+                    child: ListView(
+                      // Always scrollable, so a pull works even when the
+                      // profile fits on screen.
+                      physics: const AlwaysScrollableScrollPhysics(
+                        parent: BouncingScrollPhysics(),
+                      ),
+                      // The bar the list scrolls under, measured rather than a
+                      // fixed 150 (that left a dead half-screen below the
+                      // version line), plus `_kVersionGap` so the version text
+                      // is framed by the same space above and below it.
+                      padding: EdgeInsets.only(
+                        bottom:
+                            CustomBottomNavigationBar.heightOf(context) +
+                            _kVersionGap,
+                      ),
+                      children: children,
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
         );
       },
     );
   }
 
+  Widget _centred(Widget child, double maxWidth) => Center(
+    child: ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: maxWidth),
+      child: child,
+    ),
+  );
+
   Widget _pageHeader(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
     return Padding(
-      padding: AppUtils().getPadding(
-        left: AppDimens.paddingX20,
-        right: AppDimens.paddingX20,
-        top: AppDimens.paddingX24,
-      ),
+      // getPadding scales `left`/`top` to the screen width, which pushed the
+      // title out of line with the rows below on a wide window.
+      padding: context.isTabletOrWider
+          ? const EdgeInsets.fromLTRB(
+              AppDimens.paddingX20,
+              AppDimens.paddingX24,
+              AppDimens.paddingX20,
+              0,
+            )
+          : AppUtils().getPadding(
+              left: AppDimens.paddingX20,
+              right: AppDimens.paddingX20,
+              top: AppDimens.paddingX24,
+            ),
       child: Row(
         children: <Widget>[
           Expanded(
@@ -457,6 +550,85 @@ class _ProfileRow extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Desktop: the signed-in user as a card heading the left column — a larger
+/// avatar, name and email, and a button to the full profile.
+class _ProfileSideCard extends StatelessWidget {
+  const _ProfileSideCard({
+    required this.profile,
+    required this.profileImage,
+    required this.isLoading,
+    required this.onView,
+  });
+
+  final ProfileModel? profile;
+  final String? profileImage;
+  final bool isLoading;
+  final VoidCallback? onView;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    final UserData? user = profile?.data;
+    final String? fullName = user?.fullName.trim().isNotEmpty == true
+        ? user!.fullName.trim()
+        : null;
+    final String? email = user?.email.trim().isNotEmpty == true
+        ? user!.email.trim()
+        : null;
+    final String? profilePhoto = profileImage ?? user?.profilePhoto?.remoteUrl;
+
+    return Container(
+      // Lines up with the section cards' 16px inset.
+      margin: const EdgeInsets.symmetric(horizontal: AppDimens.paddingX16),
+      padding: const EdgeInsets.all(AppDimens.paddingX20),
+      decoration: BoxDecoration(
+        color: LightColor.cardColor,
+        borderRadius: BorderRadius.circular(AppDimens.radiusX12),
+        border: Border.all(color: LightColor.dividerColor),
+      ),
+      child: Column(
+        children: <Widget>[
+          _Avatar(url: profilePhoto, size: 88),
+          const SizedBox(height: AppDimens.paddingX14),
+          Text(
+            isLoading ? 'Loading…' : fullName ?? 'Profile unavailable',
+            maxLines: 2,
+            textAlign: TextAlign.center,
+            overflow: TextOverflow.ellipsis,
+            style: textTheme.bodyTextLarge?.copyWith(
+              color: LightColor.primaryTextColor,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: AppDimens.paddingX4),
+          Text(
+            email ?? 'Pull to refresh your account',
+            maxLines: 1,
+            textAlign: TextAlign.center,
+            overflow: TextOverflow.ellipsis,
+            style: textTheme.bodyTextSmall?.copyWith(
+              color: LightColor.secondaryTextColor,
+            ),
+          ),
+          const SizedBox(height: AppDimens.paddingX16),
+          SizedBox(
+            width: double.infinity,
+            child: CustomButton(
+              text: 'View profile',
+              icon: Icons.person_outline_rounded,
+              onPressed: onView,
+              isOutlined: true,
+              borderColor: LightColor.secondaryColor,
+              foregroundColor: LightColor.secondaryColor,
+              minHeight: AppDimens.sizeX42,
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -108,7 +108,13 @@ class AuthenticationBloc
         serverClientId: (!Platform.isAndroid && serverClientId.isNotEmpty)
             ? serverClientId
             : null,
-        clientId: (Platform.isIOS && iosClientId.isNotEmpty)
+        // macOS shares the iOS OAuth client. It must be passed explicitly: the
+        // Apple plugin only builds a configuration (and so only honours
+        // serverClientId) when it has a client id, and macOS ships no
+        // GoogleService-Info.plist. Without it the ID token is issued for the
+        // iOS client instead of the server's, and the API rejects it (422).
+        clientId:
+            ((Platform.isIOS || Platform.isMacOS) && iosClientId.isNotEmpty)
             ? iosClientId
             : null,
       );

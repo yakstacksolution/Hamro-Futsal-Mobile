@@ -8,22 +8,45 @@ final class BookingHoldUseCase {
 
   final FutsalDetailsRepository repository;
 
-  Future<Either<AppException, BookingHoldModel>> createHold({
+  /// Holds the slot on [bookingDate], or on every date in [bookingDates]
+  /// for a recurring booking — one list item per date, all in one request.
+  Future<Either<AppException, List<BookingHoldModel>>> createHold({
     required int? venueId,
     required int? courtId,
     required String bookingDate,
     required String startTime,
     required String endTime,
     List<String> bookingDates = const <String>[],
-  }) async => await repository.createBookingHold(
-    venueId: venueId,
-    courtId: courtId,
-    bookingDate: bookingDate,
-    startTime: startTime,
-    endTime: endTime,
-    bookingDates: bookingDates,
-  );
+  }) async {
+    final List<String> dates = bookingDates.isEmpty
+        ? <String>[bookingDate]
+        : bookingDates;
+    final Either<AppException, List<BookingHoldModel>> result = await repository
+        .createBookingHolds(
+          holds: <BookingHoldRequest>[
+            for (final String date in dates)
+              BookingHoldRequest(
+                venueId: venueId,
+                courtId: courtId,
+                bookingDate: date,
+                startTime: startTime,
+                endTime: endTime,
+              ),
+          ],
+        );
+    return result.flatMap(
+      (List<BookingHoldModel> holds) => holds.isEmpty
+          ? left(
+              DefaultException(
+                errorMessage: 'Could not hold this slot. Please try again.',
+                statusCode: 0,
+              ),
+            )
+          : right(holds),
+    );
+  }
 
-  Future<Either<AppException, Unit>> releaseHold(String holdToken) async =>
-      await repository.releaseBookingHold(holdToken: holdToken);
+  /// Releases the holds with [holdIds] in one request.
+  Future<Either<AppException, Unit>> releaseHolds(List<String> holdIds) async =>
+      await repository.releaseBookingHolds(holdIds: holdIds);
 }

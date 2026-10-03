@@ -3,6 +3,23 @@ platform :ios, '15.5'
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
 
+class << ::Pod::UserInterface
+  alias_method :warn_without_known_pod_noise, :warn
+
+  def warn(message, actions = [], verbose_only = false)
+    ignored_warnings = [
+      'Unable to read the license file `LICENSE` for the spec `GoogleSignIn (8.0.0)`',
+      'Unable to read the license file `LICENSE` for the spec `GoogleUtilities (8.1.3)`',
+      'Unable to read the license file `LICENSE` for the spec `PromisesObjC (2.4.1)`',
+    ]
+
+    return if ignored_warnings.include?(message)
+    return if message.start_with?('FirebaseCore has been deprecated in favor of the Firebase Apple SDK via Swift Package Manager.')
+
+    warn_without_known_pod_noise(message, actions, verbose_only)
+  end
+end
+
 project 'Runner', {
   'Debug' => :debug,
   'Profile' => :release,
@@ -36,6 +53,17 @@ target 'Runner' do
 end
 
 post_install do |installer|
+  license_files = {
+    'GoogleSignIn/LICENSE' => 'Apache License. See https://github.com/google/GoogleSignIn-iOS for the upstream license.',
+    'GoogleUtilities/LICENSE' => 'Apache-2.0 License. See https://github.com/google/GoogleUtilities for the upstream license.',
+    'PromisesObjC/LICENSE' => 'Apache-2.0 License. See https://github.com/google/promises for the upstream license.',
+  }
+
+  license_files.each do |relative_path, contents|
+    path = File.join(installer.sandbox.root, relative_path)
+    File.write(path, "#{contents}\n") unless File.exist?(path)
+  end
+
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
     target.build_configurations.each do |config|

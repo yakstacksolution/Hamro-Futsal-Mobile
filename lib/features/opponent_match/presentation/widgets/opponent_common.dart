@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hamro_futsal/core/utils/responsive.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/app_utils.dart';
@@ -531,5 +532,76 @@ class OpponentStatusBadge extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// Tablet / desktop layout for the opponent screens.
+///
+/// Phones keep their single full-width list. Wider screens centre the page at
+/// [maxContentWidth] and lay cards out in rows of [gridColumns] — each card at
+/// least [_minCardWidth] wide, so its two-line details never cramp.
+abstract final class OpponentLayout {
+  static const double _minCardWidth = 440;
+  static const double gap = 16;
+  static const double requestCardMinWidth = 340;
+
+  /// The page column's width: the whole screen on a phone.
+  static double maxContentWidth(BuildContext context) => context.isDesktop
+      ? 1200
+      : context.isTablet
+      ? 760
+      : double.infinity;
+
+  /// Cards per row for a list [width] wide (1 on a phone). [minCardWidth]
+  /// overrides the default for smaller cards.
+  static int gridColumns(
+    BuildContext context,
+    double width, {
+    double minCardWidth = _minCardWidth,
+  }) {
+    if (!context.isTabletOrWider) return 1;
+    return columnsFor(
+      availableWidth: width,
+      minItemWidth: minCardWidth,
+      spacing: gap,
+      maxColumns: 3,
+    );
+  }
+}
+
+/// One row of an opponent card grid: [columns] equal slots, the last ones
+/// left empty when [children] runs short so every card keeps the same width.
+///
+/// [equalHeight] stretches the row's cards to its tallest (request cards);
+/// leave it off for cards that grow when opened (team rosters), which then
+/// line up at the top instead.
+class OpponentGridRow extends StatelessWidget {
+  const OpponentGridRow({
+    super.key,
+    required this.children,
+    required this.columns,
+    this.equalHeight = false,
+  });
+
+  final List<Widget> children;
+  final int columns;
+  final bool equalHeight;
+
+  @override
+  Widget build(BuildContext context) {
+    final Widget row = Row(
+      crossAxisAlignment: equalHeight
+          ? CrossAxisAlignment.stretch
+          : CrossAxisAlignment.start,
+      children: <Widget>[
+        for (int i = 0; i < columns; i++) ...<Widget>[
+          if (i > 0) const SizedBox(width: OpponentLayout.gap),
+          Expanded(
+            child: i < children.length ? children[i] : const SizedBox.shrink(),
+          ),
+        ],
+      ],
+    );
+    return equalHeight ? IntrinsicHeight(child: row) : row;
   }
 }

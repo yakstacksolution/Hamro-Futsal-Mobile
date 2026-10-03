@@ -10,6 +10,8 @@
 #   make aab-prod             # Play Store bundle, production
 #   make ipa-staging / ipa-prod
 #   make env-check            # compare the two env files key by key
+#   make secret-scan          # fail if committed files contain key material
+#   make prepare-firebase     # copy local/CI Firebase config secrets into place
 
 FLUTTER ?= flutter
 
@@ -18,34 +20,42 @@ FLUTTER ?= flutter
 BUILD_FLAGS := --release --no-tree-shake-icons
 
 .PHONY: run-staging run-prod apk-staging apk-prod aab-staging aab-prod \
-        ipa-staging ipa-prod env-check help
+        ipa-staging ipa-prod env-check secret-scan prepare-firebase help
 
 help:
 	@grep -E '^#   make' Makefile | sed 's/^#   //'
 
-run-staging:
+run-staging: prepare-firebase
 	$(FLUTTER) run --dart-define=ENV=staging
 
-run-prod:
+run-prod: prepare-firebase
 	$(FLUTTER) run --dart-define=ENV=production
 
-apk-staging:
+apk-staging: prepare-firebase
 	$(FLUTTER) build apk $(BUILD_FLAGS) --dart-define=ENV=staging
 
-apk-prod:
+apk-prod: prepare-firebase
 	$(FLUTTER) build apk $(BUILD_FLAGS) --dart-define=ENV=production
 
-aab-staging:
+aab-staging: prepare-firebase
 	$(FLUTTER) build appbundle $(BUILD_FLAGS) --dart-define=ENV=staging
 
-aab-prod:
+aab-prod: prepare-firebase
 	$(FLUTTER) build appbundle $(BUILD_FLAGS) --dart-define=ENV=production
 
-ipa-staging:
+ipa-staging: prepare-firebase
+	@dart tool/firebase_config_check.dart ios/Runner/GoogleService-Info.plist
 	$(FLUTTER) build ipa $(BUILD_FLAGS) --dart-define=ENV=staging
 
-ipa-prod:
+ipa-prod: prepare-firebase
+	@dart tool/firebase_config_check.dart ios/Runner/GoogleService-Info.plist
 	$(FLUTTER) build ipa $(BUILD_FLAGS) --dart-define=ENV=production
 
 env-check:
 	@dart run tool/env_check.dart
+
+secret-scan:
+	@dart run tool/secret_scan.dart
+
+prepare-firebase:
+	@dart tool/prepare_firebase_config.dart

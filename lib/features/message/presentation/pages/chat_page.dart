@@ -31,9 +31,22 @@ import 'package:hamro_futsal/features/message/presentation/pages/user_profile_pa
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 
 class ChatPage extends StatefulWidget {
-  const ChatPage({super.key, required this.conversation});
+  const ChatPage({
+    super.key,
+    required this.conversation,
+    this.embedded = false,
+    this.onClose,
+  });
 
   final ConversationModel conversation;
+
+  /// Shown as the right-hand pane of the messages split view (tablet /
+  /// desktop) rather than as its own route: no back button, and leaving a
+  /// group calls [onClose] instead of navigating.
+  final bool embedded;
+
+  /// Called when an embedded chat should be dismissed.
+  final VoidCallback? onClose;
 
   @override
   State<ChatPage> createState() => _ChatPageState();
@@ -81,7 +94,9 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
     if (!_bloc.isClosed) {
       _bloc.add(SendTypingEvent(widget.conversation.id, false));
     }
-    if (!_bloc.isClosed) _bloc.add(const CloseChatEvent());
+    if (!_bloc.isClosed) {
+      _bloc.add(CloseChatEvent(conversationId: widget.conversation.id));
+    }
     _presenceTimer?.cancel();
     _scrollCtrl.removeListener(_onScroll);
     _scrollCtrl.dispose();
@@ -345,6 +360,8 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
     context: context,
     builder: (dialogContext) => Dialog(
       backgroundColor: Colors.black,
+      // A photo viewer, not a form: let it use the room a big window has.
+      constraints: const BoxConstraints(minWidth: 280, maxWidth: 1000),
       child: Stack(
         children: [
           InteractiveViewer(child: Center(child: Image.memory(bytes))),
@@ -425,6 +442,10 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
     );
     if (!left || !mounted) return;
 
+    if (widget.embedded) {
+      widget.onClose?.call();
+      return;
+    }
     DashboardScreen.selectedNavIndex.value = 2;
     context.goNamed(AppRouterParams.dashboard.name);
   }
@@ -471,6 +492,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
     return Scaffold(
       backgroundColor: LightColor.background,
       appBar: _ChatAppBar(
+        showBack: !widget.embedded,
         conversation: widget.conversation,
         peerOnline: _peerOnline,
         onActions: _showConversationActions,
@@ -872,12 +894,14 @@ class _ThreadError extends StatelessWidget {
 /// Contact header: avatar, title and live subtitle (typing… / members).
 class _ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
   const _ChatAppBar({
+    this.showBack = true,
     required this.conversation,
     required this.peerOnline,
     required this.onActions,
     required this.onOpenGroupProfile,
   });
 
+  final bool showBack;
   final ConversationModel conversation;
   final bool? peerOnline;
   final VoidCallback onActions;
@@ -894,20 +918,23 @@ class _ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
       backgroundColor: LightColor.cardColor,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
-      titleSpacing: 0,
+      titleSpacing: showBack ? 0 : AppDimens.paddingX16,
+      automaticallyImplyLeading: false,
       shape: Border(
         bottom: BorderSide(
           color: LightColor.dividerColor.withValues(alpha: 0.8),
         ),
       ),
-      leading: IconButton(
-        onPressed: () => Navigator.of(context).pop(),
-        icon: Icon(
-          Icons.arrow_back_ios_new_rounded,
-          size: 18,
-          color: LightColor.primaryTextColor,
-        ),
-      ),
+      leading: !showBack
+          ? null
+          : IconButton(
+              onPressed: () => Navigator.of(context).pop(),
+              icon: Icon(
+                Icons.arrow_back_ios_new_rounded,
+                size: 18,
+                color: LightColor.primaryTextColor,
+              ),
+            ),
       actions: [
         IconButton(
           tooltip: StringConstants.conversationSettings,

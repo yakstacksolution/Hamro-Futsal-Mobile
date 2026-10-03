@@ -122,10 +122,10 @@ final class _FakeDataSource implements FutsalDetailsRemoteDataSource {
   }) => throw UnimplementedError();
 
   @override
-  Future<Result> createBookingHold({required Map<String, dynamic> data}) =>
+  Future<Result> createBookingHolds({required Object data}) =>
       throw UnimplementedError();
 
   @override
-  Future<Result> releaseBookingHold({required String holdToken}) =>
+  Future<Result> releaseBookingHolds({required List<String> holdIds}) =>
       throw UnimplementedError();
 }

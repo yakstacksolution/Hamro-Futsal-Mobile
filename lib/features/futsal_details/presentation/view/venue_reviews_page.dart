@@ -142,10 +142,12 @@ class _VenueReviewsPageState extends State<VenueReviewsPage> {
               }
               if (state.isEmpty) return const _ReviewsEmpty();
 
-              final double inset = context.responsive<double>(
-                mobile: AppDimens.paddingX20,
-                tablet: AppDimens.paddingX32,
+              final Widget summary = VenueRatingSummaryCard(
+                rating: state.page.averageRating,
+                reviewCount: state.totalCount,
+                breakdown: state.page.breakdown,
               );
+
               return RefreshIndicator(
                 color: LightColor.brandTextColor,
                 onRefresh: () async => _bloc.add(
@@ -155,41 +157,28 @@ class _VenueReviewsPageState extends State<VenueReviewsPage> {
                     refresh: true,
                   ),
                 ),
-                child: ListView.separated(
-                  controller: _scrollCtrl,
-                  physics: const AlwaysScrollableScrollPhysics(
-                    parent: BouncingScrollPhysics(),
-                  ),
-                  padding: EdgeInsets.fromLTRB(
-                    inset,
-                    AppDimens.paddingX16,
-                    inset,
-                    AppDimens.paddingX32,
-                  ),
-                  // Header + rows + footer.
-                  itemCount: state.reviews.length + 2,
-                  separatorBuilder: (_, int index) => SizedBox(
-                    height: index == 0 ? AppDimens.sizeX16 : AppDimens.sizeX12,
-                  ),
-                  itemBuilder: (BuildContext context, int index) {
-                    if (index == 0) {
-                      return VenueRatingSummaryCard(
-                        rating: state.page.averageRating,
-                        reviewCount: state.totalCount,
-                        breakdown: state.page.breakdown,
+                child: LayoutBuilder(
+                  builder: (BuildContext context, BoxConstraints constraints) {
+                    final bool twoPane =
+                        constraints.maxWidth >=
+                        AppDimens.venueReviewsListMaxWidth +
+                            AppDimens.venueReviewsSummaryWidth +
+                            (AppDimens.venueDesktopGap * 3);
+
+                    if (twoPane) {
+                      return _ReviewsTwoPane(
+                        controller: _scrollCtrl,
+                        state: state,
+                        summary: summary,
+                        onChangeRequest: _onChangeRequest,
                       );
                     }
-                    if (index == state.reviews.length + 1) {
-                      return _ListFooter(state: state);
-                    }
-                    final VenueReviewModel review = state.reviews[index - 1];
-                    return VenueReviewCard(
-                      review: review,
-                      isSubmittingChangeRequest:
-                          state.isSubmittingChangeRequest &&
-                          state.changeRequestReviewId == review.id,
-                      onChangeRequest: (ReviewChangeRequestType type) =>
-                          _onChangeRequest(review, type),
+
+                    return _ReviewsSingleColumn(
+                      controller: _scrollCtrl,
+                      state: state,
+                      summary: summary,
+                      onChangeRequest: _onChangeRequest,
                     );
                   },
                 ),
@@ -198,6 +187,166 @@ class _VenueReviewsPageState extends State<VenueReviewsPage> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _ReviewsSingleColumn extends StatelessWidget {
+  const _ReviewsSingleColumn({
+    required this.controller,
+    required this.state,
+    required this.summary,
+    required this.onChangeRequest,
+  });
+
+  final ScrollController controller;
+  final VenueReviewsState state;
+  final Widget summary;
+  final _ReviewChangeRequestCallback onChangeRequest;
+
+  @override
+  Widget build(BuildContext context) {
+    final double inset = context.responsive<double>(
+      mobile: AppDimens.paddingX20,
+      tablet: AppDimens.paddingX32,
+    );
+
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(
+          maxWidth: AppDimens.venueReviewsListMaxWidth,
+        ),
+        child: ListView.separated(
+          controller: controller,
+          physics: const AlwaysScrollableScrollPhysics(
+            parent: BouncingScrollPhysics(),
+          ),
+          padding: EdgeInsets.fromLTRB(
+            inset,
+            AppDimens.paddingX16,
+            inset,
+            AppDimens.paddingX32,
+          ),
+          // Header + rows + footer.
+          itemCount: state.reviews.length + 2,
+          separatorBuilder: (_, int index) => SizedBox(
+            height: index == 0 ? AppDimens.sizeX16 : AppDimens.sizeX12,
+          ),
+          itemBuilder: (BuildContext context, int index) {
+            if (index == 0) return summary;
+            return _ReviewListItem(
+              state: state,
+              index: index - 1,
+              onChangeRequest: onChangeRequest,
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _ReviewsTwoPane extends StatelessWidget {
+  const _ReviewsTwoPane({
+    required this.controller,
+    required this.state,
+    required this.summary,
+    required this.onChangeRequest,
+  });
+
+  final ScrollController controller;
+  final VenueReviewsState state;
+  final Widget summary;
+  final _ReviewChangeRequestCallback onChangeRequest;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(
+          maxWidth: AppDimens.venueReviewsShellMaxWidth,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppDimens.paddingX32,
+            AppDimens.paddingX20,
+            AppDimens.paddingX32,
+            AppDimens.paddingX32,
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              SizedBox(
+                width: AppDimens.venueReviewsSummaryWidth,
+                child: summary,
+              ),
+              const SizedBox(width: AppDimens.venueDesktopGap),
+              Expanded(
+                child: Align(
+                  alignment: Alignment.topLeft,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      maxWidth: AppDimens.venueReviewsListMaxWidth,
+                    ),
+                    child: ListView.separated(
+                      controller: controller,
+                      physics: const AlwaysScrollableScrollPhysics(
+                        parent: BouncingScrollPhysics(),
+                      ),
+                      padding: EdgeInsets.zero,
+                      itemCount: state.reviews.length + 1,
+                      separatorBuilder: (_, __) =>
+                          const SizedBox(height: AppDimens.sizeX12),
+                      itemBuilder: (BuildContext context, int index) {
+                        return _ReviewListItem(
+                          state: state,
+                          index: index,
+                          onChangeRequest: onChangeRequest,
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+typedef _ReviewChangeRequestCallback =
+    Future<void> Function(
+      VenueReviewModel review,
+      ReviewChangeRequestType type,
+    );
+
+class _ReviewListItem extends StatelessWidget {
+  const _ReviewListItem({
+    required this.state,
+    required this.index,
+    required this.onChangeRequest,
+  });
+
+  final VenueReviewsState state;
+  final int index;
+  final _ReviewChangeRequestCallback onChangeRequest;
+
+  @override
+  Widget build(BuildContext context) {
+    if (index == state.reviews.length) {
+      return _ListFooter(state: state);
+    }
+
+    final VenueReviewModel review = state.reviews[index];
+    return VenueReviewCard(
+      review: review,
+      isSubmittingChangeRequest:
+          state.isSubmittingChangeRequest &&
+          state.changeRequestReviewId == review.id,
+      onChangeRequest: (ReviewChangeRequestType type) =>
+          onChangeRequest(review, type),
     );
   }
 }

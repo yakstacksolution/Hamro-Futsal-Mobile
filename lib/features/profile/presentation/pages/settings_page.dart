@@ -7,6 +7,7 @@ import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/app_utils.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/utils/responsive.dart';
 import 'package:hamro_futsal/core/widgets/custom_app_bar.dart';
 import 'package:hamro_futsal/core/widgets/confirm_word_sheet.dart';
 import 'package:hamro_futsal/core/widgets/custom_switch_widget.dart';
@@ -83,18 +84,13 @@ class _SettingsPageState extends State<SettingsPage> {
             final List<_Section> sections = _sections(
               isCheckingUpdate: isCheckingUpdate,
             );
-            return ListView.separated(
-              physics: const BouncingScrollPhysics(),
-              padding: AppUtils().getPadding(
-                symmetricHorizontal: AppDimens.paddingX16,
-                top: AppDimens.paddingX12,
-                bottom: AppDimens.paddingX32,
-              ),
-              itemCount: sections.length,
-              separatorBuilder: (_, _) =>
-                  const SizedBox(height: AppDimens.paddingX16),
-              itemBuilder: (context, index) =>
-                  _SettingsSection(section: sections[index]),
+            return LayoutBuilder(
+              builder: (BuildContext context, BoxConstraints constraints) {
+                if (context.isDesktop) {
+                  return _SettingsDesktopLayout(sections: sections);
+                }
+                return _SettingsSingleColumn(sections: sections);
+              },
             );
           },
         ),
@@ -338,6 +334,103 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
         );
       },
+    );
+  }
+}
+
+class _SettingsSingleColumn extends StatelessWidget {
+  const _SettingsSingleColumn({required this.sections});
+
+  final List<_Section> sections;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: context.isTabletOrWider
+              ? AppDimens.settingsColumnMaxWidth
+              : double.infinity,
+        ),
+        child: ListView.separated(
+          physics: const BouncingScrollPhysics(),
+          padding: EdgeInsets.fromLTRB(
+            context.isTabletOrWider
+                ? AppDimens.paddingX32
+                : AppUtils().getHorizontalSize(AppDimens.paddingX16),
+            AppDimens.paddingX12,
+            context.isTabletOrWider
+                ? AppDimens.paddingX32
+                : AppUtils().getHorizontalSize(AppDimens.paddingX16),
+            AppDimens.paddingX32,
+          ),
+          itemCount: sections.length,
+          separatorBuilder: (_, _) =>
+              const SizedBox(height: AppDimens.paddingX16),
+          itemBuilder: (context, index) =>
+              _SettingsSection(section: sections[index]),
+        ),
+      ),
+    );
+  }
+}
+
+class _SettingsDesktopLayout extends StatelessWidget {
+  const _SettingsDesktopLayout({required this.sections});
+
+  final List<_Section> sections;
+
+  @override
+  Widget build(BuildContext context) {
+    final List<_Section> left = <_Section>[
+      if (sections.isNotEmpty) sections[0],
+      if (sections.length > 2) sections[2],
+    ];
+    final List<_Section> right = <_Section>[
+      if (sections.length > 1) sections[1],
+    ];
+
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(
+        AppDimens.paddingX32,
+        AppDimens.paddingX20,
+        AppDimens.paddingX32,
+        AppDimens.paddingX40,
+      ),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(
+            maxWidth: AppDimens.settingsShellMaxWidth,
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Expanded(child: _SettingsColumn(sections: left)),
+              const SizedBox(width: AppDimens.paddingX24),
+              Expanded(child: _SettingsColumn(sections: right)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SettingsColumn extends StatelessWidget {
+  const _SettingsColumn({required this.sections});
+
+  final List<_Section> sections;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: <Widget>[
+        for (int i = 0; i < sections.length; i++) ...<Widget>[
+          if (i > 0) const SizedBox(height: AppDimens.paddingX16),
+          _SettingsSection(section: sections[i]),
+        ],
+      ],
     );
   }
 }

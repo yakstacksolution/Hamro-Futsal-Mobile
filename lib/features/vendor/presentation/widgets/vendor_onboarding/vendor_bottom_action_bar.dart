@@ -2,10 +2,12 @@ import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:hamro_futsal/features/vendor/presentation/widgets/vendor_onboarding/vendor_form_column.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/app_utils.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/utils/responsive.dart';
 import 'package:hamro_futsal/core/widgets/custom_bottom_sheet.dart';
 import 'package:hamro_futsal/core/widgets/custom_button.dart';
 import 'package:hamro_futsal/core/widgets/custom_text_field.dart';
@@ -34,6 +36,13 @@ class VendorBottomActionBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final bool canInteract = !isSubmitting;
     final bool isAddFirstCourt = nextLabel == 'Add First Court';
+    final Widget primary = _PrimaryActionButton(
+      label: nextLabel,
+      onTap: canInteract
+          ? () => isAddFirstCourt ? _showAddCourtSheet(context) : onNext()
+          : null,
+      isLoading: isSubmitting,
+    );
 
     return SafeArea(
       top: false,
@@ -72,31 +81,45 @@ class VendorBottomActionBar extends StatelessWidget {
               // Back and Next split the bar evenly. Back used to be sized to
               // its own label while Next took every remaining pixel, which
               // read as a lopsided pair on the court setup steps.
-              child: Row(
-                children: <Widget>[
-                  if (hasPrevious) ...<Widget>[
-                    Expanded(
-                      child: _SecondaryActionButton(
-                        icon: Icons.arrow_back_ios,
-                        label: StringConstants.back,
-                        onTap: canInteract ? onPrevious : null,
+              child: context.isTabletOrWider
+                  // Tablet / desktop: compact actions at the form's right
+                  // edge, not two buttons stretched across the window.
+                  ? VendorActionsAlignment(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: <Widget>[
+                          if (hasPrevious) ...<Widget>[
+                            SizedBox(
+                              width: 150,
+                              child: _SecondaryActionButton(
+                                icon: Icons.arrow_back_ios,
+                                label: StringConstants.back,
+                                onTap: canInteract ? onPrevious : null,
+                              ),
+                            ),
+                            const SizedBox(width: AppDimens.sizeX12),
+                          ],
+                          SizedBox(width: 220, child: primary),
+                        ],
+                      ),
+                    )
+                  : VendorFormColumn(
+                      child: Row(
+                        children: <Widget>[
+                          if (hasPrevious) ...<Widget>[
+                            Expanded(
+                              child: _SecondaryActionButton(
+                                icon: Icons.arrow_back_ios,
+                                label: StringConstants.back,
+                                onTap: canInteract ? onPrevious : null,
+                              ),
+                            ),
+                            const SizedBox(width: AppDimens.sizeX12),
+                          ],
+                          Expanded(child: primary),
+                        ],
                       ),
                     ),
-                    const SizedBox(width: AppDimens.sizeX12),
-                  ],
-                  Expanded(
-                    child: _PrimaryActionButton(
-                      label: nextLabel,
-                      onTap: canInteract
-                          ? () => isAddFirstCourt
-                                ? _showAddCourtSheet(context)
-                                : onNext()
-                          : null,
-                      isLoading: isSubmitting,
-                    ),
-                  ),
-                ],
-              ),
             ),
           ),
         ),

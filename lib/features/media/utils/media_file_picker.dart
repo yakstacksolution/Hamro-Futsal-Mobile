@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
@@ -56,12 +57,17 @@ Future<PickedMediaFile?> pickMediaFile(
   String title = 'Add a file',
   String subtitle = '',
 }) async {
-  final MediaPickSource? source = await _askSource(
-    context,
-    allowCamera: allowCamera,
-    title: title,
-    subtitle: subtitle,
-  );
+  // Desktop has no camera through image_picker and no photo "gallery" — both
+  // end in the same system file dialog — so it opens that straight away
+  // instead of offering three choices, two of which fail.
+  final MediaPickSource? source = _isDesktop
+      ? MediaPickSource.files
+      : await _askSource(
+          context,
+          allowCamera: allowCamera,
+          title: title,
+          subtitle: subtitle,
+        );
   if (source == null || !context.mounted) return null;
 
   try {
@@ -114,6 +120,14 @@ Future<PickedMediaFile?> pickMediaFile(
     return null;
   }
 }
+
+/// macOS, Windows and Linux: pick from the system file dialog only.
+bool get _isDesktop =>
+    !kIsWeb && (Platform.isMacOS || Platform.isWindows || Platform.isLinux);
+
+/// Whether image_picker can take a photo here. False on desktop, where its
+/// camera source is unimplemented; pickers hide their Camera option then.
+bool get supportsCameraCapture => !_isDesktop;
 
 /// Full-screen look at a picked image — pinch to zoom, tap outside to close.
 /// Renders from [PickedMediaFile.bytes], so it cannot go blank if the source
@@ -322,15 +336,28 @@ Future<_RawPick> _pickFile(
   final FilePickerResult? result = await FilePicker.platform.pickFiles(
     type: FileType.custom,
     allowedExtensions: allowedExtensions.toList(growable: false),
-    withData: false,
+    withData: true,
   );
   final PlatformFile? file = result?.files.singleOrNull;
-  if (file?.path == null) return const _RawPick();
-  final PickedMediaFile? picked = await _fromPath(
-    file!.path!,
-    file.name,
-    policy,
-  );
+  if (file == null) return const _RawPick();
+
+  final Uint8List? bytes = file.bytes;
+  if (bytes != null && bytes.isNotEmpty) {
+    final PickedMediaFile picked = await normalizeUploadAttachment(
+      bytes: bytes,
+      filename: file.name,
+      sourcePath: file.path,
+      originalSize: file.size,
+      policy: policy,
+    );
+    return _RawPick(file: picked);
+  }
+
+  final String? path = file.path;
+  if (path == null || path.trim().isEmpty) {
+    return const _RawPick(unreadable: true);
+  }
+  final PickedMediaFile? picked = await _fromPath(path, file.name, policy);
   return picked == null
       ? const _RawPick(unreadable: true)
       : _RawPick(file: picked);

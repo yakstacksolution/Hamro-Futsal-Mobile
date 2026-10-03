@@ -5,6 +5,7 @@ import 'package:dartz/dartz.dart';
 import 'package:equatable/equatable.dart';
 import 'package:hamro_futsal/core/helper/exception_helper.dart';
 import 'package:hamro_futsal/features/futsal_details/data/model/booking_hold_model.dart';
+import 'package:hamro_futsal/features/futsal_details/data/model/booking_quote_model.dart';
 import 'package:hamro_futsal/features/futsal_details/domain/usecase/booking_hold_use_case.dart';
 
 part 'booking_hold_event.dart';
@@ -29,7 +30,7 @@ class BookingHoldBloc extends Bloc<BookingHoldEvent, BookingHoldState> {
     if (state.status == BookingHoldStatus.holding || state.hasToken) return;
     emit(state.copyWith(status: BookingHoldStatus.holding, clearError: true));
 
-    final Either<AppException, BookingHoldModel> response =
+    final Either<AppException, List<BookingHoldModel>> response =
         await _bookingHoldUseCase.createHold(
           venueId: event.venueId,
           courtId: event.courtId,
@@ -47,18 +48,21 @@ class BookingHoldBloc extends Bloc<BookingHoldEvent, BookingHoldState> {
           errorMessage: failure.errorMessage,
         ),
       ),
-      (BookingHoldModel hold) => emit(
-        state.copyWith(
-          status: hold.hasToken
-              ? BookingHoldStatus.held
-              : BookingHoldStatus.failure,
-          hold: hold,
-          errorMessage: hold.hasToken
-              ? null
-              : 'Could not hold this slot. Please try again.',
-          clearError: hold.hasToken,
-        ),
-      ),
+      (List<BookingHoldModel> holds) {
+        // An empty answer used to throw on `holds.first`, leaving the state in
+        // `holding` — and the checkout's price spinning — for good.
+        final bool held = holds.isNotEmpty && holds.first.hasToken;
+        emit(
+          state.copyWith(
+            status: held ? BookingHoldStatus.held : BookingHoldStatus.failure,
+            holds: holds,
+            errorMessage: held
+                ? null
+                : 'Could not hold this slot. Please try again.',
+            clearError: held,
+          ),
+        );
+      },
     );
   }
 
@@ -76,14 +80,15 @@ class BookingHoldBloc extends Bloc<BookingHoldEvent, BookingHoldState> {
     _release();
   }
 
-  /// Releases the hold (`DELETE /booking-holds/{token}`) at most once, unless a
-  /// completed booking already consumed it. Fire-and-forget: the request runs
-  /// on the singleton API client and survives the bloc being closed.
+  /// Releases every hold by id (`DELETE /booking-holds`, as a list) at most
+  /// once, unless a completed booking already consumed it. Fire-and-forget:
+  /// the request runs on the singleton API client and survives the bloc
+  /// being closed.
   void _release() {
-    final String? token = state.holdToken;
-    if (_consumed || _released || token == null || token.isEmpty) return;
+    final List<String> ids = state.holdIds;
+    if (_consumed || _released || ids.isEmpty) return;
     _released = true;
-    unawaited(_bookingHoldUseCase.releaseHold(token));
+    unawaited(_bookingHoldUseCase.releaseHolds(ids));
   }
 
   @override

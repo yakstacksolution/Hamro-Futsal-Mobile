@@ -182,10 +182,7 @@ void main() {
     await _pumpCard(tester);
     final Map<String, double> card = <String, double>{
       'DATE': tester.widget<Text>(find.text('DATE')).style!.fontSize!,
-      'value': tester
-          .widget<Text>(find.text('Sep 15, 2026'))
-          .style!
-          .fontSize!,
+      'value': tester.widget<Text>(find.text('Sep 15, 2026')).style!.fontSize!,
       'title': tester
           .widget<Text>(find.text('Harisiddhi futsal'))
           .style!
@@ -203,10 +200,7 @@ void main() {
     // summary's own title is the first of them.
     final Map<String, double> details = <String, double>{
       'DATE': tester.widget<Text>(find.text('DATE')).style!.fontSize!,
-      'value': tester
-          .widget<Text>(find.text('Sep 15, 2026'))
-          .style!
-          .fontSize!,
+      'value': tester.widget<Text>(find.text('Sep 15, 2026')).style!.fontSize!,
       'title': tester
           .widget<Text>(find.text('Harisiddhi futsal').first)
           .style!

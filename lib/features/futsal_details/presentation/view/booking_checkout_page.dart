@@ -8,6 +8,7 @@ import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/app_utils.dart';
 import 'package:hamro_futsal/core/utils/custom_image_view.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/utils/responsive.dart';
 import 'package:hamro_futsal/core/utils/scroll_behavior.dart';
 import 'package:hamro_futsal/core/validation/receipt_validator.dart';
 import 'package:hamro_futsal/core/widgets/custom_app_bar.dart';
@@ -26,6 +27,7 @@ import 'package:hamro_futsal/core/routers/booking_navigation.dart';
 import 'package:hamro_futsal/features/futsal_details/data/model/booking_success_action.dart';
 import 'package:hamro_futsal/features/media/utils/media_file_picker.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
+import 'package:path_provider/path_provider.dart';
 
 class BookingCheckoutPage extends StatefulWidget {
   const BookingCheckoutPage({
@@ -73,6 +75,12 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _requestHold();
+  }
+
+  /// Holds the slot(s); the hold's answer carries the server's price. Also
+  /// the price section's Retry after a failed hold.
+  void _requestHold() {
     final BookingDraft draft = widget.draft;
     final String startTime = draft.apiTime ?? '';
     if (startTime.isNotEmpty) {
@@ -139,8 +147,45 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
   _Pricing _pricingFor(CouponState coupon, {BookingQuoteModel? quote}) {
     final BookingQuoteModel? effective = _effectiveQuote(coupon, quote);
     final BookingPriceDetailsModel? price = effective?.priceDetails;
-    final List<BookingCalculationLineModel> lines =
+    final List<BookingCalculationLineModel> serverLines =
         effective?.calculationList ?? const <BookingCalculationLineModel>[];
+    // Some answers carry `price_details` without a `calculation_list`; the
+    // breakdown is then built from those figures instead of spinning forever.
+    final List<BookingCalculationLineModel> lines =
+        serverLines.isNotEmpty || price == null
+        ? serverLines
+        : <BookingCalculationLineModel>[
+            if (price.subtotal != null)
+              BookingCalculationLineModel(
+                label: 'Subtotal',
+                key: 'subtotal',
+                amount: price.subtotal,
+              ),
+            if ((price.discountAmount ?? 0) != 0)
+              BookingCalculationLineModel(
+                label: 'Discount',
+                key: 'discount_amount',
+                amount: -(price.discountAmount!.abs()),
+              ),
+            if (price.bookingTotal != null)
+              BookingCalculationLineModel(
+                label: 'Booking total',
+                key: 'booking_total',
+                amount: price.bookingTotal,
+              ),
+            if (price.advancePayableNow != null)
+              BookingCalculationLineModel(
+                label: 'Pay now (advance)',
+                key: 'advance_payable_now',
+                amount: price.advancePayableNow,
+              ),
+            if (price.balanceDueLater != null)
+              BookingCalculationLineModel(
+                label: 'Balance due later',
+                key: 'balance_due_later',
+                amount: price.balanceDueLater,
+              ),
+          ];
 
     return _Pricing(
       subtotal: _lineAmount(lines, 'subtotal') ?? price?.subtotal ?? 0,
@@ -244,8 +289,7 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
     final BookingQuoteModel? quote = context
         .read<BookingHoldBloc>()
         .state
-        .hold
-        ?.quote;
+        .quote;
     final double expectedAmount = _pricingFor(coupon, quote: quote).advance;
     if (expectedAmount <= 0) {
       AppUtils().showSnackBar(
@@ -263,8 +307,9 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
       _paymentDocValidationApplied = true;
     });
 
+    final File receiptFile = await _receiptFileForValidation(file);
     final ReceiptValidationResult validation = await ReceiptValidator.validate(
-      image: File(file.path),
+      image: receiptFile,
       expectedAmount: expectedAmount,
       merchantNames: const <String>[
         'Yak Stack Solution',
@@ -299,6 +344,32 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
           ? 'receipt_validation_passed'
           : 'receipt_validation_failed',
     );
+  }
+
+  Future<File> _receiptFileForValidation(PickedMediaFile file) async {
+    final String path = file.path.trim();
+    if (path.isNotEmpty) {
+      final File source = File(path);
+      if (await source.exists() && await source.length() > 0) {
+        return source;
+      }
+    }
+
+    final Directory tempDir = await getTemporaryDirectory();
+    final String extension = file.extension.isEmpty ? 'jpg' : file.extension;
+    final String leaf = file.filename
+        .replaceAll(RegExp(r'[^A-Za-z0-9._-]+'), '_')
+        .replaceAll(RegExp(r'^_+'), '');
+    final String filename = leaf.isEmpty
+        ? 'payment_receipt.$extension'
+        : leaf.contains('.')
+        ? leaf
+        : '$leaf.$extension';
+    final File copy = File(
+      '${tempDir.path}${Platform.pathSeparator}receipt_${DateTime.now().microsecondsSinceEpoch}_$filename',
+    );
+    await copy.writeAsBytes(file.bytes, flush: true);
+    return copy;
   }
 
   Future<void> _confirmBooking() async {
@@ -462,11 +533,8 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
   Widget build(BuildContext context) {
     final BookingDraft draft = widget.draft;
     final CouponState coupon = context.watch<CouponBloc>().state;
-    final BookingQuoteModel? quote = context
-        .watch<BookingHoldBloc>()
-        .state
-        .hold
-        ?.quote;
+    final BookingHoldState holdState = context.watch<BookingHoldBloc>().state;
+    final BookingQuoteModel? quote = holdState.quote;
     final _Pricing pricing = _pricingFor(coupon, quote: quote);
     final bool showCoupons = coupon.hasApplied || coupon.hasActiveCoupon;
     return BlocListener<CreateBookingBloc, CreateBookingState>(
@@ -480,7 +548,7 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
           _showSuccessSheet(
             _pricingFor(
               context.read<CouponBloc>().state,
-              quote: context.read<BookingHoldBloc>().state.hold?.quote,
+              quote: context.read<BookingHoldBloc>().state.quote,
             ),
           );
         } else if (state.status == CreateBookingStatus.failure) {
@@ -499,123 +567,336 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
           appBar: const CustomAppBar(title: StringConstants.confirmBooking),
           body: SafeArea(
             top: false,
-            child: ListView(
-              physics: const BouncingScrollPhysics(),
-              // Scrolling the form away closes the keyboard with it, so the
-              // confirm bar is never left hidden behind it.
-              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-              padding: AppUtils().getPadding(
-                left: AppDimens.paddingX20,
-                right: AppDimens.paddingX20,
-                top: AppDimens.paddingX12,
-                bottom: AppDimens.paddingX24,
-              ),
-              children: <Widget>[
-                const _SectionLabel('Booking summary'),
-                _SummaryCard(draft: draft),
-                const SizedBox(height: AppDimens.sizeX20),
-
-                if (showCoupons) ...<Widget>[
-                  const _SectionLabel('Apply coupon'),
-                  const SizedBox(height: AppDimens.sizeX6),
-                  _CouponField(
-                    controller: _couponCtrl,
-                    focusNode: _couponFocus,
-                    coupon: coupon,
-                    subtotal: _subtotal,
-                    onApply: _applyCoupon,
-                    onRemove: _removeCoupon,
-                    onSelectCoupon: _selectCoupon,
-                  ),
+            child: LayoutBuilder(
+              builder: (BuildContext context, BoxConstraints constraints) {
+                final List<Widget> summarySection = <Widget>[
+                  const _SectionLabel('Booking summary'),
+                  _SummaryCard(draft: draft),
                   const SizedBox(height: AppDimens.sizeX20),
-                ],
-
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: <Widget>[
-                    const _SectionLabel('Price details'),
-                    if (pricing.items.isNotEmpty)
-                      GestureDetector(
-                        onTap: () => _showPriceDetailsSheet(pricing),
-                        behavior: HitTestBehavior.opaque,
-                        child: Padding(
-                          padding: AppUtils().getPadding(
-                            left: AppDimens.paddingX4,
-                            bottom: AppDimens.paddingX8,
-                          ),
-                          child: const Icon(
-                            Icons.info_outline_rounded,
-                            size: AppDimens.sizeX16,
-                            color: LightColor.secondaryColor,
+                ];
+                final List<Widget> couponSection = <Widget>[
+                  if (showCoupons) ...<Widget>[
+                    const _SectionLabel('Apply coupon'),
+                    const SizedBox(height: AppDimens.sizeX6),
+                    _CouponField(
+                      controller: _couponCtrl,
+                      focusNode: _couponFocus,
+                      coupon: coupon,
+                      subtotal: _subtotal,
+                      onApply: _applyCoupon,
+                      onRemove: _removeCoupon,
+                      onSelectCoupon: _selectCoupon,
+                    ),
+                    const SizedBox(height: AppDimens.sizeX20),
+                  ],
+                ];
+                final List<Widget> priceSection = <Widget>[
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: <Widget>[
+                      const _SectionLabel('Price details'),
+                      if (pricing.items.isNotEmpty)
+                        GestureDetector(
+                          onTap: () => _showPriceDetailsSheet(pricing),
+                          behavior: HitTestBehavior.opaque,
+                          child: Padding(
+                            padding: AppUtils().getPadding(
+                              left: AppDimens.paddingX4,
+                              bottom: AppDimens.paddingX8,
+                            ),
+                            child: const Icon(
+                              Icons.info_outline_rounded,
+                              size: AppDimens.sizeX16,
+                              color: LightColor.secondaryColor,
+                            ),
                           ),
                         ),
-                      ),
-                  ],
-                ),
-                _PriceBreakdown(lines: pricing.lines, ready: pricing.ready),
-                const SizedBox(height: AppDimens.sizeX20),
-
-                if (!_isManual) ...<Widget>[
-                  const _SectionLabel('Payment'),
-                  Builder(
-                    builder: (context) {
-                      final PaymentQrState qrState = context
-                          .watch<PaymentQrBloc>()
-                          .state;
-                      return PaymentQrCard(
-                        qr: qrState.qr,
-                        isLoading: qrState.isLoading,
-                        fallbackPayeeName: _payeeName,
-                        amountLabel: StringConstants.advanceToPay,
-                        amountValue: 'Rs ${pricing.advance.toStringAsFixed(0)}',
-                      );
-                    },
+                    ],
+                  ),
+                  _PriceBreakdown(
+                    lines: pricing.lines,
+                    ready: pricing.ready,
+                    // No price can come: the hold failed, or was never asked
+                    // for (no slot time). Say so instead of spinning.
+                    failed:
+                        !pricing.ready &&
+                        (holdState.status == BookingHoldStatus.failure ||
+                            (widget.draft.apiTime ?? '').isEmpty),
+                    // Held, but the answer carried no price.
+                    unpriced:
+                        !pricing.ready &&
+                        holdState.status == BookingHoldStatus.held,
+                    errorMessage: holdState.errorMessage,
+                    estimatedTotal: widget.draft.subtotal,
+                    onRetry: (widget.draft.apiTime ?? '').isEmpty
+                        ? null
+                        : _requestHold,
                   ),
                   const SizedBox(height: AppDimens.sizeX20),
+                ];
+                final List<Widget> qrSection = <Widget>[
+                  if (!_isManual) ...<Widget>[
+                    const _SectionLabel('Payment'),
+                    Builder(
+                      builder: (context) {
+                        final PaymentQrState qrState = context
+                            .watch<PaymentQrBloc>()
+                            .state;
+                        return PaymentQrCard(
+                          qr: qrState.qr,
+                          isLoading: qrState.isLoading,
+                          fallbackPayeeName: _payeeName,
+                          amountLabel: StringConstants.advanceToPay,
+                          amountValue:
+                              'Rs ${pricing.advance.toStringAsFixed(0)}',
+                        );
+                      },
+                    ),
+                    const SizedBox(height: AppDimens.sizeX20),
+                  ],
+                ];
+                final List<Widget> proofSection = <Widget>[
+                  if (!_isManual) ...<Widget>[
+                    const _SectionLabel('Payment proof'),
+                    _UploadCard(
+                      file: _paymentDoc,
+                      isValidating: _isValidatingReceipt,
+                      highlightMissing: _submitted && _paymentDoc == null,
+                      onPick: () => _pickPaymentDoc(applyValidate: false),
+                      onPreview: () {
+                        final PickedMediaFile? proof = _paymentDoc;
+                        if (proof != null) {
+                          showPickedMediaPreview(context, proof);
+                        }
+                      },
+                      onRemove: () => setState(() {
+                        _paymentDoc = null;
+                        _receiptValidation = null;
+                        _paymentDocValidationApplied = false;
+                      }),
+                    ),
+                    const SizedBox(height: AppDimens.sizeX16),
+                    _PaymentDescriptionField(
+                      controller: _paymentDescCtrl,
+                      focusNode: _paymentDescFocus,
+                      onSubmitted: _dismissKeyboard,
+                      highlightMissing:
+                          _submitted && _paymentDescription == null,
+                      // The confirm button turns on this field's contents, so
+                      // every keystroke has to reach the bottom bar.
+                      onChanged: (_) => setState(() {}),
+                    ),
+                    const SizedBox(height: AppDimens.sizeX12),
+                    const _PaymentNoteCard(),
+                    const SizedBox(height: AppDimens.sizeX16),
 
-                  const _SectionLabel('Payment proof'),
-                  _UploadCard(
-                    file: _paymentDoc,
-                    isValidating: _isValidatingReceipt,
-                    highlightMissing: _submitted && _paymentDoc == null,
-                    onPick: () => _pickPaymentDoc(applyValidate: false),
-                    onPreview: () {
-                      final PickedMediaFile? proof = _paymentDoc;
-                      if (proof != null) {
-                        showPickedMediaPreview(context, proof);
-                      }
-                    },
-                    onRemove: () => setState(() {
-                      _paymentDoc = null;
-                      _receiptValidation = null;
-                      _paymentDocValidationApplied = false;
-                    }),
-                  ),
-                  const SizedBox(height: AppDimens.sizeX16),
-                  _PaymentDescriptionField(
-                    controller: _paymentDescCtrl,
-                    focusNode: _paymentDescFocus,
-                    onSubmitted: _dismissKeyboard,
-                    highlightMissing: _submitted && _paymentDescription == null,
-                    // The confirm button turns on this field's contents, so
-                    // every keystroke has to reach the bottom bar.
-                    onChanged: (_) => setState(() {}),
-                  ),
-                  const SizedBox(height: AppDimens.sizeX12),
-                  const _PaymentNoteCard(),
-                  const SizedBox(height: AppDimens.sizeX16),
-
-                  _TermsCheckbox(
-                    value: _agreedToTerms,
-                    highlightMissing: _submitted && !_agreedToTerms,
-                    onChanged: (bool v) => setState(() => _agreedToTerms = v),
-                  ),
-                ],
-              ],
+                    _TermsCheckbox(
+                      value: _agreedToTerms,
+                      highlightMissing: _submitted && !_agreedToTerms,
+                      onChanged: (bool v) => setState(() => _agreedToTerms = v),
+                    ),
+                  ],
+                ];
+                return _layout(
+                  context,
+                  constraints,
+                  pricing: pricing,
+                  // Desktop: what is booked and the proof on the left; what it
+                  // costs, where to pay and the confirm action on the right.
+                  main: <Widget>[
+                    ...summarySection,
+                    ...couponSection,
+                    ...proofSection,
+                  ],
+                  side: <Widget>[...priceSection, ...qrSection],
+                  // Phone and tablet keep the original order.
+                  single: <Widget>[
+                    ...summarySection,
+                    ...couponSection,
+                    ...priceSection,
+                    ...qrSection,
+                    ...proofSection,
+                  ],
+                );
+              },
             ),
           ),
-          bottomNavigationBar: _buildBottomBar(pricing),
+          // Desktop confirms from the summary column instead.
+          bottomNavigationBar: _isTwoColumn(context)
+              ? null
+              : _buildBottomBar(pricing),
         ),
+      ),
+    );
+  }
+
+  /// Desktop window wide enough for the form and the price column side by
+  /// side.
+  bool _isTwoColumn(BuildContext context) =>
+      context.isDesktop && context.screenWidth >= _twoColumnFrom;
+
+  static const double _twoColumnFrom = 1000;
+  static const double _singleColumnMaxWidth = 720;
+  static const double _twoColumnMaxWidth = 1160;
+  static const double _sideColumnWidth = 380;
+
+  /// * Phone: the original single list, unchanged.
+  /// * Tablet / narrow desktop: the same list, centred at a readable width.
+  /// * Desktop: the booking and payment steps on the left; the price and the
+  ///   confirm action on the right, so the total stays beside the form
+  ///   instead of in a full-width bar at the foot of the window.
+  Widget _layout(
+    BuildContext context,
+    BoxConstraints constraints, {
+    required _Pricing pricing,
+    required List<Widget> main,
+    required List<Widget> side,
+    required List<Widget> single,
+  }) {
+    const ScrollPhysics physics = BouncingScrollPhysics();
+    // Scrolling the form away closes the keyboard with it, so the confirm
+    // action is never left hidden behind it.
+    const ScrollViewKeyboardDismissBehavior dismiss =
+        ScrollViewKeyboardDismissBehavior.onDrag;
+
+    if (!context.isTabletOrWider) {
+      return ListView(
+        physics: physics,
+        keyboardDismissBehavior: dismiss,
+        padding: AppUtils().getPadding(
+          left: AppDimens.paddingX20,
+          right: AppDimens.paddingX20,
+          top: AppDimens.paddingX12,
+          bottom: AppDimens.paddingX24,
+        ),
+        children: single,
+      );
+    }
+
+    const EdgeInsets padding = EdgeInsets.fromLTRB(
+      AppDimens.paddingX24,
+      AppDimens.paddingX20,
+      AppDimens.paddingX24,
+      AppDimens.paddingX32,
+    );
+
+    if (!_isTwoColumn(context)) {
+      return ListView(
+        physics: physics,
+        keyboardDismissBehavior: dismiss,
+        padding: padding,
+        children: <Widget>[
+          // Each row is the full column width (labels stay left-aligned),
+          // centred in the window; the list still builds lazily.
+          for (final Widget child in single)
+            Align(
+              alignment: Alignment.topCenter,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(
+                  maxWidth: _singleColumnMaxWidth,
+                ),
+                child: SizedBox(width: double.infinity, child: child),
+              ),
+            ),
+        ],
+      );
+    }
+
+    return SingleChildScrollView(
+      physics: physics,
+      keyboardDismissBehavior: dismiss,
+      padding: padding,
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: _twoColumnMaxWidth),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: main,
+                ),
+              ),
+              const SizedBox(width: AppDimens.paddingX24),
+              SizedBox(
+                width: _sideColumnWidth,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: <Widget>[...side, _buildConfirmCard(pricing)],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Desktop: the bottom bar's figures and button as a card under the price
+  /// details.
+  Widget _buildConfirmCard(_Pricing pricing) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    final bool submitting = context
+        .watch<CreateBookingBloc>()
+        .state
+        .isSubmitting;
+    return _Surface(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: <Widget>[
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      StringConstants.payNowAdvance,
+                      style: textTheme.bodyMiniSubTitle?.copyWith(
+                        color: LightColor.hintTextColor,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: AppDimens.sizeX2),
+                    Text(
+                      pricing.ready
+                          ? 'Rs ${pricing.advance.toStringAsFixed(0)}'
+                          : '—',
+                      style: textTheme.headingSubTitle?.copyWith(
+                        color: LightColor.primaryTextColor,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Text(
+                pricing.ready
+                    ? 'Total Rs ${pricing.total.toStringAsFixed(0)}'
+                    : 'Total —',
+                style: textTheme.bodyTextSmall?.copyWith(
+                  color: LightColor.secondaryTextColor,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppDimens.sizeX16),
+          SizedBox(
+            height: AppDimens.sizeX50,
+            child: CustomButton(
+              text: submitting ? 'Confirming…' : 'Confirm Booking',
+              isLoading: submitting,
+              onPressed: submitting ? null : _confirmBooking,
+              backgroundColor: _canConfirm
+                  ? LightColor.secondaryColor
+                  : LightColor.secondaryColor.withValues(alpha: 0.45),
+              foregroundColor: LightColor.inverseTextColor,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1129,11 +1410,30 @@ class _CouponChip extends StatelessWidget {
 /// ─────────────────────────── Price breakdown ───────────────────────────
 
 class _PriceBreakdown extends StatelessWidget {
-  const _PriceBreakdown({required this.lines, required this.ready});
+  const _PriceBreakdown({
+    required this.lines,
+    required this.ready,
+    this.failed = false,
+    this.unpriced = false,
+    this.errorMessage,
+    this.estimatedTotal = 0,
+    this.onRetry,
+  });
 
   /// Server display rows (`quote.calculation_list`) — rendered verbatim.
   final List<BookingCalculationLineModel> lines;
   final bool ready;
+
+  /// The hold failed: no price is coming until it is retried.
+  final bool failed;
+
+  /// Held, but the server sent no price with it.
+  final bool unpriced;
+  final String? errorMessage;
+
+  /// The booking's own subtotal, shown when the server sent no price.
+  final double estimatedTotal;
+  final VoidCallback? onRetry;
 
   /// Formats a server amount as currency, keeping the server's sign
   /// (e.g. discount `-120` → `- Rs 120`).
@@ -1146,6 +1446,73 @@ class _PriceBreakdown extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
+
+    if (!ready && failed) {
+      return _Surface(
+        borderColor: LightColor.redColor.withValues(alpha: 0.35),
+        child: Row(
+          children: <Widget>[
+            Icon(
+              Icons.error_outline_rounded,
+              size: AppDimens.sizeX20,
+              color: LightColor.redColor,
+            ),
+            const SizedBox(width: AppDimens.sizeX12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(
+                    "Couldn't calculate the price",
+                    style: textTheme.bodyTextSmall?.copyWith(
+                      color: LightColor.primaryTextColor,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: AppDimens.sizeX2),
+                  Text(
+                    (errorMessage ?? '').trim().isNotEmpty
+                        ? errorMessage!.trim()
+                        : 'The slot could not be held. Please try again.',
+                    style: textTheme.bodyMiniSubTitle?.copyWith(
+                      color: LightColor.secondaryTextColor,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (onRetry != null)
+              TextButton(
+                onPressed: onRetry,
+                child: const Text(StringConstants.retry),
+              ),
+          ],
+        ),
+      );
+    }
+
+    if (!ready && unpriced) {
+      return _Surface(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            _InfoRow(
+              label: 'Estimated total',
+              value: 'Rs ${estimatedTotal.toStringAsFixed(0)}',
+              emphasize: true,
+            ),
+            const SizedBox(height: AppDimens.sizeX6),
+            Text(
+              'The venue confirms the final price and advance with your '
+              'booking.',
+              style: textTheme.bodyMiniSubTitle?.copyWith(
+                color: LightColor.secondaryTextColor,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
     if (!ready || lines.isEmpty) {
       return _Surface(

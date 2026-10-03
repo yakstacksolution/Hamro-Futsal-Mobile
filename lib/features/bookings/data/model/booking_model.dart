@@ -40,7 +40,12 @@ class BookingModel extends Equatable {
     this.balanceDueLater = 0,
     this.paidAmount = 0,
     this.balanceDue = 0,
+    this.reportsBalanceDue = false,
+    this.cashPaidAmount = 0,
+    this.onlinePaidAmount = 0,
+    this.paymentBreakdown = const <BookingPaymentBreakdownModel>[],
     this.paymentStatus,
+    this.cancellationReason,
     this.notes,
     this.coupon,
     this.payments = const <BookingPaymentModel>[],
@@ -110,7 +115,22 @@ class BookingModel extends Equatable {
 
   /// Remaining amount still owed for this booking.
   final double balanceDue;
+
+  /// Whether the response carried `balance_due`. A reported zero means
+  /// settled — it must not fall back to `balance_due_later`, which is only the
+  /// balance planned at booking time.
+  final bool reportsBalanceDue;
+
+  /// The part of [paidAmount] taken in cash / online, per the API.
+  final double cashPaidAmount;
+  final double onlinePaidAmount;
+
+  /// Settled payments grouped by method (`payment_breakdown`).
+  final List<BookingPaymentBreakdownModel> paymentBreakdown;
   final String? paymentStatus;
+
+  /// Why the booking was cancelled or rejected, when the API says.
+  final String? cancellationReason;
   final String? notes;
   final BookingCouponModel? coupon;
   final List<BookingPaymentModel> payments;
@@ -133,6 +153,10 @@ class BookingModel extends Equatable {
   /// booking. Null when there is none — see [BookingModel.fromJson] for why a
   /// mismatched one is dropped.
   final BookingReviewModel? review;
+
+  /// Entered by the vendor for a walk-in, not made in the app: the customer
+  /// has no account to message.
+  bool get isManual => bookingType?.trim().toLowerCase() == 'manual';
 
   /// Total number of extra product units attached to this booking.
   int get extraItemsCount => extraItems.fold<int>(
@@ -190,7 +214,7 @@ class BookingModel extends Equatable {
   /// it again.
   double get remainingBookingBalance {
     final double extras = totalsIncludeExtras ? extraAmount : 0;
-    if (balanceDue > 0) return _atLeastZero(balanceDue - extras);
+    if (reportsBalanceDue) return _atLeastZero(balanceDue - extras);
     if (balanceDueLater > 0) return _atLeastZero(balanceDueLater - extras);
     return _atLeastZero(bookingTotal - effectivePaidAmount);
   }
@@ -264,7 +288,12 @@ class BookingModel extends Equatable {
     double? balanceDueLater,
     double? paidAmount,
     double? balanceDue,
+    bool? reportsBalanceDue,
+    double? cashPaidAmount,
+    double? onlinePaidAmount,
+    List<BookingPaymentBreakdownModel>? paymentBreakdown,
     String? paymentStatus,
+    String? cancellationReason,
     String? notes,
     BookingCouponModel? coupon,
     List<BookingPaymentModel>? payments,
@@ -313,7 +342,12 @@ class BookingModel extends Equatable {
       balanceDueLater: balanceDueLater ?? this.balanceDueLater,
       paidAmount: paidAmount ?? this.paidAmount,
       balanceDue: balanceDue ?? this.balanceDue,
+      reportsBalanceDue: reportsBalanceDue ?? this.reportsBalanceDue,
+      cashPaidAmount: cashPaidAmount ?? this.cashPaidAmount,
+      onlinePaidAmount: onlinePaidAmount ?? this.onlinePaidAmount,
+      paymentBreakdown: paymentBreakdown ?? this.paymentBreakdown,
       paymentStatus: paymentStatus ?? this.paymentStatus,
+      cancellationReason: cancellationReason ?? this.cancellationReason,
       notes: notes ?? this.notes,
       coupon: coupon ?? this.coupon,
       payments: payments ?? this.payments,
@@ -530,7 +564,14 @@ class BookingModel extends Equatable {
       balanceDueLater: _asDouble(json['balance_due_later']) ?? 0,
       paidAmount: _asDouble(json['paid_amount']) ?? 0,
       balanceDue: _asDouble(json['balance_due']) ?? 0,
+      reportsBalanceDue: _asDouble(json['balance_due']) != null,
+      cashPaidAmount: _asDouble(json['cash_paid_amount']) ?? 0,
+      onlinePaidAmount: _asDouble(json['online_paid_amount']) ?? 0,
+      paymentBreakdown: _mapList(
+        json['payment_breakdown'],
+      ).map(BookingPaymentBreakdownModel.fromJson).toList(growable: false),
       paymentStatus: _asString(json['payment_status']),
+      cancellationReason: _asString(json['cancellation_reason']),
       notes: _asString(json['notes']),
       coupon: coupon.isEmpty ? null : BookingCouponModel.fromJson(coupon),
       payments: payments.isNotEmpty
@@ -587,8 +628,14 @@ class BookingModel extends Equatable {
     'payable_now': payableNow,
     'balance_due_later': balanceDueLater,
     'paid_amount': paidAmount,
-    'balance_due': balanceDue,
+    'balance_due': reportsBalanceDue ? balanceDue : null,
+    'cash_paid_amount': cashPaidAmount,
+    'online_paid_amount': onlinePaidAmount,
+    'payment_breakdown': paymentBreakdown
+        .map((BookingPaymentBreakdownModel entry) => entry.toJson())
+        .toList(growable: false),
     'payment_status': paymentStatus,
+    'cancellation_reason': cancellationReason,
     'notes': notes,
     'coupon': coupon?.toJson(),
     'payments': payments
@@ -663,7 +710,12 @@ class BookingModel extends Equatable {
     balanceDueLater,
     paidAmount,
     balanceDue,
+    reportsBalanceDue,
+    cashPaidAmount,
+    onlinePaidAmount,
+    paymentBreakdown,
     paymentStatus,
+    cancellationReason,
     notes,
     coupon,
     payments,
@@ -805,6 +857,42 @@ final class BookingPaymentModel extends Equatable {
     note,
     createdAt,
   ];
+}
+
+/// One `payment_breakdown` row: the settled total for a payment method.
+final class BookingPaymentBreakdownModel extends Equatable {
+  const BookingPaymentBreakdownModel({
+    this.method,
+    this.type,
+    this.amount = 0,
+    this.count = 0,
+  });
+
+  final String? method;
+  final String? type;
+  final double amount;
+
+  /// How many payments make up [amount].
+  final int count;
+
+  factory BookingPaymentBreakdownModel.fromJson(Map<String, dynamic> json) {
+    return BookingPaymentBreakdownModel(
+      method: _asString(json['payment_method']),
+      type: _asString(json['payment_type']),
+      amount: _asDouble(json['amount']) ?? 0,
+      count: _asInt(json['count']) ?? 0,
+    );
+  }
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+    'payment_method': method,
+    'payment_type': type,
+    'amount': amount,
+    'count': count,
+  };
+
+  @override
+  List<Object?> get props => <Object?>[method, type, amount, count];
 }
 
 final class BookingSlotModel extends Equatable {

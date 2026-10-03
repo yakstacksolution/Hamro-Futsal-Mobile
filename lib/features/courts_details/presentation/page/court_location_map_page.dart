@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart' show MapController;
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:latlong2/latlong.dart' as ll;
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:hamro_futsal/core/theme/app_colors.dart';
@@ -9,6 +11,8 @@ import 'package:hamro_futsal/core/utils/dimens.dart';
 import 'package:hamro_futsal/core/utils/google_map_style.dart';
 import 'package:hamro_futsal/core/widgets/custom_app_bar.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
+import 'package:hamro_futsal/core/widgets/google_tiles_map.dart';
+import 'package:hamro_futsal/core/widgets/static_google_map.dart';
 
 /// Full-screen, interactive map of a venue's location.
 ///
@@ -40,6 +44,45 @@ class _CourtLocationMapPageState extends State<CourtLocationMapPage>
   bool _handingOffToMaps = false;
 
   static const double _defaultZoom = 16;
+
+  /// macOS / desktop: the live Google tiles map, once a tile session is
+  /// granted. Null while it is being requested or when the Map Tiles API is
+  /// unavailable, in which case the static image (and [_staticZoom]) is used.
+  String? _tilesUrl;
+  bool _tilesResolved = false;
+  final MapController _tilesController = MapController();
+
+  /// macOS / desktop fallback: the static map's zoom, stepped by +/-.
+  int _staticZoom = _defaultZoom.toInt();
+
+  bool get _usingTiles => _tilesUrl != null;
+
+  Future<void> _resolveTiles() async {
+    final String? url = await GoogleMapTilesSession.urlTemplate();
+    if (!mounted) return;
+    setState(() {
+      _tilesUrl = url;
+      _tilesResolved = true;
+    });
+  }
+
+  /// The zoom the +/- buttons are bounded by. The live map clamps its own
+  /// zoom (and is also zoomed by scroll and pinch), so its buttons stay on.
+  double get _currentZoom =>
+      _usingTiles ? _defaultZoom : _staticZoom.toDouble();
+
+  void _zoomBy(int delta) {
+    if (_usingTiles) {
+      final double zoom = (_tilesController.camera.zoom + delta).clamp(
+        GoogleTilesMap.minZoom,
+        GoogleTilesMap.maxZoom,
+      );
+      _tilesController.move(_tilesController.camera.center, zoom);
+      return;
+    }
+    setState(() => _staticZoom = (_staticZoom + delta).clamp(3, 20));
+  }
+
   // Web Mercator cannot project the geographic poles.
   static const double _mercatorLatitudeLimit = 85.05112878;
 
@@ -53,6 +96,17 @@ class _CourtLocationMapPageState extends State<CourtLocationMapPage>
   LatLng get _point => LatLng(widget.latitude, widget.longitude);
 
   void _recenter() {
+    if (!supportsNativeGoogleMap) {
+      if (_usingTiles) {
+        _tilesController.move(
+          ll.LatLng(widget.latitude, widget.longitude),
+          _defaultZoom,
+        );
+        return;
+      }
+      setState(() => _staticZoom = _defaultZoom.toInt());
+      return;
+    }
     if (!_showMap) return;
     _mapController?.animateCamera(
       CameraUpdate.newCameraPosition(
@@ -65,6 +119,7 @@ class _CourtLocationMapPageState extends State<CourtLocationMapPage>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    if (!supportsNativeGoogleMap) _resolveTiles();
   }
 
   @override
@@ -81,6 +136,7 @@ class _CourtLocationMapPageState extends State<CourtLocationMapPage>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _mapController?.dispose();
+    _tilesController.dispose();
     super.dispose();
   }
 
@@ -90,6 +146,22 @@ class _CourtLocationMapPageState extends State<CourtLocationMapPage>
       '&query=${widget.latitude},${widget.longitude}',
     );
     if (_handingOffToMaps) return;
+    // Desktop: the browser opens beside the app, and the static map holds no
+    // GL surface worth releasing, so it stays on screen.
+    if (!supportsNativeGoogleMap) {
+      final bool launched = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+      if (!launched && mounted) {
+        AppUtils().showSnackBar(
+          context,
+          MsgType.error,
+          'Could not open the maps application.',
+        );
+      }
+      return;
+    }
     setState(() {
       _handingOffToMaps = true;
       // Tearing the map down releases its GL surface and tile memory before
@@ -183,7 +255,30 @@ class _CourtLocationMapPageState extends State<CourtLocationMapPage>
       body: Stack(
         children: <Widget>[
           Positioned.fill(
-            child: _showMap
+            child: !supportsNativeGoogleMap
+                ? (!_tilesResolved
+                      ? ColoredBox(color: LightColor.background)
+                      : _usingTiles
+                      ? GoogleTilesMap(
+                          urlTemplate: _tilesUrl!,
+                          latitude: widget.latitude,
+                          longitude: widget.longitude,
+                          controller: _tilesController,
+                          initialZoom: _defaultZoom,
+                          // Clear of the floating address card.
+                          bottomPadding:
+                              (addressText.isEmpty
+                                  ? AppDimens.sizeX90
+                                  : AppDimens.sizeX130) +
+                              bottomInset,
+                        )
+                      : StaticGoogleMap(
+                          latitude: widget.latitude,
+                          longitude: widget.longitude,
+                          zoom: _staticZoom,
+                          placeholderColor: LightColor.background,
+                        ))
+                : _showMap
                 ? GoogleMap(
                     initialCameraPosition: CameraPosition(
                       target: _point,
@@ -223,6 +318,39 @@ class _CourtLocationMapPageState extends State<CourtLocationMapPage>
                   ),
           ),
 
+          // ── Zoom controls (desktop static map) ──
+          if (!supportsNativeGoogleMap)
+            Positioned(
+              right: AppDimens.sizeX16,
+              bottom:
+                  (addressText.isEmpty
+                      ? AppDimens.sizeX100
+                      : AppDimens.sizeX140) +
+                  bottomInset +
+                  AppDimens.sizeX52,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  FloatingActionButton.small(
+                    heroTag: 'zoom-in',
+                    tooltip: 'Zoom in',
+                    backgroundColor: LightColor.cardColor,
+                    foregroundColor: LightColor.secondaryColor,
+                    onPressed: _currentZoom < 20 ? () => _zoomBy(1) : null,
+                    child: const Icon(Icons.add_rounded),
+                  ),
+                  FloatingActionButton.small(
+                    heroTag: 'zoom-out',
+                    tooltip: 'Zoom out',
+                    backgroundColor: LightColor.cardColor,
+                    foregroundColor: LightColor.secondaryColor,
+                    onPressed: _currentZoom > 3 ? () => _zoomBy(-1) : null,
+                    child: const Icon(Icons.remove_rounded),
+                  ),
+                ],
+              ),
+            ),
+
           // ── Recentre control ──
           Positioned(
             right: AppDimens.sizeX16,
@@ -235,7 +363,9 @@ class _CourtLocationMapPageState extends State<CourtLocationMapPage>
               heroTag: 'recenter',
               backgroundColor: LightColor.cardColor,
               foregroundColor: LightColor.secondaryColor,
-              onPressed: _showMap ? _recenter : null,
+              onPressed: _showMap || !supportsNativeGoogleMap
+                  ? _recenter
+                  : null,
               child: const Icon(Icons.my_location_rounded),
             ),
           ),

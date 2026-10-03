@@ -85,6 +85,16 @@ final class RejectBookingEvent extends BookingDetailsEvent {
   List<Object?> get props => <Object?>[bookingId, note];
 }
 
+/// Reflects a successful complete-booking response directly in state.
+final class BookingCompletedEvent extends BookingDetailsEvent {
+  const BookingCompletedEvent({required this.booking});
+
+  final BookingModel booking;
+
+  @override
+  List<Object?> get props => <Object?>[booking];
+}
+
 /// Asks whether this booking already carries a review.
 final class CheckBookingReviewEvent extends BookingDetailsEvent {
   const CheckBookingReviewEvent({required this.bookingId});

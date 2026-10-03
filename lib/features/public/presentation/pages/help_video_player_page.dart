@@ -1,9 +1,12 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/app_utils.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/utils/responsive.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:hamro_futsal/core/widgets/custom_app_bar.dart';
 import 'package:hamro_futsal/features/public/data/model/help_video_model.dart';
@@ -75,6 +78,65 @@ class _HelpVideoPlayerPageState extends State<HelpVideoPlayerPage> {
     }
   }
 
+  /// The 16:9 player, never taller than [heightShare] of [maxHeight] — a
+  /// full-width player on a wide or short window would otherwise be taller
+  /// than the screen and push everything below it off the bottom.
+  Widget _player(
+    double maxWidth,
+    double maxHeight, {
+    double heightShare = 0.6,
+  }) {
+    final double width = math.min(maxWidth, maxHeight * heightShare * 16 / 9);
+    return ColoredBox(
+      color: Colors.black,
+      child: Center(
+        child: SizedBox(
+          width: width,
+          child: YoutubePlayer(
+            controller: _controller,
+            backgroundColor: Colors.black,
+          ),
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _upNextSlivers(List<HelpVideo> upNext) => <Widget>[
+    SliverPadding(
+      padding: AppUtils().getPadding(
+        left: AppDimens.paddingX16,
+        right: AppDimens.paddingX16,
+        top: AppDimens.paddingX8,
+        bottom: AppDimens.paddingX12,
+      ),
+      sliver: SliverToBoxAdapter(
+        child: Text(
+          StringConstants.upNext,
+          style: FutsalTheme.getTextTheme(context).bodyTextSmall?.copyWith(
+            fontWeight: FontWeight.w700,
+            color: LightColor.primaryTextColor,
+            letterSpacing: 0.2,
+          ),
+        ),
+      ),
+    ),
+    SliverPadding(
+      padding: AppUtils().getPadding(
+        left: AppDimens.paddingX16,
+        right: AppDimens.paddingX16,
+        bottom: AppDimens.paddingX24,
+      ),
+      sliver: SliverList.separated(
+        itemCount: upNext.length,
+        separatorBuilder: (_, __) => const SizedBox(height: AppDimens.sizeX12),
+        itemBuilder: (BuildContext context, int index) => HelpVideoRow(
+          video: upNext[index],
+          onTap: () => _select(upNext[index]),
+        ),
+      ),
+    ),
+  ];
+
   @override
   Widget build(BuildContext context) {
     final List<HelpVideo> upNext = _upNext;
@@ -83,65 +145,66 @@ class _HelpVideoPlayerPageState extends State<HelpVideoPlayerPage> {
       appBar: const CustomAppBar(title: StringConstants.videos),
       body: SafeArea(
         top: false,
-        child: Column(
-          children: <Widget>[
-            // Pinned above the scrolling details, so the video keeps playing
-            // in view while the user browses what is next.
-            ColoredBox(
-              color: Colors.black,
-              child: YoutubePlayer(
-                controller: _controller,
-                backgroundColor: Colors.black,
-              ),
-            ),
-            Expanded(
-              child: CustomScrollView(
-                controller: _scrollController,
-                physics: const BouncingScrollPhysics(),
-                slivers: <Widget>[
-                  SliverToBoxAdapter(child: _VideoDetails(video: _current)),
-                  if (upNext.isNotEmpty) ...<Widget>[
-                    SliverPadding(
-                      padding: AppUtils().getPadding(
-                        left: AppDimens.paddingX16,
-                        right: AppDimens.paddingX16,
-                        top: AppDimens.paddingX8,
-                        bottom: AppDimens.paddingX12,
-                      ),
-                      sliver: SliverToBoxAdapter(
-                        child: Text(
-                          StringConstants.upNext,
-                          style: FutsalTheme.getTextTheme(context).bodyTextSmall
-                              ?.copyWith(
-                                fontWeight: FontWeight.w700,
-                                color: LightColor.primaryTextColor,
-                                letterSpacing: 0.2,
-                              ),
+        child: LayoutBuilder(
+          builder: (BuildContext context, BoxConstraints constraints) {
+            // Desktop: player and details on the left, "Up next" beside them.
+            if (context.isDesktop && upNext.isNotEmpty) {
+              const double sidebar = 380;
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  Expanded(
+                    child: Column(
+                      children: <Widget>[
+                        _player(
+                          constraints.maxWidth - sidebar,
+                          constraints.maxHeight,
+                          heightShare: 0.7,
                         ),
-                      ),
+                        Expanded(
+                          child: SingleChildScrollView(
+                            controller: _scrollController,
+                            physics: const BouncingScrollPhysics(),
+                            child: _VideoDetails(video: _current),
+                          ),
+                        ),
+                      ],
                     ),
-                    SliverPadding(
-                      padding: AppUtils().getPadding(
-                        left: AppDimens.paddingX16,
-                        right: AppDimens.paddingX16,
-                        bottom: AppDimens.paddingX24,
-                      ),
-                      sliver: SliverList.separated(
-                        itemCount: upNext.length,
-                        separatorBuilder: (_, __) =>
-                            const SizedBox(height: AppDimens.sizeX12),
-                        itemBuilder: (BuildContext context, int index) =>
-                            HelpVideoRow(
-                              video: upNext[index],
-                              onTap: () => _select(upNext[index]),
-                            ),
-                      ),
+                  ),
+                  VerticalDivider(width: 1, color: LightColor.dividerColor),
+                  SizedBox(
+                    width: sidebar,
+                    child: CustomScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      slivers: <Widget>[
+                        const SliverToBoxAdapter(
+                          child: SizedBox(height: AppDimens.paddingX8),
+                        ),
+                        ..._upNextSlivers(upNext),
+                      ],
                     ),
-                  ],
+                  ),
                 ],
-              ),
-            ),
-          ],
+              );
+            }
+            return Column(
+              children: <Widget>[
+                // Pinned above the scrolling details, so the video keeps
+                // playing in view while the user browses what is next.
+                _player(constraints.maxWidth, constraints.maxHeight),
+                Expanded(
+                  child: CustomScrollView(
+                    controller: _scrollController,
+                    physics: const BouncingScrollPhysics(),
+                    slivers: <Widget>[
+                      SliverToBoxAdapter(child: _VideoDetails(video: _current)),
+                      if (upNext.isNotEmpty) ..._upNextSlivers(upNext),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );

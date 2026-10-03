@@ -4,7 +4,12 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter_map/flutter_map.dart' show MapController;
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:hamro_futsal/core/widgets/google_tiles_map.dart';
+import 'package:hamro_futsal/core/widgets/static_google_map.dart'
+    show supportsNativeGoogleMap;
+import 'package:latlong2/latlong.dart' as ll;
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/app_utils.dart';
@@ -41,6 +46,14 @@ class _ExactLocationPickerSheetState extends State<ExactLocationPickerSheet> {
   final TextEditingController _searchController = TextEditingController();
   GoogleMapController? _mapController;
 
+  // macOS / desktop: `google_maps_flutter` has no implementation there, so
+  // the picker draws Google's tiles with flutter_map instead.
+  final MapController _tilesController = MapController();
+  bool _tilesReady = false;
+  String? _tilesUrl;
+  bool _tilesLoading = !supportsNativeGoogleMap;
+  bool _usingOsm = false;
+
   Timer? _searchDebounce;
   LatLng? _selectedPoint;
   String? _selectedLabel;
@@ -59,6 +72,30 @@ class _ExactLocationPickerSheetState extends State<ExactLocationPickerSheet> {
       );
       _selectedLabel = widget.initialLabel;
     }
+    if (!supportsNativeGoogleMap) _resolveTiles();
+  }
+
+  Future<void> _resolveTiles() async {
+    final String? url = await GoogleMapTilesSession.urlTemplate();
+    if (!mounted) return;
+    setState(() {
+      // Google's tiles when the Map Tiles API answers; otherwise (not enabled
+      // for the key, quota, a network blip) OpenStreetMap's, which need no
+      // key — the picker has to stay usable either way.
+      _tilesUrl = url;
+      _usingOsm = url == null;
+      _tilesLoading = false;
+    });
+  }
+
+  /// Centres whichever map is showing on [point].
+  void _moveMapTo(LatLng point) {
+    if (supportsNativeGoogleMap) {
+      _mapController?.animateCamera(CameraUpdate.newLatLngZoom(point, 16));
+      return;
+    }
+    if (!_tilesReady) return;
+    _tilesController.move(ll.LatLng(point.latitude, point.longitude), 16);
   }
 
   @override
@@ -66,6 +103,7 @@ class _ExactLocationPickerSheetState extends State<ExactLocationPickerSheet> {
     _searchDebounce?.cancel();
     _searchController.dispose();
     _mapController?.dispose();
+    _tilesController.dispose();
     super.dispose();
   }
 
@@ -174,7 +212,7 @@ class _ExactLocationPickerSheetState extends State<ExactLocationPickerSheet> {
       _results = <_LocationSearchResult>[];
     });
 
-    _mapController?.animateCamera(CameraUpdate.newLatLngZoom(point, 16));
+    _moveMapTo(point);
 
     if (label != null) return;
 
@@ -227,6 +265,60 @@ class _ExactLocationPickerSheetState extends State<ExactLocationPickerSheet> {
     _selectPoint(
       LatLng(result.latitude, result.longitude),
       label: result.displayName,
+    );
+  }
+
+  Widget _buildMap(LatLng mapCenter) {
+    if (supportsNativeGoogleMap) {
+      return GoogleMap(
+        initialCameraPosition: CameraPosition(
+          target: mapCenter,
+          zoom: _selectedPoint == null ? 13.2 : 16,
+        ),
+        onMapCreated: (GoogleMapController controller) =>
+            _mapController = controller,
+        onTap: _selectPoint,
+        markers: <Marker>{
+          if (_selectedPoint != null)
+            Marker(
+              markerId: const MarkerId('picked'),
+              position: _selectedPoint!,
+            ),
+        },
+        // The map sits inside a scrolling sheet: claim every
+        // gesture that starts on it, or the sheet steals the
+        // pan and pinch.
+        gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
+          Factory<OneSequenceGestureRecognizer>(EagerGestureRecognizer.new),
+        },
+        zoomControlsEnabled: false,
+        myLocationButtonEnabled: false,
+        mapToolbarEnabled: false,
+        rotateGesturesEnabled: false,
+        tiltGesturesEnabled: false,
+      );
+    }
+    if (_tilesLoading) {
+      return ColoredBox(
+        color: LightColor.inputFillColor,
+        child: const Center(
+          child: SizedBox(width: 24, height: 24, child: LoadingWidget()),
+        ),
+      );
+    }
+    final String url = _tilesUrl ?? OsmTiles.urlTemplate;
+    final LatLng? picked = _selectedPoint;
+    return GoogleTilesMap(
+      urlTemplate: url,
+      latitude: (picked ?? mapCenter).latitude,
+      longitude: (picked ?? mapCenter).longitude,
+      controller: _tilesController,
+      initialZoom: picked == null ? 13.2 : 16,
+      showMarker: picked != null,
+      onMapReady: () => _tilesReady = true,
+      onTap: (double lat, double lng) => _selectPoint(LatLng(lat, lng)),
+      attribution: _usingOsm ? OsmTiles.attribution : 'Google',
+      maxNativeZoom: _usingOsm ? OsmTiles.maxNativeZoom : 20,
     );
   }
 
@@ -425,36 +517,7 @@ class _ExactLocationPickerSheetState extends State<ExactLocationPickerSheet> {
                         borderRadius: BorderRadius.circular(
                           AppDimens.radiusX22,
                         ),
-                        child: GoogleMap(
-                          initialCameraPosition: CameraPosition(
-                            target: mapCenter,
-                            zoom: _selectedPoint == null ? 13.2 : 16,
-                          ),
-                          onMapCreated: (GoogleMapController controller) =>
-                              _mapController = controller,
-                          onTap: _selectPoint,
-                          markers: <Marker>{
-                            if (_selectedPoint != null)
-                              Marker(
-                                markerId: const MarkerId('picked'),
-                                position: _selectedPoint!,
-                              ),
-                          },
-                          // The map sits inside a scrolling sheet: claim every
-                          // gesture that starts on it, or the sheet steals the
-                          // pan and pinch.
-                          gestureRecognizers:
-                              <Factory<OneSequenceGestureRecognizer>>{
-                                Factory<OneSequenceGestureRecognizer>(
-                                  EagerGestureRecognizer.new,
-                                ),
-                              },
-                          zoomControlsEnabled: false,
-                          myLocationButtonEnabled: false,
-                          mapToolbarEnabled: false,
-                          rotateGesturesEnabled: false,
-                          tiltGesturesEnabled: false,
-                        ),
+                        child: _buildMap(mapCenter),
                       ),
                     ),
 

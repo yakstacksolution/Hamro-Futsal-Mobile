@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hamro_futsal/core/utils/responsive.dart';
 import 'package:hamro_futsal/core/utils/app_utils.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
 import 'package:hamro_futsal/features/expenses/data/model/expense_model.dart';
@@ -63,15 +64,48 @@ class ExpenseAnalyticsTab extends StatelessWidget {
         bottom: AppDimens.paddingX20,
       ),
       children: [
-        ExpenseSectionLabel('Trend'),
-        ExpenseTrendCard(report: report),
-        const SizedBox(height: AppDimens.paddingX18),
-        ExpenseSectionLabel('By category'),
-        ExpenseCategoryCard(
-          report: report,
-          selectedCategory: selectedCategory,
-          onSelect: onSelectCategory,
-        ),
+        // Desktop: the trend and the category breakdown side by side, top
+        // aligned; stacked on phones and tablets.
+        if (context.isDesktop)
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: <Widget>[
+                    ExpenseSectionLabel('Trend'),
+                    ExpenseTrendCard(report: report),
+                  ],
+                ),
+              ),
+              const SizedBox(width: AppDimens.paddingX18),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: <Widget>[
+                    ExpenseSectionLabel('By category'),
+                    ExpenseCategoryCard(
+                      report: report,
+                      selectedCategory: selectedCategory,
+                      onSelect: onSelectCategory,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          )
+        else ...[
+          ExpenseSectionLabel('Trend'),
+          ExpenseTrendCard(report: report),
+          const SizedBox(height: AppDimens.paddingX18),
+          ExpenseSectionLabel('By category'),
+          ExpenseCategoryCard(
+            report: report,
+            selectedCategory: selectedCategory,
+            onSelect: onSelectCategory,
+          ),
+        ],
         if (report.byCourt.isNotEmpty) ...[
           const SizedBox(height: AppDimens.paddingX18),
           ExpenseSectionLabel('By court'),

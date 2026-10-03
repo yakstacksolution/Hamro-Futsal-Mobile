@@ -1,16 +1,24 @@
+import 'dart:async';
+
 import 'package:dartz/dartz.dart' hide State;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:hamro_futsal/core/api/api_client/result.dart';
+import 'package:hamro_futsal/core/api/client.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hamro_futsal/core/helper/exception_helper.dart';
+import 'package:hamro_futsal/core/helper/response_helper.dart';
 import 'package:hamro_futsal/core/routers/app_router_params.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/widgets/app_message_view.dart';
 import 'package:hamro_futsal/core/widgets/custom_app_bar.dart';
 import 'package:hamro_futsal/core/widgets/custom_button.dart';
 import 'package:hamro_futsal/core/widgets/custom_dropdown_field.dart';
 import 'package:hamro_futsal/core/widgets/custom_text_field.dart';
+import 'package:hamro_futsal/core/widgets/loading_widget.dart';
+import 'package:hamro_futsal/features/bookings/data/model/candidate_model.dart';
 import 'package:hamro_futsal/features/bookings/data/model/manual_booking_details.dart';
 import 'package:hamro_futsal/features/courts/data/model/venue_court_model.dart';
 import 'package:hamro_futsal/features/courts/data/repositories/venue_court_repository_impl.dart';
@@ -27,6 +35,8 @@ class ManualBookingPage extends StatefulWidget {
 }
 
 class _ManualBookingPageState extends State<ManualBookingPage> {
+  static const int _candidatePageSize = 20;
+
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _name = TextEditingController();
   final TextEditingController _phone = TextEditingController();
@@ -43,6 +53,16 @@ class _ManualBookingPageState extends State<ManualBookingPage> {
   VenueCourtModel? _venue;
   bool _loading = true;
   String? _error;
+  List<CandidateModel> _candidates = const <CandidateModel>[];
+  Timer? _candidateSearchDebounce;
+  String _candidateSearch = '';
+  int _candidatePage = 1;
+  bool _candidatesLoading = false;
+  bool _candidatesLoadingMore = false;
+  bool _candidateHasMore = false;
+  String? _candidateError;
+  bool _showCandidatePicker = false;
+  bool _applyingCandidate = false;
   String _paymentMethod = 'cash';
   String _paymentStatus = 'paid';
   String _bookingStatus = 'confirmed';
@@ -51,6 +71,7 @@ class _ManualBookingPageState extends State<ManualBookingPage> {
   void initState() {
     super.initState();
     _loadVenues();
+    _loadCandidates();
   }
 
   Future<void> _loadVenues() async {
@@ -84,11 +105,109 @@ class _ManualBookingPageState extends State<ManualBookingPage> {
 
   @override
   void dispose() {
+    _candidateSearchDebounce?.cancel();
     _name.dispose();
     _phone.dispose();
     _totalAmount.dispose();
     _note.dispose();
     super.dispose();
+  }
+
+  void _onCandidateSearchChanged(String value) {
+    if (_applyingCandidate) return;
+    setState(() => _showCandidatePicker = true);
+    _candidateSearchDebounce?.cancel();
+    _candidateSearchDebounce = Timer(const Duration(milliseconds: 350), () {
+      final String search = _candidateQuery;
+      if (search == _candidateSearch && _candidates.isNotEmpty) return;
+      _loadCandidates(search: search);
+    });
+  }
+
+  String get _candidateQuery {
+    final String name = _name.text.trim();
+    if (name.isNotEmpty) return name;
+    return _phone.text.trim();
+  }
+
+  Future<void> _loadCandidates({String? search, bool loadMore = false}) async {
+    final int page = loadMore ? _candidatePage + 1 : 1;
+    final String querySearch = search ?? _candidateSearch;
+    if (loadMore && (!_candidateHasMore || _candidatesLoadingMore)) return;
+    setState(() {
+      if (loadMore) {
+        _candidatesLoadingMore = true;
+      } else {
+        _candidatesLoading = true;
+        _candidateError = null;
+      }
+    });
+    final Result response = await Client.instance()
+        .getAuthManager()
+        .getCandidates(
+          query: <String, dynamic>{
+            'page': page,
+            'per_page': _candidatePageSize,
+            if (querySearch.isNotEmpty) 'search': querySearch,
+          },
+        );
+    if (!mounted) return;
+    if (response.isError()) {
+      final AppException error = ResponseHelper.error(response);
+      setState(() {
+        _candidatesLoading = false;
+        _candidatesLoadingMore = false;
+        _candidateError = error.errorMessage;
+      });
+      return;
+    }
+    try {
+      final CandidatePage result = CandidatePage.fromResponse(
+        response.getValue(),
+      );
+      setState(() {
+        _candidateSearch = querySearch;
+        _candidatePage = result.currentPage;
+        _candidateHasMore = result.hasMorePages;
+        _candidates = loadMore
+            ? _mergeCandidates(_candidates, result.items)
+            : result.items;
+        _candidatesLoading = false;
+        _candidatesLoadingMore = false;
+        _candidateError = null;
+      });
+    } catch (_) {
+      setState(() {
+        _candidatesLoading = false;
+        _candidatesLoadingMore = false;
+        _candidateError = 'Could not read candidates from the server.';
+      });
+    }
+  }
+
+  List<CandidateModel> _mergeCandidates(
+    List<CandidateModel> existing,
+    List<CandidateModel> incoming,
+  ) {
+    final Map<String, CandidateModel> keyed = <String, CandidateModel>{
+      for (final CandidateModel item in existing) _candidateKey(item): item,
+      for (final CandidateModel item in incoming) _candidateKey(item): item,
+    };
+    return keyed.values.toList(growable: false);
+  }
+
+  String _candidateKey(CandidateModel candidate) {
+    if (candidate.id > 0) return 'id:${candidate.id}';
+    return '${candidate.name}|${candidate.phone}';
+  }
+
+  void _selectCandidate(CandidateModel candidate) {
+    _applyingCandidate = true;
+    _name.text = candidate.name;
+    _phone.text = candidate.phone;
+    _applyingCandidate = false;
+    setState(() => _showCandidatePicker = false);
+    FocusScope.of(context).unfocus();
   }
 
   Future<void> _continue() async {
@@ -142,9 +261,6 @@ class _ManualBookingPageState extends State<ManualBookingPage> {
     if (booked == true && mounted) Navigator.of(context).pop(true);
   }
 
-  String? _required(String? value) =>
-      value == null || value.trim().isEmpty ? 'This field is required.' : null;
-
   /// The typed total, or null when the box is empty. Null is a valid answer —
   /// it means "let the server price it".
   double? get _parsedTotalAmount {
@@ -168,68 +284,58 @@ class _ManualBookingPageState extends State<ManualBookingPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: LightColor.background,
-      appBar: const CustomAppBar(title: 'Manual booking'),
-      bottomNavigationBar: _loading || _error != null
+      appBar: const CustomAppBar(title: 'Manual booking & adjustments'),
+      bottomNavigationBar: _loading || _error != null || _venues.isEmpty
           ? null
-          : _ManualBookingActionBar(
-              enabled: _venues.isNotEmpty,
-              onContinue: _continue,
-            ),
+          : _ManualBookingActionBar(onContinue: _continue),
       body: _loading
-          ? const Center(
-              child: CircularProgressIndicator(
+          // The app's loader, as on venue onboarding.
+          ? Center(
+              child: CustomLoading(
                 color: LightColor.secondaryColor,
+                size: 30,
+                strokeWidth: 3.5,
+                secondCircleColor: LightColor.secondaryLight,
+                thirdCircleColor: LightColor.secondaryLight,
               ),
             )
           : _error != null
-          ? Center(
-              child: Padding(
-                padding: const EdgeInsets.all(AppDimens.paddingX24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    Icon(
-                      Icons.cloud_off_rounded,
-                      color: LightColor.secondaryTextColor,
-                      size: AppDimens.sizeX44,
-                    ),
-                    const SizedBox(height: AppDimens.paddingX12),
-                    Text(
-                      _error!,
-                      textAlign: TextAlign.center,
-                      style: FutsalTheme.getTextTheme(context).bodyTextMedium
-                          ?.copyWith(color: LightColor.secondaryTextColor),
-                    ),
-                    const SizedBox(height: AppDimens.paddingX16),
-                    SizedBox(
-                      width: AppDimens.sizeX130,
-                      child: CustomButton(
-                        text: 'Retry',
-                        icon: Icons.refresh_rounded,
-                        onPressed: _loadVenues,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+          ? AppMessageView(
+              icon: Icons.cloud_off_rounded,
+              title: 'Could not load your venues',
+              message: _error!,
+              actionLabel: 'Retry',
+              onAction: _loadVenues,
+            )
+          : _venues.isEmpty
+          // Nothing to book at: say so rather than show a form that cannot
+          // be sent.
+          ? AppMessageView(
+              icon: Icons.stadium_outlined,
+              title: 'No venues to book yet',
+              message:
+                  'Once a venue with courts is approved, you can take '
+                  'walk-in bookings for it here.',
+              actionLabel: 'Refresh',
+              onAction: _loadVenues,
             )
           : SafeArea(
               top: false,
               child: Form(
                 key: _formKey,
                 child: ListView(
-                  physics: const BouncingScrollPhysics(),
                   keyboardDismissBehavior:
                       ScrollViewKeyboardDismissBehavior.onDrag,
+                  // The app's page margins, as on venue onboarding.
                   padding: const EdgeInsets.fromLTRB(
+                    AppDimens.paddingX16,
+                    AppDimens.paddingX16,
+                    AppDimens.paddingX16,
                     AppDimens.paddingX20,
-                    AppDimens.paddingX12,
-                    AppDimens.paddingX20,
-                    AppDimens.paddingX32,
                   ),
                   children: <Widget>[
                     _buildHeader(context),
-                    const SizedBox(height: AppDimens.paddingX18),
+                    _sectionGap(),
                     _sectionCard(
                       context,
                       title: 'Venue',
@@ -262,7 +368,7 @@ class _ManualBookingPageState extends State<ManualBookingPage> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: AppDimens.paddingX14),
+                    _sectionGap(),
                     _sectionCard(
                       context,
                       title: 'Customer details',
@@ -273,23 +379,45 @@ class _ManualBookingPageState extends State<ManualBookingPage> {
                           _name,
                           'Customer name',
                           TextInputType.name,
+                          hint: 'Full name',
                           icon: Icons.person_outline_rounded,
                           capitalization: TextCapitalization.words,
+                          autofillHints: const <String>[AutofillHints.name],
+                          onChanged: _onCandidateSearchChanged,
+                          validator: (String? v) => (v?.trim().isEmpty ?? true)
+                              ? 'Enter the customer\'s name'
+                              : null,
                         ),
                         _gap(),
                         _field(
                           _phone,
                           'Phone number',
                           TextInputType.phone,
+                          hint: '98XXXXXXXX',
                           icon: Icons.phone_outlined,
+                          autofillHints: const <String>[
+                            AutofillHints.telephoneNumber,
+                          ],
+                          onChanged: _onCandidateSearchChanged,
                           inputFormatters: <TextInputFormatter>[
                             FilteringTextInputFormatter.digitsOnly,
                             LengthLimitingTextInputFormatter(15),
                           ],
+                          validator: (String? v) {
+                            final String t = v?.trim() ?? '';
+                            if (t.isEmpty) {
+                              return 'Enter the customer\'s phone number';
+                            }
+                            if (t.length < 7) {
+                              return 'Enter a valid phone number';
+                            }
+                            return null;
+                          },
                         ),
+                        _candidatePicker(context),
                       ],
                     ),
-                    const SizedBox(height: AppDimens.paddingX16),
+                    _sectionGap(),
                     _sectionCard(
                       context,
                       title: 'Booking details',
@@ -298,8 +426,9 @@ class _ManualBookingPageState extends State<ManualBookingPage> {
                       children: <Widget>[
                         CustomTextField(
                           key: const Key('manual-booking-total-amount'),
-                          labelText: 'Total amount',
-                          hintText: 'Add valid, paid amount',
+                          labelText: 'Total amount (NPR)',
+                          // Optional: blank lets the server price the slots.
+                          hintText: 'Leave blank to use slot prices',
                           controller: _totalAmount,
                           // CustomTextField marks every label required by
                           // default; this one genuinely is not.
@@ -508,26 +637,199 @@ class _ManualBookingPageState extends State<ManualBookingPage> {
 
   Widget _gap() => const SizedBox(height: AppDimens.paddingX16);
 
+  /// Between the page's cards — one spacing throughout.
+  Widget _sectionGap() => const SizedBox(height: AppDimens.paddingX14);
+
   Widget _field(
     TextEditingController controller,
     String label,
     TextInputType keyboardType, {
+    required String hint,
     required IconData icon,
+    required FormFieldValidator<String> validator,
+    ValueChanged<String>? onChanged,
     TextCapitalization capitalization = TextCapitalization.none,
     List<TextInputFormatter>? inputFormatters,
+    Iterable<String>? autofillHints,
   }) {
     return CustomTextField(
       controller: controller,
       labelText: label,
-      hintText: label,
+      hintText: hint,
       icon: icon,
       keyboardType: keyboardType,
       textCapitalization: capitalization,
       textInputAction: TextInputAction.next,
       inputFormatters: inputFormatters,
+      autofillHints: autofillHints,
+      onChanged: onChanged,
       ensureVisibleOnFocus: true,
       autovalidateMode: AutovalidateMode.onUserInteraction,
-      validator: _required,
+      validator: validator,
+    );
+  }
+
+  Widget _candidatePicker(BuildContext context) {
+    if (!_showCandidatePicker) {
+      return const SizedBox.shrink();
+    }
+    final textTheme = FutsalTheme.getTextTheme(context);
+    return Padding(
+      padding: const EdgeInsets.only(top: AppDimens.paddingX10),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: LightColor.background,
+          borderRadius: BorderRadius.circular(AppDimens.radiusX10),
+          border: Border.all(color: LightColor.dividerColor),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppDimens.paddingX12,
+                AppDimens.paddingX10,
+                AppDimens.paddingX12,
+                AppDimens.paddingX6,
+              ),
+              child: Row(
+                children: <Widget>[
+                  Icon(
+                    Icons.person_search_outlined,
+                    size: AppDimens.sizeX18,
+                    color: LightColor.secondaryTextColor,
+                  ),
+                  const SizedBox(width: AppDimens.paddingX8),
+                  Expanded(
+                    child: Text(
+                      'Existing candidates',
+                      style: textTheme.bodyTextSmall?.copyWith(
+                        color: LightColor.primaryTextColor,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  InkWell(
+                    onTap: () => setState(() => _showCandidatePicker = false),
+                    borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppDimens.paddingX4),
+                      child: Icon(
+                        Icons.close_rounded,
+                        size: AppDimens.sizeX18,
+                        color: LightColor.secondaryTextColor,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (_candidatesLoading)
+              const Padding(
+                padding: EdgeInsets.all(AppDimens.paddingX14),
+                child: Center(
+                  child: SizedBox.square(
+                    dimension: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                ),
+              )
+            else if (_candidateError != null)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppDimens.paddingX12,
+                  AppDimens.paddingX4,
+                  AppDimens.paddingX12,
+                  AppDimens.paddingX12,
+                ),
+                child: Text(
+                  _candidateError!,
+                  style: textTheme.bodyTextSmall?.copyWith(
+                    color: LightColor.redColor,
+                  ),
+                ),
+              )
+            else if (_candidates.isEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppDimens.paddingX12,
+                  AppDimens.paddingX4,
+                  AppDimens.paddingX12,
+                  AppDimens.paddingX12,
+                ),
+                child: Text(
+                  'No existing candidate found. This booking will use the new customer details.',
+                  style: textTheme.bodyTextSmall?.copyWith(
+                    color: LightColor.secondaryTextColor,
+                    height: 1.3,
+                  ),
+                ),
+              )
+            else
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 260),
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  padding: EdgeInsets.zero,
+                  itemCount: _candidates.length + (_candidateHasMore ? 1 : 0),
+                  separatorBuilder: (_, __) =>
+                      Divider(height: 1, color: LightColor.dividerColor),
+                  itemBuilder: (BuildContext context, int index) {
+                    if (index >= _candidates.length) {
+                      return TextButton.icon(
+                        onPressed: _candidatesLoadingMore
+                            ? null
+                            : () => _loadCandidates(loadMore: true),
+                        icon: _candidatesLoadingMore
+                            ? const SizedBox.square(
+                                dimension: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.expand_more_rounded),
+                        label: const Text('Load more candidates'),
+                      );
+                    }
+                    final CandidateModel candidate = _candidates[index];
+                    return ListTile(
+                      dense: true,
+                      leading: CircleAvatar(
+                        radius: 17,
+                        backgroundColor: LightColor.secondarySoft,
+                        child: Icon(
+                          Icons.person_outline_rounded,
+                          size: AppDimens.sizeX18,
+                          color: LightColor.secondaryColor,
+                        ),
+                      ),
+                      title: Text(
+                        candidate.name.isEmpty
+                            ? 'Unnamed customer'
+                            : candidate.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: textTheme.bodyTextSmall?.copyWith(
+                          color: LightColor.primaryTextColor,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      subtitle: candidate.phone.isEmpty
+                          ? null
+                          : Text(
+                              candidate.phone,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                      onTap: () => _selectCandidate(candidate),
+                    );
+                  },
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -564,34 +866,38 @@ class _ManualBookingPageState extends State<ManualBookingPage> {
   }
 }
 
+/// The page's one action, laid out like venue onboarding's bottom bar: the
+/// app's [CustomButton] at the bar's height, above the safe area.
 class _ManualBookingActionBar extends StatelessWidget {
-  const _ManualBookingActionBar({
-    required this.enabled,
-    required this.onContinue,
-  });
+  const _ManualBookingActionBar({required this.onContinue});
 
-  final bool enabled;
   final VoidCallback onContinue;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 120,
-      padding: EdgeInsets.fromLTRB(
-        AppDimens.paddingX20,
-        AppDimens.paddingX12,
-        AppDimens.paddingX20,
-        AppDimens.paddingX12 + MediaQuery.viewPaddingOf(context).bottom,
-      ),
+    return DecoratedBox(
       decoration: BoxDecoration(
         color: LightColor.cardColor,
         border: Border(top: BorderSide(color: LightColor.dividerColor)),
       ),
-      child: CustomButton(
-        text: 'Continue to slot selection',
-        icon: Icons.arrow_forward_rounded,
-        onPressed: enabled ? onContinue : null,
-        minHeight: AppDimens.sizeX48,
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppDimens.paddingX16,
+            AppDimens.paddingX10,
+            AppDimens.paddingX16,
+            AppDimens.paddingX10,
+          ),
+          child: SizedBox(
+            height: AppDimens.sizeX46,
+            child: CustomButton(
+              text: 'Continue to slot selection',
+              icon: Icons.arrow_forward_rounded,
+              onPressed: onContinue,
+            ),
+          ),
+        ),
       ),
     );
   }

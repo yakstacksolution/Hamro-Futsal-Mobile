@@ -67,17 +67,15 @@ void main() {
       expect(page.items.where((e) => e.isCredit).length, 5);
       expect(page.items.where((e) => !e.isCredit).length, 5);
       expect(
-        page.items.where((e) => e.isCredit).fold<double>(
-          0,
-          (sum, e) => sum + e.amount,
-        ),
+        page.items
+            .where((e) => e.isCredit)
+            .fold<double>(0, (sum, e) => sum + e.amount),
         7650,
       );
       expect(
-        page.items.where((e) => !e.isCredit).fold<double>(
-          0,
-          (sum, e) => sum + e.amount,
-        ),
+        page.items
+            .where((e) => !e.isCredit)
+            .fold<double>(0, (sum, e) => sum + e.amount),
         329.5,
       );
     });

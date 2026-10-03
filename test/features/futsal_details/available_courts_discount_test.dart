@@ -52,10 +52,9 @@ const String _response = '''
 ''';
 
 void main() {
-  List<VenueCourtItemModel> courts() =>
-      AvailableCourtsModel.fromResponse(
-        jsonDecode(_response) as Map<String, dynamic>,
-      ).courts;
+  List<VenueCourtItemModel> courts() => AvailableCourtsModel.fromResponse(
+    jsonDecode(_response) as Map<String, dynamic>,
+  ).courts;
 
   final DateTime date = DateTime(2026, 9, 15);
 

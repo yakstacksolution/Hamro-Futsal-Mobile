@@ -28,6 +28,8 @@ import 'package:hamro_futsal/features/public/presentation/models/venue_filter.da
 import 'package:hamro_futsal/features/profile/presentation/profile_bloc/profile_bloc.dart';
 import 'package:hamro_futsal/features/profile/presentation/pages/profile_page.dart';
 import 'package:hamro_futsal/core/helper/device_location_helper.dart';
+import 'package:hamro_futsal/features/vendor_operations/presentation/pages/vendor_operations_home.dart';
+import 'package:hamro_futsal/features/vendor_operations/presentation/widgets/ops_toolbar.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -45,6 +47,7 @@ class _DashboardScreenState extends State<DashboardScreen>
       DashboardScreen.selectedNavIndex;
   final ValueNotifier<VenueFilter> _venueFilterNotifier =
       ValueNotifier<VenueFilter>(VenueFilter.empty);
+  late final ValueNotifier<bool> _vendorOperationalHomeNotifier;
   late final CategoryFilterBloc _categoryFilterBloc;
   bool _hasHandledVendorOnboarding = false;
   bool _hasUnreadNotifications = false;
@@ -65,6 +68,9 @@ class _DashboardScreenState extends State<DashboardScreen>
   @override
   void initState() {
     super.initState();
+    _vendorOperationalHomeNotifier = ValueNotifier<bool>(
+      AppSettings().vendorOperationalHome,
+    );
     _visitedTabIndexes = <int>{_selectedNavIndexNotifier.value};
     _headerController = AnimationController(
       vsync: this,
@@ -191,6 +197,30 @@ class _DashboardScreenState extends State<DashboardScreen>
     ),
   ];
 
+  bool? get _isVendorHome {
+    final ProfileState profile = context.watch<ProfileBloc>().state;
+    final String? role = profile.profile?.data.role;
+    if (role == null || role.trim().isEmpty) {
+      return profile.status == ProfileStatus.initial ||
+              profile.status == ProfileStatus.loading
+          ? null
+          : false;
+    }
+    return role.trim().toLowerCase() == 'vendor' &&
+        _vendorOperationalHomeNotifier.value;
+  }
+
+  bool get _isVendorAccount {
+    final ProfileState profile = context.watch<ProfileBloc>().state;
+    return profile.profile?.data.role.trim().toLowerCase() == 'vendor';
+  }
+
+  void _setVendorOperationalHome(bool enabled) {
+    AppSettings().vendorOperationalHome = enabled;
+    _vendorOperationalHomeNotifier.value = enabled;
+    if (!enabled) _fetchCategoryFiltersIfNeeded();
+  }
+
   void _onBottomIconPressed(int index) {
     _selectedNavIndexNotifier.value = index;
   }
@@ -262,13 +292,20 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
+  /// The signed-in user's first name for the homes' greeting, "there" until
+  /// the profile has loaded. Watches the profile, so a greeting rebuilds once
+  /// the name arrives.
+  String _greetingName() {
+    final ProfileState profileState = context.watch<ProfileBloc>().state;
+    return profileState.profile?.data.fullName.trim().isNotEmpty == true
+        ? profileState.profile!.data.fullName.trim().split(' ').first
+        : 'there';
+  }
+
   Widget _appBar() {
     final AppUtils appUtils = AppUtils();
-    final ProfileState profileState = context.watch<ProfileBloc>().state;
-    final String firstName =
-        profileState.profile?.data.fullName.trim().isNotEmpty == true
-        ? profileState.profile!.data.fullName.split(' ').first
-        : 'there';
+    final bool isVendorAccount = _isVendorAccount;
+    final String firstName = _greetingName();
 
     return Padding(
       padding: EdgeInsets.symmetric(
@@ -283,10 +320,23 @@ class _DashboardScreenState extends State<DashboardScreen>
         trailing: Stack(
           clipBehavior: Clip.none,
           children: <Widget>[
-            _buildActionIcon(
-              Icons.notifications_outlined,
-              color: LightColor.secondaryColor,
-              onTap: _openNotifications,
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                if (isVendorAccount) ...<Widget>[
+                  HomeModeSwitch(
+                    operational: _vendorOperationalHomeNotifier.value,
+                    onChanged: _setVendorOperationalHome,
+                    compact: true,
+                  ),
+                  const SizedBox(width: AppDimens.paddingX8),
+                ],
+                _buildActionIcon(
+                  Icons.notifications_outlined,
+                  color: LightColor.secondaryColor,
+                  onTap: _openNotifications,
+                ),
+              ],
             ),
             if (_hasUnreadNotifications)
               Positioned(
@@ -317,6 +367,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     _selectedNavIndexNotifier.removeListener(_onNavIndexChanged);
     _headerController.dispose();
     _homeHeaderHeight.dispose();
+    _vendorOperationalHomeNotifier.dispose();
     _categoryFilterBloc.close();
     _venueFilterNotifier.dispose();
     super.dispose();
@@ -373,12 +424,16 @@ class _DashboardScreenState extends State<DashboardScreen>
             animation: Listenable.merge(<Listenable>[
               _selectedNavIndexNotifier,
               _venueFilterNotifier,
+              _vendorOperationalHomeNotifier,
             ]),
             builder: (BuildContext context, Widget? child) {
               final int selectedNavIndex = _selectedNavIndexNotifier.value;
 
               if (context.isTabletOrWider) {
                 return Row(
+                  // The rail runs the full height of the window; without this
+                  // it shrink-wraps its items and floats mid-screen.
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
                     DashboardSideNav(
                       currentIndex: selectedNavIndex,
@@ -443,6 +498,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   );
 
   Widget _buildContent(int selectedNavIndex) {
+    final bool? isVendorHome = _isVendorHome;
     // The header floats over the feed and only slides — a paint-time
     // transform. Collapsing it inside a Column instead would resize the feed's
     // viewport every frame, relaying out the list mid-scroll.
@@ -456,16 +512,34 @@ class _DashboardScreenState extends State<DashboardScreen>
               _stackChild(
                 index: 0,
                 selectedIndex: selectedNavIndex,
-                childBuilder: () => NotificationListener<ScrollNotification>(
-                  onNotification: _onHomeScroll,
-                  child: ValueListenableBuilder<double>(
-                    valueListenable: _homeHeaderHeight,
-                    builder: (BuildContext context, double height, _) =>
-                        FutsalHomePage(
-                          filter: _venueFilterNotifier.value,
-                          topInset: height,
-                        ),
-                  ),
+                childBuilder: () => _HomeSwitchTransition(
+                  homeKey: switch (isVendorHome) {
+                    null => 'loading',
+                    true => 'operations',
+                    false => 'futsal',
+                  },
+                  child: switch (isVendorHome) {
+                    null => const Center(child: CircularProgressIndicator()),
+                    true => VendorOperationsHome(
+                      operationalHomeEnabled:
+                          _vendorOperationalHomeNotifier.value,
+                      onHomeModeChanged: _setVendorOperationalHome,
+                      hasUnreadNotifications: _hasUnreadNotifications,
+                      onNotifications: _openNotifications,
+                      userName: _greetingName(),
+                    ),
+                    false => NotificationListener<ScrollNotification>(
+                      onNotification: _onHomeScroll,
+                      child: ValueListenableBuilder<double>(
+                        valueListenable: _homeHeaderHeight,
+                        builder: (BuildContext context, double height, _) =>
+                            FutsalHomePage(
+                              filter: _venueFilterNotifier.value,
+                              topInset: height,
+                            ),
+                      ),
+                    ),
+                  },
                 ),
               ),
               _stackChild(
@@ -499,7 +573,7 @@ class _DashboardScreenState extends State<DashboardScreen>
             duration: const Duration(milliseconds: 280),
             switchInCurve: Curves.easeOutCubic,
             switchOutCurve: Curves.easeInCubic,
-            child: selectedNavIndex == 0
+            child: selectedNavIndex == 0 && isVendorHome == false
                 ? SlideTransition(
                     key: const ValueKey<String>('home-header'),
                     position: _headerOffset,
@@ -599,6 +673,45 @@ class HomeGreeting extends StatelessWidget {
         const SizedBox(width: AppDimens.paddingX8),
         trailing,
       ],
+    );
+  }
+}
+
+/// Crossfades the Home tab between the futsal home and the operations home
+/// when a vendor switches, in step with the header's own fade above it: the
+/// old home fades out while the new one fades in and settles a few pixels
+/// up. Both keep the full tab's size throughout, so nothing reflows.
+class _HomeSwitchTransition extends StatelessWidget {
+  const _HomeSwitchTransition({required this.homeKey, required this.child});
+
+  /// Which home [child] is; a new key is what starts the transition.
+  final String homeKey;
+  final Widget child;
+
+  static const Duration duration = Duration(milliseconds: 280);
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSwitcher(
+      duration: duration,
+      switchInCurve: Curves.easeOutCubic,
+      switchOutCurve: Curves.easeInCubic,
+      layoutBuilder: (Widget? current, List<Widget> previous) => Stack(
+        fit: StackFit.expand,
+        children: <Widget>[...previous, ?current],
+      ),
+      transitionBuilder: (Widget child, Animation<double> animation) =>
+          FadeTransition(
+            opacity: animation,
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0, 0.015),
+                end: Offset.zero,
+              ).animate(animation),
+              child: child,
+            ),
+          ),
+      child: KeyedSubtree(key: ValueKey<String>(homeKey), child: child),
     );
   }
 }

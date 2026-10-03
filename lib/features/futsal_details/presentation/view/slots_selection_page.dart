@@ -52,6 +52,7 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
     with TickerProviderStateMixin, WidgetsBindingObserver {
   late final AnimationController _bottomBarController;
   late final Animation<Offset> _bottomBarSlide;
+  final ScrollController _scrollController = ScrollController();
   bool _isConfirmingManualBooking = false;
 
   String _apiDate(DateTime date) {
@@ -144,6 +145,7 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _bottomBarController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -152,13 +154,16 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
       builder: (BuildContext context, SlotsSelectionState state) {
         final VenueCourtItemModel? selectedCourt = state.selectedCourt;
         if (selectedCourt == null) return const SizedBox.shrink();
+        final EdgeInsets padding = context.isDesktop
+            ? const EdgeInsets.only(top: AppDimens.paddingX12)
+            : const EdgeInsets.only(
+                left: AppDimens.paddingX20,
+                top: AppDimens.paddingX12,
+                right: AppDimens.paddingX20,
+              );
 
         return Padding(
-          padding: const EdgeInsets.only(
-            left: AppDimens.paddingX20,
-            top: AppDimens.paddingX12,
-            right: AppDimens.paddingX20,
-          ),
+          padding: padding,
           child: BookingTypeCard(
             mode: state.bookingMode,
             startDate: state.selectedDate,
@@ -225,32 +230,45 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
                 state.recurringAvailability;
             // The card lists both the available and the unavailable dates, so
             // it stays useful even when everything is free.
-            if (model != null && model.hasSessions) {
-              child = _RecurringAvailabilityResult(model: model);
+            if (model != null && (model.hasSessions || model.isUnconfirmed)) {
+              child = _RecurringAvailabilityResult(
+                model: model,
+                selectedTime: state.selectedTime,
+                onSkipUnavailable: () => _startBooking(
+                  context,
+                  context.read<SlotsSelectionBloc>().state,
+                  confirmUnavailable: false,
+                ),
+                onPickAnother: _scrollToDateTime,
+              );
             } else {
               child = const SizedBox.shrink();
             }
         }
 
-        return Padding(
-          padding: const EdgeInsets.only(
-            left: AppDimens.paddingX20,
-            top: AppDimens.paddingX12,
-            right: AppDimens.paddingX20,
-          ),
-          child: child,
-        );
+        final EdgeInsets padding = context.isDesktop
+            ? const EdgeInsets.only(top: AppDimens.paddingX12)
+            : const EdgeInsets.only(
+                left: AppDimens.paddingX20,
+                top: AppDimens.paddingX12,
+                right: AppDimens.paddingX20,
+              );
+
+        return Padding(padding: padding, child: child);
       },
     );
   }
 
   Widget _buildDateTimeSection() {
+    final EdgeInsets padding = context.isDesktop
+        ? EdgeInsets.zero
+        : const EdgeInsets.only(
+            left: AppDimens.paddingX20,
+            top: AppDimens.paddingX12,
+            right: AppDimens.paddingX20,
+          );
     return Padding(
-      padding: const EdgeInsets.only(
-        left: AppDimens.paddingX20,
-        top: AppDimens.paddingX12,
-        right: AppDimens.paddingX20,
-      ),
+      padding: padding,
       child: Container(
         padding: const EdgeInsets.all(AppDimens.paddingX12),
         decoration: BoxDecoration(
@@ -322,12 +340,15 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
   }
 
   Widget _buildCourtsSection() {
+    final EdgeInsets padding = context.isDesktop
+        ? EdgeInsets.zero
+        : const EdgeInsets.only(
+            left: AppDimens.paddingX20,
+            top: AppDimens.paddingX20,
+            right: AppDimens.paddingX20,
+          );
     return Padding(
-      padding: const EdgeInsets.only(
-        left: AppDimens.paddingX20,
-        top: AppDimens.paddingX20,
-        right: AppDimens.paddingX20,
-      ),
+      padding: padding,
       child: BlocBuilder<SlotsSelectionBloc, SlotsSelectionState>(
         builder: (BuildContext context, SlotsSelectionState state) {
           return Column(
@@ -432,11 +453,15 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
   /// When the server reported taken dates for a recurring booking, asks the
   /// user whether to book the remaining ones or go back and pick another
   /// date/slot. Returns the draft to book with, or null to stay on this page.
+  ///
+  /// With [confirm] false the user already chose to skip the taken dates (from
+  /// the availability card), so the prompt is not shown again.
   Future<BookingDraft?> _resolveUnavailableDates(
     BuildContext context,
     SlotsSelectionState state,
-    BookingDraft draft,
-  ) async {
+    BookingDraft draft, {
+    bool confirm = true,
+  }) async {
     final RecurringAvailabilityModel? model = state.recurringAvailability;
     if (!state.isRecurring ||
         model == null ||
@@ -463,15 +488,20 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
       return null;
     }
 
-    final bool? continueWithout = await showAppBottomSheet<bool>(
-      context: context,
-      child: _UnavailableDatesSheet(
-        unavailableDates: dropped,
-        availableCount: keep.length,
-        selectedTime: state.selectedTime ?? '',
-      ),
-    );
-    if (continueWithout != true) return null;
+    if (confirm) {
+      final bool? continueWithout = await showAppBottomSheet<bool>(
+        context: context,
+        child: _UnavailableDatesSheet(
+          unavailableDates: dropped,
+          availableCount: keep.length,
+          selectedTime: state.selectedTime ?? '',
+        ),
+      );
+      if (continueWithout != true) {
+        if (continueWithout == false) _scrollToDateTime();
+        return null;
+      }
+    }
 
     final VenueCourtItemModel? court = state.selectedCourt;
     final double subtotal = court == null
@@ -487,6 +517,70 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
       dropped: dropped,
       subtotal: subtotal,
     );
+  }
+
+  /// Brings the date & time picker back into view so another date or slot
+  /// can be chosen.
+  void _scrollToDateTime() {
+    HapticFeedback.selectionClick();
+    if (!_scrollController.hasClients) return;
+    _scrollController.animateTo(
+      0,
+      duration: const Duration(milliseconds: 350),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  /// Runs the booking flow for the current selection: resolves any taken
+  /// recurring dates, then confirms a manual booking or opens checkout.
+  ///
+  /// [confirmUnavailable] false skips the "continue without these dates?"
+  /// prompt, for when the user already chose to skip them.
+  Future<void> _startBooking(
+    BuildContext context,
+    SlotsSelectionState state, {
+    bool confirmUnavailable = true,
+  }) async {
+    if (!state.hasSlotSelection) {
+      AppUtils().showSnackBar(
+        context,
+        MsgType.error,
+        StringConstants.pleaseSelectTimeSlot,
+        key: 'slot_selection_required',
+      );
+      return;
+    }
+
+    HapticFeedback.mediumImpact();
+    BookingDraft? draft = state.bookingDraft?.withManualBooking(
+      widget.manualBooking,
+    );
+    if (draft == null) return;
+
+    final BookingDraft? resolved = await _resolveUnavailableDates(
+      context,
+      state,
+      draft,
+      confirm: confirmUnavailable,
+    );
+    if (resolved == null || !context.mounted) return;
+    draft = resolved;
+    if (widget.manualBooking != null) {
+      await _confirmManualBooking(draft);
+      return;
+    }
+    final BookingDraft? booked = await context.pushNamed<BookingDraft>(
+      AppRouterParams.bookingCheckout.name,
+      extra: BookingCheckoutRouteArgs(
+        draft: draft,
+        successAction: widget.successAction,
+      ),
+    );
+    // Only reached when checkout handed the draft back; when it opened the
+    // booking details it reset the stack and this page is already gone.
+    if (booked != null && context.mounted) {
+      Navigator.of(context).pop(booked);
+    }
   }
 
   Widget _buildBottomBar() {
@@ -567,70 +661,7 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
                                           : state.buttonText,
                                       isLoading: _isConfirmingManualBooking,
                                       onPressed: canPressAction
-                                          ? () async {
-                                              if (!state.hasSlotSelection) {
-                                                AppUtils().showSnackBar(
-                                                  context,
-                                                  MsgType.error,
-                                                  StringConstants
-                                                      .pleaseSelectTimeSlot,
-                                                  key:
-                                                      'slot_selection_required',
-                                                );
-                                                return;
-                                              }
-
-                                              HapticFeedback.mediumImpact();
-                                              BookingDraft? draft = state
-                                                  .bookingDraft
-                                                  ?.withManualBooking(
-                                                    widget.manualBooking,
-                                                  );
-                                              if (draft == null) return;
-
-                                              final BookingDraft? resolved =
-                                                  await _resolveUnavailableDates(
-                                                    context,
-                                                    state,
-                                                    draft,
-                                                  );
-                                              if (resolved == null ||
-                                                  !context.mounted) {
-                                                return;
-                                              }
-                                              draft = resolved;
-                                              if (widget.manualBooking !=
-                                                  null) {
-                                                await _confirmManualBooking(
-                                                  draft,
-                                                );
-                                                return;
-                                              }
-                                              final BookingDraft?
-                                              booked = await context
-                                                  .pushNamed<BookingDraft>(
-                                                    AppRouterParams
-                                                        .bookingCheckout
-                                                        .name,
-                                                    extra:
-                                                        BookingCheckoutRouteArgs(
-                                                          draft: draft,
-                                                          successAction: widget
-                                                              .successAction,
-                                                        ),
-                                                  );
-                                              // Only reached when checkout
-                                              // handed the draft back; when it
-                                              // opened the booking details it
-                                              // reset the stack and this page
-                                              // is already gone.
-                                              if (booked != null &&
-                                                  context.mounted) {
-                                                Navigator.of(
-                                                  context,
-                                                ).pop(booked);
-                                              }
-                                            }
+                                          ? () => _startBooking(context, state)
                                           : null,
                                       backgroundColor: canPressAction
                                           ? LightColor.secondaryColor
@@ -654,6 +685,81 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
           },
         ),
       ),
+    );
+  }
+
+  Widget _buildDesktopCheckoutCard() {
+    return BlocBuilder<SlotsSelectionBloc, SlotsSelectionState>(
+      builder: (BuildContext context, SlotsSelectionState state) {
+        if (state.isDateFullyUnavailable) return const SizedBox.shrink();
+        final bool canBook =
+            state.hasSlotSelection &&
+            (state.selectedCourt?.isAvailable ?? false);
+        final bool canPressAction = !state.hasSlotSelection || canBook;
+
+        return Container(
+          width: AppDimens.slotsSelectionCheckoutWidth,
+          padding: const EdgeInsets.all(AppDimens.paddingX18),
+          decoration: BoxDecoration(
+            color: LightColor.cardColor,
+            borderRadius: BorderRadius.circular(AppDimens.radiusX14),
+            border: Border.all(
+              color: LightColor.dividerColor.withValues(alpha: 0.7),
+            ),
+            boxShadow: <BoxShadow>[
+              BoxShadow(
+                color: LightColor.shadowOf(0.08),
+                blurRadius: AppDimens.sizeX24,
+                offset: const Offset(0, AppDimens.sizeX10),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Text(
+                'Booking summary',
+                style: FutsalTheme.getTextTheme(context).bodyTextMedium
+                    ?.copyWith(
+                      color: LightColor.primaryTextColor,
+                      fontWeight: FontWeight.w800,
+                    ),
+              ),
+              const SizedBox(height: AppDimens.sizeX16),
+              _BookingBarSummary(
+                priceText: state.priceText,
+                priceUnit: state.priceUnit,
+                originalPriceText: state.originalPriceText,
+                savingsText: state.savingsText,
+                selectedLabel: state.selectedLabel,
+                canBook: canBook,
+              ),
+              const SizedBox(height: AppDimens.sizeX18),
+              CustomButton(
+                text: canBook && widget.manualBooking != null
+                    ? (_isConfirmingManualBooking
+                          ? 'Confirming…'
+                          : 'Confirm Booking')
+                    : state.buttonText,
+                isLoading: _isConfirmingManualBooking,
+                onPressed: canPressAction
+                    ? () => _startBooking(context, state)
+                    : null,
+                backgroundColor: canPressAction
+                    ? LightColor.secondaryColor
+                    : LightColor.dividerColor,
+                foregroundColor: canPressAction
+                    ? LightColor.inverseTextColor
+                    : LightColor.hintTextColor,
+                minHeight: AppDimens.sizeX52,
+                borderRadius: AppDimens.radiusX10,
+                fontWeight: FontWeight.w800,
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -691,44 +797,53 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
           builder: (BuildContext context, SlotsSelectionState state) {
             final bool fullyUnavailable = state.isDateFullyUnavailable;
             return SingleChildScrollView(
+              controller: _scrollController,
               physics: const BouncingScrollPhysics(),
               child: context.isDesktop
                   ? Center(
                       child: ConstrainedBox(
                         constraints: const BoxConstraints(
-                          maxWidth: AppDimens.slotsSelectionMaxWidth,
+                          maxWidth: AppDimens.slotsSelectionWideMaxWidth,
                         ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: <Widget>[
-                            Expanded(
-                              flex: 4,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: <Widget>[
-                                  _buildDateTimeSection(),
-                                  if (!fullyUnavailable) ...<Widget>[
-                                    _buildBookingTypeSection(),
-                                    _buildRecurringAvailabilitySection(),
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(
+                            AppDimens.paddingX24,
+                            AppDimens.paddingX12,
+                            AppDimens.paddingX24,
+                            AppDimens.paddingX32,
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: <Widget>[
+                              SizedBox(
+                                width: AppDimens.slotsSelectionSideWidth,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: <Widget>[
+                                    _buildDateTimeSection(),
+                                    if (!fullyUnavailable) ...<Widget>[
+                                      _buildBookingTypeSection(),
+                                      _buildRecurringAvailabilitySection(),
+                                    ],
                                   ],
-                                  const SizedBox(height: AppDimens.sizeX20),
-                                ],
+                                ),
                               ),
-                            ),
-                            Expanded(
-                              flex: 5,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: <Widget>[
-                                  if (fullyUnavailable)
-                                    const _DateFullyUnavailableNotice()
-                                  else
-                                    _buildCourtsSection(),
-                                  const SizedBox(height: AppDimens.sizeX20),
-                                ],
+                              const SizedBox(width: AppDimens.paddingX24),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: <Widget>[
+                                    if (fullyUnavailable)
+                                      const _DateFullyUnavailableNotice()
+                                    else
+                                      _buildCourtsSection(),
+                                  ],
+                                ),
                               ),
-                            ),
-                          ],
+                              const SizedBox(width: AppDimens.paddingX24),
+                              _buildDesktopCheckoutCard(),
+                            ],
+                          ),
                         ),
                       ),
                     )
@@ -758,7 +873,7 @@ class _SlotsSelectionPageState extends State<SlotsSelectionPage>
             );
           },
         ),
-        bottomNavigationBar: _buildBottomBar(),
+        bottomNavigationBar: context.isDesktop ? null : _buildBottomBar(),
       ),
     );
   }
@@ -1224,22 +1339,91 @@ class _AvailabilityMessage extends StatelessWidget {
 }
 
 class _RecurringAvailabilityResult extends StatelessWidget {
-  const _RecurringAvailabilityResult({required this.model});
+  const _RecurringAvailabilityResult({
+    required this.model,
+    required this.onSkipUnavailable,
+    required this.onPickAnother,
+    this.selectedTime,
+  });
 
   final RecurringAvailabilityModel model;
+  final String? selectedTime;
+
+  /// Books the schedule without the taken dates.
+  final VoidCallback onSkipUnavailable;
+
+  /// Sends the user back to the date & time picker.
+  final VoidCallback onPickAnother;
+
+  /// Available dates listed before the rest collapse into a "+N more" line,
+  /// so a 3-month, multi-day schedule does not push the courts off screen.
+  static const int _maxAvailableRows = 4;
+
+  String _plural(int count, String noun) =>
+      count == 1 ? '1 $noun' : '$count ${noun}s';
+
+  String get _title {
+    if (model.isUnconfirmed) return 'Some sessions are unavailable';
+    final int total = model.totalCount;
+    final int taken = model.unavailableCount;
+    if (taken == 0) {
+      return total == 1 ? 'Slot is available' : 'All $total sessions available';
+    }
+    if (total == 1) return 'Slot is not available';
+    if (model.availableCount == 0) {
+      return 'None of the $total sessions are available';
+    }
+    return '${_plural(taken, 'session')} unavailable · ${model.availableCount} of $total available';
+  }
+
+  String get _message {
+    final String at = (selectedTime ?? '').isEmpty ? '' : ' at $selectedTime';
+    final List<AvailabilitySession> taken = model.unavailableSessions;
+    final int free = model.availableCount;
+
+    if (model.isUnconfirmed) {
+      return 'One or more dates in this schedule are already taken$at. Please pick another date or time.';
+    }
+    if (taken.isEmpty) {
+      return model.totalCount == 1
+          ? 'This date is free$at.'
+          : 'Every date in this schedule is free$at.';
+    }
+    if (free == 0) {
+      return model.totalCount == 1
+          ? 'This slot is already taken$at. Please pick another date or time.'
+          : 'This slot is taken$at on every date in the schedule. Please pick another date or time.';
+    }
+
+    final String which = taken.length == 1
+        ? '${_sessionLabel(taken.single)} is'
+        : '${taken.length} dates are';
+    final String rest = free == 1
+        ? 'the other session'
+        : 'the other $free sessions';
+    final String them = taken.length == 1 ? 'it' : 'them';
+    return '$which already taken$at. Skip $them and book $rest, or pick another date or time.';
+  }
+
+  static String _sessionLabel(AvailabilitySession s) =>
+      s.dateTime != null ? _dateLabel(s.dateTime!) : s.date;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
-    final bool allOk = model.allAvailable;
-    final bool single = model.totalCount == 1;
+    final bool allOk = !model.isUnconfirmed && model.unavailableCount == 0;
+    // Without per-date results there is nothing safe to "skip & book".
+    final bool noneOk = model.isUnconfirmed || model.availableCount == 0;
     final Color accent = allOk
         ? LightColor.secondaryColor
-        : LightColor.redColor;
+        : noneOk
+        ? LightColor.redColor
+        : LightColor.warningColor;
 
-    final String summary = single
-        ? (allOk ? 'Slot is available' : 'Slot is not available')
-        : '${model.availableCount} of ${model.totalCount} dates available';
+    final List<AvailabilitySession> available = model.availableSessions;
+    final int hiddenAvailable = available.length > _maxAvailableRows
+        ? available.length - _maxAvailableRows
+        : 0;
 
     return Container(
       width: double.infinity,
@@ -1253,6 +1437,7 @@ class _RecurringAvailabilityResult extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               Icon(
                 allOk
@@ -1263,19 +1448,32 @@ class _RecurringAvailabilityResult extends StatelessWidget {
               ),
               const SizedBox(width: AppDimens.sizeX8),
               Expanded(
-                child: Text(
-                  summary,
-                  style: textTheme.bodyTextSmall?.copyWith(
-                    color: LightColor.primaryTextColor,
-                    fontWeight: FontWeight.w800,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      _title,
+                      style: textTheme.bodyTextSmall?.copyWith(
+                        color: LightColor.primaryTextColor,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: AppDimens.sizeX2),
+                    Text(
+                      _message,
+                      style: textTheme.bodyMiniSubTitle?.copyWith(
+                        color: LightColor.hintTextColor,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
           if (model.totalCount > 1) ...<Widget>[
             if (model.unavailableSessions.isNotEmpty) ...<Widget>[
-              const SizedBox(height: AppDimens.sizeX10),
+              const SizedBox(height: AppDimens.sizeX12),
               _AvailabilityGroupLabel(
                 label: 'Unavailable · ${model.unavailableCount}',
                 color: LightColor.redColor,
@@ -1288,31 +1486,60 @@ class _RecurringAvailabilityResult extends StatelessWidget {
                 ),
               ),
             ],
-            if (model.availableSessions.isNotEmpty) ...<Widget>[
+            if (available.isNotEmpty) ...<Widget>[
               const SizedBox(height: AppDimens.sizeX4),
               _AvailabilityGroupLabel(
                 label: 'Available · ${model.availableCount}',
                 color: LightColor.secondaryColor,
               ),
               const SizedBox(height: AppDimens.sizeX8),
-              ...model.availableSessions.map(
-                (AvailabilitySession s) => Padding(
-                  padding: const EdgeInsets.only(bottom: AppDimens.paddingX8),
-                  child: _RecurringAvailabilityRow(session: s),
+              ...available
+                  .take(_maxAvailableRows)
+                  .map(
+                    (AvailabilitySession s) => Padding(
+                      padding: const EdgeInsets.only(
+                        bottom: AppDimens.paddingX8,
+                      ),
+                      child: _RecurringAvailabilityRow(session: s),
+                    ),
+                  ),
+              if (hiddenAvailable > 0)
+                Text(
+                  '+ ${_plural(hiddenAvailable, 'more available date')}',
+                  style: textTheme.bodyMiniSubTitle?.copyWith(
+                    color: LightColor.hintTextColor,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              ),
             ],
           ],
           if (!allOk) ...<Widget>[
-            const SizedBox(height: AppDimens.sizeX2),
-            Text(
-              single
-                  ? 'Please pick another date or time.'
-                  : 'Some dates are taken. You can book the rest or pick another date and slot.',
-              style: textTheme.bodyMiniSubTitle?.copyWith(
-                color: LightColor.hintTextColor,
-                fontWeight: FontWeight.w500,
-              ),
+            const SizedBox(height: AppDimens.sizeX12),
+            Row(
+              children: <Widget>[
+                Expanded(
+                  child: CustomButton(
+                    text: 'Pick another date',
+                    onPressed: onPickAnother,
+                    isOutlined: true,
+                    borderColor: LightColor.dividerColor,
+                    foregroundColor: LightColor.primaryTextColor,
+                    minHeight: AppDimens.sizeX40,
+                  ),
+                ),
+                if (!noneOk) ...<Widget>[
+                  const SizedBox(width: AppDimens.sizeX8),
+                  Expanded(
+                    child: CustomButton(
+                      text: 'Skip & book ${model.availableCount}',
+                      onPressed: onSkipUnavailable,
+                      backgroundColor: LightColor.secondaryColor,
+                      foregroundColor: LightColor.inverseTextColor,
+                      minHeight: AppDimens.sizeX40,
+                    ),
+                  ),
+                ],
+              ],
             ),
           ],
         ],

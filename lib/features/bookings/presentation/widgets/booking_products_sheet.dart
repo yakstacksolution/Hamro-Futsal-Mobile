@@ -41,28 +41,71 @@ enum BookingPaymentType {
       : Icons.account_balance_wallet_rounded;
 }
 
+/// One amount collected and how: cash or online.
+class BookingPaymentLine {
+  const BookingPaymentLine({required this.type, required this.amount});
+
+  final BookingPaymentType type;
+  final double amount;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+    'payment_type': type.apiValue,
+    'value': amount == amount.roundToDouble() ? amount.round() : amount,
+  };
+}
+
 /// Result collected from the complete-booking sheet: how the payment was
-/// settled (cash/online), any discount applied, how much is being collected
-/// now, and whether it is a partial settlement.
+/// settled — in cash, online, or part each — any discount applied, how much
+/// is being collected now, and whether it is a partial settlement.
 class BookingCompleteResult {
   const BookingCompleteResult({
-    required this.paymentType,
+    required this.payments,
     required this.discount,
     required this.amountPaid,
     required this.isPartial,
   });
 
-  final BookingPaymentType paymentType;
+  /// At most one line per type: cash, online, or both.
+  final List<BookingPaymentLine> payments;
   final double discount;
   final double amountPaid;
   final bool isPartial;
+
+  /// The type the booking is completed with: the first that paid something,
+  /// else the first picked.
+  BookingPaymentType get paymentType =>
+      payments
+          .where((BookingPaymentLine l) => l.amount > 0)
+          .firstOrNull
+          ?.type ??
+      payments.firstOrNull?.type ??
+      BookingPaymentType.cash;
+}
+
+class BookingCompletionResponse {
+  const BookingCompletionResponse({required this.success, this.booking});
+
+  final bool success;
+  final BookingModel? booking;
+
+  /// [original] as it stands once completed: the server's booking when the
+  /// response carried this one (its payments, balance and status are the
+  /// settled ones), otherwise [original] marked completed.
+  BookingModel completedFrom(BookingModel original) {
+    final BookingModel? returned = booking;
+    return (returned != null && returned.id == original.id
+            ? returned
+            : original)
+        .copyWith(status: BookingStatus.completed);
+  }
 }
 
 /// Bookings whose complete flow (sheet and request) is currently running.
 final Set<int> _bookingsBeingCompleted = <int>{};
 
 /// In-flight complete requests, keyed by booking id.
-final Map<int, Future<bool>> _pendingCompletions = <int, Future<bool>>{};
+final Map<int, Future<BookingCompletionResponse>> _pendingCompletions =
+    <int, Future<BookingCompletionResponse>>{};
 
 /// Runs [flow] — typically "open the complete sheet, then call
 /// [completeBooking]" — unless one is already running for [bookingId]. A
@@ -81,28 +124,46 @@ Future<void> runBookingCompletionOnce(
 }
 
 /// Marks a confirmed booking as completed, recording how the outstanding
-/// amount was collected. Returns `true` on success.
+/// amount was collected. Returns the server booking when the response includes
+/// one, so callers can update their state without waiting for another fetch.
 ///
 /// A call made while one for the same booking is still in flight shares its
 /// result instead of hitting the API again.
-Future<bool> completeBooking(
+/// Stands in for the `POST /bookings/{id}/complete` request in tests, which
+/// cannot reach the shared API client.
+@visibleForTesting
+Future<BookingCompletionResponse> Function(
+  int bookingId, {
+  BookingCompleteResult? result,
+  List<Map<String, dynamic>>? extraItems,
+})?
+debugSendCompleteBooking;
+
+Future<BookingCompletionResponse> completeBooking(
   int bookingId, {
   BookingCompleteResult? result,
   List<Map<String, dynamic>>? extraItems,
 }) {
-  final Future<bool>? pending = _pendingCompletions[bookingId];
+  final Future<BookingCompletionResponse>? pending =
+      _pendingCompletions[bookingId];
   if (pending != null) return pending;
 
-  final Future<bool> request = _sendCompleteBooking(
-    bookingId,
-    result: result,
-    extraItems: extraItems,
-  ).whenComplete(() => _pendingCompletions.remove(bookingId));
+  final Future<BookingCompletionResponse> request =
+      (debugSendCompleteBooking ?? _sendCompleteBooking)(
+        bookingId,
+        result: result,
+        extraItems: extraItems,
+      ).whenComplete(() {
+        // A block, not `=> remove(...)`: `remove` returns this very future,
+        // and `whenComplete` waits on a future its callback returns — the
+        // request would wait on itself and never complete.
+        _pendingCompletions.remove(bookingId);
+      });
   _pendingCompletions[bookingId] = request;
   return request;
 }
 
-Future<bool> _sendCompleteBooking(
+Future<BookingCompletionResponse> _sendCompleteBooking(
   int bookingId, {
   BookingCompleteResult? result,
   List<Map<String, dynamic>>? extraItems,
@@ -111,7 +172,13 @@ Future<bool> _sendCompleteBooking(
     bookingId: bookingId,
     // `confirm` is required by the API; completing always confirms.
     confirm: true,
-    paymentType: result?.paymentType.apiValue,
+    // Each type with what it paid — cash, online, or both.
+    payments: result == null
+        ? null
+        : <Map<String, dynamic>>[
+            for (final BookingPaymentLine line in result.payments)
+              if (line.amount > 0) line.toJson(),
+          ],
     discount: result?.discount ?? 0,
     // Only sent for a partial settlement — a full payment omits it.
     partialAmount: (result != null && result.isPartial)
@@ -119,7 +186,17 @@ Future<bool> _sendCompleteBooking(
         : null,
     extraItems: extraItems,
   );
-  return response.isSuccess();
+  if (!response.isSuccess()) {
+    return const BookingCompletionResponse(success: false);
+  }
+  try {
+    return BookingCompletionResponse(
+      success: true,
+      booking: BookingModel.fromResponse(response.getValue()),
+    );
+  } catch (_) {
+    return const BookingCompletionResponse(success: true);
+  }
 }
 
 class BookingCollectDueResult {
@@ -1002,11 +1079,17 @@ class _CompleteBookingSheet extends StatefulWidget {
 }
 
 class _CompleteBookingSheetState extends State<_CompleteBookingSheet> {
-  BookingPaymentType _paymentType = BookingPaymentType.cash;
-  bool _isPartial = false;
-
   final TextEditingController _discountController = TextEditingController();
-  final TextEditingController _amountController = TextEditingController();
+
+  /// What is collected now: one line, or two when split — one in cash, the
+  /// other online. Never two lines of the same type.
+  final List<_CompletePaymentField> _payments = <_CompletePaymentField>[
+    _CompletePaymentField(BookingPaymentType.cash),
+  ];
+
+  /// Until the amount is typed, the one line follows the net payable (the
+  /// discount changes it), so a full settlement needs no typing.
+  bool _amountTouched = false;
 
   BookingModel get _booking => widget.booking;
 
@@ -1031,32 +1114,112 @@ class _CompleteBookingSheetState extends State<_CompleteBookingSheet> {
   double get _netPayable =>
       _bound(_totalToCollect - _discount, double.infinity);
 
+  /// Everything received now, across the lines.
+  double get _received => _payments.fold<double>(
+    0,
+    (double sum, _CompletePaymentField p) => sum + _parse(p.amount),
+  );
+
   /// Amount being collected right now.
-  double get _amountPaid =>
-      _isPartial ? _bound(_parse(_amountController), _netPayable) : _netPayable;
+  double get _amountPaid => _bound(_received, _netPayable);
 
   /// Amount still owed after this settlement.
   double get _remaining => _bound(_netPayable - _amountPaid, double.infinity);
 
+  bool get _overpaid => _received > _netPayable + 0.5;
+
+  /// A split line left empty: fill it in or remove it.
+  bool get _emptySplitLine =>
+      _payments.length > 1 &&
+      _payments.any((_CompletePaymentField p) => _parse(p.amount) <= 0);
+
   bool get _canComplete =>
-      !_isPartial || (_amountPaid > 0 && _amountPaid <= _netPayable);
+      !_overpaid && !_emptySplitLine && (_netPayable <= 0 || _received > 0);
+
+  static BookingPaymentType _other(BookingPaymentType type) =>
+      type == BookingPaymentType.cash
+      ? BookingPaymentType.online
+      : BookingPaymentType.cash;
+
+  static String _amountText(double amount) => amount <= 0
+      ? ''
+      : (amount == amount.roundToDouble()
+            ? amount.round().toString()
+            : amount.toStringAsFixed(2));
+
+  @override
+  void initState() {
+    super.initState();
+    _payments.first.amount.text = _amountText(_netPayable);
+  }
 
   @override
   void dispose() {
     _discountController.dispose();
-    _amountController.dispose();
+    for (final _CompletePaymentField p in _payments) {
+      p.dispose();
+    }
     super.dispose();
+  }
+
+  void _onDiscountChanged() {
+    setState(() {
+      if (!_amountTouched && _payments.length == 1) {
+        _payments.first.amount.text = _amountText(_netPayable);
+      }
+    });
+  }
+
+  /// The rest in the other type: a second line for what is still owed.
+  void _addSplit() {
+    if (_payments.length > 1) return;
+    final _CompletePaymentField line = _CompletePaymentField(
+      _other(_payments.first.type),
+    );
+    line.amount.text = _amountText(_netPayable - _received);
+    setState(() {
+      _amountTouched = true;
+      _payments.add(line);
+    });
+  }
+
+  void _removeLine(int index) {
+    if (_payments.length <= 1) return;
+    setState(() => _payments.removeAt(index).dispose());
+  }
+
+  /// A share of the net payable, made up by the last line on top of the
+  /// others.
+  void _fillShare(double share) {
+    final _CompletePaymentField last = _payments.last;
+    final double others = _received - _parse(last.amount);
+    setState(() {
+      _amountTouched = true;
+      last.amount.text = _amountText(_netPayable * share - others);
+    });
   }
 
   void _onComplete() {
     Navigator.of(context).pop(
       BookingCompleteResult(
-        paymentType: _paymentType,
+        payments: <BookingPaymentLine>[
+          for (final _CompletePaymentField p in _payments)
+            BookingPaymentLine(type: p.type, amount: _parse(p.amount)),
+        ],
         discount: _discount,
         amountPaid: _amountPaid,
-        isPartial: _isPartial && _remaining > 0,
+        isPartial: _remaining > 0,
       ),
     );
+  }
+
+  /// `Cash`, `Online` or `Cash + Online` — the types paying something.
+  String get _typesLabel {
+    final List<String> used = <String>[
+      for (final _CompletePaymentField p in _payments)
+        if (_parse(p.amount) > 0) p.type.label,
+    ];
+    return used.isEmpty ? _payments.first.type.label : used.join(' + ');
   }
 
   @override
@@ -1140,33 +1303,96 @@ class _CompleteBookingSheetState extends State<_CompleteBookingSheet> {
                       inputFormatters: <TextInputFormatter>[
                         FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
                       ],
-                      onChanged: (_) => setState(() {}),
+                      onChanged: (_) => _onDiscountChanged(),
                     ),
                     const SizedBox(height: AppDimens.paddingX18),
 
-                    _SectionLabel('Payment option'),
+                    _SectionLabel('Payment'),
                     const SizedBox(height: AppDimens.paddingX8),
-                    _SegmentedChoice(
-                      labels: const <String>['Full payment', 'Partial'],
-                      selectedIndex: _isPartial ? 1 : 0,
-                      onSelected: (int i) =>
-                          setState(() => _isPartial = i == 1),
+                    for (int i = 0; i < _payments.length; i++) ...<Widget>[
+                      if (i > 0) const SizedBox(height: AppDimens.paddingX10),
+                      _CompletePaymentRow(
+                        key: ValueKey<_CompletePaymentField>(_payments[i]),
+                        line: _payments[i],
+                        // Split: each line is its type's, fixed — one cash,
+                        // one online.
+                        locked: _payments.length > 1,
+                        label: _payments.length == 1
+                            ? 'Amount received now (NPR)'
+                            : '${_payments[i].type.label} received (NPR)',
+                        onTypeChanged: (BookingPaymentType t) =>
+                            setState(() => _payments[i].type = t),
+                        onAmountChanged: () => setState(() {
+                          _amountTouched = true;
+                        }),
+                        onRemove: _payments.length > 1
+                            ? () => _removeLine(i)
+                            : null,
+                      ),
+                    ],
+                    const SizedBox(height: AppDimens.paddingX8),
+                    Row(
+                      children: <Widget>[
+                        if (_netPayable > 0)
+                          for (final (String label, double share)
+                              in const <(String, double)>[
+                                ('25%', 0.25),
+                                ('50%', 0.5),
+                                ('Full', 1),
+                              ]) ...<Widget>[
+                            Expanded(
+                              child: CustomButton(
+                                text: label,
+                                isOutlined: true,
+                                foregroundColor: LightColor.brandTextColor,
+                                borderColor: LightColor.dividerColor,
+                                minWidth: 0,
+                                minHeight: AppDimens.sizeX36,
+                                verticalPadding: 0,
+                                fontSize: AppDimens.fontBodyTextSmall,
+                                onPressed: () => _fillShare(share),
+                              ),
+                            ),
+                            const SizedBox(width: AppDimens.paddingX8),
+                          ]
+                        else
+                          const Spacer(),
+                        // Part in cash, the rest online: the other type's
+                        // line. Gone once both are there.
+                        if (_payments.length == 1)
+                          TextButton.icon(
+                            key: const Key('complete-add-split'),
+                            onPressed: _addSplit,
+                            style: TextButton.styleFrom(
+                              foregroundColor: LightColor.brandTextColor,
+                              minimumSize: const Size(0, AppDimens.sizeX36),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppDimens.paddingX8,
+                              ),
+                              visualDensity: VisualDensity.compact,
+                            ),
+                            icon: const Icon(Icons.add_rounded, size: 18),
+                            label: Text(
+                              'Add ${_other(_payments.first.type).label.toLowerCase()}',
+                              style: const TextStyle(
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
-                    if (_isPartial) ...<Widget>[
-                      const SizedBox(height: AppDimens.paddingX12),
-                      CustomTextField(
-                        controller: _amountController,
-                        labelText: 'Amount received now',
-                        hintText: 'Max ${_formatMoney(_netPayable)}',
-                        icon: Icons.payments_outlined,
-                        isRequired: false,
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
+                    if (_overpaid || _emptySplitLine) ...<Widget>[
+                      const SizedBox(height: AppDimens.paddingX8),
+                      Text(
+                        _overpaid
+                            ? 'More than the amount due '
+                                  '(${_formatMoney(_netPayable)}).'
+                            : 'Enter an amount for each payment, or remove '
+                                  'it.',
+                        style: textTheme.bodyTextSmall?.copyWith(
+                          color: LightColor.redColor,
                         ),
-                        inputFormatters: <TextInputFormatter>[
-                          FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
-                        ],
-                        onChanged: (_) => setState(() {}),
                       ),
                     ],
                     const SizedBox(height: AppDimens.paddingX14),
@@ -1176,23 +1402,18 @@ class _CompleteBookingSheetState extends State<_CompleteBookingSheet> {
                       collectingNow: _amountPaid,
                       remaining: _remaining,
                     ),
-                    const SizedBox(height: AppDimens.paddingX18),
-
-                    _SectionLabel('Payment type'),
-                    const SizedBox(height: AppDimens.paddingX8),
-                    _SegmentedChoice(
-                      labels: <String>[
-                        for (final BookingPaymentType type
-                            in BookingPaymentType.values)
-                          type.label,
-                      ],
-                      selectedIndex: BookingPaymentType.values.indexOf(
-                        _paymentType,
+                    if (_amountPaid > 0) ...<Widget>[
+                      const SizedBox(height: AppDimens.paddingX8),
+                      Text(
+                        '${_remaining > 0 ? 'Partly paid' : 'Paid in full'}'
+                        ' · $_typesLabel',
+                        key: const Key('complete-payment-status'),
+                        style: textTheme.bodyTextSmall?.copyWith(
+                          color: LightColor.secondaryTextColor,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                      onSelected: (int i) => setState(
-                        () => _paymentType = BookingPaymentType.values[i],
-                      ),
-                    ),
+                    ],
                   ],
                 ),
               ),
@@ -1204,6 +1425,189 @@ class _CompleteBookingSheetState extends State<_CompleteBookingSheet> {
               amount: _amountPaid,
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// One payment line on the complete sheet: its type and amount.
+class _CompletePaymentField {
+  _CompletePaymentField(this.type);
+
+  BookingPaymentType type;
+  final TextEditingController amount = TextEditingController();
+
+  void dispose() => amount.dispose();
+}
+
+/// `[Cash | Online]  [ amount ]  ✕` — as on the vendor's manual booking.
+class _CompletePaymentRow extends StatelessWidget {
+  const _CompletePaymentRow({
+    super.key,
+    required this.line,
+    required this.label,
+    required this.locked,
+    required this.onTypeChanged,
+    required this.onAmountChanged,
+    this.onRemove,
+  });
+
+  final _CompletePaymentField line;
+  final String label;
+
+  /// Shows the line's type as fixed rather than a toggle.
+  final bool locked;
+  final ValueChanged<BookingPaymentType> onTypeChanged;
+  final VoidCallback onAmountChanged;
+
+  /// Null for the only line, which cannot be removed.
+  final VoidCallback? onRemove;
+
+  static const double _height = 48;
+  static const double _typeWidth = 112;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        locked ? _typeChip() : _typeToggle(),
+        const SizedBox(width: AppDimens.paddingX8),
+        Expanded(
+          child: CustomTextField(
+            controller: line.amount,
+            labelText: label,
+            hintText: '0',
+            isRequired: false,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            textInputAction: TextInputAction.done,
+            inputFormatters: <TextInputFormatter>[
+              // Digits and at most one decimal point, so it always parses.
+              FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
+              LengthLimitingTextInputFormatter(10),
+            ],
+            onChanged: (_) => onAmountChanged(),
+          ),
+        ),
+        if (onRemove != null)
+          SizedBox(
+            height: _height,
+            child: IconButton(
+              tooltip: 'Remove this payment',
+              visualDensity: VisualDensity.compact,
+              onPressed: onRemove,
+              icon: Icon(
+                Icons.close_rounded,
+                size: 20,
+                color: LightColor.secondaryTextColor,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  /// Cash or Online, side by side — the one picked is filled.
+  Widget _typeToggle() {
+    Widget option(BookingPaymentType type) {
+      final bool selected = type == line.type;
+      final Color fg = selected
+          ? LightColor.onBrandSurface
+          : LightColor.secondaryTextColor;
+      return Expanded(
+        child: Semantics(
+          button: true,
+          selected: selected,
+          label: 'Paid by ${type.label}',
+          child: ExcludeSemantics(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => onTypeChanged(type),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 160),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: selected
+                      ? LightColor.secondaryColor
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      Icon(type.icon, size: 15, color: fg),
+                      const SizedBox(height: 1),
+                      Text(
+                        type.label,
+                        style: TextStyle(
+                          fontSize: 10.5,
+                          height: 1.2,
+                          fontWeight: FontWeight.w700,
+                          color: fg,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      width: _typeWidth,
+      height: _height,
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: LightColor.cardColor,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: LightColor.dividerColor),
+      ),
+      child: Row(
+        children: <Widget>[
+          option(BookingPaymentType.cash),
+          const SizedBox(width: 3),
+          option(BookingPaymentType.online),
+        ],
+      ),
+    );
+  }
+
+  /// A split line's type, fixed: the toggle's size, so the rows line up.
+  Widget _typeChip() {
+    return Semantics(
+      label: 'Paid by ${line.type.label}',
+      child: ExcludeSemantics(
+        child: Container(
+          width: _typeWidth,
+          height: _height,
+          decoration: BoxDecoration(
+            color: LightColor.secondaryColor.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: LightColor.secondaryColor.withValues(alpha: 0.35),
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              Icon(line.type.icon, size: 16, color: LightColor.brandTextColor),
+              const SizedBox(width: 6),
+              Text(
+                line.type.label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: LightColor.brandTextColor,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

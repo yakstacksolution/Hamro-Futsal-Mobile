@@ -276,16 +276,22 @@ class BookingTypeCard extends StatelessWidget {
                                   ),
                                 ),
                                 if (availability != null &&
-                                    availability!.hasSessions) ...<Widget>[
+                                    (availability!.hasSessions ||
+                                        availability!
+                                            .isUnconfirmed)) ...<Widget>[
                                   const SizedBox(height: AppDimens.sizeX2),
                                   Text(
-                                    availability!.hasUnavailableDates
+                                    availability!.isUnconfirmed
+                                        ? 'Some dates are unavailable'
+                                        : availability!.hasUnavailableDates
                                         ? '${availability!.availableCount} available · ${availability!.unavailableCount} unavailable'
                                         : 'All ${availability!.totalCount} dates available',
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: textTheme.bodyMiniSubTitle?.copyWith(
-                                      color: availability!.hasUnavailableDates
+                                      color:
+                                          availability!.hasUnavailableDates ||
+                                              availability!.isUnconfirmed
                                           ? LightColor.redColor
                                           : LightColor.hintTextColor,
                                       fontWeight: FontWeight.w700,

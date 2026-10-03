@@ -42,6 +42,13 @@ jobs:
       - name: 📦 Install Flutter dependencies
         run: flutter pub get
 
+      - name: 🔐 Prepare app Firebase config
+        env:
+          FIREBASE_IOS_GOOGLE_SERVICE_INFO_PLIST_BASE64: ${{ secrets.FIREBASE_IOS_GOOGLE_SERVICE_INFO_PLIST_BASE64 }}
+        run: |
+          dart tool/prepare_firebase_config.dart
+          dart tool/firebase_config_check.dart ios/Runner/GoogleService-Info.plist
+
       - name: 📦 Install CocoaPods
         run: |
           cd ios

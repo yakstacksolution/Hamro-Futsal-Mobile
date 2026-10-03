@@ -52,7 +52,15 @@ final class LoadOlderMessagesEvent extends MessageEvent {
 
 /// Leaves the active conversation (cancels realtime subscriptions).
 final class CloseChatEvent extends MessageEvent {
-  const CloseChatEvent();
+  const CloseChatEvent({this.conversationId});
+
+  /// The chat being closed. When another chat has been opened since — the
+  /// split view switching conversations, where the new chat loads before the
+  /// old one is disposed — the close is ignored. Null closes whatever is open.
+  final int? conversationId;
+
+  @override
+  List<Object?> get props => [conversationId];
 }
 
 final class SendMessageEvent extends MessageEvent {

@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -5,12 +7,18 @@ import 'package:hamro_futsal/core/routers/app_router_params.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
+import 'package:hamro_futsal/core/utils/responsive.dart';
+import 'package:hamro_futsal/core/widgets/dashboard_layout.dart';
 import 'package:hamro_futsal/core/widgets/custom_app_bar.dart';
 import 'package:hamro_futsal/features/profile/data/model/feedback_history_model.dart';
 import 'package:hamro_futsal/features/profile/data/repositories/feedback_repository_impl.dart';
 
 class MyFeedbackPage extends StatefulWidget {
-  const MyFeedbackPage({super.key});
+  const MyFeedbackPage({super.key, this.initialPage});
+
+  /// Shown instead of fetching; tests only.
+  @visibleForTesting
+  final FeedbackListPage? initialPage;
 
   @override
   State<MyFeedbackPage> createState() => _MyFeedbackPageState();
@@ -26,6 +34,12 @@ class _MyFeedbackPageState extends State<MyFeedbackPage> {
   @override
   void initState() {
     super.initState();
+    final FeedbackListPage? initial = widget.initialPage;
+    if (initial != null) {
+      _page = initial;
+      _isLoading = false;
+      return;
+    }
     _load();
   }
 
@@ -63,6 +77,18 @@ class _MyFeedbackPageState extends State<MyFeedbackPage> {
             ? _FeedbackHistoryError(message: _errorMessage!, onRetry: _load)
             : _page.items.isEmpty
             ? const _FeedbackHistoryEmpty()
+            : context.isTabletOrWider
+            ? RefreshIndicator(
+                color: LightColor.secondaryColor,
+                onRefresh: _load,
+                child: _WideFeedbackList(
+                  items: _page.items,
+                  onOpen: (FeedbackListItem item) => context.pushNamed(
+                    AppRouterParams.feedbackDetails.name,
+                    extra: item.id,
+                  ),
+                ),
+              )
             : RefreshIndicator(
                 color: LightColor.secondaryColor,
                 onRefresh: _load,
@@ -87,6 +113,89 @@ class _MyFeedbackPageState extends State<MyFeedbackPage> {
                 ),
               ),
       ),
+    );
+  }
+}
+
+/// Side padding that centres the feedback list at [_kWideMaxWidth] on tablet
+/// and desktop, so the scrollbar stays at the window edge; 20 on phones.
+const double _kWideMaxWidth = 1080;
+double _wideGutter(BuildContext context) {
+  final double width = MediaQuery.sizeOf(context).width;
+  if (width < 600) return 20;
+  final double max = context.isDesktop ? _kWideMaxWidth : 760;
+  return math.max(24, (width - max) / 2);
+}
+
+/// Tablet / desktop history: a header with the count, then the cards — two
+/// per row on desktop with equal heights, one per row on tablet.
+class _WideFeedbackList extends StatelessWidget {
+  const _WideFeedbackList({required this.items, required this.onOpen});
+
+  final List<FeedbackListItem> items;
+  final ValueChanged<FeedbackListItem> onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    final int perRow = context.isDesktop ? 2 : 1;
+    const double gap = AppDimens.paddingX16;
+    final double side = _wideGutter(context);
+    final int rows = (items.length / perRow).ceil();
+
+    return ListView.separated(
+      physics: const AlwaysScrollableScrollPhysics(
+        parent: BouncingScrollPhysics(),
+      ),
+      padding: EdgeInsets.fromLTRB(side, 24, side, 40),
+      itemCount: rows + 1,
+      separatorBuilder: (_, int i) =>
+          SizedBox(height: i == 0 ? AppDimens.paddingX16 : gap),
+      itemBuilder: (BuildContext context, int index) {
+        if (index == 0) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                'Your feedback',
+                style: textTheme.headingSmall?.copyWith(
+                  color: LightColor.primaryTextColor,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: AppDimens.paddingX4),
+              Text(
+                '${items.length} submission${items.length == 1 ? '' : 's'}'
+                ' · tap one to see its details and status',
+                style: textTheme.bodyTextSmall?.copyWith(
+                  color: LightColor.secondaryTextColor,
+                ),
+              ),
+            ],
+          );
+        }
+        final int start = (index - 1) * perRow;
+        final List<FeedbackListItem> row = items.sublist(
+          start,
+          math.min(start + perRow, items.length),
+        );
+        if (perRow == 1) {
+          return _FeedbackListCard(
+            item: row.first,
+            onTap: () => onOpen(row.first),
+          );
+        }
+        // A short last row keeps its card at column width, not full width.
+        return DashboardEqualHeightRow(
+          gap: gap,
+          flexes: List<int>.filled(perRow, 1),
+          children: <Widget>[
+            for (final FeedbackListItem item in row)
+              _FeedbackListCard(item: item, onTap: () => onOpen(item)),
+            for (int i = row.length; i < perRow; i++) const SizedBox.shrink(),
+          ],
+        );
+      },
     );
   }
 }
@@ -124,70 +233,84 @@ class _FeedbackListCard extends StatelessWidget {
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            // When a wide-screen row stretches the card, the footer stays
+            // at the bottom edge, level with its neighbour's.
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: <Widget>[
-              Row(
+              Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  Expanded(
-                    child: Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: <Widget>[
-                        _FeedbackTag(
-                          label: item.categoryName.isEmpty
-                              ? 'Category'
-                              : item.categoryName,
-                          background: LightColor.secondaryColor.withValues(
-                            alpha: 0.08,
-                          ),
-                          foreground: LightColor.secondaryColor,
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Expanded(
+                        child: Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: <Widget>[
+                            _FeedbackTag(
+                              label: item.categoryName.isEmpty
+                                  ? 'Category'
+                                  : item.categoryName,
+                              background: LightColor.secondaryColor.withValues(
+                                alpha: 0.08,
+                              ),
+                              foreground: LightColor.secondaryColor,
+                            ),
+                            _FeedbackTag(
+                              label: item.typeName.isEmpty
+                                  ? 'Type'
+                                  : item.typeName,
+                              background: accent.withValues(alpha: 0.10),
+                              foreground: accent,
+                            ),
+                          ],
                         ),
-                        _FeedbackTag(
-                          label: item.typeName.isEmpty ? 'Type' : item.typeName,
-                          background: accent.withValues(alpha: 0.10),
-                          foreground: accent,
+                      ),
+                      const SizedBox(width: AppDimens.paddingX12),
+                      Text(
+                        _formatDate(item.createdAt),
+                        style: textTheme.bodyTextSmall?.copyWith(
+                          color: LightColor.hintTextColor,
+                          fontWeight: FontWeight.w500,
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: AppDimens.paddingX12),
+                  const SizedBox(height: AppDimens.paddingX12),
                   Text(
-                    _formatDate(item.createdAt),
-                    style: textTheme.bodyTextSmall?.copyWith(
-                      color: LightColor.hintTextColor,
-                      fontWeight: FontWeight.w500,
+                    item.message,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: textTheme.bodyTextMedium?.copyWith(
+                      color: LightColor.primaryTextColor,
+                      height: 1.45,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: AppDimens.paddingX12),
-              Text(
-                item.message,
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-                style: textTheme.bodyTextMedium?.copyWith(
-                  color: LightColor.primaryTextColor,
-                  height: 1.45,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: AppDimens.paddingX14),
-              Row(
+              Column(
                 children: <Widget>[
-                  _StarRow(rating: item.rating),
-                  const Spacer(),
-                  Text(
-                    'View details',
-                    style: textTheme.bodyTextSmall?.copyWith(
-                      color: LightColor.secondaryColor,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  const Icon(
-                    Icons.arrow_forward_ios_rounded,
-                    size: 14,
-                    color: LightColor.secondaryColor,
+                  const SizedBox(height: AppDimens.paddingX14),
+                  Row(
+                    children: <Widget>[
+                      _StarRow(rating: item.rating),
+                      const Spacer(),
+                      Text(
+                        'View details',
+                        style: textTheme.bodyTextSmall?.copyWith(
+                          color: LightColor.secondaryColor,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      const Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        size: 14,
+                        color: LightColor.secondaryColor,
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -259,9 +382,10 @@ class _FeedbackHistoryLoading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final double side = _wideGutter(context);
     return ListView.separated(
       physics: const NeverScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+      padding: EdgeInsets.fromLTRB(side, 16, side, 28),
       itemCount: 5,
       separatorBuilder: (_, _) => const SizedBox(height: 12),
       itemBuilder: (_, __) => Container(

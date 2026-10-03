@@ -29,10 +29,7 @@ Future<void> _pump(WidgetTester tester, Widget child) async {
         home: Scaffold(
           body: Align(
             alignment: Alignment.topCenter,
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: child,
-            ),
+            child: Padding(padding: const EdgeInsets.all(16), child: child),
           ),
         ),
       ),

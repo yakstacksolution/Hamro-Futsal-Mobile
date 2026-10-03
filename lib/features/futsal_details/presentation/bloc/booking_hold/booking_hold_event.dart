@@ -41,7 +41,7 @@ class MarkBookingHoldConsumedEvent extends BookingHoldEvent {
   const MarkBookingHoldConsumedEvent();
 }
 
-/// Releases the hold (`DELETE /booking-holds/{token}`). Dispatched when the
+/// Releases the hold (`DELETE /booking-holds`). Dispatched when the
 /// app is closed/backgrounded while the checkout page is still open.
 class ReleaseBookingHoldEvent extends BookingHoldEvent {
   const ReleaseBookingHoldEvent();

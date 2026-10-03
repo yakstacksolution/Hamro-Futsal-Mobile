@@ -1,5 +1,6 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:hamro_futsal/core/utils/responsive.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
@@ -240,262 +241,398 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
       ),
       body: SafeArea(
         top: false,
-        child: ListView(
-          physics: const BouncingScrollPhysics(),
-          padding: AppUtils().getPadding(
-            symmetricHorizontal: AppDimens.paddingX20,
-            top: AppDimens.paddingX4,
-            bottom: AppDimens.paddingX28,
-          ),
-          children: [
-            ExpenseSectionLabel('Amount'),
-            ValueListenableBuilder<TextEditingValue>(
-              valueListenable: _amountCtrl,
-              builder: (context, _, __) => Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  ExpenseAmountCard(
-                    controller: _amountCtrl,
-                    focusNode: _amountFocus,
-                    showError: _submitted && (_amountInt ?? 0) <= 0,
-                  ),
-                  const SizedBox(height: AppDimens.paddingX10),
-                  // One-tap presets for common amounts — equal-width chips
-                  // so all five always fit on a single row.
-                  Row(
-                    children: [
-                      for (final p in _presets) ...[
-                        if (p != _presets.first)
-                          const SizedBox(width: AppDimens.paddingX8),
-                        Expanded(
-                          child: ExpenseChip(
-                            label: ExpenseFmt.group('$p'),
-                            selected: _amountInt == p,
-                            onTap: () => _setAmount(p),
+        child: Builder(
+          builder: (BuildContext context) {
+            final List<Widget> amountSection = [
+              ExpenseSectionLabel('Amount'),
+              ValueListenableBuilder<TextEditingValue>(
+                valueListenable: _amountCtrl,
+                builder: (context, _, __) => Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ExpenseAmountCard(
+                      controller: _amountCtrl,
+                      focusNode: _amountFocus,
+                      showError: _submitted && (_amountInt ?? 0) <= 0,
+                    ),
+                    const SizedBox(height: AppDimens.paddingX10),
+                    // One-tap presets for common amounts — equal-width chips
+                    // so all five always fit on a single row.
+                    Row(
+                      children: [
+                        for (final p in _presets) ...[
+                          if (p != _presets.first)
+                            const SizedBox(width: AppDimens.paddingX8),
+                          Expanded(
+                            child: ExpenseChip(
+                              label: ExpenseFmt.group('$p'),
+                              selected: _amountInt == p,
+                              onTap: () => _setAmount(p),
+                            ),
                           ),
-                        ),
+                        ],
                       ],
-                    ],
-                  ),
-                ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: AppDimens.paddingX18),
-
-            ExpenseSectionLabel('Category'),
-            // Categories are fetched from the expense-categories API; the
-            // dropdown follows the bloc so it stays in sync with the fetch.
-            BlocBuilder<ExpensesBloc, ExpensesState>(
-              buildWhen: (prev, curr) =>
-                  prev.categoriesStatus != curr.categoriesStatus ||
-                  prev.categories != curr.categories,
-              builder: (context, state) {
-                if (state.categoriesStatus == ExpensesStatus.initial ||
-                    state.categoriesStatus == ExpensesStatus.loading) {
-                  return const ExpenseSurface(
-                    child: _CategoryStatusRow(
-                      leading: SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: LightColor.secondaryColor,
+              const SizedBox(height: AppDimens.paddingX18),
+            ];
+            final List<Widget> categorySection = [
+              ExpenseSectionLabel('Category'),
+              // Categories are fetched from the expense-categories API; the
+              // dropdown follows the bloc so it stays in sync with the fetch.
+              BlocBuilder<ExpensesBloc, ExpensesState>(
+                buildWhen: (prev, curr) =>
+                    prev.categoriesStatus != curr.categoriesStatus ||
+                    prev.categories != curr.categories,
+                builder: (context, state) {
+                  if (state.categoriesStatus == ExpensesStatus.initial ||
+                      state.categoriesStatus == ExpensesStatus.loading) {
+                    return const ExpenseSurface(
+                      child: _CategoryStatusRow(
+                        leading: SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: LightColor.secondaryColor,
+                          ),
+                        ),
+                        message: StringConstants.loadingCategories,
+                      ),
+                    );
+                  }
+                  // Only an actual API failure shows the retry row — a
+                  // successful-but-empty response still renders the dropdown
+                  // (with no items), mirroring the server state.
+                  if (state.categoriesStatus == ExpensesStatus.failure) {
+                    return ExpenseSurface(
+                      child: _CategoryStatusRow(
+                        leading: Icon(
+                          Icons.error_outline_rounded,
+                          size: 18,
+                          color: LightColor.redColor,
+                        ),
+                        message: StringConstants.couldNotLoadCategories,
+                        onRetry: () => context.read<ExpensesBloc>().add(
+                          const LoadExpenseCategoriesEvent(),
                         ),
                       ),
-                      message: StringConstants.loadingCategories,
-                    ),
-                  );
-                }
-                // Only an actual API failure shows the retry row — a
-                // successful-but-empty response still renders the dropdown
-                // (with no items), mirroring the server state.
-                if (state.categoriesStatus == ExpensesStatus.failure) {
+                    );
+                  }
                   return ExpenseSurface(
-                    child: _CategoryStatusRow(
-                      leading: Icon(
-                        Icons.error_outline_rounded,
-                        size: 18,
-                        color: LightColor.redColor,
-                      ),
-                      message: StringConstants.couldNotLoadCategories,
-                      onRetry: () => context.read<ExpensesBloc>().add(
-                        const LoadExpenseCategoriesEvent(),
-                      ),
-                    ),
-                  );
-                }
-                return ExpenseSurface(
-                  child: CustomDropdownField<ExpenseCategoryModel>(
-                    labelText: StringConstants.category,
-                    hintText: StringConstants.selectACategory,
-                    icon: Icons.category_outlined,
-                    initialValue: _category,
-                    autovalidateMode: _submitted
-                        ? AutovalidateMode.always
-                        : AutovalidateMode.disabled,
-                    validator: (v) => v == null ? 'Pick a category' : null,
-                    onChanged: (c) => setState(() => _category = c),
-                    items: state.categories
-                        .map(
-                          (c) => DropdownMenuItem<ExpenseCategoryModel>(
-                            value: c,
-                            child: _CategoryOption(category: c),
-                          ),
-                        )
-                        .toList(),
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: AppDimens.paddingX18),
-
-            ExpenseSectionLabel('Details'),
-            ExpenseSurface(
-              padding: EdgeInsets.zero,
-              child: Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(
-                      AppDimens.paddingX14,
-                      AppDimens.paddingX14,
-                      AppDimens.paddingX14,
-                      AppDimens.paddingX18,
-                    ),
-                    child: CustomTextField(
-                      controller: _vendorCtrl,
-                      labelText: StringConstants.purpose,
-                      hintText: StringConstants.eGTurfRepairMonthlyRent,
-                      icon: Icons.assignment_outlined,
-                      textCapitalization: TextCapitalization.sentences,
-                      textInputAction: TextInputAction.next,
-                      isRequired: false,
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(
-                      AppDimens.paddingX14,
-                      0,
-                      AppDimens.paddingX14,
-                      AppDimens.paddingX18,
-                    ),
-                    child: CustomDropdownField<VenueModel>(
-                      labelText: StringConstants.venue,
-                      hintText: StringConstants.selectAVenue,
-                      icon: Icons.stadium_outlined,
-                      initialValue: _venue,
-                      onChanged: (v) {
-                        if (v != null) {
-                          setState(() {
-                            _venue = v;
-                            // Court belongs to a venue — reset on change.
-                            _court = null;
-                          });
-                        }
-                      },
-                      items: widget.venues
+                    child: CustomDropdownField<ExpenseCategoryModel>(
+                      labelText: StringConstants.category,
+                      hintText: StringConstants.selectACategory,
+                      icon: Icons.category_outlined,
+                      initialValue: _category,
+                      autovalidateMode: _submitted
+                          ? AutovalidateMode.always
+                          : AutovalidateMode.disabled,
+                      validator: (v) => v == null ? 'Pick a category' : null,
+                      onChanged: (c) => setState(() => _category = c),
+                      items: state.categories
                           .map(
-                            (v) => DropdownMenuItem<VenueModel>(
-                              value: v,
-                              child: Text(v.name),
+                            (c) => DropdownMenuItem<ExpenseCategoryModel>(
+                              value: c,
+                              child: _CategoryOption(category: c),
                             ),
                           )
                           .toList(),
                     ),
-                  ),
-                  if (_venueCourts.isNotEmpty)
+                  );
+                },
+              ),
+              const SizedBox(height: AppDimens.paddingX18),
+            ];
+            final List<Widget> detailsSection = [
+              ExpenseSectionLabel('Details'),
+              ExpenseSurface(
+                padding: EdgeInsets.zero,
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        AppDimens.paddingX14,
+                        AppDimens.paddingX14,
+                        AppDimens.paddingX14,
+                        AppDimens.paddingX18,
+                      ),
+                      child: CustomTextField(
+                        controller: _vendorCtrl,
+                        labelText: StringConstants.purpose,
+                        hintText: StringConstants.eGTurfRepairMonthlyRent,
+                        icon: Icons.assignment_outlined,
+                        textCapitalization: TextCapitalization.sentences,
+                        textInputAction: TextInputAction.next,
+                        isRequired: false,
+                      ),
+                    ),
                     Padding(
                       padding: const EdgeInsets.fromLTRB(
                         AppDimens.paddingX14,
                         0,
                         AppDimens.paddingX14,
-                        AppDimens.paddingX10,
+                        AppDimens.paddingX18,
                       ),
-                      child: CustomDropdownField<CourtModel>(
-                        // Rebuild when the venue changes so the stale court
-                        // selection doesn't linger in the field.
-                        key: ValueKey(_venue.id),
-                        labelText: StringConstants.court,
-                        hintText: StringConstants.selectACourt,
-                        icon: Icons.sports_soccer_outlined,
-                        initialValue: _court,
-                        isRequired: false,
-                        onChanged: (c) => setState(() => _court = c),
-                        items: _venueCourts
+                      child: CustomDropdownField<VenueModel>(
+                        labelText: StringConstants.venue,
+                        hintText: StringConstants.selectAVenue,
+                        icon: Icons.stadium_outlined,
+                        initialValue: _venue,
+                        onChanged: (v) {
+                          if (v != null) {
+                            setState(() {
+                              _venue = v;
+                              // Court belongs to a venue — reset on change.
+                              _court = null;
+                            });
+                          }
+                        },
+                        items: widget.venues
                             .map(
-                              (c) => DropdownMenuItem<CourtModel>(
-                                value: c,
-                                child: Text(c.name),
+                              (v) => DropdownMenuItem<VenueModel>(
+                                value: v,
+                                child: Text(v.name),
                               ),
                             )
                             .toList(),
                       ),
                     ),
-                  const ExpenseFormDivider(),
-                  ExpensePickerRow(
-                    icon: Icons.calendar_today_outlined,
-                    label: StringConstants.date,
-                    value: _formatDate(_date),
-                    onTap: _pickDate,
-                  ),
-                  const ExpenseFormDivider(),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(
-                      AppDimens.paddingX14,
-                      AppDimens.paddingX12,
-                      AppDimens.paddingX14,
-                      AppDimens.paddingX14,
+                    if (_venueCourts.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(
+                          AppDimens.paddingX14,
+                          0,
+                          AppDimens.paddingX14,
+                          AppDimens.paddingX10,
+                        ),
+                        child: CustomDropdownField<CourtModel>(
+                          // Rebuild when the venue changes so the stale court
+                          // selection doesn't linger in the field.
+                          key: ValueKey(_venue.id),
+                          labelText: StringConstants.court,
+                          hintText: StringConstants.selectACourt,
+                          icon: Icons.sports_soccer_outlined,
+                          initialValue: _court,
+                          isRequired: false,
+                          onChanged: (c) => setState(() => _court = c),
+                          items: _venueCourts
+                              .map(
+                                (c) => DropdownMenuItem<CourtModel>(
+                                  value: c,
+                                  child: Text(c.name),
+                                ),
+                              )
+                              .toList(),
+                        ),
+                      ),
+                    const ExpenseFormDivider(),
+                    ExpensePickerRow(
+                      icon: Icons.calendar_today_outlined,
+                      label: StringConstants.date,
+                      value: _formatDate(_date),
+                      onTap: _pickDate,
                     ),
-                    child: Column(
+                    const ExpenseFormDivider(),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        AppDimens.paddingX14,
+                        AppDimens.paddingX12,
+                        AppDimens.paddingX14,
+                        AppDimens.paddingX14,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            StringConstants.paymentMethod,
+                            style: textTheme.bodyTextSmall?.copyWith(
+                              color: LightColor.hintTextColor,
+                              fontSize: 11.5,
+                            ),
+                          ),
+                          const SizedBox(height: AppDimens.paddingX10),
+                          _PaymentMethodSelector(
+                            selected: _method,
+                            onChanged: (m) => setState(() => _method = m),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: AppDimens.paddingX18),
+            ];
+            final List<Widget> noteSection = [
+              ExpenseSectionLabel('Note'),
+              ExpenseSurface(
+                child: CustomTextField(
+                  controller: _noteCtrl,
+                  labelText: StringConstants.note,
+                  hintText: StringConstants.addARemarkInvoiceRefEtc,
+                  icon: Icons.notes_rounded,
+                  maxLines: 3,
+                  minLines: 3,
+                  textCapitalization: TextCapitalization.sentences,
+                  textInputAction: TextInputAction.newline,
+                  isRequired: false,
+                ),
+              ),
+              const SizedBox(height: AppDimens.paddingX18),
+            ];
+            final List<Widget> documentSection = [
+              ExpenseSectionLabel('Document'),
+              ExpenseSurface(
+                child: _DocumentField(
+                  document: _document,
+                  onPick: _pickDocument,
+                  onRemove: () => setState(() => _document = null),
+                ),
+              ),
+            ];
+            final List<Widget> all = <Widget>[
+              ...amountSection,
+              ...categorySection,
+              ...detailsSection,
+              ...noteSection,
+              ...documentSection,
+            ];
+            final EdgeInsets padding = AppUtils().getPadding(
+              symmetricHorizontal: AppDimens.paddingX20,
+              top: AppDimens.paddingX4,
+              bottom: AppDimens.paddingX28,
+            );
+
+            // Desktop: amount, category and details on the left; note,
+            // document and the save action on the right.
+            if (context.isDesktop) {
+              return SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(
+                  AppDimens.paddingX24,
+                  AppDimens.paddingX12,
+                  AppDimens.paddingX24,
+                  AppDimens.paddingX32,
+                ),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      maxWidth: _twoColumnMaxWidth,
+                    ),
+                    child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          StringConstants.paymentMethod,
-                          style: textTheme.bodyTextSmall?.copyWith(
-                            color: LightColor.hintTextColor,
-                            fontSize: 11.5,
+                      children: <Widget>[
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: <Widget>[
+                              ...amountSection,
+                              ...categorySection,
+                              ...detailsSection,
+                            ],
                           ),
                         ),
-                        const SizedBox(height: AppDimens.paddingX10),
-                        _PaymentMethodSelector(
-                          selected: _method,
-                          onChanged: (m) => setState(() => _method = m),
+                        const SizedBox(width: AppDimens.paddingX24),
+                        SizedBox(
+                          width: _sideColumnWidth,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: <Widget>[
+                              ...noteSection,
+                              ...documentSection,
+                              const SizedBox(height: AppDimens.paddingX18),
+                              _buildSaveCard(),
+                            ],
+                          ),
                         ),
                       ],
                     ),
                   ),
-                ],
-              ),
-            ),
-            const SizedBox(height: AppDimens.paddingX18),
+                ),
+              );
+            }
 
-            ExpenseSectionLabel('Note'),
-            ExpenseSurface(
-              child: CustomTextField(
-                controller: _noteCtrl,
-                labelText: StringConstants.note,
-                hintText: StringConstants.addARemarkInvoiceRefEtc,
-                icon: Icons.notes_rounded,
-                maxLines: 3,
-                minLines: 3,
-                textCapitalization: TextCapitalization.sentences,
-                textInputAction: TextInputAction.newline,
-                isRequired: false,
-              ),
-            ),
-            const SizedBox(height: AppDimens.paddingX18),
+            return ListView(
+              physics: const BouncingScrollPhysics(),
+              padding: padding,
+              // Tablet: each row at the form's width, centred, content
+              // left-aligned; the list still builds lazily.
+              children: !context.isTabletOrWider
+                  ? all
+                  : <Widget>[
+                      for (final Widget row in all)
+                        Align(
+                          alignment: Alignment.topCenter,
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(
+                              maxWidth: _singleColumnMaxWidth,
+                            ),
+                            child: SizedBox(width: double.infinity, child: row),
+                          ),
+                        ),
+                    ],
+            );
+          },
+        ),
+      ),
+      // Desktop saves from the card beside the form instead.
+      bottomNavigationBar: context.isDesktop
+          ? null
+          : SizedBox(height: 150, child: _buildBottomBar()),
+    );
+  }
 
-            ExpenseSectionLabel('Document'),
-            ExpenseSurface(
-              child: _DocumentField(
-                document: _document,
-                onPick: _pickDocument,
-                onRemove: () => setState(() => _document = null),
+  static const double _singleColumnMaxWidth = 720;
+  static const double _twoColumnMaxWidth = 1080;
+  static const double _sideColumnWidth = 380;
+
+  /// The save button, labelled with the amount once the form can be saved.
+  Widget _saveButton() => ListenableBuilder(
+    listenable: Listenable.merge([_amountCtrl, _vendorCtrl]),
+    builder: (context, _) => SizedBox(
+      height: AppDimens.sizeX54,
+      width: double.infinity,
+      child: CustomButton(
+        text: _canSave
+            ? '${_isEdit ? 'Update' : 'Save'} expense · ${ExpenseFmt.npr(_amountInt ?? 0)}'
+            : '${_isEdit ? 'Update' : 'Save'} expense',
+        icon: Icons.save_outlined,
+        onPressed: _canSave ? _save : null,
+      ),
+    ),
+  );
+
+  /// Desktop: the save action as a card under the note and document.
+  Widget _buildSaveCard() {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    return ExpenseSurface(
+      child: ListenableBuilder(
+        listenable: _amountCtrl,
+        builder: (context, _) => Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Text(
+              'Total',
+              style: textTheme.bodyTextSmall?.copyWith(
+                color: LightColor.hintTextColor,
               ),
             ),
+            const SizedBox(height: AppDimens.paddingX4),
+            Text(
+              ExpenseFmt.npr(_amountInt ?? 0),
+              style: textTheme.headingSubTitle?.copyWith(
+                color: LightColor.primaryTextColor,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: AppDimens.paddingX14),
+            _saveButton(),
           ],
         ),
       ),
-      bottomNavigationBar: SizedBox(height: 150, child: _buildBottomBar()),
     );
   }
 
@@ -521,20 +658,15 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
       ),
       child: SafeArea(
         top: false,
+        // Tablet: the button keeps to the form's width.
         child: Center(
-          child: ListenableBuilder(
-            listenable: Listenable.merge([_amountCtrl, _vendorCtrl]),
-            builder: (context, _) => SizedBox(
-              height: AppDimens.sizeX54,
-              width: double.infinity,
-              child: CustomButton(
-                text: _canSave
-                    ? '${_isEdit ? 'Update' : 'Save'} expense · ${ExpenseFmt.npr(_amountInt ?? 0)}'
-                    : '${_isEdit ? 'Update' : 'Save'} expense',
-                icon: Icons.save_outlined,
-                onPressed: _canSave ? _save : null,
-              ),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: context.isTabletOrWider
+                  ? _singleColumnMaxWidth
+                  : double.infinity,
             ),
+            child: _saveButton(),
           ),
         ),
       ),

@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:hamro_futsal/core/utils/responsive.dart';
+import 'package:hamro_futsal/features/vendor/presentation/widgets/vendor_onboarding/vendor_form_column.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hamro_futsal/core/routers/app_router_params.dart';
@@ -964,6 +966,25 @@ class CourtOnboardingPageState extends State<CourtOnboardingPage> {
                   )
                 : court == null
                 ? const Center(child: Text(StringConstants.courtNotFound))
+                : context.isDesktop
+                ? VendorWizardFrame(
+                    rail: <Widget>[
+                      VendorOnboardingStepRail(
+                        title: StringConstants.courtSetup,
+                        cubit: _cubit,
+                        state: state,
+                      ),
+                    ],
+                    content: VendorOnboardingStepContent(
+                      title: StringConstants.courtSetup,
+                      cubit: _cubit,
+                      state: state,
+                      court: court,
+                      showStepper: false,
+                      errorSpacing: AppDimens.sizeX10,
+                      contentSpacing: AppDimens.sizeX12,
+                    ),
+                  )
                 : SingleChildScrollView(
                     keyboardDismissBehavior:
                         ScrollViewKeyboardDismissBehavior.onDrag,
@@ -972,19 +993,24 @@ class CourtOnboardingPageState extends State<CourtOnboardingPage> {
                       top: AppDimens.paddingX10,
                       right: AppDimens.paddingX12,
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        VendorOnboardingStepContent(
-                          title: StringConstants.courtSetup,
-                          cubit: _cubit,
-                          state: state,
-                          court: court,
-                          errorSpacing: AppDimens.sizeX10,
-                          contentSpacing: AppDimens.sizeX12,
+                    child: VendorFormColumn(
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            VendorOnboardingStepContent(
+                              title: StringConstants.courtSetup,
+                              cubit: _cubit,
+                              state: state,
+                              court: court,
+                              errorSpacing: AppDimens.sizeX10,
+                              contentSpacing: AppDimens.sizeX12,
+                            ),
+                            const SizedBox(height: 30),
+                          ],
                         ),
-                        const SizedBox(height: 30),
-                      ],
+                      ),
                     ),
                   ),
           ),
