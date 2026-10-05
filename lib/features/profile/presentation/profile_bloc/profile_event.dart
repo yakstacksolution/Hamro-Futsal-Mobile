@@ -47,6 +47,7 @@ final class UpdateProfileEvent extends ProfileEvent {
     this.address,
     this.profilePhoto,
     this.profilePhotoUrl,
+    this.useNepaliCalendar,
   });
 
   final String? fullName;
@@ -58,6 +59,9 @@ final class UpdateProfileEvent extends ProfileEvent {
   final String? profilePhoto;
   final String? profilePhotoUrl;
 
+  /// Sent as `use_nepali_calendar`; omitted when null.
+  final bool? useNepaliCalendar;
+
   @override
   List<Object?> get props => <Object?>[
     fullName,
@@ -68,5 +72,6 @@ final class UpdateProfileEvent extends ProfileEvent {
     address,
     profilePhoto,
     profilePhotoUrl,
+    useNepaliCalendar,
   ];
 }

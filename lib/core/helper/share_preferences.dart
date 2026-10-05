@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:hamro_futsal/core/cache/hive/hive_cache_service.dart';
 import 'package:hamro_futsal/core/api/api_client/session_gate.dart';
+import 'package:hamro_futsal/core/date_time/app_calendar.dart';
 import 'package:hamro_futsal/core/helper/wishlist_store.dart';
 import 'package:hamro_futsal/features/auth/data/model/token_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -23,6 +24,8 @@ class _SettingsPreferenceKeys {
   static const appLanguage = 'settings_app_language';
   static const vendorOperationalHome = 'settings_vendor_operational_home';
   static const vendorOpsWeekStart = 'settings_vendor_ops_week_start';
+  static const useNepaliCalendar = 'use_nepali_calendar';
+  static const appCalendarScript = 'settings_app_calendar_script';
 }
 
 class _AppUpdatePreferenceKeys {
@@ -167,6 +170,23 @@ class AppSettings {
       ? _preferences.getString(_SettingsPreferenceKeys.vendorOpsWeekStart)
       : null;
 
+  /// The signed-in user's `use_nepali_calendar` from their profile: true for
+  /// Nepali (BS), false for English (AD). Null before any profile has set it
+  /// (English then). Saved so dates and pickers are right before the profile
+  /// has loaded; cleared on logout.
+  set useNepaliCalendar(bool val) =>
+      _preferences.setBool(_SettingsPreferenceKeys.useNepaliCalendar, val);
+  bool? get useNepaliCalendar => _initialized
+      ? _preferences.getBool(_SettingsPreferenceKeys.useNepaliCalendar)
+      : null;
+
+  /// Script for Bikram Sambat dates: `english` or `nepali`. Null until chosen.
+  set appCalendarScript(String val) =>
+      _preferences.setString(_SettingsPreferenceKeys.appCalendarScript, val);
+  String? get appCalendarScript => _initialized
+      ? _preferences.getString(_SettingsPreferenceKeys.appCalendarScript)
+      : null;
+
   // ---------------------------------------------------------------------------
   // In-app update bookkeeping. "Later" on an optional update snoozes *that
   // specific version* until a deadline, so a newer release still prompts
@@ -210,6 +230,10 @@ class AppSettings {
     SessionGate.close();
     _preferences.remove(_AuthPreferenceKeys.tokenModel);
     _preferences.remove(_AuthPreferenceKeys.recentVenueSearches);
+    // The calendar is the user's profile setting: the next account starts on
+    // English until its own profile says otherwise.
+    _preferences.remove(_SettingsPreferenceKeys.useNepaliCalendar);
+    AppCalendarController.instance.resetToDefault();
     WishlistStore.instance.clear();
     HiveCacheService.instance.clearAll();
   }

@@ -1,21 +1,7 @@
+import 'package:hamro_futsal/core/date_time/app_date_format.dart';
 import 'package:flutter/material.dart';
 
 class OpponentFmt {
-  static const _months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-
   static String npr(int v) =>
       '${v < 0 ? '-' : ''}NPR ${group(v.abs().toString())}';
 
@@ -30,8 +16,7 @@ class OpponentFmt {
   }
 
   /// e.g. `May 03`.
-  static String shortDate(DateTime d) =>
-      '${_months[d.month - 1]} ${d.day.toString().padLeft(2, '0')}';
+  static String shortDate(DateTime d) => AppDateFormat.format(d, 'MMM dd');
 
   /// e.g. `6:30 PM`.
   static String time(TimeOfDay t) {

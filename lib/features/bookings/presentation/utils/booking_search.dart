@@ -1,3 +1,4 @@
+import 'package:hamro_futsal/core/date_time/app_date_format.dart';
 import 'package:hamro_futsal/features/bookings/data/model/booking_model.dart';
 import 'package:hamro_futsal/features/bookings/domain/model/booking_list_query.dart';
 
@@ -27,6 +28,12 @@ bool bookingMatchesSearch(BookingModel booking, String query) {
     booking.displayTimeRange,
     date,
     booking.date.toIso8601String(),
+    // What the cards show in the Nepali calendar, so searching what is on
+    // screen still matches.
+    if (AppDateFormat.isBs) ...<String>[
+      AppDateFormat.format(booking.date, 'dd/MM/yyyy'),
+      AppDateFormat.date(booking.date),
+    ],
   ];
 
   return values.any(

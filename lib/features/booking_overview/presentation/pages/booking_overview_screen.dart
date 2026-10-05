@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hamro_futsal/core/date_time/app_date_picker.dart';
 import 'package:hamro_futsal/features/booking_overview/domain/repository/booking_overview_repository.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
@@ -90,8 +91,9 @@ class _BookingOverviewViewState extends State<_BookingOverviewView>
   Future<void> _pickRange() async {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final picked = await showDateRangePicker(
-      context: context,
+    // In the reader's calendar (AD or BS); the range comes back in AD.
+    final picked = await showAppDateRangePicker(
+      context,
       initialDateRange:
           _customRange ??
           DateTimeRange(
@@ -100,14 +102,6 @@ class _BookingOverviewViewState extends State<_BookingOverviewView>
           ),
       firstDate: today.subtract(const Duration(days: 365)),
       lastDate: today.add(const Duration(days: 90)),
-      builder: (ctx, child) => Theme(
-        data: Theme.of(ctx).copyWith(
-          colorScheme: Theme.of(
-            ctx,
-          ).colorScheme.copyWith(primary: LightColor.secondaryColor),
-        ),
-        child: child!,
-      ),
     );
     if (picked != null) {
       setState(() {

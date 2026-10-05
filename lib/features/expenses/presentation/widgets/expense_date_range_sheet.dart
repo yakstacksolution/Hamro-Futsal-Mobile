@@ -1,14 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:hamro_futsal/core/date_time/app_date.dart';
+import 'package:hamro_futsal/core/date_time/app_date_format.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
 import 'package:hamro_futsal/features/expenses/presentation/utils/expense_ui_utils.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
+import 'package:nepali_utils/nepali_utils.dart';
 
 /// Custom range date picker shown in a bottom sheet — replaces the default
 /// Material `showDateRangePicker` dialog so the look matches the rest of the
 /// Expenses screen.
+///
+/// The grid follows the user's calendar: Bikram Sambat months starting on
+/// Sunday when the profile uses the Nepali calendar, Gregorian months starting
+/// on Monday otherwise. Either way the dates in and out are Gregorian.
 ///
 /// Returns the chosen [DateTimeRange] via `Navigator.pop`, or null on cancel.
 class ExpenseDateRangeSheet extends StatefulWidget {
@@ -54,9 +61,14 @@ class ExpenseDateRangeSheet extends StatefulWidget {
 class _ExpenseDateRangeSheetState extends State<ExpenseDateRangeSheet> {
   static DateTime _d(DateTime x) => DateTime(x.year, x.month, x.day);
 
+  /// Whether the grid is in Bikram Sambat; fixed for the sheet's lifetime.
+  final bool _bs = AppDateFormat.isBs;
+
   late DateTime _first;
   late DateTime _last;
-  late DateTime _visibleMonth;
+
+  /// The shown month as `(year, month)` in the active calendar.
+  late (int, int) _visibleMonth;
   DateTime? _start;
   DateTime? _end;
 
@@ -65,30 +77,46 @@ class _ExpenseDateRangeSheetState extends State<ExpenseDateRangeSheet> {
     super.initState();
     _first = _d(widget.firstDate);
     _last = _d(widget.lastDate);
+    if (_bs) {
+      _first = AppDate.clampToBsRange(_first);
+      _last = AppDate.clampToBsRange(_last);
+    }
     _start = widget.initialRange == null
         ? null
-        : _d(widget.initialRange!.start);
-    _end = widget.initialRange == null ? null : _d(widget.initialRange!.end);
-    final anchor = _start ?? _d(DateTime.now());
-    _visibleMonth = DateTime(anchor.year, anchor.month);
+        : _clamp(_d(widget.initialRange!.start));
+    _end = widget.initialRange == null
+        ? null
+        : _clamp(_d(widget.initialRange!.end));
+    _visibleMonth = _monthOf(_start ?? _clamp(_d(DateTime.now())));
   }
+
+  /// `(year, month)` of [date] in the active calendar.
+  (int, int) _monthOf(DateTime date) {
+    if (!_bs) return (date.year, date.month);
+    final NepaliDateTime bs = AppDate.toBs(date);
+    return (bs.year, bs.month);
+  }
+
+  /// Day [day] of the active-calendar month [month], as a Gregorian date.
+  DateTime _dayOf((int, int) month, int day) => _bs
+      ? AppDate.fromBs(month.$1, month.$2, day)
+      : DateTime(month.$1, month.$2, day);
+
+  int _daysIn((int, int) month) => _bs
+      ? NepaliDateTime(month.$1, month.$2).totalDays
+      : DateUtils.getDaysInMonth(month.$1, month.$2);
+
+  static int _index((int, int) month) => month.$1 * 12 + month.$2 - 1;
 
   bool get _canApply => _start != null;
 
-  bool get _canPrev => DateTime(
-    _visibleMonth.year,
-    _visibleMonth.month,
-  ).isAfter(DateTime(_first.year, _first.month));
+  bool get _canPrev => _index(_visibleMonth) > _index(_monthOf(_first));
 
-  bool get _canNext => DateTime(
-    _visibleMonth.year,
-    _visibleMonth.month,
-  ).isBefore(DateTime(_last.year, _last.month));
+  bool get _canNext => _index(_visibleMonth) < _index(_monthOf(_last));
 
   void _changeMonth(int delta) {
-    setState(() {
-      _visibleMonth = DateTime(_visibleMonth.year, _visibleMonth.month + delta);
-    });
+    final int i = _index(_visibleMonth) + delta;
+    setState(() => _visibleMonth = (i ~/ 12, i % 12 + 1));
     HapticFeedback.selectionClick();
   }
 
@@ -115,7 +143,7 @@ class _ExpenseDateRangeSheetState extends State<ExpenseDateRangeSheet> {
     setState(() {
       _start = _clamp(start);
       _end = _clamp(end);
-      _visibleMonth = DateTime(_end!.year, _end!.month);
+      _visibleMonth = _monthOf(_end!);
     });
     HapticFeedback.selectionClick();
   }
@@ -223,8 +251,8 @@ class _ExpenseDateRangeSheetState extends State<ExpenseDateRangeSheet> {
     final items = <(String, DateTime, DateTime)>[
       ('7 days', today.subtract(const Duration(days: 6)), today),
       ('30 days', today.subtract(const Duration(days: 29)), today),
-      ('This month', DateTime(today.year, today.month, 1), today),
-      ('This year', DateTime(today.year, 1, 1), today),
+      ('This month', _dayOf(_monthOf(today), 1), today),
+      ('This year', _dayOf((_monthOf(today).$1, 1), 1), today),
     ];
     return SizedBox(
       height: AppDimens.sizeX32,
@@ -247,20 +275,6 @@ class _ExpenseDateRangeSheetState extends State<ExpenseDateRangeSheet> {
   }
 
   Widget _monthBar(dynamic textTheme) {
-    const months = [
-      'January',
-      'February',
-      'March',
-      'April',
-      'May',
-      'June',
-      'July',
-      'August',
-      'September',
-      'October',
-      'November',
-      'December',
-    ];
     return Row(
       children: [
         _NavButton(
@@ -270,7 +284,7 @@ class _ExpenseDateRangeSheetState extends State<ExpenseDateRangeSheet> {
         ),
         Expanded(
           child: Text(
-            '${months[_visibleMonth.month - 1]} ${_visibleMonth.year}',
+            AppDateFormat.monthYear(_dayOf(_visibleMonth, 1)),
             textAlign: TextAlign.center,
             style: textTheme.bodyTextMedium?.copyWith(
               fontWeight: FontWeight.w700,
@@ -288,7 +302,12 @@ class _ExpenseDateRangeSheetState extends State<ExpenseDateRangeSheet> {
   }
 
   Widget _weekdayRow(dynamic textTheme) {
-    const labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    // A week from its first day: Sunday 2023-12-31 for BS, Monday after.
+    final DateTime weekStart = DateTime(2023, 12, _bs ? 31 : 32);
+    final List<String> labels = <String>[
+      for (int i = 0; i < 7; i++)
+        AppDateFormat.weekdayShort(weekStart.add(Duration(days: i))),
+    ];
     return Row(
       children: [
         for (final l in labels)
@@ -309,23 +328,17 @@ class _ExpenseDateRangeSheetState extends State<ExpenseDateRangeSheet> {
   }
 
   Widget _grid(dynamic textTheme) {
-    final daysInMonth = DateUtils.getDaysInMonth(
-      _visibleMonth.year,
-      _visibleMonth.month,
-    );
-    final firstWeekday = DateTime(
-      _visibleMonth.year,
-      _visibleMonth.month,
-      1,
-    ).weekday; // Mon = 1 … Sun = 7
-    final leadingBlanks = firstWeekday - 1;
+    final daysInMonth = _daysIn(_visibleMonth);
+    // Weeks start on Sunday in BS and on Monday in AD.
+    final int weekday = _dayOf(_visibleMonth, 1).weekday; // Mon = 1 … Sun = 7
+    final leadingBlanks = _bs ? weekday % 7 : weekday - 1;
     final cells = <Widget>[];
     for (int i = 0; i < leadingBlanks; i++) {
       cells.add(const Expanded(child: SizedBox.shrink()));
     }
     for (int day = 1; day <= daysInMonth; day++) {
-      final date = DateTime(_visibleMonth.year, _visibleMonth.month, day);
-      cells.add(Expanded(child: _dayCell(date, textTheme)));
+      final date = _dayOf(_visibleMonth, day);
+      cells.add(Expanded(child: _dayCell(date, day, textTheme)));
     }
     // Pad the final week so the last row keeps 7 equal columns.
     while (cells.length % 7 != 0) {
@@ -339,7 +352,7 @@ class _ExpenseDateRangeSheetState extends State<ExpenseDateRangeSheet> {
     return Column(children: rows);
   }
 
-  Widget _dayCell(DateTime date, dynamic textTheme) {
+  Widget _dayCell(DateTime date, int dayOfMonth, dynamic textTheme) {
     final disabled = date.isBefore(_first) || date.isAfter(_last);
     final edge = _isEdge(date);
     final inRange = _inRange(date);
@@ -372,7 +385,7 @@ class _ExpenseDateRangeSheetState extends State<ExpenseDateRangeSheet> {
             onTap: disabled ? null : () => _onTapDay(date),
             child: Center(
               child: Text(
-                '${date.day}',
+                AppDateFormat.digits(dayOfMonth),
                 style: textTheme.bodyTextSmall?.copyWith(
                   color: fg,
                   fontWeight: edge || isToday

@@ -1,3 +1,4 @@
+import 'package:hamro_futsal/core/date_time/app_date_format.dart';
 import 'package:hamro_futsal/features/expenses/data/model/expense_model.dart';
 import 'package:hamro_futsal/features/expenses/presentation/utils/expense_ui_utils.dart';
 
@@ -164,7 +165,7 @@ class ExpenseAnalytics {
               ? firstLabel
               : i == out.length - 1
               ? lastLabel
-              : '${d.day}',
+              : AppDateFormat.day(d),
           out[i],
         ),
       );

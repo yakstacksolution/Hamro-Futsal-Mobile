@@ -162,6 +162,16 @@ class UserData extends Equatable {
   /// Notification flags from `/auth/me`, edited on the Settings page.
   final NotificationPreferences notificationPreferences;
 
+  /// Vendor onboarding is finished: a completion time, or
+  /// `vendor_onboarding_data.onboarding_completed` on `/auth/me`.
+  bool get isVendorOnboardingCompleted =>
+      vendorOnboardingCompletedAt != null ||
+      _asBool(vendorOnboardingData?['onboarding_completed']);
+
+  /// `use_nepali_calendar`: show and pick dates in Bikram Sambat. Null when
+  /// the server does not send it, so the device's own choice is kept.
+  final bool? useNepaliCalendar;
+
   const UserData({
     required this.id,
     required this.fullName,
@@ -196,6 +206,7 @@ class UserData extends Equatable {
     this.notificationSettings,
     this.wishlistVenueIds = const <int>[],
     this.notificationPreferences = const NotificationPreferences(),
+    this.useNepaliCalendar,
   });
 
   /// Accepts `[1, 2]` or `[{venue_id: 1}, ...]` / `[{id: 1}, ...]`.
@@ -289,6 +300,9 @@ class UserData extends Equatable {
           : null,
       wishlistVenueIds: _parseWishlistIds(json['wishlists']),
       notificationPreferences: NotificationPreferences.fromUserJson(json),
+      useNepaliCalendar: json.containsKey('use_nepali_calendar')
+          ? _asBool(json['use_nepali_calendar'])
+          : null,
     );
   }
 
@@ -328,6 +342,7 @@ class UserData extends Equatable {
       'notification_settings': notificationSettings,
       'wishlists': wishlistVenueIds,
       'notification_preferences': notificationPreferences.toJson(),
+      if (useNepaliCalendar != null) 'use_nepali_calendar': useNepaliCalendar,
     };
   }
 
@@ -366,6 +381,7 @@ class UserData extends Equatable {
     notificationSettings,
     wishlistVenueIds,
     notificationPreferences,
+    useNepaliCalendar,
   ];
 
   UserData copyWith({
@@ -403,6 +419,7 @@ class UserData extends Equatable {
     Map<String, dynamic>? notificationSettings,
     List<int>? wishlistVenueIds,
     NotificationPreferences? notificationPreferences,
+    bool? useNepaliCalendar,
   }) {
     return UserData(
       id: id ?? this.id,
@@ -441,6 +458,7 @@ class UserData extends Equatable {
       wishlistVenueIds: wishlistVenueIds ?? this.wishlistVenueIds,
       notificationPreferences:
           notificationPreferences ?? this.notificationPreferences,
+      useNepaliCalendar: useNepaliCalendar ?? this.useNepaliCalendar,
     );
   }
 
@@ -481,6 +499,7 @@ class UserData extends Equatable {
       wishlistVenueIds: other.wishlistVenueIds.isNotEmpty
           ? other.wishlistVenueIds
           : null,
+      useNepaliCalendar: other.useNepaliCalendar,
     );
   }
 }

@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:hamro_futsal/core/date_time/app_calendar.dart';
+import 'package:hamro_futsal/core/date_time/app_date_picker.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/app_utils.dart';
@@ -30,6 +32,10 @@ enum CustomDatePickerType {
 /// Single entry point for every in-app date picker. The [type] resolves the
 /// default bounds, title, and date format; callers can still override any of
 /// them via [initialDate], [minDate], [maxDate], [title], and [dateFormat].
+///
+/// Follows the reader's calendar ([AppCalendarController]) unless [calendar]
+/// is given: AD shows the wheel sheet, BS the Bikram Sambat calendar. Either
+/// way the result is a Gregorian date, so callers need no changes.
 Future<DateTime?> showCustomDatePicker(
   BuildContext context, {
   CustomDatePickerType type = CustomDatePickerType.anyDate,
@@ -39,11 +45,23 @@ Future<DateTime?> showCustomDatePicker(
   DateTime? maxDate,
   DateFormat? dateFormat,
   String confirmText = 'Select',
+  AppCalendar? calendar,
 }) {
   final _DatePickerSpec spec = _resolveSpec(type);
   final DateTime resolvedMin = minDate ?? spec.minDate;
   final DateTime resolvedMax = maxDate ?? spec.maxDate;
   final DateTime resolvedInitial = initialDate ?? spec.initialDate;
+
+  if ((calendar ?? AppCalendarController.instance.calendar) == AppCalendar.bs) {
+    return showBsDatePicker(
+      context,
+      initialDate: resolvedInitial,
+      firstDate: resolvedMin,
+      lastDate: resolvedMax,
+      title: title ?? spec.title,
+      confirmText: confirmText,
+    );
+  }
 
   return _showDateSheet(
     context,

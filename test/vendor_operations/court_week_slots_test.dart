@@ -463,6 +463,130 @@ void main() {
   });
 
   group('buildWeekTable with server slots', () {
+    // Sunday has hourly slots; Monday's server slot is one 06:00–19:00
+    // window. The 6 AM row must select 6–7 AM on Monday too — selecting the
+    // whole window made the booking review read "6:00 AM – 7:00 PM".
+    OpsWeekTable mixedWeek() => buildWeekTable(
+      court: _court,
+      bookings: const <BookingModel>[],
+      weekStart: _week,
+      today: _today,
+      nowMinute: 0,
+      server: _parse(<String, dynamic>{
+        'data': <String, dynamic>{
+          'days': <dynamic>[
+            <String, dynamic>{
+              'date': '2026-09-27',
+              'slots': <dynamic>[
+                <String, dynamic>{
+                  'start_time': '06:00',
+                  'end_time': '07:00',
+                  'status': 'available',
+                  'price': 900,
+                },
+                <String, dynamic>{
+                  'start_time': '07:00',
+                  'end_time': '08:00',
+                  'status': 'available',
+                  'price': 900,
+                },
+              ],
+            },
+            <String, dynamic>{
+              'date': '2026-09-28',
+              'slots': <dynamic>[
+                <String, dynamic>{
+                  'start_time': '06:00:00',
+                  'end_time': '19:00:00',
+                  'status': 'available',
+                  'price': 11700,
+                },
+              ],
+            },
+          ],
+        },
+      }),
+    );
+
+    test('a free window longer than one slot selects only the row', () {
+      final OpsWeekTable t = mixedWeek();
+      expect(t.rows, <int>[360, 420]);
+      final OpsCell six = t.cells[0][1].cell!; // 6 AM row, Monday
+      expect((six.start, six.end), (360, 420));
+      expect(six.kind, OpsCellKind.available);
+      // One slot's price — the court's base price — not the window's.
+      expect(six.price, _court.basePrice);
+      final OpsCell seven = t.cells[1][1].cell!;
+      expect((seven.start, seven.end), (420, 480));
+      // Distinct rows are distinct selections.
+      expect(six.slotKey, isNot(seven.slotKey));
+      // The review line for the 6 AM pick.
+      final OpsSelectionItem item = OpsSelectionItem.fromCell(six, _court);
+      expect(
+        '${formatMinuteOfDay(item.start)} – ${formatMinuteOfDay(item.end)}',
+        '6:00 AM – 7:00 AM',
+      );
+    });
+
+    test('without a base price, a piece gets its share of the window', () {
+      final OpsWeekTable t = buildWeekTable(
+        court: const OpsCourt(
+          id: 6,
+          venueId: 1,
+          venueName: 'Dhananjay sport',
+          name: 'Shidartha',
+          openMinute: 6 * 60,
+          closeMinute: 8 * 60,
+        ),
+        bookings: const <BookingModel>[],
+        weekStart: _week,
+        today: _today,
+        nowMinute: 0,
+        server: _parse(<String, dynamic>{
+          'data': <String, dynamic>{
+            'days': <dynamic>[
+              // Hourly rows come from Sunday.
+              <String, dynamic>{
+                'date': '2026-09-27',
+                'slots': <dynamic>[
+                  <String, dynamic>{
+                    'start_time': '06:00',
+                    'end_time': '07:00',
+                    'status': 'available',
+                  },
+                  <String, dynamic>{
+                    'start_time': '07:00',
+                    'end_time': '08:00',
+                    'status': 'available',
+                  },
+                ],
+              },
+              <String, dynamic>{
+                'date': '2026-09-28',
+                'slots': <dynamic>[
+                  <String, dynamic>{
+                    'start_time': '06:00:00',
+                    'end_time': '08:00:00',
+                    'status': 'available',
+                    'price': 2400,
+                  },
+                ],
+              },
+            ],
+          },
+        }),
+      );
+      expect(t.rows, <int>[360, 420]);
+      expect(t.cells[0][1].cell!.price, 1200);
+      expect(t.cells[1][1].cell!.price, 1200);
+    });
+
+    test('slots of the normal length are untouched', () {
+      final OpsCell sunday = mixedWeek().cells[0][0].cell!;
+      expect((sunday.start, sunday.end), (360, 420));
+      expect(sunday.price, 900);
+    });
+
     test('a reported day follows the server; other days the schedule', () {
       final OpsWeekTable t = buildWeekTable(
         court: _court,

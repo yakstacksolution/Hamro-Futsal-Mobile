@@ -1,7 +1,7 @@
+import 'package:hamro_futsal/core/date_time/app_date_format.dart';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
@@ -305,7 +305,7 @@ class _DetailsError extends StatelessWidget {
 
 String _formatDateTime(DateTime? value) {
   if (value == null) return '-';
-  return DateFormat('dd MMM yyyy, hh:mm a').format(value);
+  return AppDateFormat.format(value, 'dd MMM yyyy, hh:mm a');
 }
 
 Color? _parseHexColor(String value) {

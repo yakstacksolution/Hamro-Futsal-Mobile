@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hamro_futsal/core/date_time/app_date_format.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/app_utils.dart';
@@ -123,22 +124,6 @@ class _DayHeader extends StatelessWidget {
   final DateTime date;
   final List<ExpenseModel> expenses;
 
-  static const _months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-  static const _weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-
   @override
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
@@ -151,8 +136,7 @@ class _DayHeader extends StatelessWidget {
         ? 'TODAY'
         : diff == 1
         ? 'YESTERDAY'
-        : '${_weekdays[date.weekday - 1]}, ${date.day} ${_months[date.month - 1]}'
-              .toUpperCase();
+        : AppDateFormat.format(date, 'EEE, d MMM').toUpperCase();
 
     return Padding(
       padding: AppUtils().getPadding(symmetricHorizontal: AppDimens.paddingX2),

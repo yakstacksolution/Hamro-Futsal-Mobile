@@ -6,6 +6,7 @@ import 'package:equatable/equatable.dart';
 import 'package:hamro_futsal/core/helper/exception_helper.dart';
 import 'package:hamro_futsal/core/helper/profile_refresh_signal.dart';
 import 'package:hamro_futsal/core/helper/wishlist_store.dart';
+import 'package:hamro_futsal/core/date_time/app_calendar.dart';
 import 'package:hamro_futsal/features/profile/data/model/profile_model.dart';
 import 'package:hamro_futsal/features/profile/domain/usecase/profile_usecase.dart';
 import 'package:hamro_futsal/features/vendor/presentation/models/vendor_onboarding_drafts.dart';
@@ -157,6 +158,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
           final ProfileModel merged = _mergeProfile(state.profile, profile);
           // Seed the app-wide heart state from the profile's wishlist ids.
           WishlistStore.instance.seed(merged.data.wishlistVenueIds);
+          _applyCalendar(merged.data);
           emit(
             state.copyWith(
               status: ProfileStatus.success,
@@ -216,6 +218,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
             event,
             previewUrl,
           )!;
+          _applyCalendar(merged.data);
           emit(
             state.copyWith(
               status: ProfileStatus.updateSuccess,
@@ -289,6 +292,18 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
       'address': event.address ?? '',
       if (event.profilePhoto?.isNotEmpty == true)
         'profile_photo': int.parse(event.profilePhoto!),
+      if (event.useNepaliCalendar != null)
+        'use_nepali_calendar': event.useNepaliCalendar,
     };
+  }
+
+  /// Points the app's pickers and dates at the profile's calendar. Skipped
+  /// while the server does not send `use_nepali_calendar`.
+  void _applyCalendar(UserData user) {
+    final bool? useNepali = user.useNepaliCalendar;
+    if (useNepali == null) return;
+    AppCalendarController.instance.setCalendar(
+      useNepali ? AppCalendar.bs : AppCalendar.ad,
+    );
   }
 }

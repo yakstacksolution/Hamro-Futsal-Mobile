@@ -17,6 +17,85 @@ class BookingQuoteModel {
 
   bool get hasCoupon => coupon != null;
 
+  /// Whether this quote carries any price figures to show.
+  bool get hasPricing =>
+      priceDetails != null || calculationList.isNotEmpty || items.isNotEmpty;
+
+  static bool _hasPriceFields(Map<String, dynamic> json) => <String>[
+    'booking_total',
+    'total_amount',
+    'subtotal',
+    'advance_payable_now',
+    'payable_now',
+    'advance_amount',
+    'balance_due_later',
+  ].any(json.containsKey);
+
+  /// The advance the per-session [items] add up to; null when none says.
+  double? get itemsAdvance {
+    final Iterable<double> parts = items
+        .map((BookingSessionItemModel i) => i.advanceAmount)
+        .whereType<double>();
+    return parts.isEmpty ? null : parts.fold<double>(0, (a, b) => a + b);
+  }
+
+  /// Several holds' own quotes as one — each prices its own slot, so the
+  /// booking is their sum: totals added, items and calculation lines
+  /// (matched by key) combined. A figure stays null only if no quote has it.
+  static BookingQuoteModel? combine(List<BookingQuoteModel> quotes) {
+    if (quotes.isEmpty) return null;
+    if (quotes.length == 1) return quotes.single;
+    double? sum(double? Function(BookingPriceDetailsModel p) of) {
+      double? total;
+      for (final BookingQuoteModel q in quotes) {
+        final double? v = q.priceDetails == null ? null : of(q.priceDetails!);
+        if (v != null) total = (total ?? 0) + v;
+      }
+      return total;
+    }
+
+    final bool anyDetails = quotes.any(
+      (BookingQuoteModel q) => q.priceDetails != null,
+    );
+    final List<BookingCalculationLineModel> lines =
+        <BookingCalculationLineModel>[];
+    for (final BookingQuoteModel q in quotes) {
+      for (final BookingCalculationLineModel line in q.calculationList) {
+        final int at = lines.indexWhere(
+          (BookingCalculationLineModel l) => l.key != null && l.key == line.key,
+        );
+        if (at < 0) {
+          lines.add(line);
+        } else if (line.amount != null) {
+          final BookingCalculationLineModel prev = lines[at];
+          lines[at] = BookingCalculationLineModel(
+            label: prev.label,
+            key: prev.key,
+            amount: (prev.amount ?? 0) + line.amount!,
+          );
+        }
+      }
+    }
+    return BookingQuoteModel(
+      bookingSummary: quotes.first.bookingSummary,
+      coupon: quotes.first.coupon,
+      priceDetails: anyDetails
+          ? BookingPriceDetailsModel(
+              subtotal: sum((p) => p.subtotal),
+              discountAmount: sum((p) => p.discountAmount),
+              bookingTotal: sum((p) => p.bookingTotal),
+              advancePayableNow: sum((p) => p.advancePayableNow),
+              balanceDueLater: sum((p) => p.balanceDueLater),
+              taxAmount: sum((p) => p.taxAmount),
+            )
+          : null,
+      calculationList: lines,
+      items: <BookingSessionItemModel>[
+        for (final BookingQuoteModel q in quotes) ...q.items,
+      ],
+    );
+  }
+
   factory BookingQuoteModel.fromJson(Map<String, dynamic> json) {
     return BookingQuoteModel(
       bookingSummary: _mapOf(json['booking_summary']) == null
@@ -25,9 +104,13 @@ class BookingQuoteModel {
       coupon: _mapOf(json['coupon']) == null
           ? null
           : QuoteCouponModel.fromJson(_mapOf(json['coupon'])!),
-      priceDetails: _mapOf(json['price_details']) == null
-          ? null
-          : BookingPriceDetailsModel.fromJson(_mapOf(json['price_details'])!),
+      // Under `price_details`, or flat on the quote itself (the booking-level
+      // quote beside a list of holds puts its figures there).
+      priceDetails: _mapOf(json['price_details']) != null
+          ? BookingPriceDetailsModel.fromJson(_mapOf(json['price_details'])!)
+          : _hasPriceFields(json)
+          ? BookingPriceDetailsModel.fromJson(json)
+          : null,
       calculationList: _listOf(
         json['calculation_list'],
       ).map(BookingCalculationLineModel.fromJson).toList(growable: false),
@@ -56,13 +139,33 @@ class BookingPriceDetailsModel {
   final double? balanceDueLater;
   final double? taxAmount;
 
+  /// The server names these figures more than one way — the booking itself
+  /// says `advance_amount` / `payable_now` / `total_amount` where a quote
+  /// says `advance_payable_now` / `booking_total` — so every spelling is
+  /// read. Only `advance_payable_now` used to be, and a quote spelling it
+  /// otherwise showed "Advance to pay: Rs 0", then "Calculating…" for good.
   factory BookingPriceDetailsModel.fromJson(Map<String, dynamic> json) {
+    final double? total = _asDouble(
+      json['booking_total'] ?? json['total_amount'] ?? json['total'],
+    );
+    final double? balance = _asDouble(
+      json['balance_due_later'] ?? json['balance_due'] ?? json['due_later'],
+    );
+    final double? advance =
+        _asDouble(
+          json['advance_payable_now'] ??
+              json['payable_now'] ??
+              json['advance_amount'] ??
+              json['advance'],
+        ) ??
+        // Total and balance given, but not what is paid now: the rest.
+        (total != null && balance != null ? total - balance : null);
     return BookingPriceDetailsModel(
       subtotal: _asDouble(json['subtotal']),
       discountAmount: _asDouble(json['discount_amount']),
-      bookingTotal: _asDouble(json['booking_total']),
-      advancePayableNow: _asDouble(json['advance_payable_now']),
-      balanceDueLater: _asDouble(json['balance_due_later']),
+      bookingTotal: total,
+      advancePayableNow: advance,
+      balanceDueLater: balance,
       taxAmount: _asDouble(json['tax_amount']),
     );
   }
@@ -79,10 +182,18 @@ class BookingCalculationLineModel {
   factory BookingCalculationLineModel.fromJson(Map<String, dynamic> json) {
     return BookingCalculationLineModel(
       label: _asString(json['label']),
-      key: _asString(json['key']),
+      key: _canonicalKey(_asString(json['key'])),
       amount: _asDouble(json['amount']),
     );
   }
+
+  /// Other spellings of the keys the checkout looks for, folded onto them.
+  static String? _canonicalKey(String? key) => switch (key) {
+    'payable_now' || 'advance_amount' || 'advance' => 'advance_payable_now',
+    'total_amount' || 'total' => 'booking_total',
+    'balance_due' || 'due_later' => 'balance_due_later',
+    _ => key,
+  };
 }
 
 /// One per-session row from `quote.items`.

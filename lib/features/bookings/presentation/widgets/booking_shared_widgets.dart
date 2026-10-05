@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hamro_futsal/core/date_time/app_date_format.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
@@ -103,6 +104,12 @@ String bookingDateTimeStamp(DateTime moment, {DateTime? reference}) {
   final int hour12 = moment.hour % 12 == 0 ? 12 : moment.hour % 12;
   final String minute = moment.minute.toString().padLeft(2, '0');
   final String meridiem = moment.hour < 12 ? 'AM' : 'PM';
+  if (AppDateFormat.isBs) {
+    final String bsYear = AppDateFormat.year(moment);
+    final String yearPart = bsYear == AppDateFormat.year(now) ? '' : ' $bsYear';
+    return '${AppDateFormat.format(moment, 'd MMM')}$yearPart, '
+        '${AppDateFormat.time(moment)}';
+  }
   final String year = moment.year == now.year ? '' : ' ${moment.year}';
   return '${moment.day} ${months[moment.month - 1]}$year, '
       '$hour12:$minute $meridiem';

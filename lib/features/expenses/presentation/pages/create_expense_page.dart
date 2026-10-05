@@ -1,5 +1,6 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:hamro_futsal/core/date_time/app_date_format.dart';
 import 'package:hamro_futsal/core/utils/responsive.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -674,26 +675,11 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
   }
 
   String _formatDate(DateTime d) {
-    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
     final now = DateTime.now();
     if (d.year == now.year && d.month == now.month && d.day == now.day) {
-      return 'Today, ${months[d.month - 1]} ${d.day}';
+      return 'Today, ${AppDateFormat.format(d, 'MMM d')}';
     }
-    return '${days[d.weekday - 1]}, ${months[d.month - 1]} ${d.day}, ${d.year}';
+    return AppDateFormat.format(d, 'EEE, MMM d, y');
   }
 }
 

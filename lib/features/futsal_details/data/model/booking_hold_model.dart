@@ -67,6 +67,8 @@ class BookingHoldModel {
     this.expiresAt,
     this.step,
     this.quote,
+    this.quoteIsShared = false,
+    this.bookingQuote,
   });
 
   /// Server hold id (e.g. `f19071bb-...`).
@@ -118,6 +120,14 @@ class BookingHoldModel {
   /// Server pricing for the held slot(s) (`data.quote`).
   final BookingQuoteModel? quote;
 
+  /// [quote] prices the whole booking — the one sent beside a list of holds
+  /// — rather than this hold alone.
+  final bool quoteIsShared;
+
+  /// The quote sent beside a list of holds, for the whole booking, kept
+  /// apart from this hold's own [quote].
+  final BookingQuoteModel? bookingQuote;
+
   bool get hasToken => (holdToken ?? '').isNotEmpty;
 
   /// What `DELETE /booking-holds` takes to release this hold.
@@ -132,15 +142,27 @@ class BookingHoldModel {
   ///
   /// A recurring booking holds one slot per date, and the server prices the
   /// whole booking once: `data.quote` sits beside the `holds` list rather than
-  /// inside each hold. That shared quote is given to every hold that has none
-  /// of its own — without it the checkout never got a price and showed
-  /// "Calculating price…" forever.
+  /// inside each hold. It is kept on every hold as [bookingQuote] — next to,
+  /// not over, the hold's own quote — and a hold with no quote of its own
+  /// takes it as its quote. Without it the checkout never got a price and
+  /// showed "Calculating price…" forever.
   static List<BookingHoldModel> listFromResponse(dynamic payload) {
     dynamic data = payload;
     Map<dynamic, dynamic>? sharedQuote;
     for (int depth = 0; depth < 5 && data is Map; depth++) {
       final Map<dynamic, dynamic> map = data;
       if (map['quote'] is Map) sharedQuote = map['quote'] as Map;
+      // `data.items` pairs each hold with its quote (`{hold, quote}`), while
+      // `data.holds` beside it lists the bare holds without prices. Reading
+      // `holds` first left every hold without a quote: "Advance to pay" read
+      // 0, then "—".
+      if (map['items'] is List &&
+          (map['items'] as List).any(
+            (dynamic e) => e is Map && (e['hold'] is Map || e['quote'] is Map),
+          )) {
+        data = map['items'];
+        break;
+      }
       if (map['holds'] is List) {
         data = map['holds'];
         break;
@@ -160,13 +182,19 @@ class BookingHoldModel {
               sharedQuote != null && item['quote'] is! Map
                   ? <dynamic, dynamic>{...item, 'quote': sharedQuote}
                   : item,
+              quoteIsShared: sharedQuote != null && item['quote'] is! Map,
+              bookingQuote: sharedQuote,
             ),
       ];
     }
     return <BookingHoldModel>[BookingHoldModel.fromResponse(payload)];
   }
 
-  factory BookingHoldModel.fromResponse(dynamic payload) {
+  factory BookingHoldModel.fromResponse(
+    dynamic payload, {
+    bool quoteIsShared = false,
+    Map<dynamic, dynamic>? bookingQuote,
+  }) {
     // The hold fields live under `data.hold` (newer shape) or directly under
     // `data` (older shape); the quote is a sibling under `data`.
     final Map<String, dynamic> envelope = _envelope(payload);
@@ -175,6 +203,10 @@ class BookingHoldModel {
     final Map<String, dynamic>? quoteJson = _mapOf(envelope['quote']);
     return BookingHoldModel(
       quote: quoteJson == null ? null : BookingQuoteModel.fromJson(quoteJson),
+      quoteIsShared: quoteIsShared && quoteJson != null,
+      bookingQuote: bookingQuote == null
+          ? null
+          : BookingQuoteModel.fromJson(Map<String, dynamic>.from(bookingQuote)),
       id: _asString(map['id']),
       holdToken: _asString(
         map['hold_token'] ?? map['holdToken'] ?? map['token'],

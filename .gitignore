@@ -31,6 +31,11 @@ migrate_working_dir/
 .pub-cache/
 .pub/
 /build/
+**/build/
+/android/build/
+/ios/build/
+/macos/build/
+**/.gradle/
 /coverage/
 
 # Symbolication related
@@ -45,16 +50,27 @@ app.*.map.json
 /android/app/release
 
 # Secrets / environment
+.env
 .env.*
+*.env
+!*.env.example
+!env_example.env
 secrets/
 
 # Real Firebase app config is generated from secure local/CI secrets. Keep only
 # placeholders/templates in git.
-android/app/google-services.local.json
-ios/Runner/GoogleService-Info.local.plist
+**/google-services.json
+**/GoogleService-Info.plist
+**/firebase_app_id_file.json
+lib/firebase_options.dart
+!**/google-services.example.json
+!**/GoogleService-Info.example.plist
 
 # Android signing
 *.jks
 *.keystore
+*.p8
+*.p12
+*.pem
 **/key.properties
 **/keystore.properties

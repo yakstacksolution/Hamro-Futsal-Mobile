@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hamro_futsal/core/date_time/app_date_format.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_text.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
@@ -46,9 +47,9 @@ String transactionRangeLabel(TransactionDateRange range) {
     case TransactionRangeFilter.year:
       return StringConstants.thisYear;
     case TransactionRangeFilter.custom:
-      final DateFormat format = DateFormat('dd MMM');
-      final String from = range.from == null ? '…' : format.format(range.from!);
-      final String to = range.to == null ? '…' : format.format(range.to!);
+      String format(DateTime d) => AppDateFormat.format(d, 'dd MMM');
+      final String from = range.from == null ? '…' : format(range.from!);
+      final String to = range.to == null ? '…' : format(range.to!);
       return '$from – $to';
   }
 }
@@ -684,7 +685,7 @@ class TransactionTile extends StatelessWidget {
 
   /// `02 Oct 2026 · BK-8ZYZNZLN · Dhananjay sport · Fee NPR 108`
   String _metaLine(TransactionHistoryItemModel item) => <String>[
-    if (item.date != null) DateFormat('dd MMM yyyy').format(item.date!),
+    if (item.date != null) AppDateFormat.format(item.date!, 'dd MMM yyyy'),
     if (item.reference != null && item.reference!.isNotEmpty) item.reference!,
     if (item.venueName != null && item.venueName!.isNotEmpty) item.venueName!,
     if (item.hasCommission)

@@ -1,3 +1,4 @@
+import 'package:hamro_futsal/core/date_time/app_date_format.dart';
 import 'package:flutter/material.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/features/rewards/data/model/rewards_model.dart';
@@ -7,21 +8,6 @@ import 'package:hamro_futsal/features/rewards/data/model/rewards_model.dart';
 /// the history list.
 class RewardFmt {
   RewardFmt._();
-
-  static const List<String> _months = <String>[
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
 
   /// `12,450`
   static String points(int value) {
@@ -45,7 +31,7 @@ class RewardFmt {
 
   /// `Aug 05, 2026`
   static String date(DateTime value) =>
-      '${_months[value.month - 1]} ${value.day.toString().padLeft(2, '0')}, ${value.year}';
+      AppDateFormat.format(value, 'MMM dd, yyyy');
 
   /// `Aug 05, 2026 · 04:30 PM`
   static String dateTime(DateTime value) {

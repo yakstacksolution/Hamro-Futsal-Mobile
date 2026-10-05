@@ -1,4 +1,6 @@
+import 'package:hamro_futsal/core/date_time/app_date_format.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/utils/currency.dart';
@@ -9,23 +11,21 @@ import 'package:hamro_futsal/features/vendor_operations/presentation/bloc/vendor
 import 'package:hamro_futsal/features/vendor_operations/presentation/widgets/ops_style.dart';
 import 'package:shimmer/shimmer.dart';
 
-/// One court's whole week as a table: a row per slot time, a column per day,
-/// each cell showing the slot's status and price.
-///
-/// Free cells add to the manual booking (any day of the week); booked cells
-/// open the booking's details.
 class OpsWeekTableView extends StatelessWidget {
   const OpsWeekTableView({
     super.key,
     required this.onBookingTap,
     this.rightInset = 0,
+    this.stickyTop = 0,
+    this.showWeekControls = true,
   });
 
   final OpsBookingTap onBookingTap;
 
-  /// The page margin this view is laid out without on the right. The table
-  /// and court picker run to the edge; the week controls and messages keep
-  /// the margin.
+  final double stickyTop;
+
+  final bool showWeekControls;
+
   final double rightInset;
 
   @override
@@ -54,10 +54,7 @@ class OpsWeekTableView extends StatelessWidget {
             text: 'No courts match the venue filter.',
           );
         }
-        // The server's week is the table: its slots carry their bookings.
-        // Until it answers the table waits; if it fails, it offers a retry
-        // rather than guessing from the court's schedule, which knows no
-        // bookings.
+
         final OpsCourtWeekAvailability? live = state.weekSlotsFor(
           court.id,
           state.weekStart,
@@ -67,15 +64,12 @@ class OpsWeekTableView extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            // A picker only when there is a choice: with a single court
-            // (one venue, one court — or a filter down to one) the table is
             // simply that court's.
             if (courts.length > 1) ...<Widget>[
               _CourtPicker(
                 courts: courts,
                 selected: court,
-                // Free slots per court this week, for courts whose week the
-                // server has sent. Others show no count rather than "full".
+
                 freeThisWeek: <int, int>{
                   for (final OpsCourt c in courts)
                     if (state.weekSlotsFor(c.id, state.weekStart)
@@ -92,14 +86,16 @@ class OpsWeekTableView extends StatelessWidget {
               ),
               const SizedBox(height: 10),
             ],
-            Padding(
-              padding: margin,
-              child: _WeekNavigator(
-                weekStart: state.weekStart,
-                mode: state.weekStartMode,
+            if (showWeekControls) ...<Widget>[
+              Padding(
+                padding: margin,
+                child: _WeekNavigator(
+                  weekStart: state.weekStart,
+                  mode: state.weekStartMode,
+                ),
               ),
-            ),
-            const SizedBox(height: 10),
+              const SizedBox(height: 10),
+            ],
             if (live == null && state.weekSlotsError != null)
               Padding(
                 padding: margin,
@@ -124,9 +120,11 @@ class OpsWeekTableView extends StatelessWidget {
                   RepaintBoundary(
                     child: _Table(
                       edgeToEdge: rightInset > 0,
-                      // Opens on the selected date's column when the week is
-                      // wider than the screen.
+
                       focusDay: state.date.difference(state.weekStart).inDays,
+                      stickyTop: stickyTop,
+
+                      weekInCorner: showWeekControls,
                       table: buildWeekTable(
                         court: court,
                         bookings: state.weekBookings,
@@ -206,9 +204,6 @@ class _CourtPicker extends StatelessWidget {
   }
 }
 
-/// A court to show in the table: name, venue, slot length and how much of
-/// its week is still free. The selected one is outlined and ticked rather
-/// than filled, so it stays easy to read.
 class _CourtChip extends StatelessWidget {
   const _CourtChip({
     required this.court,
@@ -326,42 +321,47 @@ class _CourtChip extends StatelessWidget {
   }
 }
 
+/// `Sep 26 – Oct 2` (`, 2026` with [withYear]) in the user's calendar.
+String _weekRange(DateTime start, {bool withYear = false}) {
+  final DateTime end = start.add(const Duration(days: 6));
+  final String startMonth = AppDateFormat.monthShort(start);
+  final String endMonth = AppDateFormat.monthShort(end);
+  final String a = '$startMonth ${AppDateFormat.day(start)}';
+  final String b = endMonth == startMonth
+      ? AppDateFormat.day(end)
+      : '$endMonth ${AppDateFormat.day(end)}';
+  return withYear ? '$a – $b, ${AppDateFormat.year(end)}' : '$a – $b';
+}
+
+class OpsWeekControls extends StatelessWidget {
+  const OpsWeekControls({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<VendorOpsBloc, VendorOpsState>(
+      buildWhen: (VendorOpsState a, VendorOpsState b) =>
+          a.weekStart != b.weekStart ||
+          a.weekStartMode != b.weekStartMode ||
+          a.date != b.date,
+      builder: (BuildContext context, VendorOpsState state) =>
+          _WeekNavigator(weekStart: state.weekStart, mode: state.weekStartMode),
+    );
+  }
+}
+
 class _WeekNavigator extends StatelessWidget {
   const _WeekNavigator({required this.weekStart, required this.mode});
 
   final DateTime weekStart;
   final OpsWeekStart mode;
 
-  static const List<String> _months = <String>[
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-
-  String _range() {
-    final DateTime end = weekStart.add(const Duration(days: 6));
-    final String a = '${_months[weekStart.month - 1]} ${weekStart.day}';
-    final String b = end.month == weekStart.month
-        ? '${end.day}'
-        : '${_months[end.month - 1]} ${end.day}';
-    return '$a – $b, ${end.year}';
-  }
+  String _range() => _weekRange(weekStart, withYear: true);
 
   @override
   Widget build(BuildContext context) {
     final VendorOpsBloc bloc = context.read<VendorOpsBloc>();
     final DateTime date = bloc.state.date;
-    // Grouped on the right, under the Day/Week switch: the dates with their
-    // arrows, then where the week begins.
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.end,
       children: <Widget>[
@@ -403,9 +403,6 @@ class _WeekNavigator extends StatelessWidget {
   }
 }
 
-/// Where the week begins, as a pill beside the week's dates. It opens a menu
-/// that shows each choice's own week — its dates and the order of its days —
-/// so the vendor sees what they are picking before they pick it.
 class _WeekStartPicker extends StatefulWidget {
   const _WeekStartPicker({required this.mode, required this.onChanged});
 
@@ -529,8 +526,6 @@ class _WeekStartPickerState extends State<_WeekStartPicker> {
   }
 }
 
-/// One choice in the week-start menu: what it is, the week it gives today,
-/// and its seven days in order with the first one lit.
 class _WeekStartOption extends StatelessWidget {
   const _WeekStartOption({
     required this.mode,
@@ -542,20 +537,6 @@ class _WeekStartOption extends StatelessWidget {
   final bool selected;
   final DateTime today;
 
-  static const List<String> _months = <String>[
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
   static const List<String> _letters = <String>[
     'S',
     'M',
@@ -576,14 +557,7 @@ class _WeekStartOption extends StatelessWidget {
     OpsWeekStart.today => 'Today and the next 6 days',
   };
 
-  String _range(DateTime start) {
-    final DateTime end = start.add(const Duration(days: 6));
-    final String a = '${_months[start.month - 1]} ${start.day}';
-    final String b = end.month == start.month
-        ? '${end.day}'
-        : '${_months[end.month - 1]} ${end.day}';
-    return '$a – $b';
-  }
+  String _range(DateTime start) => _weekRange(start);
 
   @override
   Widget build(BuildContext context) {
@@ -734,9 +708,17 @@ class _Table extends StatefulWidget {
     required this.onBookingTap,
     required this.focusDay,
     this.edgeToEdge = false,
+    this.stickyTop = 0,
+    this.weekInCorner = true,
   });
 
   final OpsWeekTable table;
+
+  /// Whether the stuck header's corner shows the week's dates.
+  final bool weekInCorner;
+
+  /// See [OpsWeekTableView.stickyTop].
+  final double stickyTop;
   final OpsBookingTap onBookingTap;
 
   /// Day column to bring into view (0 = the week's first day).
@@ -751,8 +733,104 @@ class _Table extends StatefulWidget {
 }
 
 class _TableState extends State<_Table> {
+  /// The rows' and the sticky header's sideways scroll, kept in step.
   final ScrollController _h = ScrollController();
+  final ScrollController _hHeader = ScrollController();
+  bool _syncing = false;
   double _dayWidth = _minDayWidth;
+
+  /// How far the day header is pushed down to stay in view while the page
+  /// scrolls past the table (0 while the table's top is on screen).
+  final ValueNotifier<double> _stick = ValueNotifier<double>(0);
+  ScrollPosition? _page;
+
+  @override
+  void initState() {
+    super.initState();
+    _h.addListener(() => _follow(_h, _hHeader));
+    _hHeader.addListener(() => _follow(_hHeader, _h));
+  }
+
+  void _follow(ScrollController from, ScrollController to) {
+    if (_syncing || !to.hasClients || !from.hasClients) return;
+    if ((to.offset - from.offset).abs() < 0.5) return;
+    _syncing = true;
+    to.jumpTo(from.offset.clamp(0, to.position.maxScrollExtent));
+    _syncing = false;
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // The page's vertical scroll — not the days' own horizontal one, which
+    // sits below this widget.
+    final ScrollableState? page = Scrollable.maybeOf(context);
+    final ScrollPosition? position =
+        page != null && axisDirectionToAxis(page.axisDirection) == Axis.vertical
+        ? page.position
+        : null;
+    if (position != _page) {
+      _page?.removeListener(_onPageScroll);
+      _page = position?..addListener(_onPageScroll);
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) => _measure());
+  }
+
+  /// Where the table starts in the page's content, and its height — read
+  /// after layout. While the page scrolls, layout has not run yet when its
+  /// listeners are told, so on-screen positions read then are a frame old;
+  /// the table's place in the content does not move, though.
+  double? _contentTop;
+  double _tableHeight = 0;
+
+  void _onPageScroll() {
+    _applyStick();
+    // Something above the table may have changed height meanwhile.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _measure());
+  }
+
+  void _measure() {
+    if (!mounted) return;
+    final RenderObject? box = context.findRenderObject();
+    if (box is! RenderBox || !box.hasSize || _page == null) return;
+    _tableHeight = box.size.height;
+    // The table's place in the page's content: the scroll extent before the
+    // sliver holding it, plus where it sits inside that sliver's box. Read
+    // this way, not through the viewport's paint transform, which is off
+    // while a pinned header above it overlaps the group it is in.
+    final RenderSliverSingleBoxAdapter? sliver = context
+        .findAncestorRenderObjectOfType<RenderSliverSingleBoxAdapter>();
+    final RenderBox? sliverBox = sliver?.child;
+    if (sliver == null || sliverBox == null || !sliver.attached) {
+      // Not in a sliver (a plain scroll view): the viewport's transform is
+      // reliable there.
+      final RenderObject? viewport = Scrollable.maybeOf(
+        context,
+      )?.context.findRenderObject();
+      if (viewport == null) return;
+      _contentTop =
+          box.localToGlobal(Offset.zero, ancestor: viewport).dy + _page!.pixels;
+    } else {
+      _contentTop =
+          sliver.constraints.precedingScrollExtent +
+          box.localToGlobal(Offset.zero, ancestor: sliverBox).dy;
+    }
+    _applyStick();
+  }
+
+  /// Keeps the header just under whatever is pinned above the table, and no
+  /// further than the table's last row.
+  void _applyStick() {
+    final double? contentTop = _contentTop;
+    final ScrollPosition? page = _page;
+    if (contentTop == null || page == null) return;
+    final double top = contentTop - page.pixels;
+    final double max = (_tableHeight - _headerHeight - _rowHeight).clamp(
+      0,
+      double.infinity,
+    );
+    _stick.value = (widget.stickyTop - top).clamp(0, max);
+  }
 
   /// The focus day and column width last scrolled for. Width is part of it:
   /// rotating the phone or resizing the window re-lays the columns out.
@@ -763,7 +841,10 @@ class _TableState extends State<_Table> {
 
   @override
   void dispose() {
+    _page?.removeListener(_onPageScroll);
     _h.dispose();
+    _hHeader.dispose();
+    _stick.dispose();
     super.dispose();
   }
 
@@ -800,16 +881,6 @@ class _TableState extends State<_Table> {
   double _headerHeight = _headerHeightFor(false);
   double _rowHeight = _rowHeightFor(false);
 
-  static const List<String> _weekdays = <String>[
-    'Sun',
-    'Mon',
-    'Tue',
-    'Wed',
-    'Thu',
-    'Fri',
-    'Sat',
-  ];
-
   @override
   Widget build(BuildContext context) {
     if (table.rows.isEmpty) {
@@ -845,64 +916,111 @@ class _TableState extends State<_Table> {
           );
           _dayWidth = dayWidth;
           _scrollToFocus();
-          final Widget grid = Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              // Times stay put while the days scroll sideways.
-              SizedBox(
-                width: timeWidth,
-                child: Column(
-                  children: <Widget>[
-                    _headerCell(
-                      Text(
-                        'Time slot',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
-                          color: LightColor.hintTextColor,
-                        ),
-                      ),
-                    ),
-                    for (final int t in table.rows) _timeCell(t, oneLine),
-                  ],
+          // Sizes may have changed without the page scrolling (a new week,
+          // a resize): place the header for them.
+          WidgetsBinding.instance.addPostFrameCallback((_) => _measure());
+          // The rows, under room left for the header.
+          final Widget body = Padding(
+            padding: EdgeInsets.only(top: _headerHeight),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                // Times stay put while the days scroll sideways.
+                SizedBox(
+                  width: timeWidth,
+                  child: Column(
+                    children: <Widget>[
+                      for (final int t in table.rows) _timeCell(t, oneLine),
+                    ],
+                  ),
                 ),
-              ),
-              Expanded(
-                child: SingleChildScrollView(
-                  controller: _h,
-                  scrollDirection: Axis.horizontal,
-                  // The days are painted once and slid sideways, not
-                  // repainted on every frame of the scroll.
-                  child: RepaintBoundary(
-                    child: SizedBox(
-                      width: dayWidth * 7,
-                      child: Column(
-                        children: <Widget>[
-                          Row(
-                            children: <Widget>[
-                              for (int d = 0; d < 7; d++)
-                                SizedBox(width: dayWidth, child: _dayHeader(d)),
-                            ],
-                          ),
-                          for (int r = 0; r < table.rows.length; r++)
-                            Row(
-                              children: <Widget>[
-                                for (int d = 0; d < 7; d++)
-                                  SizedBox(
-                                    width: dayWidth,
-                                    height: _rowHeight,
-                                    child: _cell(context, r, d),
-                                  ),
-                              ],
-                            ),
-                        ],
+                Expanded(
+                  child: SingleChildScrollView(
+                    controller: _h,
+                    scrollDirection: Axis.horizontal,
+                    // The days are painted once and slid sideways, not
+                    // repainted on every frame of the scroll.
+                    child: RepaintBoundary(
+                      child: SizedBox(
+                        width: dayWidth * 7,
+                        child: Column(
+                          children: <Widget>[
+                            for (int r = 0; r < table.rows.length; r++)
+                              Row(
+                                children: <Widget>[
+                                  for (int d = 0; d < 7; d++)
+                                    SizedBox(
+                                      width: dayWidth,
+                                      height: _rowHeight,
+                                      child: _cell(context, r, d),
+                                    ),
+                                ],
+                              ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           );
+          // The day header, sticking under the page's pinned bar while the
+          // rows scroll beneath it, so every slot keeps its date and time.
+          final Widget header = ValueListenableBuilder<double>(
+            valueListenable: _stick,
+            builder: (BuildContext context, double stick, Widget? _) {
+              return Positioned(
+                left: 0,
+                right: 0,
+                top: stick,
+                height: _headerHeight,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: LightColor.background,
+                    boxShadow: stick > 0
+                        ? <BoxShadow>[
+                            BoxShadow(
+                              color: LightColor.shadowColor,
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: Row(
+                    children: <Widget>[
+                      SizedBox(
+                        width: timeWidth,
+                        child: _headerCell(
+                          _cornerLabel(stuck: stick > 0 && widget.weekInCorner),
+                        ),
+                      ),
+                      Expanded(
+                        child: SingleChildScrollView(
+                          controller: _hHeader,
+                          scrollDirection: Axis.horizontal,
+                          child: SizedBox(
+                            width: dayWidth * 7,
+                            child: Row(
+                              children: <Widget>[
+                                for (int d = 0; d < 7; d++)
+                                  SizedBox(
+                                    width: dayWidth,
+                                    child: _dayHeader(d),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          );
+          final Widget grid = Stack(children: <Widget>[body, header]);
           if (!oneLine) return grid;
           // Every label in the grid grows together, on top of the user's own
           // text size rather than replacing it.
@@ -916,6 +1034,29 @@ class _TableState extends State<_Table> {
             child: grid,
           );
         },
+      ),
+    );
+  }
+
+  /// "Time slot" — or, once the header is stuck and the week's own dates
+  /// have scrolled away, the week itself.
+  Widget _cornerLabel({required bool stuck}) {
+    final TextStyle style = TextStyle(
+      fontSize: 10,
+      fontWeight: FontWeight.w800,
+      color: stuck ? LightColor.brandTextColor : LightColor.hintTextColor,
+    );
+    if (!stuck) return Text('Time slot', style: style);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 6),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(
+          _weekRange(table.days.first),
+          textAlign: TextAlign.center,
+          maxLines: 2,
+          style: style,
+        ),
       ),
     );
   }
@@ -985,7 +1126,7 @@ class _TableState extends State<_Table> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: <Widget>[
           Text(
-            today ? 'Today' : _weekdays[day.weekday % 7],
+            today ? 'Today' : AppDateFormat.weekdayShort(day),
             style: TextStyle(
               fontSize: 10,
               fontWeight: FontWeight.w800,
@@ -995,7 +1136,7 @@ class _TableState extends State<_Table> {
             ),
           ),
           Text(
-            closed != null ? 'Closed' : '${day.day}',
+            closed != null ? 'Closed' : AppDateFormat.day(day),
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w800,
@@ -1071,7 +1212,7 @@ class _TableState extends State<_Table> {
   String _semantics(int r, int d, OpsWeekCell wc, bool selected) {
     final DateTime day = table.days[d];
     final String when =
-        '${_weekdays[day.weekday % 7]} ${day.day}, '
+        '${AppDateFormat.weekdayShort(day)} ${AppDateFormat.day(day)}, '
         '${formatMinuteOfDay(table.rows[r])}';
     switch (wc.kind) {
       case OpsCellKind.available:

@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:hamro_futsal/core/date_time/app_date_format.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/custom_image_view.dart';
@@ -29,7 +30,9 @@ class ExpenseDetailsSheet extends StatelessWidget {
   String get _dateLabel {
     final d = expense.date;
     String two(int n) => n.toString().padLeft(2, '0');
-    return '${formatShortDate(d)}, ${d.year} · ${two(d.hour)}:${two(d.minute)}';
+    // Month, day and year from one calendar (BS with use_nepali_calendar).
+    return '${AppDateFormat.format(d, 'MMM d, y')} · '
+        '${two(d.hour)}:${two(d.minute)}';
   }
 
   @override

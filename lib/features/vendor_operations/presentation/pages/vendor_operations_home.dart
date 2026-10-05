@@ -715,10 +715,27 @@ class _LoadingSkeleton extends StatelessWidget {
   }
 }
 
-class _AvailabilitySection extends StatelessWidget {
+class _AvailabilitySection extends StatefulWidget {
   const _AvailabilitySection({required this.onBookingTap});
 
   final OpsBookingTap onBookingTap;
+
+  @override
+  State<_AvailabilitySection> createState() => _AvailabilitySectionState();
+}
+
+class _AvailabilitySectionState extends State<_AvailabilitySection> {
+  /// The Day board's status key, open or not — shared by its toggle, which
+  /// may sit in the pinned bar, and the key itself, under it.
+  final ValueNotifier<bool> _showStatus = ValueNotifier<bool>(false);
+
+  @override
+  void dispose() {
+    _showStatus.dispose();
+    super.dispose();
+  }
+
+  OpsBookingTap get onBookingTap => widget.onBookingTap;
 
   @override
   Widget build(BuildContext context) {
@@ -726,40 +743,65 @@ class _AvailabilitySection extends StatelessWidget {
       buildWhen: (VendorOpsState a, VendorOpsState b) =>
           a.view != b.view || a.date != b.date,
       builder: (BuildContext context, VendorOpsState state) {
-        final bool week = state.view == OpsAvailabilityView.week;
-        final double gutter = _opsGutter(context);
-        return SliverMainAxisGroup(
-          slivers: <Widget>[
-            SliverPersistentHeader(
-              pinned: true,
-              delegate: _AvailabilityHeaderDelegate(
-                view: state.view,
-                gutter: gutter,
-                onChanged: (OpsAvailabilityView v) =>
-                    context.read<VendorOpsBloc>().add(VendorOpsViewChanged(v)),
-              ),
-            ),
-            if (week)
-              SliverPadding(
-                padding: EdgeInsets.only(left: gutter),
-                sliver: SliverToBoxAdapter(
-                  child: OpsWeekTableView(
-                    onBookingTap: onBookingTap,
-                    rightInset: gutter,
-                  ),
-                ),
-              )
-            else
-              SliverPadding(
-                padding: EdgeInsets.symmetric(horizontal: gutter),
-                sliver: _DayAvailability(
-                  state: state,
-                  onBookingTap: onBookingTap,
-                ),
-              ),
-          ],
+        // The content's width decides where the view's controls go.
+        return SliverLayoutBuilder(
+          builder: (BuildContext context, SliverConstraints constraints) =>
+              _sections(context, state, constraints.crossAxisExtent),
         );
       },
+    );
+  }
+
+  /// Content width from which the view's own controls fit in the pinned bar
+  /// beside the title and the Day / Week tabs (they need about 700 px).
+  static const double _barControlsMinWidth = 720;
+
+  Widget _sections(BuildContext context, VendorOpsState state, double width) {
+    final bool week = state.view == OpsAvailabilityView.week;
+    final double gutter = _opsGutter(context);
+    final bool wide = context.isTabletOrWider && width >= _barControlsMinWidth;
+    // Tablet and desktop, given the room: the view's own controls ride in
+    // the pinned bar, between the title and the Day / Week tabs, always
+    // in reach — the week's dates, or the day's date and status key.
+    final bool weekInBar = week && wide;
+    final bool dayInBar = !week && wide;
+    return SliverMainAxisGroup(
+      slivers: <Widget>[
+        SliverPersistentHeader(
+          pinned: true,
+          delegate: _AvailabilityHeaderDelegate(
+            view: state.view,
+            gutter: gutter,
+            weekControls: weekInBar,
+            dayControls: dayInBar,
+            onChanged: (OpsAvailabilityView v) =>
+                context.read<VendorOpsBloc>().add(VendorOpsViewChanged(v)),
+          ),
+        ),
+        if (week)
+          SliverPadding(
+            padding: EdgeInsets.only(left: gutter),
+            sliver: SliverToBoxAdapter(
+              child: OpsWeekTableView(
+                onBookingTap: onBookingTap,
+                rightInset: gutter,
+                // The day header sticks under the pinned Availability bar.
+                stickyTop: _AvailabilityHeaderDelegate._height,
+                showWeekControls: !weekInBar,
+              ),
+            ),
+          )
+        else
+          SliverPadding(
+            padding: EdgeInsets.symmetric(horizontal: gutter),
+            sliver: _DayAvailability(
+              state: state,
+              onBookingTap: onBookingTap,
+              showStatus: _showStatus,
+              controlsInBar: dayInBar,
+            ),
+          ),
+      ],
     );
   }
 }
@@ -769,10 +811,18 @@ class _AvailabilityHeaderDelegate extends SliverPersistentHeaderDelegate {
     required this.view,
     required this.gutter,
     required this.onChanged,
+    this.weekControls = false,
+    this.dayControls = false,
   });
 
   final OpsAvailabilityView view;
   final double gutter;
+
+  /// Shows [OpsWeekControls] between the title and the tabs.
+  final bool weekControls;
+
+  /// Shows the Day board's date controls and status key there instead.
+  final bool dayControls;
   final ValueChanged<OpsAvailabilityView> onChanged;
 
   static const double _height = 54;
@@ -798,6 +848,7 @@ class _AvailabilityHeaderDelegate extends SliverPersistentHeaderDelegate {
         child: Row(
           children: <Widget>[
             Expanded(
+              flex: weekControls || dayControls ? 0 : 1,
               child: Text(
                 'Availability',
                 style: FutsalTheme.getTextTheme(context).bodyTextMedium
@@ -808,6 +859,26 @@ class _AvailabilityHeaderDelegate extends SliverPersistentHeaderDelegate {
                     ),
               ),
             ),
+            if (weekControls || dayControls) ...<Widget>[
+              const SizedBox(width: 16),
+              // The view's own controls — the week's dates and arrows, or
+              // the day's date and status key — right-aligned against the
+              // tabs, then a hairline before the tabs themselves.
+              Expanded(
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: weekControls
+                      ? const OpsWeekControls()
+                      : const _DayBarControls(),
+                ),
+              ),
+              Container(
+                width: 1,
+                height: 24,
+                margin: const EdgeInsets.symmetric(horizontal: 12),
+                color: LightColor.dividerColor,
+              ),
+            ],
             SizedBox(
               width: 168,
               child: _ViewTabs(value: view, onChanged: onChanged),
@@ -822,67 +893,166 @@ class _AvailabilityHeaderDelegate extends SliverPersistentHeaderDelegate {
   bool shouldRebuild(_AvailabilityHeaderDelegate oldDelegate) =>
       oldDelegate.view != view ||
       oldDelegate.gutter != gutter ||
+      oldDelegate.weekControls != weekControls ||
+      oldDelegate.dayControls != dayControls ||
       oldDelegate.onChanged != onChanged;
 }
 
 /// The Day board: the date row, the status key on demand, and the courts.
-class _DayAvailability extends StatefulWidget {
-  const _DayAvailability({required this.state, required this.onBookingTap});
+class _DayAvailability extends StatelessWidget {
+  const _DayAvailability({
+    required this.state,
+    required this.onBookingTap,
+    required this.showStatus,
+    this.controlsInBar = false,
+  });
 
   final VendorOpsState state;
   final OpsBookingTap onBookingTap;
 
-  @override
-  State<_DayAvailability> createState() => _DayAvailabilityState();
-}
-
-class _DayAvailabilityState extends State<_DayAvailability> {
   /// The status key stays out of the way until asked for.
-  bool _showStatus = false;
+  final ValueNotifier<bool> showStatus;
+
+  /// The date controls and status key are in the page's pinned bar
+  /// (tablet / desktop), so the board starts with the courts.
+  final bool controlsInBar;
 
   @override
   Widget build(BuildContext context) {
     return SliverMainAxisGroup(
       slivers: <Widget>[
-        // The same `‹ date › [Today]` as the top bar; the status key's
-        // toggle sits at the right.
-        SliverToBoxAdapter(
-          child: Row(
-            children: <Widget>[
-              // Left-aligned, taking whatever the toggle leaves.
-              Expanded(
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: OpsDateControls(
-                    state: widget.state,
-                    showDayLabel: false,
-                    alignStart: true,
+        if (!controlsInBar)
+          // The same `‹ date › [Today]` as the top bar; the status key's
+          // toggle sits at the right.
+          SliverToBoxAdapter(
+            child: Row(
+              children: <Widget>[
+                // Left-aligned, taking whatever the toggle leaves.
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: OpsDateControls(
+                      state: state,
+                      showDayLabel: false,
+                      alignStart: true,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              _StatusToggle(
-                open: _showStatus,
-                onPressed: () => setState(() => _showStatus = !_showStatus),
-              ),
-            ],
+                const SizedBox(width: 8),
+                ValueListenableBuilder<bool>(
+                  valueListenable: showStatus,
+                  builder: (BuildContext context, bool open, Widget? _) =>
+                      _StatusToggle(
+                        open: open,
+                        onPressed: () => showStatus.value = !open,
+                      ),
+                ),
+              ],
+            ),
           ),
-        ),
-        SliverToBoxAdapter(
-          child: AnimatedSize(
-            duration: const Duration(milliseconds: 180),
-            curve: Curves.easeOut,
-            alignment: Alignment.topCenter,
-            child: _showStatus
-                ? const Padding(
-                    padding: EdgeInsets.only(top: 10),
-                    child: OpsLegend(),
-                  )
-                : const SizedBox(width: double.infinity),
+        // In the bar, the key opens as a panel under its toggle instead.
+        if (!controlsInBar)
+          SliverToBoxAdapter(
+            child: ValueListenableBuilder<bool>(
+              valueListenable: showStatus,
+              builder: (BuildContext context, bool open, Widget? _) =>
+                  AnimatedSize(
+                    duration: const Duration(milliseconds: 180),
+                    curve: Curves.easeOut,
+                    alignment: Alignment.topCenter,
+                    child: open
+                        ? const Padding(
+                            padding: EdgeInsets.only(top: 10),
+                            child: OpsLegend(),
+                          )
+                        : const SizedBox(width: double.infinity),
+                  ),
+            ),
           ),
-        ),
         const SliverToBoxAdapter(child: SizedBox(height: 12)),
-        OpsCourtCardsSliver(onBookingTap: widget.onBookingTap),
+        OpsCourtCardsSliver(onBookingTap: onBookingTap),
+      ],
+    );
+  }
+}
+
+/// The Day board's controls in the pinned bar (tablet / desktop): the
+/// `‹ date › Today` controls, then the status key — a panel that opens under
+/// its toggle, so it shows wherever the page has scrolled to.
+class _DayBarControls extends StatelessWidget {
+  const _DayBarControls();
+
+  /// The key's two rows of four 104-px items, plus the panel's padding.
+  static const double _statusPanelWidth = 4 * 104 + 32;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Flexible(
+          child: BlocBuilder<VendorOpsBloc, VendorOpsState>(
+            buildWhen: (VendorOpsState a, VendorOpsState b) => a.date != b.date,
+            builder: (BuildContext context, VendorOpsState state) =>
+                OpsDateControls(state: state, showDayLabel: false),
+          ),
+        ),
+        const SizedBox(width: 8),
+        MenuAnchor(
+          // Right edges aligned: the panel opens leftwards from the toggle,
+          // inside the window, under the bar.
+          alignmentOffset: const Offset(-_statusPanelWidth, 6),
+          style: MenuStyle(
+            alignment: AlignmentDirectional.bottomEnd,
+            fixedSize: const WidgetStatePropertyAll<Size>(
+              Size.fromWidth(_statusPanelWidth),
+            ),
+            backgroundColor: WidgetStatePropertyAll<Color>(
+              LightColor.cardColor,
+            ),
+            surfaceTintColor: const WidgetStatePropertyAll<Color>(
+              Colors.transparent,
+            ),
+            elevation: const WidgetStatePropertyAll<double>(6),
+            padding: const WidgetStatePropertyAll<EdgeInsets>(EdgeInsets.zero),
+            shape: WidgetStatePropertyAll<OutlinedBorder>(
+              RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+                side: BorderSide(color: LightColor.dividerColor),
+              ),
+            ),
+          ),
+          menuChildren: <Widget>[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(
+                    'STATUS KEY',
+                    style: TextStyle(
+                      fontSize: 10,
+                      letterSpacing: 0.8,
+                      fontWeight: FontWeight.w800,
+                      color: LightColor.hintTextColor,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  const OpsLegend(),
+                ],
+              ),
+            ),
+          ],
+          builder:
+              (BuildContext context, MenuController controller, Widget? _) =>
+                  _StatusToggle(
+                    open: controller.isOpen,
+                    onPressed: () => controller.isOpen
+                        ? controller.close()
+                        : controller.open(),
+                  ),
+        ),
       ],
     );
   }

@@ -82,8 +82,7 @@ final class StringConstants {
   static const String bookedOn = 'Booked on';
   static const String bookedBy = 'Booked by';
   static const String selectClosureDate = 'Please select a date properly.';
-  static const String selectClosureStartAndEnd =
-      'Select a start and end time.';
+  static const String selectClosureStartAndEnd = 'Select a start and end time.';
   static const String closureEndAfterStart =
       'End time must be later than start time.';
   static const String loadingBookings = 'Loading bookings…';
@@ -170,6 +169,13 @@ final class StringConstants {
   static const String analytics = 'Analytics';
   static const String appDisplayLanguage = 'App display language';
   static const String appTheme = 'App Theme';
+  static const String calendar = 'Calendar';
+  static const String chooseCalendar = 'Choose calendar';
+  static const String englishCalendar = 'English Calendar';
+  static const String nepaliCalendar = 'Nepali Calendar';
+  static const String nepaliDateScript = 'Nepali date script';
+  static const String nepaliDateScriptSubtitle =
+      'How Nepali calendar dates are written';
   static const String apply = 'Apply';
   static const String applyFilter = 'Apply filter';
   static const String applyFilters = 'Apply Filters';
@@ -290,6 +296,7 @@ final class StringConstants {
   static const String chat = 'Chat';
   static const String chatWithCustomer = 'Chat with customer';
   static const String chatWithHost = 'Chat with host';
+  static const String messageHost = 'Message host';
   static const String chatWithVenue = 'Chat with venue';
   static const String cannotChatWithYourself =
       'You cannot start a conversation with yourself.';
@@ -1452,7 +1459,35 @@ final class StringConstants {
   // is not yet known.
   static const String authBrandTagline =
       'Book your court. Gather your squad. Play.';
+  static const String authBrandSubline =
+      'Courts, bookings and matches in one place — for players and the venues '
+      'they play at.';
   static const String authBrandHighlightBook = 'Book nearby courts';
+  static const String authBrandDetailBook =
+      'See open slots and prices at venues near you.';
+  static const String authBrandDetailManage =
+      'Track, pay for and revisit every booking in one list.';
+  static const String authBrandDetailPlay =
+      'Post a match request and find a team to play.';
+  // Brand panel extras: how it works, feature chips, device strip.
+  static const String authHowItWorks = 'How it works';
+  static const String authStepFindCourt = 'Find a court';
+  static const String authStepPickSlot = 'Pick a slot';
+  static const String authStepPlay = 'Show up & play';
+  static const String authStepListVenue = 'List your venue';
+  static const String authStepSetSlots = 'Set slots & prices';
+  static const String authStepGetBooked = 'Get booked';
+  static const String authAlsoInside = 'Also inside';
+  static const String authFeatureLiveSlots = 'Live slots';
+  static const String authFeatureOpponents = 'Opponent matching';
+  static const String authFeatureTeamChat = 'Team chat';
+  static const String authFeatureRewards = 'Rewards';
+  static const String authFeatureNepaliCalendar = 'Nepali calendar';
+  static const String authFeatureWalkIns = 'Walk-in bookings';
+  static const String authFeatureExpenses = 'Expenses';
+  static const String authFeaturePayouts = 'Payouts';
+  static const String authFeatureReports = 'Reports';
+  static const String authWorksOn = 'Phone · Tablet · Desktop';
   static const String authBrandHighlightManage = 'Manage your bookings';
   static const String authBrandHighlightPlay = 'Challenge opponents';
 

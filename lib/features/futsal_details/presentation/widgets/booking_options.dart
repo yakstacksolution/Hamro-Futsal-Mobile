@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:hamro_futsal/core/date_time/app_date_format.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/app_utils.dart';
@@ -337,33 +338,7 @@ class BookingTypeCard extends StatelessWidget {
     );
   }
 
-  static const List<String> _daysShort = <String>[
-    'Mon',
-    'Tue',
-    'Wed',
-    'Thu',
-    'Fri',
-    'Sat',
-    'Sun',
-  ];
-
-  static const List<String> _months = <String>[
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-
-  String _shortDate(DateTime date) =>
-      '${_daysShort[date.weekday - 1]} ${date.day} ${_months[date.month - 1]}';
+  String _shortDate(DateTime date) => AppDateFormat.format(date, 'EEE d MMM');
 }
 
 /// Small caption above a group of controls inside the recurring card.
@@ -731,26 +706,10 @@ class _RecurringPriceSheet extends StatelessWidget {
     return '${date.year.toString().padLeft(4, '0')}-$month-$day';
   }
 
-  static const List<String> _months = <String>[
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-
   /// `Sunday, 16 Aug 2026` — the weekday is spelled out here because the sheet
   /// is where the user checks which days they are actually paying for.
   String _detailDate(DateTime date) =>
-      '${RecurringWeekdays.fullLabel(date.weekday)}, '
-      '${date.day} ${_months[date.month - 1]} ${date.year}';
+      AppDateFormat.format(date, 'EEEE, d MMM y');
 }
 
 /// Available / unavailable split for a recurring schedule, shown above the

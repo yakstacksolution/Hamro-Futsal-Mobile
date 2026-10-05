@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:hamro_futsal/core/date_time/app_date_format.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/app_utils.dart';
@@ -250,29 +251,6 @@ class _CourtDetailPageState extends State<CourtDetailPage>
   SlotStatus _mockStatus(bool available) =>
       available ? SlotStatus.available : SlotStatus.unavailable;
 
-  String _dayName(DateTime date) {
-    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    return days[date.weekday - 1];
-  }
-
-  String _monthName(DateTime date) {
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-    return months[date.month - 1];
-  }
-
   Widget _buildBottomBar() {
     final hasSelection = _selectedSlotIndex >= 0;
     final selectedTime = hasSelection
@@ -280,7 +258,7 @@ class _CourtDetailPageState extends State<CourtDetailPage>
         : null;
     final selectedDate = _dates[_selectedDateIndex];
     final selectedLabel = hasSelection
-        ? '${_dayName(selectedDate)}, ${selectedDate.day} ${_monthName(selectedDate)} · $selectedTime'
+        ? '${AppDateFormat.format(selectedDate, 'EEE, d MMM')} · $selectedTime'
         : 'Select a time slot to continue';
 
     return SlideTransition(

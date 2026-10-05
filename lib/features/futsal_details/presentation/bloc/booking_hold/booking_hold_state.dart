@@ -20,13 +20,24 @@ final class BookingHoldState extends Equatable {
   BookingHoldModel? get hold => holds.isEmpty ? null : holds.first;
   final String? errorMessage;
 
-  /// The booking's server price: the first hold that carries one (every hold
-  /// of a recurring booking shares the same quote).
+  /// The booking's server price: the quote sent for the whole booking, when
+  /// it carries figures; otherwise the holds' own quotes — one hold's, or
+  /// several added up, each pricing its own slot.
   BookingQuoteModel? get quote {
     for (final BookingHoldModel h in holds) {
-      if (h.quote != null) return h.quote;
+      final BookingQuoteModel? booking = h.bookingQuote;
+      if (booking != null && booking.hasPricing) return booking;
     }
-    return null;
+    final List<BookingQuoteModel> own = <BookingQuoteModel>[
+      for (final BookingHoldModel h in holds)
+        if (h.quote != null) h.quote!,
+    ];
+    // Holds given the booking's quote for want of their own all carry the
+    // same one: it counts once, not once per hold.
+    if (holds.any((BookingHoldModel h) => h.quoteIsShared)) {
+      return own.isEmpty ? null : own.first;
+    }
+    return BookingQuoteModel.combine(own);
   }
 
   /// The hold's token, as the server sent it.

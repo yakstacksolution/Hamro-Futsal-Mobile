@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hamro_futsal/core/date_time/app_date_format.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_text.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
@@ -9,7 +10,6 @@ import 'package:hamro_futsal/core/widgets/custom_button.dart';
 import 'package:hamro_futsal/features/expenses/presentation/widgets/expense_date_range_sheet.dart';
 import 'package:hamro_futsal/features/transactions/data/model/transaction_history_model.dart';
 import 'package:hamro_futsal/features/transactions/presentation/widgets/transaction_widgets.dart';
-import 'package:intl/intl.dart';
 
 /// Everything the user chose in the filter sheet, returned in one object so the
 /// caller issues a single refetch rather than one per control.
@@ -515,14 +515,13 @@ class _CustomRangeSummary extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final FutsalTextTheme textTheme = FutsalTheme.getTextTheme(context);
-    final DateFormat format = DateFormat('dd MMM yyyy');
+    String format(DateTime d) => AppDateFormat.format(d, 'dd MMM yyyy');
     final bool isSet = from != null || to != null;
     final String label = switch ((from, to)) {
-      (final DateTime a?, final DateTime b?) when a == b => format.format(a),
-      (final DateTime a?, final DateTime b?) =>
-        '${format.format(a)}  →  ${format.format(b)}',
-      (final DateTime a?, null) => '${format.format(a)}  →  …',
-      (null, final DateTime b?) => '…  →  ${format.format(b)}',
+      (final DateTime a?, final DateTime b?) when a == b => format(a),
+      (final DateTime a?, final DateTime b?) => '${format(a)}  →  ${format(b)}',
+      (final DateTime a?, null) => '${format(a)}  →  …',
+      (null, final DateTime b?) => '…  →  ${format(b)}',
       _ => StringConstants.selectDate,
     };
 

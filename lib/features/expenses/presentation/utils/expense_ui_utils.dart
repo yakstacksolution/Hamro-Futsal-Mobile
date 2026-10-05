@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:hamro_futsal/core/date_time/app_date_format.dart';
 import 'package:hamro_futsal/core/utils/custom_image_view.dart';
 import 'package:hamro_futsal/features/expenses/data/model/expense_model.dart';
 import 'package:hamro_futsal/features/expenses/presentation/bloc/expenses_bloc/expenses_bloc.dart';
@@ -141,20 +142,4 @@ class ThousandsInputFormatter extends TextInputFormatter {
 }
 
 /// e.g. `Jun 4`.
-String formatShortDate(DateTime d) {
-  const m = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-  return '${m[d.month - 1]} ${d.day}';
-}
+String formatShortDate(DateTime d) => AppDateFormat.format(d, 'MMM d');

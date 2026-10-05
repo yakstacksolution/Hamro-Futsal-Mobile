@@ -21,13 +21,47 @@ class _AudienceCopy {
     required this.headline,
     required this.tagline,
     required this.highlights,
+    required this.highlightIcons,
+    this.highlightDetails = const <String>[],
+    required this.steps,
+    required this.features,
     required this.icon,
   });
 
   final String headline;
   final String tagline;
   final List<String> highlights;
-  final IconData icon;
+
+  /// One per [highlights] entry.
+  final List<IconData> highlightIcons;
+
+  /// A short line under each highlight, when its title is short enough to
+  /// need one (the general copy); empty otherwise.
+  final List<String> highlightDetails;
+
+  /// "How it works", three steps.
+  final List<(IconData, String)> steps;
+
+  /// "Also inside" chips: features the app really has.
+  final List<(IconData, String)> features;
+
+  /// The audience's emblem above the headline; none for the general copy,
+  /// whose brand mark already sits at the top of the panel.
+  final IconData? icon;
+
+  static const List<(IconData, String)> _playerSteps = <(IconData, String)>[
+    (Icons.travel_explore_rounded, StringConstants.authStepFindCourt),
+    (Icons.schedule_rounded, StringConstants.authStepPickSlot),
+    (Icons.sports_soccer_rounded, StringConstants.authStepPlay),
+  ];
+
+  static const List<(IconData, String)> _playerFeatures = <(IconData, String)>[
+    (Icons.bolt_rounded, StringConstants.authFeatureLiveSlots),
+    (Icons.groups_rounded, StringConstants.authFeatureOpponents),
+    (Icons.forum_rounded, StringConstants.authFeatureTeamChat),
+    (Icons.card_giftcard_rounded, StringConstants.authFeatureRewards),
+    (Icons.calendar_month_rounded, StringConstants.authFeatureNepaliCalendar),
+  ];
 
   static _AudienceCopy of(AuthAudience audience, IconData fallbackIcon) {
     switch (audience) {
@@ -41,6 +75,13 @@ class _AudienceCopy {
             StringConstants.authPlayerHighlightBook,
             StringConstants.authPlayerHighlightCompete,
           ],
+          steps: _playerSteps,
+          features: _playerFeatures,
+          highlightIcons: const <IconData>[
+            Icons.travel_explore_rounded,
+            Icons.event_available_rounded,
+            Icons.emoji_events_rounded,
+          ],
         );
       case AuthAudience.vendor:
         return _AudienceCopy(
@@ -52,16 +93,55 @@ class _AudienceCopy {
             StringConstants.authVendorHighlightAutomate,
             StringConstants.authVendorHighlightInsights,
           ],
+          steps: const <(IconData, String)>[
+            (Icons.add_business_rounded, StringConstants.authStepListVenue),
+            (Icons.schedule_rounded, StringConstants.authStepSetSlots),
+            (
+              Icons.notifications_active_rounded,
+              StringConstants.authStepGetBooked,
+            ),
+          ],
+          features: const <(IconData, String)>[
+            (Icons.point_of_sale_rounded, StringConstants.authFeatureWalkIns),
+            (Icons.receipt_long_rounded, StringConstants.authFeatureExpenses),
+            (
+              Icons.account_balance_wallet_rounded,
+              StringConstants.authFeaturePayouts,
+            ),
+            (Icons.insights_rounded, StringConstants.authFeatureReports),
+            (
+              Icons.calendar_month_rounded,
+              StringConstants.authFeatureNepaliCalendar,
+            ),
+          ],
+          highlightIcons: const <IconData>[
+            Icons.add_business_rounded,
+            Icons.autorenew_rounded,
+            Icons.insights_rounded,
+          ],
         );
       case AuthAudience.general:
         return _AudienceCopy(
-          headline: StringConstants.hamroFutsal,
-          tagline: StringConstants.authBrandTagline,
-          icon: fallbackIcon,
+          // The wordmark is already at the top, so the promise leads.
+          headline: StringConstants.authBrandTagline,
+          tagline: StringConstants.authBrandSubline,
+          icon: null,
           highlights: const <String>[
             StringConstants.authBrandHighlightBook,
             StringConstants.authBrandHighlightManage,
             StringConstants.authBrandHighlightPlay,
+          ],
+          steps: _playerSteps,
+          features: _playerFeatures,
+          highlightDetails: const <String>[
+            StringConstants.authBrandDetailBook,
+            StringConstants.authBrandDetailManage,
+            StringConstants.authBrandDetailPlay,
+          ],
+          highlightIcons: const <IconData>[
+            Icons.near_me_rounded,
+            Icons.event_available_rounded,
+            Icons.sports_soccer_rounded,
           ],
         );
     }
@@ -288,127 +368,647 @@ class AuthScreenFrame extends StatelessWidget {
   }
 }
 
-/// Gradient marketing pane shown to the left of the form on wide layouts.
+/// Marketing pane shown to the left of the form on wide layouts: the brand
+/// on a deep green gradient with a faint futsal pitch drawn behind it, the
+/// audience's pitch in the middle and a quiet footer.
 class _AuthBrandPanel extends StatelessWidget {
   const _AuthBrandPanel({required this.headerIcon, required this.audience});
 
   final IconData headerIcon;
   final AuthAudience audience;
 
+  /// The brand green, darkened for the top of the gradient.
+  static final Color _deep = Color.lerp(
+    LightColor.secondaryColor,
+    const Color(0xFF04140F),
+    0.62,
+  )!;
+
   @override
   Widget build(BuildContext context) {
     final FutsalTextTheme theme = FutsalTheme.getTextTheme(context);
     final _AudienceCopy copy = _AudienceCopy.of(audience, headerIcon);
+    final Color onBrand = LightColor.onBrandSurface;
+
     return DecoratedBox(
-      decoration: const BoxDecoration(color: LightColor.secondaryColor),
-      // Content sits at the top of the pane and scrolls if the window is too
-      // short for it. SafeArea here, not around the Row, so the colour still
-      // reaches the screen edges behind the status and navigation bars.
-      child: SafeArea(
-        right: false,
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppDimens.paddingX40,
-              vertical: AppDimens.paddingX40,
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.start,
-              // Centre the capped block horizontally; its own text stays
-              // left-aligned inside.
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: <Widget>[
-                // Cap the text measure so lines stay readable and the
-                // block reads as one tidy group on very wide windows.
-                ConstrainedBox(
-                  constraints: const BoxConstraints(
-                    maxWidth: AppDimens.authBrandPanelContentMaxWidth,
-                  ),
-                  // Cross-fade when the account type changes, so the copy
-                  // swaps rather than snapping.
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 320),
-                    switchInCurve: Curves.easeOutCubic,
-                    switchOutCurve: Curves.easeInCubic,
-                    child: Column(
-                      key: ValueKey<AuthAudience>(audience),
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        Container(
-                          width: AppDimens.sizeX72,
-                          height: AppDimens.sizeX72,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: LightColor.whiteColor.withValues(
-                              alpha: 0.16,
+      key: const Key('auth-brand-panel'),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: <Color>[_deep, LightColor.secondaryColor],
+        ),
+      ),
+      child: Stack(
+        fit: StackFit.expand,
+        children: <Widget>[
+          // Soft light, top right and bottom left.
+          const Positioned(
+            top: -160,
+            right: -120,
+            child: _Glow(size: 420, alpha: 0.16),
+          ),
+          const Positioned(
+            bottom: -200,
+            left: -140,
+            child: _Glow(size: 460, alpha: 0.10),
+          ),
+          // The pitch, large and faint, running off the bottom right.
+          const Positioned.fill(child: CustomPaint(painter: _PitchPainter())),
+          // SafeArea here, not around the Row, so the colour still reaches
+          // the screen edges behind the status and navigation bars.
+          SafeArea(
+            right: false,
+            child: LayoutBuilder(
+              builder: (BuildContext context, BoxConstraints constraints) {
+                // Short windows (a 1280 × 800 laptop) tighten the spacing so
+                // the longest copy still fits without scrolling.
+                final bool compact = constraints.maxHeight < 880;
+                // The extras (steps, chips) only where they fit unscrolled.
+                final bool roomy = constraints.maxHeight >= 1000;
+                final double gap = compact ? 24 : (roomy ? 44 : 28);
+                return SingleChildScrollView(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight,
+                    ),
+                    child: Padding(
+                      padding: EdgeInsets.fromLTRB(
+                        56,
+                        compact ? 28 : 44,
+                        56,
+                        compact ? 24 : 36,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: <Widget>[
+                          _BrandMark(onBrand: onBrand, theme: theme),
+                          SizedBox(height: gap),
+                          ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 440),
+                            // Cross-fade when the account type changes, so
+                            // the copy swaps rather than snapping.
+                            child: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 320),
+                              switchInCurve: Curves.easeOutCubic,
+                              switchOutCurve: Curves.easeInCubic,
+                              child: _BrandPitch(
+                                key: ValueKey<AuthAudience>(audience),
+                                copy: copy,
+                                theme: theme,
+                                onBrand: onBrand,
+                                compact: compact,
+                                showExtras: !compact,
+                                roomy: roomy,
+                              ),
                             ),
                           ),
-                          child: Icon(
-                            copy.icon,
-                            color: LightColor.onBrandSurface,
-                            size: AppDimens.sizeX34,
-                          ),
-                        ),
-                        const SizedBox(height: AppDimens.sizeX24),
-                        Text(
-                          copy.headline,
-                          style: theme.headingLarge?.copyWith(
-                            color: LightColor.onBrandSurface,
-                            fontWeight: FontWeight.w800,
-                            fontSize: AppDimens.fontHeadingMedium,
-                            height: 1.1,
-                          ),
-                        ),
-                        const SizedBox(height: AppDimens.sizeX10),
-                        Text(
-                          copy.tagline,
-                          style: theme.bodyTextLarge?.copyWith(
-                            color: LightColor.inverseTextColor.withValues(
-                              alpha: 0.88,
-                            ),
-                            fontWeight: FontWeight.w500,
-                            height: 1.45,
-                            fontSize: AppDimens.fontBodyTextLarge,
-                          ),
-                        ),
-                        const SizedBox(height: AppDimens.sizeX28),
-                        for (int i = 0; i < copy.highlights.length; i++) ...[
-                          if (i > 0) const SizedBox(height: AppDimens.sizeX14),
-                          Row(
-                            children: <Widget>[
-                              Icon(
-                                Icons.check_circle_rounded,
-                                color: LightColor.inverseTextColor.withValues(
-                                  alpha: 0.9,
-                                ),
-                                size: AppDimens.sizeX18,
-                              ),
-                              const SizedBox(width: AppDimens.sizeX10),
-                              Expanded(
-                                child: Text(
-                                  copy.highlights[i],
-                                  style: theme.bodyTextLarge?.copyWith(
-                                    color: LightColor.inverseTextColor
-                                        .withValues(alpha: 0.92),
-                                    fontWeight: FontWeight.w500,
-                                    fontSize: AppDimens.fontBodyTextMedium,
-                                  ),
-                                ),
-                              ),
-                            ],
+                          SizedBox(height: gap),
+                          // Same column as the content, so both edges line up.
+                          ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 440),
+                            child: _BrandFooter(onBrand: onBrand, theme: theme),
                           ),
                         ],
-                      ],
+                      ),
                     ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Logo and wordmark at the top of the brand panel.
+class _BrandMark extends StatelessWidget {
+  const _BrandMark({required this.onBrand, required this.theme});
+
+  final Color onBrand;
+  final FutsalTextTheme theme;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: onBrand.withValues(alpha: 0.14),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: onBrand.withValues(alpha: 0.22)),
+          ),
+          child: Icon(Icons.sports_soccer_rounded, color: onBrand, size: 24),
+        ),
+        const SizedBox(width: 12),
+        Text(
+          StringConstants.hamroFutsal,
+          style: theme.bodyTextLarge?.copyWith(
+            color: onBrand,
+            fontWeight: FontWeight.w800,
+            fontSize: 18,
+            letterSpacing: 0.2,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Headline, tagline and the audience's three highlights.
+class _BrandPitch extends StatelessWidget {
+  const _BrandPitch({
+    super.key,
+    required this.copy,
+    required this.theme,
+    required this.onBrand,
+    this.compact = false,
+    this.showExtras = true,
+    this.roomy = false,
+  });
+
+  final _AudienceCopy copy;
+  final FutsalTextTheme theme;
+  final Color onBrand;
+  final bool compact;
+
+  /// "Also inside" chips and "How it works" — left out on short windows.
+  final bool showExtras;
+
+  /// Tall windows: a little more air between the sections.
+  final bool roomy;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        if (copy.icon case final IconData emblem) ...<Widget>[
+          Container(
+            width: compact ? 48 : 64,
+            height: compact ? 48 : 64,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: <Color>[
+                  onBrand.withValues(alpha: 0.26),
+                  onBrand.withValues(alpha: 0.08),
+                ],
+              ),
+              border: Border.all(color: onBrand.withValues(alpha: 0.24)),
+            ),
+            child: Icon(emblem, color: onBrand, size: compact ? 24 : 30),
+          ),
+          SizedBox(height: compact ? 18 : 28),
+        ],
+        Text(
+          copy.headline,
+          style: theme.headingLarge?.copyWith(
+            color: onBrand,
+            fontWeight: FontWeight.w800,
+            fontSize: compact ? 34 : (roomy ? 44 : 40),
+            height: 1.08,
+            letterSpacing: -0.8,
+          ),
+        ),
+        SizedBox(height: compact ? 10 : 14),
+        Text(
+          copy.tagline,
+          style: theme.bodyTextLarge?.copyWith(
+            color: onBrand.withValues(alpha: 0.82),
+            fontWeight: FontWeight.w500,
+            fontSize: compact ? 16 : 18,
+            height: 1.5,
+          ),
+        ),
+        SizedBox(height: compact ? 20 : 32),
+        _HighlightGroup(
+          copy: copy,
+          theme: theme,
+          onBrand: onBrand,
+          compact: compact,
+        ),
+        if (showExtras) ...<Widget>[
+          SizedBox(height: roomy ? 32 : 22),
+          _SectionTitle(StringConstants.authHowItWorks, onBrand, theme),
+          const SizedBox(height: 12),
+          _HowItWorks(steps: copy.steps, onBrand: onBrand, theme: theme),
+        ],
+        // The features are small enough to keep on short windows too.
+        SizedBox(height: compact ? 18 : (roomy ? 28 : 20)),
+        _SectionTitle(StringConstants.authAlsoInside, onBrand, theme),
+        const SizedBox(height: 10),
+        _FeatureChips(features: copy.features, onBrand: onBrand, theme: theme),
+      ],
+    );
+  }
+}
+
+/// A small caps heading inside the brand panel.
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle(this.text, this.onBrand, this.theme);
+
+  final String text;
+  final Color onBrand;
+  final FutsalTextTheme theme;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text.toUpperCase(),
+      style: theme.bodyTextSmall?.copyWith(
+        color: onBrand.withValues(alpha: 0.6),
+        fontWeight: FontWeight.w700,
+        fontSize: 11.5,
+        letterSpacing: 1.4,
+      ),
+    );
+  }
+}
+
+/// Three numbered steps joined by a line.
+class _HowItWorks extends StatelessWidget {
+  const _HowItWorks({
+    required this.steps,
+    required this.onBrand,
+    required this.theme,
+  });
+
+  final List<(IconData, String)> steps;
+  final Color onBrand;
+  final FutsalTextTheme theme;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        for (int i = 0; i < steps.length; i++) ...<Widget>[
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Row(
+                  children: <Widget>[
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: onBrand.withValues(alpha: 0.12),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: onBrand.withValues(alpha: 0.24),
+                        ),
+                      ),
+                      child: Icon(steps[i].$1, color: onBrand, size: 19),
+                    ),
+                    // The connector to the next step.
+                    if (i < steps.length - 1)
+                      Expanded(
+                        child: Container(
+                          height: 1.5,
+                          margin: const EdgeInsets.symmetric(horizontal: 8),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: <Color>[
+                                onBrand.withValues(alpha: 0.35),
+                                onBrand.withValues(alpha: 0.08),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'Step ${i + 1}',
+                  style: theme.bodyTextSmall?.copyWith(
+                    color: onBrand.withValues(alpha: 0.55),
+                    fontWeight: FontWeight.w600,
+                    fontSize: 11.5,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  steps[i].$2,
+                  style: theme.bodyTextSmall?.copyWith(
+                    color: onBrand.withValues(alpha: 0.95),
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
                   ),
                 ),
               ],
             ),
           ),
+        ],
+      ],
+    );
+  }
+}
+
+/// Features as small frosted pills.
+class _FeatureChips extends StatelessWidget {
+  const _FeatureChips({
+    required this.features,
+    required this.onBrand,
+    required this.theme,
+  });
+
+  final List<(IconData, String)> features;
+  final Color onBrand;
+  final FutsalTextTheme theme;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: <Widget>[
+        for (final (IconData icon, String label) in features)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+            decoration: BoxDecoration(
+              color: onBrand.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: onBrand.withValues(alpha: 0.16)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Icon(icon, color: onBrand.withValues(alpha: 0.85), size: 15),
+                const SizedBox(width: 6),
+                Text(
+                  label,
+                  style: theme.bodyTextSmall?.copyWith(
+                    color: onBrand.withValues(alpha: 0.92),
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// The audience's highlights as one frosted card: a row each, split by
+/// hairlines — icon, title and, for short titles, a line of detail.
+class _HighlightGroup extends StatelessWidget {
+  const _HighlightGroup({
+    required this.copy,
+    required this.theme,
+    required this.onBrand,
+    this.compact = false,
+  });
+
+  final _AudienceCopy copy;
+  final FutsalTextTheme theme;
+  final Color onBrand;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final List<Widget> rows = <Widget>[];
+    for (int i = 0; i < copy.highlights.length; i++) {
+      final String? detail = i < copy.highlightDetails.length
+          ? copy.highlightDetails[i]
+          : null;
+      if (i > 0) {
+        rows.add(
+          Divider(
+            height: 1,
+            thickness: 1,
+            indent: compact ? 60 : 66,
+            color: onBrand.withValues(alpha: 0.10),
+          ),
+        );
+      }
+      rows.add(
+        Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: compact ? 11 : 14,
+          ),
+          child: Row(
+            children: <Widget>[
+              Container(
+                width: compact ? 32 : 36,
+                height: compact ? 32 : 36,
+                decoration: BoxDecoration(
+                  color: onBrand.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  copy.highlightIcons[i],
+                  color: onBrand,
+                  size: compact ? 17 : 19,
+                ),
+              ),
+              SizedBox(width: compact ? 12 : 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      copy.highlights[i],
+                      style: theme.bodyTextLarge?.copyWith(
+                        color: onBrand,
+                        fontWeight: FontWeight.w600,
+                        fontSize: compact ? 14.5 : 15,
+                        height: 1.3,
+                      ),
+                    ),
+                    if (detail != null) ...<Widget>[
+                      const SizedBox(height: 2),
+                      Text(
+                        detail,
+                        style: theme.bodyTextSmall?.copyWith(
+                          color: onBrand.withValues(alpha: 0.66),
+                          fontWeight: FontWeight.w500,
+                          fontSize: compact ? 12.5 : 13,
+                          height: 1.35,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    return Container(
+      decoration: BoxDecoration(
+        color: onBrand.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: onBrand.withValues(alpha: 0.13)),
+      ),
+      child: Column(children: rows),
+    );
+  }
+}
+
+/// Copyright and maker, quiet at the foot of the panel.
+class _BrandFooter extends StatelessWidget {
+  const _BrandFooter({required this.onBrand, required this.theme});
+
+  final Color onBrand;
+  final FutsalTextTheme theme;
+
+  @override
+  Widget build(BuildContext context) {
+    final TextStyle? style = theme.bodyTextSmall?.copyWith(
+      color: onBrand.withValues(alpha: 0.6),
+      fontWeight: FontWeight.w500,
+    );
+    return Row(
+      children: <Widget>[
+        Expanded(
+          child: Text(
+            '© ${DateTime.now().year} ${StringConstants.hamroFutsal}'
+            '  ·  ${StringConstants.yakStackSolution}',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: style,
+          ),
+        ),
+        const SizedBox(width: 12),
+        // Where the app runs.
+        Tooltip(
+          message: StringConstants.authWorksOn,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              for (final IconData icon in const <IconData>[
+                Icons.smartphone_rounded,
+                Icons.tablet_mac_rounded,
+                Icons.laptop_mac_rounded,
+              ])
+                Padding(
+                  padding: const EdgeInsets.only(left: 6),
+                  child: Icon(
+                    icon,
+                    size: 15,
+                    color: onBrand.withValues(alpha: 0.55),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// A radial pool of light for the brand panel's background.
+class _Glow extends StatelessWidget {
+  const _Glow({required this.size, required this.alpha});
+
+  final double size;
+  final double alpha;
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: RadialGradient(
+            colors: <Color>[
+              LightColor.onBrandSurface.withValues(alpha: alpha),
+              LightColor.onBrandSurface.withValues(alpha: 0),
+            ],
+          ),
         ),
       ),
     );
   }
+}
+
+/// A futsal pitch in faint white lines — touchline, halfway line, centre
+/// circle and both D-shaped penalty areas — tilted and running off the
+/// bottom right of the panel, behind the copy.
+class _PitchPainter extends CustomPainter {
+  const _PitchPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final Paint line = Paint()
+      ..color = LightColor.onBrandSurface.withValues(alpha: 0.07)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+
+    // A 40 × 20 pitch, scaled to the panel and tucked into its lower right.
+    final double width = size.width * 1.05;
+    final double height = width / 2;
+    canvas.save();
+    canvas.translate(size.width * 0.62, size.height * 0.80);
+    canvas.rotate(-0.22);
+    final Rect pitch = Rect.fromCenter(
+      center: Offset.zero,
+      width: width,
+      height: height,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(pitch, const Radius.circular(6)),
+      line,
+    );
+    // Halfway line, centre circle and spot.
+    canvas.drawLine(Offset(0, pitch.top), Offset(0, pitch.bottom), line);
+    canvas.drawCircle(Offset.zero, height * 0.15, line);
+    canvas.drawCircle(
+      Offset.zero,
+      3,
+      Paint()..color = LightColor.onBrandSurface.withValues(alpha: 0.1),
+    );
+    // Penalty areas: quarter circles from each post, joined by a straight.
+    final double r = height * 0.3;
+    for (final double side in <double>[-1, 1]) {
+      final double x = side * width / 2;
+      final Path d = Path()
+        ..moveTo(x, -r - height * 0.08)
+        ..arcToPoint(
+          Offset(x - side * r, -height * 0.08),
+          radius: Radius.circular(r),
+          clockwise: side > 0 ? false : true,
+        )
+        ..lineTo(x - side * r, height * 0.08)
+        ..arcToPoint(
+          Offset(x, r + height * 0.08),
+          radius: Radius.circular(r),
+          clockwise: side > 0 ? false : true,
+        );
+      canvas.drawPath(d, line);
+      // Goal mouth.
+      canvas.drawRect(
+        Rect.fromLTRB(
+          side > 0 ? x : x - 14,
+          -height * 0.08,
+          side > 0 ? x + 14 : x,
+          height * 0.08,
+        ),
+        line,
+      );
+    }
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(_PitchPainter oldDelegate) => false;
 }
 
 InputDecoration authInputDecoration({

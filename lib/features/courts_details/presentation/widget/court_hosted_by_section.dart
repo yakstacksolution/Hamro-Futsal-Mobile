@@ -125,42 +125,6 @@ class CourtHostedBySection extends StatelessWidget {
                     ],
                   ),
                 ),
-                Tooltip(
-                  message: StringConstants.chatWithHost,
-                  child: Material(
-                    color: onMessage == null
-                        ? LightColor.dividerColor.withValues(alpha: 0.5)
-                        : LightColor.secondaryColor.withValues(alpha: 0.10),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppDimens.radiusX8),
-                      side: BorderSide(
-                        color: onMessage == null
-                            ? LightColor.dividerColor
-                            : LightColor.secondaryColor.withValues(alpha: 0.18),
-                      ),
-                    ),
-                    elevation: onMessage == null ? 0 : 1,
-                    shadowColor: LightColor.secondaryColor.withValues(
-                      alpha: 0.18,
-                    ),
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(AppDimens.radiusX12),
-                      onTap: onMessage,
-                      child: SizedBox(
-                        width: AppDimens.sizeX44,
-                        height: AppDimens.sizeX44,
-                        child: Icon(
-                          // Icons.messan,
-                          CupertinoIcons.chat_bubble_text,
-                          color: onMessage == null
-                              ? LightColor.hintTextColor
-                              : LightColor.secondaryColor,
-                          size: AppDimens.sizeX20,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
               ],
             ),
             const SizedBox(height: AppDimens.sizeX14),
@@ -195,6 +159,10 @@ class CourtHostedBySection extends StatelessWidget {
                 ),
               ],
             ),
+            if (onMessage case final VoidCallback onTap) ...<Widget>[
+              const SizedBox(height: AppDimens.sizeX14),
+              _HostChatPrompt(onTap: onTap),
+            ],
           ],
         ),
       ),
@@ -293,26 +261,9 @@ class CourtHostedBySection extends StatelessWidget {
             ],
           ),
         ),
-        if (onMessage != null) ...<Widget>[
+        if (onMessage case final VoidCallback onTap) ...<Widget>[
           const SizedBox(height: AppDimens.sizeX16),
-          OutlinedButton.icon(
-            onPressed: onMessage,
-            icon: const Icon(CupertinoIcons.chat_bubble_text, size: 18),
-            label: const Text(StringConstants.chatWithHost),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: LightColor.secondaryColor,
-              side: BorderSide(
-                color: LightColor.secondaryColor.withValues(alpha: 0.45),
-              ),
-              minimumSize: const Size.fromHeight(AppDimens.sizeX44),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppDimens.radiusX10),
-              ),
-              textStyle: textTheme.bodyTextSmall?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
+          _HostChatPrompt(onTap: onTap),
         ],
       ],
     );
@@ -365,6 +316,35 @@ class CourtHostedBySection extends StatelessWidget {
     final trimmed = value.trim();
     if (trimmed.isEmpty) return '?';
     return trimmed.substring(0, 1).toUpperCase();
+  }
+}
+
+/// The host card's one call to action: a full-width filled button.
+class _HostChatPrompt extends StatelessWidget {
+  const _HostChatPrompt({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = FutsalTheme.getTextTheme(context);
+    return FilledButton.icon(
+      key: const ValueKey<String>('host-chat-prompt'),
+      onPressed: onTap,
+      icon: const Icon(CupertinoIcons.chat_bubble_text_fill, size: 18),
+      label: const Text(StringConstants.messageHost),
+      style: FilledButton.styleFrom(
+        backgroundColor: LightColor.secondaryColor,
+        foregroundColor: LightColor.inverseTextColor,
+        minimumSize: const Size.fromHeight(AppDimens.sizeX44),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppDimens.radiusX8),
+        ),
+        textStyle: textTheme.bodyTextSmall?.copyWith(
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
   }
 }
 

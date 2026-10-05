@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:hamro_futsal/core/date_time/app_date_format.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/app_utils.dart';
@@ -124,7 +125,7 @@ class CompactDateTimeSelector extends StatelessWidget {
                 ),
                 const SizedBox(height: AppDimens.sizeX2),
                 Text(
-                  '${date.day}',
+                  AppDateFormat.day(date),
                   style: textTheme.bodyTextMedium?.copyWith(
                     color: selected
                         ? LightColor.inverseTextColor
@@ -236,18 +237,7 @@ class CompactDateTimeSelector extends StatelessWidget {
         date.year == now.year;
   }
 
-  String _dayName(DateTime date) {
-    const List<String> days = <String>[
-      'Mon',
-      'Tue',
-      'Wed',
-      'Thu',
-      'Fri',
-      'Sat',
-      'Sun',
-    ];
-    return days[date.weekday - 1];
-  }
+  String _dayName(DateTime date) => AppDateFormat.weekdayShort(date);
 
   bool _hasTimeRange(TimeSlotModel slot) {
     return slot.endTime != null || RegExp(r'\s+[-–]\s+').hasMatch(slot.time);

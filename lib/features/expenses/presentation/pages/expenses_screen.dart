@@ -54,7 +54,7 @@ class _ExpensesView extends StatefulWidget {
 class _ExpensesViewState extends State<_ExpensesView>
     with SingleTickerProviderStateMixin {
   late final TabController _tabController;
-  ExpensePeriod _period = ExpensePeriod.week;
+  ExpensePeriod _period = ExpensePeriod.month;
   String? _venueId;
 
   /// Cash / Online (null = all). Server-side `payment_method` filter.

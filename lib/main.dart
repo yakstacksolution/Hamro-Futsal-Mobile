@@ -4,6 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:hamro_futsal/core/date_time/app_calendar.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hamro_futsal/core/config/app_environment.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -13,6 +14,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hamro_futsal/core/api/client.dart';
 import 'package:hamro_futsal/core/cache/hive/hive_cache_service.dart';
+import 'package:hamro_futsal/core/firebase/firebase_platform_support.dart';
 import 'package:hamro_futsal/core/helper/crash_reporter.dart';
 import 'package:hamro_futsal/core/helper/fcm_helper.dart';
 import 'package:hamro_futsal/core/helper/session_bootstrap.dart';
@@ -52,16 +54,20 @@ void main() async {
   }
 
   bool firebaseReady = false;
-  try {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-    firebaseReady = true;
-  } catch (error, stack) {
-    debugPrint('Firebase initialization failed: $error\n$stack');
+  if (FirebasePlatformSupport.core) {
+    try {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+      firebaseReady = true;
+    } catch (error, stack) {
+      debugPrint('Firebase initialization failed: $error\n$stack');
+    }
+  } else {
+    debugPrint('Firebase is not configured for this platform.');
   }
 
-  if (firebaseReady) {
+  if (firebaseReady && FirebasePlatformSupport.crashlytics) {
     CrashReporter.install();
     if (envError != null) {
       FirebaseCrashlytics.instance.recordError(
@@ -80,11 +86,12 @@ void main() async {
     await AppSettings().init(SharedPreferencesWrapper(preferences));
     await HiveCacheService.instance.init();
     AppThemeController.restore();
+    AppCalendarController.restore();
 
     hasLoggedIn = await SessionBootstrap.resolve();
   } catch (error, stack) {
     debugPrint('Session restore failed: $error\n$stack');
-    if (firebaseReady) {
+    if (firebaseReady && FirebasePlatformSupport.crashlytics) {
       FirebaseCrashlytics.instance.recordError(error, stack, fatal: false);
     }
   }
@@ -95,7 +102,7 @@ void main() async {
 
   runApp(MyApp(initialLocation: initialLocation));
 
-  if (firebaseReady) {
+  if (firebaseReady && FirebasePlatformSupport.messaging) {
     unawaited(
       FcmHelper().init().then((_) async {
         if (hasLoggedIn) {
@@ -123,7 +130,7 @@ class _MyAppState extends State<MyApp> {
     super.initState();
     _router = AppRouters.router(
       widget.initialLocation,
-      observers: Firebase.apps.isEmpty
+      observers: Firebase.apps.isEmpty || !FirebasePlatformSupport.analytics
           ? const <NavigatorObserver>[]
           : <NavigatorObserver>[
               FirebaseAnalyticsObserver(analytics: FirebaseAnalytics.instance),

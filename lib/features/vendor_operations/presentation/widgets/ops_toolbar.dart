@@ -12,12 +12,6 @@ import 'package:hamro_futsal/core/widgets/custom_date_picker.dart';
 import 'package:hamro_futsal/features/vendor_operations/domain/ops_models.dart';
 import 'package:hamro_futsal/features/vendor_operations/presentation/bloc/vendor_ops_bloc.dart';
 
-/// The dashboard's sticky toolbar: a greeting — "Good evening, Ram 👋", as
-/// on the futsal home — notifications, the home switch and the Manual
-/// Booking action. The date is picked in the Availability section below.
-///
-/// On a phone the filters fold behind a Filters button (with a count of the
-/// active ones) so the date row stays one line.
 class OpsToolbar extends StatelessWidget {
   const OpsToolbar({
     super.key,

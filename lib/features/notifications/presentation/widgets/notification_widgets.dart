@@ -1,3 +1,4 @@
+import 'package:hamro_futsal/core/date_time/app_date_format.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
@@ -657,19 +658,5 @@ String _timeAgo(DateTime? date) {
   if (diff.inDays < 7) {
     return '${diff.inDays} ${diff.inDays == 1 ? 'day' : 'days'} ago';
   }
-  const List<String> months = <String>[
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-  return '${date.day} ${months[date.month - 1]} ${date.year}';
+  return AppDateFormat.format(date, 'd MMM y');
 }

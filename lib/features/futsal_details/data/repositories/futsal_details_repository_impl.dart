@@ -304,13 +304,12 @@ final class FutsalDetailsRepositoryImpl extends FutsalDetailsRepository {
   Future<Either<AppException, List<BookingHoldModel>>> createBookingHolds({
     required List<BookingHoldRequest> holds,
   }) async {
-    final response = await _remoteDataSource.createBookingHolds(
-      data: <String, dynamic>{
-        'holds': <Map<String, dynamic>>[
-          for (final BookingHoldRequest h in holds) h.toJson(),
-        ],
-      },
-    );
+    final Map<String, dynamic> request = <String, dynamic>{
+      'holds': <Map<String, dynamic>>[
+        for (final BookingHoldRequest h in holds) h.toJson(),
+      ],
+    };
+    final response = await _remoteDataSource.createBookingHolds(data: request);
     if (response.isError()) {
       return left(ResponseHelper.error(response));
     }

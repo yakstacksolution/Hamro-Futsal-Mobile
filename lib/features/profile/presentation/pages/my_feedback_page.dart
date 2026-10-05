@@ -1,8 +1,8 @@
+import 'package:hamro_futsal/core/date_time/app_date_format.dart';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 import 'package:hamro_futsal/core/routers/app_router_params.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
@@ -495,7 +495,7 @@ class _FeedbackHistoryEmpty extends StatelessWidget {
 
 String _formatDate(DateTime? value) {
   if (value == null) return '';
-  return DateFormat('dd MMM yyyy').format(value);
+  return AppDateFormat.format(value, 'dd MMM yyyy');
 }
 
 Color? _parseHexColor(String value) {

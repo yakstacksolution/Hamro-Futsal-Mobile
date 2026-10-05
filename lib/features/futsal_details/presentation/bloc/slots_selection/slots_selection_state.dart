@@ -181,7 +181,7 @@ final class SlotsSelectionState extends Equatable {
   String? get slotLabel {
     final String? time = selectedTime;
     if (time == null) return null;
-    return '${_dayName(selectedDate)}, ${selectedDate.day} ${_monthName(selectedDate)} · $time';
+    return '${AppDateFormat.format(selectedDate, 'EEE, d MMM')} · $time';
   }
 
   double get selectedPrice {
@@ -245,7 +245,7 @@ final class SlotsSelectionState extends Equatable {
     if (isRecurring) {
       return '${court.name} · Every ${RecurringWeekdays.summary(effectiveWeekdays)} · $selectedTime';
     }
-    return '${court.name} · ${_dayName(selectedDate)}, ${selectedDate.day} ${_monthName(selectedDate)} · $selectedTime';
+    return '${court.name} · ${AppDateFormat.format(selectedDate, 'EEE, d MMM')} · $selectedTime';
   }
 
   String get buttonText {

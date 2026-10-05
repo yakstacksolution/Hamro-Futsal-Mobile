@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
 import 'package:hamro_futsal/core/utils/string_constants.dart';
 import 'package:hamro_futsal/core/widgets/custom_button.dart';
@@ -152,14 +151,9 @@ void main() {
 
       await _pumpAt(tester, _desktopWindow, _frame());
 
-      // The panel is the box painted in the app colour.
+      // The panel's painted background, gradient and all.
       final Rect panel = tester.getRect(
-        find.byWidgetPredicate(
-          (Widget w) =>
-              w is DecoratedBox &&
-              w.decoration ==
-                  const BoxDecoration(color: LightColor.secondaryColor),
-        ),
+        find.byKey(const Key('auth-brand-panel')),
       );
       expect(panel.top, 0);
       expect(panel.bottom, _desktopWindow.height);

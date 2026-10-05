@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hamro_futsal/core/date_time/app_date_format.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/features/booking_overview/data/model/booking_overview_model.dart';
 
@@ -52,21 +53,8 @@ class BookingFmt {
 
   /// e.g. `Jun 4` (appends the year when it isn't the current one).
   static String shortDate(DateTime d) {
-    const m = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-    final suffix = d.year != DateTime.now().year ? ', ${d.year}' : '';
-    return '${m[d.month - 1]} ${d.day}$suffix';
+    final year = AppDateFormat.year(d);
+    final suffix = year != AppDateFormat.year(DateTime.now()) ? ', $year' : '';
+    return '${AppDateFormat.format(d, 'MMM d')}$suffix';
   }
 }

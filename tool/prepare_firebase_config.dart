@@ -29,12 +29,36 @@ void main() {
     validator: _validateIos,
   );
 
-  if (!android && !ios) {
+  // No override is fine when the app's config is already in place (it is
+  // committed): say which file is used, and warn only about a missing one.
+  _reportUnchanged(
+    written: android,
+    target: _androidTarget,
+    secretPath: 'secrets/android/google-services.json',
+    envHint: 'FIREBASE_ANDROID_GOOGLE_SERVICES_JSON(_BASE64)',
+  );
+  _reportUnchanged(
+    written: ios,
+    target: _iosTarget,
+    secretPath: 'secrets/ios/GoogleService-Info.plist',
+    envHint: 'FIREBASE_IOS_GOOGLE_SERVICE_INFO_PLIST(_BASE64)',
+  );
+}
+
+void _reportUnchanged({
+  required bool written,
+  required String target,
+  required String secretPath,
+  required String envHint,
+}) {
+  if (written) return;
+  if (File(target).existsSync()) {
     stdout.writeln(
-      'No Firebase config secrets found. Place local files under secrets/ or '
-      'set FIREBASE_* config environment variables.',
+      'Using existing $target (no secrets/ or FIREBASE_* override).',
     );
+    return;
   }
+  stdout.writeln('Missing $target: place it at $secretPath or set $envHint.');
 }
 
 bool _writeConfig({
@@ -100,8 +124,9 @@ void _validateIos(String contents) {
   // FirebaseInstallations aborts the app at launch when API_KEY is not a real
   // Google API key, so reject placeholders here instead of shipping a crash.
   if (contents.contains('REPLACE_WITH_') ||
-      !RegExp(r'<key>API_KEY</key>\s*<string>AIza[0-9A-Za-z_-]{35}</string>')
-          .hasMatch(contents)) {
+      !RegExp(
+        r'<key>API_KEY</key>\s*<string>AIza[0-9A-Za-z_-]{35}</string>',
+      ).hasMatch(contents)) {
     throw const FormatException(
       'iOS Firebase config has a placeholder or invalid API_KEY.',
     );

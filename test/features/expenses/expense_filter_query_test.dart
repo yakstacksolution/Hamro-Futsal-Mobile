@@ -41,4 +41,8 @@ void main() {
 
     expect(filter.hasSecondaryFilters, isTrue);
   });
+
+  test('expenses open on the current month by default', () {
+    expect(const ExpenseFilter().period, ExpensePeriod.month);
+  });
 }

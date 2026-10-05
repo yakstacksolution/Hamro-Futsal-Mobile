@@ -1,3 +1,4 @@
+import 'package:hamro_futsal/core/date_time/app_date_format.dart';
 import 'package:hamro_futsal/core/utils/currency.dart';
 import 'package:flutter/material.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
@@ -1894,7 +1895,7 @@ class _CustomDatePricesSection extends StatelessWidget {
                     (SlotCustomDatePriceDraft item) => InputChip(
                       labelPadding: EdgeInsets.zero,
                       label: Text(
-                        '${item.date} · ${formatDouble(item.price)}',
+                        '${_displayIsoDate(item.date)} · ${formatDouble(item.price)}',
                         style: textTheme.bodyMiniSubTitle?.copyWith(
                           color: LightColor.brandTextColor,
                           fontWeight: FontWeight.w500,
@@ -2339,8 +2340,8 @@ class _ClosedDateCollectionCard extends StatelessWidget {
                   tooltip: blockedDates[item.date],
                   label: Text(
                     item.isFullDay
-                        ? item.date
-                        : '${item.date} · ${_displayTime(item.startTime)}'
+                        ? _displayIsoDate(item.date)
+                        : '${_displayIsoDate(item.date)} · ${_displayTime(item.startTime)}'
                               ' – ${_displayTime(item.endTime)}',
                     style: textTheme.bodySubTitle?.copyWith(
                       color: accent,
@@ -3116,6 +3117,13 @@ String _formatIsoDate(DateTime date) {
   final String month = date.month.toString().padLeft(2, '0');
   final String day = date.day.toString().padLeft(2, '0');
   return '${date.year}-$month-$day';
+}
+
+/// A stored `yyyy-MM-dd` date as shown in a chip: unchanged in AD, written
+/// in BS when the user reads Bikram Sambat.
+String _displayIsoDate(String iso) {
+  final DateTime? date = AppDateFormat.isBs ? DateTime.tryParse(iso) : null;
+  return date == null ? iso : AppDateFormat.date(date);
 }
 
 DateTime _dateOnly(DateTime date) {

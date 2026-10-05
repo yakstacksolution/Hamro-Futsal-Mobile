@@ -23,11 +23,17 @@ Future<void> showOpsBookingDetails(
   bool demo = false,
 }) {
   final bool wide = MediaQuery.sizeOf(context).width >= 900;
+  final VendorOpsBloc bloc = context.read<VendorOpsBloc>();
   // The sheet and the drawer are new routes, outside the dashboard's
   // provider — hand them its bloc.
   final Widget body = BlocProvider<VendorOpsBloc>.value(
-    value: context.read<VendorOpsBloc>(),
-    child: _BookingDetails(booking: booking, nowMinute: nowMinute, demo: demo),
+    value: bloc,
+    child: _BookingDetails(
+      booking: booking,
+      nowMinute: nowMinute,
+      demo: demo,
+      bloc: bloc,
+    ),
   );
   if (!wide) {
     return showAppBottomSheet<void>(context: context, child: body);
@@ -69,11 +75,13 @@ Future<void> showOpsBookingDetails(
 class _BookingDetails extends StatelessWidget {
   const _BookingDetails({
     required this.booking,
+    required this.bloc,
     this.nowMinute,
     this.demo = false,
   });
 
   final BookingModel booking;
+  final VendorOpsBloc bloc;
   final int? nowMinute;
 
   /// Demo bookings do not exist on the server, so the full details page
@@ -239,7 +247,6 @@ class _BookingDetails extends StatelessWidget {
             onPressed: demo
                 ? null
                 : () {
-                    final VendorOpsBloc bloc = context.read<VendorOpsBloc>();
                     final GoRouter router = GoRouter.of(context);
                     Navigator.of(context).maybePop();
                     router.pushNamed(

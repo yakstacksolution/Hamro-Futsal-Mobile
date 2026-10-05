@@ -1,3 +1,4 @@
+import 'package:hamro_futsal/core/date_time/app_date_format.dart';
 import 'package:hamro_futsal/core/utils/currency.dart';
 import 'dart:async';
 
@@ -740,35 +741,4 @@ double? _priceFromText(String value) {
   final RegExpMatch? match = RegExp(r'(\d+(?:\.\d+)?)').firstMatch(normalized);
   if (match == null) return null;
   return double.tryParse(match.group(1) ?? '');
-}
-
-String _dayName(DateTime date) {
-  const List<String> days = <String>[
-    'Mon',
-    'Tue',
-    'Wed',
-    'Thu',
-    'Fri',
-    'Sat',
-    'Sun',
-  ];
-  return days[date.weekday - 1];
-}
-
-String _monthName(DateTime date) {
-  const List<String> months = <String>[
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-  return months[date.month - 1];
 }

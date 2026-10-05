@@ -1,3 +1,4 @@
+import 'package:hamro_futsal/core/date_time/app_date_format.dart';
 import 'dart:typed_data';
 
 import 'package:flutter/gestures.dart';
@@ -442,21 +443,6 @@ class ChatDayChip extends StatelessWidget {
 
   final DateTime date;
 
-  static const _months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-
   String get _label {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -464,7 +450,7 @@ class ChatDayChip extends StatelessWidget {
     final diff = today.difference(day).inDays;
     if (diff == 0) return 'Today';
     if (diff == 1) return 'Yesterday';
-    return '${day.day} ${_months[day.month - 1]}';
+    return AppDateFormat.format(day, 'd MMM');
   }
 
   @override

@@ -363,13 +363,28 @@ class RevenueTrend {
 }
 
 class TrendBucket {
-  const TrendBucket({required this.label, required this.value});
+  const TrendBucket({required this.label, required this.value, this.date});
 
   final String label;
   final int value;
 
-  factory TrendBucket.fromJson(Map<String, dynamic> json) =>
-      TrendBucket(label: _str(json['label']), value: _int(json['value']));
+  /// The day the bucket starts on, when the server says (`date`,
+  /// `start_date`, `from`) or its label is itself a date — lets the label be
+  /// rewritten in the user's calendar.
+  final DateTime? date;
+
+  factory TrendBucket.fromJson(Map<String, dynamic> json) {
+    final String label = _str(json['label']);
+    return TrendBucket(
+      label: label,
+      value: _int(json['value']),
+      date:
+          DateTime.tryParse(
+            _str(json['date'] ?? json['start_date'] ?? json['from']),
+          ) ??
+          DateTime.tryParse(label),
+    );
+  }
 }
 
 class StatusMixEntry {

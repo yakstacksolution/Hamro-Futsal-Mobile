@@ -1,20 +1,7 @@
+import 'package:hamro_futsal/core/date_time/app_date_format.dart';
+
 /// Time formatting shared by the conversations list and the chat thread.
 class MessageFmt {
-  static const _months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-
   /// Compact relative time for the conversation list:
   /// `now` · `5 min ago` · `2 hr ago` · `3 day ago` · `4 Jun`.
   static String friendly(DateTime? d) {
@@ -32,8 +19,9 @@ class MessageFmt {
     final days = today.difference(day).inDays;
     if (days < 7) return '$days day ago';
 
-    final date = '${d.day} ${_months[d.month - 1]}';
-    return d.year == now.year ? date : '$date ${d.year}';
+    return AppDateFormat.year(d) == AppDateFormat.year(now)
+        ? AppDateFormat.format(d, 'd MMM')
+        : AppDateFormat.format(d, 'd MMM y');
   }
 
   /// `6:30 PM`.

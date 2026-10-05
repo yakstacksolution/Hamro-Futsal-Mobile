@@ -1,5 +1,6 @@
 import 'package:hamro_futsal/core/utils/currency.dart';
 import 'package:flutter/material.dart';
+import 'package:hamro_futsal/core/date_time/app_date_format.dart';
 import 'package:hamro_futsal/core/utils/responsive.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_text.dart';
@@ -526,39 +527,12 @@ String bookingTitleCase(String value) {
       .join(' ');
 }
 
-const List<String> _weekdays = <String>[
-  'Mon',
-  'Tue',
-  'Wed',
-  'Thu',
-  'Fri',
-  'Sat',
-  'Sun',
-];
-
-const List<String> _months = <String>[
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-];
-
 String bookingFormatDate(DateTime date) {
-  return '${_weekdays[date.weekday - 1]}, ${date.day} '
-      '${_months[date.month - 1]} ${date.year}';
+  return AppDateFormat.format(date, 'EEE, d MMM y');
 }
 
 String bookingFormatShortDate(DateTime date) {
-  return '${date.day.toString().padLeft(2, '0')}/'
-      '${date.month.toString().padLeft(2, '0')}/${date.year}';
+  return AppDateFormat.format(date, 'dd/MM/yyyy');
 }
 
 /// Semantic colour for a payment status string (`paid`, `partial`, …).

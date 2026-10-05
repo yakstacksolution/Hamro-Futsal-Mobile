@@ -1,3 +1,4 @@
+import 'package:hamro_futsal/core/date_time/app_date_format.dart';
 import 'package:hamro_futsal/features/booking_overview/data/model/booking_overview_model.dart';
 
 enum BookingPeriod { today, week, month, year, custom }
@@ -145,8 +146,15 @@ class BookingAnalytics {
   List<int> get series =>
       data.trend.buckets.map((b) => b.value).toList(growable: false);
 
-  List<String> get seriesLabels =>
-      data.trend.buckets.map((b) => b.label).toList(growable: false);
+  /// The server's labels — rewritten as Nepali dates in the Nepali calendar
+  /// where a bucket names its day. Day names (`Mon`) read the same in both.
+  List<String> get seriesLabels => data.trend.buckets
+      .map(
+        (b) => AppDateFormat.isBs && b.date != null
+            ? AppDateFormat.format(b.date!, 'MMM d')
+            : b.label,
+      )
+      .toList(growable: false);
 
   String get trendTitle =>
       data.trend.title.isEmpty ? 'Revenue trend' : data.trend.title;

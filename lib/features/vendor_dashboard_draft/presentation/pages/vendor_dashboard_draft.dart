@@ -1,4 +1,6 @@
+import 'package:hamro_futsal/core/date_time/app_date_format.dart';
 import 'package:flutter/material.dart';
+import 'package:hamro_futsal/core/date_time/app_date_picker.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
@@ -65,8 +67,8 @@ class _VendorDashboardDraftState extends State<VendorDashboardDraft> {
   }
 
   Future<void> _pickDate() async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
+    final DateTime? picked = await showAppDatePicker(
+      context,
       initialDate: _selectedDate,
       firstDate: DateTime(2024),
       lastDate: DateTime(2028),
@@ -990,21 +992,7 @@ BoxDecoration _fieldDecoration() {
 }
 
 String _formatDate(DateTime date) {
-  const List<String> months = <String>[
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-  return '${months[date.month - 1]} ${date.day}, ${date.year}';
+  return AppDateFormat.format(date, 'MMM d, y');
 }
 
 class _SummaryValue {

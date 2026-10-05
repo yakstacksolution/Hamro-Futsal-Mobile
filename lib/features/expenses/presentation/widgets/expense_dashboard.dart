@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hamro_futsal/core/date_time/app_date_format.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
@@ -248,21 +249,6 @@ class _RecordsTable extends StatelessWidget {
   static const int _fMethod = 2;
   static const int _fAmount = 2;
 
-  static const List<String> _months = <String>[
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-
   @override
   Widget build(BuildContext context) {
     final textTheme = FutsalTheme.getTextTheme(context);
@@ -320,8 +306,7 @@ class _RecordsTable extends StatelessWidget {
                       .where((CourtModel c) => c.id == records[i].courtId)
                       .firstOrNull
                       ?.name,
-              date:
-                  '${records[i].date.day} ${_months[records[i].date.month - 1]} ${records[i].date.year}',
+              date: AppDateFormat.format(records[i].date, 'd MMM y'),
               onTap: () => onTap(records[i]),
             ),
           ],

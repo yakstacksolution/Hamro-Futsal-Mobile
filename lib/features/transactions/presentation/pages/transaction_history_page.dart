@@ -1,3 +1,4 @@
+import 'package:hamro_futsal/core/date_time/app_date_format.dart';
 import 'package:hamro_futsal/core/utils/bloc_safe_add.dart';
 import 'dart:async';
 
@@ -21,7 +22,6 @@ import 'package:hamro_futsal/features/transactions/presentation/bloc/transaction
 import 'package:hamro_futsal/features/transactions/presentation/widgets/transaction_filter_sheet.dart';
 import 'package:hamro_futsal/features/transactions/presentation/widgets/transaction_loading_widgets.dart';
 import 'package:hamro_futsal/features/transactions/presentation/widgets/transaction_widgets.dart';
-import 'package:intl/intl.dart';
 
 /// Infinitely scrolling `GET /auth/transaction-history` (`per_page=20`).
 ///
@@ -376,7 +376,6 @@ class _TransactionHistoryViewState extends State<_TransactionHistoryView> {
   /// Flattens the accumulated items into month headers plus rows, so the whole
   /// ledger is one lazily built sliver — which also lets it fade as a unit.
   List<_ListRow> _buildRows(List<TransactionHistoryItemModel> items) {
-    final DateFormat monthFormat = DateFormat('MMMM yyyy');
     final List<_ListRow> rows = <_ListRow>[];
     String? currentMonth;
 
@@ -384,7 +383,7 @@ class _TransactionHistoryViewState extends State<_TransactionHistoryView> {
       final TransactionHistoryItemModel item = items[index];
       final String month = item.date == null
           ? StringConstants.transactions
-          : monthFormat.format(item.date!);
+          : AppDateFormat.monthYear(item.date!);
 
       final bool firstInGroup = month != currentMonth;
       if (firstInGroup) {
@@ -401,7 +400,7 @@ class _TransactionHistoryViewState extends State<_TransactionHistoryView> {
           next == null ||
           (next.date == null
                   ? StringConstants.transactions
-                  : monthFormat.format(next.date!)) !=
+                  : AppDateFormat.monthYear(next.date!)) !=
               month;
       rows.add(
         _TransactionRow(

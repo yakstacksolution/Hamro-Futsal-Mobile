@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:hamro_futsal/core/date_time/app_date_format.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/app_utils.dart';
@@ -300,7 +301,7 @@ class _CourtTimeSlotSectionState extends State<CourtTimeSlotSection> {
                   ),
                   const SizedBox(height: AppDimens.sizeX4),
                   Text(
-                    '${date.day}',
+                    AppDateFormat.day(date),
                     style: FutsalTheme.getTextTheme(context).bodyTextLarge
                         ?.copyWith(
                           color: selected
@@ -348,28 +349,9 @@ class _CourtTimeSlotSectionState extends State<CourtTimeSlotSection> {
         date.year == now.year;
   }
 
-  String _dayName(DateTime date) {
-    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    return days[date.weekday - 1];
-  }
+  String _dayName(DateTime date) => AppDateFormat.weekdayShort(date);
 
-  String _monthName(DateTime date) {
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-    return months[date.month - 1];
-  }
+  String _monthName(DateTime date) => AppDateFormat.monthShort(date);
 }
 
 class _SlotLegend extends StatelessWidget {

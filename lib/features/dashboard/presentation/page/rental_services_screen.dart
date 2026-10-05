@@ -1,3 +1,4 @@
+import 'package:hamro_futsal/core/date_time/app_date_format.dart';
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
@@ -2253,20 +2254,6 @@ class _Fmt {
     final sameDay =
         d.year == now.year && d.month == now.month && d.day == now.day;
     if (sameDay) return '$h12:$m $p';
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-    return '${months[d.month - 1]} ${d.day} · $h12:$m $p';
+    return '${AppDateFormat.format(d, 'MMM d')} · $h12:$m $p';
   }
 }

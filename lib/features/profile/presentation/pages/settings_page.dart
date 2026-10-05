@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hamro_futsal/features/app_update/presentation/bloc/app_update_bloc.dart';
 import 'package:hamro_futsal/core/routers/app_router_params.dart';
+import 'package:hamro_futsal/core/date_time/app_calendar.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/app_utils.dart';
@@ -174,6 +175,15 @@ class _SettingsPageState extends State<SettingsPage> {
           trailingValue: _controller.themeModeLabel,
           onTap: _showThemePicker,
         ),
+        // The calendar itself (AD / BS) is chosen on the profile and saved
+        // as `use_nepali_calendar`; this only sets how BS dates are written.
+        _SettingsItem.nav(
+          icon: Icons.translate_rounded,
+          title: StringConstants.nepaliDateScript,
+          subtitle: StringConstants.nepaliDateScriptSubtitle,
+          trailingValue: AppCalendarController.instance.script.label,
+          onTap: _showCalendarScriptPicker,
+        ),
         _SettingsItem.nav(
           icon: Icons.language_rounded,
           title: StringConstants.language,
@@ -238,6 +248,19 @@ class _SettingsPageState extends State<SettingsPage> {
       labelFor: (String option) => option,
     );
     if (selected != null) _controller.setLanguage(selected);
+  }
+
+  Future<void> _showCalendarScriptPicker() async {
+    final AppCalendarController calendars = AppCalendarController.instance;
+    final CalendarScript? selected = await _showOptionSheet<CalendarScript>(
+      title: StringConstants.nepaliDateScript,
+      options: CalendarScript.values,
+      current: calendars.script,
+      labelFor: (CalendarScript script) => script.label,
+    );
+    if (selected == null || !mounted) return;
+    calendars.setScript(selected);
+    setState(() {});
   }
 
   Future<void> _showThemePicker() async {

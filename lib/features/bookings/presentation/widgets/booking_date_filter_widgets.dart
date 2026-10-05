@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hamro_futsal/core/date_time/app_date_format.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_text.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
@@ -945,8 +946,6 @@ class _SheetDateField extends StatelessWidget {
   final DateTime? value;
   final VoidCallback onTap;
 
-  static final DateFormat _format = DateFormat('d MMM yyyy');
-
   @override
   Widget build(BuildContext context) {
     final FutsalTextTheme textTheme = FutsalTheme.getTextTheme(context);
@@ -987,7 +986,9 @@ class _SheetDateField extends StatelessWidget {
                   const SizedBox(width: AppDimens.paddingX6),
                   Expanded(
                     child: Text(
-                      value == null ? 'Any' : _format.format(value!),
+                      value == null
+                          ? 'Any'
+                          : AppDateFormat.format(value!, 'd MMM yyyy'),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: textTheme.bodyTextSmall?.copyWith(

@@ -12,7 +12,7 @@ import 'package:hamro_futsal/features/expenses/presentation/models/expense_analy
 ///   payment_method = cash | online
 class ExpenseFilter extends Equatable {
   const ExpenseFilter({
-    this.period = ExpensePeriod.week,
+    this.period = ExpensePeriod.month,
     this.customRange,
     this.venueId,
     this.categoryId,

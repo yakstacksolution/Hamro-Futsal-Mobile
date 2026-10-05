@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:hamro_futsal/core/date_time/app_date_format.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/app_utils.dart';
@@ -187,15 +188,19 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
               ),
           ];
 
+    // The advance: its line, the price details, or what the per-session rows
+    // add up to. A quote with none of these leaves it unknown — never 0.
+    final double? advance =
+        _lineAmount(lines, 'advance_payable_now') ??
+        price?.advancePayableNow ??
+        effective?.itemsAdvance;
     return _Pricing(
       subtotal: _lineAmount(lines, 'subtotal') ?? price?.subtotal ?? 0,
       discount:
           _lineAmount(lines, 'discount_amount') ?? price?.discountAmount ?? 0,
       total: _lineAmount(lines, 'booking_total') ?? price?.bookingTotal ?? 0,
-      advance:
-          _lineAmount(lines, 'advance_payable_now') ??
-          price?.advancePayableNow ??
-          0,
+      advance: advance ?? 0,
+      advanceKnown: advance != null,
       balanceDue:
           _lineAmount(lines, 'balance_due_later') ??
           price?.balanceDueLater ??
@@ -203,7 +208,9 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
       hasCoupon: coupon.hasApplied,
       lines: lines,
       items: effective?.items ?? const <BookingSessionItemModel>[],
-      ready: price != null || lines.isNotEmpty,
+      // Ready once there is something to show: `price_details` with every
+      // figure missing used to count as ready and spin forever.
+      ready: lines.isNotEmpty,
     );
   }
 
@@ -647,8 +654,18 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
                           isLoading: qrState.isLoading,
                           fallbackPayeeName: _payeeName,
                           amountLabel: StringConstants.advanceToPay,
-                          amountValue:
-                              'Rs ${pricing.advance.toStringAsFixed(0)}',
+                          // Follows the hold: calculating while it is asked
+                          // for, the advance once known — never "Rs 0" for an
+                          // advance the quote did not give, and never a
+                          // spinner that cannot end.
+                          amountValue: pricing.ready && pricing.advanceKnown
+                              ? pricing.advanceText()
+                              : pricing.ready ||
+                                    holdState.status == BookingHoldStatus.held
+                              ? 'Confirmed by venue'
+                              : holdState.status == BookingHoldStatus.failure
+                              ? '—'
+                              : StringConstants.calculatingPrice,
                         );
                       },
                     ),
@@ -861,9 +878,7 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
                     ),
                     const SizedBox(height: AppDimens.sizeX2),
                     Text(
-                      pricing.ready
-                          ? 'Rs ${pricing.advance.toStringAsFixed(0)}'
-                          : '—',
+                      pricing.advanceText(),
                       style: textTheme.headingSubTitle?.copyWith(
                         color: LightColor.primaryTextColor,
                         fontWeight: FontWeight.w800,
@@ -937,9 +952,7 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage>
                 ),
                 const SizedBox(height: AppDimens.sizeX2),
                 Text(
-                  pricing.ready
-                      ? 'Rs ${pricing.advance.toStringAsFixed(0)}'
-                      : '—',
+                  pricing.advanceText(),
                   style: textTheme.headingSubTitle?.copyWith(
                     color: LightColor.primaryTextColor,
                     fontWeight: FontWeight.w800,
@@ -1515,24 +1528,43 @@ class _PriceBreakdown extends StatelessWidget {
     }
 
     if (!ready || lines.isEmpty) {
+      // While the slot is being held, the price the page already knows, so
+      // the section never sits empty behind a spinner.
       return _Surface(
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            const SizedBox(
-              width: AppDimens.sizeX18,
-              height: AppDimens.sizeX18,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: LightColor.secondaryColor,
+            if (estimatedTotal > 0) ...<Widget>[
+              _InfoRow(
+                label: 'Estimated total',
+                value: 'Rs ${estimatedTotal.toStringAsFixed(0)}',
+                emphasize: true,
               ),
-            ),
-            const SizedBox(width: AppDimens.sizeX12),
-            Text(
-              StringConstants.calculatingPrice,
-              style: textTheme.bodyTextSmall?.copyWith(
-                color: LightColor.secondaryTextColor,
-                fontWeight: FontWeight.w500,
-              ),
+              const SizedBox(height: AppDimens.sizeX10),
+            ],
+            Row(
+              children: <Widget>[
+                const SizedBox(
+                  width: AppDimens.sizeX14,
+                  height: AppDimens.sizeX14,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: LightColor.secondaryColor,
+                  ),
+                ),
+                const SizedBox(width: AppDimens.sizeX10),
+                Expanded(
+                  child: Text(
+                    estimatedTotal > 0
+                        ? 'Calculating the final price and advance…'
+                        : StringConstants.calculatingPrice,
+                    style: textTheme.bodyMiniSubTitle?.copyWith(
+                      color: LightColor.secondaryTextColor,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -2821,32 +2853,7 @@ class _BookingSuccessSheet extends StatelessWidget {
   }
 }
 
-String _dateLabel(DateTime date) {
-  const List<String> days = <String>[
-    'Mon',
-    'Tue',
-    'Wed',
-    'Thu',
-    'Fri',
-    'Sat',
-    'Sun',
-  ];
-  const List<String> months = <String>[
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-  return '${days[date.weekday - 1]}, ${date.day} ${months[date.month - 1]}';
-}
+String _dateLabel(DateTime date) => AppDateFormat.format(date, 'EEE, d MMM');
 
 /// The price figures shown across the page — taken verbatim from the server
 /// quote (`price_details` + `calculation_list`). Nothing is computed on device.
@@ -2856,6 +2863,7 @@ class _Pricing {
     required this.discount,
     required this.total,
     required this.advance,
+    this.advanceKnown = true,
     required this.balanceDue,
     required this.hasCoupon,
     required this.lines,
@@ -2867,6 +2875,14 @@ class _Pricing {
   final double discount;
   final double total;
   final double advance;
+
+  /// The quote said what the advance is. When it did not, [advance] is 0
+  /// only as a placeholder and must not be shown as "Rs 0".
+  final bool advanceKnown;
+
+  /// The advance as shown: `Rs 600`, or [pending] until it is known.
+  String advanceText({String pending = '—'}) =>
+      ready && advanceKnown ? 'Rs ${advance.toStringAsFixed(0)}' : pending;
   final double balanceDue;
   final bool hasCoupon;
 

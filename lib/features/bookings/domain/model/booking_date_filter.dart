@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:hamro_futsal/core/date_time/app_date_format.dart';
 import 'package:intl/intl.dart';
 
 /// How the futsal bookings list is narrowed by date.
@@ -115,7 +116,7 @@ final class BookingDateFilter extends Equatable {
   /// How the window reads in the summary strip.
   String get label => switch (mode) {
     BookingDateMode.all => 'All dates',
-    BookingDateMode.day => _dayFormat.format(anchor),
+    BookingDateMode.day => AppDateFormat.format(anchor, _dayPattern),
     BookingDateMode.month => _monthFormat.format(anchor),
     BookingDateMode.range => _rangeLabel,
   };
@@ -131,14 +132,17 @@ final class BookingDateFilter extends Equatable {
   String get _rangeLabel {
     if (from != null && to != null) {
       // A window inside one year does not need the year said twice.
-      final bool sameYear = from!.year == to!.year;
+      final bool sameYear =
+          AppDateFormat.year(from!) == AppDateFormat.year(to!);
       final String start = sameYear
-          ? _dayNoYearFormat.format(from!)
-          : _shortDayFormat.format(from!);
-      return '$start – ${_shortDayFormat.format(to!)}';
+          ? AppDateFormat.format(from!, _dayNoYearPattern)
+          : AppDateFormat.format(from!, _shortDayPattern);
+      return '$start – ${AppDateFormat.format(to!, _shortDayPattern)}';
     }
-    if (from != null) return 'From ${_shortDayFormat.format(from!)}';
-    return 'Until ${_shortDayFormat.format(to!)}';
+    if (from != null) {
+      return 'From ${AppDateFormat.format(from!, _shortDayPattern)}';
+    }
+    return 'Until ${AppDateFormat.format(to!, _shortDayPattern)}';
   }
 
   /// The date parameters this window contributes to a booking-list request.
@@ -167,9 +171,9 @@ final class BookingDateFilter extends Equatable {
   static DateTime _startOfDay(DateTime value) =>
       DateTime(value.year, value.month, value.day);
 
-  static final DateFormat _dayFormat = DateFormat('EEE, d MMM yyyy');
-  static final DateFormat _shortDayFormat = DateFormat('d MMM yyyy');
-  static final DateFormat _dayNoYearFormat = DateFormat('d MMM');
+  static const String _dayPattern = 'EEE, d MMM yyyy';
+  static const String _shortDayPattern = 'd MMM yyyy';
+  static const String _dayNoYearPattern = 'd MMM';
   static final DateFormat _monthFormat = DateFormat('MMMM yyyy');
 
   @override

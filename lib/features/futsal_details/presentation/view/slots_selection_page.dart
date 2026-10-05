@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hamro_futsal/core/date_time/app_date_format.dart';
 import 'package:hamro_futsal/core/routers/app_router_params.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
@@ -1592,32 +1593,7 @@ class _RecurringAvailabilityRow extends StatelessWidget {
   }
 }
 
-String _dateLabel(DateTime date) {
-  const List<String> months = <String>[
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-  const List<String> days = <String>[
-    'Mon',
-    'Tue',
-    'Wed',
-    'Thu',
-    'Fri',
-    'Sat',
-    'Sun',
-  ];
-  return '${days[date.weekday - 1]}, ${date.day} ${months[date.month - 1]}';
-}
+String _dateLabel(DateTime date) => AppDateFormat.format(date, 'EEE, d MMM');
 
 /// Small caption separating the available and unavailable date groups.
 class _AvailabilityGroupLabel extends StatelessWidget {

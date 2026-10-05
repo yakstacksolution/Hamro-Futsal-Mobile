@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hamro_futsal/core/date_time/app_date_format.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
 import 'package:hamro_futsal/core/utils/dimens.dart';
@@ -99,7 +100,8 @@ class BookingContextLine extends StatelessWidget {
   final int count;
   final int revenue;
 
-  /// Server-built line; used verbatim when present.
+  /// Server-built line; used verbatim when present in the English
+  /// calendar. Its dates are Gregorian, so the Nepali calendar builds its own.
   final String summaryLine;
 
   @override
@@ -113,9 +115,12 @@ class BookingContextLine extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(top: AppDimens.paddingX4),
       child: Text(
-        summaryLine.isNotEmpty
+        // The server writes its line with Gregorian dates; in the Nepali
+        // calendar the line is built here, from the same range, instead.
+        summaryLine.isNotEmpty && !AppDateFormat.isBs
             ? summaryLine
-            : '$label · $count bookings · ${BookingFmt.npr(revenue)}',
+            : '$label · $count ${count == 1 ? 'booking' : 'bookings'} · '
+                  '${BookingFmt.npr(revenue)}',
         style: textTheme.bodyTextSmall?.copyWith(
           color: LightColor.secondaryTextColor,
         ),

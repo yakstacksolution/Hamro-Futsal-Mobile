@@ -1566,6 +1566,36 @@ OpsWeekCell _weekCell(OpsCourtRow row, int start, int end, String? dayClosed) {
     if (c.start == start || hit == null) hit = c;
   }
   if (hit == null) return OpsWeekCell.none;
+  // A free window longer than one slot (a server slot of 06:00–19:00) shows
+  // in every row it covers. Tapping the 6 AM row must select 6–7 AM — what
+  // the row shows — not the whole window, or the booking comes out 6 AM to
+  // 7 PM.
+  final int slot = row.court.slotMinutes;
+  if (hit.kind != OpsCellKind.booked &&
+      hit.end - hit.start > slot &&
+      (hit.start < start || hit.end > end)) {
+    final int from = hit.start < start ? start : hit.start;
+    final int to = hit.end > end ? end : hit.end;
+    // The court's base price is per slot; failing that, this piece's share
+    // of the window's price. The hold's quote is still what is charged.
+    final double? base = row.court.basePrice;
+    final double? windowPrice = hit.price;
+    final double? price = base != null
+        ? base * (to - from) / slot
+        : windowPrice == null
+        ? null
+        : windowPrice * (to - from) / (hit.end - hit.start);
+    hit = OpsCell(
+      courtId: hit.courtId,
+      venueId: hit.venueId,
+      date: hit.date,
+      start: from,
+      end: to,
+      kind: hit.kind,
+      price: price?.roundToDouble(),
+      note: hit.note,
+    );
+  }
   return OpsWeekCell(
     kind: hit.kind,
     cell: hit,

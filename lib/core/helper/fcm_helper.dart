@@ -9,6 +9,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:hamro_futsal/core/api/api_client/result.dart';
 import 'package:hamro_futsal/core/api/manager/authmanager/auth_manager.dart';
+import 'package:hamro_futsal/core/firebase/firebase_platform_support.dart';
 import 'package:hamro_futsal/core/helper/share_preferences.dart';
 import 'package:hamro_futsal/core/routers/notification_redirection.dart';
 import 'package:hamro_futsal/firebase_options.dart';
@@ -25,6 +26,7 @@ const AndroidNotificationChannel _notificationChannel =
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  if (!FirebasePlatformSupport.messaging) return;
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   debugPrint('FCM background message: ${message.messageId}');
 
@@ -116,11 +118,7 @@ class FcmHelper {
   /// Firebase Messaging runs on Android, iOS and macOS only (Windows and
   /// Linux have no implementation), and only once Firebase is initialised.
   static bool get isPushSupported {
-    if (kIsWeb) return false;
-    if (!(Platform.isAndroid || Platform.isIOS || Platform.isMacOS)) {
-      return false;
-    }
-    return Firebase.apps.isNotEmpty;
+    return FirebasePlatformSupport.messaging && Firebase.apps.isNotEmpty;
   }
 
   bool _loggedUnsupported = false;

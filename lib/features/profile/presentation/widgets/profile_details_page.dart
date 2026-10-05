@@ -1,4 +1,6 @@
+import 'package:hamro_futsal/core/date_time/app_date_format.dart';
 import 'package:flutter/material.dart';
+import 'package:hamro_futsal/core/date_time/app_calendar.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hamro_futsal/core/theme/app_colors.dart';
 import 'package:hamro_futsal/core/theme/futsal_theme.dart';
@@ -12,7 +14,6 @@ import 'package:hamro_futsal/core/widgets/custom_date_picker.dart';
 import 'package:hamro_futsal/core/widgets/custom_dropdown_field.dart';
 import 'package:hamro_futsal/core/widgets/custom_text_field.dart';
 import 'package:hamro_futsal/core/widgets/loading_widget.dart';
-import 'package:intl/intl.dart';
 import 'package:hamro_futsal/features/media/presentation/widgets/media_library_sheet.dart';
 import 'package:hamro_futsal/features/profile/data/model/profile_model.dart';
 import 'package:hamro_futsal/features/profile/presentation/profile_bloc/profile_bloc.dart';
@@ -40,6 +41,9 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
   ];
 
   late String _selectedGender;
+
+  /// `use_nepali_calendar` — English (AD) is the default.
+  late bool _useNepaliCalendar;
   DateTime? _dateOfBirth;
   String? _avatarUrl;
   int? _avatarMediaId;
@@ -75,6 +79,7 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
 
     _syncedUser = user;
     _selectedGender = _resolvedGender(user);
+    _useNepaliCalendar = _resolvedUseNepaliCalendar(user);
     _dateOfBirth = user?.dateOfBirth;
     _avatarUrl = _resolvedAvatar(user);
 
@@ -82,7 +87,7 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
     _dobController = TextEditingController(
       text: _dateOfBirth == null
           ? ''
-          : DateFormat('dd MMM y').format(_dateOfBirth!),
+          : AppDateFormat.format(_dateOfBirth!, 'dd MMM y'),
     );
     _emailController = TextEditingController(
       text: _resolvedValue(user?.email, ''),
@@ -140,7 +145,7 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
     if (picked == null) return;
     setState(() {
       _dateOfBirth = picked;
-      _dobController.text = DateFormat('dd MMM y').format(picked);
+      _dobController.text = AppDateFormat.format(picked, 'dd MMM y');
     });
   }
 
@@ -182,6 +187,7 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
       address: _addressController.text.trim(),
       profilePhoto: _avatarMediaId?.toString(),
       profilePhotoUrl: _avatarMediaId == null ? null : _avatarUrl,
+      useNepaliCalendar: _useNepaliCalendar,
     );
   }
 
@@ -388,6 +394,11 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
                   label: StringConstants.gender,
                   value: _selectedGender,
                 ),
+                _DetailRow(
+                  icon: Icons.calendar_month_outlined,
+                  label: StringConstants.chooseCalendar,
+                  value: _calendarLabel(_useNepaliCalendar),
+                ),
               ]),
       ),
       const SizedBox(height: AppDimens.paddingX20),
@@ -523,8 +534,38 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
           setState(() => _selectedGender = value);
         },
       ),
+      const SizedBox(height: AppDimens.paddingX16),
+      CustomDropdownField<bool>(
+        key: const Key('personal-details-calendar-field'),
+        labelText: StringConstants.chooseCalendar,
+        icon: Icons.calendar_month_outlined,
+        hintText: StringConstants.chooseCalendar,
+        initialValue: _useNepaliCalendar,
+        items: <bool>[false, true]
+            .map(
+              (bool nepali) => DropdownMenuItem<bool>(
+                value: nepali,
+                child: Text(_calendarLabel(nepali)),
+              ),
+            )
+            .toList(),
+        enabled: _isEditing,
+        onChanged: (bool? value) {
+          if (value == null) return;
+          setState(() => _useNepaliCalendar = value);
+        },
+      ),
     ];
   }
+
+  static String _calendarLabel(bool useNepali) => useNepali
+      ? StringConstants.nepaliCalendar
+      : StringConstants.englishCalendar;
+
+  /// The profile's choice; before the server sends one, whatever the app is
+  /// using now (English unless chosen otherwise).
+  bool _resolvedUseNepaliCalendar(UserData? user) =>
+      user?.useNepaliCalendar ?? AppCalendarController.instance.value.isBs;
 
   List<Widget> _contactFields(BuildContext context) {
     return <Widget>[
@@ -596,12 +637,13 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
     _syncedUser = user;
     setState(() {
       _selectedGender = _resolvedGender(user);
+      _useNepaliCalendar = _resolvedUseNepaliCalendar(user);
       _dateOfBirth = user.dateOfBirth;
       _avatarUrl = _resolvedAvatar(user);
       _fullnameController.text = _resolvedFullName(user);
       _dobController.text = _dateOfBirth == null
           ? ''
-          : DateFormat('dd MMM y').format(_dateOfBirth!);
+          : AppDateFormat.format(_dateOfBirth!, 'dd MMM y');
       _emailController.text = _resolvedValue(user.email, '');
       _phoneController.text = _resolvedValue(user.phone, '');
       _addressController.text = _resolvedAddress(user);
